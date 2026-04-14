@@ -4,6 +4,7 @@ import ProductList from './ProductList'
 import BarcodeScanner from './BarcodeScanner'
 import AddProductForm from './AddProductForm'
 
+
 export type StoreCartItem = ProductApi & {
 	cartQuantity: number
 }
@@ -40,7 +41,7 @@ const BarcodePage = () => {
 		<Box p={6}>
 			<VStack gap={6} align="stretch">
 				<BarcodeScanner addToCart={addToCart} />
-				{/* <ProductList addToCart={addToCart} /> */}
+				<ProductList addToCart={addToCart} />
 				{/* <AddProductForm /> */}
 
 				{/* (optional) Cart Component later */}

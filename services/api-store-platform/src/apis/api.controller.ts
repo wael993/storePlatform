@@ -33,32 +33,17 @@ interface UserAPIFormat {
 	avatarColorId?: number
 }
 
-// interface ProductDocument {
-// 	_id?: string
-// 	name: string
-// 	id: string
-// 	barcode: string
-// 	price: number
-// 	description?: string
-// 	count: number
-// }
 interface APIResponse<T> {
 	totalCount: number
 	data: T[]
 }
-interface ProductResponse extends APIResponse<Comment> {}
+interface ProductResponse extends APIResponse<Comment> { }
 
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
 		private mongoDbClient: MongodbController,
-	) {}
-	// const data = await this.mongoDbClient.getDocuments({
-	// 	collectionName: COLLECTION_NAMES.PRODUCTS,
-	// 	filter,
-	// 	sort: { createdAt: 'desc' },
-	// })
-	// return { data: data.documents, totalCount: data.documents.length }
+	) { }
 
 	public async getProducts(requestContext: RequestContext) {
 		const filter: Filter<ProductDocument> = {}
@@ -80,7 +65,7 @@ export default class ProductController {
 		return user
 	}
 
-	public async login(requestBody: LoginData, response: express.Response) {
+	public async login(requestBody: LoginData) {
 		const { email: loginEmail, password: loginPassword } = requestBody
 
 		if (!loginEmail || !loginPassword) {
@@ -104,44 +89,84 @@ export default class ProductController {
 		if (!isValid) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Invalid password',
+				'Invalid credentials',
 			)
 		}
 
-		if (!config.jwtSecure) {
+		if (!config.jwtSecure || !config.refreshSecret) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Server error: JWT_SECRET is missing',
+				'Server configuration error',
 			)
 		}
 
-		// ✅ Generate token
-		const token = jwt.sign(
-			{
-				userId: user._id,
-				role: user.role,
-				firstName: user.user.firstName,
-				lastName: user.user.lastName,
-				isInternal: user.user.isInternal,
-			},
-			config.jwtSecure as string,
-			{ expiresIn: '2h' },
+		const accessToken = jwt.sign(
+			{ userId: user._id, role: user.role },
+			config.jwtSecure,
+			{ expiresIn: '15m' },
 		)
-		response.cookie('token', token, {
-			httpOnly: true,
-			secure: config.nodeEnv === 'dev', // Use secure cookies in production
-			sameSite: 'strict', // Improve security with SameSite cookie policy
-		})
 
-		// ✅ RETURN PURE DATA ONLY
+		const refreshToken = jwt.sign(
+			{ userId: user._id },
+			config.refreshSecret,
+			{ expiresIn: '7d' },
+		)
+
 		return {
-			token,
+			accessToken,
+			refreshToken,
 			userId: user._id,
 			email: user.email,
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
 			isInternal: user.user.isInternal,
+		}
+	}
+
+
+	public async refresh(req: express.Request) {
+		const token = req.cookies?.refreshToken
+
+		if (!token) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
+				'No refresh token',
+			)
+		}
+
+		try {
+			const payload = jwt.verify(token, config.refreshSecret as string) as jwt.JwtPayload
+
+			const user = await User.findById(payload.userId).lean()
+
+			if (!user) {
+				throw new AuthenticationError(
+					ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
+					'User not found',
+				)
+			}
+
+			const accessToken = jwt.sign(
+				{ userId: user._id, role: user.role },
+				config.jwtSecure as string,
+				{ expiresIn: '15m' },
+			)
+
+			const newRefreshToken = jwt.sign(
+				{ userId: user._id },
+				config.refreshSecret as string,
+				{ expiresIn: '7d' },
+			)
+
+			return { accessToken, refreshToken: newRefreshToken }
+		} catch (error) {
+			if (error instanceof AuthenticationError) throw error
+
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
+				'Invalid refresh token',
+			)
 		}
 	}
 

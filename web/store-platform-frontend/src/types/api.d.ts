@@ -89,7 +89,7 @@ interface ProductApi {
 }
 
 interface LoginAPI {
-	token: string
+	accessToken: string
 	userId: string
 	lastLogin: string
 	id: string

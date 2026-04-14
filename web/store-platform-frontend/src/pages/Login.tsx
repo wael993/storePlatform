@@ -37,11 +37,9 @@ const Login = () => {
 				throw new Error('No user returned')
 			}
 			dispatch(setCredentials(response)) // ✅ store user globally
-			const { token, role } = response
+			const { accessToken, role } = response
 
-			// ✅ store token
-
-			localStorage.setItem('token', token)
+			localStorage.setItem('accessToken', accessToken)
 
 			// ✅ safer role handling
 			if (role?._id) {

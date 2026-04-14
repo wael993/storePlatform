@@ -12,6 +12,7 @@ import { config } from '../config/config'
 
 export default class StoreRoutes extends PlatformValidator {
 	private startTime = 0
+	private readonly baseRoute = '/api/data'
 
 	private async authorizationValidator(
 		request: any,
@@ -68,7 +69,7 @@ export default class StoreRoutes extends PlatformValidator {
 	}
 
 	public setRoutes(app: express.Application): void {
-		const baseRoute = '/api/data'
+		const baseRoute = this.baseRoute
 
 		app.route(`${baseRoute}/products`).get(
 			this.startCalc.bind(this),
@@ -96,9 +97,12 @@ export default class StoreRoutes extends PlatformValidator {
 		app.route(`${baseRoute}/login`).post(
 			this.startCalc.bind(this),
 			logIncomingRequests.bind(this),
-			// this.authorizationValidator.bind(this),
-			// this.validatePostComment.bind(this),
 			this.login.bind(this),
+		)
+
+		app.route(`${baseRoute}/refresh`).post(
+			this.startCalc.bind(this),
+			this.refreshToken.bind(this),
 		)
 
 		app.get('/test', (req, res) => {
@@ -106,23 +110,41 @@ export default class StoreRoutes extends PlatformValidator {
 		})
 	}
 
+	private setRefreshTokenCookie(response: express.Response, refreshToken: string): void {
+		response.cookie('refreshToken', refreshToken, {
+			httpOnly: true,
+			secure: config.nodeEnv === 'production',
+			sameSite: 'strict',
+			path: `${this.baseRoute}/refresh`,
+			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+		})
+	}
+
 	private async login(request: any, response: express.Response): Promise<void> {
 		const requestBody: LoginData = request.body
 
 		try {
-			const resp = await this.productController.login(requestBody, response)
+			const { refreshToken, ...responseData } = await this.productController.login(requestBody)
 
-			// ✅ Set cookie HERE (not in controller)
-			response.cookie('token', resp.token, {
-				httpOnly: true,
-				secure: config.nodeEnv === 'production',
-				sameSite: 'strict',
-			})
+			this.setRefreshTokenCookie(response, refreshToken)
 
-			// ✅ Send clean JSON
-			response.status(201).json(resp)
+			response.status(200).json(responseData)
 		} catch (error: any) {
 			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async refreshToken(request: any, response: express.Response): Promise<void> {
+		try {
+			const { refreshToken, ...responseData } = await this.productController.refresh(request)
+
+			this.setRefreshTokenCookie(response, refreshToken)
+
+			response.status(200).json(responseData)
+		} catch (error: any) {
+			handleError(error, 401, response)
 		} finally {
 			this.stopCalc()
 		}

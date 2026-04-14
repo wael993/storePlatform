@@ -99,6 +99,8 @@ const getQuery = (
 			query: ({ body }) => ({
 				url: 'login',
 				method: 'POST',
+				credentials: 'include', // 🔥 IMPORTANT
+  				headers: { 'Content-Type': 'application/json' },
 				body,
 			}),
 
