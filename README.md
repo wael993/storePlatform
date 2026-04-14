@@ -1,1 +1,2 @@
 # storePlatform
+new test
