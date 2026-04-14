@@ -1,0 +1,39 @@
+const ERROR_CODES = {
+	GLOBAL: {
+		GLOBAL_UNKNOWN_ERROR: 'GLOBAL_UNKNOWN_ERROR' as const,
+	},
+	BUSINESS_LOGIC: {
+		INVALID_PRODUCT_ID: 'INVALID_PRODUCT_ID' as const,
+		INVALID_PRODUCT_NAME: 'INVALID_PRODUCT_NAME' as const,
+		INVALID_PRODUCT_PRICE: 'INVALID_PRODUCT_PRICE' as const,
+		GENERAL_BUSINESS_LOGIC_ERROR: 'GENERAL_BUSINESS_LOGIC_ERROR' as const,
+	},
+
+	AUTHORIZATION: {
+		FORBIDDEN: 'FORBIDDEN' as const,
+		NO_BEARER_TOKEN: 'NO_BEARER_TOKEN' as const,
+	},
+	VALIDATION: {
+		REQUIRED_FIELD_MISSING: 'REQUIRED_FIELD_MISSING' as const,
+		FIELD_IN_NOT_VALID_FORMAT: 'FIELD_IN_NOT_VALID_FORMAT' as const,
+	},
+	DOCUMENTS: {
+		DOCUMENT_READ_ERROR: 'DOCUMENT_READ_ERROR' as const,
+		DOCUMENT_CREATE_ERROR: 'DOCUMENT_CREATE_ERROR' as const,
+		DOCUMENT_UPDATE_ERROR: 'DOCUMENT_UPDATE_ERROR' as const,
+		DOCUMENT_DELETE_ERROR: 'DOCUMENT_DELETE_ERROR' as const,
+	},
+}
+type AuthorizationErrors = keyof typeof ERROR_CODES.AUTHORIZATION
+type ValidationErrors = keyof typeof ERROR_CODES.VALIDATION
+type BusinessLogicErrors = keyof typeof ERROR_CODES.BUSINESS_LOGIC
+type GlobalErrors = keyof typeof ERROR_CODES.GLOBAL
+type DocumentsErrors = keyof typeof ERROR_CODES.DOCUMENTS
+
+type ErrorCodes =
+	| GlobalErrors
+	| BusinessLogicErrors
+	| AuthorizationErrors
+	| ValidationErrors
+	| DocumentsErrors
+export { ERROR_CODES, ErrorCodes }

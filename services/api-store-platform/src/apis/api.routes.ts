@@ -1,0 +1,215 @@
+import express, { NextFunction } from 'express'
+import { Application } from 'express'
+import ProductController from './api.controller'
+import { PlatformValidator } from './api.validator'
+import logger from '../shared/logger/logger'
+import { logIncomingRequests } from '../shared/middleware'
+import ActivityAuthorization from './api.authorize'
+import { handleError } from '../middleware/errorHandler'
+import { ProductRequestBody, RequestContext } from '../shared/types'
+import { LoginData, LoginRequestBody } from '../shared/types/api'
+import { config } from '../config/config'
+
+export default class StoreRoutes extends PlatformValidator {
+	private startTime = 0
+
+	private async authorizationValidator(
+		request: any,
+		response: express.Response,
+		next: express.NextFunction,
+	): Promise<void> {
+		try {
+			const activityAuthorization = new ActivityAuthorization(
+				this.productController,
+			)
+
+			await activityAuthorization.authorizationValidator(
+				request,
+				response,
+				next,
+			)
+		} catch (error: any) {
+			handleError(error, 403, response)
+		}
+	}
+
+	private startCalc(
+		_request: any,
+		_: express.Response,
+		next: express.NextFunction,
+	) {
+		this.startTime = Date.now()
+		next()
+	}
+
+	private stopCalc(): void {
+		const duration = Date.now() - this.startTime
+
+		logger.info(`(end-to-end): ${duration}ms`)
+	}
+
+	private getRequestContext(request: any): RequestContext {
+		const requestContext: RequestContext = {
+			authorization: request.headers.authorization,
+			cookie: request.headers.cookie,
+			userId: request.user?.userId,
+			user: request.user,
+			userVendorId: request.userVendorId,
+			activityId: request.activityId,
+			activityVendorId: request.activityVendorId,
+			allowedFields: request.allowedFields,
+		}
+
+		return requestContext
+	}
+
+	public constructor(private productController: ProductController) {
+		super()
+	}
+
+	public setRoutes(app: express.Application): void {
+		const baseRoute = '/api/data'
+
+		app.route(`${baseRoute}/products`).get(
+			this.startCalc.bind(this),
+			logIncomingRequests.bind(this),
+			this.authorizationValidator.bind(this),
+			// this.validateGetProducts.bind(this),
+			this.getProducts.bind(this),
+		)
+
+		app.route(`${baseRoute}/product`).post(
+			this.startCalc.bind(this),
+			logIncomingRequests.bind(this),
+			this.authorizationValidator.bind(this),
+			// this.validateGetProducts.bind(this),
+			this.postProduct.bind(this),
+		)
+
+		app.route(`${baseRoute}/products/:id`).get(
+			this.startCalc.bind(this),
+			logIncomingRequests.bind(this),
+			this.authorizationValidator.bind(this),
+			//  this.validateGetProducts.bind(this),
+			this.getProduct.bind(this),
+		)
+		app.route(`${baseRoute}/login`).post(
+			this.startCalc.bind(this),
+			logIncomingRequests.bind(this),
+			// this.authorizationValidator.bind(this),
+			// this.validatePostComment.bind(this),
+			this.login.bind(this),
+		)
+
+		app.get('/test', (req, res) => {
+			res.send('OK')
+		})
+	}
+
+	private async login(request: any, response: express.Response): Promise<void> {
+		const requestBody: LoginData = request.body
+
+		try {
+			const resp = await this.productController.login(requestBody, response)
+
+			// ✅ Set cookie HERE (not in controller)
+			response.cookie('token', resp.token, {
+				httpOnly: true,
+				secure: config.nodeEnv === 'production',
+				sameSite: 'strict',
+			})
+
+			// ✅ Send clean JSON
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getProducts(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const user = request.user
+
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getProducts(requestContext)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postProduct(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestBody: ProductRequestBody = request.body
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.postProduct(
+				requestBody,
+				requestContext,
+			)
+
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getProduct(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const productId = request.params.id
+
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getProduct(
+				productId,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchProduct(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const productId = request.params.id
+		const requestBody = request.body
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.patchProduct(
+				productId,
+				requestBody,
+				requestContext,
+			)
+
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+}
