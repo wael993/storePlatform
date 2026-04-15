@@ -1,13 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 interface AuthState {
-	user: LoginAPI | null
-	token: string | null
+	user: Omit<LoginAPI, 'accessToken'> | null
+	accessToken: string | null
+	isAuthenticated: boolean
 }
 
 const initialState: AuthState = {
 	user: null,
-	token: localStorage.getItem('accessToken'),
+	accessToken: null,
+	isAuthenticated: false,
 }
 
 const authSlice = createSlice({
@@ -15,17 +17,21 @@ const authSlice = createSlice({
 	initialState,
 	reducers: {
 		setCredentials: (state, action: PayloadAction<LoginAPI>) => {
-			state.user = action.payload
-			state.token = action.payload.accessToken
+			const { accessToken, ...userData } = action.payload
+			state.user = userData
+			state.accessToken = accessToken
+			state.isAuthenticated = true
+		},
+		setAccessToken: (state, action: PayloadAction<string>) => {
+			state.accessToken = action.payload
 		},
 		logout: state => {
 			state.user = null
-			state.token = null
-			localStorage.removeItem('accessToken')
-			localStorage.removeItem('role')
+			state.accessToken = null
+			state.isAuthenticated = false
 		},
 	},
 })
 
-export const { setCredentials, logout } = authSlice.actions
+export const { setCredentials, setAccessToken, logout } = authSlice.actions
 export default authSlice.reducer

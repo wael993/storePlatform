@@ -30,25 +30,41 @@ const Login = () => {
 		e.preventDefault()
 		setError('')
 
+		// Client-side validation
+		if (!email) {
+			setError('Please enter your email address.')
+			return
+		}
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+		if (!emailRegex.test(email)) {
+			setError('Please provide a valid email address (e.g. user@example.com).')
+			return
+		}
+		if (!password || password.length < 8) {
+			setError('Password must be at least 8 characters.')
+			return
+		}
+
 		try {
 			const response = await login({ body: { email, password } }).unwrap()
 
 			if (!response) {
 				throw new Error('No user returned')
 			}
-			dispatch(setCredentials(response)) // ✅ store user globally
-			const { accessToken, role } = response
+			dispatch(setCredentials(response))
 
-			localStorage.setItem('accessToken', accessToken)
-
-			// ✅ safer role handling
-			if (role?._id) {
-				localStorage.setItem('role', role._id)
-			}
-
-			navigate('/barcode', { state: { role } })
+			navigate('/barcode', { state: { role: response.role } })
 		} catch (err: any) {
-			setError(err?.response?.data?.message || 'Invalid email or password')
+			const status = err?.status
+			if (status === 429) {
+				setError('Too many login attempts. Please try again after 1 minute.')
+			} else if (status === 401) {
+				setError('Invalid email or password.')
+			} else if (status === 403) {
+				setError('Access forbidden.')
+			} else {
+				setError(err?.data?.message || 'Invalid email or password.')
+			}
 		}
 	}
 

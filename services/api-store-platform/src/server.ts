@@ -1,12 +1,14 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import connectDB from './db/db'
 import { config } from './config/config'
-import { errorHandler } from './middleware/errorHandler' // Import the function
+import { errorHandler } from './middleware/errorHandler' 
 import ProductController from './apis/api.controller'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
+import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
 
 const mongoDbClient = new MongodbController()
 const productsMapper = new ProductsMapper()
@@ -16,6 +18,7 @@ const storeRoutes = new StoreRoutes(productController)
 const app = express()
 
 app.use(express.json())
+app.use(cookieParser())
 
 app.use(
 	cors({
@@ -27,13 +30,10 @@ app.use(errorHandler)
 
 connectDB()
 
-// console.log('test');
+ startTokenCleanupCron()
+
+
 storeRoutes.setRoutes(app)
-
-// PlatformRoutes.setRoutes(app)
-// storeRoutes.setRoutes(app)
-
-//app.use( PlatformRoutes);
 
 const gracefulShutdown = () => {
 	console.log('Shutting down server...')

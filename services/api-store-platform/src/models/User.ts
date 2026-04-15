@@ -7,6 +7,7 @@ interface IUser extends Document {
 	email: string
 	password: string
 	role: 'admin' | 'editor'
+	tokenVersion: number
 	avatarColorId: number
 	createdAt: Date
 	updatedAt: Date
@@ -73,6 +74,10 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
 			type: String,
 			enum: ['admin', 'editor'],
 			default: 'editor',
+		},
+		tokenVersion: {
+			type: Number,
+			default: 0,
 		},
 
 		avatarColorId: {

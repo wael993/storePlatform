@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import { config } from '../config/config'
 import express, { NextFunction, request } from 'express'
@@ -10,6 +11,7 @@ import {
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
 import User from '../models/User'
+import RefreshToken from '../models/RefreshToken'
 import { COLLECTION_NAMES } from '../shared/constants.ts/general'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger from '../shared/logger/logger'
@@ -24,6 +26,7 @@ import { ObjectId, Sort, type Filter } from 'mongodb'
 import { LoginData, LoginRequestBody } from '../shared/types/api'
 import { v4 as uuidv4 } from 'uuid'
 import ProductsMapper from './mappings/ProductsMapper'
+import { validateEmail, validatePasswordStrength } from '../utils/authValidation'
 
 interface UserAPIFormat {
 	_id: string
@@ -57,60 +60,134 @@ export default class ProductController {
 			throw error
 		}
 	}
-	public async validateUser(request: any, token: string) {
-		const decoded = jwt.verify(token, config.jwtSecure)
-
-		const user = (request.user = decoded)
-
-		return user
+	private hashToken(token: string): string {
+		return crypto.createHash('sha256').update(token).digest('hex')
 	}
 
-	public async login(requestBody: LoginData) {
-		const { email: loginEmail, password: loginPassword } = requestBody
+	private getClientInfo(req: express.Request): { ip: string; userAgent: string } {
+		const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+			|| req.socket.remoteAddress
+			|| 'unknown'
+		const userAgent = req.headers['user-agent'] || 'unknown'
+		return { ip, userAgent }
+	}
 
-		if (!loginEmail || !loginPassword) {
-			throw new AuthorizationError(
-				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Email or password missing',
+	private generateAccessToken(user: { _id: any; role: string; tokenVersion: number }): string {
+		return jwt.sign(
+			{ userId: user._id, role: user.role, tokenVersion: user.tokenVersion },
+			config.jwtSecure as string,
+			{ expiresIn: '15m' },
+		)
+	}
+
+	private async createAndStoreRefreshToken(
+		userId: string,
+		ip: string,
+		userAgent: string,
+	): Promise<string> {
+		const rawToken = crypto.randomBytes(64).toString('hex')
+		const tokenHash = this.hashToken(rawToken)
+		const expiresAt = new Date(Date.now() + config.refreshTokenTTLDays * 24 * 60 * 60 * 1000)
+
+		await RefreshToken.create({ userId, tokenHash, ip, userAgent, expiresAt })
+
+		return rawToken
+	}
+
+	public async validateUser(request: any, token: string) {
+		const decoded = jwt.verify(token, config.jwtSecure) as jwt.JwtPayload
+
+		const user = await User.findById(decoded.userId).lean()
+		if (!user) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'User not found',
 			)
 		}
 
+		if (decoded.tokenVersion !== user.tokenVersion) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.TOKEN_EXPIRED,
+				'Token has been revoked. Please log in again.',
+			)
+		}
+
+		request.user = decoded
+		return decoded
+	}
+
+	public async login(requestBody: LoginData, req: express.Request) {
+		const { email: loginEmail, password: loginPassword } = requestBody
+		const { ip, userAgent } = this.getClientInfo(req)
+
+		// --- Input validation ---
+		if (!loginEmail || !loginPassword) {
+			logger.warn('Login attempt with missing fields', { ip })
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Email and password are required.',
+			)
+		}
+
+		const emailError = validateEmail(loginEmail)
+		if (emailError) {
+			logger.warn('Login attempt with invalid email format', { ip, email: loginEmail })
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
+				emailError,
+			)
+		}
+
+		const passwordError = validatePasswordStrength(loginPassword)
+		if (passwordError) {
+			logger.warn('Login attempt with weak password', { ip })
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.WEAK_PASSWORD,
+				passwordError,
+			)
+		}
+
+		// --- Authentication ---
 		const user = await User.findOne({ email: loginEmail }).lean()
 
 		if (!user) {
+			logger.warn('Failed login: user not found', { ip, email: loginEmail })
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'User not found',
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'Invalid email or password.',
 			)
 		}
 
 		const isValid = await bcrypt.compare(loginPassword, user.password)
 
 		if (!isValid) {
+			logger.warn('Failed login: wrong password', { ip, userId: user._id })
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Invalid credentials',
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'Invalid email or password.',
 			)
 		}
 
 		if (!config.jwtSecure || !config.refreshSecret) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Server configuration error',
+				'Server configuration error.',
 			)
 		}
 
-		const accessToken = jwt.sign(
-			{ userId: user._id, role: user.role },
-			config.jwtSecure,
-			{ expiresIn: '15m' },
+		// --- Token generation ---
+		const accessToken = this.generateAccessToken(user)
+		const refreshToken = await this.createAndStoreRefreshToken(
+			user._id.toString(),
+			ip,
+			userAgent,
 		)
 
-		const refreshToken = jwt.sign(
-			{ userId: user._id },
-			config.refreshSecret,
-			{ expiresIn: '7d' },
-		)
+		logger.info('Successful login', {
+			userId: user._id,
+			ip,
+			userAgent,
+		})
 
 		return {
 			accessToken,
@@ -124,50 +201,111 @@ export default class ProductController {
 		}
 	}
 
-
 	public async refresh(req: express.Request) {
-		const token = req.cookies?.refreshToken
+		const rawToken = req.cookies?.refreshToken
+		const { ip, userAgent } = this.getClientInfo(req)
 
-		if (!token) {
+		if (!rawToken) {
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'No refresh token',
+				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
+				'No refresh token provided.',
 			)
 		}
 
-		try {
-			const payload = jwt.verify(token, config.refreshSecret as string) as jwt.JwtPayload
+		const tokenHash = this.hashToken(rawToken)
 
-			const user = await User.findById(payload.userId).lean()
+		// Find and delete the used token atomically (rotation)
+		const storedToken = await RefreshToken.findOneAndDelete({ tokenHash })
+		console.log("🚀 ~ ProductController ~ refresh ~ storedToken:", storedToken)
 
-			if (!user) {
-				throw new AuthenticationError(
-					ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-					'User not found',
-				)
-			}
-
-			const accessToken = jwt.sign(
-				{ userId: user._id, role: user.role },
-				config.jwtSecure as string,
-				{ expiresIn: '15m' },
-			)
-
-			const newRefreshToken = jwt.sign(
-				{ userId: user._id },
-				config.refreshSecret as string,
-				{ expiresIn: '7d' },
-			)
-
-			return { accessToken, refreshToken: newRefreshToken }
-		} catch (error) {
-			if (error instanceof AuthenticationError) throw error
-
+		if (!storedToken) {
+			// Token reuse detected — possible theft. Revoke all tokens for this user.
+			logger.warn('Refresh token reuse detected — revoking all sessions', { ip })
+			// We can't identify the user from an invalid token, so just reject.
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Invalid refresh token',
+				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
+				'Invalid refresh token. Please log in again.',
 			)
 		}
+
+		if (storedToken.expiresAt < new Date()) {
+			logger.warn('Expired refresh token used', { userId: storedToken.userId, ip })
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.TOKEN_EXPIRED,
+				'Refresh token has expired. Please log in again.',
+			)
+		}
+
+		const user = await User.findById(storedToken.userId).lean()
+
+		if (!user) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'User not found.',
+			)
+		}
+
+		// Log IP change
+		if (storedToken.ip !== ip) {
+			logger.warn('IP address changed during refresh', {
+				userId: user._id,
+				previousIp: storedToken.ip,
+				newIp: ip,
+			})
+		}
+
+		// Issue new token pair
+		const accessToken = this.generateAccessToken(user)
+		const newRefreshToken = await this.createAndStoreRefreshToken(
+			user._id.toString(),
+			ip,
+			userAgent,
+		)
+
+		logger.info('Token refreshed', { userId: user._id, ip })
+
+		return { accessToken, refreshToken: newRefreshToken }
+	}
+
+	public async logout(req: express.Request) {
+		const rawToken = req.cookies?.refreshToken
+		if (!rawToken) return
+
+		const tokenHash = this.hashToken(rawToken)
+		const deleted = await RefreshToken.findOneAndDelete({ tokenHash })
+
+		if (deleted) {
+			logger.info('User logged out (current device)', { userId: deleted.userId })
+		}
+	}
+
+	public async logoutAll(req: express.Request) {
+		const rawToken = req.cookies?.refreshToken
+		if (!rawToken) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
+				'No refresh token provided.',
+			)
+		}
+
+		const tokenHash = this.hashToken(rawToken)
+		const storedToken = await RefreshToken.findOne({ tokenHash })
+
+		if (!storedToken) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
+				'Invalid refresh token.',
+			)
+		}
+
+		const result = await RefreshToken.deleteMany({ userId: storedToken.userId })
+
+		logger.info('User logged out from all devices', {
+			userId: storedToken.userId,
+			sessionsRevoked: result.deletedCount,
+		})
+
+		return { sessionsRevoked: result.deletedCount }
 	}
 
 	public async getProduct(

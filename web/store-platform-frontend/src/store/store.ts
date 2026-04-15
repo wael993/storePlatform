@@ -9,11 +9,19 @@ import storage from 'redux-persist/lib/storage'
 const persistConfig = {
 	key: 'root',
 	storage,
-	whitelist: ['user'], // ✅ only persist user slice
-	blacklist: [userApi.reducerPath, storePlatformApi.reducerPath], // ✅ add this
+	whitelist: ['user'],
+	blacklist: [userApi.reducerPath, storePlatformApi.reducerPath],
 }
+
+// Don't persist accessToken — it lives only in memory
+const userPersistConfig = {
+	key: 'user',
+	storage,
+	blacklist: ['accessToken'],
+}
+
 const rootReducer = combineReducers({
-	user: userReducer,
+	user: persistReducer(userPersistConfig, userReducer),
 	[userApi.reducerPath]: userApi.reducer,
 	[storePlatformApi.reducerPath]: storePlatformApi.reducer,
 })

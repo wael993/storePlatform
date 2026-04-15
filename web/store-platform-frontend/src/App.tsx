@@ -9,17 +9,19 @@ import SelectContent from './pages/SelectedContent'
 import BarcodePage from './pages/BarcodePage'
 import { useSelector } from 'react-redux'
 import { RootState } from './store/store'
+import { useSilentRefresh } from './shared/useSilentRefresh'
 
 const App = () => {
-	// const token = localStorage.getItem('token')
-	const token = useSelector((state: RootState) => state.user.token)
+	const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated)
+	useSilentRefresh()
+
 	return (
 		<Router>
 			<Routes>
 				<Route path="/login" element={<Login />} />
 
 				{/* Protected routes */}
-				<Route element={<ProtectedRoute token={token} />}>
+				<Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
 					<Route path="/" element={<Home />} />
 					<Route path="/barcode" element={<BarcodePage />} />
 					<Route path="/dashboard" element={<EditorDashboard />} />

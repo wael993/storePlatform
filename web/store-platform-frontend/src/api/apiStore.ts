@@ -2,7 +2,6 @@ import { EndpointBuilder } from '@reduxjs/toolkit/query'
 import {
 	FetchArgs,
 	FetchBaseQueryError,
-	FetchBaseQueryMeta,
 } from '@reduxjs/toolkit/query'
 import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
@@ -23,9 +22,7 @@ const getQuery = (
 		BaseQueryFn<
 			string | FetchArgs,
 			unknown,
-			FetchBaseQueryError,
-			{},
-			FetchBaseQueryMeta
+			FetchBaseQueryError
 		>,
 		TagType,
 		'storePlatformAPI'
@@ -99,8 +96,8 @@ const getQuery = (
 			query: ({ body }) => ({
 				url: 'login',
 				method: 'POST',
-				credentials: 'include', // 🔥 IMPORTANT
-  				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
 				body,
 			}),
 
@@ -110,6 +107,22 @@ const getQuery = (
 				}
 				return response
 			},
+		}),
+
+		logoutCurrent: builder.mutation<void, void>({
+			query: () => ({
+				url: 'logout',
+				method: 'POST',
+				credentials: 'include',
+			}),
+		}),
+
+		logoutAll: builder.mutation<{ sessionsRevoked: number }, void>({
+			query: () => ({
+				url: 'logout-all',
+				method: 'POST',
+				credentials: 'include',
+			}),
 		}),
 	}
 }
@@ -126,4 +139,6 @@ export const {
 	useDeleteProductMutation,
 	usePostProductMutation,
 	useLoginMutation,
+	useLogoutCurrentMutation,
+	useLogoutAllMutation,
 } = storeApi

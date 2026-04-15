@@ -9,6 +9,7 @@ import { handleError } from '../middleware/errorHandler'
 import { ProductRequestBody, RequestContext } from '../shared/types'
 import { LoginData, LoginRequestBody } from '../shared/types/api'
 import { config } from '../config/config'
+// import { loginRateLimiter, refreshRateLimiter } from '../middleware/rateLimiter'
 
 export default class StoreRoutes extends PlatformValidator {
 	private startTime = 0
@@ -95,14 +96,26 @@ export default class StoreRoutes extends PlatformValidator {
 			this.getProduct.bind(this),
 		)
 		app.route(`${baseRoute}/login`).post(
+			// loginRateLimiter,
 			this.startCalc.bind(this),
 			logIncomingRequests.bind(this),
 			this.login.bind(this),
 		)
 
 		app.route(`${baseRoute}/refresh`).post(
+			// refreshRateLimiter,
 			this.startCalc.bind(this),
 			this.refreshToken.bind(this),
+		)
+
+		app.route(`${baseRoute}/logout`).post(
+			this.startCalc.bind(this),
+			this.logout.bind(this),
+		)
+
+		app.route(`${baseRoute}/logout-all`).post(
+			this.startCalc.bind(this),
+			this.logoutAll.bind(this),
 		)
 
 		app.get('/test', (req, res) => {
@@ -115,8 +128,17 @@ export default class StoreRoutes extends PlatformValidator {
 			httpOnly: true,
 			secure: config.nodeEnv === 'production',
 			sameSite: 'strict',
-			path: `${this.baseRoute}/refresh`,
-			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+			path: this.baseRoute,
+			maxAge: config.refreshTokenTTLDays * 24 * 60 * 60 * 1000,
+		})
+	}
+
+	private clearRefreshTokenCookie(response: express.Response): void {
+		response.clearCookie('refreshToken', {
+			httpOnly: true,
+			secure: config.nodeEnv === 'production',
+			sameSite: 'strict',
+			path: this.baseRoute,
 		})
 	}
 
@@ -124,13 +146,13 @@ export default class StoreRoutes extends PlatformValidator {
 		const requestBody: LoginData = request.body
 
 		try {
-			const { refreshToken, ...responseData } = await this.productController.login(requestBody)
+			const { refreshToken, ...responseData } = await this.productController.login(requestBody, request)
 
 			this.setRefreshTokenCookie(response, refreshToken)
 
 			response.status(200).json(responseData)
 		} catch (error: any) {
-			handleError(error, 409, response)
+			handleError(error, error.httpStatus || 400, response)
 		} finally {
 			this.stopCalc()
 		}
@@ -144,7 +166,32 @@ export default class StoreRoutes extends PlatformValidator {
 
 			response.status(200).json(responseData)
 		} catch (error: any) {
+			this.clearRefreshTokenCookie(response)
 			handleError(error, 401, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async logout(request: any, response: express.Response): Promise<void> {
+		try {
+			await this.productController.logout(request)
+			this.clearRefreshTokenCookie(response)
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 500, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async logoutAll(request: any, response: express.Response): Promise<void> {
+		try {
+			const result = await this.productController.logoutAll(request)
+			this.clearRefreshTokenCookie(response)
+			response.status(200).json(result)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 401, response)
 		} finally {
 			this.stopCalc()
 		}

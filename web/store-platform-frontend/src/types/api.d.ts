@@ -91,12 +91,11 @@ interface ProductApi {
 interface LoginAPI {
 	accessToken: string
 	userId: string
-	lastLogin: string
-	id: string
 	email: string
 	firstName: string
 	lastName: string
 	role: UserRole
+	isInternal: boolean
 }
 interface UserRole {
 	_id: string
