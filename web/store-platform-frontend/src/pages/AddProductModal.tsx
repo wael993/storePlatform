@@ -11,7 +11,14 @@ import {
 import { useState, useEffect } from 'react'
 import { usePostProductMutation } from '../api/apiStore'
 
-const AddProductModal = ({ isOpen, onClose, barcode }: any) => {
+interface AddProductModalProps {
+	isOpen: boolean
+	onClose: () => void
+	barcode: string
+	onSuccess?: () => void
+}
+
+const AddProductModal = ({ isOpen, onClose, barcode, onSuccess }: AddProductModalProps) => {
 	const [postNewProduct, { isLoading }] = usePostProductMutation()
 
 	const [form, setForm] = useState({
@@ -35,16 +42,20 @@ const AddProductModal = ({ isOpen, onClose, barcode }: any) => {
 	}
 
 	const handleSubmit = async () => {
-		console.log('Create product:', form)
-
 		await postNewProduct({
 			id: form.id,
 			name: form.name,
 			barcode: form.barcode,
 			price: Number(form.price),
-			count: Number(form.price),
+			count: Number(form.count),
 			description: form.description,
 		}).unwrap()
+
+		if (onSuccess) {
+			onSuccess()
+			return
+		}
+
 		onClose()
 	}
 
@@ -78,7 +89,7 @@ const AddProductModal = ({ isOpen, onClose, barcode }: any) => {
 						/>
 						<Input value={form.barcode} isReadOnly />
 
-						<Button colorScheme="green" onClick={handleSubmit}>
+						<Button colorScheme="green" onClick={handleSubmit} isLoading={isLoading}>
 							Save Product
 						</Button>
 					</VStack>

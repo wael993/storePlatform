@@ -1,5 +1,6 @@
 import {
 	Input,
+	Button,
 	Spinner,
 	Box,
 	Text,
@@ -12,6 +13,7 @@ import {
 } from '@chakra-ui/react'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useGetSingleProductQuery } from '../api/apiStore'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import ProductModal from './ProductModal'
 import AddProductModal from './AddProductModal'
 
@@ -22,6 +24,7 @@ interface BarcodeScannerProps {
 const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 	const [barcodeInput, setBarcodeInput] = useState('')
 	const [searchBarcode, setSearchBarcode] = useState('')
+	const [pendingBarcode, setPendingBarcode] = useState('')
 	const [error, setError] = useState<string | null>(null)
 
 	const inputRef = useRef<HTMLInputElement>(null)
@@ -48,6 +51,26 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 		refetchOnMountOrArgChange: false,
 	})
 
+	const getQueryErrorMessage = useCallback((apiError: unknown): string => {
+		const fallback = 'Product not found'
+		if (!apiError) return fallback
+
+		const errorObj = apiError as FetchBaseQueryError & {
+			data?: { message?: string }
+			error?: string
+		}
+
+		if (typeof errorObj.data === 'object' && errorObj.data?.message) {
+			return errorObj.data.message
+		}
+
+		if (typeof errorObj.error === 'string' && errorObj.error.trim()) {
+			return errorObj.error
+		}
+
+		return fallback
+	}, [])
+
 	// Auto-focus on mount
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -62,28 +85,12 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 
 		if (isSuccess) {
 			setError(null)
-			if (product && product._id) {
+			if (product) {
 				// Product exists - show product modal
 				onProductModalPreviewOpen()
 			}
 		}
 	}, [isSuccess, product, searchBarcode, onProductModalPreviewOpen])
-
-	// Handle API errors
-	useEffect(() => {
-		if (isQueryError && searchBarcode) {
-			const errorMessage =
-				(queryError as any)?.data?.message || 'Product not found'
-			setError(errorMessage)
-
-			// Clear search barcode and error after delay
-			const timer = setTimeout(() => {
-				setSearchBarcode('')
-				setError(null)
-			}, 3000)
-			return () => clearTimeout(timer)
-		}
-	}, [isQueryError, searchBarcode, queryError])
 
 	const handleScan = useCallback(() => {
 		const code = barcodeInput.trim()
@@ -101,6 +108,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 
 		// Reset states before new search
 		setError(null)
+		setPendingBarcode(code)
 		setSearchBarcode(code)
 		setBarcodeInput('')
 	}, [barcodeInput, isFetching])
@@ -135,6 +143,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 	const handleCreateModalClose = useCallback(() => {
 		onAddProductModalClose()
 		setSearchBarcode('')
+		setPendingBarcode('')
 		setError(null)
 		// Refocus input after modal closes
 		setTimeout(() => inputRef.current?.focus(), 100)
@@ -159,9 +168,36 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 		// If API call completed successfully but no product found
 		if (!isFetching && isSuccess && !product) {
 			onAddProductModalOpen()
-			setSearchBarcode('') // Reset search barcode to prevent multiple triggers
+			setSearchBarcode('')
 		}
 	}, [isFetching, isSuccess, product, searchBarcode, onAddProductModalOpen])
+
+	useEffect(() => {
+		if (!isQueryError || !searchBarcode) return
+
+		const message = getQueryErrorMessage(queryError)
+		setError(message)
+
+		if (message.toLowerCase().includes('not found')) {
+			onAddProductModalOpen()
+			setSearchBarcode('')
+			setError(null)
+			return
+		}
+
+		const timer = setTimeout(() => {
+			setSearchBarcode('')
+			setError(null)
+		}, 3000)
+
+		return () => clearTimeout(timer)
+	}, [
+		isQueryError,
+		searchBarcode,
+		queryError,
+		getQueryErrorMessage,
+		onAddProductModalOpen,
+	])
 
 	return (
 		<VStack spacing={4} align="stretch" width="100%">
@@ -177,6 +213,10 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 				spellCheck={false}
 				isDisabled={isFetching}
 			/>
+
+			<Button onClick={handleScan} isLoading={isFetching} colorScheme="blue">
+				Scan
+			</Button>
 
 			{isFetching && (
 				<Box display="flex" justifyContent="center" py={2}>
@@ -206,7 +246,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 			<AddProductModal
 				isOpen={isAddProductModalOpen}
 				onClose={handleCreateModalClose}
-				barcode={searchBarcode || barcodeInput}
+				barcode={pendingBarcode || searchBarcode || barcodeInput}
 				onSuccess={handleAddProductSuccess}
 			/>
 		</VStack>

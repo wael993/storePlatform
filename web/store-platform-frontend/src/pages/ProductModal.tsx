@@ -11,7 +11,15 @@ import {
 	CloseButton,
 } from '@chakra-ui/react'
 
-const ProductModal = ({ isOpen, onClose, product, isLoading, onAdd }: any) => {
+interface ProductModalProps {
+	isOpen: boolean
+	onClose: () => void
+	product: ProductApi | null | undefined
+	isLoading: boolean
+	onAdd: (product: ProductApi) => void
+}
+
+const ProductModal = ({ isOpen, onClose, product, isLoading, onAdd }: ProductModalProps) => {
 	return (
 		<Modal isOpen={isOpen} onClose={onClose}>
 			<ModalOverlay />
@@ -33,8 +41,9 @@ const ProductModal = ({ isOpen, onClose, product, isLoading, onAdd }: any) => {
 							<Button
 								colorScheme="green"
 								onClick={() => {
-									onAdd(product)
-									onClose()
+									if (product) {
+										onAdd(product)
+									}
 								}}
 							>
 								Add to Cart
