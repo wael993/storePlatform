@@ -321,7 +321,7 @@ export default class ProductController {
 				product,
 				requestContext,
 			)
-
+			
 			return mappedProduct
 		} catch (error) {
 			logger.error(`Error fetching product ${productId}:`, error)

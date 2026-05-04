@@ -16,13 +16,14 @@ export default class ProductsMapper {
 		requestContext: RequestContext,
 	): ProductRequestBody {
 		const isInternalUser = requestContext.user?.isInternal
+		console.log("🚀 ~ ProductsMapper ~ mapProduct ~ requestContext:", requestContext)
 		const mappedProducts: ProductRequestBody = {
 			id: product.ProductId,
 			name: product.name,
 			barcode: product.barcode,
-			price: isInternalUser ? product.price : null,
+			price:  product.price ,
 			count: product.count,
-			description: product.description,
+			description: isInternalUser ?product.description: undefined,
 		}
 		return mappedProducts
 	}
