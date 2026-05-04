@@ -12,7 +12,6 @@ import {
 import { Product } from '../models/Products'
 import User from '../models/User'
 import RefreshToken from '../models/RefreshToken'
-import { COLLECTION_NAMES } from '../shared/constants.ts/general'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
@@ -27,6 +26,7 @@ import { LoginData, LoginRequestBody } from '../shared/types/api'
 import { v4 as uuidv4 } from 'uuid'
 import ProductsMapper from './mappings/ProductsMapper'
 import { validateEmail, validatePasswordStrength } from '../utils/authValidation'
+import { isAfter } from 'date-fns'
 
 interface UserAPIFormat {
 	_id: string
@@ -216,7 +216,6 @@ export default class ProductController {
 
 		// Find and delete the used token atomically (rotation)
 		const storedToken = await RefreshToken.findOneAndDelete({ tokenHash })
-		console.log("🚀 ~ ProductController ~ refresh ~ storedToken:", storedToken)
 
 		if (!storedToken) {
 			// Token reuse detected — possible theft. Revoke all tokens for this user.
@@ -228,7 +227,7 @@ export default class ProductController {
 			)
 		}
 
-		if (storedToken.expiresAt < new Date()) {
+		if (isAfter(new Date(), storedToken.expiresAt)) {
 			logger.warn('Expired refresh token used', { userId: storedToken.userId, ip })
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.TOKEN_EXPIRED,
@@ -343,16 +342,12 @@ export default class ProductController {
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Product already existed',
 			)
-		console.log(
-			'🚀 ~ ProductController ~ postProduct ~ requestContext:',
-			requestContext,
-		)
+	
 		const createdBy = {
 			_id: requestContext.userId as string,
 			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
 			isInternal: requestContext.user?.isInternal,
 		}
-		console.log('🚀 ~ ProductController ~ postProduct ~ createdBy:', createdBy)
 		const createdAt = new Date()
 		const productData: ProductDocument = {
 			productId: productId,

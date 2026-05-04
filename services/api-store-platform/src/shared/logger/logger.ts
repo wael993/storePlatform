@@ -32,7 +32,7 @@ const printFn = printf((info: TransformableInfo) => {
 const logFormat = combine(
 	timestamp(),
 	printFn,
-	config.environment === 'local' ? format.colorize() : format.uncolorize(),
+	config.environment === 'dev' ? format.colorize() : format.uncolorize(),
 )
 const consoleTransports = [
 	new transports.Console({

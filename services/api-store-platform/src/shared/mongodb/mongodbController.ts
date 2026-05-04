@@ -12,7 +12,7 @@ import logger, { EntityType } from '../logger/logger'
 import { config } from '../../config/config'
 import { DocumentError } from '../errors'
 import { ERROR_CODES } from '../errorCodes'
-import { COLLECTION_NAMES } from '../constants.ts/general'
+import { COLLECTION_NAMES } from '../general'
 interface DocumentReadOperationResponse {
 	id?: string[]
 	documents: any[]
