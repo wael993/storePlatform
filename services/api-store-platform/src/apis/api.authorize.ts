@@ -1,5 +1,6 @@
 import express from 'express'
 import ProductController from './api.controller'
+import { HttpMethods } from '../shared/types/authorization'
 
 export default class ActivityAuthorization {
 	public constructor(private productController: ProductController) {}
@@ -11,9 +12,13 @@ export default class ActivityAuthorization {
 		const startTime = Date.now()
 
 		try {
+			const method: HttpMethods = request.method
+			const authorization = request.headers.authorization
+			const cookie = request.headers.cookie
+			const productId: string | undefined = request.params?.id
+
 			// 1. Get token (example: Authorization header)
 			const token = request.headers['authorization']?.split(' ')[1]
-
 			if (!token) {
 				response.status(401).json({ message: 'Missing token' })
 				return
