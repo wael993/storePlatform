@@ -156,6 +156,15 @@ const getQuery = (
 			}),
 			invalidatesTags: ['tenant-users'],
 		}),
+
+		addTenant: builder.mutation<AddTenantResponse, AddTenantRequest>({
+			query: body => ({
+				url: 'tenants',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['tenants'],
+		}),
 	}
 }
 
@@ -177,4 +186,5 @@ export const {
 	useInviteTenantUserMutation,
 	useUpdateTenantUserMutation,
 	useDeleteTenantUserMutation,
+	useAddTenantMutation,
 } = storeApi

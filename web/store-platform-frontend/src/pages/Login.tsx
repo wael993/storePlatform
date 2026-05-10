@@ -54,9 +54,8 @@ const Login = () => {
 			}
 			dispatch(setCredentials(response))
 
-			const nextRoute = [UserRole.OWNER, UserRole.ADMIN].includes(response.role)
-				? '/barcode'
-				: '/'
+			const nextRoute =
+				response.role === UserRole.SUPER_ADMIN ? '/add-new-tenant' : '/barcode'
 
 			navigate(nextRoute, {
 				state: { role: response.role, tenantId: response.tenantId },

@@ -5,7 +5,13 @@ import {
 } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
 
-export const TENANT_ROLES = ['owner', 'admin', 'cashier', 'employee'] as const
+export const TENANT_ROLES = [
+	'owner',
+	'admin',
+	'cashier',
+	'employee',
+	'super_admin',
+] as const
 export const TENANT_RESOURCES = [
 	'users',
 	'products',
@@ -13,6 +19,7 @@ export const TENANT_RESOURCES = [
 	'invoices',
 	'inventory',
 	'reports',
+	'tenants',
 ] as const
 export const TENANT_ACTIONS = ['read', 'create', 'update', 'delete'] as const
 
@@ -31,6 +38,7 @@ export const TENANT_PERMISSION_MATRIX: Record<TenantRole, TenantPermissionMap> =
 			invoices: ['read', 'create', 'update', 'delete'],
 			inventory: ['read', 'create', 'update', 'delete'],
 			reports: ['read', 'create', 'update', 'delete'],
+			tenants: [],
 		},
 		admin: {
 			users: ['read', 'create', 'update', 'delete'],
@@ -39,6 +47,7 @@ export const TENANT_PERMISSION_MATRIX: Record<TenantRole, TenantPermissionMap> =
 			invoices: ['read', 'create', 'update', 'delete'],
 			inventory: ['read', 'create', 'update', 'delete'],
 			reports: ['read', 'create', 'update', 'delete'],
+			tenants: [],
 		},
 		cashier: {
 			users: ['read'],
@@ -47,6 +56,7 @@ export const TENANT_PERMISSION_MATRIX: Record<TenantRole, TenantPermissionMap> =
 			invoices: ['read', 'create', 'update'],
 			inventory: ['read'],
 			reports: ['read'],
+			tenants: [],
 		},
 		employee: {
 			users: ['read'],
@@ -55,6 +65,16 @@ export const TENANT_PERMISSION_MATRIX: Record<TenantRole, TenantPermissionMap> =
 			invoices: ['read'],
 			inventory: ['read'],
 			reports: ['read'],
+			tenants: [],
+		},
+		super_admin: {
+			users: [],
+			products: [],
+			orders: [],
+			invoices: [],
+			inventory: [],
+			reports: [],
+			tenants: ['read', 'create', 'update', 'delete'],
 		},
 	}
 
@@ -109,6 +129,16 @@ export const ensureTenantAccess = (
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 			`Role ${tenantContext.role} cannot ${action} ${resource}.`,
+		)
+	}
+}
+
+export const ensureSuperAdmin = (requestContext: RequestContext): void => {
+	const tenantContext = getTenantContext(requestContext)
+	if (tenantContext.role !== 'super_admin') {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Only super admin can perform this action.',
 		)
 	}
 }

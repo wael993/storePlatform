@@ -7,6 +7,7 @@ import { logIncomingRequests } from '../shared/middleware'
 import ActivityAuthorization from './api.authorize'
 import { handleError } from '../middleware/errorHandler'
 import {
+	AddTenantRequestBody,
 	InviteTenantUserRequestBody,
 	InventoryRequestBody,
 	InvoiceRequestBody,
@@ -341,6 +342,15 @@ export default class StoreRoutes extends PlatformValidator {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteTenantUser.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/tenants`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.addTenant.bind(this),
 			)
 
 		app.route(`${baseRoute}/login`).post(
@@ -1005,6 +1015,26 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 			)
 			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async addTenant(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestBody: AddTenantRequestBody = request.body
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.addTenant(
+				requestBody,
+				requestContext,
+			)
+			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {

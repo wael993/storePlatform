@@ -135,3 +135,19 @@ interface UpdateTenantUserRequest {
 	role?: UserRole
 	isInternal?: boolean
 }
+
+interface AddTenantRequest {
+	tenantName: string
+	tenantDomain: string
+	ownerFirstName: string
+	ownerLastName: string
+	ownerEmail: string
+	ownerPassword: string
+}
+
+interface AddTenantResponse {
+	tenantId: string
+	tenantName: string
+	tenantDomain: string
+	ownerUserId: string
+}

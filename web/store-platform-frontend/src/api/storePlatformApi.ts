@@ -9,9 +9,9 @@ import { config } from '../config'
 import { RootState } from '../store/store'
 import { setAccessToken, logout } from '../store/user/reducer'
 
-export type TagType = 'products' | 'product' | 'tenant-users'
+export type TagType = 'products' | 'product' | 'tenant-users' | 'tenants'
 
-const tagTypes: TagType[] = ['products', 'product', 'tenant-users']
+const tagTypes: TagType[] = ['products', 'product', 'tenant-users', 'tenants']
 
 const baseQuery = fetchBaseQuery({
 	baseUrl: `${config.endpoints.storePlatformEndpoint}`,

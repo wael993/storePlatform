@@ -5,12 +5,14 @@ type ProtectedRouteProps = {
 	isAuthenticated: boolean
 	userRole?: UserRole | null
 	allowedRoles?: UserRole[]
+	redirectTo?: string
 }
 
 const ProtectedRoute = ({
 	isAuthenticated,
 	userRole,
 	allowedRoles,
+	redirectTo = '/barcode',
 }: ProtectedRouteProps) => {
 	if (!isAuthenticated) {
 		return <Navigate to="/login" />
@@ -21,7 +23,7 @@ const ProtectedRoute = ({
 		allowedRoles.length > 0 &&
 		(!userRole || !allowedRoles.includes(userRole))
 	) {
-		return <Navigate to="/barcode" replace />
+		return <Navigate to={redirectTo} replace />
 	}
 
 	return <Outlet />

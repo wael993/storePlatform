@@ -24,6 +24,8 @@ import logger from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import {
+	AddTenantRequestBody,
+	AddTenantResponse,
 	CreateEntityResponse,
 	CreateProductResponse,
 	InviteTenantUserRequestBody,
@@ -48,6 +50,7 @@ import {
 	ensureTenantAccess,
 	getEmailDomain,
 	getTenantContext,
+	ensureSuperAdmin,
 	TenantResource,
 } from '../shared/tenant'
 
@@ -163,6 +166,10 @@ export default class ProductController {
 
 	private createTemporaryPassword(): string {
 		return crypto.randomBytes(12).toString('base64url')
+	}
+
+	private createTenantIdFromDomain(domain: string): string {
+		return domain.replace(/\./g, '-').toLowerCase()
 	}
 
 	private async requireTenantById(tenantId: string): Promise<ITenant> {
@@ -1022,6 +1029,13 @@ export default class ProductController {
 			)
 		}
 
+		if (role === 'super_admin') {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'super_admin role can only be created from super-admin controls.',
+			)
+		}
+
 		const tenant = await this.requireTenantById(tenantContext.tenantId)
 		if (getEmailDomain(email) !== tenant.domain) {
 			throw new BusinessLogicError(
@@ -1169,5 +1183,110 @@ export default class ProductController {
 			userId: deleted._id,
 			tenantId: tenantContext.tenantId,
 		})
+	}
+
+	public async addTenant(
+		requestBody: AddTenantRequestBody,
+		requestContext: RequestContext,
+	): Promise<AddTenantResponse> {
+		ensureSuperAdmin(requestContext)
+		const {
+			tenantName,
+			tenantDomain,
+			ownerFirstName,
+			ownerLastName,
+			ownerEmail,
+			ownerPassword,
+		} = requestBody
+
+		if (
+			!tenantName ||
+			!tenantDomain ||
+			!ownerFirstName ||
+			!ownerLastName ||
+			!ownerEmail ||
+			!ownerPassword
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'All tenant and owner fields are required.',
+			)
+		}
+
+		const ownerEmailError = validateEmail(ownerEmail)
+		if (ownerEmailError) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
+				ownerEmailError,
+			)
+		}
+
+		const normalizedDomain = tenantDomain.trim().toLowerCase()
+		const normalizedOwnerEmail = ownerEmail.trim().toLowerCase()
+		if (getEmailDomain(normalizedOwnerEmail) !== normalizedDomain) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Owner email domain must match tenant domain.',
+			)
+		}
+
+		const existingTenant = await Tenant.findOne({
+			$or: [{ name: tenantName.trim() }, { domain: normalizedDomain }],
+		}).lean()
+
+		if (existingTenant) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Tenant already exists with the same name or domain.',
+			)
+		}
+
+		const tenantId = this.createTenantIdFromDomain(normalizedDomain)
+		const tenantIdConflict = await Tenant.findOne({ tenantId }).lean()
+		if (tenantIdConflict) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Tenant ID conflict detected. Choose a different domain.',
+			)
+		}
+
+		const ownerPasswordError = validatePasswordStrength(ownerPassword)
+		if (ownerPasswordError) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.WEAK_PASSWORD,
+				ownerPasswordError,
+			)
+		}
+
+		const hashedPassword = await bcrypt.hash(ownerPassword, 10)
+
+		const tenant = await Tenant.create({
+			tenantId,
+			name: tenantName.trim(),
+			domain: normalizedDomain,
+			status: 'active',
+		})
+
+		const owner = await User.create({
+			tenantId,
+			userId: uuidv4(),
+			displayName: `${ownerFirstName.trim()} ${ownerLastName.trim()}`,
+			user: {
+				firstName: ownerFirstName.trim(),
+				lastName: ownerLastName.trim(),
+				isInternal: true,
+			},
+			email: normalizedOwnerEmail,
+			password: hashedPassword,
+			role: 'owner',
+			avatarColorId: Math.floor(Math.random() * 1000000),
+		})
+
+		return {
+			tenantId: tenant.tenantId,
+			tenantName: tenant.name,
+			tenantDomain: tenant.domain,
+			ownerUserId: owner.userId,
+		}
 	}
 }

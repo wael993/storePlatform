@@ -79,6 +79,14 @@ export type UpdateTenantUserRequestBody = {
 	role?: TenantRole
 	isInternal?: boolean
 }
+export type AddTenantRequestBody = {
+	tenantName: string
+	tenantDomain: string
+	ownerFirstName: string
+	ownerLastName: string
+	ownerEmail: string
+	ownerPassword: string
+}
 export type CreateProductResponse = {
 	_id: string
 }
@@ -103,6 +111,12 @@ export type TenantUserSummary = {
 	isInternal: boolean
 	createdAt: Date
 	updatedAt: Date
+}
+export type AddTenantResponse = {
+	tenantId: string
+	tenantName: string
+	tenantDomain: string
+	ownerUserId: string
 }
 interface ProductDocument {
 	tenantId: string
