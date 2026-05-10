@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt'
 import express from 'express'
 import { isAfter } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
-import { Model } from 'mongoose'
 
 import { config } from '../config/config'
 import {
@@ -53,7 +52,6 @@ import {
 	getEmailDomain,
 	getTenantContext,
 	ensureSuperAdmin,
-	TenantResource,
 } from '../shared/tenant'
 
 type TokenPayload = {
@@ -63,8 +61,6 @@ type TokenPayload = {
 	role: RequestContext['role']
 	tokenVersion: number
 }
-
-type EntityModel = Model<any>
 
 export default class ProductController {
 	constructor(
@@ -193,114 +189,6 @@ export default class ProductController {
 		return tenant
 	}
 
-	private async listDocuments(
-		requestContext: RequestContext,
-		resource: TenantResource,
-		model: EntityModel,
-		sort: Record<string, 1 | -1>,
-	) {
-		await ensureTenantAccess(requestContext, resource, 'read')
-		const tenantContext = getTenantContext(requestContext)
-
-		return withTenantScope(model.find(), tenantContext.tenantId)
-			.sort(sort)
-			.lean()
-	}
-
-	private async getDocumentByField(
-		requestContext: RequestContext,
-		resource: TenantResource,
-		model: EntityModel,
-		fieldName: string,
-		fieldValue: string,
-	) {
-		await ensureTenantAccess(requestContext, resource, 'read')
-		const tenantContext = getTenantContext(requestContext)
-
-		return withTenantScope(
-			model.findOne({ [fieldName]: fieldValue }),
-			tenantContext.tenantId,
-		).lean()
-	}
-
-	private async createDocument(
-		requestContext: RequestContext,
-		resource: TenantResource,
-		model: EntityModel,
-		payload: Record<string, unknown>,
-	): Promise<CreateEntityResponse> {
-		await ensureTenantAccess(requestContext, resource, 'create')
-		const tenantContext = getTenantContext(requestContext)
-		console.log(
-			'🚀 ~ ProductController ~ createDocument ~ tenantContext:',
-			tenantContext,
-		)
-
-		const created = await model.create({
-			...payload,
-			tenantId: tenantContext.tenantId,
-			createdBy: requestContext.userId,
-			updatedBy: requestContext.userId,
-		})
-
-		return { _id: created.id }
-	}
-
-	private async updateDocument(
-		requestContext: RequestContext,
-		resource: TenantResource,
-		model: EntityModel,
-		fieldName: string,
-		fieldValue: string,
-		payload: Record<string, unknown>,
-	) {
-		await ensureTenantAccess(requestContext, resource, 'update')
-		const tenantContext = getTenantContext(requestContext)
-
-		const updated = await withTenantScope(
-			model.findOneAndUpdate(
-				{ [fieldName]: fieldValue },
-				{ $set: { ...payload, updatedBy: requestContext.userId } },
-				{ new: true, runValidators: true },
-			),
-			tenantContext.tenantId,
-		).lean()
-
-		if (!updated) {
-			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
-				`${resource} not found.`,
-			)
-		}
-
-		return updated
-	}
-
-	private async deleteDocument(
-		requestContext: RequestContext,
-		resource: TenantResource,
-		model: EntityModel,
-		fieldName: string,
-		fieldValue: string,
-	) {
-		await ensureTenantAccess(requestContext, resource, 'delete')
-		const tenantContext = getTenantContext(requestContext)
-
-		const deleted = await withTenantScope(
-			model.findOneAndDelete({ [fieldName]: fieldValue }),
-			tenantContext.tenantId,
-		).lean()
-
-		if (!deleted) {
-			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
-				`${resource} not found.`,
-			)
-		}
-
-		return deleted
-	}
-
 	private async ensureProductsBelongToTenant(
 		requestContext: RequestContext,
 		items: OrderRequestBody['items'],
@@ -328,7 +216,7 @@ export default class ProductController {
 			return
 		}
 
-		const order = await this.getDocumentByField(
+		const order = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'orders',
 			Order,
@@ -347,7 +235,7 @@ export default class ProductController {
 		requestContext: RequestContext,
 		productId: string,
 	) {
-		const product = await this.getDocumentByField(
+		const product = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'products',
 			Product,
@@ -652,14 +540,19 @@ export default class ProductController {
 	}
 
 	public async getProducts(requestContext: RequestContext) {
-		return this.listDocuments(requestContext, 'products', Product, { name: 1 })
+		return this.mongoDbClient.listDocuments(
+			requestContext,
+			'products',
+			Product,
+			{ name: 1 },
+		)
 	}
 
 	public async getProduct(
 		productId: string,
 		requestContext: RequestContext,
 	): Promise<ProductRequestBody | null> {
-		const product = await this.getDocumentByField(
+		const product = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'products',
 			Product,
@@ -710,9 +603,16 @@ export default class ProductController {
 			description,
 		}
 
-		return this.createDocument(requestContext, 'products', Product, {
-			...productData,
-		})
+		const createProductResponse = await this.mongoDbClient.createDocument(
+			requestContext,
+			'products',
+			Product,
+			{
+				...productData,
+			},
+		)
+
+		return createProductResponse
 	}
 
 	public async patchProduct(
@@ -741,7 +641,7 @@ export default class ProductController {
 			)
 		}
 
-		return this.updateDocument(
+		return this.mongoDbClient.updateDocument(
 			requestContext,
 			'products',
 			Product,
@@ -755,7 +655,7 @@ export default class ProductController {
 		productId: string,
 		requestContext: RequestContext,
 	) {
-		return this.deleteDocument(
+		return this.mongoDbClient.deleteDocument(
 			requestContext,
 			'products',
 			Product,
@@ -765,13 +665,13 @@ export default class ProductController {
 	}
 
 	public async getOrders(requestContext: RequestContext) {
-		return this.listDocuments(requestContext, 'orders', Order, {
+		return this.mongoDbClient.listDocuments(requestContext, 'orders', Order, {
 			createdAt: -1,
 		})
 	}
 
 	public async getOrder(orderId: string, requestContext: RequestContext) {
-		return this.getDocumentByField(
+		return this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'orders',
 			Order,
@@ -785,13 +685,20 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
-		return this.createDocument(requestContext, 'orders', Order, {
-			orderId: uuidv4(),
-			orderNumber: requestBody.orderNumber,
-			status: requestBody.status ?? 'draft',
-			items: requestBody.items,
-			totalAmount: requestBody.totalAmount,
-		})
+		const createOrderResponse = await this.mongoDbClient.createDocument(
+			requestContext,
+			'orders',
+			Order,
+			{
+				orderId: uuidv4(),
+				orderNumber: requestBody.orderNumber,
+				status: requestBody.status ?? 'draft',
+				items: requestBody.items,
+				totalAmount: requestBody.totalAmount,
+			},
+		)
+
+		return createOrderResponse
 	}
 
 	public async patchOrder(
@@ -802,7 +709,7 @@ export default class ProductController {
 		if (requestBody.items) {
 			await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
 		}
-		return this.updateDocument(
+		return this.mongoDbClient.updateDocument(
 			requestContext,
 			'orders',
 			Order,
@@ -813,7 +720,7 @@ export default class ProductController {
 	}
 
 	public async deleteOrder(orderId: string, requestContext: RequestContext) {
-		return this.deleteDocument(
+		return this.mongoDbClient.deleteDocument(
 			requestContext,
 			'orders',
 			Order,
@@ -823,13 +730,18 @@ export default class ProductController {
 	}
 
 	public async getInvoices(requestContext: RequestContext) {
-		return this.listDocuments(requestContext, 'invoices', Invoice, {
-			createdAt: -1,
-		})
+		return this.mongoDbClient.listDocuments(
+			requestContext,
+			'invoices',
+			Invoice,
+			{
+				createdAt: -1,
+			},
+		)
 	}
 
 	public async getInvoice(invoiceId: string, requestContext: RequestContext) {
-		return this.getDocumentByField(
+		return this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'invoices',
 			Invoice,
@@ -843,14 +755,21 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
-		return this.createDocument(requestContext, 'invoices', Invoice, {
-			invoiceId: uuidv4(),
-			invoiceNumber: requestBody.invoiceNumber,
-			orderId: requestBody.orderId,
-			status: requestBody.status ?? 'pending',
-			amount: requestBody.amount,
-			issuedAt: requestBody.issuedAt,
-		})
+		const createInvoiceResponse = await this.mongoDbClient.createDocument(
+			requestContext,
+			'invoices',
+			Invoice,
+			{
+				invoiceId: uuidv4(),
+				invoiceNumber: requestBody.invoiceNumber,
+				orderId: requestBody.orderId,
+				status: requestBody.status ?? 'pending',
+				amount: requestBody.amount,
+				issuedAt: requestBody.issuedAt,
+			},
+		)
+
+		return createInvoiceResponse
 	}
 
 	public async patchInvoice(
@@ -859,7 +778,7 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
-		return this.updateDocument(
+		return this.mongoDbClient.updateDocument(
 			requestContext,
 			'invoices',
 			Invoice,
@@ -873,7 +792,7 @@ export default class ProductController {
 		invoiceId: string,
 		requestContext: RequestContext,
 	) {
-		return this.deleteDocument(
+		return this.mongoDbClient.deleteDocument(
 			requestContext,
 			'invoices',
 			Invoice,
@@ -883,16 +802,21 @@ export default class ProductController {
 	}
 
 	public async getInventory(requestContext: RequestContext) {
-		return this.listDocuments(requestContext, 'inventory', Inventory, {
-			updatedAt: -1,
-		})
+		return this.mongoDbClient.listDocuments(
+			requestContext,
+			'inventory',
+			Inventory,
+			{
+				updatedAt: -1,
+			},
+		)
 	}
 
 	public async getInventoryItem(
 		inventoryId: string,
 		requestContext: RequestContext,
 	) {
-		return this.getDocumentByField(
+		return this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'inventory',
 			Inventory,
@@ -909,13 +833,20 @@ export default class ProductController {
 			requestContext,
 			requestBody.productId,
 		)
-		return this.createDocument(requestContext, 'inventory', Inventory, {
-			inventoryId: uuidv4(),
-			productId: requestBody.productId,
-			onHand: requestBody.onHand,
-			reserved: requestBody.reserved ?? 0,
-			reorderLevel: requestBody.reorderLevel ?? 0,
-		})
+		const createInventoryResponse = await this.mongoDbClient.createDocument(
+			requestContext,
+			'inventory',
+			Inventory,
+			{
+				inventoryId: uuidv4(),
+				productId: requestBody.productId,
+				onHand: requestBody.onHand,
+				reserved: requestBody.reserved ?? 0,
+				reorderLevel: requestBody.reorderLevel ?? 0,
+			},
+		)
+
+		return createInventoryResponse
 	}
 
 	public async patchInventory(
@@ -929,7 +860,7 @@ export default class ProductController {
 				requestBody.productId,
 			)
 		}
-		return this.updateDocument(
+		return this.mongoDbClient.updateDocument(
 			requestContext,
 			'inventory',
 			Inventory,
@@ -943,7 +874,7 @@ export default class ProductController {
 		inventoryId: string,
 		requestContext: RequestContext,
 	) {
-		return this.deleteDocument(
+		return this.mongoDbClient.deleteDocument(
 			requestContext,
 			'inventory',
 			Inventory,
@@ -953,13 +884,13 @@ export default class ProductController {
 	}
 
 	public async getReports(requestContext: RequestContext) {
-		return this.listDocuments(requestContext, 'reports', Report, {
+		return this.mongoDbClient.listDocuments(requestContext, 'reports', Report, {
 			createdAt: -1,
 		})
 	}
 
 	public async getReport(reportId: string, requestContext: RequestContext) {
-		return this.getDocumentByField(
+		return this.mongoDbClient.getDocumentByField(
 			requestContext,
 			'reports',
 			Report,
@@ -972,14 +903,21 @@ export default class ProductController {
 		requestBody: ReportRequestBody,
 		requestContext: RequestContext,
 	) {
-		return this.createDocument(requestContext, 'reports', Report, {
-			reportId: uuidv4(),
-			name: requestBody.name,
-			type: requestBody.type,
-			periodStart: requestBody.periodStart,
-			periodEnd: requestBody.periodEnd,
-			data: requestBody.data,
-		})
+		const createReportResponse = await this.mongoDbClient.createDocument(
+			requestContext,
+			'reports',
+			Report,
+			{
+				reportId: uuidv4(),
+				name: requestBody.name,
+				type: requestBody.type,
+				periodStart: requestBody.periodStart,
+				periodEnd: requestBody.periodEnd,
+				data: requestBody.data,
+			},
+		)
+
+		return createReportResponse
 	}
 
 	public async patchReport(
@@ -987,7 +925,7 @@ export default class ProductController {
 		requestBody: Partial<ReportRequestBody>,
 		requestContext: RequestContext,
 	) {
-		return this.updateDocument(
+		return this.mongoDbClient.updateDocument(
 			requestContext,
 			'reports',
 			Report,
@@ -998,7 +936,7 @@ export default class ProductController {
 	}
 
 	public async deleteReport(reportId: string, requestContext: RequestContext) {
-		return this.deleteDocument(
+		return this.mongoDbClient.deleteDocument(
 			requestContext,
 			'reports',
 			Report,
@@ -1104,55 +1042,11 @@ export default class ProductController {
 		requestBody: UpdateTenantUserRequestBody,
 		requestContext: RequestContext,
 	): Promise<TenantUserSummary> {
-		await ensureTenantAccess(requestContext, 'users', 'update')
-		const tenantContext = getTenantContext(requestContext)
-
-		const updates: Record<string, unknown> = {}
-		if (requestBody.firstName) {
-			updates['user.firstName'] = requestBody.firstName
-		}
-		if (requestBody.lastName) {
-			updates['user.lastName'] = requestBody.lastName
-		}
-		if (typeof requestBody.isInternal === 'boolean') {
-			updates['user.isInternal'] = requestBody.isInternal
-		}
-		if (requestBody.role) {
-			updates.role = requestBody.role
-		}
-
-		if (requestBody.firstName || requestBody.lastName) {
-			const firstName = requestBody.firstName || ''
-			const lastName = requestBody.lastName || ''
-			updates.displayName = `${firstName} ${lastName}`.trim()
-		}
-
-		if (Object.keys(updates).length === 0) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-				'No fields provided for update.',
-			)
-		}
-
-		const updated = (await withTenantScope(
-			User.findOneAndUpdate(
-				{ userId },
-				{ $set: updates },
-				{
-					new: true,
-					runValidators: true,
-					projection: { password: 0, tokenVersion: 0 },
-				},
-			),
-			tenantContext.tenantId,
-		).lean()) as IUser | null
-
-		if (!updated) {
-			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
-				'User not found.',
-			)
-		}
+		const updated = await this.mongoDbClient.updateTenantUser(
+			userId,
+			requestBody,
+			requestContext,
+		)
 
 		return this.mapTenantUser(updated)
 	}
@@ -1161,44 +1055,7 @@ export default class ProductController {
 		userId: string,
 		requestContext: RequestContext,
 	): Promise<void> {
-		await ensureTenantAccess(requestContext, 'users', 'delete')
-		const tenantContext = getTenantContext(requestContext)
-
-		const targetUser = (await withTenantScope(
-			User.findOne({ userId }),
-			tenantContext.tenantId,
-		).lean()) as IUser | null
-
-		if (!targetUser) {
-			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
-				'User not found.',
-			)
-		}
-
-		if (String(targetUser._id) === requestContext.userId) {
-			throw new BusinessLogicError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'You cannot delete your own account.',
-			)
-		}
-
-		const deleted = (await withTenantScope(
-			User.findOneAndDelete({ userId }),
-			tenantContext.tenantId,
-		).lean()) as IUser | null
-
-		if (!deleted) {
-			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
-				'User not found.',
-			)
-		}
-
-		await RefreshToken.deleteMany({
-			userId: deleted._id,
-			tenantId: tenantContext.tenantId,
-		})
+		await this.mongoDbClient.deleteTenantUser(userId, requestContext)
 	}
 
 	public async changePassword(

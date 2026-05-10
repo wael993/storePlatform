@@ -13,6 +13,22 @@ import { config } from '../../config/config'
 import { DocumentError } from '../errors'
 import { ERROR_CODES } from '../errorCodes'
 import { COLLECTION_NAMES } from '../general'
+import { RequestContext } from '../types'
+import { TenantResource } from '../tenant'
+import {
+	createDocument as createDocumentAction,
+	deleteDocument as deleteDocumentAction,
+	EntityModel,
+	getDocumentByField as getDocumentByFieldAction,
+	listDocuments as listDocumentsAction,
+	updateDocument as updateDocumentAction,
+} from './documentActions'
+import {
+	deleteTenantUser as deleteTenantUserAction,
+	updateTenantUser as updateTenantUserAction,
+} from './tenantUserActions'
+import { IUser } from '../../models/User'
+import { UpdateTenantUserRequestBody } from '../types'
 interface DocumentReadOperationResponse {
 	id?: string[]
 	documents: any[]
@@ -242,5 +258,88 @@ export default class MongodbController {
 				entity: EntityType.MONGODB,
 			})
 		}
+	}
+
+	public async listDocuments(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		sort: Record<string, 1 | -1>,
+	) {
+		return listDocumentsAction(requestContext, resource, model, sort)
+	}
+
+	public async getDocumentByField(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		fieldName: string,
+		fieldValue: string,
+	) {
+		return getDocumentByFieldAction(
+			requestContext,
+			resource,
+			model,
+			fieldName,
+			fieldValue,
+		)
+	}
+
+	public async createDocument(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		payload: Record<string, unknown>,
+	): Promise<{ _id: string }> {
+		return createDocumentAction(requestContext, resource, model, payload)
+	}
+
+	public async updateDocument(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		fieldName: string,
+		fieldValue: string,
+		payload: Record<string, unknown>,
+	) {
+		return updateDocumentAction(
+			requestContext,
+			resource,
+			model,
+			fieldName,
+			fieldValue,
+			payload,
+		)
+	}
+
+	public async deleteDocument(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		fieldName: string,
+		fieldValue: string,
+	) {
+		return deleteDocumentAction(
+			requestContext,
+			resource,
+			model,
+			fieldName,
+			fieldValue,
+		)
+	}
+
+	public async updateTenantUser(
+		userId: string,
+		requestBody: UpdateTenantUserRequestBody,
+		requestContext: RequestContext,
+	): Promise<IUser> {
+		return updateTenantUserAction(userId, requestBody, requestContext)
+	}
+
+	public async deleteTenantUser(
+		userId: string,
+		requestContext: RequestContext,
+	): Promise<void> {
+		return deleteTenantUserAction(userId, requestContext)
 	}
 }
