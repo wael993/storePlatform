@@ -1,80 +1,105 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import bcrypt from 'bcrypt'
-import { config } from '../config/config'
-import express, { NextFunction, request } from 'express'
+import express from 'express'
+import { isAfter } from 'date-fns'
+import { v4 as uuidv4 } from 'uuid'
+import { Model } from 'mongoose'
 
+import { config } from '../config/config'
 import {
 	BusinessLogicError,
-	AuthorizationError,
 	AuthenticationError,
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
-import User from '../models/User'
-import RefreshToken from '../models/RefreshToken'
+import User, { IUser } from '../models/User'
+import RefreshToken, { IRefreshToken } from '../models/RefreshToken'
+import Tenant, { ITenant } from '../models/Tenant'
+import { Order } from '../models/Order'
+import { Invoice } from '../models/Invoice'
+import { Inventory } from '../models/Inventory'
+import { Report } from '../models/Report'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
+import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import {
+	CreateEntityResponse,
 	CreateProductResponse,
+	InviteTenantUserRequestBody,
+	InviteTenantUserResponse,
+	InventoryRequestBody,
+	InvoiceRequestBody,
+	OrderRequestBody,
 	ProductDocument,
 	ProductRequestBody,
+	ReportRequestBody,
 	RequestContext,
+	TenantUserSummary,
+	UpdateTenantUserRequestBody,
 } from '../shared/types'
-import { ObjectId, Sort, type Filter } from 'mongodb'
-import { LoginData, LoginRequestBody } from '../shared/types/api'
-import { v4 as uuidv4 } from 'uuid'
+import { LoginData } from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
-import { validateEmail, validatePasswordStrength } from '../utils/authValidation'
-import { isAfter } from 'date-fns'
+import {
+	validateEmail,
+	validatePasswordStrength,
+} from '../utils/authValidation'
+import {
+	ensureTenantAccess,
+	getEmailDomain,
+	getTenantContext,
+	TenantResource,
+} from '../shared/tenant'
 
-interface UserAPIFormat {
-	_id: string
-	displayName: string
-	businessPartnerId?: string
-	isInternal?: boolean
-	avatarColorId?: number
+type TokenPayload = {
+	userId: string
+	tenantId: string
+	tenantName: string
+	role: RequestContext['role']
+	tokenVersion: number
 }
 
-interface APIResponse<T> {
-	totalCount: number
-	data: T[]
-}
-interface ProductResponse extends APIResponse<Comment> { }
+type EntityModel = Model<any>
 
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
 		private mongoDbClient: MongodbController,
-	) { }
+	) {}
 
-	public async getProducts(requestContext: RequestContext) {
-		const filter: Filter<ProductDocument> = {}
-
-		try {
-			const data = await Product.find().sort({ name: 1 }).lean()
-
-			return data
-		} catch (error) {
-			logger.error('Error fetching products:', error)
-			throw error
-		}
-	}
 	private hashToken(token: string): string {
 		return crypto.createHash('sha256').update(token).digest('hex')
 	}
 
-	private getClientInfo(req: express.Request): { ip: string; userAgent: string } {
-		const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
-			|| req.socket.remoteAddress
-			|| 'unknown'
+	private getClientInfo(req: express.Request): {
+		ip: string
+		userAgent: string
+	} {
+		const ip =
+			(req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+			req.socket.remoteAddress ||
+			'unknown'
 		const userAgent = req.headers['user-agent'] || 'unknown'
 		return { ip, userAgent }
 	}
 
-	private generateAccessToken(user: { _id: any; role: string; tokenVersion: number }): string {
+	private generateAccessToken(
+		user: {
+			_id: any
+			role: RequestContext['role']
+			tokenVersion: number
+			tenantId: string
+		},
+		tenantName: string,
+	): string {
 		return jwt.sign(
-			{ userId: user._id, role: user.role, tokenVersion: user.tokenVersion },
+			{
+				userId: user._id.toString(),
+				role: user.role,
+				tokenVersion: user.tokenVersion,
+				tenantId: user.tenantId,
+				tenantName,
+			},
 			config.jwtSecure as string,
 			{ expiresIn: '15m' },
 		)
@@ -82,26 +107,259 @@ export default class ProductController {
 
 	private async createAndStoreRefreshToken(
 		userId: string,
+		tenantId: string,
 		ip: string,
 		userAgent: string,
 	): Promise<string> {
 		const rawToken = crypto.randomBytes(64).toString('hex')
 		const tokenHash = this.hashToken(rawToken)
-		const expiresAt = new Date(Date.now() + config.refreshTokenTTLDays * 24 * 60 * 60 * 1000)
+		const expiresAt = new Date(
+			Date.now() + config.refreshTokenTTLDays * 24 * 60 * 60 * 1000,
+		)
 
-		await RefreshToken.create({ userId, tokenHash, ip, userAgent, expiresAt })
+		await RefreshToken.create({
+			tenantId,
+			userId,
+			tokenHash,
+			ip,
+			userAgent,
+			expiresAt,
+		})
 
 		return rawToken
 	}
 
-	public async validateUser(request: any, token: string) {
-		const decoded = jwt.verify(token, config.jwtSecure) as jwt.JwtPayload
+	private async requireTenantByEmail(email: string) {
+		const domain = getEmailDomain(email)
+		const tenant = (await Tenant.findOne({
+			domain,
+			status: 'active',
+		}).lean()) as ITenant | null
 
-		const user = await User.findById(decoded.userId).lean()
+		if (!tenant) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'No active tenant found for this email domain.',
+			)
+		}
+
+		return tenant
+	}
+
+	private mapTenantUser(user: IUser): TenantUserSummary {
+		return {
+			_id: String(user._id),
+			userId: user.userId,
+			displayName: user.displayName,
+			email: user.email,
+			role: user.role,
+			firstName: user.user.firstName,
+			lastName: user.user.lastName,
+			isInternal: user.user.isInternal,
+			createdAt: user.createdAt,
+			updatedAt: user.updatedAt,
+		}
+	}
+
+	private createTemporaryPassword(): string {
+		return crypto.randomBytes(12).toString('base64url')
+	}
+
+	private async requireTenantById(tenantId: string): Promise<ITenant> {
+		const tenant = (await Tenant.findOne({
+			tenantId,
+			status: 'active',
+		}).lean()) as ITenant | null
+		if (!tenant) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Tenant is not active.',
+			)
+		}
+
+		return tenant
+	}
+
+	private async listDocuments(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		sort: Record<string, 1 | -1>,
+	) {
+		ensureTenantAccess(requestContext, resource, 'read')
+		const tenantContext = getTenantContext(requestContext)
+
+		return withTenantScope(model.find(), tenantContext.tenantId)
+			.sort(sort)
+			.lean()
+	}
+
+	private async getDocumentByField(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		fieldName: string,
+		fieldValue: string,
+	) {
+		ensureTenantAccess(requestContext, resource, 'read')
+		const tenantContext = getTenantContext(requestContext)
+
+		return withTenantScope(
+			model.findOne({ [fieldName]: fieldValue }),
+			tenantContext.tenantId,
+		).lean()
+	}
+
+	private async createDocument(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		payload: Record<string, unknown>,
+	): Promise<CreateEntityResponse> {
+		ensureTenantAccess(requestContext, resource, 'create')
+		const tenantContext = getTenantContext(requestContext)
+
+		const created = await model.create({
+			...payload,
+			tenantId: tenantContext.tenantId,
+			createdBy: requestContext.userId,
+			updatedBy: requestContext.userId,
+		})
+
+		return { _id: created.id }
+	}
+
+	private async updateDocument(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		fieldName: string,
+		fieldValue: string,
+		payload: Record<string, unknown>,
+	) {
+		ensureTenantAccess(requestContext, resource, 'update')
+		const tenantContext = getTenantContext(requestContext)
+
+		const updated = await withTenantScope(
+			model.findOneAndUpdate(
+				{ [fieldName]: fieldValue },
+				{ $set: { ...payload, updatedBy: requestContext.userId } },
+				{ new: true, runValidators: true },
+			),
+			tenantContext.tenantId,
+		).lean()
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				`${resource} not found.`,
+			)
+		}
+
+		return updated
+	}
+
+	private async deleteDocument(
+		requestContext: RequestContext,
+		resource: TenantResource,
+		model: EntityModel,
+		fieldName: string,
+		fieldValue: string,
+	) {
+		ensureTenantAccess(requestContext, resource, 'delete')
+		const tenantContext = getTenantContext(requestContext)
+
+		const deleted = await withTenantScope(
+			model.findOneAndDelete({ [fieldName]: fieldValue }),
+			tenantContext.tenantId,
+		).lean()
+
+		if (!deleted) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				`${resource} not found.`,
+			)
+		}
+
+		return deleted
+	}
+
+	private async ensureProductsBelongToTenant(
+		requestContext: RequestContext,
+		items: OrderRequestBody['items'],
+	) {
+		const tenantContext = getTenantContext(requestContext)
+		const requestedProductIds = items.map(item => item.productId)
+		const products = await withTenantScope(
+			Product.find({ productId: { $in: requestedProductIds } }),
+			tenantContext.tenantId,
+		).lean()
+
+		if (products.length !== requestedProductIds.length) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Order items must reference products from the same tenant.',
+			)
+		}
+	}
+
+	private async ensureOrderBelongsToTenant(
+		requestContext: RequestContext,
+		orderId?: string,
+	) {
+		if (!orderId) {
+			return
+		}
+
+		const order = await this.getDocumentByField(
+			requestContext,
+			'orders',
+			Order,
+			'orderId',
+			orderId,
+		)
+		if (!order) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Invoice must reference an order from the same tenant.',
+			)
+		}
+	}
+
+	private async ensureInventoryProductBelongsToTenant(
+		requestContext: RequestContext,
+		productId: string,
+	) {
+		const product = await this.getDocumentByField(
+			requestContext,
+			'products',
+			Product,
+			'productId',
+			productId,
+		)
+		if (!product) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Inventory must reference a product from the same tenant.',
+			)
+		}
+	}
+
+	public async validateUser(request: any, token: string) {
+		const decoded = jwt.verify(
+			token,
+			config.jwtSecure as string,
+		) as TokenPayload
+
+		const user = (await withTenantScope(
+			User.findOne({ _id: decoded.userId }),
+			decoded.tenantId,
+		).lean()) as IUser | null
+
 		if (!user) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
-				'User not found',
+				'User not found.',
 			)
 		}
 
@@ -112,15 +370,25 @@ export default class ProductController {
 			)
 		}
 
-		request.user = decoded
-		return decoded
+		request.user = {
+			userId: String(user._id),
+			tenantId: user.tenantId,
+			tenantName: decoded.tenantName,
+			firstName: user.user.firstName,
+			lastName: user.user.lastName,
+			email: user.email,
+			role: user.role,
+			permissions: {},
+			isInternal: user.user.isInternal,
+		}
+
+		return request.user
 	}
 
 	public async login(requestBody: LoginData, req: express.Request) {
 		const { email: loginEmail, password: loginPassword } = requestBody
 		const { ip, userAgent } = this.getClientInfo(req)
 
-		// --- Input validation ---
 		if (!loginEmail || !loginPassword) {
 			logger.warn('Login attempt with missing fields', { ip })
 			throw new BusinessLogicError(
@@ -131,7 +399,10 @@ export default class ProductController {
 
 		const emailError = validateEmail(loginEmail)
 		if (emailError) {
-			logger.warn('Login attempt with invalid email format', { ip, email: loginEmail })
+			logger.warn('Login attempt with invalid email format', {
+				ip,
+				email: loginEmail,
+			})
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
 				emailError,
@@ -147,11 +418,18 @@ export default class ProductController {
 			)
 		}
 
-		// --- Authentication ---
-		const user = await User.findOne({ email: loginEmail }).lean()
+		const tenant = await this.requireTenantByEmail(loginEmail)
+		const user = (await withTenantScope(
+			User.findOne({ email: loginEmail.toLowerCase() }),
+			tenant.tenantId,
+		).lean()) as IUser | null
 
 		if (!user) {
-			logger.warn('Failed login: user not found', { ip, email: loginEmail })
+			logger.warn('Failed login: user not found', {
+				ip,
+				email: loginEmail,
+				tenantId: tenant.tenantId,
+			})
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
 				'Invalid email or password.',
@@ -159,9 +437,12 @@ export default class ProductController {
 		}
 
 		const isValid = await bcrypt.compare(loginPassword, user.password)
-
 		if (!isValid) {
-			logger.warn('Failed login: wrong password', { ip, userId: user._id })
+			logger.warn('Failed login: wrong password', {
+				ip,
+				userId: user._id,
+				tenantId: tenant.tenantId,
+			})
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
 				'Invalid email or password.',
@@ -175,16 +456,17 @@ export default class ProductController {
 			)
 		}
 
-		// --- Token generation ---
-		const accessToken = this.generateAccessToken(user)
+		const accessToken = this.generateAccessToken(user, tenant.name)
 		const refreshToken = await this.createAndStoreRefreshToken(
-			user._id.toString(),
+			String(user._id),
+			user.tenantId,
 			ip,
 			userAgent,
 		)
 
 		logger.info('Successful login', {
 			userId: user._id,
+			tenantId: tenant.tenantId,
 			ip,
 			userAgent,
 		})
@@ -193,6 +475,8 @@ export default class ProductController {
 			accessToken,
 			refreshToken,
 			userId: user._id,
+			tenantId: user.tenantId,
+			tenantName: tenant.name,
 			email: user.email,
 			role: user.role,
 			firstName: user.user.firstName,
@@ -213,14 +497,14 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-
-		// Find and delete the used token atomically (rotation)
-		const storedToken = await RefreshToken.findOneAndDelete({ tokenHash })
+		const storedToken = (await RefreshToken.findOneAndDelete({
+			tokenHash,
+		}).lean()) as IRefreshToken | null
 
 		if (!storedToken) {
-			// Token reuse detected — possible theft. Revoke all tokens for this user.
-			logger.warn('Refresh token reuse detected — revoking all sessions', { ip })
-			// We can't identify the user from an invalid token, so just reject.
+			logger.warn('Refresh token reuse detected — revoking all sessions', {
+				ip,
+			})
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
 				'Invalid refresh token. Please log in again.',
@@ -228,14 +512,21 @@ export default class ProductController {
 		}
 
 		if (isAfter(new Date(), storedToken.expiresAt)) {
-			logger.warn('Expired refresh token used', { userId: storedToken.userId, ip })
+			logger.warn('Expired refresh token used', {
+				userId: storedToken.userId,
+				tenantId: storedToken.tenantId,
+				ip,
+			})
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.TOKEN_EXPIRED,
 				'Refresh token has expired. Please log in again.',
 			)
 		}
 
-		const user = await User.findById(storedToken.userId).lean()
+		const user = (await withTenantScope(
+			User.findOne({ _id: storedToken.userId }),
+			storedToken.tenantId,
+		).lean()) as IUser | null
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -244,37 +535,63 @@ export default class ProductController {
 			)
 		}
 
-		// Log IP change
+		const tenant = (await Tenant.findOne({
+			tenantId: storedToken.tenantId,
+			status: 'active',
+		}).lean()) as ITenant | null
+		if (!tenant) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Tenant is not active.',
+			)
+		}
+
 		if (storedToken.ip !== ip) {
 			logger.warn('IP address changed during refresh', {
 				userId: user._id,
+				tenantId: user.tenantId,
 				previousIp: storedToken.ip,
 				newIp: ip,
 			})
 		}
 
-		// Issue new token pair
-		const accessToken = this.generateAccessToken(user)
+		const accessToken = this.generateAccessToken(user, tenant.name)
 		const newRefreshToken = await this.createAndStoreRefreshToken(
-			user._id.toString(),
+			String(user._id),
+			user.tenantId,
 			ip,
 			userAgent,
 		)
 
-		logger.info('Token refreshed', { userId: user._id, ip })
+		logger.info('Token refreshed', {
+			userId: user._id,
+			tenantId: user.tenantId,
+			ip,
+		})
 
-		return { accessToken, refreshToken: newRefreshToken }
+		return {
+			accessToken,
+			refreshToken: newRefreshToken,
+			tenantId: user.tenantId,
+			tenantName: tenant.name,
+			role: user.role,
+		}
 	}
 
 	public async logout(req: express.Request) {
 		const rawToken = req.cookies?.refreshToken
-		if (!rawToken) return
+		if (!rawToken) {
+			return
+		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const deleted = await RefreshToken.findOneAndDelete({ tokenHash })
+		const deleted = await RefreshToken.findOneAndDelete({ tokenHash }).lean()
 
 		if (deleted) {
-			logger.info('User logged out (current device)', { userId: deleted.userId })
+			logger.info('User logged out (current device)', {
+				userId: deleted.userId,
+				tenantId: deleted.tenantId,
+			})
 		}
 	}
 
@@ -288,7 +605,7 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const storedToken = await RefreshToken.findOne({ tokenHash })
+		const storedToken = await RefreshToken.findOne({ tokenHash }).lean()
 
 		if (!storedToken) {
 			throw new AuthenticationError(
@@ -297,92 +614,82 @@ export default class ProductController {
 			)
 		}
 
-		const result = await RefreshToken.deleteMany({ userId: storedToken.userId })
+		const result = await RefreshToken.deleteMany({
+			userId: storedToken.userId,
+			tenantId: storedToken.tenantId,
+		})
 
 		logger.info('User logged out from all devices', {
 			userId: storedToken.userId,
+			tenantId: storedToken.tenantId,
 			sessionsRevoked: result.deletedCount,
 		})
 
 		return { sessionsRevoked: result.deletedCount }
 	}
 
+	public async getProducts(requestContext: RequestContext) {
+		return this.listDocuments(requestContext, 'products', Product, { name: 1 })
+	}
+
 	public async getProduct(
 		productId: string,
 		requestContext: RequestContext,
 	): Promise<ProductRequestBody | null> {
-		try {
-			const product = await Product.findOne({ barcode: productId }).lean()
-			if (!product) {
-				logger.warn(`Product not found: ${productId}`)
-				return null
-			}
-			const mappedProduct: ProductRequestBody = this.productsMapper.mapProduct(
-				product,
-				requestContext,
-			)
-			
-			return mappedProduct
-		} catch (error) {
-			logger.error(`Error fetching product ${productId}:`, error)
-			throw error
+		const product = await this.getDocumentByField(
+			requestContext,
+			'products',
+			Product,
+			'barcode',
+			productId,
+		)
+		if (!product) {
+			return null
 		}
+
+		return this.productsMapper.mapProduct(product, requestContext)
 	}
 
 	public async postProduct(
 		requestBody: ProductRequestBody,
 		requestContext: RequestContext,
 	): Promise<CreateProductResponse | null> {
-		const productId = uuidv4()
-
+		const tenantContext = getTenantContext(requestContext)
 		const { barcode, count, id, name, price, description } = requestBody
-		const product = await Product.findOne({ name }).lean()
-		if (product && name === product.name)
+		const existing = await withTenantScope(
+			Product.findOne({ $or: [{ name }, { barcode }, { id }] }),
+			tenantContext.tenantId,
+		).lean()
+
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Product already existed',
+				'Product already exists in this tenant.',
 			)
-	
+		}
+
 		const createdBy = {
 			_id: requestContext.userId as string,
 			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
 			isInternal: requestContext.user?.isInternal,
 		}
-		const createdAt = new Date()
+
 		const productData: ProductDocument = {
-			productId: productId,
+			tenantId: tenantContext.tenantId,
+			productId: uuidv4(),
 			id,
 			name,
 			barcode,
 			price,
 			count,
 			createdBy,
-			createdAt,
+			createdAt: new Date(),
 			description,
 		}
-		const createProductResponse = await Product.create(productData)
 
-		if (!createProductResponse) {
-			logger.warn(`Product not created: ${productId}`)
-			return null
-		}
-
-		logger.info(`Product crested: ${productId}`)
-		return { _id: createProductResponse.id }
-	}
-
-	public async getUser(userId: string) {
-		try {
-			const user = await Product.findOne({ id: userId }).lean()
-			if (!user) {
-				logger.warn(`User not found: ${userId}`)
-				return null
-			}
-			return user
-		} catch (error) {
-			logger.error(`Error fetching user ${userId}:`, error)
-			throw error
-		}
+		return this.createDocument(requestContext, 'products', Product, {
+			...productData,
+		})
 	}
 
 	public async patchProduct(
@@ -390,40 +697,477 @@ export default class ProductController {
 		requestBody: Partial<Omit<ProductDocument, '_id'>>,
 		requestContext: RequestContext,
 	) {
-		try {
-			const productToUpdate = this.getProduct(productId, requestContext)
+		const {
+			id,
+			tenantId,
+			productId: nextProductId,
+			createdAt,
+			createdBy,
+			...allowedUpdates
+		} = requestBody as any
+		void id
+		void tenantId
+		void nextProductId
+		void createdAt
+		void createdBy
 
-			if (!productToUpdate) {
-				throw new BusinessLogicError(
-					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-					'Product not found',
-				)
-			}
-			const fieldsToUpdate = Object.keys(requestBody)
-
-			// Prevent _id/id updates
-			const { id, ...allowedUpdates } = requestBody
-
-			if (Object.keys(allowedUpdates).length === 0) {
-				throw new Error('No valid fields to update')
-			}
-
-			const updatedProduct = await Product.findOneAndUpdate(
-				{ id: productId },
-				{ $set: allowedUpdates },
-				{ new: true, runValidators: true },
-			).lean()
-
-			if (!updatedProduct) {
-				logger.warn(`Product not found for update: ${productId}`)
-				return null
-			}
-
-			logger.info(`Product updated: ${productId}`, { changes: allowedUpdates })
-			return updatedProduct
-		} catch (error) {
-			logger.error(`Error updating product ${productId}:`, error)
-			throw error
+		if (Object.keys(allowedUpdates).length === 0) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'No valid fields to update.',
+			)
 		}
+
+		return this.updateDocument(
+			requestContext,
+			'products',
+			Product,
+			'id',
+			productId,
+			allowedUpdates,
+		)
+	}
+
+	public async deleteProduct(
+		productId: string,
+		requestContext: RequestContext,
+	) {
+		return this.deleteDocument(
+			requestContext,
+			'products',
+			Product,
+			'id',
+			productId,
+		)
+	}
+
+	public async getOrders(requestContext: RequestContext) {
+		return this.listDocuments(requestContext, 'orders', Order, {
+			createdAt: -1,
+		})
+	}
+
+	public async getOrder(orderId: string, requestContext: RequestContext) {
+		return this.getDocumentByField(
+			requestContext,
+			'orders',
+			Order,
+			'orderId',
+			orderId,
+		)
+	}
+
+	public async postOrder(
+		requestBody: OrderRequestBody,
+		requestContext: RequestContext,
+	) {
+		await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
+		return this.createDocument(requestContext, 'orders', Order, {
+			orderId: uuidv4(),
+			orderNumber: requestBody.orderNumber,
+			status: requestBody.status ?? 'draft',
+			items: requestBody.items,
+			totalAmount: requestBody.totalAmount,
+		})
+	}
+
+	public async patchOrder(
+		orderId: string,
+		requestBody: Partial<OrderRequestBody>,
+		requestContext: RequestContext,
+	) {
+		if (requestBody.items) {
+			await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
+		}
+		return this.updateDocument(
+			requestContext,
+			'orders',
+			Order,
+			'orderId',
+			orderId,
+			requestBody,
+		)
+	}
+
+	public async deleteOrder(orderId: string, requestContext: RequestContext) {
+		return this.deleteDocument(
+			requestContext,
+			'orders',
+			Order,
+			'orderId',
+			orderId,
+		)
+	}
+
+	public async getInvoices(requestContext: RequestContext) {
+		return this.listDocuments(requestContext, 'invoices', Invoice, {
+			createdAt: -1,
+		})
+	}
+
+	public async getInvoice(invoiceId: string, requestContext: RequestContext) {
+		return this.getDocumentByField(
+			requestContext,
+			'invoices',
+			Invoice,
+			'invoiceId',
+			invoiceId,
+		)
+	}
+
+	public async postInvoice(
+		requestBody: InvoiceRequestBody,
+		requestContext: RequestContext,
+	) {
+		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
+		return this.createDocument(requestContext, 'invoices', Invoice, {
+			invoiceId: uuidv4(),
+			invoiceNumber: requestBody.invoiceNumber,
+			orderId: requestBody.orderId,
+			status: requestBody.status ?? 'pending',
+			amount: requestBody.amount,
+			issuedAt: requestBody.issuedAt,
+		})
+	}
+
+	public async patchInvoice(
+		invoiceId: string,
+		requestBody: Partial<InvoiceRequestBody>,
+		requestContext: RequestContext,
+	) {
+		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
+		return this.updateDocument(
+			requestContext,
+			'invoices',
+			Invoice,
+			'invoiceId',
+			invoiceId,
+			requestBody,
+		)
+	}
+
+	public async deleteInvoice(
+		invoiceId: string,
+		requestContext: RequestContext,
+	) {
+		return this.deleteDocument(
+			requestContext,
+			'invoices',
+			Invoice,
+			'invoiceId',
+			invoiceId,
+		)
+	}
+
+	public async getInventory(requestContext: RequestContext) {
+		return this.listDocuments(requestContext, 'inventory', Inventory, {
+			updatedAt: -1,
+		})
+	}
+
+	public async getInventoryItem(
+		inventoryId: string,
+		requestContext: RequestContext,
+	) {
+		return this.getDocumentByField(
+			requestContext,
+			'inventory',
+			Inventory,
+			'inventoryId',
+			inventoryId,
+		)
+	}
+
+	public async postInventory(
+		requestBody: InventoryRequestBody,
+		requestContext: RequestContext,
+	) {
+		await this.ensureInventoryProductBelongsToTenant(
+			requestContext,
+			requestBody.productId,
+		)
+		return this.createDocument(requestContext, 'inventory', Inventory, {
+			inventoryId: uuidv4(),
+			productId: requestBody.productId,
+			onHand: requestBody.onHand,
+			reserved: requestBody.reserved ?? 0,
+			reorderLevel: requestBody.reorderLevel ?? 0,
+		})
+	}
+
+	public async patchInventory(
+		inventoryId: string,
+		requestBody: Partial<InventoryRequestBody>,
+		requestContext: RequestContext,
+	) {
+		if (requestBody.productId) {
+			await this.ensureInventoryProductBelongsToTenant(
+				requestContext,
+				requestBody.productId,
+			)
+		}
+		return this.updateDocument(
+			requestContext,
+			'inventory',
+			Inventory,
+			'inventoryId',
+			inventoryId,
+			requestBody,
+		)
+	}
+
+	public async deleteInventory(
+		inventoryId: string,
+		requestContext: RequestContext,
+	) {
+		return this.deleteDocument(
+			requestContext,
+			'inventory',
+			Inventory,
+			'inventoryId',
+			inventoryId,
+		)
+	}
+
+	public async getReports(requestContext: RequestContext) {
+		return this.listDocuments(requestContext, 'reports', Report, {
+			createdAt: -1,
+		})
+	}
+
+	public async getReport(reportId: string, requestContext: RequestContext) {
+		return this.getDocumentByField(
+			requestContext,
+			'reports',
+			Report,
+			'reportId',
+			reportId,
+		)
+	}
+
+	public async postReport(
+		requestBody: ReportRequestBody,
+		requestContext: RequestContext,
+	) {
+		return this.createDocument(requestContext, 'reports', Report, {
+			reportId: uuidv4(),
+			name: requestBody.name,
+			type: requestBody.type,
+			periodStart: requestBody.periodStart,
+			periodEnd: requestBody.periodEnd,
+			data: requestBody.data,
+		})
+	}
+
+	public async patchReport(
+		reportId: string,
+		requestBody: Partial<ReportRequestBody>,
+		requestContext: RequestContext,
+	) {
+		return this.updateDocument(
+			requestContext,
+			'reports',
+			Report,
+			'reportId',
+			reportId,
+			requestBody,
+		)
+	}
+
+	public async deleteReport(reportId: string, requestContext: RequestContext) {
+		return this.deleteDocument(
+			requestContext,
+			'reports',
+			Report,
+			'reportId',
+			reportId,
+		)
+	}
+
+	public async getTenantUsers(
+		requestContext: RequestContext,
+	): Promise<TenantUserSummary[]> {
+		ensureTenantAccess(requestContext, 'users', 'read')
+		const tenantContext = getTenantContext(requestContext)
+
+		const users = (await withTenantScope(
+			User.find({}, { password: 0, tokenVersion: 0 }).sort({ createdAt: -1 }),
+			tenantContext.tenantId,
+		).lean()) as unknown as IUser[]
+
+		return users.map(user => this.mapTenantUser(user))
+	}
+
+	public async inviteTenantUser(
+		requestBody: InviteTenantUserRequestBody,
+		requestContext: RequestContext,
+	): Promise<InviteTenantUserResponse> {
+		ensureTenantAccess(requestContext, 'users', 'create')
+		const tenantContext = getTenantContext(requestContext)
+
+		const { firstName, lastName, email, role, isInternal = false } = requestBody
+
+		if (!firstName || !lastName || !email || !role) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'firstName, lastName, email and role are required.',
+			)
+		}
+
+		const emailError = validateEmail(email)
+		if (emailError) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
+				emailError,
+			)
+		}
+
+		const tenant = await this.requireTenantById(tenantContext.tenantId)
+		if (getEmailDomain(email) !== tenant.domain) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				`User email domain must match tenant domain ${tenant.domain}.`,
+			)
+		}
+
+		const existing = (await withTenantScope(
+			User.findOne({ email: email.toLowerCase() }),
+			tenantContext.tenantId,
+		).lean()) as IUser | null
+
+		if (existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'User already exists in this tenant.',
+			)
+		}
+
+		const temporaryPassword = this.createTemporaryPassword()
+		const hashedPassword = await bcrypt.hash(temporaryPassword, 10)
+
+		const created = await User.create({
+			tenantId: tenantContext.tenantId,
+			userId: uuidv4(),
+			displayName: `${firstName} ${lastName}`,
+			user: {
+				firstName,
+				lastName,
+				isInternal,
+			},
+			email: email.toLowerCase(),
+			password: hashedPassword,
+			role,
+			avatarColorId: Math.floor(Math.random() * 1000000),
+		})
+
+		return {
+			_id: created.id,
+			email: created.email,
+			tenantId: tenantContext.tenantId,
+			role: created.role,
+			temporaryPassword,
+		}
+	}
+
+	public async patchTenantUser(
+		userId: string,
+		requestBody: UpdateTenantUserRequestBody,
+		requestContext: RequestContext,
+	): Promise<TenantUserSummary> {
+		ensureTenantAccess(requestContext, 'users', 'update')
+		const tenantContext = getTenantContext(requestContext)
+
+		const updates: Record<string, unknown> = {}
+		if (requestBody.firstName) {
+			updates['user.firstName'] = requestBody.firstName
+		}
+		if (requestBody.lastName) {
+			updates['user.lastName'] = requestBody.lastName
+		}
+		if (typeof requestBody.isInternal === 'boolean') {
+			updates['user.isInternal'] = requestBody.isInternal
+		}
+		if (requestBody.role) {
+			updates.role = requestBody.role
+		}
+
+		if (requestBody.firstName || requestBody.lastName) {
+			const firstName = requestBody.firstName || ''
+			const lastName = requestBody.lastName || ''
+			updates.displayName = `${firstName} ${lastName}`.trim()
+		}
+
+		if (Object.keys(updates).length === 0) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'No fields provided for update.',
+			)
+		}
+
+		const updated = (await withTenantScope(
+			User.findOneAndUpdate(
+				{ userId },
+				{ $set: updates },
+				{
+					new: true,
+					runValidators: true,
+					projection: { password: 0, tokenVersion: 0 },
+				},
+			),
+			tenantContext.tenantId,
+		).lean()) as IUser | null
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'User not found.',
+			)
+		}
+
+		return this.mapTenantUser(updated)
+	}
+
+	public async deleteTenantUser(
+		userId: string,
+		requestContext: RequestContext,
+	): Promise<void> {
+		ensureTenantAccess(requestContext, 'users', 'delete')
+		const tenantContext = getTenantContext(requestContext)
+
+		const targetUser = (await withTenantScope(
+			User.findOne({ userId }),
+			tenantContext.tenantId,
+		).lean()) as IUser | null
+
+		if (!targetUser) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				'User not found.',
+			)
+		}
+
+		if (String(targetUser._id) === requestContext.userId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'You cannot delete your own account.',
+			)
+		}
+
+		const deleted = (await withTenantScope(
+			User.findOneAndDelete({ userId }),
+			tenantContext.tenantId,
+		).lean()) as IUser | null
+
+		if (!deleted) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				'User not found.',
+			)
+		}
+
+		await RefreshToken.deleteMany({
+			userId: deleted._id,
+			tenantId: tenantContext.tenantId,
+		})
 	}
 }

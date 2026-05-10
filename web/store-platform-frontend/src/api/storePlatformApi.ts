@@ -1,11 +1,17 @@
-import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react'
+import {
+	createApi,
+	fetchBaseQuery,
+	BaseQueryFn,
+	FetchArgs,
+	FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react'
 import { config } from '../config'
 import { RootState } from '../store/store'
 import { setAccessToken, logout } from '../store/user/reducer'
 
-export type TagType = 'products' | 'product'
+export type TagType = 'products' | 'product' | 'tenant-users'
 
-const tagTypes: TagType[] = ['products', 'product']
+const tagTypes: TagType[] = ['products', 'product', 'tenant-users']
 
 const baseQuery = fetchBaseQuery({
 	baseUrl: `${config.endpoints.storePlatformEndpoint}`,
@@ -21,11 +27,11 @@ const baseQuery = fetchBaseQuery({
 	},
 })
 
-const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
-	args,
-	api,
-	extraOptions,
-) => {
+const baseQueryWithReauth: BaseQueryFn<
+	string | FetchArgs,
+	unknown,
+	FetchBaseQueryError
+> = async (args, api, extraOptions) => {
 	let result = await baseQuery(args, api, extraOptions)
 
 	if (result.error?.status === 401) {

@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose'
+import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface IProduct extends Document {
+	tenantId: string
 	productId: string
 	id: string
 	name: string
@@ -17,13 +19,11 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 		productId: {
 			type: String,
 			required: [true, 'Product ID is required'],
-			unique: true,
 			trim: true,
 		},
 		id: {
 			type: String,
 			required: [true, 'Product country ID is required'],
-			unique: true,
 			trim: false,
 		},
 		name: {
@@ -40,7 +40,6 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 		barcode: {
 			type: String,
 			required: [true, 'Barcode is required'],
-			unique: true,
 			// trim: true,
 			//match: [/^\d{5,30}$/, 'Barcode must be 12-13 digits'],
 		},
@@ -57,5 +56,11 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 	},
 	{ timestamps: true },
 )
+
+tenantScopedSchema(ProductSchema)
+
+ProductSchema.index({ tenantId: 1, productId: 1 }, { unique: true })
+ProductSchema.index({ tenantId: 1, id: 1 }, { unique: true })
+ProductSchema.index({ tenantId: 1, barcode: 1 }, { unique: true })
 
 export const Product = mongoose.model<IProduct>('Products', ProductSchema)

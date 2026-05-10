@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom' // To access the state passed via navigation
+import { Link, useLocation } from 'react-router-dom' // To access the state passed via navigation
 import AdminDashboard from './AdminDashboard'
 import { UserRole } from '../shared/globalEnums'
 // import { useAddUserMutation } from '../store/api/platform'
@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
 			setRole(location.state.role) // If the role is passed via state, use it
 		}
 	}, [location])
-	const isAdmin = role === UserRole.ADMIN
+	const isAdmin = role === UserRole.ADMIN || role === UserRole.OWNER
 	useEffect(() => {
 		if (isAdmin) {
 			setMessage('Welcome to the Admin Dashboard! You can add users.')
@@ -29,12 +29,12 @@ const Dashboard: React.FC = () => {
 		username: '',
 		email: '',
 		password: '',
-		role: UserRole.EDITOR,
+		role: UserRole.EMPLOYEE,
 	})
 
 	// Handle input changes
 	const handleChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
 	) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value })
 	}
@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
 		user.preventDefault()
 		setMessage('')
 
-		if (role !== UserRole.ADMIN) {
+		if (!isAdmin) {
 			setMessage('Unauthorized: Only admins can add users.')
 			return
 		}
@@ -58,7 +58,7 @@ const Dashboard: React.FC = () => {
 			// Send form data to the backend API
 			const response = await axios.post(
 				'http://localhost:3001/api/business-platform-store/register',
-				formData
+				formData,
 			)
 
 			if (response.data.success) {
@@ -67,7 +67,7 @@ const Dashboard: React.FC = () => {
 					username: '',
 					email: '',
 					password: '',
-					role: UserRole.EDITOR,
+					role: UserRole.EMPLOYEE,
 				})
 			}
 		} catch (err: any) {
@@ -98,16 +98,22 @@ const Dashboard: React.FC = () => {
 			</h1>
 			<p style={{ textAlign: 'center' }}>Welcome, {role?.toUpperCase()}</p>
 
-			{role === UserRole.ADMIN ? (
-				<AdminDashboard
-					formData={formData}
-					message={message}
-					handleChange={handleChange}
-					handleRegister={handleRegister}
-				/>
+			{isAdmin ? (
+				<>
+					<AdminDashboard
+						formData={formData}
+						message={message}
+						handleChange={handleChange}
+						handleRegister={handleRegister}
+					/>
+					<div style={{ marginTop: '12px', textAlign: 'center' }}>
+						<Link to="/users-login">Open Tenant User Management</Link>
+					</div>
+				</>
 			) : (
 				<p style={{ textAlign: 'center', color: 'blue' }}>
-					You are logged in as an Editor. You can only view data.
+					You are logged in with a restricted tenant role. You can only view
+					data.
 				</p>
 			)}
 		</div>

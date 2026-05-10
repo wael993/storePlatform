@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import { TenantRole } from '../shared/tenant'
 
 interface Operation {
 	fields: string[]
@@ -12,22 +13,14 @@ interface Resources {
 	[path: string]: Method
 }
 
-interface AuthorizedUserRole {
-	_id: string
-	name: string
-	resources: Record<string, any>
-	include: string[]
-	frontendResources: Record<string, any>
-	serviceIds: string[]
-	rolesIncluded: string[]
-}
-
 interface AuthorizedUser {
 	userId: string
+	tenantId: string
+	tenantName: string
 	firstName: string
 	lastName: string
 	email: string
-	role: AuthorizedUserRole
+	role: TenantRole
 	permissions: Resources
 	// services: Service[]
 	// businessPartner?: BusinessPartner
@@ -38,6 +31,9 @@ interface RequestContext {
 	authorization?: string
 	cookie?: string
 	userId?: string
+	tenantId?: string
+	tenantName?: string
+	role?: TenantRole
 	user?: AuthorizedUser
 	userVendorId?: string
 }
@@ -47,6 +43,9 @@ export const getRequestContext = (req: any) => {
 		authorization: req.headers.authorization,
 		cookie: req.headers.cookie,
 		userId: req.user?.userId,
+		tenantId: req.user?.tenantId,
+		tenantName: req.user?.tenantName,
+		role: req.user?.role,
 		user: req.user,
 	}
 

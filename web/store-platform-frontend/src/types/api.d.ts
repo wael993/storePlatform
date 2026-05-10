@@ -91,13 +91,47 @@ interface ProductApi {
 interface LoginAPI {
 	accessToken: string
 	userId: string
+	tenantId: string
+	tenantName: string
 	email: string
 	firstName: string
 	lastName: string
 	role: UserRole
 	isInternal: boolean
 }
-interface UserRole {
+
+interface TenantUser {
 	_id: string
-	name: string
+	userId: string
+	displayName: string
+	email: string
+	role: UserRole
+	firstName: string
+	lastName: string
+	isInternal: boolean
+	createdAt: string
+	updatedAt: string
+}
+
+interface InviteTenantUserRequest {
+	firstName: string
+	lastName: string
+	email: string
+	role: UserRole
+	isInternal?: boolean
+}
+
+interface InviteTenantUserResponse {
+	_id: string
+	email: string
+	tenantId: string
+	role: UserRole
+	temporaryPassword: string
+}
+
+interface UpdateTenantUserRequest {
+	firstName?: string
+	lastName?: string
+	role?: UserRole
+	isInternal?: boolean
 }

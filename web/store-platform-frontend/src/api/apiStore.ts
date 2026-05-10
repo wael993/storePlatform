@@ -1,8 +1,5 @@
 import { EndpointBuilder } from '@reduxjs/toolkit/query'
-import {
-	FetchArgs,
-	FetchBaseQueryError,
-} from '@reduxjs/toolkit/query'
+import { FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 
@@ -19,11 +16,7 @@ interface LoginRequestBody {
 }
 const getQuery = (
 	builder: EndpointBuilder<
-		BaseQueryFn<
-			string | FetchArgs,
-			unknown,
-			FetchBaseQueryError
-		>,
+		BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
 		TagType,
 		'storePlatformAPI'
 	>,
@@ -124,6 +117,45 @@ const getQuery = (
 				credentials: 'include',
 			}),
 		}),
+
+		getTenantUsers: builder.query<TenantUser[], void>({
+			query: () => ({
+				url: 'users',
+			}),
+			providesTags: ['tenant-users'],
+		}),
+
+		inviteTenantUser: builder.mutation<
+			InviteTenantUserResponse,
+			InviteTenantUserRequest
+		>({
+			query: body => ({
+				url: 'users/invite',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['tenant-users'],
+		}),
+
+		updateTenantUser: builder.mutation<
+			TenantUser,
+			{ userId: string; body: UpdateTenantUserRequest }
+		>({
+			query: ({ userId, body }) => ({
+				url: `users/${userId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['tenant-users'],
+		}),
+
+		deleteTenantUser: builder.mutation<void, string>({
+			query: userId => ({
+				url: `users/${userId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['tenant-users'],
+		}),
 	}
 }
 
@@ -141,4 +173,8 @@ export const {
 	useLoginMutation,
 	useLogoutCurrentMutation,
 	useLogoutAllMutation,
+	useGetTenantUsersQuery,
+	useInviteTenantUserMutation,
+	useUpdateTenantUserMutation,
+	useDeleteTenantUserMutation,
 } = storeApi

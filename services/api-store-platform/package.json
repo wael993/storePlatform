@@ -5,7 +5,10 @@
 	"scripts": {
 		"start": "ts-node src/server.ts",
 		"build": "tsc",
-		"dev": "nodemon src/server.ts"
+		"dev": "nodemon src/server.ts",
+		"seed:users": "ts-node src/scripts/create-admin-user.ts",
+		"seed:products": "ts-node src/scripts/create-initial-products.ts",
+		"migrate:multi-tenant": "ts-node src/scripts/migrate-multi-tenant.ts"
 	},
 	"keywords": [],
 	"author": "",

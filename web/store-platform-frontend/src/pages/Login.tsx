@@ -16,6 +16,7 @@ import api from '../api/api'
 import { useLoginMutation } from '../api/apiStore'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
+import { UserRole } from '../shared/globalEnums'
 
 const Login = () => {
 	const [email, setEmail] = useState('admin@example.com')
@@ -53,7 +54,13 @@ const Login = () => {
 			}
 			dispatch(setCredentials(response))
 
-			navigate('/barcode', { state: { role: response.role } })
+			const nextRoute = [UserRole.OWNER, UserRole.ADMIN].includes(response.role)
+				? '/barcode'
+				: '/'
+
+			navigate(nextRoute, {
+				state: { role: response.role, tenantId: response.tenantId },
+			})
 		} catch (err: any) {
 			const status = err?.status
 			if (status === 429) {

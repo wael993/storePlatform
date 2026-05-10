@@ -1,21 +1,16 @@
+import { TenantRole } from '../tenant'
+
 interface AuthorizedUser {
 	userId: string
+	tenantId: string
+	tenantName: string
 	firstName: string
 	lastName: string
 	email: string
-	role: AuthorizedUserRole
+	role: TenantRole
 	permissions: Resources
 	// services: Service[]
 	isInternal: boolean
-}
-interface AuthorizedUserRole {
-	_id: string
-	name: string
-	resources: Record<string, any>
-	include: string[]
-	frontendResources: Record<string, any>
-	serviceIds: string[]
-	rolesIncluded: string[]
 }
 export interface Resources {
 	[resourcePath: string]: {
@@ -34,7 +29,7 @@ interface Operation {
 }
 
 type AccessLevel = 'GLOBAL' | 'SERVICE' | 'COMPANY' | 'SELF'
-type HttpMethods = "GET" | "DELETE" | "POST" | "PUT" | "PATCH"
+type HttpMethods = 'GET' | 'DELETE' | 'POST' | 'PUT' | 'PATCH'
 
 interface FieldValueFilter {
 	fieldName: string

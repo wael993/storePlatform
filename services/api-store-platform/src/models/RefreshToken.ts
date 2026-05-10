@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
 export interface IRefreshToken extends Document {
+	tenantId: string
 	userId: mongoose.Types.ObjectId
 	tokenHash: string
 	ip: string
@@ -11,6 +12,11 @@ export interface IRefreshToken extends Document {
 
 const RefreshTokenSchema: Schema<IRefreshToken> = new mongoose.Schema(
 	{
+		tenantId: {
+			type: String,
+			required: true,
+			index: true,
+		},
 		userId: {
 			type: Schema.Types.ObjectId,
 			ref: 'User',
@@ -39,6 +45,11 @@ const RefreshTokenSchema: Schema<IRefreshToken> = new mongoose.Schema(
 	{ timestamps: true },
 )
 
-const RefreshToken = mongoose.model<IRefreshToken>('RefreshToken', RefreshTokenSchema)
+RefreshTokenSchema.index({ tenantId: 1, userId: 1 })
+
+const RefreshToken = mongoose.model<IRefreshToken>(
+	'RefreshToken',
+	RefreshTokenSchema,
+)
 
 export default RefreshToken

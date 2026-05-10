@@ -1,6 +1,12 @@
 import mongoose from 'mongoose'
 import { config } from '../config/config'
 import { Product } from '../models/Products'
+import Tenant from '../models/Tenant'
+import {
+	DEFAULT_TENANT_DOMAIN,
+	DEFAULT_TENANT_ID,
+	DEFAULT_TENANT_NAME,
+} from '../shared/tenant'
 
 // Initial products data
 const INITIAL_PRODUCTS = [
@@ -22,20 +28,42 @@ async function createInitialProducts() {
 		await mongoose.connect(config.mongoDB.connectionString)
 		console.log('✅ Connected to MongoDB')
 
+		await Tenant.updateOne(
+			{ tenantId: DEFAULT_TENANT_ID },
+			{
+				$set: {
+					name: DEFAULT_TENANT_NAME,
+					domain: DEFAULT_TENANT_DOMAIN,
+					status: 'active',
+				},
+			},
+			{ upsert: true },
+		)
+
 		// Delete existing products (targeted by id)
-		await Product.deleteMany({ id: { $in: INITIAL_PRODUCTS.map(p => p.id) } })
+		await Product.deleteMany({
+			tenantId: DEFAULT_TENANT_ID,
+			id: { $in: INITIAL_PRODUCTS.map(p => p.id) },
+		} as any)
 		console.log('🗑️  Existing matching products deleted (Products collection)')
 
 		// Create initial products
 		for (const productData of INITIAL_PRODUCTS) {
 			// Create product document
 			const product = new Product({
+				tenantId: DEFAULT_TENANT_ID,
 				productId: productData.productId,
 				id: productData.id,
 				name: productData.name,
 				price: productData.price,
 				barcode: productData.barcode,
 				count: productData.count,
+				createdBy: {
+					_id: 'seed-script',
+					displayName: 'Seed Script',
+					isInternal: true,
+				},
+				description: productData.description,
 			})
 
 			await product.save()

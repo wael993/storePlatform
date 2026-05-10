@@ -2,6 +2,12 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
 import { config } from '../config/config'
 import User from '../models/User'
+import Tenant from '../models/Tenant'
+import {
+	DEFAULT_TENANT_DOMAIN,
+	DEFAULT_TENANT_ID,
+	DEFAULT_TENANT_NAME,
+} from '../shared/tenant'
 
 // Admin user details - CHANGE THESE
 //to run this script, use: `ts-node scripts/create-admin-user.ts`
@@ -12,7 +18,7 @@ const INITIAL_USERS = [
 		user: { firstName: 'wael', lastName: 'Zobani', isInternal: true },
 		email: 'admin@example.com',
 		password: 'admin123', // Minimum 6 chars
-		role: 'admin',
+		role: 'owner',
 		avatarColorId: 3215,
 	},
 	{
@@ -21,7 +27,7 @@ const INITIAL_USERS = [
 		user: { firstName: 'wael', lastName: 'Zobani', isInternal: false },
 		email: 'editor@example.com',
 		password: 'editor123', // Minimum 6 chars
-		role: 'editor',
+		role: 'admin',
 		avatarColorId: 321522,
 	},
 ]
@@ -32,8 +38,25 @@ async function createInitialUsers() {
 		await mongoose.connect(config.mongoDB.connectionString)
 		console.log('✅ Connected to MongoDB')
 
+		// Ensure stale unique indexes from previous schemas (e.g. username_1)
+		// do not break tenant-aware seed inserts.
+		await User.syncIndexes()
+		console.log('🔧 User indexes synchronized')
+
+		await Tenant.updateOne(
+			{ tenantId: DEFAULT_TENANT_ID },
+			{
+				$set: {
+					name: DEFAULT_TENANT_NAME,
+					domain: DEFAULT_TENANT_DOMAIN,
+					status: 'active',
+				},
+			},
+			{ upsert: true },
+		)
+
 		// Delete all existing users
-		await User.deleteMany({})
+		await User.deleteMany({ tenantId: DEFAULT_TENANT_ID } as any)
 		console.log('🗑️  All existing users deleted')
 
 		// Create initial users
@@ -43,6 +66,7 @@ async function createInitialUsers() {
 
 			// Create user
 			const user = new User({
+				tenantId: DEFAULT_TENANT_ID,
 				userId: userData.userId,
 				displayName: userData.displayName,
 				user: {
@@ -63,15 +87,14 @@ async function createInitialUsers() {
 			console.log('👤 _id:', user.userId)
 			console.log('👤 displayName:', user.displayName)
 			console.log('📧 Email:', user.email)
+			console.log('🏢 Tenant:', DEFAULT_TENANT_ID)
 			console.log('🎭 Role:', user.role)
 			console.log('🎭 firstName:', user.user.firstName)
 			console.log('🎭 lastName:', user.user.lastName)
 			console.log('🎭 isInternal:', user.user.isInternal)
 
 			console.log('')
-			console.log(
-				'🚀 Login at: POST http://localhost:3001/api/business-platform-store/login',
-			)
+			console.log('🚀 Login at: POST http://localhost:3001/api/data/login')
 			console.log(
 				'📝 Body: {"email": "' +
 					user.email +

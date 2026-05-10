@@ -3,7 +3,7 @@ import { config } from '../config'
 import userReducer from './user/reducer'
 import { userApi } from '../api/user'
 import { storePlatformApi } from '../api/storePlatformApi'
-import { persistReducer } from 'redux-persist'
+import { persistReducer, persistStore } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 
 const persistConfig = {
@@ -39,5 +39,7 @@ const store = configureStore({
 			serializableCheck: false,
 		}).concat(userApi.middleware, storePlatformApi.middleware),
 })
+
+export const persistor = persistStore(store)
 export default store
 export type RootState = ReturnType<typeof store.getState>
