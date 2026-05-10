@@ -8,12 +8,14 @@ import {
 	Heading,
 	Stack,
 	Text,
+	useDisclosure,
 } from '@chakra-ui/react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import { RootState } from '../store/store'
 import { UserRole } from '../shared/globalEnums'
+import ChangePasswordModal from './ChangePasswordModal'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -31,6 +33,11 @@ const TenantLayout = () => {
 	const [error, setError] = useState('')
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
+	const {
+		isOpen: isPwOpen,
+		onOpen: onPwOpen,
+		onClose: onPwClose,
+	} = useDisclosure()
 
 	const userRole = useSelector(
 		(state: RootState) => state.user.user?.role ?? null,
@@ -121,6 +128,9 @@ const TenantLayout = () => {
 							{error}
 						</Text>
 					) : null}
+					<Button w="full" variant="outline" mb={2} onClick={onPwOpen}>
+						Change Password
+					</Button>
 					<Button
 						w="full"
 						colorScheme="gray"
@@ -135,6 +145,8 @@ const TenantLayout = () => {
 			<Box flex="1" px={{ base: 4, md: 8 }} py={8}>
 				<Outlet />
 			</Box>
+
+			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
 		</Flex>
 	)
 }

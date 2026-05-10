@@ -193,6 +193,17 @@ const getQuery = (
 			}),
 			invalidatesTags: ['tenants'],
 		}),
+
+		changePassword: builder.mutation<
+			void,
+			{ currentPassword: string; newPassword: string }
+		>({
+			query: body => ({
+				url: 'users/me/password',
+				method: 'PATCH',
+				body,
+			}),
+		}),
 	}
 }
 
@@ -218,4 +229,5 @@ export const {
 	useGetTenantsQuery,
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
+	useChangePasswordMutation,
 } = storeApi

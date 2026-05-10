@@ -328,6 +328,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/users/me/password`)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.changePassword.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/users/:id`)
 			.patch(
 				this.startCalc.bind(this),
@@ -1097,6 +1106,23 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async changePassword(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestBody = request.body
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.changePassword(requestBody, requestContext)
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)

@@ -1197,6 +1197,65 @@ export default class ProductController {
 		})
 	}
 
+	public async changePassword(
+		requestBody: { currentPassword: string; newPassword: string },
+		requestContext: RequestContext,
+	): Promise<void> {
+		const { currentPassword, newPassword } = requestBody
+
+		if (!currentPassword || !newPassword) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'currentPassword and newPassword are required.',
+			)
+		}
+
+		const passwordError = validatePasswordStrength(newPassword)
+		if (passwordError) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.WEAK_PASSWORD,
+				passwordError,
+			)
+		}
+
+		const tenantContext = getTenantContext(requestContext)
+
+		const user = (await withTenantScope(
+			User.findById(requestContext.userId),
+			tenantContext.tenantId,
+		).lean()) as IUser | null
+
+		if (!user) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'User not found.',
+			)
+		}
+
+		const isValid = await bcrypt.compare(currentPassword, user.password)
+		if (!isValid) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Current password is incorrect.',
+			)
+		}
+
+		const hashed = await bcrypt.hash(newPassword, 12)
+
+		await withTenantScope(
+			User.findByIdAndUpdate(requestContext.userId, {
+				$set: { password: hashed, tokenVersion: (user.tokenVersion ?? 0) + 1 },
+			}),
+			tenantContext.tenantId,
+		)
+
+		// Revoke all refresh tokens so the user must log in again on other devices
+		await RefreshToken.deleteMany({
+			userId: user._id,
+			tenantId: tenantContext.tenantId,
+		})
+	}
+
 	public async getTenants(
 		requestContext: RequestContext,
 	): Promise<TenantSummary[]> {
