@@ -147,7 +147,7 @@ export default class ProductController {
 
 		if (tenant.status !== 'active') {
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',
 			)
 		}
@@ -553,14 +553,14 @@ export default class ProductController {
 		}).lean()) as ITenant | null
 		if (!tenant) {
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',
 			)
 		}
 
 		if (tenant.status !== 'active') {
 			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',
 			)
 		}

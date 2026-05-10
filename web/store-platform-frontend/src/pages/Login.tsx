@@ -26,6 +26,10 @@ const Login = () => {
 	const [login, { isLoading: isLoggingLoading }] = useLoginMutation()
 	const navigate = useNavigate()
 	const dispatch = useDispatch()
+	const inactiveTenantMessage =
+		'Tenant is inactive. Contact the platform admin.'
+	const validationErrorMessage =
+		'Please check your email and password format and try again.'
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -62,14 +66,19 @@ const Login = () => {
 			})
 		} catch (err: any) {
 			const status = err?.status
+			const errorCode = err?.data?.errorCode
 			if (status === 429) {
 				setError('Too many login attempts. Please try again after 1 minute.')
-			} else if (status === 401) {
-				setError('Invalid email or password.')
-			} else if (status === 403) {
-				setError('Access forbidden.')
+			} else if (errorCode === 'INACTIVE_TENANT') {
+				setError(inactiveTenantMessage)
+			} else if (
+				errorCode === 'REQUIRED_FIELD_MISSING' ||
+				errorCode === 'INVALID_EMAIL_FORMAT' ||
+				errorCode === 'WEAK_PASSWORD'
+			) {
+				setError(validationErrorMessage)
 			} else {
-				setError(err?.data?.message || 'Invalid email or password.')
+				setError('Invalid email or password.')
 			}
 		}
 	}
