@@ -1,0 +1,24 @@
+{
+  "_id": "SUPER_ADMIN",
+  "name": "Super Admin",
+  "resources": {
+    "/tenants": {
+      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+      "POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+      "PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+      "DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+    }
+  },
+  "include": [],
+  "frontendResources": {
+    "/add-new-tenant": { "access": true },
+    "/tenants-list": {
+      "access": true,
+      "allowedActions": [
+        "updateTenant",
+        "deleteTenant",
+        "toggleTenantStatus"
+      ]
+    }
+  }
+}

@@ -6,8 +6,10 @@
 		"start": "ts-node src/server.ts",
 		"build": "tsc",
 		"dev": "nodemon src/server.ts",
+		"init-collections": "ts-node src/scripts/init-collections.ts",
 		"seed:users": "ts-node src/scripts/create-admin-user.ts",
 		"seed:products": "ts-node src/scripts/create-initial-products.ts",
+		"seed:roles": "ts-node src/scripts/seed-roles.ts",
 		"migrate:multi-tenant": "ts-node src/scripts/migrate-multi-tenant.ts",
 		"seed:super-admin": "ts-node src/scripts/create-super-admin-user.ts"
 	},

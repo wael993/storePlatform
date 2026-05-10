@@ -199,7 +199,7 @@ export default class ProductController {
 		model: EntityModel,
 		sort: Record<string, 1 | -1>,
 	) {
-		ensureTenantAccess(requestContext, resource, 'read')
+		await ensureTenantAccess(requestContext, resource, 'read')
 		const tenantContext = getTenantContext(requestContext)
 
 		return withTenantScope(model.find(), tenantContext.tenantId)
@@ -214,7 +214,7 @@ export default class ProductController {
 		fieldName: string,
 		fieldValue: string,
 	) {
-		ensureTenantAccess(requestContext, resource, 'read')
+		await ensureTenantAccess(requestContext, resource, 'read')
 		const tenantContext = getTenantContext(requestContext)
 
 		return withTenantScope(
@@ -229,8 +229,12 @@ export default class ProductController {
 		model: EntityModel,
 		payload: Record<string, unknown>,
 	): Promise<CreateEntityResponse> {
-		ensureTenantAccess(requestContext, resource, 'create')
+		await ensureTenantAccess(requestContext, resource, 'create')
 		const tenantContext = getTenantContext(requestContext)
+		console.log(
+			'🚀 ~ ProductController ~ createDocument ~ tenantContext:',
+			tenantContext,
+		)
 
 		const created = await model.create({
 			...payload,
@@ -250,7 +254,7 @@ export default class ProductController {
 		fieldValue: string,
 		payload: Record<string, unknown>,
 	) {
-		ensureTenantAccess(requestContext, resource, 'update')
+		await ensureTenantAccess(requestContext, resource, 'update')
 		const tenantContext = getTenantContext(requestContext)
 
 		const updated = await withTenantScope(
@@ -279,7 +283,7 @@ export default class ProductController {
 		fieldName: string,
 		fieldValue: string,
 	) {
-		ensureTenantAccess(requestContext, resource, 'delete')
+		await ensureTenantAccess(requestContext, resource, 'delete')
 		const tenantContext = getTenantContext(requestContext)
 
 		const deleted = await withTenantScope(
@@ -1006,7 +1010,7 @@ export default class ProductController {
 	public async getTenantUsers(
 		requestContext: RequestContext,
 	): Promise<TenantUserSummary[]> {
-		ensureTenantAccess(requestContext, 'users', 'read')
+		await ensureTenantAccess(requestContext, 'users', 'read')
 		const tenantContext = getTenantContext(requestContext)
 
 		const users = (await withTenantScope(
@@ -1021,7 +1025,7 @@ export default class ProductController {
 		requestBody: InviteTenantUserRequestBody,
 		requestContext: RequestContext,
 	): Promise<InviteTenantUserResponse> {
-		ensureTenantAccess(requestContext, 'users', 'create')
+		await ensureTenantAccess(requestContext, 'users', 'create')
 		const tenantContext = getTenantContext(requestContext)
 
 		const { firstName, lastName, email, role, isInternal = false } = requestBody
@@ -1100,7 +1104,7 @@ export default class ProductController {
 		requestBody: UpdateTenantUserRequestBody,
 		requestContext: RequestContext,
 	): Promise<TenantUserSummary> {
-		ensureTenantAccess(requestContext, 'users', 'update')
+		await ensureTenantAccess(requestContext, 'users', 'update')
 		const tenantContext = getTenantContext(requestContext)
 
 		const updates: Record<string, unknown> = {}
@@ -1157,7 +1161,7 @@ export default class ProductController {
 		userId: string,
 		requestContext: RequestContext,
 	): Promise<void> {
-		ensureTenantAccess(requestContext, 'users', 'delete')
+		await ensureTenantAccess(requestContext, 'users', 'delete')
 		const tenantContext = getTenantContext(requestContext)
 
 		const targetUser = (await withTenantScope(
