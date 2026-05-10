@@ -2,6 +2,7 @@ import { EndpointBuilder } from '@reduxjs/toolkit/query'
 import { FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
+import type { TenantSummary, UpdateTenantRequest } from '../types/tenant'
 
 // interface getProductsQueryArgument {
 // 	activityId: string
@@ -165,6 +166,33 @@ const getQuery = (
 			}),
 			invalidatesTags: ['tenants'],
 		}),
+
+		getTenants: builder.query<TenantSummary[], void>({
+			query: () => ({
+				url: 'tenants',
+			}),
+			providesTags: ['tenants'],
+		}),
+
+		updateTenant: builder.mutation<
+			TenantSummary,
+			{ tenantId: string; body: UpdateTenantRequest }
+		>({
+			query: ({ tenantId, body }) => ({
+				url: `tenants/${tenantId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['tenants'],
+		}),
+
+		deleteTenant: builder.mutation<void, string>({
+			query: tenantId => ({
+				url: `tenants/${tenantId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['tenants'],
+		}),
 	}
 }
 
@@ -187,4 +215,7 @@ export const {
 	useUpdateTenantUserMutation,
 	useDeleteTenantUserMutation,
 	useAddTenantMutation,
+	useGetTenantsQuery,
+	useUpdateTenantMutation,
+	useDeleteTenantMutation,
 } = storeApi

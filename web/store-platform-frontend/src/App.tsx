@@ -11,6 +11,8 @@ import { useSilentRefresh } from './shared/useSilentRefresh'
 import { UserRole } from './shared/globalEnums'
 import UsersLogIn from './pages/UsersLogIn'
 import AddNewTenant from './pages/AddNewTenant'
+import SuperAdminLayout from './components/SuperAdminLayout'
+import TenantsList from './pages/TenantsList'
 
 const App = () => {
 	const isAuthenticated = useSelector(
@@ -67,11 +69,14 @@ const App = () => {
 							isAuthenticated={isAuthenticated}
 							userRole={userRole}
 							allowedRoles={[UserRole.SUPER_ADMIN]}
-							redirectTo="/login"
+							redirectTo="/barcode"
 						/>
 					}
 				>
-					<Route path="/add-new-tenant" element={<AddNewTenant />} />
+					<Route element={<SuperAdminLayout />}>
+						<Route path="/add-new-tenant" element={<AddNewTenant />} />
+						<Route path="/tenants-list" element={<TenantsList />} />
+					</Route>
 				</Route>
 			</Routes>
 		</Router>

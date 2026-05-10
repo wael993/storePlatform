@@ -87,6 +87,10 @@ export type AddTenantRequestBody = {
 	ownerEmail: string
 	ownerPassword: string
 }
+export type UpdateTenantRequestBody = {
+	tenantName?: string
+	status?: 'active' | 'inactive'
+}
 export type CreateProductResponse = {
 	_id: string
 }
@@ -117,6 +121,20 @@ export type AddTenantResponse = {
 	tenantName: string
 	tenantDomain: string
 	ownerUserId: string
+}
+export type TenantSummary = {
+	tenantId: string
+	name: string
+	domain: string
+	status: 'active' | 'inactive'
+	createdAt: Date
+	updatedAt: Date
+	permissions: {
+		canUpdate: boolean
+		canDelete: boolean
+		canToggleStatus: boolean
+		reason?: string
+	}
 }
 interface ProductDocument {
 	tenantId: string

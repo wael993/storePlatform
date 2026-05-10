@@ -37,11 +37,13 @@ import {
 	ProductRequestBody,
 	ReportRequestBody,
 	RequestContext,
+	TenantSummary,
 	TenantUserSummary,
 	UpdateTenantUserRequestBody,
 } from '../shared/types'
 import { LoginData } from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
+import { getTenantPermissions } from '../shared/Permissions'
 import {
 	validateEmail,
 	validatePasswordStrength,
@@ -134,15 +136,19 @@ export default class ProductController {
 
 	private async requireTenantByEmail(email: string) {
 		const domain = getEmailDomain(email)
-		const tenant = (await Tenant.findOne({
-			domain,
-			status: 'active',
-		}).lean()) as ITenant | null
+		const tenant = (await Tenant.findOne({ domain }).lean()) as ITenant | null
 
 		if (!tenant) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
-				'No active tenant found for this email domain.',
+				'No tenant found for this email domain.',
+			)
+		}
+
+		if (tenant.status !== 'active') {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Tenant is inactive. Contact the platform admin.',
 			)
 		}
 
@@ -544,12 +550,18 @@ export default class ProductController {
 
 		const tenant = (await Tenant.findOne({
 			tenantId: storedToken.tenantId,
-			status: 'active',
 		}).lean()) as ITenant | null
 		if (!tenant) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'Tenant is not active.',
+				'Tenant is inactive. Contact the platform admin.',
+			)
+		}
+
+		if (tenant.status !== 'active') {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Tenant is inactive. Contact the platform admin.',
 			)
 		}
 
@@ -1183,6 +1195,129 @@ export default class ProductController {
 			userId: deleted._id,
 			tenantId: tenantContext.tenantId,
 		})
+	}
+
+	public async getTenants(
+		requestContext: RequestContext,
+	): Promise<TenantSummary[]> {
+		ensureSuperAdmin(requestContext)
+
+		const tenants = (await Tenant.find()
+			.sort({ createdAt: -1 })
+			.lean()) as ITenant[]
+
+		return tenants.map(tenant => ({
+			tenantId: tenant.tenantId,
+			name: tenant.name,
+			domain: tenant.domain,
+			status: tenant.status,
+			createdAt: tenant.createdAt,
+			updatedAt: tenant.updatedAt,
+			permissions: getTenantPermissions(tenant),
+		}))
+	}
+
+	public async patchTenant(
+		tenantId: string,
+		requestBody: { tenantName?: string; status?: 'active' | 'inactive' },
+		requestContext: RequestContext,
+	): Promise<ITenant> {
+		ensureSuperAdmin(requestContext)
+
+		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+		if (!tenant) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Tenant not found.',
+			)
+		}
+
+		const permissions = getTenantPermissions(tenant)
+		if (!permissions.canUpdate) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				permissions.reason || 'Tenant cannot be modified.',
+			)
+		}
+
+		const updates: Record<string, unknown> = {}
+		if (requestBody.tenantName?.trim()) {
+			const nextTenantName = requestBody.tenantName.trim()
+			const conflictingTenant = await Tenant.findOne({
+				name: nextTenantName,
+				tenantId: { $ne: tenantId },
+			}).lean()
+
+			if (conflictingTenant) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Tenant already exists with the same name.',
+				)
+			}
+
+			updates.name = nextTenantName
+		}
+
+		if (requestBody.status) {
+			updates.status = requestBody.status
+		}
+
+		if (Object.keys(updates).length === 0) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'No fields provided for update.',
+			)
+		}
+
+		const updated = (await Tenant.findOneAndUpdate(
+			{ tenantId },
+			{ $set: updates },
+			{ new: true, runValidators: true },
+		).lean()) as ITenant | null
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Tenant not found.',
+			)
+		}
+
+		return updated
+	}
+
+	public async deleteTenant(
+		tenantId: string,
+		requestContext: RequestContext,
+	): Promise<void> {
+		ensureSuperAdmin(requestContext)
+
+		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+		if (!tenant) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				'Tenant not found.',
+			)
+		}
+
+		const permissions = getTenantPermissions(tenant)
+		if (!permissions.canDelete) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				permissions.reason || 'Tenant cannot be deleted.',
+			)
+		}
+
+		await Promise.all([
+			User.deleteMany({ tenantId }),
+			RefreshToken.deleteMany({ tenantId }),
+			Product.deleteMany({ tenantId }),
+			Order.deleteMany({ tenantId }),
+			Invoice.deleteMany({ tenantId }),
+			Inventory.deleteMany({ tenantId }),
+			Report.deleteMany({ tenantId }),
+		])
+
+		await Tenant.deleteOne({ tenantId })
 	}
 
 	public async addTenant(
