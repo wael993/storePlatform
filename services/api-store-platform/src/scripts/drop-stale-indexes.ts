@@ -13,16 +13,20 @@ async function dropStaleIndexes() {
 		const collection = mongoose.connection.collection(collectionName)
 
 		const existingIndexes = await collection.indexes()
-		const existingNames = existingIndexes.map((i) => i.name as string)
+		const existingNames = existingIndexes.map(i => i.name as string)
 
 		for (const indexName of indexes) {
 			if (!existingNames.includes(indexName)) {
-				console.log(`Index "${indexName}" not found on "${collectionName}" — skipping.`)
+				console.log(
+					`Index "${indexName}" not found on "${collectionName}" — skipping.`,
+				)
 				continue
 			}
 
 			await collection.dropIndex(indexName)
-			console.log(`Dropped stale index "${indexName}" from "${collectionName}".`)
+			console.log(
+				`Dropped stale index "${indexName}" from "${collectionName}".`,
+			)
 		}
 	}
 
@@ -30,7 +34,7 @@ async function dropStaleIndexes() {
 	console.log('Done.')
 }
 
-dropStaleIndexes().catch((err) => {
+dropStaleIndexes().catch(err => {
 	console.error('Migration failed:', err)
 	process.exit(1)
 })
