@@ -19,20 +19,22 @@ export const listDocuments = async (
 	return withTenantScope(model.find(), tenantContext.tenantId).sort(sort).lean()
 }
 
-export const getDocumentByField = async (
+export const getDocumentByField = async <T>(
 	requestContext: RequestContext,
 	resource: TenantResource,
 	model: EntityModel,
 	fieldName: string,
 	fieldValue: string,
-) => {
+): Promise<T | null> => {
 	await ensureTenantAccess(requestContext, resource, 'read')
 	const tenantContext = getTenantContext(requestContext)
 
 	return withTenantScope(
 		model.findOne({ [fieldName]: fieldValue }),
 		tenantContext.tenantId,
-	).lean()
+	)
+		.lean<T>()
+		.exec()
 }
 
 export const createDocument = async (
@@ -43,7 +45,6 @@ export const createDocument = async (
 ): Promise<{ _id: string }> => {
 	await ensureTenantAccess(requestContext, resource, 'create')
 	const tenantContext = getTenantContext(requestContext)
-	console.log('🚀 ~ createDocument ~ tenantContext:', tenantContext)
 
 	const created = await model.create({
 		...payload,

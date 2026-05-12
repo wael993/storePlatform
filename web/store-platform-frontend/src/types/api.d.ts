@@ -22,13 +22,7 @@ interface AddUser {
 	disabled?: boolean
 	id?: string
 }
-// interface SavedFilters {
-// 	_id: string
-// 	filterName: string
-// 	activityType?: ACTIVITY_TYPE
-// 	filters?: FilterOptions
-// 	isDefault?: boolean
-// }
+
 interface APIResponse<T> {
 	totalCount: number
 	data: T[]
@@ -132,7 +126,7 @@ interface LoginAPI {
 	firstName: string
 	lastName: string
 	role: UserRole
-	isInternal: boolean
+	// isInternal: boolean
 }
 
 interface TenantUser {
@@ -143,7 +137,7 @@ interface TenantUser {
 	role: UserRole
 	firstName: string
 	lastName: string
-	isInternal: boolean
+	// isInternal: boolean
 	createdAt: string
 	updatedAt: string
 }
@@ -153,7 +147,7 @@ interface InviteTenantUserRequest {
 	lastName: string
 	email: string
 	role: UserRole
-	isInternal?: boolean
+	// isInternal?: boolean
 }
 
 interface InviteTenantUserResponse {

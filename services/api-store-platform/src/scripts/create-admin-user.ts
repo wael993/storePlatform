@@ -15,7 +15,7 @@ const INITIAL_USERS = [
 	{
 		userId: '32165498765432164',
 		displayName: 'Wael Zobani admin',
-		user: { firstName: 'wael', lastName: 'Zobani', isInternal: true },
+		user: { firstName: 'wael', lastName: 'Zobani' },
 		email: 'admin@example.com',
 		password: 'admin123', // Minimum 6 chars
 		role: 'owner',
@@ -24,7 +24,7 @@ const INITIAL_USERS = [
 	{
 		userId: '654987654987654987',
 		displayName: 'Wael Zobani worker',
-		user: { firstName: 'wael', lastName: 'Zobani', isInternal: false },
+		user: { firstName: 'wael', lastName: 'Zobani' },
 		email: 'editor@example.com',
 		password: 'editor123', // Minimum 6 chars
 		role: 'admin',
@@ -72,7 +72,7 @@ async function createInitialUsers() {
 				user: {
 					firstName: userData.user.firstName,
 					lastName: userData.user.lastName,
-					isInternal: userData.user.isInternal,
+					// isInternal: userData.user.isInternal,
 				},
 				email: userData.email,
 				password: hashedPassword,
@@ -91,7 +91,7 @@ async function createInitialUsers() {
 			console.log('🎭 Role:', user.role)
 			console.log('🎭 firstName:', user.user.firstName)
 			console.log('🎭 lastName:', user.user.lastName)
-			console.log('🎭 isInternal:', user.user.isInternal)
+			// console.log('🎭 isInternal:', user.user.isInternal)
 
 			console.log('')
 			console.log('🚀 Login at: POST http://localhost:3001/api/data/login')

@@ -106,13 +106,13 @@ export type InviteTenantUserRequestBody = {
 	lastName: string
 	email: string
 	role: TenantRole
-	isInternal?: boolean
+	// isInternal?: boolean
 }
 export type UpdateTenantUserRequestBody = {
 	firstName?: string
 	lastName?: string
 	role?: TenantRole
-	isInternal?: boolean
+	// isInternal?: boolean
 }
 export type AddTenantRequestBody = {
 	tenantName: string
@@ -147,7 +147,7 @@ export type TenantUserSummary = {
 	role: TenantRole
 	firstName: string
 	lastName: string
-	isInternal: boolean
+	// isInternal: boolean
 	createdAt: Date
 	updatedAt: Date
 }
@@ -223,4 +223,28 @@ interface UserAPIFormat {
 	displayName: string
 	isInternal?: boolean
 	avatarColorId?: number
+}
+
+type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
+interface ProductAPI {
+	productId: string
+	name: string
+	barcode: string
+	brand?: string
+	images?: string[]
+	category?: { id: string; name: string }
+	price: { buy: number; sell: number; discount?: number; currency: string }
+	stock: { quantity: number; minQuantity?: number; unit?: string }
+	tax?: { type: string; value: number }
+	supplier?: { id?: string; name?: string }
+	location?: { warehouse?: string; shelf?: string }
+	attributes?: {
+		color?: string
+		size?: string
+		flavor?: string
+		expiryDate?: string
+		weight?: string
+	}
+	status?: ProductAPIStatus
+	description?: string
 }

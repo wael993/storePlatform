@@ -269,13 +269,13 @@ export default class MongodbController {
 		return listDocumentsAction(requestContext, resource, model, sort)
 	}
 
-	public async getDocumentByField(
+	public async getDocumentByField<T>(
 		requestContext: RequestContext,
 		resource: TenantResource,
 		model: EntityModel,
 		fieldName: string,
 		fieldValue: string,
-	) {
+	): Promise<T | null> {
 		return getDocumentByFieldAction(
 			requestContext,
 			resource,

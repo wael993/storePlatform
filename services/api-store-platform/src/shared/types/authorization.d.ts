@@ -10,7 +10,7 @@ interface AuthorizedUser {
 	role: TenantRole
 	permissions: Resources
 	// services: Service[]
-	isInternal: boolean
+	// isInternal: boolean
 }
 export interface Resources {
 	[resourcePath: string]: {

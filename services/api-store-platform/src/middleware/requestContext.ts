@@ -24,7 +24,7 @@ interface AuthorizedUser {
 	permissions: Resources
 	// services: Service[]
 	// businessPartner?: BusinessPartner
-	isInternal: boolean
+	// isInternal: boolean
 }
 
 interface RequestContext {

@@ -47,7 +47,7 @@ export interface IProduct extends Document {
 	createdBy: {
 		_id: string
 		displayName: string
-		isInternal?: boolean
+		// isInternal?: boolean
 		createdAt: Date
 	}
 	updatedBy?: {
@@ -125,7 +125,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 		createdBy: {
 			_id: { type: String },
 			displayName: { type: String },
-			isInternal: { type: Boolean },
+			// isInternal: { type: Boolean },
 			createdAt: { type: Date },
 		},
 		updatedBy: {

@@ -47,7 +47,7 @@ async function createSuperAdminUser() {
 			user: {
 				firstName: SUPER_ADMIN_USER.firstName,
 				lastName: SUPER_ADMIN_USER.lastName,
-				isInternal: true,
+				// isInternal: true,
 			},
 			email: SUPER_ADMIN_USER.email,
 			password: hashedPassword,

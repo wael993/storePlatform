@@ -101,7 +101,7 @@ async function createInitialProducts() {
 				createdBy: {
 					_id: 'seed-script',
 					displayName: 'Seed Script',
-					isInternal: true,
+					// isInternal: true,
 					createdAt: now,
 				},
 			})

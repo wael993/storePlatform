@@ -7,7 +7,7 @@ import {
 	Badge,
 	Box,
 	Button,
-	Checkbox,
+	// Checkbox,
 	Container,
 	Flex,
 	FormControl,
@@ -54,7 +54,7 @@ const UsersLogIn = () => {
 	const [lastName, setLastName] = useState('')
 	const [email, setEmail] = useState('')
 	const [role, setRole] = useState<UserRole>(UserRole.EMPLOYEE)
-	const [isInternal, setIsInternal] = useState(false)
+	// const [isInternal, setIsInternal] = useState(false)
 	const [feedback, setFeedback] = useState<string>('')
 	const [tempPassword, setTempPassword] = useState<string>('')
 
@@ -70,7 +70,7 @@ const UsersLogIn = () => {
 		setLastName('')
 		setEmail('')
 		setRole(UserRole.EMPLOYEE)
-		setIsInternal(false)
+		// setIsInternal(false)
 	}
 
 	const onInvite = async (event: React.FormEvent) => {
@@ -89,7 +89,7 @@ const UsersLogIn = () => {
 				lastName,
 				email,
 				role,
-				isInternal,
+				// isInternal,
 			}).unwrap()
 
 			setFeedback(`User invited: ${response.email}`)
@@ -201,16 +201,17 @@ const UsersLogIn = () => {
 							</FormControl>
 						</SimpleGrid>
 
-						<Checkbox
+						{/* <Checkbox
 							mt={4}
 							isChecked={isInternal}
 							onChange={event => setIsInternal(event.target.checked)}
 						>
 							Internal User
-						</Checkbox>
+						</Checkbox> */}
 
 						<Button
-							mt={4}
+							m={'2rem'}
+							width={'100%'}
 							type="submit"
 							colorScheme="blue"
 							isLoading={isInviting}
@@ -227,7 +228,7 @@ const UsersLogIn = () => {
 								<Th>Name</Th>
 								<Th>Email</Th>
 								<Th>Role</Th>
-								<Th>Type</Th>
+								{/* <Th>Type</Th> */}
 								<Th textAlign="right">Actions</Th>
 							</Tr>
 						</Thead>
@@ -259,11 +260,11 @@ const UsersLogIn = () => {
 											))}
 										</Select>
 									</Td>
-									<Td>
+									{/* <Td>
 										<Badge colorScheme={user.isInternal ? 'purple' : 'green'}>
 											{user.isInternal ? 'Internal' : 'External'}
 										</Badge>
-									</Td>
+									</Td> */}
 									<Td textAlign="right">
 										<Button
 											size="sm"

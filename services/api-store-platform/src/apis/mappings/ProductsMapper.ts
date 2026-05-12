@@ -1,38 +1,17 @@
-import { ProductRequestBody, RequestContext } from '../../shared/types'
-
-interface ProductAPI {
-	productId: string
-	name: string
-	barcode: string
-	brand?: string
-	images?: string[]
-	category?: { id: string; name: string }
-	price: { buy: number; sell: number; discount?: number; currency: string }
-	stock: { quantity: number; minQuantity?: number; unit?: string }
-	tax?: { type: string; value: number }
-	supplier?: { id?: string; name?: string }
-	location?: { warehouse?: string; shelf?: string }
-	attributes?: {
-		color?: string
-		size?: string
-		flavor?: string
-		expiryDate?: string
-		weight?: string
-	}
-	status?: string
-	description?: string
-}
+import {
+	ProductAPI,
+	ProductRequestBody,
+	RequestContext,
+} from '../../shared/types'
 
 export default class ProductsMapper {
 	public mapProduct(
-		product: any, //ProductAPI,
+		product: ProductAPI,
 		requestContext: RequestContext,
 	): ProductRequestBody {
-		const isInternalUser = requestContext.user?.isInternal
-		console.log(
-			'🚀 ~ ProductsMapper ~ mapProduct ~ requestContext:',
-			requestContext,
-		)
+		const isAdminUser = requestContext.user?.role === 'admin'
+		const isOwnerUser = requestContext.user?.role === 'owner'
+
 		const mappedProducts: ProductRequestBody = {
 			productId: product.productId,
 			name: product.name,
@@ -47,7 +26,7 @@ export default class ProductsMapper {
 			location: product.location,
 			attributes: product.attributes,
 			status: product.status,
-			description: isInternalUser ? product.description : undefined,
+			description: isOwnerUser ? product.description : undefined,
 		}
 		return mappedProducts
 	}

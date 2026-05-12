@@ -21,9 +21,9 @@ export const updateTenantUser = async (
 	if (requestBody.lastName) {
 		updates['user.lastName'] = requestBody.lastName
 	}
-	if (typeof requestBody.isInternal === 'boolean') {
-		updates['user.isInternal'] = requestBody.isInternal
-	}
+	// if (typeof requestBody.isInternal === 'boolean') {
+	// 	updates['user.isInternal'] = requestBody.isInternal
+	// }
 	if (requestBody.role) {
 		updates.role = requestBody.role
 	}

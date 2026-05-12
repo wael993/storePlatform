@@ -448,7 +448,6 @@ export default class StoreRoutes extends PlatformValidator {
 			this.setRefreshTokenCookie(response, refreshToken)
 
 			response.status(200).json(responseData)
-			console.log('🚀 ~ StoreRoutes ~ login ~ responseData:', responseData)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 400, response)
 		} finally {

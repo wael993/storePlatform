@@ -39,6 +39,7 @@ import {
 	TenantSummary,
 	TenantUserSummary,
 	UpdateTenantUserRequestBody,
+	ProductAPI,
 } from '../shared/types'
 import { LoginData } from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
@@ -160,7 +161,7 @@ export default class ProductController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
-			isInternal: user.user.isInternal,
+			// isInternal: user.user.isInternal,
 			createdAt: user.createdAt,
 			updatedAt: user.updatedAt,
 		}
@@ -284,7 +285,7 @@ export default class ProductController {
 			email: user.email,
 			role: user.role,
 			permissions: {},
-			isInternal: user.user.isInternal,
+			// isInternal: user.user.isInternal,
 		}
 
 		return request.user
@@ -386,7 +387,7 @@ export default class ProductController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
-			isInternal: user.user.isInternal,
+			// isInternal: user.user.isInternal,
 		}
 	}
 
@@ -552,7 +553,7 @@ export default class ProductController {
 		productId: string,
 		requestContext: RequestContext,
 	): Promise<ProductRequestBody | null> {
-		const product = await this.mongoDbClient.getDocumentByField(
+		const product = await this.mongoDbClient.getDocumentByField<ProductAPI>(
 			requestContext,
 			'products',
 			Product,
@@ -602,7 +603,7 @@ export default class ProductController {
 		const createdBy = {
 			_id: requestContext.userId as string,
 			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-			isInternal: requestContext.user?.isInternal,
+			role: requestContext.user?.role,
 			createdAt: now,
 		}
 
@@ -993,7 +994,7 @@ export default class ProductController {
 		await ensureTenantAccess(requestContext, 'users', 'create')
 		const tenantContext = getTenantContext(requestContext)
 
-		const { firstName, lastName, email, role, isInternal = false } = requestBody
+		const { firstName, lastName, email, role } = requestBody
 
 		if (!firstName || !lastName || !email || !role) {
 			throw new BusinessLogicError(
@@ -1047,7 +1048,7 @@ export default class ProductController {
 			user: {
 				firstName,
 				lastName,
-				isInternal,
+				// isInternal,
 			},
 			email: email.toLowerCase(),
 			password: hashedPassword,
@@ -1356,7 +1357,7 @@ export default class ProductController {
 			user: {
 				firstName: ownerFirstName.trim(),
 				lastName: ownerLastName.trim(),
-				isInternal: true,
+				// isInternal: true,
 			},
 			email: normalizedOwnerEmail,
 			password: hashedPassword,

@@ -15,6 +15,6 @@ interface UserAPIFormat {
 	_id: string
 	displayName: string
 	businessPartnerId?: string
-	isInternal?: boolean
+	// isInternal?: boolean
 	avatarColorId?: number
 }
