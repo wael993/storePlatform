@@ -43,6 +43,7 @@ export const createDocument = async (
 ): Promise<{ _id: string }> => {
 	await ensureTenantAccess(requestContext, resource, 'create')
 	const tenantContext = getTenantContext(requestContext)
+	console.log('🚀 ~ createDocument ~ tenantContext:', tenantContext)
 
 	const created = await model.create({
 		...payload,

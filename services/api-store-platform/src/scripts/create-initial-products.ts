@@ -11,13 +11,44 @@ import {
 // Initial products data
 const INITIAL_PRODUCTS = [
 	{
-		productId: '32165498735',
-		id: 'p001',
+		productId: '321654987352',
 		name: 'Wireless Mouse',
-		price: 19.99,
-		barcode: '12345678901231',
-		count: 150,
-		description: 'nothing',
+		barcode: '123456789012311',
+		brand: 'TechBrand',
+		images: [],
+		category: {
+			id: 'cat-001',
+			name: 'Electronics',
+		},
+		price: {
+			buy: 10.0,
+			sell: 19.99,
+			discount: 17.99,
+			currency: 'EUR',
+		},
+		stock: {
+			quantity: 150,
+			minQuantity: 10,
+			unit: 'piece',
+		},
+		tax: {
+			type: 'VAT',
+			value: 19,
+		},
+		supplier: {
+			id: 'sup-001',
+			name: 'ABC Supplier',
+		},
+		location: {
+			warehouse: 'Main Warehouse',
+			shelf: 'A-12',
+		},
+		attributes: {
+			color: 'Black',
+			weight: '95g',
+		},
+		status: 'active' as const,
+		description: 'Ergonomic wireless mouse with USB receiver',
 	},
 ]
 
@@ -40,38 +71,47 @@ async function createInitialProducts() {
 			{ upsert: true },
 		)
 
-		// Delete existing products (targeted by id)
+		// Delete existing products (targeted by productId)
 		await Product.deleteMany({
 			tenantId: DEFAULT_TENANT_ID,
-			id: { $in: INITIAL_PRODUCTS.map(p => p.id) },
+			productId: { $in: INITIAL_PRODUCTS.map(p => p.productId) },
 		} as any)
 		console.log('🗑️  Existing matching products deleted (Products collection)')
 
 		// Create initial products
 		for (const productData of INITIAL_PRODUCTS) {
+			const now = new Date()
 			// Create product document
 			const product = new Product({
 				tenantId: DEFAULT_TENANT_ID,
 				productId: productData.productId,
-				id: productData.id,
 				name: productData.name,
-				price: productData.price,
 				barcode: productData.barcode,
-				count: productData.count,
+				brand: productData.brand,
+				images: productData.images,
+				category: productData.category,
+				price: productData.price,
+				stock: productData.stock,
+				tax: productData.tax,
+				supplier: productData.supplier,
+				location: productData.location,
+				attributes: productData.attributes,
+				status: productData.status,
+				description: productData.description,
 				createdBy: {
 					_id: 'seed-script',
 					displayName: 'Seed Script',
 					isInternal: true,
+					createdAt: now,
 				},
-				description: productData.description,
 			})
 
 			await product.save()
 			console.log(`✅ Product created: ${product.name}`)
-			console.log('🆔 ID:', product.id)
-			console.log('💰 Price: $' + product.price)
+			console.log('🆔 ProductId:', product.productId)
+			console.log('💰 Sell Price: €' + product.price.sell)
 			console.log('📱 Barcode:', product.barcode)
-			console.log('📊 Quantity:', product.count)
+			console.log('📊 Quantity:', product.stock.quantity)
 			console.log('─'.repeat(60))
 		}
 

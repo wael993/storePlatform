@@ -571,35 +571,58 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<CreateProductResponse | null> {
 		const tenantContext = getTenantContext(requestContext)
-		const { barcode, count, id, name, price, description } = requestBody
+		const {
+			barcode,
+			name,
+			price,
+			stock,
+			description,
+			brand,
+			images,
+			category,
+			tax,
+			supplier,
+			location,
+			attributes,
+			status,
+		} = requestBody
 		const existing = await withTenantScope(
-			Product.findOne({ $or: [{ name }, { barcode }, { id }] }),
+			Product.findOne({ $or: [{ name }, { barcode }] }),
 			tenantContext.tenantId,
 		).lean()
 
-		if (existing) {
+		if (!!existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Product already exists in this tenant.',
 			)
 		}
 
+		const now = new Date()
 		const createdBy = {
 			_id: requestContext.userId as string,
 			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
 			isInternal: requestContext.user?.isInternal,
+			createdAt: now,
 		}
 
 		const productData: ProductDocument = {
 			tenantId: tenantContext.tenantId,
 			productId: uuidv4(),
-			id,
 			name,
 			barcode,
+			brand,
+			images,
+			category,
 			price,
-			count,
+			stock,
+			tax,
+			supplier,
+			location,
+			attributes,
+			status: status ?? 'active',
 			createdBy,
-			createdAt: new Date(),
+			createdAt: now,
 			description,
 		}
 
@@ -621,14 +644,12 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		const {
-			id,
 			tenantId,
 			productId: nextProductId,
 			createdAt,
 			createdBy,
 			...allowedUpdates
 		} = requestBody as any
-		void id
 		void tenantId
 		void nextProductId
 		void createdAt
@@ -641,11 +662,17 @@ export default class ProductController {
 			)
 		}
 
+		allowedUpdates.updatedBy = {
+			_id: requestContext.userId as string,
+			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+			updatedAt: new Date(),
+		}
+
 		return this.mongoDbClient.updateDocument(
 			requestContext,
 			'products',
 			Product,
-			'id',
+			'productId',
 			productId,
 			allowedUpdates,
 		)
@@ -659,7 +686,7 @@ export default class ProductController {
 			requestContext,
 			'products',
 			Product,
-			'id',
+			'productId',
 			productId,
 		)
 	}

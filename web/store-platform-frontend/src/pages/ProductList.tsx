@@ -17,9 +17,15 @@ const ProductList = ({ addToCart }: { addToCart: (p: ProductApi) => void }) => {
 				{products.map(p => (
 					<HStack key={p._id} p={2} border="1px solid" borderRadius="md">
 						<Text flex={2}>{p.name}</Text>
-						<Text flex={1}>€{p.price}</Text>
-						<Text flex={1}>Stock: {p.count}</Text>
-						<Button size="xs" onClick={() => addToCart(p)}>
+						<Text flex={1}>
+							{(p.price?.sell ?? 0).toFixed(2)} {p.price?.currency ?? 'EUR'}
+						</Text>
+						<Text flex={1}>Stock: {p.stock?.quantity ?? 0}</Text>
+						<Button
+							size="xs"
+							onClick={() => addToCart(p)}
+							isDisabled={(p.stock?.quantity ?? 0) <= 0}
+						>
 							Add
 						</Button>
 					</HStack>

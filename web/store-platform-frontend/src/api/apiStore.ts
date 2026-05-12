@@ -48,6 +48,7 @@ const getQuery = (
 		}),
 		editProduct: builder.mutation({
 			query: (productId: string) => {
+				console.log('🚀 ~ getQuery ~ productId:', productId)
 				return {
 					url: `products/${productId}`,
 					method: 'POST',
@@ -71,7 +72,7 @@ const getQuery = (
 			invalidatesTags: ['products', 'product'],
 		}),
 		postProduct: builder.mutation({
-			query: (newProduct: Omit<ProductApi, '_id'>) => {
+			query: (newProduct: Omit<ProductApi, '_id' | 'productId'>) => {
 				console.log('🚀 ~ getQuery ~ newProduct:', newProduct)
 				return {
 					url: 'product',

@@ -80,12 +80,47 @@ interface ProductAPIResponse extends APIResponse<ProductApi[]> {}
 
 interface ProductApi {
 	_id: string
+	productId: string
 	name: string
-	id: string
 	barcode: string
-	price: number
+	brand?: string
+	images?: string[]
+	category?: {
+		id: string
+		name: string
+	}
+	price: {
+		buy: number
+		sell: number
+		discount?: number
+		currency: string
+	}
+	stock: {
+		quantity: number
+		minQuantity?: number
+		unit?: string
+	}
+	tax?: {
+		type: string
+		value: number
+	}
+	supplier?: {
+		id?: string
+		name?: string
+	}
+	location?: {
+		warehouse?: string
+		shelf?: string
+	}
+	attributes?: {
+		color?: string
+		size?: string
+		flavor?: string
+		expiryDate?: string
+		weight?: string
+	}
+	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
-	count: number
 }
 
 interface LoginAPI {

@@ -31,7 +31,6 @@ const ProductModal = ({
 	isLoading,
 	onAdd,
 }: ProductModalProps) => {
-	console.log("🚀 ~ ProductModal ~ product:", product)
 	const handleAdd = () => {
 		if (product) {
 			onAdd(product)
@@ -39,20 +38,27 @@ const ProductModal = ({
 		}
 	}
 
-	const formatPrice = (price?: number) => {
+	const formatPrice = (price?: number, currency = 'EUR') => {
 		if (price == null) return '-'
 		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
-			currency: 'USD',
+			currency,
 		}).format(price)
 	}
+
+	const stockQuantity = product?.stock?.quantity ?? 0
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size="md">
 			<ModalOverlay />
 			<ModalContent borderRadius="xl" overflow="hidden">
 				<ModalHeader>Product Details</ModalHeader>
-				<CloseButton position="absolute" top="12px" right="12px" />
+				<CloseButton
+					position="absolute"
+					top="12px"
+					right="12px"
+					onClick={onClose}
+				/>
 
 				<ModalBody>
 					{isLoading ? (
@@ -77,7 +83,7 @@ const ProductModal = ({
 									Price
 								</Text>
 								<Text fontWeight="semibold">
-									{formatPrice(product.price)}
+									{formatPrice(product.price?.sell, product.price?.currency)}
 								</Text>
 							</Box>
 
@@ -95,7 +101,7 @@ const ProductModal = ({
 									<Text fontSize="sm" color="gray.500">
 										Stock
 									</Text>
-									<Text>{product.count ?? 0}</Text>
+									<Text>{stockQuantity}</Text>
 								</Box>
 							</HStack>
 
@@ -121,7 +127,7 @@ const ProductModal = ({
 								colorScheme="green"
 								onClick={handleAdd}
 								w="full"
-								isDisabled={product.count === 0}
+								isDisabled={stockQuantity <= 0}
 							>
 								Add to Cart
 							</Button>

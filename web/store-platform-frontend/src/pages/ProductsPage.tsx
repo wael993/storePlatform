@@ -26,6 +26,8 @@ import {
 	FormLabel,
 	NumberInput,
 	NumberInputField,
+	Select,
+	Badge,
 } from '@chakra-ui/react'
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons'
 import { useSelector } from 'react-redux'
@@ -39,11 +41,24 @@ import {
 } from '../api/apiStore'
 
 const EMPTY_FORM = {
-	id: '',
 	name: '',
 	barcode: '',
-	price: 0,
-	count: 0,
+	brand: '',
+	categoryId: '',
+	categoryName: '',
+	priceBuy: 0,
+	priceSell: 0,
+	priceDiscount: 0,
+	currency: 'EUR',
+	stockQuantity: 0,
+	stockMinQuantity: 0,
+	stockUnit: 'piece',
+	taxType: 'VAT',
+	taxValue: 19,
+	supplierName: '',
+	warehouse: '',
+	shelf: '',
+	status: 'active' as 'active' | 'inactive' | 'discontinued',
 	description: '',
 }
 
@@ -72,11 +87,24 @@ const ProductsPage = () => {
 
 	const openEdit = (p: ProductApi) => {
 		setForm({
-			id: p.id ?? '',
 			name: p.name,
 			barcode: p.barcode,
-			price: p.price,
-			count: p.count,
+			brand: p.brand ?? '',
+			categoryId: p.category?.id ?? '',
+			categoryName: p.category?.name ?? '',
+			priceBuy: p.price?.buy ?? 0,
+			priceSell: p.price?.sell ?? 0,
+			priceDiscount: p.price?.discount ?? 0,
+			currency: p.price?.currency ?? 'EUR',
+			stockQuantity: p.stock?.quantity ?? 0,
+			stockMinQuantity: p.stock?.minQuantity ?? 0,
+			stockUnit: p.stock?.unit ?? 'piece',
+			taxType: p.tax?.type ?? 'VAT',
+			taxValue: p.tax?.value ?? 19,
+			supplierName: p.supplier?.name ?? '',
+			warehouse: p.location?.warehouse ?? '',
+			shelf: p.location?.shelf ?? '',
+			status: p.status ?? 'active',
 			description: p.description ?? '',
 		})
 		setEditingId(p._id)
@@ -98,12 +126,37 @@ const ProductsPage = () => {
 				await editProduct(editingId).unwrap()
 			} else {
 				await postProduct({
-					id: form.id,
 					name: form.name,
 					barcode: form.barcode,
-					price: Number(form.price),
-					count: Number(form.count),
-					description: form.description,
+					brand: form.brand || undefined,
+					images: [],
+					category: form.categoryId
+						? { id: form.categoryId, name: form.categoryName }
+						: undefined,
+					price: {
+						buy: Number(form.priceBuy),
+						sell: Number(form.priceSell),
+						discount: Number(form.priceDiscount) || undefined,
+						currency: form.currency,
+					},
+					stock: {
+						quantity: Number(form.stockQuantity),
+						minQuantity: Number(form.stockMinQuantity) || undefined,
+						unit: form.stockUnit || 'piece',
+					},
+					tax: form.taxType
+						? { type: form.taxType, value: Number(form.taxValue) }
+						: undefined,
+					supplier: form.supplierName ? { name: form.supplierName } : undefined,
+					location:
+						form.warehouse || form.shelf
+							? {
+									warehouse: form.warehouse || undefined,
+									shelf: form.shelf || undefined,
+								}
+							: undefined,
+					status: form.status,
+					description: form.description || undefined,
 				}).unwrap()
 			}
 			handleClose()
@@ -146,8 +199,11 @@ const ProductsPage = () => {
 							<Tr>
 								<Th>Name</Th>
 								<Th>Barcode</Th>
-								<Th isNumeric>Price (€)</Th>
+								<Th>Brand</Th>
+								<Th>Category</Th>
+								<Th isNumeric>Sell Price</Th>
 								<Th isNumeric>Stock</Th>
+								<Th>Status</Th>
 								{canEdit && <Th>Actions</Th>}
 							</Tr>
 						</Thead>
@@ -156,8 +212,25 @@ const ProductsPage = () => {
 								<Tr key={p._id}>
 									<Td>{p.name}</Td>
 									<Td>{p.barcode}</Td>
-									<Td isNumeric>{p.price.toFixed(2)}</Td>
-									<Td isNumeric>{p.count}</Td>
+									<Td>{p.brand ?? '—'}</Td>
+									<Td>{p.category?.name ?? '—'}</Td>
+									<Td isNumeric>
+										{p.price?.sell?.toFixed(2)} {p.price?.currency}
+									</Td>
+									<Td isNumeric>{p.stock?.quantity}</Td>
+									<Td>
+										<Badge
+											colorScheme={
+												p.status === 'active'
+													? 'green'
+													: p.status === 'inactive'
+														? 'yellow'
+														: 'red'
+											}
+										>
+											{p.status ?? 'active'}
+										</Badge>
+									</Td>
 									{canEdit && (
 										<Td>
 											<HStack gap={1}>
@@ -188,7 +261,7 @@ const ProductsPage = () => {
 				</Box>
 			)}
 
-			<Modal isOpen={isOpen} onClose={handleClose} isCentered>
+			<Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>
@@ -196,21 +269,14 @@ const ProductsPage = () => {
 					</ModalHeader>
 					<ModalBody>
 						<VStack gap={3}>
-							<FormControl>
-								<FormLabel>ID</FormLabel>
-								<Input
-									value={form.id}
-									onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
-								/>
-							</FormControl>
-							<FormControl>
+							<FormControl isRequired>
 								<FormLabel>Name</FormLabel>
 								<Input
 									value={form.name}
 									onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
 								/>
 							</FormControl>
-							<FormControl>
+							<FormControl isRequired>
 								<FormLabel>Barcode</FormLabel>
 								<Input
 									value={form.barcode}
@@ -220,24 +286,186 @@ const ProductsPage = () => {
 								/>
 							</FormControl>
 							<FormControl>
-								<FormLabel>Price (€)</FormLabel>
-								<NumberInput
-									value={form.price}
-									min={0}
-									onChange={val => setForm(f => ({ ...f, price: Number(val) }))}
-								>
-									<NumberInputField />
-								</NumberInput>
+								<FormLabel>Brand</FormLabel>
+								<Input
+									value={form.brand}
+									onChange={e =>
+										setForm(f => ({ ...f, brand: e.target.value }))
+									}
+								/>
 							</FormControl>
+							<HStack w="100%">
+								<FormControl>
+									<FormLabel>Category ID</FormLabel>
+									<Input
+										value={form.categoryId}
+										onChange={e =>
+											setForm(f => ({ ...f, categoryId: e.target.value }))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Category Name</FormLabel>
+									<Input
+										value={form.categoryName}
+										onChange={e =>
+											setForm(f => ({ ...f, categoryName: e.target.value }))
+										}
+									/>
+								</FormControl>
+							</HStack>
+							<HStack w="100%">
+								<FormControl isRequired>
+									<FormLabel>Buy Price</FormLabel>
+									<NumberInput
+										value={form.priceBuy}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, priceBuy: Number(val) }))
+										}
+									>
+										<NumberInputField />
+									</NumberInput>
+								</FormControl>
+								<FormControl isRequired>
+									<FormLabel>Sell Price</FormLabel>
+									<NumberInput
+										value={form.priceSell}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, priceSell: Number(val) }))
+										}
+									>
+										<NumberInputField />
+									</NumberInput>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Discount Price</FormLabel>
+									<NumberInput
+										value={form.priceDiscount}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, priceDiscount: Number(val) }))
+										}
+									>
+										<NumberInputField />
+									</NumberInput>
+								</FormControl>
+							</HStack>
 							<FormControl>
-								<FormLabel>Stock</FormLabel>
-								<NumberInput
-									value={form.count}
-									min={0}
-									onChange={val => setForm(f => ({ ...f, count: Number(val) }))}
+								<FormLabel>Currency</FormLabel>
+								<Input
+									value={form.currency}
+									onChange={e =>
+										setForm(f => ({ ...f, currency: e.target.value }))
+									}
+								/>
+							</FormControl>
+							<HStack w="100%">
+								<FormControl isRequired>
+									<FormLabel>Stock Quantity</FormLabel>
+									<NumberInput
+										value={form.stockQuantity}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, stockQuantity: Number(val) }))
+										}
+									>
+										<NumberInputField />
+									</NumberInput>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Min Quantity</FormLabel>
+									<NumberInput
+										value={form.stockMinQuantity}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, stockMinQuantity: Number(val) }))
+										}
+									>
+										<NumberInputField />
+									</NumberInput>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Unit</FormLabel>
+									<Input
+										value={form.stockUnit}
+										onChange={e =>
+											setForm(f => ({ ...f, stockUnit: e.target.value }))
+										}
+									/>
+								</FormControl>
+							</HStack>
+							<HStack w="100%">
+								<FormControl>
+									<FormLabel>Tax Type</FormLabel>
+									<Input
+										value={form.taxType}
+										onChange={e =>
+											setForm(f => ({ ...f, taxType: e.target.value }))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Tax Value (%)</FormLabel>
+									<NumberInput
+										value={form.taxValue}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, taxValue: Number(val) }))
+										}
+									>
+										<NumberInputField />
+									</NumberInput>
+								</FormControl>
+							</HStack>
+							<FormControl>
+								<FormLabel>Supplier Name</FormLabel>
+								<Input
+									value={form.supplierName}
+									onChange={e =>
+										setForm(f => ({ ...f, supplierName: e.target.value }))
+									}
+								/>
+							</FormControl>
+							<HStack w="100%">
+								<FormControl>
+									<FormLabel>Warehouse</FormLabel>
+									<Input
+										value={form.warehouse}
+										onChange={e =>
+											setForm(f => ({ ...f, warehouse: e.target.value }))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Shelf</FormLabel>
+									<Input
+										value={form.shelf}
+										onChange={e =>
+											setForm(f => ({ ...f, shelf: e.target.value }))
+										}
+									/>
+								</FormControl>
+							</HStack>
+							<FormControl>
+								<FormLabel>Status</FormLabel>
+								<Select
+									value={form.status}
+									onChange={e =>
+										setForm(f => ({
+											...f,
+											status: e.target.value as
+												| 'active'
+												| 'inactive'
+												| 'discontinued',
+										}))
+									}
 								>
-									<NumberInputField />
-								</NumberInput>
+									<option value="active">Active</option>
+									<option value="inactive">Inactive</option>
+									<option value="discontinued">Discontinued</option>
+								</Select>
 							</FormControl>
 							<FormControl>
 								<FormLabel>Description</FormLabel>

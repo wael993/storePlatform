@@ -28,12 +28,47 @@ interface RequestError {
 }
 
 export type ProductRequestBody = {
-	id: string
+	productId?: string
 	name: string
 	barcode: string
-	price: number | null
+	brand?: string
+	images?: string[]
+	category?: {
+		id: string
+		name: string
+	}
+	price: {
+		buy: number
+		sell: number
+		discount?: number
+		currency: string
+	}
+	stock: {
+		quantity: number
+		minQuantity?: number
+		unit?: string
+	}
+	tax?: {
+		type: string
+		value: number
+	}
+	supplier?: {
+		id?: string
+		name?: string
+	}
+	location?: {
+		warehouse?: string
+		shelf?: string
+	}
+	attributes?: {
+		color?: string
+		size?: string
+		flavor?: string
+		expiryDate?: string
+		weight?: string
+	}
+	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
-	count: number
 }
 export type OrderRequestBody = {
 	orderNumber: string
@@ -139,14 +174,49 @@ export type TenantSummary = {
 interface ProductDocument {
 	tenantId: string
 	productId: string
-	id: string
 	name: string
 	barcode: string
-	price: number | null
-	count: number
-	createdBy: UserAPIFormat
-	createdAt: Date
+	brand?: string
+	images?: string[]
+	category?: {
+		id: string
+		name: string
+	}
+	price: {
+		buy: number
+		sell: number
+		discount?: number
+		currency: string
+	}
+	stock: {
+		quantity: number
+		minQuantity?: number
+		unit?: string
+	}
+	tax?: {
+		type: string
+		value: number
+	}
+	supplier?: {
+		id?: string
+		name?: string
+	}
+	location?: {
+		warehouse?: string
+		shelf?: string
+	}
+	attributes?: {
+		color?: string
+		size?: string
+		flavor?: string
+		expiryDate?: string
+		weight?: string
+	}
+	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
+	createdBy: UserAPIFormat & { createdAt: Date }
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
 }
 interface UserAPIFormat {
 	_id: string

@@ -1,13 +1,26 @@
 import { ProductRequestBody, RequestContext } from '../../shared/types'
 
 interface ProductAPI {
-	ProductId: string
-	id: string
+	productId: string
 	name: string
 	barcode: string
-	price: number | null
+	brand?: string
+	images?: string[]
+	category?: { id: string; name: string }
+	price: { buy: number; sell: number; discount?: number; currency: string }
+	stock: { quantity: number; minQuantity?: number; unit?: string }
+	tax?: { type: string; value: number }
+	supplier?: { id?: string; name?: string }
+	location?: { warehouse?: string; shelf?: string }
+	attributes?: {
+		color?: string
+		size?: string
+		flavor?: string
+		expiryDate?: string
+		weight?: string
+	}
+	status?: string
 	description?: string
-	count: number
 }
 
 export default class ProductsMapper {
@@ -16,14 +29,25 @@ export default class ProductsMapper {
 		requestContext: RequestContext,
 	): ProductRequestBody {
 		const isInternalUser = requestContext.user?.isInternal
-		console.log("🚀 ~ ProductsMapper ~ mapProduct ~ requestContext:", requestContext)
+		console.log(
+			'🚀 ~ ProductsMapper ~ mapProduct ~ requestContext:',
+			requestContext,
+		)
 		const mappedProducts: ProductRequestBody = {
-			id: product.ProductId,
+			productId: product.productId,
 			name: product.name,
 			barcode: product.barcode,
-			price:  product.price ,
-			count: product.count,
-			description: isInternalUser ?product.description: undefined,
+			brand: product.brand,
+			images: product.images,
+			category: product.category,
+			price: product.price,
+			stock: product.stock,
+			tax: product.tax,
+			supplier: product.supplier,
+			location: product.location,
+			attributes: product.attributes,
+			status: product.status,
+			description: isInternalUser ? product.description : undefined,
 		}
 		return mappedProducts
 	}

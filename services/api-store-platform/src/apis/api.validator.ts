@@ -13,7 +13,9 @@ export class PlatformValidator {
 		next: express.NextFunction,
 	): void {
 		try {
-			validateInternalId(req.params?.id, 'Activity id')
+			// validateInternalId(req.user.tenantId, 'tenantId id')
+			// validateInternalId(req.user.role, 'role')
+			validateInternalId(req.params.role, 'role')
 
 			next()
 		} catch (err: any) {
