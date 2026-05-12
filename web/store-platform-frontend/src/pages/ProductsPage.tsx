@@ -72,6 +72,7 @@ const ProductsPage = () => {
 	const [form, setForm] = useState(EMPTY_FORM)
 	const [editingId, setEditingId] = useState<string | null>(null)
 	const [feedback, setFeedback] = useState('')
+	const isGetProductsInProgress = isLoading || isFetching
 
 	const openAdd = () => {
 		setForm(EMPTY_FORM)
@@ -168,8 +169,6 @@ const ProductsPage = () => {
 		}
 	}
 
-	const isBusy = isLoading || isFetching
-
 	return (
 		<Box>
 			<HStack justify="space-between" mb={6}>
@@ -181,13 +180,13 @@ const ProductsPage = () => {
 				)}
 			</HStack>
 
-			{isBusy && <Spinner />}
+			{isGetProductsInProgress && <Spinner />}
 
-			{!isBusy && products.length === 0 && (
+			{!isGetProductsInProgress && products.length === 0 && (
 				<Text color="gray.500">No products found.</Text>
 			)}
 
-			{!isBusy && products.length > 0 && (
+			{!isGetProductsInProgress && products.length > 0 && (
 				<Box overflowX="auto">
 					<Table variant="simple" size="sm">
 						<Thead>
