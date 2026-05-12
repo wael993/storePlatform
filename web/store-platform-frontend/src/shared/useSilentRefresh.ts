@@ -1,16 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../store/store'
+import { useDispatch } from 'react-redux'
 import { setAccessToken, logout } from '../store/user/reducer'
 import { config } from '../config'
+import { useAuth } from './useAuth'
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000 // 14 minutes (token expires at 15)
 
 export function useSilentRefresh() {
 	const dispatch = useDispatch()
-	const isAuthenticated = useSelector(
-		(state: RootState) => state.user.isAuthenticated,
-	)
+	const { isAuthenticated } = useAuth()
+
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
 	useEffect(() => {

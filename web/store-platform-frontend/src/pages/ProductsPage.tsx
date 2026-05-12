@@ -30,15 +30,13 @@ import {
 	Badge,
 } from '@chakra-ui/react'
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons'
-import { useSelector } from 'react-redux'
-import { RootState } from '../store/store'
-import { UserRole } from '../shared/globalEnums'
 import {
 	useGetProductsQuery,
 	useDeleteProductMutation,
 	usePostProductMutation,
 	useEditProductMutation,
 } from '../api/apiStore'
+import { useUser } from '../shared/useUser'
 
 const EMPTY_FORM = {
 	name: '',
@@ -63,10 +61,7 @@ const EMPTY_FORM = {
 }
 
 const ProductsPage = () => {
-	const userRole = useSelector(
-		(state: RootState) => state.user.user?.role ?? null,
-	)
-	const canEdit = userRole === UserRole.OWNER || userRole === UserRole.ADMIN
+	const { isOwnerOrAdmin } = useUser()
 
 	const { data: products = [], isLoading, isFetching } = useGetProductsQuery({})
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
@@ -179,7 +174,7 @@ const ProductsPage = () => {
 		<Box>
 			<HStack justify="space-between" mb={6}>
 				<Heading size="lg">Products</Heading>
-				{canEdit && (
+				{isOwnerOrAdmin && (
 					<Button colorScheme="blue" onClick={openAdd}>
 						Add Product
 					</Button>
@@ -204,7 +199,7 @@ const ProductsPage = () => {
 								<Th isNumeric>Sell Price</Th>
 								<Th isNumeric>Stock</Th>
 								<Th>Status</Th>
-								{canEdit && <Th>Actions</Th>}
+								{isOwnerOrAdmin && <Th>Actions</Th>}
 							</Tr>
 						</Thead>
 						<Tbody>
@@ -231,7 +226,7 @@ const ProductsPage = () => {
 											{p.status ?? 'active'}
 										</Badge>
 									</Td>
-									{canEdit && (
+									{isOwnerOrAdmin && (
 										<Td>
 											<HStack gap={1}>
 												<IconButton

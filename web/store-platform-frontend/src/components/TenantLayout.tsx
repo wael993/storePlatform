@@ -10,12 +10,12 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
-import { RootState } from '../store/store'
-import { UserRole } from '../shared/globalEnums'
 import ChangePasswordModal from './ChangePasswordModal'
+import { useUser } from '../shared/useUser'
+import { useTenant } from '../shared/useTenant'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -39,16 +39,8 @@ const TenantLayout = () => {
 		onClose: onPwClose,
 	} = useDisclosure()
 
-	const userRole = useSelector(
-		(state: RootState) => state.user.user?.role ?? null,
-	)
-	const tenantName = useSelector(
-		(state: RootState) => state.user.user?.tenantName ?? 'Store',
-	)
-
-	const isOwner = userRole === UserRole.OWNER
-	const isOwnerOrAdmin =
-		userRole === UserRole.OWNER || userRole === UserRole.ADMIN
+	const { user: userRole, isOwner, isOwnerOrAdmin } = useUser()
+	const { tenantName } = useTenant()
 
 	const handleLogout = async () => {
 		setError('')

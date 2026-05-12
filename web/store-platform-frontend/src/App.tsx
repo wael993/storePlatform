@@ -5,8 +5,6 @@ import Home from './pages/Home'
 import EditorDashboard from './pages/EditorDashboard'
 import SelectContent from './pages/SelectedContent'
 import BarcodePage from './pages/BarcodePage'
-import { useSelector } from 'react-redux'
-import { RootState } from './store/store'
 import { useSilentRefresh } from './shared/useSilentRefresh'
 import { UserRole } from './shared/globalEnums'
 import UsersLogIn from './pages/UsersLogIn'
@@ -17,6 +15,8 @@ import TenantsList from './pages/TenantsList'
 import ProductsPage from './pages/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
 import InvoicesPage from './pages/InvoicesPage'
+import { useUser } from './shared/useUser'
+import { useAuth } from './shared/useAuth'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -26,12 +26,9 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const isAuthenticated = useSelector(
-		(state: RootState) => state.user.isAuthenticated,
-	)
-	const userRole = useSelector(
-		(state: RootState) => state.user.user?.role ?? null,
-	)
+	const { user: userRole } = useUser()
+	const { isAuthenticated } = useAuth()
+
 	useSilentRefresh()
 
 	return (

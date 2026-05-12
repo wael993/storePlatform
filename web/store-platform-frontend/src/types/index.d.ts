@@ -19,13 +19,14 @@ interface FilterOptions {
 	resetFilters?: boolean
 }
 
+type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
 interface User {
 	_id: string
 	firstName: string
 	lastName: string
 	email: string
 	accessLevel: accessLevel
-	isInternal: boolean
+	role: UserRoles
 	disabled: boolean
 	createdAt: string
 	updatedAt: string
