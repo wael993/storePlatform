@@ -6,10 +6,6 @@ import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
 import type { TenantSummary, UpdateTenantRequest } from '../types/tenant'
 
-// interface getProductsQueryArgument {
-// 	activityId: string
-// 	eventType: ActivityType
-// }
 interface LoginData {
 	email: string
 	password: string

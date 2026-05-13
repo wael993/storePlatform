@@ -25,7 +25,7 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const { user: userRole } = useUser()
+	const { userRole } = useUser()
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()

@@ -172,10 +172,6 @@ const ProductsPage = () => {
 		}
 	}
 
-	// console.log(
-	// 	'🚀 ~ ProductsPage ~ isActionAllowed(AllowedActions.ADD_PRODUCT):',
-	// 	isActionAllowed(AllowedActions.ADD_PRODUCT),
-	// )
 	return (
 		<Box>
 			<HStack justify="space-between" mb={6}>
