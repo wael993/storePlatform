@@ -36,9 +36,11 @@ import {
 	usePostProductMutation,
 	useEditProductMutation,
 } from '../api/apiStore'
-import { useUser } from '../shared/useUser'
 import { AllowedActions } from '../shared/globalEnums'
 import { useResources } from '../shared/hooks/useResources'
+import { useUser } from '../shared/hooks/useUser'
+import { useBreakpoints } from '../shared/hooks/useBreakpoints'
+import { compareBreakpoint } from '../shared/utils'
 
 const EMPTY_FORM = {
 	name: '',
@@ -65,6 +67,10 @@ const EMPTY_FORM = {
 const ProductsPage = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isActionAllowed } = useResources()
+	const breakpoint = useBreakpoints()
+
+	const { isMobile, isTablet, isDesktop, isLargeDesktop } =
+		compareBreakpoint(breakpoint)
 
 	const { data: products = [], isLoading, isFetching } = useGetProductsQuery({})
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()

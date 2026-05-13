@@ -157,7 +157,7 @@ export default class MongodbController {
 
 	public async initMongoDbController(): Promise<boolean> {
 		try {
-			logger.debug('Trying to connect to DB with url: ' + this.url, {
+			logger.debug('Trying to connect to DB with DB: ' + this.databaseName, {
 				entity: EntityType.MONGODB,
 			})
 
@@ -291,7 +291,28 @@ export default class MongodbController {
 		model: EntityModel,
 		payload: Record<string, unknown>,
 	): Promise<{ _id: string }> {
-		return createDocumentAction(requestContext, resource, model, payload)
+		logger.debug(`Creating document for resource: ${resource}`, {
+			entity: EntityType.MONGODB,
+			userId: requestContext.userId,
+			payload,
+		})
+
+		const result = await createDocumentAction(
+			requestContext,
+			resource,
+			model,
+			payload,
+		)
+
+		logger.debug(
+			`Created document for resource: ${resource} with id: ${result._id}`,
+			{
+				entity: EntityType.MONGODB,
+				result,
+			},
+		)
+
+		return result
 	}
 
 	public async updateDocument(

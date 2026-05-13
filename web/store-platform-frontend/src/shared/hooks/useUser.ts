@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux'
-import { RootState } from '../store/store'
-import { UserRole } from './globalEnums'
+import { RootState } from '../../store/store'
+import { UserRole } from '../globalEnums'
 
 export function useUser() {
 	const user = useSelector((state: RootState) => state.user.user)

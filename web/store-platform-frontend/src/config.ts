@@ -1,6 +1,9 @@
 declare const process: {
 	env: Record<string, string | undefined>
 }
+const splitByComma = (value: string): string[] => {
+	return value.split(',')
+}
 
 export const config = {
 	serviceId:
@@ -20,4 +23,12 @@ export const config = {
 			process.env.BUSINESS_PLATFORM_ENDPOINT ??
 			'http://localhost:3001/api/data',
 	},
+	actionsEnabled: splitByComma(
+		process.env.VITE_ACTIONS_ENABLED ??
+			'BARCODE,PRODUCTS,ORDERS,INVOICE,USERS,ADD_NEW_TENANT,TENANTS_LIST,CHANGE_PASSWORD', //'$VITE_ACTIONS_ENABLED',
+	),
+	tenantActions: splitByComma(
+		process.env.VITE_TENANT_ACTIONS_ENABLED ??
+			'BARCODE,PRODUCTS,ORDERS,INVOICE,USERS,ADD_NEW_TENANT,TENANTS_LIST,CHANGE_PASSWORD', //'$VITE_TENANT_ACTIONS_ENABLED',
+	),
 }

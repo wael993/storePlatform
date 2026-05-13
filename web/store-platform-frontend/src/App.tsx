@@ -1,10 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
-import EditorDashboard from './pages/EditorDashboard'
-import SelectContent from './pages/SelectedContent'
 import BarcodePage from './pages/BarcodePage'
-import { useSilentRefresh } from './shared/useSilentRefresh'
 import { UserRole } from './shared/globalEnums'
 import UsersLogIn from './pages/UsersLogIn'
 import AddNewTenant from './pages/AddNewTenant'
@@ -14,8 +11,13 @@ import TenantsList from './pages/TenantsList'
 import ProductsPage from './pages/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
 import InvoicesPage from './pages/InvoicesPage'
-import { useUser } from './shared/useUser'
-import { useAuth } from './shared/useAuth'
+import { useAuth } from './shared/hooks/useAuth'
+import { useUser } from './shared/hooks/useUser'
+import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
+import { getEnabledActions, getTenantActions } from './shared/utils'
+// import { useGetUserFrontendResourcesQuery } from './api/apiStore'
+// import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
+// import { skipToken } from '@reduxjs/toolkit/dist/query/react'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -25,10 +27,42 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const { userRole } = useUser()
+	const { userRole, user } = useUser()
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()
+	const userId = user?.userId
+	console.log('🚀 ~ App ~ userId:', userId)
+	// if (!userId) return <FullSizeLoadingSpinner />
+
+	// const {
+	// 	data: frontendResources,
+	// 	isLoading: isFrontendResourcesLoading,
+	// 	isFetching: isFrontendResourcesFetching,
+	// 	isError: isFrontendResourcesError,
+	// 	error: frontendResourcesError,
+	// 	// eslint-disable-next-line react-hooks/rules-of-hooks
+	// } = useGetUserFrontendResourcesQuery(userId, { skip: !userId })
+
+	const {
+		isAddNewTenantEnabled,
+		isTenantsListEnabled,
+		isBarcodeEnabled,
+		isProductsEnabled,
+		isOrdersEnabled,
+		isInvoicesEnabled,
+		isUsersEnabled,
+	} = getEnabledActions()
+
+	const {
+		isTenantAddNewTenantEnabled,
+		isTenantTenantsListEnabled,
+		isTenantBarcodeEnabled,
+		isTenantProductsEnabled,
+		isTenantOrdersEnabled,
+		isTenantInvoicesEnabled,
+		isTenantUsersEnabled,
+	} = getTenantActions()
 
 	return (
 		<Router>
@@ -47,11 +81,18 @@ const App = () => {
 					}
 				>
 					<Route element={<TenantLayout />}>
-						<Route path="/barcode" element={<BarcodePage />} />
-						<Route path="/products" element={<ProductsPage />} />
-						<Route path="/orders" element={<OrdersPage />} />
-						<Route path="/dashboard" element={<EditorDashboard />} />
-						<Route path="/select-content" element={<SelectContent />} />
+						{isBarcodeEnabled && isTenantBarcodeEnabled && (
+							<Route path="/barcode" element={<BarcodePage />} />
+						)}
+						{isProductsEnabled && isTenantProductsEnabled && (
+							<Route path="/products" element={<ProductsPage />} />
+						)}
+						{isOrdersEnabled && isTenantOrdersEnabled && (
+							<Route path="/orders" element={<OrdersPage />} />
+						)}
+						{isInvoicesEnabled && isTenantInvoicesEnabled && (
+							<Route path="/invoices" element={<InvoicesPage />} />
+						)}
 					</Route>
 				</Route>
 
@@ -67,7 +108,9 @@ const App = () => {
 					}
 				>
 					<Route element={<TenantLayout />}>
-						<Route path="/users" element={<UsersLogIn />} />
+						{isUsersEnabled && isTenantUsersEnabled && (
+							<Route path="/users" element={<UsersLogIn />} />
+						)}
 					</Route>
 				</Route>
 
@@ -83,7 +126,9 @@ const App = () => {
 					}
 				>
 					<Route element={<TenantLayout />}>
-						<Route path="/invoices" element={<InvoicesPage />} />
+						{isInvoicesEnabled && isTenantInvoicesEnabled && (
+							<Route path="/invoices" element={<InvoicesPage />} />
+						)}
 					</Route>
 				</Route>
 
@@ -99,8 +144,12 @@ const App = () => {
 					}
 				>
 					<Route element={<SuperAdminLayout />}>
-						<Route path="/add-new-tenant" element={<AddNewTenant />} />
-						<Route path="/tenants-list" element={<TenantsList />} />
+						{isAddNewTenantEnabled && isTenantAddNewTenantEnabled && (
+							<Route path="/add-new-tenant" element={<AddNewTenant />} />
+						)}
+						{isTenantsListEnabled && isTenantTenantsListEnabled && (
+							<Route path="/tenants-list" element={<TenantsList />} />
+						)}
 					</Route>
 				</Route>
 			</Routes>

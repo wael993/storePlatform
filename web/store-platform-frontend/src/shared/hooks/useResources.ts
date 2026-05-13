@@ -41,67 +41,15 @@ const matchesResourcePath = (
 
 export function useResources(overriddenPath?: string) {
 	const { pathname } = useLocation()
-	// const { user, isUser } = useUser()
+
 	const currentPath = overriddenPath ?? pathname
 
 	const frontendResourcesState = useSelector((state: RootState) => {
-		// console.log('🚀 ~ useResources ~ state:', state)
 		return state.frontendResources
 	})
-	// console.log(
-	// 	'🚀 ~ useResources ~ frontendResourcesState:',
-	// 	frontendResourcesState,
-	// )
 
 	const frontendResources: FrontendResources[] =
 		frontendResourcesState.frontendResources
-	// const isLoading: boolean = frontendResourcesState.isLoading
-	// const isUninitialized: boolean = frontendResourcesState.isUninitialized
-
-	// const isHasAccessReady = !isLoading && !isUninitialized
-
-	// const hasAccessOnPath = (path: string | undefined): boolean => {
-	// 	if (!path) return false
-
-	// 	if (!frontendResources || frontendResources.length === 0) return false
-
-	// 1. Exact match takes highest priority
-	// const exactMatch = frontendResources.find(
-	// 	resource => resource.path === path,
-	// )
-	// if (exactMatch) return exactMatch.access
-
-	// 2. Wildcard matches — find the most specific one (longest path wins)
-	// const wildcardMatches = frontendResources.filter(resource =>
-	// 	matchesResourcePath(resource.path, path),
-	// )
-
-	// if (!wildcardMatches.length) return false
-
-	// Longer path = more specific
-	// const mostSpecific = wildcardMatches.sort(
-	// 	(a, b) => b.path.length - a.path.length,
-	// )[0]
-	// const resource = mostSpecific
-
-	// const isSLPath = path.includes(SLPath)
-
-	// 	if (isSLPath && isSupplierUser) {
-	// 		switch (SLAccessValue) {
-	// 			case SL_ACCESS_VALUES.LIGHT_ACCESS:
-	// 				return SLAllowedPaths.some(allowedPath => path.includes(allowedPath))
-	// 			case SL_ACCESS_VALUES.FULL_ACCESS:
-	// 				break
-	// 			case SL_ACCESS_VALUES.NO_ACCESS:
-	// 				return false
-
-	// 			default:
-	// 				return false
-	// 		}
-	// 	}
-
-	// 	return resource.access ?? false
-	// }
 
 	const allowedActionsForPath = (pathInput: string = currentPath): string[] => {
 		if (!pathInput) return []
@@ -120,42 +68,12 @@ export function useResources(overriddenPath?: string) {
 		return allowedActions
 	}
 
-	// const useSLLightAccess = !allowedActionsForPath(SLPath).includes(
-	// 	AllowedActions.SL_FULL_ACCESS,
-	// )
-
-	// const isSLLightRole =
-	// 	useSLLightAccess ||
-	// 	(isSupplierUser
-	// 		? SLAccessValue
-	// 			? SLAccessValue === SL_ACCESS_VALUES.LIGHT_ACCESS
-	// 			: true
-	// 		: false) ||
-	// 	false
-
-	// const hasAccess = hasAccessOnPath(currentPath)
 	const allowedActions = allowedActionsForPath()
 
 	const isActionAllowed = (action: AllowedActions) => {
+		console.log('🚀 ~ isActionAllowed ~ allowedActions:', allowedActions)
 		return allowedActions.includes(action)
 	}
-
-	// const areAnyActionsAllowed = (actions: AllowedActions[]) => {
-	// 	return actions.some(action => allowedActions.includes(action))
-	// }
-
-	// const pathAccess = {
-	// 	allActivities: hasAccessOnPath(allActivitiesPath),
-	// 	promotion: hasAccessOnPath(promotionPath),
-	// 	price: hasAccessOnPath(pricePath),
-	// 	spaceAndLocation: hasAccessOnPath(SLPath),
-	// 	SLLocations: hasAccessOnPath(SLLocationsPath),
-	// 	SLTickets:
-	// 		hasAccessOnPath(SLTicketBoardPath) || hasAccessOnPath(SLTicketListPath),
-	// 	SLSpaces: hasAccessOnPath(SLSpacesPath),
-	// 	complaints: hasAccessOnPath(complaintsPathBoard),
-	// 	mediaExchange: hasAccessOnPath(mediaExchangePath),
-	// }
 
 	return {
 		// hasAccess,

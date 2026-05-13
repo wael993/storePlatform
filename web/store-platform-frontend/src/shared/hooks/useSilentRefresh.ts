@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { setAccessToken, logout } from '../store/user/reducer'
-import { config } from '../config'
 import { useAuth } from './useAuth'
+import { config } from '../../config'
+import { logout, setAccessToken } from '../../store/user/reducer'
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000 // 14 minutes (token expires at 15)
 

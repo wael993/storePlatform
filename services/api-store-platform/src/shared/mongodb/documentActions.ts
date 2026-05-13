@@ -4,6 +4,7 @@ import { RequestContext } from '../types'
 import { TenantResource, ensureTenantAccess, getTenantContext } from '../tenant'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
+import logger, { EntityType } from '../logger/logger'
 
 export type EntityModel = Model<any>
 
@@ -43,15 +44,45 @@ export const createDocument = async (
 	model: EntityModel,
 	payload: Record<string, unknown>,
 ): Promise<{ _id: string }> => {
+	logger.debug(`Starting createDocument for resource: ${resource}`, {
+		entity: EntityType.MONGODB,
+		userId: requestContext.userId,
+		payload,
+	})
+
 	await ensureTenantAccess(requestContext, resource, 'create')
+
 	const tenantContext = getTenantContext(requestContext)
 
-	const created = await model.create({
+	logger.debug(`Tenant context resolved for createDocument`, {
+		entity: EntityType.MONGODB,
+		tenantId: tenantContext.tenantId,
+		userId: requestContext.userId,
+	})
+
+	const documentToCreate = {
 		...payload,
 		tenantId: tenantContext.tenantId,
 		createdBy: requestContext.userId,
 		updatedBy: requestContext.userId,
-	})
+	}
+
+	logger.debug(
+		`Creating MongoDB document: ${JSON.stringify(documentToCreate)}`,
+		{
+			entity: EntityType.MONGODB,
+		},
+	)
+
+	const created = await model.create(documentToCreate)
+
+	logger.debug(
+		`Created MongoDB document successfully: ${JSON.stringify(created)}`,
+		{
+			entity: EntityType.MONGODB,
+			documentId: created.id,
+		},
+	)
 
 	return { _id: created.id }
 }

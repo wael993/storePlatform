@@ -10,3 +10,9 @@ export enum AllowedActions {
 	// GENERAL
 	ADD_PRODUCT = 'addProduct',
 }
+export enum Breakpoints {
+	MOBILE = 'mobile',
+	TABLET = 'tablet',
+	DESKTOP = 'desktop',
+	LARGE_DESKTOP = 'large_desktop',
+}

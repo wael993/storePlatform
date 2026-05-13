@@ -12,6 +12,8 @@ import {
 import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
+import { getEnabledActions, getTenantActions } from '../shared/utils'
+// import { useUser } from '../shared/hooks/useUser'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -30,6 +32,9 @@ const SuperAdminLayout = () => {
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
 
+	const { isAddNewTenantEnabled, isTenantsListEnabled } = getEnabledActions()
+	const { isTenantAddNewTenantEnabled, isTenantTenantsListEnabled } =
+		getTenantActions()
 	const handleLogout = async () => {
 		setError('')
 
@@ -67,12 +72,16 @@ const SuperAdminLayout = () => {
 				<Divider />
 
 				<Stack gap={2}>
-					<Box as={NavLink} to="/add-new-tenant" style={navStyle}>
-						Add Tenant
-					</Box>
-					<Box as={NavLink} to="/tenants-list" style={navStyle}>
-						Tenants List
-					</Box>
+					{isAddNewTenantEnabled && isTenantAddNewTenantEnabled && (
+						<Box as={NavLink} to="/add-new-tenant" style={navStyle}>
+							Add Tenant
+						</Box>
+					)}
+					{isTenantsListEnabled && isTenantTenantsListEnabled && (
+						<Box as={NavLink} to="/tenants-list" style={navStyle}>
+							Tenants List
+						</Box>
+					)}
 				</Stack>
 
 				<Box mt="auto">

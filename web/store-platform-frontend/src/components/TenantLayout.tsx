@@ -16,8 +16,9 @@ import { useLogoutCurrentMutation } from '../api/apiStore'
 import { useGetUserFrontendResourcesQuery } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import ChangePasswordModal from './ChangePasswordModal'
-import { useUser } from '../shared/useUser'
-import { useTenant } from '../shared/useTenant'
+import { useUser } from '../shared/hooks/useUser'
+import { useTenant } from '../shared/hooks/useTenant'
+import { getEnabledActions, getTenantActions } from '../shared/utils'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -59,6 +60,23 @@ const TenantLayout = () => {
 		isFrontendResourcesError,
 		frontendResourcesError,
 	})
+
+	const {
+		isBarcodeEnabled,
+		isProductsEnabled,
+		isOrdersEnabled,
+		isInvoicesEnabled,
+		isUsersEnabled,
+		isChangePasswordEnabled,
+	} = getEnabledActions()
+	const {
+		isTenantBarcodeEnabled,
+		isTenantProductsEnabled,
+		isTenantOrdersEnabled,
+		isTenantInvoicesEnabled,
+		isTenantUsersEnabled,
+		isTenantChangePasswordEnabled,
+	} = getTenantActions()
 
 	const handleLogout = async () => {
 		setError('')
@@ -107,25 +125,31 @@ const TenantLayout = () => {
 				<Divider />
 
 				<Stack gap={2}>
-					<Box as={NavLink} to="/barcode" style={navStyle}>
-						Barcode
-					</Box>
+					{isBarcodeEnabled && isTenantBarcodeEnabled && (
+						<Box as={NavLink} to="/barcode" style={navStyle}>
+							Barcode
+						</Box>
+					)}
 
-					{isOwner && (
+					{isOwner && isUsersEnabled && isTenantUsersEnabled && (
 						<Box as={NavLink} to="/users" style={navStyle}>
 							Users
 						</Box>
 					)}
 
-					<Box as={NavLink} to="/products" style={navStyle}>
-						Products
-					</Box>
+					{isProductsEnabled && isTenantProductsEnabled && (
+						<Box as={NavLink} to="/products" style={navStyle}>
+							Products
+						</Box>
+					)}
 
-					<Box as={NavLink} to="/orders" style={navStyle}>
-						Orders
-					</Box>
+					{isOrdersEnabled && isTenantOrdersEnabled && (
+						<Box as={NavLink} to="/orders" style={navStyle}>
+							Orders
+						</Box>
+					)}
 
-					{isOwnerOrAdmin && (
+					{isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled && (
 						<Box as={NavLink} to="/invoices" style={navStyle}>
 							Invoices
 						</Box>
@@ -138,9 +162,11 @@ const TenantLayout = () => {
 							{error}
 						</Text>
 					) : null}
-					<Button w="full" variant="outline" mb={2} onClick={onPwOpen}>
-						Change Password
-					</Button>
+					{isChangePasswordEnabled && isTenantChangePasswordEnabled && (
+						<Button w="full" variant="outline" mb={2} onClick={onPwOpen}>
+							Change Password
+						</Button>
+					)}
 					<Button
 						w="full"
 						colorScheme="gray"
