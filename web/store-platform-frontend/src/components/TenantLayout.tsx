@@ -10,12 +10,14 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import ChangePasswordModal from './ChangePasswordModal'
 import { useUser } from '../shared/useUser'
 import { useTenant } from '../shared/useTenant'
+import { useGetUserFrontendResourcesQuery } from '../api/user'
+import { RootState } from '../store/store'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -41,6 +43,24 @@ const TenantLayout = () => {
 
 	const { user: userRole, isOwner, isOwnerOrAdmin } = useUser()
 	const { tenantName } = useTenant()
+	const userId = useSelector((state: RootState) => state.user.user?.userId)
+	const {
+		data: frontendResources,
+		isLoading: isFrontendResourcesLoading,
+		isFetching: isFrontendResourcesFetching,
+		isError: isFrontendResourcesError,
+		error: frontendResourcesError,
+	} = useGetUserFrontendResourcesQuery(userId, {
+		skip: !userId,
+	})
+	console.log('🚀 ~ TenantLayout ~ frontendResources:', {
+		userId,
+		frontendResources,
+		isFrontendResourcesLoading,
+		isFrontendResourcesFetching,
+		isFrontendResourcesError,
+		frontendResourcesError,
+	})
 
 	const handleLogout = async () => {
 		setError('')

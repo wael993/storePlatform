@@ -5,6 +5,7 @@ import { userApi } from '../api/user'
 import { storePlatformApi } from '../api/storePlatformApi'
 import { persistReducer, persistStore } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
+import { frontendResourceSlice } from './frontend-resource/reducer'
 
 const persistConfig = {
 	key: 'root',
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
 	user: persistReducer(userPersistConfig, userReducer),
 	[userApi.reducerPath]: userApi.reducer,
 	[storePlatformApi.reducerPath]: storePlatformApi.reducer,
+	frontendResources: frontendResourceSlice.reducer,
 })
 
 type RootReducerState = ReturnType<typeof rootReducer>

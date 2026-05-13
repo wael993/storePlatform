@@ -70,9 +70,6 @@ export default class StoreRoutes extends PlatformValidator {
 			tenantName: request.user?.tenantName,
 			role: request.user?.role,
 			user: request.user,
-			userVendorId: request.userVendorId,
-			activityId: request.activityId,
-			activityVendorId: request.activityVendorId,
 			allowedFields: request.allowedFields || [],
 		}
 
@@ -307,6 +304,15 @@ export default class StoreRoutes extends PlatformValidator {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteReport.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/user/:id/frontend-resources`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getUserFrontendResources.bind(this),
 			)
 
 		app
@@ -1045,6 +1051,25 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getTenantUsers(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getUserFrontendResources(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getUserFrontendResources(
+				request.params.id,
+				requestContext,
+			)
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)

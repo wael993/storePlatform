@@ -35,7 +35,6 @@ interface RequestContext {
 	tenantName?: string
 	role?: TenantRole
 	user?: AuthorizedUser
-	userVendorId?: string
 }
 
 export const getRequestContext = (req: any) => {

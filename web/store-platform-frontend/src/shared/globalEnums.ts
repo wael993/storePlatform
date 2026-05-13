@@ -5,3 +5,8 @@ export enum UserRole {
 	CASHIER = 'cashier',
 	EMPLOYEE = 'employee',
 }
+
+export enum AllowedActions {
+	// GENERAL
+	ADD_PRODUCT = 'addProduct',
+}

@@ -37,6 +37,8 @@ import {
 	useEditProductMutation,
 } from '../api/apiStore'
 import { useUser } from '../shared/useUser'
+import { AllowedActions } from '../shared/globalEnums'
+import { useResources } from '../shared/hooks/useResources'
 
 const EMPTY_FORM = {
 	name: '',
@@ -62,6 +64,7 @@ const EMPTY_FORM = {
 
 const ProductsPage = () => {
 	const { isOwnerOrAdmin } = useUser()
+	const { isActionAllowed } = useResources()
 
 	const { data: products = [], isLoading, isFetching } = useGetProductsQuery({})
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
@@ -169,11 +172,15 @@ const ProductsPage = () => {
 		}
 	}
 
+	// console.log(
+	// 	'🚀 ~ ProductsPage ~ isActionAllowed(AllowedActions.ADD_PRODUCT):',
+	// 	isActionAllowed(AllowedActions.ADD_PRODUCT),
+	// )
 	return (
 		<Box>
 			<HStack justify="space-between" mb={6}>
 				<Heading size="lg">Products</Heading>
-				{isOwnerOrAdmin && (
+				{isActionAllowed(AllowedActions.ADD_PRODUCT) && isOwnerOrAdmin && (
 					<Button colorScheme="blue" onClick={openAdd}>
 						Add Product
 					</Button>

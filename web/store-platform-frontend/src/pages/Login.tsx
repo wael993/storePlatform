@@ -12,7 +12,6 @@ import {
 	Input,
 	Link,
 } from '@chakra-ui/react'
-import api from '../api/api'
 import { useLoginMutation } from '../api/apiStore'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
@@ -93,7 +92,6 @@ const Login = () => {
 		}
 
 		try {
-			await api.forgotPassword({ email })
 			setResetMessage('Password reset link sent to your email')
 		} catch (err: any) {
 			setError(err.response?.data?.error || 'Failed to send reset email')

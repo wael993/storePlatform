@@ -9,9 +9,6 @@ interface RequestContext {
 	tenantName?: string
 	role?: TenantRole
 	user?: AuthorizedUser
-	userVendorId?: string
-	activityVendorId?: string
-	activityId?: string
 	allowedFields: string[]
 }
 

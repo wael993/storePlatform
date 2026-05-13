@@ -192,6 +192,20 @@ const getQuery = (
 			invalidatesTags: ['tenants'],
 		}),
 
+		getFrontEndResources: builder.query({
+			query: userId => ({
+				url: `/user/${userId}/frontend-resources`,
+				method: 'GET',
+			}),
+			transformResponse: (response: {
+				frontendResources: FrontendResources[]
+			}) => {
+				console.log('🚀 ~ getUserFrontendResources ~ response:', response)
+				const frontendResources = response.frontendResources
+
+				return frontendResources
+			},
+		}),
 		changePassword: builder.mutation<
 			void,
 			{ currentPassword: string; newPassword: string }
@@ -225,6 +239,7 @@ export const {
 	useDeleteTenantUserMutation,
 	useAddTenantMutation,
 	useGetTenantsQuery,
+	useGetFrontEndResourcesQuery,
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
 	useChangePasswordMutation,

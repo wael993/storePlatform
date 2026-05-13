@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
-import Home from './pages/Home'
 import EditorDashboard from './pages/EditorDashboard'
 import SelectContent from './pages/SelectedContent'
 import BarcodePage from './pages/BarcodePage'
@@ -48,7 +47,6 @@ const App = () => {
 					}
 				>
 					<Route element={<TenantLayout />}>
-						<Route path="/" element={<Home />} />
 						<Route path="/barcode" element={<BarcodePage />} />
 						<Route path="/products" element={<ProductsPage />} />
 						<Route path="/orders" element={<OrdersPage />} />

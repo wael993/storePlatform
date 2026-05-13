@@ -50,6 +50,7 @@ import {
 } from '../utils/authValidation'
 import {
 	ensureTenantAccess,
+	getFrontendResourcesForRole,
 	getEmailDomain,
 	getTenantContext,
 	ensureSuperAdmin,
@@ -985,6 +986,53 @@ export default class ProductController {
 		).lean()) as unknown as IUser[]
 
 		return users.map(user => this.mapTenantUser(user))
+	}
+
+	public async getUserFrontendResources(
+		userId: string,
+		requestContext: RequestContext,
+	): Promise<{
+		frontendResources: Array<{
+			path: string
+			access: boolean
+			allowedActions: string[]
+		}>
+	}> {
+		if (!userId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'userId is required.',
+			)
+		}
+
+		const tenantContext = getTenantContext(requestContext)
+
+		if (requestContext.userId && requestContext.userId !== userId) {
+			await ensureTenantAccess(requestContext, 'users', 'read')
+		}
+
+		const user = (await withTenantScope(
+			User.findOne({ userId }, { role: 1 }),
+			tenantContext.tenantId,
+		).lean()) as Pick<IUser, 'role'> | null
+
+		if (!user) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_READ_ERROR,
+				'User not found.',
+			)
+		}
+
+		const frontendResourceMap = await getFrontendResourcesForRole(user.role)
+		const frontendResources = Object.entries(frontendResourceMap || {}).map(
+			([path, permission]) => ({
+				path,
+				access: Boolean(permission?.access),
+				allowedActions: permission?.allowedActions || [],
+			}),
+		)
+
+		return { frontendResources }
 	}
 
 	public async inviteTenantUser(
