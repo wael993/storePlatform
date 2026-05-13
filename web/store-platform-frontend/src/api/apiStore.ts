@@ -1,7 +1,9 @@
 import { EndpointBuilder } from '@reduxjs/toolkit/query'
 import { FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
+import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
+import { config } from '../config'
 import type { TenantSummary, UpdateTenantRequest } from '../types/tenant'
 
 // interface getProductsQueryArgument {
@@ -15,6 +17,17 @@ interface LoginData {
 interface LoginRequestBody {
 	body: LoginData
 }
+
+const persistenceBaseQuery = fetchBaseQuery({
+	baseUrl: `${config.endpoints.persistenceServiceEndpoint}`,
+	credentials: 'include',
+	prepareHeaders: headers => {
+		headers.set('Origin', document.location.origin)
+		headers.set('Access-Control-Allow-Credentials', 'true')
+		return headers
+	},
+})
+
 const getQuery = (
 	builder: EndpointBuilder<
 		BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
@@ -192,18 +205,34 @@ const getQuery = (
 			invalidatesTags: ['tenants'],
 		}),
 
-		getFrontEndResources: builder.query({
+		getUser: builder.query<User, void>({
+			async queryFn(_arg, api, extraOptions, baseQuery) {
+				const result = await persistenceBaseQuery(
+					{
+						url: '/user',
+					},
+					api,
+					extraOptions,
+				)
+
+				if (result.error) {
+					return { error: result.error }
+				}
+
+				const response = result.data as { documents: User[] }
+				return { data: response.documents[0] }
+			},
+		}),
+
+		getUserFrontendResources: builder.query<FrontendResources[], string>({
 			query: userId => ({
-				url: `/user/${userId}/frontend-resources`,
+				url: `user/${userId}/frontend-resources`,
 				method: 'GET',
 			}),
 			transformResponse: (response: {
 				frontendResources: FrontendResources[]
 			}) => {
-				console.log('🚀 ~ getUserFrontendResources ~ response:', response)
-				const frontendResources = response.frontendResources
-
-				return frontendResources
+				return response.frontendResources
 			},
 		}),
 		changePassword: builder.mutation<
@@ -239,7 +268,8 @@ export const {
 	useDeleteTenantUserMutation,
 	useAddTenantMutation,
 	useGetTenantsQuery,
-	useGetFrontEndResourcesQuery,
+	useGetUserQuery,
+	useGetUserFrontendResourcesQuery,
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
 	useChangePasswordMutation,

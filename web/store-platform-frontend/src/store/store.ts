@@ -1,8 +1,7 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import { config } from '../config'
 import userReducer from './user/reducer'
-import { userApi } from '../api/user'
-import { storePlatformApi } from '../api/storePlatformApi'
+import { storeApi } from '../api/apiStore'
 import { persistReducer, persistStore } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 import { frontendResourceSlice } from './frontend-resource/reducer'
@@ -11,7 +10,7 @@ const persistConfig = {
 	key: 'root',
 	storage,
 	whitelist: ['user'],
-	blacklist: [userApi.reducerPath, storePlatformApi.reducerPath],
+	blacklist: [storeApi.reducerPath],
 }
 
 // Don't persist accessToken — it lives only in memory
@@ -23,8 +22,7 @@ const userPersistConfig = {
 
 const rootReducer = combineReducers({
 	user: persistReducer(userPersistConfig, userReducer),
-	[userApi.reducerPath]: userApi.reducer,
-	[storePlatformApi.reducerPath]: storePlatformApi.reducer,
+	[storeApi.reducerPath]: storeApi.reducer,
 	frontendResources: frontendResourceSlice.reducer,
 })
 
@@ -39,7 +37,7 @@ const store = configureStore({
 	middleware: getDefaultMiddleware =>
 		getDefaultMiddleware({
 			serializableCheck: false,
-		}).concat(userApi.middleware, storePlatformApi.middleware),
+		}).concat(storeApi.middleware),
 })
 
 export const persistor = persistStore(store)

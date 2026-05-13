@@ -1012,7 +1012,7 @@ export default class ProductController {
 		}
 
 		const user = (await withTenantScope(
-			User.findOne({ userId }, { role: 1 }),
+			User.findOne({ _id: userId }, { role: 1 }),
 			tenantContext.tenantId,
 		).lean()) as Pick<IUser, 'role'> | null
 

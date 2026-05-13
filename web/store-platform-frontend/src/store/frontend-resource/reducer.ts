@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { matchPath } from 'react-router-dom'
-import { userApi } from '../../api/user'
+import { storeApi } from '../../api/apiStore'
 
 interface FrontendResourcesState {
 	frontendResources: FrontendResources[]
@@ -45,14 +45,14 @@ export const frontendResourceSlice = createSlice({
 	extraReducers: builder => {
 		builder
 			.addMatcher(
-				userApi.endpoints.getUserFrontendResources.matchPending,
+				storeApi.endpoints.getUserFrontendResources.matchPending,
 				state => {
 					state.isLoading = true
 					state.isUninitialized = false
 				},
 			)
 			.addMatcher(
-				userApi.endpoints.getUserFrontendResources.matchFulfilled,
+				storeApi.endpoints.getUserFrontendResources.matchFulfilled,
 				(state, { payload }) => {
 					state.frontendResources = payload
 					state.isLoading = false
@@ -60,7 +60,7 @@ export const frontendResourceSlice = createSlice({
 				},
 			)
 			.addMatcher(
-				userApi.endpoints.getUserFrontendResources.matchRejected,
+				storeApi.endpoints.getUserFrontendResources.matchRejected,
 				state => {
 					state.isLoading = false
 					state.isUninitialized = false

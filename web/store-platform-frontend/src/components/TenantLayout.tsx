@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { skipToken } from '@reduxjs/toolkit/query'
 import {
 	Box,
 	Button,
@@ -12,11 +13,11 @@ import {
 } from '@chakra-ui/react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
+import { useGetUserFrontendResourcesQuery } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import ChangePasswordModal from './ChangePasswordModal'
 import { useUser } from '../shared/useUser'
 import { useTenant } from '../shared/useTenant'
-import { useGetUserFrontendResourcesQuery } from '../api/user'
 import { RootState } from '../store/store'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
@@ -50,9 +51,7 @@ const TenantLayout = () => {
 		isFetching: isFrontendResourcesFetching,
 		isError: isFrontendResourcesError,
 		error: frontendResourcesError,
-	} = useGetUserFrontendResourcesQuery(userId, {
-		skip: !userId,
-	})
+	} = useGetUserFrontendResourcesQuery(userId ?? skipToken)
 	console.log('🚀 ~ TenantLayout ~ frontendResources:', {
 		userId,
 		frontendResources,
