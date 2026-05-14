@@ -10,11 +10,11 @@ export type EntityModel = Model<any>
 
 export const listDocuments = async (
 	requestContext: RequestContext,
-	resource: TenantResource,
+	collectionName: TenantResource,
 	model: EntityModel,
 	sort: Record<string, 1 | -1>,
 ) => {
-	await ensureTenantAccess(requestContext, resource, 'read')
+	await ensureTenantAccess(requestContext, collectionName, 'read')
 	const tenantContext = getTenantContext(requestContext)
 
 	return withTenantScope(model.find(), tenantContext.tenantId).sort(sort).lean()

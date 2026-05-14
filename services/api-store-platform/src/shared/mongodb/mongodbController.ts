@@ -202,84 +202,45 @@ export default class MongodbController {
 		}
 	}
 
-	public async getDocuments<T>({
-		collectionName,
-		fields,
-		filter,
-		pagination,
-		sort,
-	}: GetDocumentsContext<T>): Promise<DocumentReadOperationResponse> {
-		const startTime = new Date().getTime()
-		if (!this.db) {
-			await this.initMongoDbController()
-		}
-		try {
-			// await this.checkConnection()
-
-			const collection = this.db?.collection(collectionName)
-
-			const findOptions: FindOptions = {}
-
-			if (fields) findOptions.projection = fields
-
-			if (pagination?.skip) findOptions.skip = pagination.skip
-
-			if (pagination?.limit || pagination?.limit === 0)
-				findOptions.limit = pagination.limit
-
-			if (sort) findOptions.sort = sort
-
-			const result = await collection
-				?.find(<Filter<Document>>filter, findOptions)
-				.toArray()
-
-			if (!result)
-				throw new DocumentError(
-					ERROR_CODES.DOCUMENTS.DOCUMENT_READ_ERROR,
-					`Can't find documents for query parameter ${JSON.stringify(
-						filter,
-					)} in collection ${collectionName}`,
-					this.defaultHint,
-				)
-
-			logger.debug(
-				`Collection: ${collectionName} Read documents: ${JSON.stringify(
-					result,
-				)}`,
-				{
-					entity: EntityType.MONGODB,
-				},
-			)
-
-			return { documents: result }
-		} catch (error: any) {
-			const errorResponse: DocumentReadOperationResponse = {
-				id: [`${filter}`],
-				error: { errorCode: error.errorCode, message: error.message },
-				documents: [],
-			}
-
-			logger.error(`Error read documents ${JSON.stringify(errorResponse)}`, {
-				entity: EntityType.MONGODB,
-			})
-
-			return errorResponse
-		} finally {
-			const endTime = new Date().getTime()
-
-			logger.debug(`READ ${collectionName}: ${endTime - startTime} ms`, {
-				entity: EntityType.MONGODB,
-			})
-		}
-	}
-
 	public async listDocuments(
 		requestContext: RequestContext,
 		resource: TenantResource,
 		model: EntityModel,
 		sort: Record<string, 1 | -1>,
 	) {
-		return listDocumentsAction(requestContext, resource, model, sort)
+		const startTime = new Date().getTime()
+
+		try {
+			await this.checkConnection()
+
+			const result = await listDocumentsAction(
+				requestContext,
+				resource,
+				model,
+				sort,
+			)
+
+			logger.debug(`List documents for resource: ${resource}`, {
+				entity: EntityType.MONGODB,
+				userId: requestContext.userId,
+				sort,
+			})
+
+			return result
+		} catch (error: any) {
+			logger.error(
+				`Error listing documents for resource ${resource}: ${error?.message || error}`,
+				{ entity: EntityType.MONGODB, userId: requestContext.userId },
+			)
+
+			throw error
+		} finally {
+			const endTime = new Date().getTime()
+
+			logger.debug(`LIST ${resource}: ${endTime - startTime} ms`, {
+				entity: EntityType.MONGODB,
+			})
+		}
 	}
 
 	public async getDocumentByField<T>(
@@ -288,9 +249,50 @@ export default class MongodbController {
 		model: EntityModel,
 		{ fieldName, fieldValue }: Record<string, string>,
 	): Promise<T | null> {
-		return getDocumentByFieldAction(requestContext, resource, model, {
-			[fieldName]: fieldValue,
-		})
+		const startTime = new Date().getTime()
+
+		try {
+			await this.checkConnection()
+
+			const result = await getDocumentByFieldAction<T>(
+				requestContext,
+				resource,
+				model,
+				{
+					[fieldName]: fieldValue,
+				},
+			)
+
+			logger.debug(
+				`Get document by field for resource: ${resource}, field: ${fieldName}`,
+				{
+					entity: EntityType.MONGODB,
+					userId: requestContext.userId,
+					fieldName,
+					fieldValue,
+				},
+			)
+
+			return result
+		} catch (error: any) {
+			logger.error(
+				`Error getting document by field for resource ${resource}, field ${fieldName}: ${error?.message || error}`,
+				{
+					entity: EntityType.MONGODB,
+					userId: requestContext.userId,
+					fieldName,
+					fieldValue,
+				},
+			)
+
+			throw error
+		} finally {
+			const endTime = new Date().getTime()
+
+			logger.debug(`READ_ONE ${resource}: ${endTime - startTime} ms`, {
+				entity: EntityType.MONGODB,
+			})
+		}
 	}
 
 	public async createDocument(
