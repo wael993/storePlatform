@@ -24,8 +24,7 @@ export const getDocumentByField = async <T>(
 	requestContext: RequestContext,
 	resource: TenantResource,
 	model: EntityModel,
-	fieldName: string,
-	fieldValue: string,
+	{ fieldName, fieldValue }: Record<string, string>,
 ): Promise<T | null> => {
 	await ensureTenantAccess(requestContext, resource, 'read')
 	const tenantContext = getTenantContext(requestContext)
@@ -91,8 +90,7 @@ export const updateDocument = async (
 	requestContext: RequestContext,
 	resource: TenantResource,
 	model: EntityModel,
-	fieldName: string,
-	fieldValue: string,
+	id: string,
 	payload: Record<string, unknown>,
 ) => {
 	await ensureTenantAccess(requestContext, resource, 'update')
@@ -100,7 +98,7 @@ export const updateDocument = async (
 
 	const updated = await withTenantScope(
 		model.findOneAndUpdate(
-			{ [fieldName]: fieldValue },
+			{ _id: id },
 			{ $set: { ...payload, updatedBy: requestContext.userId } },
 			{ new: true, runValidators: true },
 		),
@@ -121,16 +119,15 @@ export const deleteDocument = async (
 	requestContext: RequestContext,
 	resource: TenantResource,
 	model: EntityModel,
-	fieldName: string,
-	fieldValue: string,
+	id: string,
 ) => {
 	await ensureTenantAccess(requestContext, resource, 'delete')
-	const tenantContext = getTenantContext(requestContext)
+	const { tenantId } = getTenantContext(requestContext)
 
 	const deleted = await withTenantScope(
-		model.findOneAndDelete({ [fieldName]: fieldValue }),
-		tenantContext.tenantId,
-	).lean()
+		model.findOneAndDelete({ _id: id }).lean(),
+		tenantId,
+	)
 
 	if (!deleted) {
 		throw new BusinessLogicError(

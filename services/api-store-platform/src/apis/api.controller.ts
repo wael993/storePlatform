@@ -221,10 +221,12 @@ export default class ProductController {
 
 		const order = await this.mongoDbClient.getDocumentByField(
 			requestContext,
-			'orders',
+			COLLECTION_NAMES.ORDERS,
 			Order,
-			'orderId',
-			orderId,
+			{
+				fieldName: 'orderId',
+				fieldValue: orderId,
+			},
 		)
 		if (!order) {
 			throw new BusinessLogicError(
@@ -240,10 +242,9 @@ export default class ProductController {
 	) {
 		const product = await this.mongoDbClient.getDocumentByField(
 			requestContext,
-			'products',
+			COLLECTION_NAMES.PRODUCTS,
 			Product,
-			'productId',
-			productId,
+			{ fieldName: 'productId', fieldValue: productId },
 		)
 		if (!product) {
 			throw new BusinessLogicError(
@@ -287,7 +288,6 @@ export default class ProductController {
 			email: user.email,
 			role: user.role,
 			permissions: {},
-			// isInternal: user.user.isInternal,
 		}
 
 		return request.user
@@ -557,11 +557,11 @@ export default class ProductController {
 	): Promise<ProductRequestBody | null> {
 		const product = await this.mongoDbClient.getDocumentByField<ProductAPI>(
 			requestContext,
-			'products',
+			COLLECTION_NAMES.PRODUCTS,
 			Product,
-			'barcode',
-			productId,
+			{ barcode: 'barcode', productId },
 		)
+
 		if (!product) {
 			return null
 		}
@@ -715,11 +715,12 @@ export default class ProductController {
 		}
 
 		return this.mongoDbClient.updateDocument(
+			{
+				collectionName: COLLECTION_NAMES.PRODUCTS,
+				id: productId,
+			},
 			requestContext,
-			'products',
 			Product,
-			'productId',
-			productId,
 			allowedUpdates,
 		)
 	}
@@ -729,27 +730,29 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		return this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.PRODUCTS, id: productId },
 			requestContext,
-			'products',
 			Product,
-			'productId',
-			productId,
 		)
 	}
 
 	public async getOrders(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(requestContext, 'orders', Order, {
-			createdAt: -1,
-		})
+		return this.mongoDbClient.listDocuments(
+			requestContext,
+			COLLECTION_NAMES.ORDERS,
+			Order,
+			{
+				createdAt: -1,
+			},
+		)
 	}
 
 	public async getOrder(orderId: string, requestContext: RequestContext) {
 		return this.mongoDbClient.getDocumentByField(
 			requestContext,
-			'orders',
+			COLLECTION_NAMES.ORDERS,
 			Order,
-			'orderId',
-			orderId,
+			{ fieldName: 'orderId', fieldValue: orderId },
 		)
 	}
 
@@ -783,29 +786,25 @@ export default class ProductController {
 			await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
 		}
 		return this.mongoDbClient.updateDocument(
+			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
 			requestContext,
-			'orders',
 			Order,
-			'orderId',
-			orderId,
 			requestBody,
 		)
 	}
 
 	public async deleteOrder(orderId: string, requestContext: RequestContext) {
 		return this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
 			requestContext,
-			'orders',
 			Order,
-			'orderId',
-			orderId,
 		)
 	}
 
 	public async getInvoices(requestContext: RequestContext) {
 		return this.mongoDbClient.listDocuments(
 			requestContext,
-			'invoices',
+			COLLECTION_NAMES.INVOICES,
 			Invoice,
 			{
 				createdAt: -1,
@@ -816,10 +815,9 @@ export default class ProductController {
 	public async getInvoice(invoiceId: string, requestContext: RequestContext) {
 		return this.mongoDbClient.getDocumentByField(
 			requestContext,
-			'invoices',
+			COLLECTION_NAMES.INVOICES,
 			Invoice,
-			'invoiceId',
-			invoiceId,
+			{ fieldName: 'invoiceId', fieldValue: invoiceId },
 		)
 	}
 
@@ -853,11 +851,9 @@ export default class ProductController {
 	) {
 		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
 		return this.mongoDbClient.updateDocument(
+			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
 			requestContext,
-			'invoices',
 			Invoice,
-			'invoiceId',
-			invoiceId,
 			requestBody,
 		)
 	}
@@ -867,18 +863,16 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		return this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
 			requestContext,
-			'invoices',
 			Invoice,
-			'invoiceId',
-			invoiceId,
 		)
 	}
 
 	public async getInventory(requestContext: RequestContext) {
 		return this.mongoDbClient.listDocuments(
 			requestContext,
-			'inventory',
+			COLLECTION_NAMES.INVENTORY,
 			Inventory,
 			{
 				updatedAt: -1,
@@ -892,10 +886,9 @@ export default class ProductController {
 	) {
 		return this.mongoDbClient.getDocumentByField(
 			requestContext,
-			'inventory',
+			COLLECTION_NAMES.INVENTORY,
 			Inventory,
-			'inventoryId',
-			inventoryId,
+			{ fieldName: 'inventoryId', fieldValue: inventoryId },
 		)
 	}
 
@@ -935,11 +928,9 @@ export default class ProductController {
 			)
 		}
 		return this.mongoDbClient.updateDocument(
+			{ collectionName: COLLECTION_NAMES.INVENTORY, id: inventoryId },
 			requestContext,
-			'inventory',
 			Inventory,
-			'inventoryId',
-			inventoryId,
 			requestBody,
 		)
 	}
@@ -949,27 +940,29 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		return this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.INVENTORY, id: inventoryId },
 			requestContext,
-			'inventory',
 			Inventory,
-			'inventoryId',
-			inventoryId,
 		)
 	}
 
 	public async getReports(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(requestContext, 'reports', Report, {
-			createdAt: -1,
-		})
+		return this.mongoDbClient.listDocuments(
+			requestContext,
+			COLLECTION_NAMES.REPORTS,
+			Report,
+			{
+				createdAt: -1,
+			},
+		)
 	}
 
 	public async getReport(reportId: string, requestContext: RequestContext) {
 		return this.mongoDbClient.getDocumentByField(
 			requestContext,
-			'reports',
+			COLLECTION_NAMES.REPORTS,
 			Report,
-			'reportId',
-			reportId,
+			{ fieldName: 'reportId', fieldValue: reportId },
 		)
 	}
 
@@ -1000,29 +993,25 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		return this.mongoDbClient.updateDocument(
+			{ collectionName: COLLECTION_NAMES.REPORTS, id: reportId },
 			requestContext,
-			'reports',
 			Report,
-			'reportId',
-			reportId,
 			requestBody,
 		)
 	}
 
 	public async deleteReport(reportId: string, requestContext: RequestContext) {
 		return this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.REPORTS, id: reportId },
 			requestContext,
-			'reports',
 			Report,
-			'reportId',
-			reportId,
 		)
 	}
 
 	public async getTenantUsers(
 		requestContext: RequestContext,
 	): Promise<TenantUserSummary[]> {
-		await ensureTenantAccess(requestContext, 'users', 'read')
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS, 'read')
 		const tenantContext = getTenantContext(requestContext)
 
 		const users = (await withTenantScope(
@@ -1053,7 +1042,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 
 		if (requestContext.userId && requestContext.userId !== userId) {
-			await ensureTenantAccess(requestContext, 'users', 'read')
+			await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS, 'read')
 		}
 
 		const user = (await withTenantScope(
@@ -1084,7 +1073,7 @@ export default class ProductController {
 		requestBody: InviteTenantUserRequestBody,
 		requestContext: RequestContext,
 	): Promise<InviteTenantUserResponse> {
-		await ensureTenantAccess(requestContext, 'users', 'create')
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS, 'create')
 		const tenantContext = getTenantContext(requestContext)
 
 		const { firstName, lastName, email, role } = requestBody
@@ -1141,7 +1130,6 @@ export default class ProductController {
 			user: {
 				firstName,
 				lastName,
-				// isInternal,
 			},
 			email: email.toLowerCase(),
 			password: hashedPassword,

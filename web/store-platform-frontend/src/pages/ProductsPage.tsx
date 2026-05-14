@@ -75,7 +75,7 @@ const ProductsPage = () => {
 	const { data: products = [], isLoading, isFetching } = useGetProductsQuery({})
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
 	const [postProduct, { isLoading: isPosting }] = usePostProductMutation()
-	const [editProduct] = useEditProductMutation()
+	const [editProduct, { isLoading: isEditing }] = useEditProductMutation()
 
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const [form, setForm] = useState(EMPTY_FORM)
@@ -127,42 +127,47 @@ const ProductsPage = () => {
 	const handleSubmit = async () => {
 		setFeedback('')
 		try {
+			const productPayload = {
+				name: form.name,
+				barcode: form.barcode,
+				brand: form.brand || undefined,
+				images: [],
+				category: form.categoryId
+					? { id: form.categoryId, name: form.categoryName }
+					: undefined,
+				price: {
+					buy: Number(form.priceBuy),
+					sell: Number(form.priceSell),
+					discount: Number(form.priceDiscount) || undefined,
+					currency: form.currency,
+				},
+				stock: {
+					quantity: Number(form.stockQuantity),
+					minQuantity: Number(form.stockMinQuantity) || undefined,
+					unit: form.stockUnit || 'piece',
+				},
+				tax: form.taxType
+					? { type: form.taxType, value: Number(form.taxValue) }
+					: undefined,
+				supplier: form.supplierName ? { name: form.supplierName } : undefined,
+				location:
+					form.warehouse || form.shelf
+						? {
+								warehouse: form.warehouse || undefined,
+								shelf: form.shelf || undefined,
+							}
+						: undefined,
+				status: form.status,
+				description: form.description || undefined,
+			}
+
 			if (editingId) {
-				await editProduct(editingId).unwrap()
-			} else {
-				await postProduct({
-					name: form.name,
-					barcode: form.barcode,
-					brand: form.brand || undefined,
-					images: [],
-					category: form.categoryId
-						? { id: form.categoryId, name: form.categoryName }
-						: undefined,
-					price: {
-						buy: Number(form.priceBuy),
-						sell: Number(form.priceSell),
-						discount: Number(form.priceDiscount) || undefined,
-						currency: form.currency,
-					},
-					stock: {
-						quantity: Number(form.stockQuantity),
-						minQuantity: Number(form.stockMinQuantity) || undefined,
-						unit: form.stockUnit || 'piece',
-					},
-					tax: form.taxType
-						? { type: form.taxType, value: Number(form.taxValue) }
-						: undefined,
-					supplier: form.supplierName ? { name: form.supplierName } : undefined,
-					location:
-						form.warehouse || form.shelf
-							? {
-									warehouse: form.warehouse || undefined,
-									shelf: form.shelf || undefined,
-								}
-							: undefined,
-					status: form.status,
-					description: form.description || undefined,
+				await editProduct({
+					productId: editingId,
+					body: productPayload,
 				}).unwrap()
+			} else {
+				await postProduct(productPayload).unwrap()
 			}
 			handleClose()
 		} catch (err: any) {
@@ -493,7 +498,7 @@ const ProductsPage = () => {
 						<Button
 							colorScheme="blue"
 							onClick={handleSubmit}
-							isLoading={isPosting}
+							isLoading={isPosting || isEditing}
 						>
 							{editingId ? 'Save' : 'Add'}
 						</Button>

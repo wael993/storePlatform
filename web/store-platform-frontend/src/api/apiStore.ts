@@ -14,6 +14,11 @@ interface LoginRequestBody {
 	body: LoginData
 }
 
+interface EditProductQueryArgument {
+	productId: string
+	body: Omit<ProductApi, '_id' | 'productId'>
+}
+
 const persistenceBaseQuery = fetchBaseQuery({
 	baseUrl: `${config.endpoints.persistenceServiceEndpoint}`,
 	credentials: 'include',
@@ -55,40 +60,35 @@ const getQuery = (
 			},
 			providesTags: ['product'],
 		}),
-		editProduct: builder.mutation({
-			query: (productId: string) => {
+		editProduct: builder.mutation<void, EditProductQueryArgument>({
+			query: ({ productId, body }: EditProductQueryArgument) => {
 				return {
 					url: `products/${productId}`,
-					method: 'POST',
+					method: 'PATCH',
+					body,
 				}
-			},
-			transformResponse: (response: ProductAPIResponse) => {
-				return response.data
 			},
 			invalidatesTags: ['products', 'product'],
 		}),
-		deleteProduct: builder.mutation({
+		deleteProduct: builder.mutation<void, string>({
 			query: (productId: string) => {
 				return {
 					url: `products/${productId}`,
 					method: 'DELETE',
 				}
 			},
-			transformResponse: (response: ProductAPIResponse) => {
-				return response.data
-			},
 			invalidatesTags: ['products', 'product'],
 		}),
-		postProduct: builder.mutation({
+		postProduct: builder.mutation<
+			{ _id: string },
+			Omit<ProductApi, '_id' | 'productId'>
+		>({
 			query: (newProduct: Omit<ProductApi, '_id' | 'productId'>) => {
 				return {
 					url: 'product',
 					method: 'POST',
 					body: newProduct,
 				}
-			},
-			transformResponse: (response: ProductAPIResponse) => {
-				return response.data
 			},
 			invalidatesTags: ['products'],
 		}),

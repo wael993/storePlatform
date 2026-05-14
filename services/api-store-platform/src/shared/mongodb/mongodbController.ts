@@ -56,6 +56,16 @@ interface CreateDocumentContext {
 	collectionName: TenantResource
 	data: any
 }
+
+interface UpdateDocumentContext {
+	collectionName: TenantResource
+	id: string
+}
+interface DeleteDocumentContext {
+	collectionName: TenantResource
+	id: string
+}
+
 export default class MongodbController {
 	private readonly url: string = config.mongoDB.connectionString
 	private readonly authContext: AuthContext = {
@@ -276,16 +286,11 @@ export default class MongodbController {
 		requestContext: RequestContext,
 		resource: TenantResource,
 		model: EntityModel,
-		fieldName: string,
-		fieldValue: string,
+		{ fieldName, fieldValue }: Record<string, string>,
 	): Promise<T | null> {
-		return getDocumentByFieldAction(
-			requestContext,
-			resource,
-			model,
-			fieldName,
-			fieldValue,
-		)
+		return getDocumentByFieldAction(requestContext, resource, model, {
+			[fieldName]: fieldValue,
+		})
 	}
 
 	public async createDocument(
@@ -318,37 +323,26 @@ export default class MongodbController {
 	}
 
 	public async updateDocument(
+		{ collectionName, id }: UpdateDocumentContext,
 		requestContext: RequestContext,
-		resource: TenantResource,
 		model: EntityModel,
-		fieldName: string,
-		fieldValue: string,
 		payload: Record<string, unknown>,
 	) {
 		return updateDocumentAction(
 			requestContext,
-			resource,
+			collectionName,
 			model,
-			fieldName,
-			fieldValue,
+			id,
 			payload,
 		)
 	}
 
 	public async deleteDocument(
+		{ collectionName, id }: DeleteDocumentContext,
 		requestContext: RequestContext,
-		resource: TenantResource,
 		model: EntityModel,
-		fieldName: string,
-		fieldValue: string,
 	) {
-		return deleteDocumentAction(
-			requestContext,
-			resource,
-			model,
-			fieldName,
-			fieldValue,
-		)
+		return deleteDocumentAction(requestContext, collectionName, model, id)
 	}
 
 	public async updateTenantUser(

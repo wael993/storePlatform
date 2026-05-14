@@ -71,7 +71,6 @@ export function useResources(overriddenPath?: string) {
 	const allowedActions = allowedActionsForPath()
 
 	const isActionAllowed = (action: AllowedActions) => {
-		console.log('🚀 ~ isActionAllowed ~ allowedActions:', allowedActions)
 		return allowedActions.includes(action)
 	}
 
