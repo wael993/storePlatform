@@ -5,6 +5,7 @@ import {
 } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
 import Role, { IRole, RoleMethodPermission } from '../models/Role'
+import { COLLECTION_NAMES } from './general'
 
 export const TENANT_ROLES = [
 	'owner',
@@ -13,19 +14,17 @@ export const TENANT_ROLES = [
 	'employee',
 	'super_admin',
 ] as const
-export const TENANT_RESOURCES = [
-	'users',
-	'products',
-	'orders',
-	'invoices',
-	'inventory',
-	'reports',
-	'tenants',
-] as const
+
+export const TENANT_RESOURCES = Object.values(
+	COLLECTION_NAMES,
+) as TenantResource[]
+
+export type TenantResource =
+	(typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES]
+
 export const TENANT_ACTIONS = ['read', 'create', 'update', 'delete'] as const
 
 export type TenantRole = (typeof TENANT_ROLES)[number]
-export type TenantResource = (typeof TENANT_RESOURCES)[number]
 export type TenantAction = (typeof TENANT_ACTIONS)[number]
 
 type TenantPermissionMap = Record<TenantResource, TenantAction[]>

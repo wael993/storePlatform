@@ -19,7 +19,7 @@ import { Invoice } from '../models/Invoice'
 import { Inventory } from '../models/Inventory'
 import { Report } from '../models/Report'
 import { ERROR_CODES } from '../shared/errorCodes'
-import logger from '../shared/logger/logger'
+import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import {
@@ -55,6 +55,7 @@ import {
 	getTenantContext,
 	ensureSuperAdmin,
 } from '../shared/tenant'
+import { COLLECTION_NAMES } from '../shared/general'
 
 type TokenPayload = {
 	userId: string
@@ -588,6 +589,38 @@ export default class ProductController {
 			attributes,
 			status,
 		} = requestBody
+
+		if (!name) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Product name is required',
+			)
+		}
+		if (!barcode) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Product barcode is required',
+			)
+		}
+		if (
+			price.buy === undefined ||
+			price.buy === null ||
+			price.sell === undefined ||
+			price.sell === null
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Product price is required',
+			)
+		}
+
+		if (stock.quantity === undefined || stock.quantity === null) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Product stock is required',
+			)
+		}
+
 		const existing = await withTenantScope(
 			Product.findOne({ $or: [{ name }, { barcode }] }),
 			tenantContext.tenantId,
@@ -628,16 +661,27 @@ export default class ProductController {
 			description,
 		}
 
+		logger.info('Saving product to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			productId: productData.productId,
+			name,
+		})
+
 		const createProductResponse = await this.mongoDbClient.createDocument(
-			requestContext,
-			'products',
+			{ collectionName: COLLECTION_NAMES.PRODUCTS, data: productData },
 			Product,
-			{
-				...productData,
-			},
+			requestContext,
 		)
 
-		return createProductResponse
+		logger.info('Product created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			productId: productData.productId,
+			name,
+		})
+
+		return { _id: createProductResponse._id }
 	}
 
 	public async patchProduct(
@@ -714,20 +758,20 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
+		const orderData = {
+			orderId: uuidv4(),
+			orderNumber: requestBody.orderNumber,
+			status: requestBody.status ?? 'draft',
+			items: requestBody.items,
+			totalAmount: requestBody.totalAmount,
+		}
 		const createOrderResponse = await this.mongoDbClient.createDocument(
-			requestContext,
-			'orders',
+			{ collectionName: COLLECTION_NAMES.ORDERS, data: orderData },
 			Order,
-			{
-				orderId: uuidv4(),
-				orderNumber: requestBody.orderNumber,
-				status: requestBody.status ?? 'draft',
-				items: requestBody.items,
-				totalAmount: requestBody.totalAmount,
-			},
+			requestContext,
 		)
 
-		return createOrderResponse
+		return { _id: createOrderResponse._id }
 	}
 
 	public async patchOrder(
@@ -784,21 +828,22 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
+		const invoiceData = {
+			invoiceId: uuidv4(),
+			invoiceNumber: requestBody.invoiceNumber,
+			orderId: requestBody.orderId,
+			status: requestBody.status ?? 'pending',
+			amount: requestBody.amount,
+			issuedAt: requestBody.issuedAt,
+		}
+
 		const createInvoiceResponse = await this.mongoDbClient.createDocument(
-			requestContext,
-			'invoices',
+			{ collectionName: COLLECTION_NAMES.INVOICES, data: invoiceData },
 			Invoice,
-			{
-				invoiceId: uuidv4(),
-				invoiceNumber: requestBody.invoiceNumber,
-				orderId: requestBody.orderId,
-				status: requestBody.status ?? 'pending',
-				amount: requestBody.amount,
-				issuedAt: requestBody.issuedAt,
-			},
+			requestContext,
 		)
 
-		return createInvoiceResponse
+		return { _id: createInvoiceResponse._id }
 	}
 
 	public async patchInvoice(
@@ -862,20 +907,20 @@ export default class ProductController {
 			requestContext,
 			requestBody.productId,
 		)
+		const inventoryData = {
+			inventoryId: uuidv4(),
+			productId: requestBody.productId,
+			onHand: requestBody.onHand,
+			reserved: requestBody.reserved ?? 0,
+			reorderLevel: requestBody.reorderLevel ?? 0,
+		}
 		const createInventoryResponse = await this.mongoDbClient.createDocument(
-			requestContext,
-			'inventory',
+			{ collectionName: COLLECTION_NAMES.INVENTORY, data: inventoryData },
 			Inventory,
-			{
-				inventoryId: uuidv4(),
-				productId: requestBody.productId,
-				onHand: requestBody.onHand,
-				reserved: requestBody.reserved ?? 0,
-				reorderLevel: requestBody.reorderLevel ?? 0,
-			},
+			requestContext,
 		)
 
-		return createInventoryResponse
+		return { _id: createInventoryResponse._id }
 	}
 
 	public async patchInventory(
@@ -932,21 +977,21 @@ export default class ProductController {
 		requestBody: ReportRequestBody,
 		requestContext: RequestContext,
 	) {
+		const reportData = {
+			reportId: uuidv4(),
+			name: requestBody.name,
+			type: requestBody.type,
+			periodStart: requestBody.periodStart,
+			periodEnd: requestBody.periodEnd,
+			data: requestBody.data,
+		}
 		const createReportResponse = await this.mongoDbClient.createDocument(
-			requestContext,
-			'reports',
+			{ collectionName: COLLECTION_NAMES.REPORTS, data: reportData },
 			Report,
-			{
-				reportId: uuidv4(),
-				name: requestBody.name,
-				type: requestBody.type,
-				periodStart: requestBody.periodStart,
-				periodEnd: requestBody.periodEnd,
-				data: requestBody.data,
-			},
+			requestContext,
 		)
 
-		return createReportResponse
+		return { _id: createReportResponse._id }
 	}
 
 	public async patchReport(

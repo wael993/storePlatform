@@ -7,4 +7,4 @@ export const COLLECTION_NAMES = {
 	INVENTORY: 'inventory',
 	REPORTS: 'reports',
 	TENANTS: 'tenants',
-}
+} as const

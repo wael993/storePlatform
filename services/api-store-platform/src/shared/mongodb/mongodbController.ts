@@ -52,7 +52,10 @@ interface GetDocumentsContext<T> {
 	sort?: Sort
 }
 type Maybe<T> = T | undefined
-
+interface CreateDocumentContext {
+	collectionName: TenantResource
+	data: any
+}
 export default class MongodbController {
 	private readonly url: string = config.mongoDB.connectionString
 	private readonly authContext: AuthContext = {
@@ -286,26 +289,25 @@ export default class MongodbController {
 	}
 
 	public async createDocument(
-		requestContext: RequestContext,
-		resource: TenantResource,
+		{ collectionName, data }: CreateDocumentContext,
 		model: EntityModel,
-		payload: Record<string, unknown>,
+		requestContext: RequestContext,
 	): Promise<{ _id: string }> {
-		logger.debug(`Creating document for resource: ${resource}`, {
+		logger.debug(`Creating document for resource: ${collectionName}`, {
 			entity: EntityType.MONGODB,
 			userId: requestContext.userId,
-			payload,
+			data,
 		})
 
 		const result = await createDocumentAction(
 			requestContext,
-			resource,
+			collectionName,
 			model,
-			payload,
+			data,
 		)
 
 		logger.debug(
-			`Created document for resource: ${resource} with id: ${result._id}`,
+			`Created document for resource: ${collectionName} with id: ${result._id}`,
 			{
 				entity: EntityType.MONGODB,
 				result,
