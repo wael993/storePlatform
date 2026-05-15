@@ -1,11 +1,20 @@
 {
-	"appTitle": "Store Platform",
 	"components": {
-		"adminDashboard": {
-			"registerNewUser": "Register a New User",
-			"editor": "Editor",
-			"admin": "Admin",
-			"registerUser": "Register User"
+		"list": {
+			"preferredBrand": "preferredBrand"
 		}
+	},
+	"common": {
+		"ticketType": "ticketType...",
+		"salesArea": "salesArea",
+		"location": "location",
+		"timeframe": "timeframe",
+		"supplier": "supplier",
+		"focus": "focus",
+		"placementFee": "placementFee",
+		"promoterFee": "promoterFee",
+		"promoterPerDay": "promoterPerDay",
+		"shop": "shop",
+		"promotionSpace": "promotionSpace"
 	}
 }

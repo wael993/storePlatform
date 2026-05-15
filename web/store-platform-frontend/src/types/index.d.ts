@@ -50,3 +50,39 @@ interface FrontendResources {
 	access: boolean
 	allowedActions?: string[]
 }
+
+interface Activity {
+	id: string
+	referenceId?: string
+
+	supplier?: string
+	supplierId?: string
+	packageName?: string
+	promoterFee?: string
+	rentalFee?: string
+	totalFee?: string
+	currency?: string
+	blockFocusName?: string
+	createdAt?: string
+	reasonName?: string
+	salesAreaName?: string
+	eventTypeName?: string
+	eventId?: string
+	blockId?: number
+	pageNumber?: number
+	supplierFocus?: string
+	isPackage?: boolean
+	deadlineApproval?: string
+	daysBeforeActivityStart: number | null
+	locationCustomer?: string
+	isReadyForExecution?: boolean
+	promoterCount?: number
+	promoterInfo?: string
+	isPromoterFeeUpdatedDirectly?: boolean
+	// Price specific
+	clusterId?: string
+	clusterName?: string
+	ghNumber?: string
+	isFlaggedByMe?: boolean
+}
+type TranslationKey = import('i18next').ParseKeys

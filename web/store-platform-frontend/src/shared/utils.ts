@@ -39,3 +39,29 @@ export const getTenantActions = () => {
 		isTenantChangePasswordEnabled: enabledTenantActions.has('CHANGE_PASSWORD'),
 	}
 }
+
+export const formatNumber = (
+	value: string | number | null | undefined,
+	options?: { minimumDecimals?: number; maximumDecimals?: number },
+): string | undefined => {
+	if (typeof value === 'string') {
+		value = value.replaceAll(',', '')
+	}
+	if (
+		value === undefined ||
+		value === null ||
+		value === '' ||
+		isNaN(Number(value))
+	) {
+		return undefined
+	}
+
+	const valueAsNumber: number =
+		typeof value === 'number' ? value : parseFloat(value)
+
+	const formattedAmount: string = valueAsNumber.toLocaleString('en-US', {
+		minimumFractionDigits: options?.minimumDecimals ?? 2,
+		maximumFractionDigits: options?.maximumDecimals ?? 2,
+	})
+	return formattedAmount
+}

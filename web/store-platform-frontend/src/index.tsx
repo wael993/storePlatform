@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import './i18n'
 import { ChakraProvider, theme } from '@chakra-ui/react'
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'

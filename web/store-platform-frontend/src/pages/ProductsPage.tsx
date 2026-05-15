@@ -41,6 +41,7 @@ import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
 import { useBreakpoints } from '../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../shared/utils'
+import ListDesktop from '../components/list/ListDesktop'
 
 const EMPTY_FORM = {
 	name: '',
@@ -200,7 +201,7 @@ const ProductsPage = () => {
 				<Text color="gray.500">No products found.</Text>
 			)}
 
-			{!isGetProductsInProgress && products.length > 0 && (
+			{/* {!isGetProductsInProgress && products.length > 0 && (
 				<Box overflowX="auto">
 					<Table variant="simple" size="sm">
 						<Thead>
@@ -267,7 +268,19 @@ const ProductsPage = () => {
 						</Tbody>
 					</Table>
 				</Box>
-			)}
+			)} */}
+			<ListDesktop
+				activities={products}
+				isLoading={false}
+				onSelect={function (activityId: string): void {
+					throw new Error('Function not implemented.')
+				}}
+				selectedActivities={[]}
+				areAllItemsSelected={false}
+				onAllItemsSelectedChange={function (): void {
+					throw new Error('Function not implemented.')
+				}}
+			/>
 
 			<Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
 				<ModalOverlay />
