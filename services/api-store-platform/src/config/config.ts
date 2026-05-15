@@ -17,11 +17,19 @@ export const config = {
 			process.env.BUSINESS_PLATFORM_MONGO_DB_DATABASE_NAME ||
 			'bsp-BUSINESS-platform-store-dev',
 	},
-	// redis: {
-	// 	host: process.env.REDIS_HOST || '127.0.0.1',
-	// 	port: parseInt(process.env.REDIS_PORT || '6379', 10),
-	// 	password: process.env.REDIS_PASSWORD || undefined,
-	// },
+	redis: {
+		enabled: 'true',
+		// process.env.REDIS_ENABLED === 'true' ||
+		// Boolean(process.env.REDIS_HOST && process.env.REDIS_PASSWORD),
+		host: process.env.REDIS_HOST || 'knee-ultracozy-town-99731.db.redis.io',
+		port: parseInt(process.env.REDIS_PORT || '11496', 10),
+		username: process.env.REDIS_USERNAME || 'default',
+		password: process.env.REDIS_PASSWORD || 'S3J7WHcJuA3Q5UfjjLxAliQSkv9izlpk',
+		defaultTTLSeconds: parseInt(
+			process.env.REDIS_CACHE_TTL_SECONDS || '60',
+			10,
+		),
+	},
 	port: process.env.PORT || 3001,
 	jwtSecure:
 		process.env.JWT_SECRET ||

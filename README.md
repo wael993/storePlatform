@@ -4,7 +4,7 @@
 
 - remove isInternal and use the role to set the access :CHECK
 - make the future base on tenant :CHECK
-- do update the mongo db patch document and others like the getDocument
+- do update the mongo db patch document and others like the getDocument:CHECK
 - by adding new product=> check the name and barcode immediately when the user write it
 - make the currencies by default on dollar and the user can set the exchange
 - update the login logic that the user login one time then he has only to writ the password

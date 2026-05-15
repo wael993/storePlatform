@@ -56,6 +56,7 @@ import {
 	ensureSuperAdmin,
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
+import { redisCache } from '../shared/cache/redisCache'
 
 type TokenPayload = {
 	userId: string
@@ -70,6 +71,81 @@ export default class ProductController {
 		private productsMapper: ProductsMapper,
 		private mongoDbClient: MongodbController,
 	) {}
+
+	private getTenantId(requestContext: RequestContext): string {
+		return requestContext.tenantId || 'global'
+	}
+
+	private async invalidateProductsCache(
+		requestContext: RequestContext,
+		productId?: string,
+	): Promise<void> {
+		const tenantId = this.getTenantId(requestContext)
+		const listKeyDeleted = await redisCache.del(
+			redisCache.buildProductListKey(tenantId),
+		)
+		if (listKeyDeleted) {
+			logger.debug('Product list cache invalidated')
+		}
+
+		if (productId) {
+			const detailKeyDeleted = await redisCache.del(
+				redisCache.buildProductDetailKey(tenantId, productId),
+			)
+			if (detailKeyDeleted) {
+				logger.debug(`Product ${productId} deleted from cache`)
+			}
+		}
+
+		const patternDeleted = await redisCache.delByPattern(
+			redisCache.buildEntityDetailPatternKey('products', tenantId),
+		)
+		if (patternDeleted > 0) {
+			logger.debug(
+				`Product cache pattern invalidated: deleted=${patternDeleted}`,
+			)
+		}
+	}
+
+	private async invalidateEntityCache(
+		entity: 'orders' | 'invoices' | 'inventory',
+		requestContext: RequestContext,
+		id?: string,
+	): Promise<void> {
+		const tenantId = this.getTenantId(requestContext)
+		const listKey =
+			entity === 'orders'
+				? redisCache.buildOrderListKey(tenantId)
+				: entity === 'invoices'
+					? redisCache.buildInvoiceListKey(tenantId)
+					: redisCache.buildInventoryListKey(tenantId)
+		const listKeyDeleted = await redisCache.del(listKey)
+		if (listKeyDeleted) {
+			logger.debug(`${entity} list cache invalidated`)
+		}
+
+		if (id) {
+			const detailKey =
+				entity === 'orders'
+					? redisCache.buildOrderDetailKey(tenantId, id)
+					: entity === 'invoices'
+						? redisCache.buildInvoiceDetailKey(tenantId, id)
+						: redisCache.buildInventoryDetailKey(tenantId, id)
+			const detailKeyDeleted = await redisCache.del(detailKey)
+			if (detailKeyDeleted) {
+				logger.debug(`${entity} ${id} deleted from cache`)
+			}
+		}
+
+		const patternDeleted = await redisCache.delByPattern(
+			redisCache.buildEntityDetailPatternKey(entity, tenantId),
+		)
+		if (patternDeleted > 0) {
+			logger.debug(
+				`${entity} cache pattern invalidated: deleted=${patternDeleted}`,
+			)
+		}
+	}
 
 	private hashToken(token: string): string {
 		return crypto.createHash('sha256').update(token).digest('hex')
@@ -543,18 +619,36 @@ export default class ProductController {
 	}
 
 	public async getProducts(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildProductListKey(tenantId)
+		const cachedProducts = await redisCache.getJson<any[]>(cacheKey)
+		if (cachedProducts) {
+			return cachedProducts
+		}
+
+		const products = await this.mongoDbClient.listDocuments(
 			requestContext,
 			'products',
 			Product,
 			{ name: 1 },
 		)
+		if (config.redis.enabled) {
+			await redisCache.setJson(cacheKey, products)
+		}
+		return products
 	}
 
 	public async getProduct(
 		productId: string,
 		requestContext: RequestContext,
 	): Promise<ProductRequestBody | null> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildProductDetailKey(tenantId, productId)
+		const cachedProduct = await redisCache.getJson<ProductRequestBody>(cacheKey)
+		if (cachedProduct) {
+			return cachedProduct
+		}
+
 		const product = await this.mongoDbClient.getDocumentByField<ProductAPI>(
 			requestContext,
 			COLLECTION_NAMES.PRODUCTS,
@@ -566,7 +660,12 @@ export default class ProductController {
 			return null
 		}
 
-		return this.productsMapper.mapProduct(product, requestContext)
+		const mappedProduct = this.productsMapper.mapProduct(
+			product,
+			requestContext,
+		)
+		await redisCache.setJson(cacheKey, mappedProduct)
+		return mappedProduct
 	}
 
 	public async postProduct(
@@ -681,6 +780,8 @@ export default class ProductController {
 			name,
 		})
 
+		await this.invalidateProductsCache(requestContext, productData.productId)
+
 		return { _id: createProductResponse._id }
 	}
 
@@ -714,7 +815,7 @@ export default class ProductController {
 			updatedAt: new Date(),
 		}
 
-		return this.mongoDbClient.updateDocument(
+		const updateResponse = await this.mongoDbClient.updateDocument(
 			{
 				collectionName: COLLECTION_NAMES.PRODUCTS,
 				id: productId,
@@ -723,21 +824,34 @@ export default class ProductController {
 			Product,
 			allowedUpdates,
 		)
+
+		await this.invalidateProductsCache(requestContext, productId)
+		return updateResponse
 	}
 
 	public async deleteProduct(
 		productId: string,
 		requestContext: RequestContext,
 	) {
-		return this.mongoDbClient.deleteDocument(
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.PRODUCTS, id: productId },
 			requestContext,
 			Product,
 		)
+
+		await this.invalidateProductsCache(requestContext, productId)
+		return deleteResponse
 	}
 
 	public async getOrders(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildOrderListKey(tenantId)
+		const cachedOrders = await redisCache.getJson<any[]>(cacheKey)
+		if (cachedOrders) {
+			return cachedOrders
+		}
+
+		const orders = await this.mongoDbClient.listDocuments(
 			requestContext,
 			COLLECTION_NAMES.ORDERS,
 			Order,
@@ -745,15 +859,32 @@ export default class ProductController {
 				createdAt: -1,
 			},
 		)
+
+		await redisCache.setJson(cacheKey, orders)
+		return orders
 	}
 
 	public async getOrder(orderId: string, requestContext: RequestContext) {
-		return this.mongoDbClient.getDocumentByField(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildOrderDetailKey(tenantId, orderId)
+		const cachedOrder = await redisCache.getJson<any>(cacheKey)
+		if (cachedOrder) {
+			return cachedOrder
+		}
+
+		const order = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			COLLECTION_NAMES.ORDERS,
 			Order,
 			{ fieldName: 'orderId', fieldValue: orderId },
 		)
+
+		if (!order) {
+			return null
+		}
+
+		await redisCache.setJson(cacheKey, order)
+		return order
 	}
 
 	public async postOrder(
@@ -774,6 +905,12 @@ export default class ProductController {
 			requestContext,
 		)
 
+		await this.invalidateEntityCache(
+			'orders',
+			requestContext,
+			orderData.orderId,
+		)
+
 		return { _id: createOrderResponse._id }
 	}
 
@@ -785,24 +922,37 @@ export default class ProductController {
 		if (requestBody.items) {
 			await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
 		}
-		return this.mongoDbClient.updateDocument(
+		const updateResponse = await this.mongoDbClient.updateDocument(
 			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
 			requestContext,
 			Order,
 			requestBody,
 		)
+
+		await this.invalidateEntityCache('orders', requestContext, orderId)
+		return updateResponse
 	}
 
 	public async deleteOrder(orderId: string, requestContext: RequestContext) {
-		return this.mongoDbClient.deleteDocument(
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
 			requestContext,
 			Order,
 		)
+
+		await this.invalidateEntityCache('orders', requestContext, orderId)
+		return deleteResponse
 	}
 
 	public async getInvoices(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildInvoiceListKey(tenantId)
+		const cachedInvoices = await redisCache.getJson<any[]>(cacheKey)
+		if (cachedInvoices) {
+			return cachedInvoices
+		}
+
+		const invoices = await this.mongoDbClient.listDocuments(
 			requestContext,
 			COLLECTION_NAMES.INVOICES,
 			Invoice,
@@ -810,15 +960,32 @@ export default class ProductController {
 				createdAt: -1,
 			},
 		)
+
+		await redisCache.setJson(cacheKey, invoices)
+		return invoices
 	}
 
 	public async getInvoice(invoiceId: string, requestContext: RequestContext) {
-		return this.mongoDbClient.getDocumentByField(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildInvoiceDetailKey(tenantId, invoiceId)
+		const cachedInvoice = await redisCache.getJson<any>(cacheKey)
+		if (cachedInvoice) {
+			return cachedInvoice
+		}
+
+		const invoice = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			COLLECTION_NAMES.INVOICES,
 			Invoice,
 			{ fieldName: 'invoiceId', fieldValue: invoiceId },
 		)
+
+		if (!invoice) {
+			return null
+		}
+
+		await redisCache.setJson(cacheKey, invoice)
+		return invoice
 	}
 
 	public async postInvoice(
@@ -841,6 +1008,12 @@ export default class ProductController {
 			requestContext,
 		)
 
+		await this.invalidateEntityCache(
+			'invoices',
+			requestContext,
+			invoiceData.invoiceId,
+		)
+
 		return { _id: createInvoiceResponse._id }
 	}
 
@@ -850,27 +1023,40 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
-		return this.mongoDbClient.updateDocument(
+		const updateResponse = await this.mongoDbClient.updateDocument(
 			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
 			requestContext,
 			Invoice,
 			requestBody,
 		)
+
+		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
+		return updateResponse
 	}
 
 	public async deleteInvoice(
 		invoiceId: string,
 		requestContext: RequestContext,
 	) {
-		return this.mongoDbClient.deleteDocument(
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
 			requestContext,
 			Invoice,
 		)
+
+		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
+		return deleteResponse
 	}
 
 	public async getInventory(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildInventoryListKey(tenantId)
+		const cachedInventory = await redisCache.getJson<any[]>(cacheKey)
+		if (cachedInventory) {
+			return cachedInventory
+		}
+
+		const inventory = await this.mongoDbClient.listDocuments(
 			requestContext,
 			COLLECTION_NAMES.INVENTORY,
 			Inventory,
@@ -878,18 +1064,35 @@ export default class ProductController {
 				updatedAt: -1,
 			},
 		)
+
+		await redisCache.setJson(cacheKey, inventory)
+		return inventory
 	}
 
 	public async getInventoryItem(
 		inventoryId: string,
 		requestContext: RequestContext,
 	) {
-		return this.mongoDbClient.getDocumentByField(
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildInventoryDetailKey(tenantId, inventoryId)
+		const cachedInventoryItem = await redisCache.getJson<any>(cacheKey)
+		if (cachedInventoryItem) {
+			return cachedInventoryItem
+		}
+
+		const inventoryItem = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			COLLECTION_NAMES.INVENTORY,
 			Inventory,
 			{ fieldName: 'inventoryId', fieldValue: inventoryId },
 		)
+
+		if (!inventoryItem) {
+			return null
+		}
+
+		await redisCache.setJson(cacheKey, inventoryItem)
+		return inventoryItem
 	}
 
 	public async postInventory(
@@ -913,6 +1116,12 @@ export default class ProductController {
 			requestContext,
 		)
 
+		await this.invalidateEntityCache(
+			'inventory',
+			requestContext,
+			inventoryData.inventoryId,
+		)
+
 		return { _id: createInventoryResponse._id }
 	}
 
@@ -927,23 +1136,29 @@ export default class ProductController {
 				requestBody.productId,
 			)
 		}
-		return this.mongoDbClient.updateDocument(
+		const updateResponse = await this.mongoDbClient.updateDocument(
 			{ collectionName: COLLECTION_NAMES.INVENTORY, id: inventoryId },
 			requestContext,
 			Inventory,
 			requestBody,
 		)
+
+		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		return updateResponse
 	}
 
 	public async deleteInventory(
 		inventoryId: string,
 		requestContext: RequestContext,
 	) {
-		return this.mongoDbClient.deleteDocument(
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.INVENTORY, id: inventoryId },
 			requestContext,
 			Inventory,
 		)
+
+		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		return deleteResponse
 	}
 
 	public async getReports(requestContext: RequestContext) {
