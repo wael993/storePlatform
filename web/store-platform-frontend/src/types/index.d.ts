@@ -20,6 +20,8 @@ interface FilterOptions {
 }
 
 type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
+type InputType = 'number' | 'text' | 'email' | 'text-area'
+
 interface User {
 	_id: string
 	firstName: string

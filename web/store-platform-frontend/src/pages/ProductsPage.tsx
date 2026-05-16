@@ -41,7 +41,7 @@ import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
 import { useBreakpoints } from '../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../shared/utils'
-import ListDesktop from '../components/list/ListDesktop'
+import ListWithActionBar from '../components/list/ListWithActionBar'
 
 const EMPTY_FORM = {
 	name: '',
@@ -83,7 +83,9 @@ const ProductsPage = () => {
 	const [editingId, setEditingId] = useState<string | null>(null)
 	const [feedback, setFeedback] = useState('')
 	const isGetProductsInProgress = isLoading || isFetching
-
+	const [displayedActivities, setDisplayedActivities] = useState<
+		ProductApi[] | undefined
+	>(products)
 	const openAdd = () => {
 		setForm(EMPTY_FORM)
 		setEditingId(null)
@@ -269,17 +271,10 @@ const ProductsPage = () => {
 					</Table>
 				</Box>
 			)} */}
-			<ListDesktop
-				activities={products}
-				isLoading={false}
-				onSelect={function (activityId: string): void {
-					throw new Error('Function not implemented.')
-				}}
-				selectedActivities={[]}
-				areAllItemsSelected={false}
-				onAllItemsSelectedChange={function (): void {
-					throw new Error('Function not implemented.')
-				}}
+			<ListWithActionBar
+				activities={displayedActivities as ProductApi[]}
+				isLoading={isLoading || isFetching}
+				eventType={'PROMO'}
 			/>
 
 			<Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">

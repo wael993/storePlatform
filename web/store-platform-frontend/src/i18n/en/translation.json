@@ -16,6 +16,15 @@
 		"locationWarehouse": "Location Warehouse",
 		"locationShelf": "Location Shelf",
 		"startDate": "Start Date",
-		"status": "Status"
+		"status": "Status",
+		"selected": "selected",
+		"buttonText": "Add Required Document",
+		"name": "Document Name",
+		"namePlaceholder": "Enter document name",
+		"deadline": "Deadline",
+		"cancel": "Cancel",
+		"save": "Save",
+		"reject": "Reject",
+		"accept": "Accept"
 	}
 }

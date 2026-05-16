@@ -187,6 +187,8 @@ const ListItem = memo(
 							sx={{ ...styles.cellContentWrapper, ...styles.checkboxWrapper }}
 							onClick={e => {
 								onSelect(activityData._id)
+								console.log(activityData._id)
+
 								e.stopPropagation()
 							}}
 							cursor={'pointer'}
