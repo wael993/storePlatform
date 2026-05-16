@@ -59,9 +59,9 @@ const styles = {
 } satisfies StylesObject
 
 interface ListHeaderRowProps {
-	sortField: keyof ProductApi | null
+	sortField: ProductSortHeaderKey | null
 	sortOrder: SortOrder | null
-	onSort: (field: keyof ProductApi | null, order: SortOrder | null) => void
+	onSort: (field: ProductSortHeaderKey | null, order: SortOrder | null) => void
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
 }
@@ -87,12 +87,12 @@ const ListHeaderRow = ({
 	// 	AllowedActions.SELECT_ACTIVITY_WATCHER,
 	// ])
 
-	const handleSort = (sortingCell: keyof ProductApi, order: SortOrder) => {
+	const handleSort = (sortingCell: ProductSortHeaderKey, order: SortOrder) => {
 		onSort(sortingCell, order)
 	}
 	const { canAddProduct } = useAllowedActions()
 
-	const getSortingButton = (sortKey: keyof ProductApi) => (
+	const getSortingButton = (sortKey: ProductSortHeaderKey) => (
 		<TableSort
 			handleSort={order => {
 				handleSort(sortKey, order)
@@ -285,7 +285,7 @@ const ListHeaderRow = ({
 								{(hoveredIndex === index || sortField === header.sortKey) &&
 									header.sortKey && (
 										<Box sx={{ marginLeft: '0.5rem', marginTop: '0.25rem' }}>
-											{getSortingButton('name')}
+											{getSortingButton(header.sortKey)}
 										</Box>
 									)}
 							</Flex>
@@ -306,7 +306,7 @@ const ListHeaderRow = ({
 								{(hoveredIndex === index || sortField === header.sortKey) &&
 									header.sortKey && (
 										<Box sx={{ marginLeft: '0.5rem' }}>
-											{/* {getSortingButton(header.sortKey)} */}
+											{getSortingButton(header.sortKey)}
 										</Box>
 									)}
 							</Flex>

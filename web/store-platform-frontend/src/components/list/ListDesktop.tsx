@@ -165,7 +165,9 @@ const ListDesktop = memo(
 		onAllItemsSelectedChange,
 	}: ListDesktopProps) => {
 		const { isOwnerOrAdmin } = useUser()
-		const [sortField, setSortField] = useState<keyof ProductApi | null>(null)
+		const [sortField, setSortField] = useState<ProductSortHeaderKey | null>(
+			null,
+		)
 		const [sortOrder, setSortOrder] = useState<SortOrder | null>(null)
 
 		const sortedActivities = useMemo(() => {
@@ -283,7 +285,7 @@ const ListDesktop = memo(
 		}, [activities, sortField, sortOrder])
 
 		const onSort = (
-			field: keyof ProductApi | null,
+			field: ProductSortHeaderKey | null,
 			order: SortOrder | null,
 		) => {
 			setSortField(field)
