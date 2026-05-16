@@ -15,7 +15,7 @@ import { useUser } from '../../shared/hooks/useUser'
 import ListHeaderRow, { ListActivity } from './ListHeaderRow'
 // import { ListActivity } from './ListWithActionBar'
 import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
-import { PromoSortHeaderKey, SortOrder } from './shared/globalEnums'
+import { ProductSortHeaderKey, SortOrder } from './shared/globalEnums'
 import {
 	compareDatesForSorting,
 	compareNumbersForSorting,
@@ -165,7 +165,7 @@ const ListDesktop = memo(
 		onAllItemsSelectedChange,
 	}: ListDesktopProps) => {
 		const { isOwnerOrAdmin } = useUser()
-		const [sortField, setSortField] = useState<keyof ListActivity | null>(null)
+		const [sortField, setSortField] = useState<keyof ProductApi | null>(null)
 		const [sortOrder, setSortOrder] = useState<SortOrder | null>(null)
 
 		const sortedActivities = useMemo(() => {
@@ -179,15 +179,67 @@ const ListDesktop = memo(
 
 			return clonedActivities.sort((a, b) => {
 				switch (sortField) {
-					case PromoSortHeaderKey.SALES_AREA: {
+					case ProductSortHeaderKey.NAME: {
+						return compareStringsForSorting(a.name, b.name, sortOrder)
+					}
+
+					case ProductSortHeaderKey.BARCODE: {
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
 					}
-
-					case PromoSortHeaderKey.LOCATION: {
+					case ProductSortHeaderKey.BRAND: {
 						return compareStringsForSorting(a.brand, b.brand, sortOrder)
 					}
+					case ProductSortHeaderKey.CATEGORY_NAME: {
+						return compareStringsForSorting(
+							a.category?.name,
+							b.category?.name,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.PRICE_BUY: {
+						return compareNumbersForSorting(
+							parseNumberForSorting(a.price.buy),
+							parseNumberForSorting(b.price.buy),
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.SUPPLIER_NAME: {
+						return compareStringsForSorting(
+							a.supplier?.name,
+							b.supplier?.name,
+							sortOrder,
+						)
+					}
+					// 	case ProductSortHeaderKey.PRICE_SELL: {
+					// 	return compareNumbersForSorting(
+					// 		parseNumberForSorting(a.price.sell),
+					// 		parseNumberForSorting(b.price.sell),
+					// 		sortOrder,
+					// 	)
+					// }
+					case ProductSortHeaderKey.STOCK_QUANTITY: {
+						return compareNumbersForSorting(
+							a.stock.quantity,
+							b.stock.quantity,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
+						return compareStringsForSorting(
+							a.location?.warehouse,
+							b.location?.warehouse,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.LOCATION_SHELF: {
+						return compareStringsForSorting(
+							a.location?.shelf,
+							b.location?.shelf,
+							sortOrder,
+						)
+					}
 
-					// case PromoSortHeaderKey.SHOP: {
+					// case ProductSortHeaderKey.SHOP: {
 					// 	const aShop = getPromoShop(a)
 					// 	const bShop = getPromoShop(b)
 
@@ -206,55 +258,20 @@ const ListDesktop = memo(
 					// 	return compareStringsForSorting(aName, bName, sortOrder)
 					// }
 
-					// case PromoSortHeaderKey.BRAND: {
+					// case ProductSortHeaderKey.BRAND: {
 					// 	const aBrand = getPromoActivityBrandsText(a)
 					// 	const bBrand = getPromoActivityBrandsText(b)
 					// 	return compareStringsForSorting(aBrand, bBrand, sortOrder)
 					// }
-					case PromoSortHeaderKey.FOCUS: {
-						return compareStringsForSorting(
-							a.brand?.trim() ?? '',
-							b.brand?.trim() ?? '',
-							sortOrder,
-						)
-					}
-					case PromoSortHeaderKey.PLACEMENT_FEE: {
-						return compareNumbersForSorting(
-							parseNumberForSorting(a.price.buy),
-							parseNumberForSorting(b.price.buy),
-							sortOrder,
-						)
-					}
+					// case ProductSortHeaderKey.START_DATE: {
+					// 	return compareStringsForSorting(
+					// 		a.brand?.trim() ?? '',
+					// 		b.brand?.trim() ?? '',
+					// 		sortOrder,
+					// 	)
+					// }
 
-					case PromoSortHeaderKey.PROMOTER_FEE: {
-						return compareNumbersForSorting(
-							parseNumberForSorting(a.price.sell),
-							parseNumberForSorting(b.price.sell),
-							sortOrder,
-						)
-					}
-
-					case PromoSortHeaderKey.PROMOTER_PER_DAY: {
-						return compareNumbersForSorting(
-							a.stock.quantity,
-							b.stock.quantity,
-							sortOrder,
-						)
-					}
-
-					case PromoSortHeaderKey.DEADLINE: {
-						return compareDatesForSorting(a.name, b.name, sortOrder)
-					}
-
-					case PromoSortHeaderKey.SUPPLIER: {
-						return compareStringsForSorting(
-							a.supplier?.name ?? '',
-							b.supplier?.name ?? '',
-							sortOrder,
-						)
-					}
-
-					// case PromoSortHeaderKey.START_DATE: {
+					// case ProductSortHeaderKey.START_DATE: {
 					// 	return compareDatesForSorting(a.dateFrom, b.dateFrom, sortOrder)
 					// }
 
@@ -266,7 +283,7 @@ const ListDesktop = memo(
 		}, [activities, sortField, sortOrder])
 
 		const onSort = (
-			field: keyof ListActivity | null,
+			field: keyof ProductApi | null,
 			order: SortOrder | null,
 		) => {
 			setSortField(field)

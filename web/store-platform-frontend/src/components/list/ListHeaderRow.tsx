@@ -2,7 +2,7 @@ import { Tr, Th, Text, Flex, Checkbox, Box } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { useResources } from '../../shared/hooks/useResources'
 import { useState } from 'react'
-import { PromoSortHeaderKey, SortOrder } from './shared/globalEnums'
+import { ProductSortHeaderKey, SortOrder } from './shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
 import { AllowedActions } from '../../shared/globalEnums'
 import { isTruthy } from './shared/utils'
@@ -10,10 +10,7 @@ import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import TableSort from '../common/CustomTableSort'
 import useAllowedActions from '../../shared/hooks/useAllowedActions'
 
-export type ListActivity = Activity & {
-	isAcceptable: boolean
-	isRejectable: boolean
-}
+export type ListActivity = Activity
 
 const listStyles = {
 	tableHeader: {
@@ -57,14 +54,14 @@ const styles = {
 		position: 'sticky',
 		zIndex: 1,
 		background: '#FFFFFF',
-		padding: '0',
+		padding: '4',
 	},
 } satisfies StylesObject
 
 interface ListHeaderRowProps {
-	sortField: keyof ListActivity | null
+	sortField: keyof ProductApi | null
 	sortOrder: SortOrder | null
-	onSort: (field: keyof ListActivity | null, order: SortOrder | null) => void
+	onSort: (field: keyof ProductApi | null, order: SortOrder | null) => void
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
 }
@@ -90,12 +87,12 @@ const ListHeaderRow = ({
 	// 	AllowedActions.SELECT_ACTIVITY_WATCHER,
 	// ])
 
-	const handleSort = (sortingCell: keyof ListActivity, order: SortOrder) => {
+	const handleSort = (sortingCell: keyof ProductApi, order: SortOrder) => {
 		onSort(sortingCell, order)
 	}
 	const { canAddProduct } = useAllowedActions()
 
-	const getSortingButton = (sortKey: keyof ListActivity) => (
+	const getSortingButton = (sortKey: keyof ProductApi) => (
 		<TableSort
 			handleSort={order => {
 				handleSort(sortKey, order)
@@ -118,77 +115,99 @@ const ListHeaderRow = ({
 			: []),
 		// Ticket Type (not sortable)
 		{
-			label: t('common.ticketType'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.TICKET_TYPE,
-			sortKey: null,
+			label: t('common.productName'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.NAME,
+			sortKey: ProductSortHeaderKey.NAME,
 		},
 		// Sales Area
 		{
-			label: t('common.salesArea'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SALES_AREA,
-			sortKey: PromoSortHeaderKey.SALES_AREA,
+			label: t('common.barcode'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.BARCODE,
+			sortKey: ProductSortHeaderKey.BARCODE,
 		},
 		// Location
 		{
-			label: t('common.location'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION,
-			sortKey: PromoSortHeaderKey.LOCATION,
+			label: t('common.brand'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.BRAND,
+			sortKey: ProductSortHeaderKey.BRAND,
 		},
 		// Timeframe
 		{
-			label: t('common.timeframe'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.TIME_FRAME,
-			sortKey: PromoSortHeaderKey.START_DATE,
+			label: t('common.category'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.CATEGORY_NAME,
+			sortKey: ProductSortHeaderKey.CATEGORY_NAME,
 		},
 		// Shop
-		{
-			label: null,
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SHOP,
-			sortKey: PromoSortHeaderKey.SHOP,
-			isShop: true,
-		},
+
 		// Supplier (only if internal)
 		...(isOwnerOrAdmin
 			? [
 					{
-						label: t('common.supplier'),
-						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER,
-						sortKey: PromoSortHeaderKey.SUPPLIER,
+						label: t('common.buyPrice'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_BUY,
+						sortKey: ProductSortHeaderKey.PRICE_BUY,
+						align: 'right' as const,
+					},
+					{
+						label: t('common.supplierName'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_NAME,
+						sortKey: ProductSortHeaderKey.SUPPLIER_NAME,
 					},
 				]
 			: []),
 		// Brand
+		// {
+		// 	label: t('common.sellPrice'),
+		// 	width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_SELL,
+		// 	sortKey: ProductSortHeaderKey.PRICE_SELL,
+		// },
+		// Stock Quantity
 		{
-			label: t('components.list.preferredBrand'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PREFERRED_BRAND,
-			sortKey: PromoSortHeaderKey.BRAND,
+			label: t('common.stockQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
 		},
-		// Focus
 		{
-			label: t('common.focus'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.FOCUS,
-			sortKey: PromoSortHeaderKey.FOCUS,
+			label: t('common.stockQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+		},
+		{
+			label: t('common.stockQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+		},
+		{
+			label: t('common.stockQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+		},
+		{
+			label: t('common.stockQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
 		},
 		// Placement Fee
 		canAddProduct && {
-			label: t('common.placementFee'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PLACEMENT_FEE,
-			sortKey: PromoSortHeaderKey.PLACEMENT_FEE,
+			label: t('common.locationWarehouse'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
+			sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
 			align: 'right' as const,
 		},
 		// Promoter Fee
 		canAddProduct && {
-			label: t('common.promoterFee'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PROMOTER_FEE,
-			sortKey: PromoSortHeaderKey.PROMOTER_FEE,
+			label: t('common.locationShelf'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_SHELF,
+			sortKey: ProductSortHeaderKey.LOCATION_SHELF,
 			align: 'right' as const,
 		},
-		// Promoter per Day
+		// Start Date
 		{
-			label: t('common.promoterPerDay'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PROMOTER_PER_DAY,
-			sortKey: PromoSortHeaderKey.PROMOTER_PER_DAY,
+			label: t('common.startDate'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.START_DATE,
+			sortKey: ProductSortHeaderKey.START_DATE,
 			align: 'right' as const,
+			isShop: false,
 		},
 		// Sticky Right
 		{
@@ -213,7 +232,7 @@ const ListHeaderRow = ({
 	}
 
 	return (
-		<Tr background={'#FFFFFF'}>
+		<Tr background={'#fff'}>
 			{headers.map((header, index) => {
 				if (header.isCheckbox) {
 					return (
@@ -236,7 +255,7 @@ const ListHeaderRow = ({
 							key={index}
 							sx={{
 								...listStyles.tableHeaderStickyRight,
-								background: `linear-gradient(to right, transparent 0rem, transparent 2rem, #FFFFFF 3.5rem, #FFFFFF 2rem, #FFFFFF ${getStickyRightWidth()})`,
+								background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${getStickyRightWidth()})`,
 								width: `${header.width}rem`,
 							}}
 						/>
@@ -266,7 +285,7 @@ const ListHeaderRow = ({
 								{(hoveredIndex === index || sortField === header.sortKey) &&
 									header.sortKey && (
 										<Box sx={{ marginLeft: '0.5rem', marginTop: '0.25rem' }}>
-											{/* {getSortingButton(header.sortKey)} */}
+											{getSortingButton('name')}
 										</Box>
 									)}
 							</Flex>

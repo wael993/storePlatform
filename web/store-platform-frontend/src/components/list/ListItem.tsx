@@ -1,4 +1,17 @@
-import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
+import {
+	Td,
+	Checkbox,
+	Flex,
+	Text,
+	Skeleton,
+	Popover,
+	useDisclosure,
+	PopoverTrigger,
+	IconButton,
+	PopoverBody,
+	PopoverContent,
+	Icon,
+} from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import StateCircle from '../StateCircle'
@@ -24,6 +37,9 @@ import EditableCellField from './EditableCellField'
 import { cellFieldStyles, listStyles } from '../../shared/styles'
 import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import { ACTIVITY_TYPE } from '../../shared/globalEnums'
+import { ThreeDotsIcon } from '../../icons/ThreeDots'
+import hoverFocusActiveButtonStyles from '../../theme'
+import { AsEmptyCheckmarkCircleIcon } from '../icons/EmptyCheckmarkCircle'
 interface ListItemProps {
 	activity: ProductApi
 	onSelect: (activityId: string) => void
@@ -55,7 +71,7 @@ const ListItem = memo(
 		// } = useListItem(activityData)
 		const showCheckbox = true
 		const eventType = 'dummyEventType'
-		const activityState = { color: 'green', translationKey: 'active' }
+		const activityState = { color: 'red', translationKey: 'active' }
 		const isReadyForExecution = false
 		const shopObject = { locationName: 'dummyLocation', name: 'dummyShop' }
 		const patchActivityProgressState = {
@@ -75,7 +91,11 @@ const ListItem = memo(
 			canDeleteReport,
 			canEditReport,
 		} = useAllowedActions()
-
+		const {
+			isOpen: isPopoverOpen,
+			onOpen: onPopoverOpen,
+			onClose: onPopoverClose,
+		} = useDisclosure()
 		const getMapActivityType = (activityType: any) => {
 			switch (activityType) {
 				case ACTIVITY_TYPE.PRICE:
@@ -134,7 +154,27 @@ const ListItem = memo(
 				position: 'sticky',
 				right: '0',
 				zIndex: '1',
-				background: `linear-gradient(to right, transparent 0rem, transparent 2rem, #FFFFFF 3.5rem, #FFFFFF 2rem, #FFFFFF ${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem)`,
+				background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem)`,
+			},
+			topSectionMenu: {
+				boxSize: 7,
+				bg: 'transparent',
+				fontSize: 'xl',
+				color: '#1E1E1E',
+				...hoverFocusActiveButtonStyles,
+			},
+			actionItem: {
+				py: '0.875rem',
+				alignItems: 'center',
+				cursor: 'pointer',
+			},
+			skeletonText: {
+				width: '13rem',
+				height: '1.5rem',
+			},
+			icon: {
+				fontSize: '1.5rem',
+				color: '#929494',
 			},
 		} satisfies StylesObject
 
@@ -156,6 +196,7 @@ const ListItem = memo(
 									pointerEvents={'none'}
 									isChecked={isSelected}
 									zIndex={2}
+									padding={4}
 								/>
 							</Skeleton>
 						</Flex>
@@ -167,7 +208,7 @@ const ListItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={{ ...styles.text, fontWeight: 500 }}>
-								{activityType}
+								{activityData.name}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -194,25 +235,6 @@ const ListItem = memo(
 				</Td>
 
 				{/* Time Frame */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							flexDirection: 'column',
-							justifyContent: 'center',
-							alignItems: 'start',
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{activityData.name ? formatDate(new Date()) : ''}
-							</Text>
-							<Text sx={styles.text}>
-								{activityData.name ? formatDate(new Date()) : ''}
-							</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
 
 				{/* Package Name / Location Name */}
 				<Td sx={styles.tableRow}>
@@ -225,73 +247,11 @@ const ListItem = memo(
 						}}
 					>
 						<Skeleton isLoaded={!isLoading}>
-							{activityData.location ? (
-								<Text sx={styles.text}>{activityData._id}</Text>
-							) : (
-								<>
-									<Text sx={styles.text}>{shopObject?.locationName ?? ''}</Text>
-									<Text sx={styles.text}>{shopObject?.name ?? ''}</Text>
-								</>
-							)}
+							<Text sx={styles.text}>{activityData.category?.name ?? '-'}</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
 
-				{/* Supplier (A&P only) */}
-				{isOwnerOrAdmin && (
-					<Td sx={{ ...styles.tableRow }}>
-						<Flex sx={{ ...styles.cellContentWrapper }}>
-							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.text}>
-									{activityData.supplier?.name ?? ''}
-								</Text>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
-				{/* Brands / Preferred Brands */}
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.brand}</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
-
-				{/* Supplier Focus (editable) */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={activityData.supplier?.name}
-								isNumberField={false}
-								ariaLabel={t('common.focus')}
-								placeholder={t('common.addFocus')}
-								onEdit={async (_editedValue: string) => {
-									return
-								}}
-								isEditable={true}
-								customStyles={{
-									...cellFieldStyles,
-									valueText: {
-										...cellFieldStyles.valueText,
-										textAlign: 'left',
-									},
-								}}
-								fontColor={'#1E1E1E'}
-								isLoading={patchActivityProgressState.isSupplierFocusInProgress}
-							/>
-						</Skeleton>
-					</Flex>
-				</Td>
-
-				{/* Rental Fee (editable) */}
 				{canAddProduct && (
 					<Td sx={styles.tableRow}>
 						<Flex
@@ -322,6 +282,91 @@ const ListItem = memo(
 					</Td>
 				)}
 
+				{/* Supplier (A&P only) */}
+				{isOwnerOrAdmin && (
+					<Td sx={{ ...styles.tableRow }}>
+						<Flex sx={{ ...styles.cellContentWrapper }}>
+							<Skeleton isLoaded={!isLoading}>
+								<Text sx={styles.text}>
+									{activityData.supplier?.name ?? ''}
+								</Text>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
+
+				{/* Brands / Preferred Brands */}
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+
+				{/* Supplier Focus (editable) */}
+				<Td sx={styles.tableRow}>
+					<Flex
+						sx={{
+							...styles.cellContentWrapper,
+							padding: isLoading ? '1rem' : 0,
+						}}
+					>
+						<Skeleton isLoaded={!isLoading}>
+							<EditableCellField
+								value={activityData.location?.warehouse ?? ''}
+								isNumberField={false}
+								ariaLabel={t('common.focus')}
+								placeholder={t('common.addFocus')}
+								onEdit={async (_editedValue: string) => {
+									return
+								}}
+								isEditable={true}
+								customStyles={{
+									...cellFieldStyles,
+									valueText: {
+										...cellFieldStyles.valueText,
+										textAlign: 'left',
+									},
+								}}
+								fontColor={'#1E1E1E'}
+								isLoading={patchActivityProgressState.isSupplierFocusInProgress}
+							/>
+						</Skeleton>
+					</Flex>
+				</Td>
+
+				{/* Rental Fee (editable) */}
+
 				{/* Promoter Fee (editable) */}
 				{canAddProduct && (
 					<Td sx={styles.tableRow}>
@@ -335,7 +380,7 @@ const ListItem = memo(
 						>
 							<Skeleton isLoaded={!isLoading}>
 								<EditableCellField
-									value={activityData.price.sell.toString()}
+									value={activityData.location?.shelf ?? ''}
 									minimumDecimals={0}
 									isNumberField={true}
 									ariaLabel={t('common.promoterFee')}
@@ -353,46 +398,34 @@ const ListItem = memo(
 					</Td>
 				)}
 
-				{/* Promoter Count (editable) */}
 				<Td sx={styles.tableRow}>
 					<Flex
 						sx={{
 							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-							justifyContent: 'flex-end',
-							paddingRight: '1.5rem',
+							flexDirection: 'column',
+							justifyContent: 'center',
+							alignItems: 'start',
 						}}
 					>
 						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={activityData.price.discount?.toString()}
-								ariaLabel={t('common.promoterPerDay')}
-								onEdit={async (_editedValue: string) => {
-									return
-								}}
-								isEditable={true}
-								customStyles={cellFieldStyles}
-								fontColor={'#1E1E1E'}
-								numberInputFontSize="0.875rem"
-								isLoading={patchActivityProgressState.isPromoterCountInProgress}
-							/>
+							<Text sx={styles.text}>
+								{activityData.name ? formatDate(new Date()) : ''}
+							</Text>
+							<Text sx={styles.text}>
+								{activityData.name ? formatDate(new Date()) : ''}
+							</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
 
-				<Td sx={{ ...styles.tableRow, ...styles.rightStickyContainer }}>
+				<Td
+					sx={{ ...styles.tableRow, ...styles.rightStickyContainer, right: 1 }}
+				>
 					<Flex sx={styles.rightStickyContainerContent}>
-						{/* Tags */}
-						<Flex sx={styles.cellContentWrapperSticky}>
-							<Skeleton isLoaded={!isLoading}>
-								<></>
-							</Skeleton>
-						</Flex>
 						{/* Notification Circle & State Circle */}
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
-								<></>
-								{/* <NotificationCircle
+								<NotificationCircle
 									activityId={activityData._id}
 									showIfNoChanges={true}
 									customStyles={{
@@ -406,28 +439,41 @@ const ListItem = memo(
 											colorCircle: { width: '0.875rem', height: '0.875rem' },
 										}}
 									/>
-								</NotificationCircle> */}
+								</NotificationCircle>
 							</Skeleton>
 						</Flex>
-						{/* Chat Icon */}
-						{canAddProduct && (
-							<Flex
-								sx={{ ...styles.cellContentWrapperSticky, marginLeft: '1rem' }}
+						<Flex onClick={e => e.stopPropagation()}>
+							<Popover
+								placement={'bottom'}
+								returnFocusOnClose={false}
+								isOpen={isPopoverOpen}
+								onOpen={onPopoverOpen}
+								onClose={onPopoverClose}
 							>
-								<Skeleton isLoaded={!isLoading}>
-									{/* <CommentCellField
-										activityId={activity.id}
-										location={activity.locationCustomer ?? ''}
-										referenceId={activity.referenceId ?? ''}
-										eventType={eventType}
-										iconSize={'1.1rem'}
-										vendorsIds={
-											activity.supplierId ? [activity.supplierId] : undefined
-										}
-									/> */}
-								</Skeleton>
-							</Flex>
-						)}
+								<PopoverTrigger>
+									<IconButton
+										sx={styles.topSectionMenu}
+										aria-label="topSectionMenu"
+										icon={<ThreeDotsIcon />}
+										boxSize={7}
+									/>
+								</PopoverTrigger>
+								<PopoverContent>
+									<PopoverBody>
+										<Flex
+											onClick={() => {
+												console.log('TO_DO')
+											}}
+											sx={styles.actionItem}
+										>
+											{false && <Skeleton sx={styles.skeletonText} />}
+											<Icon sx={styles.icon} as={AsEmptyCheckmarkCircleIcon} />
+											<Text>TO_DO</Text>
+										</Flex>
+									</PopoverBody>
+								</PopoverContent>
+							</Popover>
+						</Flex>
 					</Flex>
 				</Td>
 			</>

@@ -1,8 +1,6 @@
 import { Box, Flex, SystemStyleObject } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
-import { RootState } from '../store/store'
-import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useState } from 'react'
 
 interface NotificationCircleProps {
 	activityId: string
@@ -45,35 +43,38 @@ const NotificationCircle = ({
 	children,
 	alwaysShowAnimation = false,
 }: NotificationCircleProps) => {
-	const [activityHasChanges, setActivityHasChanges] = useState(false)
+	const [activityHasChanges, setActivityHasChanges] = useState(true)
 
-	useEffect(() => {
-		setActivityHasChanges(true)
-	}, [activityId])
+	// useEffect(() => {
+	// 	setActivityHasChanges(true)
+	// }, [activityId])
+	const shouldRender =
+		showIfNoChanges || activityHasChanges || alwaysShowAnimation
 
+	if (!shouldRender) {
+		return null
+	}
 	return (
-		(showIfNoChanges || activityHasChanges || alwaysShowAnimation) && (
-			<Flex
-				sx={{ ...styles.circleWrapper, ...(customStyles?.circleWrapper ?? {}) }}
-			>
-				{(activityHasChanges || alwaysShowAnimation) && (
-					<Box
-						animation={`${pulseAnimation} 2s ease-out infinite`}
-						sx={{
-							...styles.circle,
-							width: '1rem',
-							height: '1rem',
-							...(customStyles?.animationCircle ?? {}),
-						}}
-					/>
-				)}
-				{children ? (
-					<Box position="absolute">{children}</Box>
-				) : (
-					<Box sx={{ ...styles.circle, width: '0.4rem', height: '0.42rem' }} />
-				)}
-			</Flex>
-		)
+		<Flex
+			sx={{ ...styles.circleWrapper, ...(customStyles?.circleWrapper ?? {}) }}
+		>
+			{(activityHasChanges || alwaysShowAnimation) && (
+				<Box
+					animation={`${pulseAnimation} 2s ease-out infinite`}
+					sx={{
+						...styles.circle,
+						width: '1rem',
+						height: '1rem',
+						...(customStyles?.animationCircle ?? {}),
+					}}
+				/>
+			)}
+			{children ? (
+				<Box position="absolute">{children}</Box>
+			) : (
+				<Box sx={{ ...styles.circle, width: '0.4rem', height: '0.42rem' }} />
+			)}
+		</Flex>
 	)
 }
 
