@@ -1,3 +1,4 @@
+import { ca } from 'date-fns/locale'
 import { AuthorizedUser } from './authorization'
 import { TenantRole } from '../tenant'
 
@@ -30,7 +31,9 @@ export type ProductRequestBody = {
 	name: string
 	barcode: string
 	categoryId?: string
+	categoryName?: string
 	brandId?: string
+	brandName?: string
 	images?: string[]
 	price: {
 		wholesale: number
@@ -50,6 +53,7 @@ export type ProductRequestBody = {
 		value: number
 	}
 	supplierId?: string
+	supplierName?: string
 	location?: {
 		warehouse?: string
 		shelf?: string
@@ -256,6 +260,9 @@ interface ProductAPI {
 	}
 	status?: ProductAPIStatus
 	description?: string
+	brand?: { _id: string; name: string }
+	category?: { _id: string; name: string }
+	supplier?: { _id: string; name: string }
 }
 
 export type ProductAPIEnriched = Omit<

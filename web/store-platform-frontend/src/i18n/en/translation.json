@@ -12,7 +12,7 @@
 		"buyCost": "Buy Price",
 		"sellPrice": "Sell Price",
 		"stockQuantity": "Stock Quantity",
-		"supplierId": "Supplier Name",
+		"supplierName": "Supplier Name",
 		"locationWarehouse": "Location Warehouse",
 		"locationShelf": "Location Shelf",
 		"startDate": "Start Date",
@@ -25,6 +25,11 @@
 		"cancel": "Cancel",
 		"save": "Save",
 		"reject": "Reject",
-		"accept": "Accept"
+		"accept": "Accept",
+		"priceSell": "Sell Price",
+		"discount": "Discount",
+		"addDiscount": "Add Discount",
+		"color": "Color",
+		"createdAt": "Created At"
 	}
 }

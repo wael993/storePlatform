@@ -13,6 +13,8 @@ export const PROMOTION_LIST_WIDTHS_MAP_IN_REM = {
 	START_DATE: 6.5,
 	STATUS: 5,
 	STICKY_RIGHT: 15,
+	DISCOUNT: 8,
+	COLOR: 6,
 } as const
 export const LIST_INTERNAL_ONLY_COLUMNS: string[] = [
 	'SUPPLIER',

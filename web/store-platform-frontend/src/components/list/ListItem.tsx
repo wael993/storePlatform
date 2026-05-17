@@ -205,7 +205,7 @@ const ListItem = memo(
 					</Td>
 				)}
 
-				{/* Ticket Type */}
+				{/* Name*/}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
@@ -216,7 +216,7 @@ const ListItem = memo(
 					</Flex>
 				</Td>
 
-				{/* Sales Area */}
+				{/* Barcode */}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
@@ -227,7 +227,7 @@ const ListItem = memo(
 					</Flex>
 				</Td>
 
-				{/* Location Customer */}
+				{/* Brand */}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
@@ -238,9 +238,7 @@ const ListItem = memo(
 					</Flex>
 				</Td>
 
-				{/* Time Frame */}
-
-				{/* Package Name / Location Name */}
+				{/* Category Name */}
 				<Td sx={styles.tableRow}>
 					<Flex
 						sx={{
@@ -258,36 +256,6 @@ const ListItem = memo(
 					</Flex>
 				</Td>
 
-				{canAddProduct && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-								justifyContent: 'flex-end',
-								paddingRight: '1.5rem',
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={activityData.price?.buyCost?.toString() ?? '0'}
-									isNumberField={true}
-									minimumDecimals={0}
-									ariaLabel={t('common.rentalFee')}
-									onEdit={async (_editedValue: string) => {
-										return
-									}}
-									currency={'€'}
-									isEditable={true}
-									customStyles={cellFieldStyles}
-									fontColor={'#1E1E1E'}
-									isLoading={patchActivityProgressState.isRentalFeeInProgress}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
 				{/* Supplier (A&P only) */}
 				{isOwnerOrAdmin && (
 					<Td sx={{ ...styles.tableRow }}>
@@ -301,7 +269,7 @@ const ListItem = memo(
 					</Td>
 				)}
 
-				{/* Brands / Preferred Brands */}
+				{/* Stock Quantity */}
 
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
@@ -310,22 +278,25 @@ const ListItem = memo(
 						</Skeleton>
 					</Flex>
 				</Td>
+				{/* price buy Cost */}
+				{isOwnerOrAdmin && (
+					<Td sx={styles.tableRow}>
+						<Flex sx={styles.cellContentWrapper}>
+							<Skeleton isLoaded={!isLoading}>
+								<Text sx={styles.text}>{activityData.price.buyCost}</Text>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+							<Text sx={styles.text}>{activityData.price.wholesale}</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
 
-				{/* Supplier Focus (editable) */}
+				{/* Discount (editable) */}
 				<Td sx={styles.tableRow}>
 					<Flex
 						sx={{
@@ -335,10 +306,10 @@ const ListItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<EditableCellField
-								value={activityData.location?.warehouse ?? ''}
+								value={activityData.price.discount?.toLocaleString() ?? ''}
 								isNumberField={false}
-								ariaLabel={t('common.focus')}
-								placeholder={t('common.addFocus')}
+								ariaLabel={t('common.discount')}
+								placeholder={t('common.addDiscount')}
 								onEdit={async (_editedValue: string) => {
 									return
 								}}
@@ -357,39 +328,70 @@ const ListItem = memo(
 					</Flex>
 				</Td>
 
-				{/* Rental Fee (editable) */}
+				{/* Location Shelf (editable) */}
+				<Td sx={styles.tableRow}>
+					<Flex
+						sx={{
+							...styles.cellContentWrapper,
+							padding: isLoading ? '1rem' : 0,
+							justifyContent: 'flex-start',
+							paddingRight: '1.5rem',
+						}}
+					>
+						<Skeleton isLoaded={!isLoading}>
+							<EditableCellField
+								value={activityData.location?.shelf ?? ''}
+								minimumDecimals={0}
+								isNumberField={true}
+								ariaLabel={t('common.locationShelf')}
+								onEdit={async (_editedValue: string) => {
+									return
+								}}
+								currency={'€'}
+								isEditable={true}
+								customStyles={cellFieldStyles}
+								fontColor={'#1E1E1E'}
+								isLoading={patchActivityProgressState.isPromoterFeeInProgress}
+							/>
+						</Skeleton>
+					</Flex>
+				</Td>
+				{/* Location Warehouse (editable) */}
+				<Td sx={styles.tableRow}>
+					<Flex
+						sx={{
+							...styles.cellContentWrapper,
+							padding: isLoading ? '1rem' : 0,
+							justifyContent: 'flex-start',
+							paddingRight: '1.5rem',
+						}}
+					>
+						<Skeleton isLoaded={!isLoading}>
+							<EditableCellField
+								value={activityData.location?.warehouse ?? ''}
+								minimumDecimals={0}
+								isNumberField={false}
+								ariaLabel={t('common.locationWarehouse')}
+								onEdit={async (_editedValue: string) => {
+									return
+								}}
+								currency={'€'}
+								isEditable={true}
+								customStyles={cellFieldStyles}
+								fontColor={'#1E1E1E'}
+								isLoading={patchActivityProgressState.isPromoterFeeInProgress}
+							/>
+						</Skeleton>
+					</Flex>
+				</Td>
 
-				{/* Promoter Fee (editable) */}
-				{canAddProduct && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-								justifyContent: 'flex-end',
-								paddingRight: '1.5rem',
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={activityData.location?.shelf ?? ''}
-									minimumDecimals={0}
-									isNumberField={true}
-									ariaLabel={t('common.promoterFee')}
-									onEdit={async (_editedValue: string) => {
-										return
-									}}
-									currency={'€'}
-									isEditable={true}
-									customStyles={cellFieldStyles}
-									fontColor={'#1E1E1E'}
-									isLoading={patchActivityProgressState.isPromoterFeeInProgress}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{activityData.attributes?.color}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
 				<Td sx={styles.tableRow}>
 					<Flex
 						sx={{

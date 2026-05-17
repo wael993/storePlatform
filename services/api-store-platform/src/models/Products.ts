@@ -7,7 +7,9 @@ export interface IProduct extends Document {
 	productFactoryCode?: string
 	name: string
 	categoryId?: string
+	categoryName?: string
 	brandId?: string
+	brandName?: string
 	barcode: string
 	stock: {
 		quantity: number
@@ -19,6 +21,7 @@ export interface IProduct extends Document {
 		value: number
 	}
 	supplierId?: string
+	supplierName?: string
 	price: {
 		wholesale: number
 		retailSale: number
@@ -76,7 +79,11 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			maxlength: [100, 'Name cannot exceed 100 characters'],
 		},
 		categoryId: { type: String },
+		categoryName: { type: String },
 		brandId: { type: String },
+		brandName: { type: String },
+		supplierId: { type: String },
+		supplierName: { type: String },
 		barcode: {
 			type: String,
 			required: [true, 'Barcode is required'],
@@ -94,7 +101,6 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			type: { type: String },
 			value: { type: Number, min: 0 },
 		},
-		supplierId: { type: String },
 		price: {
 			wholesale: { type: Number, required: true, min: 0 },
 			retailSale: { type: Number, required: true, min: 0 },

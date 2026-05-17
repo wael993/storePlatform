@@ -137,78 +137,68 @@ const ListHeaderRow = ({
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.CATEGORY_NAME,
 			sortKey: ProductSortHeaderKey.CATEGORY_ID,
 		},
-		// Shop
+		...(isOwnerOrAdmin
+			? [
+					{
+						label: t('common.supplierName'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_NAME,
+						sortKey: ProductSortHeaderKey.SUPPLIER_ID,
+					},
+				]
+			: []),
 
-		// Supplier (only if internal)
+		{
+			label: t('common.stockQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+		},
+
+		// buyCost (only if internal)
 		...(isOwnerOrAdmin
 			? [
 					{
 						label: t('common.buyCost'),
 						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_BUY,
 						sortKey: ProductSortHeaderKey.PRICE_BUY_COST,
-						align: 'right' as const,
-					},
-					{
-						label: t('common.supplierId'),
-						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_NAME,
-						sortKey: ProductSortHeaderKey.SUPPLIER_ID,
+						// align: 'right' as const,
 					},
 				]
 			: []),
-		// Brand
-		// {
-		// 	label: t('common.sellPrice'),
-		// 	width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_SELL,
-		// 	sortKey: ProductSortHeaderKey.PRICE_SELL,
-		// },
-		// Stock Quantity
+
 		{
-			label: t('common.stockQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+			label: t('common.priceSell'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_SELL,
+			sortKey: ProductSortHeaderKey.PRICE_SELL,
 		},
+
 		{
-			label: t('common.stockQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+			label: t('common.discount'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.DISCOUNT,
+			sortKey: ProductSortHeaderKey.DISCOUNT,
 		},
 		{
-			label: t('common.stockQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
-		},
-		{
-			label: t('common.stockQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
-		},
-		{
-			label: t('common.stockQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
-		},
-		// Placement Fee
-		canAddProduct && {
-			label: t('common.locationWarehouse'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
-			sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
-			align: 'right' as const,
-		},
-		// Promoter Fee
-		canAddProduct && {
 			label: t('common.locationShelf'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_SHELF,
 			sortKey: ProductSortHeaderKey.LOCATION_SHELF,
-			align: 'right' as const,
 		},
-		// Start Date
 		{
-			label: t('common.startDate'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.START_DATE,
-			sortKey: ProductSortHeaderKey.START_DATE,
+			label: t('common.locationWarehouse'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
+			sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
+		},
+		{
+			label: t('common.color'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.COLOR,
+			sortKey: ProductSortHeaderKey.COLOR,
+		},
+		{
+			label: t('common.createdAt'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
 			align: 'right' as const,
 			isShop: false,
 		},
+
 		// Sticky Right
 		{
 			label: null,

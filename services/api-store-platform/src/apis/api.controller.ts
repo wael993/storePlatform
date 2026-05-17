@@ -634,15 +634,15 @@ export default class ProductController {
 		)
 
 		// Enrich products with brand, category, and supplier data from database
-		// const enrichedProducts = await Promise.all(
-		// 	products.map(product => {
-		// 		const productData = product as unknown as ProductAPI
-		// 		return this.productsMapper.enrichProduct(productData, tenantId)
-		// 	}),
-		// )
+		const enrichedProducts = await Promise.all(
+			products.map(product => {
+				const productData = product as unknown as ProductAPI
+				return this.productsMapper.enrichProduct(productData, tenantId)
+			}),
+		)
 
 		if (config.redis.enabled) {
-			await redisCache.setJson(cacheKey, products)
+			await redisCache.setJson(cacheKey, enrichedProducts)
 		}
 		// return enrichedProducts
 	}

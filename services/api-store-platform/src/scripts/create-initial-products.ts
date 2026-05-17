@@ -59,8 +59,11 @@ const UNITS: Array<'piece' | 'set' | 'kg' | 'meter' | 'mm'> = [
 
 function buildProducts(
 	brandIds: string[],
+	brandNames: string[],
 	categoryIds: string[],
+	categoryNames: string[],
 	supplierIds: string[],
+	supplierNames: string[],
 ) {
 	return PRODUCT_NAMES.map((name, index) => {
 		const idx = index + 1
@@ -75,7 +78,11 @@ function buildProducts(
 			name,
 			barcode: `900000000${idx.toString().padStart(4, '0')}`,
 			categoryId: categoryIds[index % categoryIds.length],
+			categoryName: categoryNames[index % categoryNames.length],
 			brandId: brandIds[index % brandIds.length],
+			brandName: brandNames[index % brandNames.length],
+			supplierId: supplierIds[index % supplierIds.length],
+			supplierName: supplierNames[index % supplierNames.length],
 			images: [],
 			price: {
 				wholesale: Number(wholesale.toFixed(2)),
@@ -94,7 +101,6 @@ function buildProducts(
 				type: 'VAT',
 				value: 19,
 			},
-			supplierId: supplierIds[index % supplierIds.length],
 			location: {
 				warehouse: `Warehouse ${((idx - 1) % 3) + 1}`,
 				shelf: `${String.fromCharCode(65 + ((idx - 1) % 5))}-${10 + idx}`,
@@ -143,9 +149,19 @@ async function createInitialProducts() {
 		}
 
 		const brandIds = brands.map(item => String(item._id))
+		const brandNames = brands.map(item => item.name)
 		const categoryIds = categories.map(item => String(item._id))
+		const categoryNames = categories.map(item => item.name)
 		const supplierIds = suppliers.map(item => String(item._id))
-		const initialProducts = buildProducts(brandIds, categoryIds, supplierIds)
+		const supplierNames = suppliers.map(item => item.name)
+		const initialProducts = buildProducts(
+			brandIds,
+			brandNames,
+			categoryIds,
+			categoryNames,
+			supplierIds,
+			supplierNames,
+		)
 
 		// Delete existing products (targeted by productId)
 		await Product.deleteMany({
@@ -162,13 +178,16 @@ async function createInitialProducts() {
 			name: productData.name,
 			barcode: productData.barcode,
 			categoryId: productData.categoryId,
+			categoryName: productData.categoryName,
 			brandId: productData.brandId,
+			brandName: productData.brandName,
 			images: productData.images,
 			price: productData.price,
 			stock: productData.stock,
 			unit: productData.unit,
 			tax: productData.tax,
 			supplierId: productData.supplierId,
+			supplierName: productData.supplierName,
 			location: productData.location,
 			attributes: productData.attributes,
 			status: productData.status,
@@ -190,6 +209,9 @@ async function createInitialProducts() {
 			.select({
 				name: 1,
 				productId: 1,
+				brandName: 1,
+				categoryName: 1,
+				supplierName: 1,
 				brandId: 1,
 				categoryId: 1,
 				supplierId: 1,
@@ -200,7 +222,7 @@ async function createInitialProducts() {
 		console.log('Seeded products:')
 		for (const product of seededProducts) {
 			console.log(
-				`${product.productId} | ${product.name} | brand=${product.brandId} | category=${product.categoryId} | supplier=${product.supplierId}`,
+				`${product.productId} | ${product.name} | brand=${product.brandName} | category=${product.categoryName} | supplier=${product.supplierName}`,
 			)
 		}
 
