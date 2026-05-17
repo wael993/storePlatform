@@ -38,7 +38,7 @@ import { cellFieldStyles, listStyles } from '../../shared/styles'
 import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import { ACTIVITY_TYPE } from '../../shared/globalEnums'
 import { ThreeDotsIcon } from '../../icons/ThreeDots'
-import hoverFocusActiveButtonStyles from '../../theme'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { AsEmptyCheckmarkCircleIcon } from '../icons/EmptyCheckmarkCircle'
 interface ListItemProps {
 	activity: ProductApi
@@ -186,8 +186,8 @@ const ListItem = memo(
 						<Flex
 							sx={{ ...styles.cellContentWrapper, ...styles.checkboxWrapper }}
 							onClick={e => {
-								onSelect(activityData._id)
-								console.log(activityData._id)
+								onSelect(activityData.productId)
+								console.log(activityData.productId)
 
 								e.stopPropagation()
 							}}

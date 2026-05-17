@@ -1,8 +1,8 @@
 import { Button, Icon } from '@chakra-ui/react'
 import { BiSortDown, BiSortUp } from 'react-icons/bi'
 import { SortOrder } from '../list/shared/globalEnums'
-import hoverFocusActiveButtonStyles from '../../theme'
 import { AsSortIcon } from '../icons/Sort'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 
 const styles = {
 	icon: {
@@ -44,9 +44,9 @@ const SortButton = ({
 			{sortingOrder === null ? (
 				<Icon sx={styles.icon} as={AsSortIcon} />
 			) : sortingOrder === SortOrder.DESC ? (
-				<Icon sx={styles.icon} as={AsSortIcon} />
+				<Icon sx={styles.icon} as={BiSortDown as React.ElementType} />
 			) : (
-				<Icon sx={styles.icon} as={AsSortIcon} />
+				<Icon sx={styles.icon} as={BiSortUp as React.ElementType} />
 			)}
 		</Button>
 	)

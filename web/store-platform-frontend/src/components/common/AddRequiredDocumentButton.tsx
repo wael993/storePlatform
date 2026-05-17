@@ -16,10 +16,13 @@ import {
 import { format } from 'date-fns'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import hoverFocusActiveButtonStyles from '../../theme'
 import InputLabel from './InputLabel'
 import { AsAddSquareIcon } from '../icons/AddSquare'
-import { datePickerStyles, documentNameStyles } from '../../theme/styles'
+import {
+	datePickerStyles,
+	documentNameStyles,
+	hoverFocusActiveButtonStyles,
+} from '../../theme/styles'
 import { AsSaveIcon } from '../icons/Save'
 import DatePickerLabel from './DatePickerLabel'
 

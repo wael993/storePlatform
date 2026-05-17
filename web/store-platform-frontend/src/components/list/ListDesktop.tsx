@@ -29,7 +29,7 @@ import ListRow from './ListRow'
 interface VirtuosoContext {
 	listData: ProductApi[]
 	selectedActivities: string[]
-	onSelect: (activityId: string) => void
+	onSelect: (productId: string) => void
 	isLoading: boolean
 	isInternalUser: boolean
 }
@@ -138,7 +138,7 @@ const TableRowComponent = (props: {
 		<ListRow
 			key={activity._id}
 			activity={activity}
-			isSelected={selectedActivities.includes(activity._id)}
+			isSelected={selectedActivities.includes(activity.productId)}
 			tableRowProps={props}
 			onSelect={onSelect}
 			isLoading={isLoading}
@@ -149,7 +149,7 @@ const TableRowComponent = (props: {
 interface ListDesktopProps {
 	activities?: ProductApi[]
 	isLoading: boolean
-	onSelect: (activityId: string) => void
+	onSelect: (productId: string) => void
 	selectedActivities: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
@@ -174,8 +174,6 @@ const ListDesktop = memo(
 			if (!activities) return []
 			const clonedActivities = structuredClone(activities)
 			if (sortField === null) {
-				// const sortedActivityData = getSortedPromoActivities(clonedActivities)
-				// return Object.values(sortedActivityData).flat()
 				return clonedActivities
 			}
 
@@ -188,13 +186,31 @@ const ListDesktop = memo(
 					case ProductSortHeaderKey.BARCODE: {
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
 					}
-					case ProductSortHeaderKey.BRAND_ID: {
-						return compareStringsForSorting(a.brandId, b.brandId, sortOrder)
-					}
-					case ProductSortHeaderKey.CATEGORY_ID: {
+					case ProductSortHeaderKey.BRAND_NAME: {
 						return compareStringsForSorting(
-							a.categoryId,
-							b.categoryId,
+							a.brand?.name,
+							b.brand?.name,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.CATEGORY_NAME: {
+						return compareStringsForSorting(
+							a.category?.name,
+							b.category?.name,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.SUPPLIER_NAME: {
+						return compareStringsForSorting(
+							a.supplier?.name,
+							b.supplier?.name,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.STOCK_QUANTITY: {
+						return compareNumbersForSorting(
+							a.stock.quantity,
+							b.stock.quantity,
 							sortOrder,
 						)
 					}
@@ -205,31 +221,17 @@ const ListDesktop = memo(
 							sortOrder,
 						)
 					}
-					case ProductSortHeaderKey.SUPPLIER_ID: {
-						return compareStringsForSorting(
-							a.supplierId,
-							b.supplierId,
-							sortOrder,
-						)
-					}
-					// 	case ProductSortHeaderKey.PRICE_SELL: {
-					// 	return compareNumbersForSorting(
-					// 		parseNumberForSorting(a.price.sell),
-					// 		parseNumberForSorting(b.price.sell),
-					// 		sortOrder,
-					// 	)
-					// }
-					case ProductSortHeaderKey.STOCK_QUANTITY: {
+					case ProductSortHeaderKey.PRICE_SELL: {
 						return compareNumbersForSorting(
-							a.stock.quantity,
-							b.stock.quantity,
+							parseNumberForSorting(a.price?.wholesale),
+							parseNumberForSorting(b.price?.wholesale),
 							sortOrder,
 						)
 					}
-					case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
-						return compareStringsForSorting(
-							a.location?.warehouse,
-							b.location?.warehouse,
+					case ProductSortHeaderKey.DISCOUNT: {
+						return compareNumbersForSorting(
+							parseNumberForSorting(a.price?.discount),
+							parseNumberForSorting(b.price?.discount),
 							sortOrder,
 						)
 					}
@@ -240,42 +242,23 @@ const ListDesktop = memo(
 							sortOrder,
 						)
 					}
-
-					// case ProductSortHeaderKey.SHOP: {
-					// 	const aShop = getPromoShop(a)
-					// 	const bShop = getPromoShop(b)
-
-					// 	const formatShopName = (shop: typeof aShop) =>
-					// 		`${shop?.locationName ?? ''} ${shop?.name ?? ''}`.trim()
-
-					// 	const getPackageName = (activity: typeof a) => {
-					// 		const trimmedPackageName = activity.packageName?.trim()
-					// 		return activity.isPackage && trimmedPackageName
-					// 			? trimmedPackageName
-					// 			: undefined
-					// 	}
-
-					// 	const aName = getPackageName(a) || formatShopName(aShop)
-					// 	const bName = getPackageName(b) || formatShopName(bShop)
-					// 	return compareStringsForSorting(aName, bName, sortOrder)
-					// }
-
-					// case ProductSortHeaderKey.BRAND: {
-					// 	const aBrand = getPromoActivityBrandsText(a)
-					// 	const bBrand = getPromoActivityBrandsText(b)
-					// 	return compareStringsForSorting(aBrand, bBrand, sortOrder)
-					// }
-					// case ProductSortHeaderKey.START_DATE: {
-					// 	return compareStringsForSorting(
-					// 		a.brand?.trim() ?? '',
-					// 		b.brand?.trim() ?? '',
-					// 		sortOrder,
-					// 	)
-					// }
-
-					// case ProductSortHeaderKey.START_DATE: {
-					// 	return compareDatesForSorting(a.dateFrom, b.dateFrom, sortOrder)
-					// }
+					case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
+						return compareStringsForSorting(
+							a.location?.warehouse,
+							b.location?.warehouse,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.COLOR: {
+						return compareStringsForSorting(
+							a.attributes?.color,
+							b.attributes?.color,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.START_DATE: {
+						return compareDatesForSorting(a.updatedAt, b.updatedAt, sortOrder)
+					}
 
 					default: {
 						return 0

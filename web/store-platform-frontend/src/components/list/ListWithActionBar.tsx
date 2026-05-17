@@ -57,7 +57,7 @@ const ListWithActionBar = ({
 		setSelectedActivityIds(prevSelectedIds =>
 			prevSelectedIds.length === listActivities.length
 				? []
-				: listActivities.map(a => a._id),
+				: listActivities.map(a => a.productId),
 		)
 	}, [listActivities])
 	const areAllItemsSelected =
@@ -122,7 +122,9 @@ const ListWithActionBar = ({
 				<ListActionBar
 					selectedActivities={
 						(selectedActivityIds
-							.map(id => listActivities?.find(activity => activity._id === id))
+							.map(id =>
+								listActivities?.find(activity => activity.productId === id),
+							)
 							.filter(Boolean) as ListActivity[]) ?? []
 					}
 					isRejectActivityInProgress={false}

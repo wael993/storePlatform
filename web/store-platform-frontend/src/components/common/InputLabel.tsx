@@ -10,7 +10,7 @@ import {
 import { ChangeEvent, RefObject, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AsCloseIcon } from '../icons/Close'
-import hoverFocusActiveButtonStyles from '../../theme'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { CustomTooltip } from './CustomTooltip'
 
 //let timeoutFn: NodeJS.Timeout | null = null

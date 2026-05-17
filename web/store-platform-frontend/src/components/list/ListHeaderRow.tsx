@@ -92,14 +92,17 @@ const ListHeaderRow = ({
 	}
 	const { canAddProduct } = useAllowedActions()
 
-	const getSortingButton = (sortKey: ProductSortHeaderKey) => (
-		<TableSort
-			handleSort={order => {
-				handleSort(sortKey, order)
-			}}
-			sortingOrder={sortField === sortKey ? sortOrder : null}
-		/>
-	)
+	const getSortingButton = (sortKey: ProductSortHeaderKey) => {
+		console.log('🚀 ~ getSortingButton ~ sortKey:', sortKey)
+		return (
+			<TableSort
+				handleSort={order => {
+					handleSort(sortKey, order)
+				}}
+				sortingOrder={sortField === sortKey ? sortOrder : null}
+			/>
+		)
+	}
 
 	const headers = [
 		// Checkbox (no hover)
@@ -129,20 +132,20 @@ const ListHeaderRow = ({
 		{
 			label: t('common.brand'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.BRAND,
-			sortKey: ProductSortHeaderKey.BRAND_ID,
+			sortKey: ProductSortHeaderKey.BRAND_NAME,
 		},
 		// Timeframe
 		{
 			label: t('common.category'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.CATEGORY_NAME,
-			sortKey: ProductSortHeaderKey.CATEGORY_ID,
+			sortKey: ProductSortHeaderKey.CATEGORY_NAME,
 		},
 		...(isOwnerOrAdmin
 			? [
 					{
 						label: t('common.supplierName'),
 						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_NAME,
-						sortKey: ProductSortHeaderKey.SUPPLIER_ID,
+						sortKey: ProductSortHeaderKey.SUPPLIER_NAME,
 					},
 				]
 			: []),
@@ -170,7 +173,6 @@ const ListHeaderRow = ({
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_SELL,
 			sortKey: ProductSortHeaderKey.PRICE_SELL,
 		},
-
 		{
 			label: t('common.discount'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.DISCOUNT,
