@@ -2,7 +2,11 @@ import {
 	ProductAPI,
 	ProductRequestBody,
 	RequestContext,
+	ProductAPIEnriched,
 } from '../../shared/types'
+import { Brand } from '../../models/Brand'
+import { Category } from '../../models/Category'
+import { Supplier } from '../../models/Supplier'
 
 export default class ProductsMapper {
 	public mapProduct(
@@ -14,15 +18,17 @@ export default class ProductsMapper {
 
 		const mappedProducts: ProductRequestBody = {
 			productId: product.productId,
+			productFactoryCode: product.productFactoryCode,
 			name: product.name,
 			barcode: product.barcode,
-			brand: product.brand,
+			categoryId: product.categoryId,
+			brandId: product.brandId,
 			images: product.images,
-			category: product.category,
 			price: product.price,
 			stock: product.stock,
+			unit: product.unit,
 			tax: product.tax,
-			supplier: product.supplier,
+			supplierId: product.supplierId,
 			location: product.location,
 			attributes: product.attributes,
 			status: product.status,

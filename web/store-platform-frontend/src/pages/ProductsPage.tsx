@@ -45,22 +45,30 @@ import ListWithActionBar from '../components/list/ListWithActionBar'
 
 const EMPTY_FORM = {
 	name: '',
+	productFactoryCode: '',
 	barcode: '',
-	brand: '',
 	categoryId: '',
-	categoryName: '',
-	priceBuy: 0,
-	priceSell: 0,
+	brandId: '',
+	priceWholesale: 0,
+	priceRetailSale: 0,
+	priceSemiWholesaleSales: 0,
+	priceBuyCost: 0,
 	priceDiscount: 0,
 	currency: 'EUR',
 	stockQuantity: 0,
 	stockMinQuantity: 0,
-	stockUnit: 'piece',
+	unit: 'piece' as 'piece' | 'kg' | 'meter' | 'set' | 'mm',
 	taxType: 'VAT',
 	taxValue: 19,
-	supplierName: '',
+	supplierId: '',
 	warehouse: '',
 	shelf: '',
+	color: '',
+	size: '',
+	weight: '',
+	length: '',
+	width: '',
+	height: '',
 	status: 'active' as 'active' | 'inactive' | 'discontinued',
 	description: '',
 }
@@ -96,22 +104,30 @@ const ProductsPage = () => {
 	const openEdit = (p: ProductApi) => {
 		setForm({
 			name: p.name,
+			productFactoryCode: p.productFactoryCode ?? '',
 			barcode: p.barcode,
-			brand: p.brand ?? '',
-			categoryId: p.category?.id ?? '',
-			categoryName: p.category?.name ?? '',
-			priceBuy: p.price?.buy ?? 0,
-			priceSell: p.price?.sell ?? 0,
+			categoryId: p.categoryId ?? '',
+			brandId: p.brandId ?? '',
+			priceWholesale: p.price?.wholesale ?? 0,
+			priceRetailSale: p.price?.retailSale ?? 0,
+			priceSemiWholesaleSales: p.price?.semiWholesaleSales ?? 0,
+			priceBuyCost: p.price?.buyCost ?? 0,
 			priceDiscount: p.price?.discount ?? 0,
 			currency: p.price?.currency ?? 'EUR',
 			stockQuantity: p.stock?.quantity ?? 0,
 			stockMinQuantity: p.stock?.minQuantity ?? 0,
-			stockUnit: p.stock?.unit ?? 'piece',
+			unit: (p.unit as 'piece' | 'kg' | 'meter' | 'set' | 'mm') ?? 'piece',
 			taxType: p.tax?.type ?? 'VAT',
 			taxValue: p.tax?.value ?? 19,
-			supplierName: p.supplier?.name ?? '',
+			supplierId: p.supplierId ?? '',
 			warehouse: p.location?.warehouse ?? '',
 			shelf: p.location?.shelf ?? '',
+			color: p.attributes?.color ?? '',
+			size: p.attributes?.size ?? '',
+			weight: p.attributes?.weight ?? '',
+			length: p.attributes?.length ?? '',
+			width: p.attributes?.width ?? '',
+			height: p.attributes?.height ?? '',
 			status: p.status ?? 'active',
 			description: p.description ?? '',
 		})
@@ -127,32 +143,41 @@ const ProductsPage = () => {
 		onClose()
 	}
 
+	const handleChange = (field: string, value: any) => {
+		setForm(prev => ({ ...prev, [field]: value }))
+	}
+
 	const handleSubmit = async () => {
-		setFeedback('')
 		try {
+			if (!form.name || !form.barcode) {
+				setFeedback('Name and barcode are required')
+				return
+			}
+
 			const productPayload = {
 				name: form.name,
+				productFactoryCode: form.productFactoryCode || undefined,
 				barcode: form.barcode,
-				brand: form.brand || undefined,
+				categoryId: form.categoryId || undefined,
+				brandId: form.brandId || undefined,
 				images: [],
-				category: form.categoryId
-					? { id: form.categoryId, name: form.categoryName }
-					: undefined,
 				price: {
-					buy: Number(form.priceBuy),
-					sell: Number(form.priceSell),
+					wholesale: Number(form.priceWholesale),
+					retailSale: Number(form.priceRetailSale),
+					semiWholesaleSales: Number(form.priceSemiWholesaleSales) || 0,
+					buyCost: Number(form.priceBuyCost),
 					discount: Number(form.priceDiscount) || undefined,
 					currency: form.currency,
 				},
 				stock: {
 					quantity: Number(form.stockQuantity),
 					minQuantity: Number(form.stockMinQuantity) || undefined,
-					unit: form.stockUnit || 'piece',
 				},
+				unit: form.unit || 'piece',
 				tax: form.taxType
 					? { type: form.taxType, value: Number(form.taxValue) }
 					: undefined,
-				supplier: form.supplierName ? { name: form.supplierName } : undefined,
+				supplierId: form.supplierId || undefined,
 				location:
 					form.warehouse || form.shelf
 						? {
@@ -160,6 +185,14 @@ const ProductsPage = () => {
 								shelf: form.shelf || undefined,
 							}
 						: undefined,
+				attributes: {
+					color: form.color || undefined,
+					size: form.size || undefined,
+					weight: form.weight || undefined,
+					length: form.length || undefined,
+					width: form.width || undefined,
+					height: form.height || undefined,
+				},
 				status: form.status,
 				description: form.description || undefined,
 			}
@@ -223,10 +256,10 @@ const ProductsPage = () => {
 								<Tr key={p._id}>
 									<Td>{p.name}</Td>
 									<Td>{p.barcode}</Td>
-									<Td>{p.brand ?? '—'}</Td>
-									<Td>{p.category?.name ?? '—'}</Td>
+								<Td>{p.brand?.name ?? p.brandId ?? '—'}</Td>
+								<Td>{p.category?.name ?? p.categoryId ?? '—'}</Td>
 									<Td isNumeric>
-										{p.price?.sell?.toFixed(2)} {p.price?.currency}
+										{p.price?.retailSale?.toFixed(2)} {p.price?.currency}
 									</Td>
 									<Td isNumeric>{p.stock?.quantity}</Td>
 									<Td>
@@ -292,6 +325,15 @@ const ProductsPage = () => {
 									onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
 								/>
 							</FormControl>
+							<FormControl>
+								<FormLabel>Product Factory Code</FormLabel>
+								<Input
+									value={form.productFactoryCode}
+									onChange={e =>
+										setForm(f => ({ ...f, productFactoryCode: e.target.value }))
+									}
+								/>
+							</FormControl>
 							<FormControl isRequired>
 								<FormLabel>Barcode</FormLabel>
 								<Input
@@ -302,59 +344,79 @@ const ProductsPage = () => {
 								/>
 							</FormControl>
 							<FormControl>
-								<FormLabel>Brand</FormLabel>
+								<FormLabel>Category ID</FormLabel>
 								<Input
-									value={form.brand}
+									value={form.categoryId}
 									onChange={e =>
-										setForm(f => ({ ...f, brand: e.target.value }))
+										setForm(f => ({ ...f, categoryId: e.target.value }))
+									}
+								/>
+							</FormControl>
+							<FormControl>
+								<FormLabel>Brand ID</FormLabel>
+								<Input
+									value={form.brandId}
+									onChange={e =>
+										setForm(f => ({ ...f, brandId: e.target.value }))
 									}
 								/>
 							</FormControl>
 							<HStack w="100%">
-								<FormControl>
-									<FormLabel>Category ID</FormLabel>
-									<Input
-										value={form.categoryId}
-										onChange={e =>
-											setForm(f => ({ ...f, categoryId: e.target.value }))
+								<FormControl isRequired>
+									<FormLabel>Wholesale Price</FormLabel>
+									<NumberInput
+										value={form.priceWholesale}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, priceWholesale: Number(val) }))
 										}
-									/>
+									>
+										<NumberInputField />
+									</NumberInput>
 								</FormControl>
-								<FormControl>
-									<FormLabel>Category Name</FormLabel>
-									<Input
-										value={form.categoryName}
-										onChange={e =>
-											setForm(f => ({ ...f, categoryName: e.target.value }))
+								<FormControl isRequired>
+									<FormLabel>Retail Sale Price</FormLabel>
+									<NumberInput
+										value={form.priceRetailSale}
+										min={0}
+										onChange={val =>
+											setForm(f => ({ ...f, priceRetailSale: Number(val) }))
 										}
-									/>
+									>
+										<NumberInputField />
+									</NumberInput>
 								</FormControl>
 							</HStack>
 							<HStack w="100%">
-								<FormControl isRequired>
-									<FormLabel>Buy Price</FormLabel>
+								<FormControl>
+									<FormLabel>Semi-Wholesale Sales Price</FormLabel>
 									<NumberInput
-										value={form.priceBuy}
+										value={form.priceSemiWholesaleSales}
 										min={0}
 										onChange={val =>
-											setForm(f => ({ ...f, priceBuy: Number(val) }))
+											setForm(f => ({
+												...f,
+												priceSemiWholesaleSales: Number(val),
+											}))
 										}
 									>
 										<NumberInputField />
 									</NumberInput>
 								</FormControl>
 								<FormControl isRequired>
-									<FormLabel>Sell Price</FormLabel>
+									<FormLabel>Buy Cost</FormLabel>
 									<NumberInput
-										value={form.priceSell}
+										value={form.priceBuyCost}
 										min={0}
 										onChange={val =>
-											setForm(f => ({ ...f, priceSell: Number(val) }))
+											setForm(f => ({ ...f, priceBuyCost: Number(val) }))
 										}
 									>
 										<NumberInputField />
 									</NumberInput>
 								</FormControl>
+							</HStack>
+							<HStack w="100%">
 								<FormControl>
 									<FormLabel>Discount Price</FormLabel>
 									<NumberInput
@@ -367,16 +429,16 @@ const ProductsPage = () => {
 										<NumberInputField />
 									</NumberInput>
 								</FormControl>
+								<FormControl>
+									<FormLabel>Currency</FormLabel>
+									<Input
+										value={form.currency}
+										onChange={e =>
+											setForm(f => ({ ...f, currency: e.target.value }))
+										}
+									/>
+								</FormControl>
 							</HStack>
-							<FormControl>
-								<FormLabel>Currency</FormLabel>
-								<Input
-									value={form.currency}
-									onChange={e =>
-										setForm(f => ({ ...f, currency: e.target.value }))
-									}
-								/>
-							</FormControl>
 							<HStack w="100%">
 								<FormControl isRequired>
 									<FormLabel>Stock Quantity</FormLabel>
@@ -402,16 +464,30 @@ const ProductsPage = () => {
 										<NumberInputField />
 									</NumberInput>
 								</FormControl>
-								<FormControl>
-									<FormLabel>Unit</FormLabel>
-									<Input
-										value={form.stockUnit}
-										onChange={e =>
-											setForm(f => ({ ...f, stockUnit: e.target.value }))
-										}
-									/>
-								</FormControl>
 							</HStack>
+							<FormControl>
+								<FormLabel>Unit</FormLabel>
+								<Select
+									value={form.unit}
+									onChange={e =>
+										setForm(f => ({
+											...f,
+											unit: e.target.value as
+												| 'piece'
+												| 'kg'
+												| 'meter'
+												| 'set'
+												| 'mm',
+										}))
+									}
+								>
+									<option value="piece">Piece</option>
+									<option value="kg">KG</option>
+									<option value="meter">Meter</option>
+									<option value="set">Set</option>
+									<option value="mm">MM</option>
+								</Select>
+							</FormControl>
 							<HStack w="100%">
 								<FormControl>
 									<FormLabel>Tax Type</FormLabel>
@@ -436,11 +512,11 @@ const ProductsPage = () => {
 								</FormControl>
 							</HStack>
 							<FormControl>
-								<FormLabel>Supplier Name</FormLabel>
+								<FormLabel>Supplier ID</FormLabel>
 								<Input
-									value={form.supplierName}
+									value={form.supplierId}
 									onChange={e =>
-										setForm(f => ({ ...f, supplierName: e.target.value }))
+										setForm(f => ({ ...f, supplierId: e.target.value }))
 									}
 								/>
 							</FormControl>
@@ -460,6 +536,66 @@ const ProductsPage = () => {
 										value={form.shelf}
 										onChange={e =>
 											setForm(f => ({ ...f, shelf: e.target.value }))
+										}
+									/>
+								</FormControl>
+							</HStack>
+							<HStack w="100%">
+								<FormControl>
+									<FormLabel>Color</FormLabel>
+									<Input
+										value={form.color}
+										onChange={e =>
+											setForm(f => ({ ...f, color: e.target.value }))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Size</FormLabel>
+									<Input
+										value={form.size}
+										onChange={e =>
+											setForm(f => ({ ...f, size: e.target.value }))
+										}
+									/>
+								</FormControl>
+							</HStack>
+							<HStack w="100%">
+								<FormControl>
+									<FormLabel>Weight</FormLabel>
+									<Input
+										value={form.weight}
+										onChange={e =>
+											setForm(f => ({ ...f, weight: e.target.value }))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Length</FormLabel>
+									<Input
+										value={form.length}
+										onChange={e =>
+											setForm(f => ({ ...f, length: e.target.value }))
+										}
+									/>
+								</FormControl>
+							</HStack>
+							<HStack w="100%">
+								<FormControl>
+									<FormLabel>Width</FormLabel>
+									<Input
+										value={form.width}
+										onChange={e =>
+											setForm(f => ({ ...f, width: e.target.value }))
+										}
+									/>
+								</FormControl>
+								<FormControl>
+									<FormLabel>Height</FormLabel>
+									<Input
+										value={form.height}
+										onChange={e =>
+											setForm(f => ({ ...f, height: e.target.value }))
 										}
 									/>
 								</FormControl>

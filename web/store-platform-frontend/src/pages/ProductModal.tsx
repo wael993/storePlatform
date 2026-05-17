@@ -83,7 +83,10 @@ const ProductModal = ({
 									Price
 								</Text>
 								<Text fontWeight="semibold">
-									{formatPrice(product.price?.sell, product.price?.currency)}
+									{formatPrice(
+										product.price?.retailSale,
+										product.price?.currency,
+									)}
 								</Text>
 							</Box>
 

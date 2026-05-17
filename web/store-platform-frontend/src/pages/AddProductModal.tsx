@@ -31,25 +31,30 @@ const AddProductModal = ({
 
 	const [form, setForm] = useState({
 		name: '',
+		productFactoryCode: '',
 		barcode: '',
-		brand: '',
 		categoryId: '',
-		categoryName: '',
-		priceBuy: '',
-		priceSell: '',
+		brandId: '',
+		priceWholesale: '',
+		priceRetailSale: '',
+		priceSemiWholesaleSales: '',
+		priceBuyCost: '',
 		priceDiscount: '',
 		currency: 'EUR',
 		stockQuantity: '',
 		stockMinQuantity: '',
-		stockUnit: 'piece',
+		unit: 'piece' as 'piece' | 'kg' | 'meter' | 'set' | 'mm',
 		taxType: 'VAT',
 		taxValue: '19',
 		supplierId: '',
-		supplierName: '',
 		warehouse: '',
 		shelf: '',
 		color: '',
+		size: '',
 		weight: '',
+		length: '',
+		width: '',
+		height: '',
 		status: 'active' as 'active' | 'inactive' | 'discontinued',
 		description: '',
 	})
@@ -78,26 +83,31 @@ const AddProductModal = ({
 			return
 		}
 
-		if (!form.priceBuy || !form.priceSell || !form.stockQuantity) {
-			setError('Buy price, sell price and stock quantity are required.')
+		if (
+			!form.priceWholesale ||
+			!form.priceRetailSale ||
+			!form.priceBuyCost ||
+			!form.stockQuantity
+		) {
+			setError(
+				'Wholesale price, retail sale price, buy cost and stock quantity are required.',
+			)
 			return
 		}
 
 		try {
 			await postNewProduct({
 				name: form.name.trim(),
+				productFactoryCode: form.productFactoryCode.trim() || undefined,
 				barcode: form.barcode.trim(),
-				brand: form.brand.trim() || undefined,
+				categoryId: form.categoryId.trim() || undefined,
+				brandId: form.brandId.trim() || undefined,
 				images: [],
-				category: form.categoryId.trim()
-					? {
-							id: form.categoryId.trim(),
-							name: form.categoryName.trim(),
-						}
-					: undefined,
 				price: {
-					buy: Number(form.priceBuy),
-					sell: Number(form.priceSell),
+					wholesale: Number(form.priceWholesale),
+					retailSale: Number(form.priceRetailSale),
+					semiWholesaleSales: Number(form.priceSemiWholesaleSales) || 0,
+					buyCost: Number(form.priceBuyCost),
 					discount: form.priceDiscount ? Number(form.priceDiscount) : undefined,
 					currency: form.currency.trim() || 'EUR',
 				},
@@ -106,21 +116,15 @@ const AddProductModal = ({
 					minQuantity: form.stockMinQuantity
 						? Number(form.stockMinQuantity)
 						: undefined,
-					unit: form.stockUnit.trim() || 'piece',
 				},
+				unit: form.unit || 'piece',
 				tax: form.taxType.trim()
 					? {
 							type: form.taxType.trim(),
 							value: Number(form.taxValue || 0),
 						}
 					: undefined,
-				supplier:
-					form.supplierId.trim() || form.supplierName.trim()
-						? {
-								id: form.supplierId.trim() || undefined,
-								name: form.supplierName.trim() || undefined,
-							}
-						: undefined,
+				supplierId: form.supplierId.trim() || undefined,
 				location:
 					form.warehouse.trim() || form.shelf.trim()
 						? {
@@ -128,13 +132,14 @@ const AddProductModal = ({
 								shelf: form.shelf.trim() || undefined,
 							}
 						: undefined,
-				attributes:
-					form.color.trim() || form.weight.trim()
-						? {
-								color: form.color.trim() || undefined,
-								weight: form.weight.trim() || undefined,
-							}
-						: undefined,
+				attributes: {
+					color: form.color.trim() || undefined,
+					size: form.size.trim() || undefined,
+					weight: form.weight.trim() || undefined,
+					length: form.length.trim() || undefined,
+					width: form.width.trim() || undefined,
+					height: form.height.trim() || undefined,
+				},
 				status: form.status,
 				description: form.description.trim() || undefined,
 			}).unwrap()
@@ -165,33 +170,47 @@ const AddProductModal = ({
 							value={form.name}
 							onChange={e => handleChange('name', e.target.value)}
 						/>
-						<Input placeholder="Barcode" value={form.barcode} isReadOnly />
 						<Input
-							placeholder="Brand"
-							value={form.brand}
-							onChange={e => handleChange('brand', e.target.value)}
+							placeholder="Product Factory Code"
+							value={form.productFactoryCode}
+							onChange={e => handleChange('productFactoryCode', e.target.value)}
 						/>
+						<Input placeholder="Barcode" value={form.barcode} isReadOnly />
 						<Input
 							placeholder="Category ID"
 							value={form.categoryId}
 							onChange={e => handleChange('categoryId', e.target.value)}
 						/>
 						<Input
-							placeholder="Category Name"
-							value={form.categoryName}
-							onChange={e => handleChange('categoryName', e.target.value)}
+							placeholder="Brand ID"
+							value={form.brandId}
+							onChange={e => handleChange('brandId', e.target.value)}
 						/>
 						<Input
-							placeholder="Buy Price"
+							placeholder="Wholesale Price"
 							type="number"
-							value={form.priceBuy}
-							onChange={e => handleChange('priceBuy', e.target.value)}
+							value={form.priceWholesale}
+							onChange={e => handleChange('priceWholesale', e.target.value)}
 						/>
 						<Input
-							placeholder="Sell Price"
+							placeholder="Retail Sale Price"
 							type="number"
-							value={form.priceSell}
-							onChange={e => handleChange('priceSell', e.target.value)}
+							value={form.priceRetailSale}
+							onChange={e => handleChange('priceRetailSale', e.target.value)}
+						/>
+						<Input
+							placeholder="Semi-Wholesale Sales Price"
+							type="number"
+							value={form.priceSemiWholesaleSales}
+							onChange={e =>
+								handleChange('priceSemiWholesaleSales', e.target.value)
+							}
+						/>
+						<Input
+							placeholder="Buy Cost"
+							type="number"
+							value={form.priceBuyCost}
+							onChange={e => handleChange('priceBuyCost', e.target.value)}
 						/>
 						<Input
 							placeholder="Discount Price"
@@ -216,11 +235,16 @@ const AddProductModal = ({
 							value={form.stockMinQuantity}
 							onChange={e => handleChange('stockMinQuantity', e.target.value)}
 						/>
-						<Input
-							placeholder="Stock Unit (e.g. piece)"
-							value={form.stockUnit}
-							onChange={e => handleChange('stockUnit', e.target.value)}
-						/>
+						<Select
+							value={form.unit}
+							onChange={e => handleChange('unit', e.target.value)}
+						>
+							<option value="piece">Piece</option>
+							<option value="kg">KG</option>
+							<option value="meter">Meter</option>
+							<option value="set">Set</option>
+							<option value="mm">MM</option>
+						</Select>
 						<Input
 							placeholder="Tax Type"
 							value={form.taxType}
@@ -238,11 +262,6 @@ const AddProductModal = ({
 							onChange={e => handleChange('supplierId', e.target.value)}
 						/>
 						<Input
-							placeholder="Supplier Name"
-							value={form.supplierName}
-							onChange={e => handleChange('supplierName', e.target.value)}
-						/>
-						<Input
 							placeholder="Warehouse"
 							value={form.warehouse}
 							onChange={e => handleChange('warehouse', e.target.value)}
@@ -256,6 +275,31 @@ const AddProductModal = ({
 							placeholder="Color"
 							value={form.color}
 							onChange={e => handleChange('color', e.target.value)}
+						/>
+						<Input
+							placeholder="Size"
+							value={form.size}
+							onChange={e => handleChange('size', e.target.value)}
+						/>
+						<Input
+							placeholder="Weight"
+							value={form.weight}
+							onChange={e => handleChange('weight', e.target.value)}
+						/>
+						<Input
+							placeholder="Length"
+							value={form.length}
+							onChange={e => handleChange('length', e.target.value)}
+						/>
+						<Input
+							placeholder="Width"
+							value={form.width}
+							onChange={e => handleChange('width', e.target.value)}
+						/>
+						<Input
+							placeholder="Height"
+							value={form.height}
+							onChange={e => handleChange('height', e.target.value)}
 						/>
 						<Input
 							placeholder="Weight"

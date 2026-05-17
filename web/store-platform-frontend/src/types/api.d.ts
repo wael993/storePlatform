@@ -75,46 +75,64 @@ interface ProductAPIResponse extends APIResponse<ProductApi[]> {}
 interface ProductApi {
 	_id: string
 	productId: string
+	productFactoryCode?: string
 	name: string
+	categoryId?: string
+	categoryName?: string
+	category?: { _id: string; name: string }
+	brandId?: string
+	brandName?: string
+	brand?: { _id: string; name: string }
 	barcode: string
-	brand?: string
-	images?: string[]
-	category?: {
-		id: string
-		name: string
-	}
-	price: {
-		buy: number
-		sell: number
-		discount?: number
-		currency: string
-	}
 	stock: {
 		quantity: number
 		minQuantity?: number
-		unit?: string
 	}
+	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 	tax?: {
 		type: string
 		value: number
 	}
-	supplier?: {
-		id?: string
-		name?: string
+	supplierId?: string
+	supplierName?: string
+	supplier?: { _id: string; name: string }
+	price: {
+		wholesale: number
+		retailSale: number
+		semiWholesaleSales: number
+		buyCost: number
+		discount?: number
+		currency: string
 	}
 	location?: {
 		warehouse?: string
 		shelf?: string
 	}
+	status?: 'active' | 'inactive' | 'discontinued'
+	description?: string
 	attributes?: {
 		color?: string
 		size?: string
+		weight?: string
+		length?: string
+		width?: string
+		height?: string
 		flavor?: string
 		expiryDate?: string
-		weight?: string
 	}
-	status?: 'active' | 'inactive' | 'discontinued'
-	description?: string
+	images?: string[]
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
 }
 
 interface LoginAPI {

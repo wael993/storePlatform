@@ -129,13 +129,13 @@ const ListHeaderRow = ({
 		{
 			label: t('common.brand'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.BRAND,
-			sortKey: ProductSortHeaderKey.BRAND,
+			sortKey: ProductSortHeaderKey.BRAND_ID,
 		},
 		// Timeframe
 		{
 			label: t('common.category'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.CATEGORY_NAME,
-			sortKey: ProductSortHeaderKey.CATEGORY_NAME,
+			sortKey: ProductSortHeaderKey.CATEGORY_ID,
 		},
 		// Shop
 
@@ -143,15 +143,15 @@ const ListHeaderRow = ({
 		...(isOwnerOrAdmin
 			? [
 					{
-						label: t('common.buyPrice'),
+						label: t('common.buyCost'),
 						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_BUY,
-						sortKey: ProductSortHeaderKey.PRICE_BUY,
+						sortKey: ProductSortHeaderKey.PRICE_BUY_COST,
 						align: 'right' as const,
 					},
 					{
-						label: t('common.supplierName'),
+						label: t('common.supplierId'),
 						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_NAME,
-						sortKey: ProductSortHeaderKey.SUPPLIER_NAME,
+						sortKey: ProductSortHeaderKey.SUPPLIER_ID,
 					},
 				]
 			: []),

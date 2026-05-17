@@ -26,33 +26,30 @@ interface RequestError {
 
 export type ProductRequestBody = {
 	productId?: string
+	productFactoryCode?: string
 	name: string
 	barcode: string
-	brand?: string
+	categoryId?: string
+	brandId?: string
 	images?: string[]
-	category?: {
-		id: string
-		name: string
-	}
 	price: {
-		buy: number
-		sell: number
+		wholesale: number
+		retailSale: number
+		semiWholesaleSales: number
+		buyCost: number
 		discount?: number
 		currency: string
 	}
 	stock: {
 		quantity: number
 		minQuantity?: number
-		unit?: string
 	}
+	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 	tax?: {
 		type: string
 		value: number
 	}
-	supplier?: {
-		id?: string
-		name?: string
-	}
+	supplierId?: string
 	location?: {
 		warehouse?: string
 		shelf?: string
@@ -60,9 +57,12 @@ export type ProductRequestBody = {
 	attributes?: {
 		color?: string
 		size?: string
+		weight?: string
+		length?: string
+		width?: string
+		height?: string
 		flavor?: string
 		expiryDate?: string
-		weight?: string
 	}
 	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
@@ -171,33 +171,30 @@ export type TenantSummary = {
 interface ProductDocument {
 	tenantId: string
 	productId: string
+	productFactoryCode?: string
 	name: string
 	barcode: string
-	brand?: string
+	categoryId?: string
+	brandId?: string
 	images?: string[]
-	category?: {
-		id: string
-		name: string
-	}
 	price: {
-		buy: number
-		sell: number
+		wholesale: number
+		retailSale: number
+		semiWholesaleSales: number
+		buyCost: number
 		discount?: number
 		currency: string
 	}
 	stock: {
 		quantity: number
 		minQuantity?: number
-		unit?: string
 	}
+	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 	tax?: {
 		type: string
 		value: number
 	}
-	supplier?: {
-		id?: string
-		name?: string
-	}
+	supplierId?: string
 	location?: {
 		warehouse?: string
 		shelf?: string
@@ -205,9 +202,12 @@ interface ProductDocument {
 	attributes?: {
 		color?: string
 		size?: string
+		weight?: string
+		length?: string
+		width?: string
+		height?: string
 		flavor?: string
 		expiryDate?: string
-		weight?: string
 	}
 	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
@@ -225,23 +225,44 @@ interface UserAPIFormat {
 type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
 interface ProductAPI {
 	productId: string
+	productFactoryCode?: string
 	name: string
 	barcode: string
-	brand?: string
+	categoryId?: string
+	brandId?: string
 	images?: string[]
-	category?: { id: string; name: string }
-	price: { buy: number; sell: number; discount?: number; currency: string }
-	stock: { quantity: number; minQuantity?: number; unit?: string }
+	price: {
+		wholesale: number
+		retailSale: number
+		semiWholesaleSales: number
+		buyCost: number
+		discount?: number
+		currency: string
+	}
+	stock: { quantity: number; minQuantity?: number }
+	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 	tax?: { type: string; value: number }
-	supplier?: { id?: string; name?: string }
+	supplierId?: string
 	location?: { warehouse?: string; shelf?: string }
 	attributes?: {
 		color?: string
 		size?: string
+		weight?: string
+		length?: string
+		width?: string
+		height?: string
 		flavor?: string
 		expiryDate?: string
-		weight?: string
 	}
 	status?: ProductAPIStatus
 	description?: string
+}
+
+export type ProductAPIEnriched = Omit<
+	ProductAPI,
+	'categoryId' | 'brandId' | 'supplierId'
+> & {
+	category?: { _id: string; name: string }
+	brand?: { _id: string; name: string }
+	supplier?: { _id: string; name: string }
 }

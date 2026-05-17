@@ -1,7 +1,6 @@
 import mongoose from 'mongoose'
 import { config } from '../config/config'
 import logger, { EntityType } from '../shared/logger/logger'
-import { ca } from 'date-fns/locale'
 
 if (!config.mongoDB.connectionString) {
 	throw new Error(

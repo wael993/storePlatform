@@ -4,50 +4,49 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 export interface IProduct extends Document {
 	tenantId: string
 	productId: string
+	productFactoryCode?: string
 	name: string
+	categoryId?: string
+	brandId?: string
 	barcode: string
-	brand?: string
-	images?: string[]
-	category?: {
-		id: string
-		name: string
-	}
-	price: {
-		buy: number
-		sell: number
-		discount?: number
-		currency: string
-	}
 	stock: {
 		quantity: number
 		minQuantity?: number
-		unit?: string
 	}
+	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 	tax?: {
 		type: string
 		value: number
 	}
-	supplier?: {
-		id?: string
-		name?: string
+	supplierId?: string
+	price: {
+		wholesale: number
+		retailSale: number
+		semiWholesaleSales: number
+		buyCost: number
+		discount?: number
+		currency: string
 	}
 	location?: {
 		warehouse?: string
 		shelf?: string
 	}
+	status: 'active' | 'inactive' | 'discontinued'
+	description?: string
 	attributes?: {
 		color?: string
 		size?: string
+		weight?: string
+		length?: string
+		width?: string
+		height?: string
 		flavor?: string
 		expiryDate?: string
-		weight?: string
 	}
-	status: 'active' | 'inactive' | 'discontinued'
-	description?: string
+	images?: string[]
 	createdBy: {
 		_id: string
 		displayName: string
-		// isInternal?: boolean
 		createdAt: Date
 	}
 	updatedBy?: {
@@ -66,51 +65,47 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			required: [true, 'Product ID is required'],
 			trim: true,
 		},
+		productFactoryCode: {
+			type: String,
+			trim: true,
+		},
 		name: {
 			type: String,
 			required: [true, 'Product name is required'],
 			trim: true,
 			maxlength: [100, 'Name cannot exceed 100 characters'],
 		},
+		categoryId: { type: String },
+		brandId: { type: String },
 		barcode: {
 			type: String,
 			required: [true, 'Barcode is required'],
 		},
-		brand: { type: String, trim: true },
-		images: [{ type: String }],
-		category: {
-			id: { type: String },
-			name: { type: String },
-		},
-		price: {
-			buy: { type: Number, required: true, min: 0 },
-			sell: { type: Number, required: true, min: 0 },
-			discount: { type: Number, min: 0 },
-			currency: { type: String, required: true, default: 'EUR' },
-		},
 		stock: {
 			quantity: { type: Number, required: true, min: 0 },
 			minQuantity: { type: Number, min: 0 },
-			unit: { type: String, default: 'piece' },
+		},
+		unit: {
+			type: String,
+			enum: ['kg', 'piece', 'meter', 'set', 'mm'],
+			default: 'piece',
 		},
 		tax: {
 			type: { type: String },
 			value: { type: Number, min: 0 },
 		},
-		supplier: {
-			id: { type: String },
-			name: { type: String },
+		supplierId: { type: String },
+		price: {
+			wholesale: { type: Number, required: true, min: 0 },
+			retailSale: { type: Number, required: true, min: 0 },
+			semiWholesaleSales: { type: Number, min: 0 },
+			buyCost: { type: Number, required: true, min: 0 },
+			discount: { type: Number, min: 0 },
+			currency: { type: String, required: true, default: 'EUR' },
 		},
 		location: {
 			warehouse: { type: String },
 			shelf: { type: String },
-		},
-		attributes: {
-			color: { type: String },
-			size: { type: String },
-			flavor: { type: String },
-			expiryDate: { type: String },
-			weight: { type: String },
 		},
 		status: {
 			type: String,
@@ -122,10 +117,20 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			trim: true,
 			maxlength: [500, 'Description cannot exceed 500 characters'],
 		},
+		attributes: {
+			color: { type: String },
+			size: { type: String },
+			weight: { type: String },
+			length: { type: String },
+			width: { type: String },
+			height: { type: String },
+			flavor: { type: String },
+			expiryDate: { type: String },
+		},
+		images: [{ type: String }],
 		createdBy: {
 			_id: { type: String },
 			displayName: { type: String },
-			// isInternal: { type: Boolean },
 			createdAt: { type: Date },
 		},
 		updatedBy: {

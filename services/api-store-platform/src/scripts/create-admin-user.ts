@@ -30,12 +30,23 @@ const INITIAL_USERS = [
 		role: 'admin',
 		avatarColorId: 321522,
 	},
+	{
+		userId: '654987654987654987ss',
+		displayName: 'Wael Zobani super_admin',
+		user: { firstName: 'wael', lastName: 'Super' },
+		email: 'super_admin@example.com',
+		password: 'super123', // Minimum 6 chars
+		role: 'super_admin',
+		avatarColorId: 3215223,
+	},
 ]
 
 async function createInitialUsers() {
 	try {
 		// Connect to MongoDB
-		await mongoose.connect(config.mongoDB.connectionString)
+		await mongoose.connect(config.mongoDB.connectionString, {
+			dbName: config.mongoDB.databaseName,
+		})
 		console.log('✅ Connected to MongoDB')
 
 		// Ensure stale unique indexes from previous schemas (e.g. username_1)
@@ -56,8 +67,8 @@ async function createInitialUsers() {
 		)
 
 		// Delete all existing users
-		await User.deleteMany({ tenantId: DEFAULT_TENANT_ID } as any)
-		console.log('🗑️  All existing users deleted')
+		// await User.deleteMany({ tenantId: DEFAULT_TENANT_ID } as any)
+		// console.log('🗑️  All existing users deleted')
 
 		// Create initial users
 		for (const userData of INITIAL_USERS) {

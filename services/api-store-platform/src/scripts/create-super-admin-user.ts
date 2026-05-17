@@ -22,9 +22,10 @@ const SUPER_ADMIN_USER = {
 
 async function createSuperAdminUser() {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString)
+		await mongoose.connect(config.mongoDB.connectionString, {
+			dbName: config.mongoDB.databaseName,
+		})
 		console.log('Connected to MongoDB')
-
 		await User.syncIndexes()
 
 		await Tenant.updateOne(

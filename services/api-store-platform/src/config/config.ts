@@ -12,13 +12,13 @@ export const config = {
 		},
 		connectionString:
 			process.env.BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING ||
-			'mongodb+srv://business-platform-store-dev:xu7JDcWNF3G9QEt4d5wUmq@cluster0.jbysm.mongodb.net',
+			'mongodb+srv://business-platform-store-dev:xu7JDcWNF3G9QEt4d5wUmq@cluster0.jbysm.mongodb.net/bsp-BUSINESS-platform-store-dev',
 		databaseName:
 			process.env.BUSINESS_PLATFORM_MONGO_DB_DATABASE_NAME ||
 			'bsp-BUSINESS-platform-store-dev',
 	},
 	redis: {
-		enabled: 'true',
+		enabled: 'false', // Set to false to disable Redis caching, or true to enable it. Can also be controlled via environment variables.
 		// process.env.REDIS_ENABLED === 'true' ||
 		// Boolean(process.env.REDIS_HOST && process.env.REDIS_PASSWORD),
 		host: process.env.REDIS_HOST || 'knee-ultracozy-town-99731.db.redis.io',

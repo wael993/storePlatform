@@ -188,27 +188,27 @@ const ListDesktop = memo(
 					case ProductSortHeaderKey.BARCODE: {
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
 					}
-					case ProductSortHeaderKey.BRAND: {
-						return compareStringsForSorting(a.brand, b.brand, sortOrder)
+					case ProductSortHeaderKey.BRAND_ID: {
+						return compareStringsForSorting(a.brandId, b.brandId, sortOrder)
 					}
-					case ProductSortHeaderKey.CATEGORY_NAME: {
+					case ProductSortHeaderKey.CATEGORY_ID: {
 						return compareStringsForSorting(
-							a.category?.name,
-							b.category?.name,
+							a.categoryId,
+							b.categoryId,
 							sortOrder,
 						)
 					}
-					case ProductSortHeaderKey.PRICE_BUY: {
+					case ProductSortHeaderKey.PRICE_BUY_COST: {
 						return compareNumbersForSorting(
-							parseNumberForSorting(a.price.buy),
-							parseNumberForSorting(b.price.buy),
+							parseNumberForSorting(a.price?.buyCost),
+							parseNumberForSorting(b.price?.buyCost),
 							sortOrder,
 						)
 					}
-					case ProductSortHeaderKey.SUPPLIER_NAME: {
+					case ProductSortHeaderKey.SUPPLIER_ID: {
 						return compareStringsForSorting(
-							a.supplier?.name,
-							b.supplier?.name,
+							a.supplierId,
+							b.supplierId,
 							sortOrder,
 						)
 					}

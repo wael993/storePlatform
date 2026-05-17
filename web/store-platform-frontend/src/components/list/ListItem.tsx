@@ -231,7 +231,9 @@ const ListItem = memo(
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.brand}</Text>
+							<Text sx={styles.text}>
+								{activityData.brand?.name ?? activityData.brandId ?? '-'}
+							</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
@@ -249,7 +251,9 @@ const ListItem = memo(
 						}}
 					>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.category?.name ?? '-'}</Text>
+							<Text sx={styles.text}>
+								{activityData.category?.name ?? activityData.categoryId ?? '-'}
+							</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
@@ -266,7 +270,7 @@ const ListItem = memo(
 						>
 							<Skeleton isLoaded={!isLoading}>
 								<EditableCellField
-									value={activityData.price.buy.toString()}
+									value={activityData.price?.buyCost?.toString() ?? '0'}
 									isNumberField={true}
 									minimumDecimals={0}
 									ariaLabel={t('common.rentalFee')}
@@ -290,7 +294,7 @@ const ListItem = memo(
 						<Flex sx={{ ...styles.cellContentWrapper }}>
 							<Skeleton isLoaded={!isLoading}>
 								<Text sx={styles.text}>
-									{activityData.supplier?.name ?? ''}
+									{activityData.supplier?.name ?? activityData.supplierId ?? ''}
 								</Text>
 							</Skeleton>
 						</Flex>
@@ -298,21 +302,7 @@ const ListItem = memo(
 				)}
 
 				{/* Brands / Preferred Brands */}
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
 
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>

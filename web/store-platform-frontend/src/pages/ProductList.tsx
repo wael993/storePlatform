@@ -18,7 +18,8 @@ const ProductList = ({ addToCart }: { addToCart: (p: ProductApi) => void }) => {
 					<HStack key={p._id} p={2} border="1px solid" borderRadius="md">
 						<Text flex={2}>{p.name}</Text>
 						<Text flex={1}>
-							{(p.price?.sell ?? 0).toFixed(2)} {p.price?.currency ?? 'EUR'}
+							{(p.price?.retailSale ?? 0).toFixed(2)}{' '}
+							{p.price?.currency ?? 'EUR'}
 						</Text>
 						<Text flex={1}>Stock: {p.stock?.quantity ?? 0}</Text>
 						<Button

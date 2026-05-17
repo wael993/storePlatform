@@ -632,10 +632,19 @@ export default class ProductController {
 			Product,
 			{ name: 1 },
 		)
+
+		// Enrich products with brand, category, and supplier data from database
+		// const enrichedProducts = await Promise.all(
+		// 	products.map(product => {
+		// 		const productData = product as unknown as ProductAPI
+		// 		return this.productsMapper.enrichProduct(productData, tenantId)
+		// 	}),
+		// )
+
 		if (config.redis.enabled) {
 			await redisCache.setJson(cacheKey, products)
 		}
-		return products
+		// return enrichedProducts
 	}
 
 	public async getProduct(
@@ -679,11 +688,13 @@ export default class ProductController {
 			price,
 			stock,
 			description,
-			brand,
+			productFactoryCode,
+			categoryId,
+			brandId,
 			images,
-			category,
+			unit,
 			tax,
-			supplier,
+			supplierId,
 			location,
 			attributes,
 			status,
@@ -702,10 +713,10 @@ export default class ProductController {
 			)
 		}
 		if (
-			price.buy === undefined ||
-			price.buy === null ||
-			price.sell === undefined ||
-			price.sell === null
+			price.wholesale === undefined ||
+			price.wholesale === null ||
+			price.retailSale === undefined ||
+			price.retailSale === null
 		) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
@@ -743,15 +754,17 @@ export default class ProductController {
 		const productData: ProductDocument = {
 			tenantId: tenantContext.tenantId,
 			productId: uuidv4(),
+			productFactoryCode,
 			name,
 			barcode,
-			brand,
+			categoryId,
+			brandId,
 			images,
-			category,
+			unit,
 			price,
 			stock,
 			tax,
-			supplier,
+			supplierId,
 			location,
 			attributes,
 			status: status ?? 'active',
