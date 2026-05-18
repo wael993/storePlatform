@@ -61,9 +61,6 @@ const ListItem = memo(
 	}: ListItemProps) => {
 		// const { setOneOptimisticItemFromId } = useOptimisticDataContext()
 		const {
-			// 	activity,
-			// 	handleEditSupplierFocus,
-			// 	handleEditRentalFee,
 			handleEditBuyCost,
 			handleEditSellPrice,
 			handleEditDiscount,
@@ -71,12 +68,6 @@ const ListItem = memo(
 			handleEditStockMinQuantity,
 			handleEditLocationShelf,
 			handleEditLocationWarehouse,
-			// 	handleEditPromoterCount,
-			// 	showCheckbox,
-			// 	eventType,
-			// 	productState,
-			// 	isReadyForExecution,
-			// 	shopObject,
 			patchProductProgressState,
 		} = useListItem(productData)
 

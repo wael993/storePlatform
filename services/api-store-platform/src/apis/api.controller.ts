@@ -578,7 +578,6 @@ export default class ProductController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
-			// isInternal: user.user.isInternal,
 		}
 	}
 
