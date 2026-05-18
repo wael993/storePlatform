@@ -10,8 +10,6 @@ import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import TableSort from '../common/CustomTableSort'
 import useAllowedActions from '../../shared/hooks/useAllowedActions'
 
-export type ListActivity = Activity
-
 const listStyles = {
 	tableHeader: {
 		paddingY: '1rem',

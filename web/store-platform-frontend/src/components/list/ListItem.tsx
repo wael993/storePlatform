@@ -19,7 +19,7 @@ import StateCircle from '../StateCircle'
 // import CommentCellField from './CommentCellField'
 import { formatDate } from '../../shared/dateUtils'
 // import TaggingButtons from '../common/TaggingButtons'
-// import { ListActivity } from './ListWithActionBar'
+
 import NotificationCircle from '../NotificationCircle'
 // import {
 // 	getMapActivityType,

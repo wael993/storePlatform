@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { Tr } from '@chakra-ui/react'
 import ListItem from './ListItem'
 import { useState } from 'react'
-// import { ListActivity } from './ListWithActionBar'
 
 interface ListRowProps {
 	product: Product

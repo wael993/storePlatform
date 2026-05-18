@@ -12,8 +12,7 @@ import { TableVirtuoso } from 'react-virtuoso'
 
 import { useUser } from '../../shared/hooks/useUser'
 
-import ListHeaderRow, { ListActivity } from './ListHeaderRow'
-// import { ListActivity } from './ListWithActionBar'
+import ListHeaderRow from './ListHeaderRow'
 import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import { ProductSortHeaderKey, SortOrder } from './shared/globalEnums'
 import {
@@ -34,17 +33,37 @@ interface VirtuosoContext {
 	isInternalUser: boolean
 }
 
-// const skeletonActivity: Activity = {
-// 	dateFrom: '2024-01-01',
-// 	dateTo: '2024-01-01',
-// 	locationCustomer: 'dummy',
-// 	salesAreaName: 'dummy',
-// 	brands: [{ name: 'dummy' }],
-// 	isPackage: true,
-// 	packageName: 'dummy',
-// 	id: 'dummy',
-// 	supplier: 'dummy',
-// } as Activity
+const skeletonProduct: Product = {
+	id: 'skeleton-id',
+	productId: 'skeleton-product-id',
+	name: 'dummy',
+	barcode: 'dummy',
+	categoryName: 'dummy',
+	brandName: 'dummy',
+	supplierName: 'dummy',
+	stock: {
+		quantity: 0,
+		minQuantity: 0,
+	},
+	price: {
+		buyCost: 0,
+		wholesale: 0,
+		retail: 0,
+		discount: 0,
+		currency: 'USD',
+		retailSale: 0,
+		wholesaleSale: 0,
+		semiWholesaleSales: 0,
+	},
+	location: {
+		warehouse: 'dummy',
+		shelf: 'dummy',
+	},
+	attributes: {
+		color: 'dummy',
+	},
+	updatedAt: '2024-01-01T00:00:00.000Z',
+} as Product
 
 const styles: StylesObject = {
 	mainBoxWrapper: {
@@ -280,7 +299,7 @@ const ListDesktop = memo(
 
 		const listData = useMemo(() => {
 			return sortedProducts.length === 0 && isLoading
-				? sortedProducts // Array(5).fill(skeletonActivity)
+				? Array(5).fill(skeletonProduct)
 				: sortedProducts
 		}, [sortedProducts, isLoading])
 
