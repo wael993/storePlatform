@@ -153,6 +153,117 @@ export default class ProductController {
 		return crypto.createHash('sha256').update(token).digest('hex')
 	}
 
+	private normalizeOptionalNumberField(
+		value: unknown,
+		fieldName: string,
+	): number {
+		if (typeof value === 'number') {
+			if (Number.isNaN(value) || value < 0) {
+				throw new BusinessLogicError(
+					ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+					`Invalid value for ${fieldName}.`,
+				)
+			}
+
+			return value
+		}
+
+		if (typeof value === 'string') {
+			const parsedNumber = Number(value.split(',').join('').trim())
+
+			if (Number.isNaN(parsedNumber) || parsedNumber < 0) {
+				throw new BusinessLogicError(
+					ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+					`Invalid value for ${fieldName}.`,
+				)
+			}
+
+			return parsedNumber
+		}
+
+		throw new BusinessLogicError(
+			ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+			`Invalid value for ${fieldName}.`,
+		)
+	}
+
+	private normalizeOptionalStringField(
+		value: unknown,
+		fieldName: string,
+	): string {
+		if (typeof value !== 'string') {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				`Invalid value for ${fieldName}.`,
+			)
+		}
+
+		const trimmedValue = value.trim()
+
+		if (!trimmedValue) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				`Invalid value for ${fieldName}.`,
+			)
+		}
+
+		return trimmedValue
+	}
+
+	private normalizeProductPatchRequest(
+		requestBody: Partial<Omit<ProductDocument, '_id'>>,
+	): Partial<Omit<ProductDocument, '_id'>> {
+		const normalizedRequestBody = {
+			...requestBody,
+		} as any
+
+		if (normalizedRequestBody.price?.wholesale !== undefined) {
+			normalizedRequestBody.price.wholesale = this.normalizeOptionalNumberField(
+				normalizedRequestBody.price.wholesale,
+				'price.wholesale',
+			)
+		}
+
+		if (normalizedRequestBody.price?.discount !== undefined) {
+			normalizedRequestBody.price.discount = this.normalizeOptionalNumberField(
+				normalizedRequestBody.price.discount,
+				'price.discount',
+			)
+		}
+
+		if (normalizedRequestBody.stock?.quantity !== undefined) {
+			normalizedRequestBody.stock.quantity = this.normalizeOptionalNumberField(
+				normalizedRequestBody.stock.quantity,
+				'stock.quantity',
+			)
+		}
+
+		if (normalizedRequestBody.stock?.minQuantity !== undefined) {
+			normalizedRequestBody.stock.minQuantity =
+				this.normalizeOptionalNumberField(
+					normalizedRequestBody.stock.minQuantity,
+					'stock.minQuantity',
+				)
+		}
+
+		if (normalizedRequestBody.location?.warehouse !== undefined) {
+			normalizedRequestBody.location.warehouse =
+				this.normalizeOptionalStringField(
+					normalizedRequestBody.location.warehouse,
+					'location.warehouse',
+				)
+		}
+
+		if (normalizedRequestBody.location?.shelf !== undefined) {
+			normalizedRequestBody.location.shelf = this.normalizeOptionalStringField(
+				normalizedRequestBody.location.shelf,
+				'location.shelf',
+			)
+		}
+
+		return normalizedRequestBody
+	}
+
 	private getClientInfo(req: express.Request): {
 		ip: string
 		userAgent: string
@@ -815,13 +926,15 @@ export default class ProductController {
 		requestBody: Partial<Omit<ProductDocument, '_id'>>,
 		requestContext: RequestContext,
 	) {
+		const normalizedRequestBody = this.normalizeProductPatchRequest(requestBody)
+
 		const {
 			tenantId,
 			productId: nextProductId,
 			createdAt,
 			createdBy,
 			...allowedUpdates
-		} = requestBody as any
+		} = normalizedRequestBody as any
 		void tenantId
 		void nextProductId
 		void createdAt

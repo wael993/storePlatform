@@ -33,9 +33,39 @@
 		"/products": {
 			"access": true,
 			"allowedActions": [
-				"selectUserOnActivity",
-				"selectActivityWatcher",
-				"addProduct"
+				"addProduct",
+				"deleteProduct",
+
+				"seeSupplier",
+				"canAddSupplier",
+				"canEditSupplier",
+				"canDeleteSupplier",
+
+				"seeBuyCost",
+				"canEditBuyCost",
+
+				"seeWholesalePrice",
+				"canEditWholesalePrice",
+
+				"seeDiscount",
+				"canEditDiscount",
+
+				"seeStockQuantity",
+				"canEditStockQuantity",
+
+				"seeMinStockQuantity",
+				"canEditMinStockQuantity",
+
+				"seeReport",
+				"canAddReport",
+				"canEditReport",
+				"canDeleteReport",
+
+				"seeLocationShelf",
+				"canEditLocationShelf",
+
+				"seeLocationWarehouse",
+				"canEditLocationWarehouse"
 			]
 		}
 	}

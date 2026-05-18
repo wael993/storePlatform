@@ -65,13 +65,19 @@ const ListItem = memo(
 			// 	handleEditSupplierFocus,
 			// 	handleEditRentalFee,
 			handleEditBuyCost,
+			handleEditSellPrice,
+			handleEditDiscount,
+			handleEditStockQuantity,
+			handleEditStockMinQuantity,
+			handleEditLocationShelf,
+			handleEditLocationWarehouse,
 			// 	handleEditPromoterCount,
 			// 	showCheckbox,
 			// 	eventType,
 			// 	productState,
 			// 	isReadyForExecution,
 			// 	shopObject,
-			// 	patchActivityProgressState,
+			patchProductProgressState,
 		} = useListItem(productData)
 
 		const productState = PRODUCT_STATE_CONFIG[productData.state]
@@ -79,22 +85,25 @@ const ListItem = memo(
 		const showCheckbox = true
 		const eventType = 'dummyEventType'
 		const isReadyForExecution = false
-		const patchActivityProgressState = {
-			isSupplierFocusInProgress: false,
-			isRentalFeeInProgress: false,
-			isPromoterFeeInProgress: false,
-			isPromoterCountInProgress: false,
-		}
 
 		const { t } = useTranslation()
 		const { isOwnerOrAdmin } = useUser()
 		const {
-			canAddProduct,
-			canAddReport,
-			canDeleteProduct,
-			canEditProduct,
-			canDeleteReport,
-			canEditReport,
+			seeSupplier,
+			canEditStockQuantity,
+			canEditMinStockQuantity,
+			canEditWholesalePrice,
+			canEditDiscount,
+			canEditLocationShelf,
+			canEditLocationWarehouse,
+			canEditBuyCost,
+			seeStockQuantity,
+			seeMinStockQuantity,
+			seeWholesalePrice,
+			seeDiscount,
+			seeBuyCost,
+			seeLocationShelf,
+			seeLocationWarehouse,
 		} = useAllowedActions()
 		const {
 			isOpen: isPopoverOpen,
@@ -113,6 +122,7 @@ const ListItem = memo(
 		}
 
 		const activityType = getMapActivityType(eventType)
+		void activityType
 
 		const styles = {
 			tableRow: {
@@ -261,7 +271,7 @@ const ListItem = memo(
 				</Td>
 
 				{/* Supplier (A&P only) */}
-				{isOwnerOrAdmin && (
+				{isOwnerOrAdmin && seeSupplier && (
 					<Td sx={{ ...styles.tableRow }}>
 						<Flex sx={{ ...styles.cellContentWrapper }}>
 							<Skeleton isLoaded={!isLoading}>
@@ -275,26 +285,76 @@ const ListItem = memo(
 
 				{/* Stock Quantity */}
 
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{productData.stock?.quantity ?? '-'}</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
+				{seeStockQuantity && (
+					<Td sx={styles.tableRow}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
+							<Skeleton isLoaded={!isLoading}>
+								<EditableCellField
+									value={productData.stock?.quantity?.toLocaleString() ?? ''}
+									minimumDecimals={0}
+									maximumDecimals={0}
+									isNumberField={true}
+									ariaLabel={t('common.stockQuantity')}
+									onEdit={handleEditStockQuantity}
+									isEditable={canEditStockQuantity}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={
+										patchProductProgressState.isStockQuantityInProgress
+									}
+								/>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
 
 				{/* Stock Min Quantity */}
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{productData.stock?.minQuantity ?? '-'}
-							</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
+				{seeMinStockQuantity && (
+					<Td sx={styles.tableRow}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
+							<Skeleton isLoaded={!isLoading}>
+								<EditableCellField
+									value={productData.stock?.minQuantity?.toLocaleString() ?? ''}
+									minimumDecimals={0}
+									maximumDecimals={0}
+									isNumberField={true}
+									ariaLabel={t('common.stockMinQuantity')}
+									onEdit={handleEditStockMinQuantity}
+									isEditable={canEditMinStockQuantity}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={
+										patchProductProgressState.isStockMinQuantityInProgress
+									}
+								/>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
 				{/* price buy Cost */}
-				{isOwnerOrAdmin && (
+				{isOwnerOrAdmin && seeBuyCost && (
 					<Td sx={styles.tableRow}>
 						<Flex
 							sx={{
@@ -309,7 +369,37 @@ const ListItem = memo(
 									ariaLabel={t('common.buyCost')}
 									placeholder={t('common.addBuyCost')}
 									onEdit={handleEditBuyCost}
-									isEditable={true}
+									isEditable={canEditBuyCost}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={patchProductProgressState.isBuyCostInProgress}
+								/>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
+				{/* Wholesale Price */}
+				{isOwnerOrAdmin && seeWholesalePrice && (
+					<Td sx={styles.tableRow}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
+							<Skeleton isLoaded={!isLoading}>
+								<EditableCellField
+									value={productData.price.wholesale?.toLocaleString() ?? ''}
+									isNumberField={true}
+									ariaLabel={t('common.sellPrice')}
+									onEdit={handleEditSellPrice}
+									isEditable={canEditWholesalePrice}
 									customStyles={{
 										...cellFieldStyles,
 										valueText: {
@@ -319,117 +409,106 @@ const ListItem = memo(
 									}}
 									fontColor={'#1E1E1E'}
 									isLoading={
-										patchActivityProgressState.isSupplierFocusInProgress
+										patchProductProgressState.isWholesalePriceInProgress
 									}
 								/>
 							</Skeleton>
 						</Flex>
 					</Td>
-
-					// <Td sx={styles.tableRow}>
-					// 	<Flex sx={styles.cellContentWrapper}>
-					// 		<Skeleton isLoaded={!isLoading}>
-					// 			<Text sx={styles.text}>{productData.price.buyCost}</Text>
-					// 		</Skeleton>
-					// 	</Flex>
-					// </Td>
 				)}
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{productData.price.wholesale ?? '-'}</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
 
 				{/* Discount (editable) */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={productData.price.discount?.toLocaleString() ?? ''}
-								isNumberField={false}
-								ariaLabel={t('common.discount')}
-								placeholder={t('common.addDiscount')}
-								onEdit={async (_editedValue: string) => {
-									return
-								}}
-								isEditable={true}
-								customStyles={{
-									...cellFieldStyles,
-									valueText: {
-										...cellFieldStyles.valueText,
-										textAlign: 'left',
-									},
-								}}
-								fontColor={'#1E1E1E'}
-								isLoading={patchActivityProgressState.isSupplierFocusInProgress}
-							/>
-						</Skeleton>
-					</Flex>
-				</Td>
+				{seeDiscount && (
+					<Td sx={styles.tableRow}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
+							<Skeleton isLoaded={!isLoading}>
+								<EditableCellField
+									value={productData.price.discount?.toLocaleString() ?? ''}
+									isNumberField={true}
+									minimumDecimals={0}
+									ariaLabel={t('common.discount')}
+									placeholder={t('common.addDiscount')}
+									onEdit={handleEditDiscount}
+									currency={'%'}
+									isEditable={canEditDiscount}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={patchProductProgressState.isDiscountInProgress}
+								/>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
 
 				{/* Location Shelf (editable) */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-							justifyContent: 'flex-start',
-							paddingRight: '1.5rem',
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={productData.location?.shelf ?? ''}
-								minimumDecimals={0}
-								isNumberField={true}
-								ariaLabel={t('common.locationShelf')}
-								onEdit={async (_editedValue: string) => {
-									return
-								}}
-								currency={'€'}
-								isEditable={true}
-								customStyles={cellFieldStyles}
-								fontColor={'#1E1E1E'}
-								isLoading={patchActivityProgressState.isPromoterFeeInProgress}
-							/>
-						</Skeleton>
-					</Flex>
-				</Td>
+				{seeLocationShelf && (
+					<Td sx={styles.tableRow}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+								justifyContent: 'flex-start',
+								paddingRight: '1.5rem',
+							}}
+						>
+							<Skeleton isLoaded={!isLoading}>
+								<EditableCellField
+									value={productData.location?.shelf ?? ''}
+									minimumDecimals={0}
+									isNumberField={false}
+									ariaLabel={t('common.locationShelf')}
+									onEdit={handleEditLocationShelf}
+									isEditable={canEditLocationShelf}
+									customStyles={cellFieldStyles}
+									fontColor={'#1E1E1E'}
+									isLoading={
+										patchProductProgressState.isLocationShelfInProgress
+									}
+								/>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
 				{/* Location Warehouse (editable) */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-							justifyContent: 'flex-start',
-							paddingRight: '1.5rem',
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={productData.location?.warehouse ?? ''}
-								minimumDecimals={0}
-								isNumberField={false}
-								ariaLabel={t('common.locationWarehouse')}
-								onEdit={async (_editedValue: string) => {
-									return
-								}}
-								currency={'€'}
-								isEditable={true}
-								customStyles={cellFieldStyles}
-								fontColor={'#1E1E1E'}
-								isLoading={patchActivityProgressState.isPromoterFeeInProgress}
-							/>
-						</Skeleton>
-					</Flex>
-				</Td>
+				{seeLocationWarehouse && (
+					<Td sx={styles.tableRow}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+								justifyContent: 'flex-start',
+								paddingRight: '1.5rem',
+							}}
+						>
+							<Skeleton isLoaded={!isLoading}>
+								<EditableCellField
+									value={productData.location?.warehouse ?? ''}
+									minimumDecimals={0}
+									isNumberField={false}
+									ariaLabel={t('common.locationWarehouse')}
+									onEdit={handleEditLocationWarehouse}
+									isEditable={canEditLocationWarehouse}
+									customStyles={cellFieldStyles}
+									fontColor={'#1E1E1E'}
+									isLoading={
+										patchProductProgressState.isLocationWarehouseInProgress
+									}
+								/>
+							</Skeleton>
+						</Flex>
+					</Td>
+				)}
 
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>

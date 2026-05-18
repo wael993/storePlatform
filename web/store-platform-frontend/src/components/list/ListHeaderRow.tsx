@@ -88,8 +88,23 @@ const ListHeaderRow = ({
 	const handleSort = (sortingCell: ProductSortHeaderKey, order: SortOrder) => {
 		onSort(sortingCell, order)
 	}
-	const { canAddProduct } = useAllowedActions()
-
+	const {
+		seeSupplier,
+		canEditStockQuantity,
+		canEditMinStockQuantity,
+		canEditWholesalePrice,
+		canEditDiscount,
+		canEditLocationShelf,
+		canEditLocationWarehouse,
+		canEditBuyCost,
+		seeStockQuantity,
+		seeMinStockQuantity,
+		seeWholesalePrice,
+		seeDiscount,
+		seeBuyCost,
+		seeLocationShelf,
+		seeLocationWarehouse,
+	} = useAllowedActions()
 	const getSortingButton = (sortKey: ProductSortHeaderKey) => {
 		return (
 			<TableSort
@@ -137,7 +152,7 @@ const ListHeaderRow = ({
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.CATEGORY_NAME,
 			sortKey: ProductSortHeaderKey.CATEGORY_NAME,
 		},
-		...(isOwnerOrAdmin
+		...(isOwnerOrAdmin && seeSupplier
 			? [
 					{
 						label: t('common.supplierName'),
@@ -147,19 +162,26 @@ const ListHeaderRow = ({
 				]
 			: []),
 
-		{
-			label: t('common.stockQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
-		},
-		{
-			label: t('common.stockMinQuantity'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_MIN_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_MIN_QUANTITY,
-		},
-
+		...(seeStockQuantity
+			? [
+					{
+						label: t('common.stockQuantity'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+						sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+					},
+				]
+			: []),
+		...(seeMinStockQuantity
+			? [
+					{
+						label: t('common.stockMinQuantity'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_MIN_QUANTITY,
+						sortKey: ProductSortHeaderKey.STOCK_MIN_QUANTITY,
+					},
+				]
+			: []),
 		// buyCost (only if internal)
-		...(isOwnerOrAdmin
+		...(isOwnerOrAdmin && seeBuyCost
 			? [
 					{
 						label: t('common.buyCost'),
@@ -175,26 +197,39 @@ const ListHeaderRow = ({
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_SELL,
 			sortKey: ProductSortHeaderKey.PRICE_SELL,
 		},
-		{
-			label: t('common.discount'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.DISCOUNT,
-			sortKey: ProductSortHeaderKey.DISCOUNT,
-		},
-		{
-			label: t('common.locationShelf'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_SHELF,
-			sortKey: ProductSortHeaderKey.LOCATION_SHELF,
-		},
-		{
-			label: t('common.locationWarehouse'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
-			sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
-		},
+		...(seeDiscount
+			? [
+					{
+						label: t('common.discount'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.DISCOUNT,
+						sortKey: ProductSortHeaderKey.DISCOUNT,
+					},
+				]
+			: []),
+		...(seeLocationShelf
+			? [
+					{
+						label: t('common.locationShelf'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_SHELF,
+						sortKey: ProductSortHeaderKey.LOCATION_SHELF,
+					},
+				]
+			: []),
+		...(seeLocationWarehouse
+			? [
+					{
+						label: t('common.locationWarehouse'),
+						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
+						sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
+					},
+				]
+			: []),
 		{
 			label: t('common.color'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.COLOR,
 			sortKey: ProductSortHeaderKey.COLOR,
 		},
+
 		{
 			label: t('common.createdAt'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
