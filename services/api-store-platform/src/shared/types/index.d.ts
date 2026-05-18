@@ -31,6 +31,7 @@ export type ProductRequestBody = {
 	productFactoryCode?: string
 	name: string
 	barcode: string
+	state: string
 	categoryId?: string
 	categoryName?: string
 	brandId?: string
@@ -234,8 +235,12 @@ interface ProductAPI {
 	productFactoryCode?: string
 	name: string
 	barcode: string
+	supplierId?: string
+	supplierName?: string
 	categoryId?: string
+	categoryName?: string
 	brandId?: string
+	brandName?: string
 	images?: string[]
 	price: {
 		wholesale: number
@@ -248,7 +253,7 @@ interface ProductAPI {
 	stock: { quantity: number; minQuantity?: number }
 	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 	tax?: { type: string; value: number }
-	supplierId?: string
+
 	location?: { warehouse?: string; shelf?: string }
 	attributes?: {
 		color?: string
@@ -262,9 +267,6 @@ interface ProductAPI {
 	}
 	status?: ProductAPIStatus
 	description?: string
-	brand?: { _id: string; name: string }
-	category?: { _id: string; name: string }
-	supplier?: { _id: string; name: string }
 }
 
 export type ProductAPIEnriched = Omit<

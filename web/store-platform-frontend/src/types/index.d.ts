@@ -88,3 +88,12 @@ interface Activity {
 	isFlaggedByMe?: boolean
 }
 type TranslationKey = import('i18next').ParseKeys
+
+interface ActivityStateMapProps {
+	translationKey: TranslationKey
+	color: string
+}
+
+type ActivityStateMap = {
+	[k in ActivityState]: ActivityStateMapProps
+}

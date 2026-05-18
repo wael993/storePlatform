@@ -35,7 +35,10 @@ import { useUser } from '../../shared/hooks/useUser'
 import useAllowedActions from '../../shared/hooks/useAllowedActions'
 import EditableCellField from './EditableCellField'
 import { cellFieldStyles, listStyles } from '../../shared/styles'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
+import {
+	PRODUCT_STATE_CONFIG,
+	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+} from './shared/constants'
 import { ACTIVITY_TYPE } from '../../shared/globalEnums'
 import { ThreeDotsIcon } from '../../icons/ThreeDots'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
@@ -65,16 +68,17 @@ const ListItem = memo(
 			// 	handleEditPromoterCount,
 			// 	showCheckbox,
 			// 	eventType,
-			// 	activityState,
+			// 	productState,
 			// 	isReadyForExecution,
 			// 	shopObject,
 			// 	patchActivityProgressState,
 		} = useListItem(productData)
+
+		const productState = PRODUCT_STATE_CONFIG[productData.state]
+
 		const showCheckbox = true
 		const eventType = 'dummyEventType'
-		const activityState = { color: 'red', translationKey: 'active' }
 		const isReadyForExecution = false
-		const shopObject = { locationName: 'dummyLocation', name: 'dummyShop' }
 		const patchActivityProgressState = {
 			isSupplierFocusInProgress: false,
 			isRentalFeeInProgress: false,
@@ -469,8 +473,8 @@ const ListItem = memo(
 									}}
 								>
 									<StateCircle
-										stateColor={activityState?.color}
-										stateTitle={activityState?.translationKey}
+										stateColor={productState?.color}
+										stateTitle={productState?.translationKey}
 										customStyles={{
 											colorCircle: { width: '0.875rem', height: '0.875rem' },
 										}}

@@ -1,5 +1,15 @@
 {
 	"components": {
+		"product": {
+			"states": {
+				"discontinued": "Discontinued",
+				"readyForRestock": "Ready for Restock",
+				"active": "Active",
+				"draft": "Draft",
+				"inactive": "Inactive",
+				"outOfStock": "Out of Stock"
+			}
+		},
 		"list": {
 			"preferredBrand": "preferredBrand"
 		}

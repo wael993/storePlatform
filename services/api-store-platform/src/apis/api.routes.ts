@@ -522,7 +522,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getProducts(requestContext)
-			// console.log('🚀 ~ StoreRoutes ~ getProducts ~ resp:', resp)
+			console.log('🚀 ~ StoreRoutes ~ getProducts ~ resp:', resp)
 
 			response.status(200).json(resp)
 		} catch (error: any) {

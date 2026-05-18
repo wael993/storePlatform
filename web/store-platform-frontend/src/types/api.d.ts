@@ -76,6 +76,7 @@ interface Product {
 	id: string
 	productId: string
 	productFactoryCode?: string
+	state: string
 	name: string
 	categoryId?: string
 	categoryName?: string

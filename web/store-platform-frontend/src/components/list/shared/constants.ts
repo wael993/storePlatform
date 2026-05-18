@@ -1,3 +1,5 @@
+import { ActivityState } from './globalEnums'
+
 export const PROMOTION_LIST_WIDTHS_MAP_IN_REM = {
 	CHECKBOX: 2,
 	NAME: 9,
@@ -22,3 +24,32 @@ export const LIST_INTERNAL_ONLY_COLUMNS: string[] = [
 	'COMBINED_TARGET_CONTRIBUTIONS',
 	'LISTING',
 ]
+
+export const PRODUCT_STATE_CONFIG: ActivityStateMap = {
+	[ActivityState.ACTIVE]: {
+		translationKey: 'components.product.states.active',
+		color: '#36CE4E',
+	},
+	[ActivityState.INACTIVE]: {
+		translationKey: 'components.product.states.inactive',
+		color: '#C7C7C7',
+	},
+	[ActivityState.DISCONTINUED]: {
+		translationKey: 'components.product.states.discontinued',
+		color: '#5698E6',
+	},
+	[ActivityState.READY_FOR_RESTOCK]: {
+		translationKey: 'components.product.states.readyForRestock',
+		color: '#F0BB35',
+	},
+
+	[ActivityState.OUT_OF_STOCK]: {
+		translationKey: 'components.product.states.outOfStock',
+		color: '#E45151',
+	},
+
+	[ActivityState.DRAFT]: {
+		translationKey: 'components.product.states.draft',
+		color: '#FFFFFF',
+	},
+}

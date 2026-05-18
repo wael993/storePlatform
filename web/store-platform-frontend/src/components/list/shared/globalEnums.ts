@@ -19,3 +19,12 @@ export enum ProductSortHeaderKey {
 	STATUS = 'status',
 	COLOR = 'attributes.color',
 }
+
+export enum ActivityState {
+	ACTIVE = 'active',
+	INACTIVE = 'inactive',
+	DISCONTINUED = 'discontinued',
+	OUT_OF_STOCK = 'outOfStock',
+	READY_FOR_RESTOCK = 'readyForRestock',
+	DRAFT = 'draft',
+}

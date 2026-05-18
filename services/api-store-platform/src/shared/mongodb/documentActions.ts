@@ -8,16 +8,19 @@ import logger, { EntityType } from '../logger/logger'
 
 export type EntityModel = Model<any>
 
-export const listDocuments = async (
+export const listDocuments = async <T>(
 	requestContext: RequestContext,
 	collectionName: TenantResource,
 	model: EntityModel,
 	sort: Record<string, 1 | -1>,
-) => {
+): Promise<T[]> => {
 	await ensureTenantAccess(requestContext, collectionName, 'read')
 	const tenantContext = getTenantContext(requestContext)
 
-	return withTenantScope(model.find(), tenantContext.tenantId).sort(sort).lean()
+	return withTenantScope(model.find(), tenantContext.tenantId)
+		.sort(sort)
+		.lean<T[]>()
+		.exec()
 }
 
 export const getDocumentByField = async <T>(

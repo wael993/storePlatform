@@ -140,6 +140,7 @@ const AddProductModal = ({
 					width: form.width.trim() || undefined,
 					height: form.height.trim() || undefined,
 				},
+				state: 'active',
 				status: form.status,
 				description: form.description.trim() || undefined,
 			}).unwrap()

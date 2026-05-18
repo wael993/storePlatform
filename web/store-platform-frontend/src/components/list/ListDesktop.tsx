@@ -63,6 +63,7 @@ const skeletonProduct: Product = {
 		color: 'dummy',
 	},
 	updatedAt: '2024-01-01T00:00:00.000Z',
+	state: 'draft',
 } as Product
 
 const styles: StylesObject = {

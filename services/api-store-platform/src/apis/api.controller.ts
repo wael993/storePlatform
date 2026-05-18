@@ -22,6 +22,7 @@ import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
+
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -57,6 +58,7 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
+import { log } from 'console'
 
 type TokenPayload = {
 	userId: string
@@ -621,30 +623,40 @@ export default class ProductController {
 	public async getProducts(requestContext: RequestContext) {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildProductListKey(tenantId)
-		const cachedProducts = await redisCache.getJson<any[]>(cacheKey)
+		const cachedProducts =
+			await redisCache.getJson<ProductRequestBody[]>(cacheKey)
 		if (cachedProducts) {
 			return cachedProducts
 		}
 
-		const products = await this.mongoDbClient.listDocuments(
+		const products = await this.mongoDbClient.listDocuments<ProductAPI>(
 			requestContext,
 			'products',
 			Product,
 			{ name: 1 },
 		)
-		return products
-		// Enrich products with brand, category, and supplier data from database
-		const enrichedProducts = await Promise.all(
-			products.map(product => {
-				const productData = product as unknown as ProductAPI
-				return this.productsMapper.enrichProduct(productData, tenantId)
-			}),
+
+		const mappedProducts = products
+			?.map(product => this.productsMapper.mapProduct(product, requestContext))
+			.filter(Boolean) as ProductRequestBody[]
+
+		logger.debug(
+			`Finally ${mappedProducts.length} products after mappings and filters.`,
+			{
+				entity: EntityType.PRODUCTS,
+			},
 		)
 
 		if (config.redis.enabled) {
-			await redisCache.setJson(cacheKey, enrichedProducts)
+			logger.debug('Caching product list in Redis', {
+				entity: EntityType.CACHE,
+				tenantId,
+				cacheKey,
+			})
+			// await redisCache.setJson(cacheKey, mappedProducts)
 		}
-		// return enrichedProducts
+
+		return mappedProducts
 	}
 
 	public async getProduct(

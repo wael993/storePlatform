@@ -202,18 +202,18 @@ export default class MongodbController {
 		}
 	}
 
-	public async listDocuments(
+	public async listDocuments<T>(
 		requestContext: RequestContext,
 		resource: TenantResource,
 		model: EntityModel,
 		sort: Record<string, 1 | -1>,
-	) {
+	): Promise<T[]> {
 		const startTime = new Date().getTime()
 
 		try {
 			await this.checkConnection()
 
-			const result = await listDocumentsAction(
+			const result = await listDocumentsAction<T>(
 				requestContext,
 				resource,
 				model,
