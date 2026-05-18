@@ -18,16 +18,11 @@ const styles: StylesObject = {
 }
 
 interface ListWithActionBarProps {
-	activities?: Product[]
+	products?: Product[]
 	isLoading: boolean
-	eventType: 'PROMO' | 'SAMPLING'
 }
 
-const ListWithActionBar = ({
-	activities,
-	isLoading,
-	eventType,
-}: ListWithActionBarProps) => {
+const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 	const { t } = useTranslation()
 	const showToastMessage = useCustomToast()
 	const { user } = useUser()
@@ -35,14 +30,14 @@ const ListWithActionBar = ({
 	const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([])
 	const listActivities: Product[] = useMemo(() => {
 		return (
-			activities?.map((activity: Product) => {
+			products?.map((product: Product) => {
 				return {
-					...activity,
+					...product,
 					isSelectable: true,
 				}
 			}) || []
 		)
-	}, [activities, user])
+	}, [products])
 
 	const onSelect = useCallback((id: string) => {
 		setSelectedActivityIds(prev =>
@@ -52,7 +47,6 @@ const ListWithActionBar = ({
 		)
 	}, [])
 	const onAllItemsSelectedChange = useCallback(() => {
-		console.log(listActivities.length)
 		setSelectedActivityIds(prevSelectedIds =>
 			prevSelectedIds.length === listActivities.length
 				? []

@@ -91,7 +91,7 @@ const ProductsPage = () => {
 	const [editingId, setEditingId] = useState<string | null>(null)
 	const [feedback, setFeedback] = useState('')
 	const isGetProductsInProgress = isLoading || isFetching
-	const [displayedActivities, setDisplayedActivities] = useState<
+	const [displayedProducts, setDisplayedProducts] = useState<
 		Product[] | undefined
 	>(products)
 	const openAdd = () => {
@@ -305,9 +305,8 @@ const ProductsPage = () => {
 				</Box>
 			)} */}
 			<ListWithActionBar
-				activities={displayedActivities as Product[]}
+				products={products as Product[]}
 				isLoading={isLoading || isFetching}
-				eventType={'PROMO'}
 			/>
 
 			{/* <Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
