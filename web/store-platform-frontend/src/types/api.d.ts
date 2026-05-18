@@ -70,10 +70,10 @@ interface APIResponse<T> {
 	data: T[]
 }
 
-interface ProductAPIResponse extends APIResponse<ProductApi[]> {}
+interface ProductResponse extends APIResponse<Product[]> {}
 
-interface ProductApi {
-	_id: string
+interface Product {
+	id: string
 	productId: string
 	productFactoryCode?: string
 	name: string

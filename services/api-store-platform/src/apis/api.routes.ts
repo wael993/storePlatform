@@ -100,25 +100,21 @@ export default class StoreRoutes extends PlatformValidator {
 				this.postProduct.bind(this),
 			)
 
-		app.route(`${baseRoute}/products/:id`).get(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-			//  this.validateGetProducts.bind(this),
-			this.getProduct.bind(this),
-		)
-
 		app
 			.route(`${baseRoute}/products/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				//  this.validateGetProducts.bind(this),
+				this.getProduct.bind(this),
+			)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchProduct.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/products/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -134,9 +130,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getOrders.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/orders`)
 			.post(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -152,18 +145,12 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getOrder.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/orders/:id`)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchOrder.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/orders/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -179,9 +166,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getInvoices.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/invoices`)
 			.post(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -197,18 +181,12 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getInvoice.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/invoices/:id`)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchInvoice.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/invoices/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -224,27 +202,18 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getInventory.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/inventory`)
 			.post(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postInventory.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/inventory/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getInventoryItem.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/inventory/:id`)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -252,8 +221,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.patchInventory.bind(this),
 			)
 
-		app
-			.route(`${baseRoute}/inventory/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -269,9 +236,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getReports.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/reports`)
 			.post(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -287,18 +251,12 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getReport.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/reports/:id`)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchReport.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/reports/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -350,9 +308,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.patchTenantUser.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/users/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -368,9 +323,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.getTenants.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/tenants`)
 			.post(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -386,9 +338,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.patchTenant.bind(this),
 			)
-
-		app
-			.route(`${baseRoute}/tenants/:id`)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -573,6 +522,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getProducts(requestContext)
+			// console.log('🚀 ~ StoreRoutes ~ getProducts ~ resp:', resp)
 
 			response.status(200).json(resp)
 		} catch (error: any) {
@@ -630,6 +580,7 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const productId = request.params.id
+		console.log('🚀 ~ StoreRoutes ~ patchProduct ~ productId:', productId)
 		const requestBody = request.body
 		const requestContext = this.getRequestContext(request)
 

@@ -10,6 +10,7 @@ import {
 	DEFAULT_TENANT_ID,
 	DEFAULT_TENANT_NAME,
 } from '../shared/tenant'
+import { v4 as uuidv4 } from 'uuid'
 
 const PRODUCT_NAMES = [
 	'Wireless Mouse',
@@ -73,6 +74,7 @@ function buildProducts(
 		const buyCost = Number((wholesale * 1.15).toFixed(2))
 
 		return {
+			id: uuidv4(),
 			productId: `PRD-${idx.toString().padStart(4, '0')}`,
 			productFactoryCode: `FC-${idx.toString().padStart(3, '0')}`,
 			name,
@@ -172,6 +174,7 @@ async function createInitialProducts() {
 
 		const now = new Date()
 		const documents = initialProducts.map(productData => ({
+			id: productData.id,
 			tenantId: DEFAULT_TENANT_ID,
 			productId: productData.productId,
 			productFactoryCode: productData.productFactoryCode,

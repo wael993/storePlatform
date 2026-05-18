@@ -3,16 +3,16 @@ import { useState } from 'react'
 import ProductList from './ProductList'
 import BarcodeScanner from './BarcodeScanner'
 
-export type StoreCartItem = ProductApi & {
+export type StoreCartItem = Product & {
 	cartQuantity: number
 }
 
 const BarcodePage = () => {
 	const [, setCart] = useState<StoreCartItem[]>([])
 
-	const addToCart = (p: ProductApi) => {
+	const addToCart = (p: Product) => {
 		setCart(prev => {
-			const existing = prev.find(item => item._id === p._id)
+			const existing = prev.find(item => item.id === p.id)
 			const maxStock = p.stock?.quantity ?? 0
 
 			if (existing) {
@@ -21,7 +21,7 @@ const BarcodePage = () => {
 				}
 
 				return prev.map(item =>
-					item._id === p._id
+					item.id === p.id
 						? {
 								...item,
 								cartQuantity: item.cartQuantity + 1,

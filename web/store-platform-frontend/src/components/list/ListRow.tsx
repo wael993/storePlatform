@@ -5,15 +5,15 @@ import { useState } from 'react'
 // import { ListActivity } from './ListWithActionBar'
 
 interface ListRowProps {
-	activity: ProductApi
-	onSelect: (activityId: string) => void
+	product: Product
+	onSelect: (id: string) => void
 	tableRowProps: Record<string, unknown>
 	isSelected: boolean
 	isLoading: boolean
 }
 
 const ListRow = ({
-	activity,
+	product,
 	onSelect,
 	isSelected,
 	tableRowProps,
@@ -34,11 +34,11 @@ const ListRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
-			onClick={() => navigate(`${activity._id}`)}
+			onClick={() => navigate(`${product.id}`)}
 		>
 			<ListItem
-				key={activity._id}
-				activity={activity}
+				key={product.id}
+				product={product}
 				onSelect={onSelect}
 				isSelected={isSelected}
 				isHovered={isHovered}

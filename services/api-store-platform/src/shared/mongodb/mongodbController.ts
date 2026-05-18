@@ -219,6 +219,7 @@ export default class MongodbController {
 				model,
 				sort,
 			)
+			console.log('🚀 ~ MongodbController ~ listDocuments ~ result:', result)
 
 			logger.debug(`List documents for resource: ${resource}`, {
 				entity: EntityType.MONGODB,

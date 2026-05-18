@@ -32,7 +32,6 @@ const App = () => {
 
 	useSilentRefresh()
 	const userId = user?.userId
-	console.log('🚀 ~ App ~ userId:', userId)
 	// if (!userId) return <FullSizeLoadingSpinner />
 
 	// const {

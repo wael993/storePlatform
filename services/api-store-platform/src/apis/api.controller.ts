@@ -632,7 +632,7 @@ export default class ProductController {
 			Product,
 			{ name: 1 },
 		)
-
+		return products
 		// Enrich products with brand, category, and supplier data from database
 		const enrichedProducts = await Promise.all(
 			products.map(product => {

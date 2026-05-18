@@ -93,7 +93,6 @@ const ListHeaderRow = ({
 	const { canAddProduct } = useAllowedActions()
 
 	const getSortingButton = (sortKey: ProductSortHeaderKey) => {
-		console.log('🚀 ~ getSortingButton ~ sortKey:', sortKey)
 		return (
 			<TableSort
 				handleSort={order => {
@@ -154,6 +153,11 @@ const ListHeaderRow = ({
 			label: t('common.stockQuantity'),
 			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
 			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+		},
+		{
+			label: t('common.stockMinQuantity'),
+			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_MIN_QUANTITY,
+			sortKey: ProductSortHeaderKey.STOCK_MIN_QUANTITY,
 		},
 
 		// buyCost (only if internal)

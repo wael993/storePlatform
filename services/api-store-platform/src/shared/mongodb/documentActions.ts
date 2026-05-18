@@ -98,7 +98,7 @@ export const updateDocument = async (
 
 	const updated = await withTenantScope(
 		model.findOneAndUpdate(
-			{ _id: id },
+			{ id: id },
 			{ $set: { ...payload, updatedBy: requestContext.userId } },
 			{ new: true, runValidators: true },
 		),

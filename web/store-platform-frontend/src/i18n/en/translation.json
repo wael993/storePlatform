@@ -12,6 +12,7 @@
 		"buyCost": "Buy Price",
 		"sellPrice": "Sell Price",
 		"stockQuantity": "Stock Quantity",
+		"stockMinQuantity": "Minimum Stock Quantity",
 		"supplierName": "Supplier Name",
 		"locationWarehouse": "Location Warehouse",
 		"locationShelf": "Location Shelf",

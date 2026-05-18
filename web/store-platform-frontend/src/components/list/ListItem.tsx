@@ -40,35 +40,36 @@ import { ACTIVITY_TYPE } from '../../shared/globalEnums'
 import { ThreeDotsIcon } from '../../icons/ThreeDots'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { AsEmptyCheckmarkCircleIcon } from '../icons/EmptyCheckmarkCircle'
+import { useListItem } from './hooks/useListItem'
 interface ListItemProps {
-	activity: ProductApi
-	onSelect: (activityId: string) => void
+	product: Product
+	onSelect: (id: string) => void
 	isSelected: boolean
 	isHovered: boolean
 	isLoading: boolean
 }
 const ListItem = memo(
 	({
-		activity: activityData,
+		product: productData,
 		onSelect,
 		isSelected,
 		isHovered,
 		isLoading,
 	}: ListItemProps) => {
 		// const { setOneOptimisticItemFromId } = useOptimisticDataContext()
-		// const {
-		// 	activity,
-		// 	handleEditSupplierFocus,
-		// 	handleEditRentalFee,
-		// 	handleEditPromoterFee,
-		// 	handleEditPromoterCount,
-		// 	showCheckbox,
-		// 	eventType,
-		// 	activityState,
-		// 	isReadyForExecution,
-		// 	shopObject,
-		// 	patchActivityProgressState,
-		// } = useListItem(activityData)
+		const {
+			// 	activity,
+			// 	handleEditSupplierFocus,
+			// 	handleEditRentalFee,
+			handleEditBuyCost,
+			// 	handleEditPromoterCount,
+			// 	showCheckbox,
+			// 	eventType,
+			// 	activityState,
+			// 	isReadyForExecution,
+			// 	shopObject,
+			// 	patchActivityProgressState,
+		} = useListItem(productData)
 		const showCheckbox = true
 		const eventType = 'dummyEventType'
 		const activityState = { color: 'red', translationKey: 'active' }
@@ -186,8 +187,7 @@ const ListItem = memo(
 						<Flex
 							sx={{ ...styles.cellContentWrapper, ...styles.checkboxWrapper }}
 							onClick={e => {
-								onSelect(activityData.productId)
-								console.log(activityData.productId)
+								onSelect(productData.id)
 
 								e.stopPropagation()
 							}}
@@ -210,7 +210,7 @@ const ListItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={{ ...styles.text, fontWeight: 500 }}>
-								{activityData.name}
+								{productData.name}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -221,7 +221,7 @@ const ListItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={{ ...styles.text, fontWeight: 500 }}>
-								{activityData.barcode}
+								{productData.barcode}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -232,7 +232,7 @@ const ListItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{activityData.brand?.name ?? activityData.brandId ?? '-'}
+								{productData.brandName ?? productData.brandId ?? '-'}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -250,7 +250,7 @@ const ListItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{activityData.category?.name ?? activityData.categoryId ?? '-'}
+								{productData.categoryName ?? productData.categoryId ?? '-'}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -262,7 +262,7 @@ const ListItem = memo(
 						<Flex sx={{ ...styles.cellContentWrapper }}>
 							<Skeleton isLoaded={!isLoading}>
 								<Text sx={styles.text}>
-									{activityData.supplier?.name ?? activityData.supplierId ?? ''}
+									{productData.supplierName ?? productData.supplierId ?? ''}
 								</Text>
 							</Skeleton>
 						</Flex>
@@ -274,24 +274,66 @@ const ListItem = memo(
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.stock.quantity}</Text>
+							<Text sx={styles.text}>{productData.stock?.quantity ?? '-'}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+
+				{/* Stock Min Quantity */}
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>
+								{productData.stock?.minQuantity ?? '-'}
+							</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
 				{/* price buy Cost */}
 				{isOwnerOrAdmin && (
 					<Td sx={styles.tableRow}>
-						<Flex sx={styles.cellContentWrapper}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
 							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.text}>{activityData.price.buyCost}</Text>
+								<EditableCellField
+									value={productData.price.buyCost?.toLocaleString() ?? ''}
+									isNumberField={false}
+									ariaLabel={t('common.buyCost')}
+									placeholder={t('common.addBuyCost')}
+									onEdit={handleEditBuyCost}
+									isEditable={true}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={
+										patchActivityProgressState.isSupplierFocusInProgress
+									}
+								/>
 							</Skeleton>
 						</Flex>
 					</Td>
+
+					// <Td sx={styles.tableRow}>
+					// 	<Flex sx={styles.cellContentWrapper}>
+					// 		<Skeleton isLoaded={!isLoading}>
+					// 			<Text sx={styles.text}>{productData.price.buyCost}</Text>
+					// 		</Skeleton>
+					// 	</Flex>
+					// </Td>
 				)}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.price.wholesale}</Text>
+							<Text sx={styles.text}>{productData.price.wholesale ?? '-'}</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
@@ -306,7 +348,7 @@ const ListItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<EditableCellField
-								value={activityData.price.discount?.toLocaleString() ?? ''}
+								value={productData.price.discount?.toLocaleString() ?? ''}
 								isNumberField={false}
 								ariaLabel={t('common.discount')}
 								placeholder={t('common.addDiscount')}
@@ -340,7 +382,7 @@ const ListItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<EditableCellField
-								value={activityData.location?.shelf ?? ''}
+								value={productData.location?.shelf ?? ''}
 								minimumDecimals={0}
 								isNumberField={true}
 								ariaLabel={t('common.locationShelf')}
@@ -368,7 +410,7 @@ const ListItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<EditableCellField
-								value={activityData.location?.warehouse ?? ''}
+								value={productData.location?.warehouse ?? ''}
 								minimumDecimals={0}
 								isNumberField={false}
 								ariaLabel={t('common.locationWarehouse')}
@@ -388,7 +430,7 @@ const ListItem = memo(
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{activityData.attributes?.color}</Text>
+							<Text sx={styles.text}>{productData.attributes?.color}</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
@@ -403,10 +445,10 @@ const ListItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{activityData.name ? formatDate(new Date()) : ''}
+								{productData.name ? formatDate(new Date()) : ''}
 							</Text>
 							<Text sx={styles.text}>
-								{activityData.name ? formatDate(new Date()) : ''}
+								{productData.name ? formatDate(new Date()) : ''}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -420,7 +462,7 @@ const ListItem = memo(
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
 								<NotificationCircle
-									activityId={activityData._id}
+									productId={productData.productId}
 									showIfNoChanges={true}
 									customStyles={{
 										animationCircle: { width: '1.5rem', height: '1.5rem' },

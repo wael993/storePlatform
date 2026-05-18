@@ -18,12 +18,11 @@ const styles: StylesObject = {
 }
 
 interface ListWithActionBarProps {
-	activities?: ProductApi[]
+	activities?: Product[]
 	isLoading: boolean
 	eventType: 'PROMO' | 'SAMPLING'
 }
 
-export type ListActivity = ProductApi
 const ListWithActionBar = ({
 	activities,
 	isLoading,
@@ -34,9 +33,9 @@ const ListWithActionBar = ({
 	const { user } = useUser()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([])
-	const listActivities: ListActivity[] = useMemo(() => {
+	const listActivities: Product[] = useMemo(() => {
 		return (
-			activities?.map((activity: ProductApi) => {
+			activities?.map((activity: Product) => {
 				return {
 					...activity,
 					isSelectable: true,
@@ -45,11 +44,11 @@ const ListWithActionBar = ({
 		)
 	}, [activities, user])
 
-	const onSelect = useCallback((activityId: string) => {
+	const onSelect = useCallback((id: string) => {
 		setSelectedActivityIds(prev =>
-			prev.includes(activityId)
-				? prev.filter(id => id !== activityId)
-				: [...prev, activityId],
+			prev.includes(id)
+				? prev.filter(selectedId => selectedId !== id)
+				: [...prev, id],
 		)
 	}, [])
 	const onAllItemsSelectedChange = useCallback(() => {
@@ -57,7 +56,7 @@ const ListWithActionBar = ({
 		setSelectedActivityIds(prevSelectedIds =>
 			prevSelectedIds.length === listActivities.length
 				? []
-				: listActivities.map(a => a.productId),
+				: listActivities.map(a => a.id),
 		)
 	}, [listActivities])
 	const areAllItemsSelected =
@@ -66,13 +65,13 @@ const ListWithActionBar = ({
 	useEffect(() => {
 		setSelectedActivityIds(prevSelectedIds =>
 			prevSelectedIds.filter(id =>
-				listActivities.some(activity => activity._id === id),
+				listActivities.some(activity => activity.id === id),
 			),
 		)
 	}, [listActivities])
 
 	const onAddRequiredDocument = async (
-		selectedActivities: ListActivity[],
+		selectedActivities: Product[],
 		data: {},
 	) => {
 		const succeededActivities: string[] = []
@@ -122,10 +121,8 @@ const ListWithActionBar = ({
 				<ListActionBar
 					selectedActivities={
 						(selectedActivityIds
-							.map(id =>
-								listActivities?.find(activity => activity.productId === id),
-							)
-							.filter(Boolean) as ListActivity[]) ?? []
+							.map(id => listActivities?.find(activity => activity.id === id))
+							.filter(Boolean) as Product[]) ?? []
 					}
 					isRejectActivityInProgress={false}
 					onAddRequiredDocument={onAddRequiredDocument}
@@ -145,10 +142,10 @@ const ListWithActionBar = ({
 				// 	onAllItemsSelectedChange={onAllItemsSelectedChange}
 				// />
 				<ListDesktop
-					activities={listActivities ?? []}
+					products={listActivities ?? []}
 					isLoading={isLoading}
 					onSelect={onSelect}
-					selectedActivities={selectedActivityIds}
+					selectedProducts={selectedActivityIds}
 					areAllItemsSelected={areAllItemsSelected}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
 				/>

@@ -26,6 +26,7 @@ interface RequestError {
 }
 
 export type ProductRequestBody = {
+	id?: string
 	productId?: string
 	productFactoryCode?: string
 	name: string
@@ -228,6 +229,7 @@ interface UserAPIFormat {
 
 type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
 interface ProductAPI {
+	id?: string
 	productId: string
 	productFactoryCode?: string
 	name: string

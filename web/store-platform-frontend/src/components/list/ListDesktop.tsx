@@ -27,9 +27,9 @@ import DraggableScrollContainer from '../common/DraggableScrollContainer'
 import ListRow from './ListRow'
 
 interface VirtuosoContext {
-	listData: ProductApi[]
-	selectedActivities: string[]
-	onSelect: (productId: string) => void
+	listData: Product[]
+	selectedProducts: string[]
+	onSelect: (id: string) => void
 	isLoading: boolean
 	isInternalUser: boolean
 }
@@ -129,16 +129,16 @@ const TableRowComponent = (props: {
 	const index = props['data-index']
 
 	const context = props.context
-	const { listData, selectedActivities, onSelect, isLoading } =
+	const { listData, selectedProducts, onSelect, isLoading } =
 		context as VirtuosoContext
 
-	const activity = listData[index]
+	const product = listData[index]
 
 	return (
 		<ListRow
-			key={activity._id}
-			activity={activity}
-			isSelected={selectedActivities.includes(activity.productId)}
+			key={product.id}
+			product={product}
+			isSelected={selectedProducts.includes(product.id)}
 			tableRowProps={props}
 			onSelect={onSelect}
 			isLoading={isLoading}
@@ -147,20 +147,20 @@ const TableRowComponent = (props: {
 }
 
 interface ListDesktopProps {
-	activities?: ProductApi[]
+	products?: Product[]
 	isLoading: boolean
 	onSelect: (productId: string) => void
-	selectedActivities: string[]
+	selectedProducts: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
 }
 
 const ListDesktop = memo(
 	({
-		activities,
+		products,
 		isLoading,
 		onSelect,
-		selectedActivities,
+		selectedProducts,
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
 	}: ListDesktopProps) => {
@@ -170,14 +170,14 @@ const ListDesktop = memo(
 		)
 		const [sortOrder, setSortOrder] = useState<SortOrder | null>(null)
 
-		const sortedActivities = useMemo(() => {
-			if (!activities) return []
-			const clonedActivities = structuredClone(activities)
+		const sortedProducts = useMemo(() => {
+			if (!products) return []
+			const clonedProducts = structuredClone(products)
 			if (sortField === null) {
-				return clonedActivities
+				return clonedProducts
 			}
 
-			return clonedActivities.sort((a, b) => {
+			return clonedProducts.sort((a, b) => {
 				switch (sortField) {
 					case ProductSortHeaderKey.NAME: {
 						return compareStringsForSorting(a.name, b.name, sortOrder)
@@ -187,30 +187,33 @@ const ListDesktop = memo(
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
 					}
 					case ProductSortHeaderKey.BRAND_NAME: {
-						return compareStringsForSorting(
-							a.brand?.name,
-							b.brand?.name,
-							sortOrder,
-						)
+						return compareStringsForSorting(a.brandName, b.brandName, sortOrder)
 					}
 					case ProductSortHeaderKey.CATEGORY_NAME: {
 						return compareStringsForSorting(
-							a.category?.name,
-							b.category?.name,
+							a.categoryName,
+							b.categoryName,
 							sortOrder,
 						)
 					}
 					case ProductSortHeaderKey.SUPPLIER_NAME: {
 						return compareStringsForSorting(
-							a.supplier?.name,
-							b.supplier?.name,
+							a.supplierName,
+							b.supplierName,
 							sortOrder,
 						)
 					}
 					case ProductSortHeaderKey.STOCK_QUANTITY: {
 						return compareNumbersForSorting(
-							a.stock.quantity,
-							b.stock.quantity,
+							a.stock?.quantity,
+							b.stock?.quantity,
+							sortOrder,
+						)
+					}
+					case ProductSortHeaderKey.STOCK_MIN_QUANTITY: {
+						return compareNumbersForSorting(
+							a.stock?.minQuantity,
+							b.stock?.minQuantity,
 							sortOrder,
 						)
 					}
@@ -265,7 +268,7 @@ const ListDesktop = memo(
 					}
 				}
 			})
-		}, [activities, sortField, sortOrder])
+		}, [products, sortField, sortOrder])
 
 		const onSort = (
 			field: ProductSortHeaderKey | null,
@@ -276,14 +279,14 @@ const ListDesktop = memo(
 		}
 
 		const listData = useMemo(() => {
-			return sortedActivities.length === 0 && isLoading
-				? sortedActivities // Array(5).fill(skeletonActivity)
-				: sortedActivities
-		}, [sortedActivities, isLoading])
+			return sortedProducts.length === 0 && isLoading
+				? sortedProducts // Array(5).fill(skeletonActivity)
+				: sortedProducts
+		}, [sortedProducts, isLoading])
 
 		const context: VirtuosoContext = {
 			listData,
-			selectedActivities,
+			selectedProducts,
 			onSelect,
 			isLoading,
 			isInternalUser: isOwnerOrAdmin,

@@ -18,6 +18,7 @@ export default class ProductsMapper {
 		const isOwnerUser = requestContext.user?.role === 'owner'
 
 		const mappedProducts: ProductRequestBody = {
+			id: product.id,
 			productId: product.productId,
 			productFactoryCode: product.productFactoryCode,
 			name: product.name,

@@ -1,7 +1,7 @@
 import { Box, VStack, Text, HStack, Button, Spinner } from '@chakra-ui/react'
 import { useGetProductsQuery } from '../api/apiStore'
 
-const ProductList = ({ addToCart }: { addToCart: (p: ProductApi) => void }) => {
+const ProductList = ({ addToCart }: { addToCart: (p: Product) => void }) => {
 	const { data: products = [], isFetching, error } = useGetProductsQuery({})
 
 	return (
@@ -15,7 +15,7 @@ const ProductList = ({ addToCart }: { addToCart: (p: ProductApi) => void }) => {
 
 			<VStack align="stretch">
 				{products.map(p => (
-					<HStack key={p._id} p={2} border="1px solid" borderRadius="md">
+					<HStack key={p.id} p={2} border="1px solid" borderRadius="md">
 						<Text flex={2}>{p.name}</Text>
 						<Text flex={1}>
 							{(p.price?.retailSale ?? 0).toFixed(2)}{' '}

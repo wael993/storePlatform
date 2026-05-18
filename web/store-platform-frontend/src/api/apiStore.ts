@@ -15,8 +15,8 @@ interface LoginRequestBody {
 }
 
 interface EditProductQueryArgument {
-	productId: string
-	body: Omit<ProductApi, '_id' | 'productId'>
+	id: string
+	body: Partial<Omit<Product, 'id' | 'productId'>>
 }
 
 const persistenceBaseQuery = fetchBaseQuery({
@@ -43,7 +43,7 @@ const getQuery = (
 					url: 'products',
 				}
 			},
-			transformResponse: (response: ProductApi[]) => {
+			transformResponse: (response: Product[]) => {
 				return response
 			},
 			providesTags: ['products'],
@@ -55,15 +55,15 @@ const getQuery = (
 					url: `products/${productId}`,
 				}
 			},
-			transformResponse: (response: ProductApi) => {
+			transformResponse: (response: Product) => {
 				return response
 			},
 			providesTags: ['product'],
 		}),
 		editProduct: builder.mutation<void, EditProductQueryArgument>({
-			query: ({ productId, body }: EditProductQueryArgument) => {
+			query: ({ id, body }: EditProductQueryArgument) => {
 				return {
-					url: `products/${productId}`,
+					url: `products/${id}`,
 					method: 'PATCH',
 					body,
 				}
@@ -80,10 +80,10 @@ const getQuery = (
 			invalidatesTags: ['products', 'product'],
 		}),
 		postProduct: builder.mutation<
-			{ _id: string },
-			Omit<ProductApi, '_id' | 'productId'>
+			{ id: string },
+			Omit<Product, 'id' | 'productId'>
 		>({
-			query: (newProduct: Omit<ProductApi, '_id' | 'productId'>) => {
+			query: (newProduct: Omit<Product, '_id' | 'productId'>) => {
 				return {
 					url: 'product',
 					method: 'POST',

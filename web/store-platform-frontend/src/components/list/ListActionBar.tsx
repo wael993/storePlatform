@@ -4,7 +4,6 @@ import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
 import { useMemo } from 'react'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useTranslation } from 'react-i18next'
-import type { ListActivity } from './ListWithActionBar'
 import { useResources } from '../../shared/hooks/useResources'
 import { AllowedActions } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
@@ -51,10 +50,10 @@ const styles = {
 } satisfies StylesObject
 
 interface ListActionBarProps {
-	selectedActivities: ListActivity[]
+	selectedActivities: Product[]
 	isRejectActivityInProgress: boolean
 	onAddRequiredDocument: (
-		selectedActivities: ListActivity[],
+		selectedActivities: Product[],
 		data: {},
 	) => Promise<void>
 	isAddRequiredDocumentInProgress: boolean

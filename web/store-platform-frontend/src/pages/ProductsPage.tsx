@@ -84,7 +84,7 @@ const ProductsPage = () => {
 	const { data: products = [], isLoading, isFetching } = useGetProductsQuery({})
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
 	const [postProduct, { isLoading: isPosting }] = usePostProductMutation()
-	const [editProduct, { isLoading: isEditing }] = useEditProductMutation()
+	// const [editProduct, { isLoading: isEditing }] = useEditProductMutation()
 
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const [form, setForm] = useState(EMPTY_FORM)
@@ -92,7 +92,7 @@ const ProductsPage = () => {
 	const [feedback, setFeedback] = useState('')
 	const isGetProductsInProgress = isLoading || isFetching
 	const [displayedActivities, setDisplayedActivities] = useState<
-		ProductApi[] | undefined
+		Product[] | undefined
 	>(products)
 	const openAdd = () => {
 		setForm(EMPTY_FORM)
@@ -101,7 +101,7 @@ const ProductsPage = () => {
 		onOpen()
 	}
 
-	const openEdit = (p: ProductApi) => {
+	const openEdit = (p: Product) => {
 		setForm({
 			name: p.name,
 			productFactoryCode: p.productFactoryCode ?? '',
@@ -131,7 +131,7 @@ const ProductsPage = () => {
 			status: p.status ?? 'active',
 			description: p.description ?? '',
 		})
-		setEditingId(p._id)
+		setEditingId(p.id)
 		setFeedback('')
 		onOpen()
 	}
@@ -147,69 +147,69 @@ const ProductsPage = () => {
 		setForm(prev => ({ ...prev, [field]: value }))
 	}
 
-	const handleSubmit = async () => {
-		try {
-			if (!form.name || !form.barcode) {
-				setFeedback('Name and barcode are required')
-				return
-			}
+	// const handleSubmit = async () => {
+	// 	try {
+	// 		if (!form.name || !form.barcode) {
+	// 			setFeedback('Name and barcode are required')
+	// 			return
+	// 		}
 
-			const productPayload = {
-				name: form.name,
-				productFactoryCode: form.productFactoryCode || undefined,
-				barcode: form.barcode,
-				categoryId: form.categoryId || undefined,
-				brandId: form.brandId || undefined,
-				images: [],
-				price: {
-					wholesale: Number(form.priceWholesale),
-					retailSale: Number(form.priceRetailSale),
-					semiWholesaleSales: Number(form.priceSemiWholesaleSales) || 0,
-					buyCost: Number(form.priceBuyCost),
-					discount: Number(form.priceDiscount) || undefined,
-					currency: form.currency,
-				},
-				stock: {
-					quantity: Number(form.stockQuantity),
-					minQuantity: Number(form.stockMinQuantity) || undefined,
-				},
-				unit: form.unit || 'piece',
-				tax: form.taxType
-					? { type: form.taxType, value: Number(form.taxValue) }
-					: undefined,
-				supplierId: form.supplierId || undefined,
-				location:
-					form.warehouse || form.shelf
-						? {
-								warehouse: form.warehouse || undefined,
-								shelf: form.shelf || undefined,
-							}
-						: undefined,
-				attributes: {
-					color: form.color || undefined,
-					size: form.size || undefined,
-					weight: form.weight || undefined,
-					length: form.length || undefined,
-					width: form.width || undefined,
-					height: form.height || undefined,
-				},
-				status: form.status,
-				description: form.description || undefined,
-			}
+	// 		const productPayload = {
+	// 			name: form.name,
+	// 			productFactoryCode: form.productFactoryCode || undefined,
+	// 			barcode: form.barcode,
+	// 			categoryId: form.categoryId || undefined,
+	// 			brandId: form.brandId || undefined,
+	// 			images: [],
+	// 			price: {
+	// 				wholesale: Number(form.priceWholesale),
+	// 				retailSale: Number(form.priceRetailSale),
+	// 				semiWholesaleSales: Number(form.priceSemiWholesaleSales) || 0,
+	// 				buyCost: Number(form.priceBuyCost),
+	// 				discount: Number(form.priceDiscount) || undefined,
+	// 				currency: form.currency,
+	// 			},
+	// 			stock: {
+	// 				quantity: Number(form.stockQuantity),
+	// 				minQuantity: Number(form.stockMinQuantity) || undefined,
+	// 			},
+	// 			unit: form.unit || 'piece',
+	// 			tax: form.taxType
+	// 				? { type: form.taxType, value: Number(form.taxValue) }
+	// 				: undefined,
+	// 			supplierId: form.supplierId || undefined,
+	// 			location:
+	// 				form.warehouse || form.shelf
+	// 					? {
+	// 							warehouse: form.warehouse || undefined,
+	// 							shelf: form.shelf || undefined,
+	// 						}
+	// 					: undefined,
+	// 			attributes: {
+	// 				color: form.color || undefined,
+	// 				size: form.size || undefined,
+	// 				weight: form.weight || undefined,
+	// 				length: form.length || undefined,
+	// 				width: form.width || undefined,
+	// 				height: form.height || undefined,
+	// 			},
+	// 			status: form.status,
+	// 			description: form.description || undefined,
+	// 		}
 
-			if (editingId) {
-				await editProduct({
-					productId: editingId,
-					body: productPayload,
-				}).unwrap()
-			} else {
-				await postProduct(productPayload).unwrap()
-			}
-			handleClose()
-		} catch (err: any) {
-			setFeedback(err?.data?.message || 'Operation failed.')
-		}
-	}
+	// 		if (editingId) {
+	// 			await editProduct({
+	// 				id: editingId,
+	// 				body: productPayload,
+	// 			}).unwrap()
+	// 		} else {
+	// 			await postProduct(productPayload).unwrap()
+	// 		}
+	// 		handleClose()
+	// 	} catch (err: any) {
+	// 		setFeedback(err?.data?.message || 'Operation failed.')
+	// 	}
+	// }
 
 	const handleDelete = async (id: string) => {
 		try {
@@ -232,9 +232,9 @@ const ProductsPage = () => {
 
 			{isGetProductsInProgress && <Spinner />}
 
-			{!isGetProductsInProgress && products.length === 0 && (
+			{/* {!isGetProductsInProgress && products.length === 0 && (
 				<Text color="gray.500">No products found.</Text>
-			)}
+			)} */}
 
 			{/* {!isGetProductsInProgress && products.length > 0 && (
 				<Box overflowX="auto">
@@ -305,12 +305,12 @@ const ProductsPage = () => {
 				</Box>
 			)} */}
 			<ListWithActionBar
-				activities={displayedActivities as ProductApi[]}
+				activities={displayedActivities as Product[]}
 				isLoading={isLoading || isFetching}
 				eventType={'PROMO'}
 			/>
 
-			<Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
+			{/* <Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>
@@ -648,7 +648,7 @@ const ProductsPage = () => {
 						</Button>
 					</ModalFooter>
 				</ModalContent>
-			</Modal>
+			</Modal> */}
 		</Box>
 	)
 }

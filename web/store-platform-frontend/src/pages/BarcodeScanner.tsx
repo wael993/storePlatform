@@ -18,7 +18,7 @@ import ProductModal from './ProductModal'
 import AddProductModal from './AddProductModal'
 
 interface BarcodeScannerProps {
-	addToCart: (product: ProductApi) => void
+	addToCart: (product: Product) => void
 }
 
 const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
@@ -150,7 +150,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 	}, [onAddProductModalClose])
 
 	const handleProductAddToCart = useCallback(
-		(productToAdd: ProductApi) => {
+		(productToAdd: Product) => {
 			addToCart(productToAdd)
 			handleModalClose()
 		},

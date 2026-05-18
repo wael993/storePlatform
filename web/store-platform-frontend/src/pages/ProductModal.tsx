@@ -19,9 +19,9 @@ import {
 interface ProductModalProps {
 	isOpen: boolean
 	onClose: () => void
-	product: ProductApi | null | undefined
+	product: Product | null | undefined
 	isLoading: boolean
-	onAdd: (product: ProductApi) => void
+	onAdd: (product: Product) => void
 }
 
 const ProductModal = ({

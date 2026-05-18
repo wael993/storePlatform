@@ -3,7 +3,7 @@ import { keyframes } from '@emotion/react'
 import { useState } from 'react'
 
 interface NotificationCircleProps {
-	activityId: string
+	productId: string
 	showIfNoChanges?: boolean
 	children?: React.ReactNode
 	customStyles?: Partial<
@@ -37,7 +37,7 @@ const pulseAnimation = keyframes`
 `
 
 const NotificationCircle = ({
-	activityId,
+	productId,
 	showIfNoChanges = false,
 	customStyles,
 	children,

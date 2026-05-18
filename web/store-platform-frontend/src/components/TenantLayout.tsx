@@ -52,14 +52,14 @@ const TenantLayout = () => {
 		isError: isFrontendResourcesError,
 		error: frontendResourcesError,
 	} = useGetUserFrontendResourcesQuery(userId ?? skipToken)
-	console.log('🚀 ~ TenantLayout ~ frontendResources:', {
-		userId,
-		frontendResources,
-		isFrontendResourcesLoading,
-		isFrontendResourcesFetching,
-		isFrontendResourcesError,
-		frontendResourcesError,
-	})
+	// console.log('🚀 ~ TenantLayout ~ frontendResources:', {
+	// 	userId,
+	// 	frontendResources,
+	// 	isFrontendResourcesLoading,
+	// 	isFrontendResourcesFetching,
+	// 	isFrontendResourcesError,
+	// 	frontendResourcesError,
+	// })
 
 	const {
 		isBarcodeEnabled,
