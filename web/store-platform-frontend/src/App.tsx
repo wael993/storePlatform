@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import {
+	BrowserRouter as Router,
+	Routes,
+	Route,
+	Navigate,
+} from 'react-router-dom'
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import BarcodePage from './pages/BarcodePage'
@@ -27,11 +32,10 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const { userRole, user } = useUser()
+	const { userRole } = useUser()
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()
-	const userId = user?.userId
 	// if (!userId) return <FullSizeLoadingSpinner />
 
 	// const {
@@ -151,6 +155,13 @@ const App = () => {
 						)}
 					</Route>
 				</Route>
+
+				<Route
+					path="*"
+					element={
+						<Navigate to={isAuthenticated ? '/products' : '/login'} replace />
+					}
+				/>
 			</Routes>
 		</Router>
 	)

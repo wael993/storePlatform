@@ -31,7 +31,7 @@ import { formatNumber } from '../../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { EditIcon } from '../icons/Edit'
 import { CloseIcon } from '../icons/Close'
-import { LikeIcon } from '../icons/Like'
+import { AsCheckmarkIcon } from '../../icons/Checkmark'
 
 interface EditableFieldsProps {
 	ariaLabelName: string
@@ -309,7 +309,7 @@ const EditableField = ({
 					<IconButton
 						sx={styles.iconButton}
 						marginRight={checkIconMarginRight}
-						icon={<LikeIcon color={fontColor} />}
+						icon={<AsCheckmarkIcon color={fontColor} />}
 						isDisabled={fieldValue === originalValue}
 						pointerEvents={fieldValue === originalValue ? 'none' : 'auto'}
 						onClick={e => {

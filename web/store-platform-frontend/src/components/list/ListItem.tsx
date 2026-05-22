@@ -1,37 +1,10 @@
-import {
-	Td,
-	Checkbox,
-	Flex,
-	Text,
-	Skeleton,
-	Popover,
-	useDisclosure,
-	PopoverTrigger,
-	IconButton,
-	PopoverBody,
-	PopoverContent,
-	Icon,
-} from '@chakra-ui/react'
+import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import StateCircle from '../StateCircle'
-
-// import CommentCellField from './CommentCellField'
 import { formatDate } from '../../shared/dateUtils'
-// import TaggingButtons from '../common/TaggingButtons'
-
 import NotificationCircle from '../NotificationCircle'
-// import {
-// 	getMapActivityType,
-// 	getPromoActivityBrandsText,
-// 	isActivityNegotiationEditable,
-// } from '../../shared/activityHelper'
-
 import { useUser } from '../../shared/hooks/useUser'
-// import { useListItem } from './hooks/useListItem'
-
-// import { useOptimisticDataContext } from '../../shared/hooks/useOptimisticDataContext'
-
 import useAllowedActions from '../../shared/hooks/useAllowedActions'
 import EditableCellField from './EditableCellField'
 import { cellFieldStyles, listStyles } from '../../shared/styles'
@@ -40,10 +13,9 @@ import {
 	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
 } from './shared/constants'
 import { ACTIVITY_TYPE } from '../../shared/globalEnums'
-import { ThreeDotsIcon } from '../../icons/ThreeDots'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import { AsEmptyCheckmarkCircleIcon } from '../icons/EmptyCheckmarkCircle'
 import { useListItem } from './hooks/useListItem'
+import OptionsPopover from '../modals/OptionsPopover'
 interface ListItemProps {
 	product: Product
 	onSelect: (id: string) => void
@@ -59,7 +31,6 @@ const ListItem = memo(
 		isHovered,
 		isLoading,
 	}: ListItemProps) => {
-		// const { setOneOptimisticItemFromId } = useOptimisticDataContext()
 		const {
 			handleEditBuyCost,
 			handleEditSellPrice,
@@ -96,11 +67,7 @@ const ListItem = memo(
 			seeLocationShelf,
 			seeLocationWarehouse,
 		} = useAllowedActions()
-		const {
-			isOpen: isPopoverOpen,
-			onOpen: onPopoverOpen,
-			onClose: onPopoverClose,
-		} = useDisclosure()
+
 		const getMapActivityType = (activityType: any) => {
 			switch (activityType) {
 				case ACTIVITY_TYPE.PRICE:
@@ -552,37 +519,10 @@ const ListItem = memo(
 								</NotificationCircle>
 							</Skeleton>
 						</Flex>
-						<Flex onClick={e => e.stopPropagation()}>
-							<Popover
-								placement={'bottom'}
-								returnFocusOnClose={false}
-								isOpen={isPopoverOpen}
-								onOpen={onPopoverOpen}
-								onClose={onPopoverClose}
-							>
-								<PopoverTrigger>
-									<IconButton
-										sx={styles.topSectionMenu}
-										aria-label="topSectionMenu"
-										icon={<ThreeDotsIcon />}
-										boxSize={7}
-									/>
-								</PopoverTrigger>
-								<PopoverContent>
-									<PopoverBody>
-										<Flex
-											onClick={() => {
-												console.log('TO_DO')
-											}}
-											sx={styles.actionItem}
-										>
-											{false && <Skeleton sx={styles.skeletonText} />}
-											<Icon sx={styles.icon} as={AsEmptyCheckmarkCircleIcon} />
-											<Text>TO_DO</Text>
-										</Flex>
-									</PopoverBody>
-								</PopoverContent>
-							</Popover>
+						<Flex sx={styles.cellContentWrapperSticky}>
+							<Skeleton isLoaded={!isLoading}>
+								<OptionsPopover offer={'offer'} />
+							</Skeleton>
 						</Flex>
 					</Flex>
 				</Td>
