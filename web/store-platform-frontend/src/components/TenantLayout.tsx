@@ -16,6 +16,7 @@ import { useLogoutCurrentMutation } from '../api/apiStore'
 import { useGetUserFrontendResourcesQuery } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import ChangePasswordModal from './ChangePasswordModal'
+import TopBar from './TopBar'
 import { useUser } from '../shared/hooks/useUser'
 import { useTenant } from '../shared/hooks/useTenant'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
@@ -78,6 +79,24 @@ const TenantLayout = () => {
 		isTenantChangePasswordEnabled,
 	} = getTenantActions()
 
+	const topBarItems = [
+		isBarcodeEnabled && isTenantBarcodeEnabled
+			? { label: 'Barcode', path: '/barcode' }
+			: null,
+		isOwner && isUsersEnabled && isTenantUsersEnabled
+			? { label: 'Users', path: '/users' }
+			: null,
+		isProductsEnabled && isTenantProductsEnabled
+			? { label: 'Products', path: '/products' }
+			: null,
+		isOrdersEnabled && isTenantOrdersEnabled
+			? { label: 'Orders', path: '/orders' }
+			: null,
+		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
+			? { label: 'Invoices', path: '/invoices' }
+			: null,
+	].filter(Boolean) as { label: string; path: string }[]
+
 	const handleLogout = async () => {
 		setError('')
 		try {
@@ -92,7 +111,7 @@ const TenantLayout = () => {
 
 	return (
 		<Flex minH="100vh" bg="gray.50">
-			<Box
+			{/* <Box
 				w={{ base: 'full', md: '280px' }}
 				bg="white"
 				borderRightWidth="1px"
@@ -176,13 +195,16 @@ const TenantLayout = () => {
 						Logout
 					</Button>
 				</Box>
+			</Box> */}
+
+			<Box flex="1" p={0}>
+				<TopBar navItems={topBarItems} />
+				<Box px={{ base: 4, md: 8 }} py={8}>
+					<Outlet />
+				</Box>
 			</Box>
 
-			<Box flex="1" px={{ base: 4, md: 8 }} py={8}>
-				<Outlet />
-			</Box>
-
-			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
+			{/* <ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} /> */}
 		</Flex>
 	)
 }

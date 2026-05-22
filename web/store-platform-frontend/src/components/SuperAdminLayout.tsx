@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
+import TopBar from './TopBar'
 // import { useUser } from '../shared/hooks/useUser'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
@@ -35,6 +36,16 @@ const SuperAdminLayout = () => {
 	const { isAddNewTenantEnabled, isTenantsListEnabled } = getEnabledActions()
 	const { isTenantAddNewTenantEnabled, isTenantTenantsListEnabled } =
 		getTenantActions()
+
+	const topBarItems = [
+		isAddNewTenantEnabled && isTenantAddNewTenantEnabled
+			? { label: 'Add Tenant', path: '/add-new-tenant' }
+			: null,
+		isTenantsListEnabled && isTenantTenantsListEnabled
+			? { label: 'Tenants List', path: '/tenants-list' }
+			: null,
+	].filter(Boolean) as { label: string; path: string }[]
+
 	const handleLogout = async () => {
 		setError('')
 
@@ -101,8 +112,11 @@ const SuperAdminLayout = () => {
 				</Box>
 			</Box>
 
-			<Box flex="1" px={{ base: 4, md: 8 }} py={8}>
-				<Outlet />
+			<Box flex="1" p={0}>
+				<TopBar navItems={topBarItems} />
+				<Box px={{ base: 4, md: 8 }} py={8}>
+					<Outlet />
+				</Box>
 			</Box>
 		</Flex>
 	)
