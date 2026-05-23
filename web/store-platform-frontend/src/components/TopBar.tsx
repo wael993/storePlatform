@@ -47,8 +47,7 @@ const TopBar = ({ navItems }: TopBarProps) => {
 			zIndex={20}
 			bg="white"
 			boxShadow="0 8px 20px rgba(15, 23, 42, 0.12)"
-			mb={6}
-			px={'7rem'}
+			px={'2rem'}
 		>
 			<Flex
 				h="7rem"

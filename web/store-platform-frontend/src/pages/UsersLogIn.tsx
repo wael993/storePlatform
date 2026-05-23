@@ -26,13 +26,15 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react'
-import { UserRole } from '../shared/globalEnums'
+import { BreadCrumbItem, UserRole } from '../shared/globalEnums'
 import {
 	useDeleteTenantUserMutation,
 	useGetTenantUsersQuery,
 	useInviteTenantUserMutation,
 	useUpdateTenantUserMutation,
 } from '../api/apiStore'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { generateBreadcrumbs } from '../shared/routes'
 
 const USER_ROLE_OPTIONS: UserRole[] = [
 	UserRole.OWNER,
@@ -42,6 +44,7 @@ const USER_ROLE_OPTIONS: UserRole[] = [
 ]
 
 const UsersLogIn = () => {
+	const breadCrumbItems = generateBreadcrumbs()
 	const { data: users = [], isLoading, isFetching } = useGetTenantUsersQuery()
 	const [inviteTenantUser, { isLoading: isInviting }] =
 		useInviteTenantUserMutation()
@@ -130,6 +133,7 @@ const UsersLogIn = () => {
 	return (
 		<Container maxW="6xl" py={8}>
 			<Stack gap={6}>
+				<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.USERS]} />
 				<Flex justify="space-between" align="center">
 					<Box>
 						<Heading size="lg">Tenant Users</Heading>

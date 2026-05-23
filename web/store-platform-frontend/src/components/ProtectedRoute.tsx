@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { UserRole } from '../shared/globalEnums'
+import { RoutePaths } from '../shared/routes'
 
 type ProtectedRouteProps = {
 	isAuthenticated: boolean
@@ -12,10 +13,10 @@ const ProtectedRoute = ({
 	isAuthenticated,
 	userRole,
 	allowedRoles,
-	redirectTo = '/barcode',
+	redirectTo = RoutePaths.BARCODE,
 }: ProtectedRouteProps) => {
 	if (!isAuthenticated) {
-		return <Navigate to="/login" />
+		return <Navigate to={RoutePaths.LOGIN} />
 	}
 
 	if (

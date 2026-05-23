@@ -2,6 +2,9 @@ import { Box, VStack } from '@chakra-ui/react'
 import { useState } from 'react'
 import ProductList from './ProductList'
 import BarcodeScanner from './BarcodeScanner'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { BreadCrumbItem } from '../shared/globalEnums'
+import { generateBreadcrumbs } from '../shared/routes'
 
 export type StoreCartItem = Product & {
 	cartQuantity: number
@@ -9,6 +12,7 @@ export type StoreCartItem = Product & {
 
 const BarcodePage = () => {
 	const [, setCart] = useState<StoreCartItem[]>([])
+	const breadCrumbItems = generateBreadcrumbs()
 
 	const addToCart = (p: Product) => {
 		setCart(prev => {
@@ -41,6 +45,7 @@ const BarcodePage = () => {
 	return (
 		<Box p={6}>
 			<VStack gap={6} align="stretch">
+				<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.BARCODE]} />
 				<BarcodeScanner addToCart={addToCart} />
 				<ProductList addToCart={addToCart} />
 

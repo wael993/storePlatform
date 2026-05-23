@@ -20,6 +20,7 @@ import TopBar from './TopBar'
 import { useUser } from '../shared/hooks/useUser'
 import { useTenant } from '../shared/hooks/useTenant'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
+import { RoutePaths } from '../shared/routes'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -81,19 +82,19 @@ const TenantLayout = () => {
 
 	const topBarItems = [
 		isBarcodeEnabled && isTenantBarcodeEnabled
-			? { label: 'Barcode', path: '/barcode' }
+			? { label: 'Barcode', path: RoutePaths.BARCODE }
 			: null,
 		isOwner && isUsersEnabled && isTenantUsersEnabled
-			? { label: 'Users', path: '/users' }
+			? { label: 'Users', path: RoutePaths.USERS }
 			: null,
 		isProductsEnabled && isTenantProductsEnabled
-			? { label: 'Products', path: '/products' }
+			? { label: 'Products', path: RoutePaths.PRODUCTS }
 			: null,
 		isOrdersEnabled && isTenantOrdersEnabled
-			? { label: 'Orders', path: '/orders' }
+			? { label: 'Orders', path: RoutePaths.ORDERS }
 			: null,
 		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
-			? { label: 'Invoices', path: '/invoices' }
+			? { label: 'Invoices', path: RoutePaths.INVOICES }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
 
@@ -105,7 +106,7 @@ const TenantLayout = () => {
 			setError(submitError?.data?.message || 'Logout failed.')
 		} finally {
 			dispatch(logout())
-			navigate('/login', { replace: true })
+			navigate(RoutePaths.LOGIN, { replace: true })
 		}
 	}
 

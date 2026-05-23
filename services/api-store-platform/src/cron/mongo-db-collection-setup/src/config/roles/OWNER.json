@@ -29,8 +29,8 @@
 	},
 	"include": ["ADMIN", "EMPLOYEE"],
 	"frontendResources": {
-		"/settings": { "access": true },
-		"/products": {
+		"/services/store_platform/settings": { "access": true },
+		"/services/store_platform/products": {
 			"access": true,
 			"allowedActions": [
 				"addProduct",

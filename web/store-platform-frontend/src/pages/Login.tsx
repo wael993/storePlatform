@@ -16,6 +16,7 @@ import { useLoginMutation } from '../api/apiStore'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
 import { UserRole } from '../shared/globalEnums'
+import { RoutePaths } from '../shared/routes'
 
 const Login = () => {
 	const [email, setEmail] = useState('admin@example.com')
@@ -58,7 +59,9 @@ const Login = () => {
 			dispatch(setCredentials(response))
 
 			const nextRoute =
-				response.role === UserRole.SUPER_ADMIN ? '/add-new-tenant' : '/barcode'
+				response.role === UserRole.SUPER_ADMIN
+					? RoutePaths.ADD_NEW_TENANT
+					: RoutePaths.BARCODE
 
 			navigate(nextRoute, {
 				state: { role: response.role, tenantId: response.tenantId },

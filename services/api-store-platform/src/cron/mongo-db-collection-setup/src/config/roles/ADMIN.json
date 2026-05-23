@@ -1,41 +1,38 @@
 {
-  "_id": "ADMIN",
-  "name": "Admin",
-  "resources": {
-    "/users": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
-    },
-    "/products": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
-    },
-    "/orders": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "DELETE": { "accessLevel": "NONE", "fields": [] }
-    },
-    "/invoices": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "DELETE": { "accessLevel": "NONE", "fields": [] }
-    }
-  },
-  "include": ["EMPLOYEE"],
-  "frontendResources": {
-    "/settings": { "access": true },
-    "/services/marketing_platform": {
-      "access": true,
-      "allowedActions": [
-        "selectActivityWatcher",
-        "addComment"
-      ]
-    }
-  }
+	"_id": "ADMIN",
+	"name": "Admin",
+	"resources": {
+		"/users": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/products": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/orders": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/invoices": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		}
+	},
+	"include": ["EMPLOYEE"],
+	"frontendResources": {
+		"/services/store_platform/settings": { "access": true },
+		"/services/store_platform": {
+			"access": true,
+			"allowedActions": ["selectActivityWatcher", "addComment"]
+		}
+	}
 }

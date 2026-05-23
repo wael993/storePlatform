@@ -11,6 +11,9 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { BreadCrumbItem } from '../shared/globalEnums'
+import { generateBreadcrumbs } from '../shared/routes'
 
 // Placeholder orders data until backend orders API is wired up
 const MOCK_ORDERS: {
@@ -33,9 +36,11 @@ const OrdersPage = () => {
 	// Replace with useGetOrdersQuery() once orders API is available
 	const isLoading = false
 	const orders = MOCK_ORDERS
+	const breadCrumbItems = generateBreadcrumbs()
 
 	return (
 		<Box>
+			<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.ORDERS]} />
 			<Heading size="lg" mb={6}>
 				Orders
 			</Heading>

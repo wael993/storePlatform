@@ -11,6 +11,9 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { BreadCrumbItem } from '../shared/globalEnums'
+import { generateBreadcrumbs } from '../shared/routes'
 
 // Placeholder invoices data until backend invoices API is wired up
 const MOCK_INVOICES: {
@@ -34,9 +37,11 @@ const InvoicesPage = () => {
 	// Replace with useGetInvoicesQuery() once invoices API is available
 	const isLoading = false
 	const invoices = MOCK_INVOICES
+	const breadCrumbItems = generateBreadcrumbs()
 
 	return (
 		<Box>
+			<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.INVOICES]} />
 			<Heading size="lg" mb={6}>
 				Invoices
 			</Heading>

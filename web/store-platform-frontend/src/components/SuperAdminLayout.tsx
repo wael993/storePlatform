@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
+import { RoutePaths } from '../shared/routes'
 import TopBar from './TopBar'
 // import { useUser } from '../shared/hooks/useUser'
 
@@ -39,10 +40,10 @@ const SuperAdminLayout = () => {
 
 	const topBarItems = [
 		isAddNewTenantEnabled && isTenantAddNewTenantEnabled
-			? { label: 'Add Tenant', path: '/add-new-tenant' }
+			? { label: 'Add Tenant', path: RoutePaths.ADD_NEW_TENANT }
 			: null,
 		isTenantsListEnabled && isTenantTenantsListEnabled
-			? { label: 'Tenants List', path: '/tenants-list' }
+			? { label: 'Tenants List', path: RoutePaths.TENANTS_LIST }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
 
@@ -55,7 +56,7 @@ const SuperAdminLayout = () => {
 			setError(submitError?.data?.message || 'Logout failed.')
 		} finally {
 			dispatch(logout())
-			navigate('/login', { replace: true })
+			navigate(RoutePaths.LOGIN, { replace: true })
 		}
 	}
 
@@ -84,12 +85,12 @@ const SuperAdminLayout = () => {
 
 				<Stack gap={2}>
 					{isAddNewTenantEnabled && isTenantAddNewTenantEnabled && (
-						<Box as={NavLink} to="/add-new-tenant" style={navStyle}>
+						<Box as={NavLink} to={RoutePaths.ADD_NEW_TENANT} style={navStyle}>
 							Add Tenant
 						</Box>
 					)}
 					{isTenantsListEnabled && isTenantTenantsListEnabled && (
-						<Box as={NavLink} to="/tenants-list" style={navStyle}>
+						<Box as={NavLink} to={RoutePaths.TENANTS_LIST} style={navStyle}>
 							Tenants List
 						</Box>
 					)}

@@ -16,8 +16,12 @@ import {
 	Text,
 } from '@chakra-ui/react'
 import { useAddTenantMutation } from '../api/apiStore'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { BreadCrumbItem } from '../shared/globalEnums'
+import { generateBreadcrumbs } from '../shared/routes'
 
 const AddNewTenant = () => {
+	const breadCrumbItems = generateBreadcrumbs()
 	const [addTenant, { isLoading }] = useAddTenantMutation()
 	const [tenantName, setTenantName] = useState('')
 	const [tenantDomain, setTenantDomain] = useState('')
@@ -58,6 +62,9 @@ const AddNewTenant = () => {
 	return (
 		<Container maxW="4xl" py={10}>
 			<Stack gap={6}>
+				<CustomBreadcrumb
+					items={breadCrumbItems[BreadCrumbItem.ADD_NEW_TENANT]}
+				/>
 				<Box>
 					<Heading size="lg">Add New Tenant</Heading>
 					<Text color="gray.600">

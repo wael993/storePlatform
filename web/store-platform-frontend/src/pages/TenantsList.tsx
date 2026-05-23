@@ -40,8 +40,12 @@ import {
 	useUpdateTenantMutation,
 } from '../api/apiStore'
 import type { TenantSummary } from '../types/tenant'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { BreadCrumbItem } from '../shared/globalEnums'
+import { generateBreadcrumbs } from '../shared/routes'
 
 const TenantsList = () => {
+	const breadCrumbItems = generateBreadcrumbs()
 	const { data: tenants = [], isLoading, isFetching } = useGetTenantsQuery()
 	const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation()
 	const [deleteTenant, { isLoading: isDeleting }] = useDeleteTenantMutation()
@@ -142,6 +146,9 @@ const TenantsList = () => {
 	return (
 		<Container maxW="7xl" px={0}>
 			<Stack gap={6}>
+				<CustomBreadcrumb
+					items={breadCrumbItems[BreadCrumbItem.TENANTS_LIST]}
+				/>
 				<Box>
 					<Heading size="lg">Tenants List</Heading>
 					<Text color="gray.600">

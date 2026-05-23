@@ -28,6 +28,7 @@ import {
 	NumberInputField,
 	Select,
 	Badge,
+	Flex,
 } from '@chakra-ui/react'
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons'
 import {
@@ -36,12 +37,17 @@ import {
 	usePostProductMutation,
 	useEditProductMutation,
 } from '../api/apiStore'
-import { AllowedActions } from '../shared/globalEnums'
+import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
 import { useBreakpoints } from '../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../shared/utils'
 import ListWithActionBar from '../components/list/ListWithActionBar'
+import { hoverFocusActiveButtonStyles } from '../theme/styles'
+import { useTranslation } from 'react-i18next'
+import { AddSquareIcon } from '../icons/AddSquare'
+import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { generateBreadcrumbs } from '../shared/routes'
 
 const EMPTY_FORM = {
 	name: '',
@@ -72,6 +78,39 @@ const EMPTY_FORM = {
 	status: 'active' as 'active' | 'inactive' | 'discontinued',
 	description: '',
 }
+const fullWidth = '100%'
+
+const styles = {
+	wrapper: {
+		width: fullWidth,
+		flexDir: 'column',
+		paddingBottom: '1rem',
+	},
+	header: {
+		flexDir: 'column',
+		width: fullWidth,
+		paddingX: '1rem',
+	},
+	title: {
+		fontSize: '1.5rem',
+		fontWeight: 700,
+		marginTop: '0.4rem',
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+		display: 'block',
+		whiteSpace: 'nowrap',
+		paddingX: '1rem',
+	},
+	addProductButton: {
+		...hoverFocusActiveButtonStyles,
+		gap: '0.25rem',
+	},
+	addProductButtonText: {
+		fontSize: '0.875rem',
+		fontWeight: 700,
+		color: '#1E1E1E',
+	},
+} satisfies StylesObject
 
 const ProductsPage = () => {
 	const { isOwnerOrAdmin } = useUser()
@@ -85,6 +124,7 @@ const ProductsPage = () => {
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
 	const [postProduct, { isLoading: isPosting }] = usePostProductMutation()
 	// const [editProduct, { isLoading: isEditing }] = useEditProductMutation()
+	const breadCrumbItems = generateBreadcrumbs()
 
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const [form, setForm] = useState(EMPTY_FORM)
@@ -101,6 +141,7 @@ const ProductsPage = () => {
 		onOpen()
 	}
 
+	const { t } = useTranslation()
 	const openEdit = (p: Product) => {
 		setForm({
 			name: p.name,
@@ -220,21 +261,39 @@ const ProductsPage = () => {
 	}
 
 	return (
-		<Box>
-			<HStack justify="space-between" mb={6}>
-				<Heading size="lg">Products</Heading>
+		<Flex sx={styles.wrapper}>
+			<Flex sx={styles.header}>
+				{!isGetProductsInProgress && (
+					<CustomBreadcrumb
+						marginTop="2rem"
+						items={breadCrumbItems[BreadCrumbItem.PRODUCTS]}
+					/>
+				)}
+			</Flex>
+
+			<HStack justify="space-between" mb={'4rem'}>
+				<Heading sx={styles.title} variant={'h5'}>
+					Products
+				</Heading>
 				{isActionAllowed(AllowedActions.ADD_PRODUCT) && isOwnerOrAdmin && (
-					<Button colorScheme="blue" onClick={openAdd}>
-						Add Product
+					<Button
+						leftIcon={<AddSquareIcon />}
+						onClick={openAdd}
+						sx={styles.addProductButton}
+						variant="ghost"
+					>
+						<Text sx={styles.addProductButtonText}>
+							{t('common.addProduct')}
+						</Text>
 					</Button>
 				)}
 			</HStack>
 
 			{isGetProductsInProgress && <Spinner />}
 
-			{/* {!isGetProductsInProgress && products.length === 0 && (
-				<Text color="gray.500">No products found.</Text>
-			)} */}
+			{!isGetProductsInProgress && products.length === 0 && (
+				<Text color="gray.500">{t('components.product.noProducts')}</Text>
+			)}
 
 			{/* {!isGetProductsInProgress && products.length > 0 && (
 				<Box overflowX="auto">
@@ -648,7 +707,7 @@ const ProductsPage = () => {
 					</ModalFooter>
 				</ModalContent>
 			</Modal> */}
-		</Box>
+		</Flex>
 	)
 }
 

@@ -22,6 +22,7 @@ import {
 	useLogoutCurrentMutation,
 } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
+import { RoutePaths } from '../shared/routes'
 
 interface ChangePasswordModalProps {
 	isOpen: boolean
@@ -76,7 +77,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 				// ignore logout errors
 			}
 			dispatch(logout())
-			navigate('/login', { replace: true })
+			navigate(RoutePaths.LOGIN, { replace: true })
 		} catch (err: any) {
 			setError(err?.data?.message || 'Failed to change password.')
 		}

@@ -20,6 +20,7 @@ import { useAuth } from './shared/hooks/useAuth'
 import { useUser } from './shared/hooks/useUser'
 import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
 import { getEnabledActions, getTenantActions } from './shared/utils'
+import { RoutePaths } from './shared/routes'
 // import { useGetUserFrontendResourcesQuery } from './api/apiStore'
 // import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
 // import { skipToken } from '@reduxjs/toolkit/dist/query/react'
@@ -70,7 +71,7 @@ const App = () => {
 	return (
 		<Router>
 			<Routes>
-				<Route path="/login" element={<Login />} />
+				<Route path={RoutePaths.LOGIN} element={<Login />} />
 
 				{/* Tenant user routes – all wrapped in TenantLayout sidebar */}
 				<Route
@@ -79,22 +80,28 @@ const App = () => {
 							isAuthenticated={isAuthenticated}
 							userRole={userRole}
 							allowedRoles={TENANT_ROLES}
-							redirectTo="/add-new-tenant"
+							redirectTo={RoutePaths.ADD_NEW_TENANT}
 						/>
 					}
 				>
 					<Route element={<TenantLayout />}>
 						{isBarcodeEnabled && isTenantBarcodeEnabled && (
-							<Route path="/barcode" element={<BarcodePage />} />
+							<Route path={RoutePaths.BARCODE} element={<BarcodePage />} />
 						)}
 						{isProductsEnabled && isTenantProductsEnabled && (
-							<Route path="/products" element={<ProductsPage />} />
+							<>
+								<Route path={RoutePaths.PRODUCTS} element={<ProductsPage />} />
+								<Route
+									path={RoutePaths.SINGLE_PRODUCT}
+									element={<ProductsPage />}
+								/>
+							</>
 						)}
 						{isOrdersEnabled && isTenantOrdersEnabled && (
-							<Route path="/orders" element={<OrdersPage />} />
+							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
 						)}
 						{isInvoicesEnabled && isTenantInvoicesEnabled && (
-							<Route path="/invoices" element={<InvoicesPage />} />
+							<Route path={RoutePaths.INVOICES} element={<InvoicesPage />} />
 						)}
 					</Route>
 				</Route>
@@ -106,31 +113,13 @@ const App = () => {
 							isAuthenticated={isAuthenticated}
 							userRole={userRole}
 							allowedRoles={[UserRole.OWNER]}
-							redirectTo="/barcode"
+							redirectTo={RoutePaths.BARCODE}
 						/>
 					}
 				>
 					<Route element={<TenantLayout />}>
 						{isUsersEnabled && isTenantUsersEnabled && (
-							<Route path="/users" element={<UsersLogIn />} />
-						)}
-					</Route>
-				</Route>
-
-				{/* Owner + Admin routes */}
-				<Route
-					element={
-						<ProtectedRoute
-							isAuthenticated={isAuthenticated}
-							userRole={userRole}
-							allowedRoles={[UserRole.OWNER, UserRole.ADMIN]}
-							redirectTo="/barcode"
-						/>
-					}
-				>
-					<Route element={<TenantLayout />}>
-						{isInvoicesEnabled && isTenantInvoicesEnabled && (
-							<Route path="/invoices" element={<InvoicesPage />} />
+							<Route path={RoutePaths.USERS} element={<UsersLogIn />} />
 						)}
 					</Route>
 				</Route>
@@ -142,24 +131,30 @@ const App = () => {
 							isAuthenticated={isAuthenticated}
 							userRole={userRole}
 							allowedRoles={[UserRole.SUPER_ADMIN]}
-							redirectTo="/barcode"
+							redirectTo={RoutePaths.BARCODE}
 						/>
 					}
 				>
 					<Route element={<SuperAdminLayout />}>
 						{isAddNewTenantEnabled && isTenantAddNewTenantEnabled && (
-							<Route path="/add-new-tenant" element={<AddNewTenant />} />
+							<Route
+								path={RoutePaths.ADD_NEW_TENANT}
+								element={<AddNewTenant />}
+							/>
 						)}
 						{isTenantsListEnabled && isTenantTenantsListEnabled && (
-							<Route path="/tenants-list" element={<TenantsList />} />
+							<Route path={RoutePaths.TENANTS_LIST} element={<TenantsList />} />
 						)}
 					</Route>
 				</Route>
 
 				<Route
-					path="*"
+					path={RoutePaths.WILDCARD}
 					element={
-						<Navigate to={isAuthenticated ? '/products' : '/login'} replace />
+						<Navigate
+							to={isAuthenticated ? RoutePaths.PRODUCTS : RoutePaths.LOGIN}
+							replace
+						/>
 					}
 				/>
 			</Routes>

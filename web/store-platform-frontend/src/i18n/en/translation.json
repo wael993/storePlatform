@@ -8,13 +8,15 @@
 				"draft": "Draft",
 				"inactive": "Inactive",
 				"outOfStock": "Out of Stock"
-			}
+			},
+			"noProducts": "No products found"
 		},
 		"list": {
 			"preferredBrand": "preferredBrand"
 		}
 	},
 	"common": {
+		"addProduct": "Add Product",
 		"productName": "Product Name",
 		"barcode": "Barcode",
 		"brand": "Brand Name",

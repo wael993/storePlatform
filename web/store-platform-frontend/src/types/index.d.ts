@@ -97,3 +97,15 @@ interface ActivityStateMapProps {
 type ActivityStateMap = {
 	[k in ActivityState]: ActivityStateMapProps
 }
+
+interface BreadcrumbItem {
+	id: string
+	name: string
+	href: string
+	isCurrentPage: boolean
+}
+
+interface BreadcrumbParams {
+	locationId?: string
+	locationName?: string
+}

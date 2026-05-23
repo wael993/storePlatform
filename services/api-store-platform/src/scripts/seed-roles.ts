@@ -34,10 +34,10 @@ const ROLE_MOCKS = [
 		},
 		include: ['ADMIN', 'EMPLOYEE'],
 		frontendResources: {
-			'/settings': {
+			'/services/store_platform/settings': {
 				access: true,
 			},
-			'/services/marketing_platform': {
+			'/services/store_platform': {
 				access: true,
 				allowedActions: [
 					'selectUserOnActivity',
@@ -78,10 +78,10 @@ const ROLE_MOCKS = [
 		},
 		include: ['EMPLOYEE'],
 		frontendResources: {
-			'/settings': {
+			'/services/store_platform/settings': {
 				access: true,
 			},
-			'/services/marketing_platform': {
+			'/services/store_platform': {
 				access: true,
 				allowedActions: ['selectActivityWatcher', 'addComment'],
 			},
@@ -127,10 +127,10 @@ const ROLE_MOCKS = [
 		},
 		include: ['EMPLOYEE'],
 		frontendResources: {
-			'/settings': {
+			'/services/store_platform/settings': {
 				access: false,
 			},
-			'/services/marketing_platform': {
+			'/services/store_platform': {
 				access: false,
 			},
 		},
@@ -169,10 +169,10 @@ const ROLE_MOCKS = [
 		},
 		include: [],
 		frontendResources: {
-			'/settings': {
+			'/services/store_platform/settings': {
 				access: false,
 			},
-			'/services/marketing_platform': {
+			'/services/store_platform': {
 				access: false,
 			},
 		},
@@ -190,10 +190,10 @@ const ROLE_MOCKS = [
 		},
 		include: [],
 		frontendResources: {
-			'/add-new-tenant': {
+			'/services/store_platform/add-new-tenant': {
 				access: true,
 			},
-			'/tenants-list': {
+			'/services/store_platform/tenants-list': {
 				access: true,
 				allowedActions: ['updateTenant', 'deleteTenant', 'toggleTenantStatus'],
 			},

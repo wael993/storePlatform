@@ -116,6 +116,7 @@ const ListHeaderRow = ({
 		)
 	}
 
+	console.log('🚀 ~ ListHeaderRow ~ isOwnerOrAdmin:', seeSupplier)
 	const headers = [
 		// Checkbox (no hover)
 		...(showCheckbox

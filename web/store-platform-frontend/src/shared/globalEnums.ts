@@ -70,3 +70,15 @@ export enum ACTIVITY_TYPE {
 	SPACE_AND_LOCATION_MEDIA_EXCHANGE = 'SL_MEDIA_EXCHANGE',
 	COMPLAINTS = 'COMPLAINTS',
 }
+
+export enum BreadCrumbItem {
+	SETTINGS = 'settings',
+	BARCODE = 'barcode',
+	PRODUCTS = 'products',
+	ORDERS = 'orders',
+	INVOICES = 'invoices',
+	USERS = 'users',
+	ADD_NEW_TENANT = 'addNewTenant',
+	TENANTS_LIST = 'tenantsList',
+	ALL_PRODUCTS = 'allProducts',
+}

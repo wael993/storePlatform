@@ -1,38 +1,38 @@
 {
-  "_id": "EMPLOYEE",
-  "name": "Employee",
-  "resources": {
-    "/users": {
-      "GET": {
-        "accessLevel": "GLOBAL",
-        "fields": ["userId", "displayName", "role"]
-      },
-      "POST": { "accessLevel": "NONE", "fields": [] },
-      "PATCH": { "accessLevel": "NONE", "fields": [] },
-      "DELETE": { "accessLevel": "NONE", "fields": [] }
-    },
-    "/products": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "NONE", "fields": [] },
-      "PATCH": { "accessLevel": "NONE", "fields": [] },
-      "DELETE": { "accessLevel": "NONE", "fields": [] }
-    },
-    "/orders": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "NONE", "fields": [] },
-      "PATCH": { "accessLevel": "NONE", "fields": [] },
-      "DELETE": { "accessLevel": "NONE", "fields": [] }
-    },
-    "/invoices": {
-      "GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-      "POST": { "accessLevel": "NONE", "fields": [] },
-      "PATCH": { "accessLevel": "NONE", "fields": [] },
-      "DELETE": { "accessLevel": "NONE", "fields": [] }
-    }
-  },
-  "include": [],
-  "frontendResources": {
-    "/settings": { "access": false },
-    "/services/marketing_platform": { "access": false }
-  }
+	"_id": "EMPLOYEE",
+	"name": "Employee",
+	"resources": {
+		"/users": {
+			"GET": {
+				"accessLevel": "GLOBAL",
+				"fields": ["userId", "displayName", "role"]
+			},
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/products": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/orders": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/invoices": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		}
+	},
+	"include": [],
+	"frontendResources": {
+		"/services/store_platform/settings": { "access": false },
+		"/services/store_platform": { "access": false }
+	}
 }
