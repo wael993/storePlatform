@@ -1,82 +1,60 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
 	Box,
 	Button,
 	Heading,
-	IconButton,
-	Input,
-	Modal,
-	ModalBody,
-	ModalContent,
-	ModalFooter,
-	ModalHeader,
-	ModalOverlay,
 	Spinner,
-	Table,
-	Tbody,
-	Td,
 	Text,
-	Th,
-	Thead,
-	Tr,
-	useDisclosure,
-	VStack,
 	HStack,
-	FormControl,
-	FormLabel,
-	NumberInput,
-	NumberInputField,
-	Select,
-	Badge,
 	Flex,
 } from '@chakra-ui/react'
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons'
-import {
-	useGetProductsQuery,
-	useDeleteProductMutation,
-	usePostProductMutation,
-	useEditProductMutation,
-} from '../api/apiStore'
+import { useGetProductsQuery } from '../api/apiStore'
+import { useSettings } from '../shared/context/SettingsContext'
 import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
-import { useBreakpoints } from '../shared/hooks/useBreakpoints'
-import { compareBreakpoint } from '../shared/utils'
 import ListWithActionBar from '../components/list/ListWithActionBar'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import { useTranslation } from 'react-i18next'
 import { AddSquareIcon } from '../icons/AddSquare'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
+import Filters from '../components/filters/Filters'
+import {
+	FilterSelectOption,
+	ProductFilterValues,
+} from '../components/filters/FilterModal'
+import { PRODUCT_STATE_CONFIG } from '../components/list/shared/constants'
 
-const EMPTY_FORM = {
-	name: '',
-	productFactoryCode: '',
-	barcode: '',
-	categoryId: '',
-	brandId: '',
-	priceWholesale: 0,
-	priceRetailSale: 0,
-	priceSemiWholesaleSales: 0,
-	priceBuyCost: 0,
-	priceDiscount: 0,
-	currency: 'EUR',
-	stockQuantity: 0,
-	stockMinQuantity: 0,
-	unit: 'piece' as 'piece' | 'kg' | 'meter' | 'set' | 'mm',
-	taxType: 'VAT',
-	taxValue: 19,
-	supplierId: '',
-	warehouse: '',
-	shelf: '',
-	color: '',
-	size: '',
-	weight: '',
-	length: '',
-	width: '',
-	height: '',
-	status: 'active' as 'active' | 'inactive' | 'discontinued',
-	description: '',
+const EMPTY_PRODUCT_FILTERS: ProductFilterValues = {
+	searchText: '',
+	supplier: [],
+	brand: [],
+	state: [],
+	category: [],
+}
+
+const getUniqueFilterOptions = (
+	products: Product[],
+	getValue: (product: Product) => string | undefined,
+	getLabel?: (product: Product) => string | undefined,
+): FilterSelectOption[] => {
+	const optionsMap = new Map<string, string>()
+
+	products.forEach(product => {
+		const value = getValue(product)
+		if (!value) return
+
+		const trimmedValue = value.trim()
+		if (!trimmedValue) return
+
+		const label = getLabel?.(product)?.trim() || trimmedValue
+		optionsMap.set(trimmedValue, label)
+	})
+
+	return Array.from(optionsMap.entries())
+		.map(([value, label]) => ({ value, label }))
+		.sort((a, b) => a.label.localeCompare(b.label))
 }
 const fullWidth = '100%'
 
@@ -101,6 +79,15 @@ const styles = {
 		whiteSpace: 'nowrap',
 		paddingX: '1rem',
 	},
+	divider: {
+		borderBottom: `1px solid #EAEAEA}`,
+		marginTop: '1px',
+		marginRight: {
+			base: '0',
+			md: '0.5rem',
+			xl: '0.5rem',
+		},
+	},
 	addProductButton: {
 		...hoverFocusActiveButtonStyles,
 		gap: '0.25rem',
@@ -115,78 +102,97 @@ const styles = {
 const ProductsPage = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isActionAllowed } = useResources()
-	const breakpoint = useBreakpoints()
+	const { productsPerPage } = useSettings()
 
-	const { isMobile, isTablet, isDesktop, isLargeDesktop } =
-		compareBreakpoint(breakpoint)
+	const [productFilters, setProductFilters] = useState<ProductFilterValues>(
+		EMPTY_PRODUCT_FILTERS,
+	)
+	const [currentPage, setCurrentPage] = useState(0)
 
-	const { data: products = [], isLoading, isFetching } = useGetProductsQuery({})
-	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
-	const [postProduct, { isLoading: isPosting }] = usePostProductMutation()
-	// const [editProduct, { isLoading: isEditing }] = useEditProductMutation()
+	const {
+		data: response,
+		isLoading,
+		isFetching,
+	} = useGetProductsQuery({
+		...productFilters,
+		limit: productsPerPage,
+		offset: currentPage * productsPerPage,
+	})
+
+	const products = response?.products ?? []
+	const totalCount = response?.totalCount ?? 0
+	const totalPages = Math.ceil(totalCount / productsPerPage)
 	const breadCrumbItems = generateBreadcrumbs()
 
-	const { isOpen, onOpen, onClose } = useDisclosure()
-	const [form, setForm] = useState(EMPTY_FORM)
-	const [editingId, setEditingId] = useState<string | null>(null)
-	const [feedback, setFeedback] = useState('')
-	const isGetProductsInProgress = isLoading || isFetching
-	const [displayedProducts, setDisplayedProducts] = useState<
-		Product[] | undefined
-	>(products)
-	const openAdd = () => {
-		setForm(EMPTY_FORM)
-		setEditingId(null)
-		setFeedback('')
-		onOpen()
+	const handleApplyFilters = (filters: ProductFilterValues) => {
+		setProductFilters(filters)
+		setCurrentPage(0)
 	}
+
+	const handleResetFilters = () => {
+		setProductFilters(EMPTY_PRODUCT_FILTERS)
+		setCurrentPage(0)
+	}
+
+	const isGetProductsInProgress = isLoading || isFetching
+
+	const memoizedProducts = useMemo(
+		() => response?.products ?? [],
+		[response?.products],
+	)
+
+	const supplierOptions = useMemo(
+		() =>
+			getUniqueFilterOptions(
+				memoizedProducts,
+				product => product.supplierId || product.supplierName,
+				product => product.supplierName || product.supplierId,
+			),
+		[memoizedProducts],
+	)
+
+	const brandOptions = useMemo(
+		() =>
+			getUniqueFilterOptions(
+				memoizedProducts,
+				product => product.brandId || product.brandName,
+				product => product.brandName || product.brandId,
+			),
+		[memoizedProducts],
+	)
+
+	const categoryOptions = useMemo(
+		() =>
+			getUniqueFilterOptions(
+				memoizedProducts,
+				product => product.categoryId || product.categoryName,
+				product => product.categoryName || product.categoryId,
+			),
+		[memoizedProducts],
+	)
+
+	const stateOptions = useMemo(() => {
+		const baseOptions = getUniqueFilterOptions(
+			memoizedProducts,
+			product => product.state,
+			product => product.state,
+		)
+
+		return baseOptions.map(option => {
+			const stateConfig =
+				PRODUCT_STATE_CONFIG[option.value as keyof typeof PRODUCT_STATE_CONFIG]
+
+			return {
+				...option,
+				stateColor: stateConfig?.color ?? '#808080',
+				stateTitle: stateConfig?.translationKey ?? option.label,
+			}
+		})
+	}, [memoizedProducts])
+
+	const openAdd = () => {}
 
 	const { t } = useTranslation()
-	const openEdit = (p: Product) => {
-		setForm({
-			name: p.name,
-			productFactoryCode: p.productFactoryCode ?? '',
-			barcode: p.barcode,
-			categoryId: p.categoryId ?? '',
-			brandId: p.brandId ?? '',
-			priceWholesale: p.price?.wholesale ?? 0,
-			priceRetailSale: p.price?.retailSale ?? 0,
-			priceSemiWholesaleSales: p.price?.semiWholesaleSales ?? 0,
-			priceBuyCost: p.price?.buyCost ?? 0,
-			priceDiscount: p.price?.discount ?? 0,
-			currency: p.price?.currency ?? 'EUR',
-			stockQuantity: p.stock?.quantity ?? 0,
-			stockMinQuantity: p.stock?.minQuantity ?? 0,
-			unit: (p.unit as 'piece' | 'kg' | 'meter' | 'set' | 'mm') ?? 'piece',
-			taxType: p.tax?.type ?? 'VAT',
-			taxValue: p.tax?.value ?? 19,
-			supplierId: p.supplierId ?? '',
-			warehouse: p.location?.warehouse ?? '',
-			shelf: p.location?.shelf ?? '',
-			color: p.attributes?.color ?? '',
-			size: p.attributes?.size ?? '',
-			weight: p.attributes?.weight ?? '',
-			length: p.attributes?.length ?? '',
-			width: p.attributes?.width ?? '',
-			height: p.attributes?.height ?? '',
-			status: p.status ?? 'active',
-			description: p.description ?? '',
-		})
-		setEditingId(p.id)
-		setFeedback('')
-		onOpen()
-	}
-
-	const handleClose = () => {
-		setForm(EMPTY_FORM)
-		setEditingId(null)
-		setFeedback('')
-		onClose()
-	}
-
-	const handleChange = (field: string, value: any) => {
-		setForm(prev => ({ ...prev, [field]: value }))
-	}
 
 	// const handleSubmit = async () => {
 	// 	try {
@@ -252,14 +258,6 @@ const ProductsPage = () => {
 	// 	}
 	// }
 
-	const handleDelete = async (id: string) => {
-		try {
-			await deleteProduct(id).unwrap()
-		} catch {
-			// silently ignore
-		}
-	}
-
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
@@ -290,6 +288,19 @@ const ProductsPage = () => {
 			</HStack>
 
 			{isGetProductsInProgress && <Spinner />}
+
+			<Box sx={styles.divider} />
+
+			<Filters
+				filters={productFilters}
+				onApplyFilters={handleApplyFilters}
+				onResetFilters={handleResetFilters}
+				supplierOptions={supplierOptions}
+				brandOptions={brandOptions}
+				stateOptions={stateOptions}
+				categoryOptions={categoryOptions}
+				showSupplierFilter={isOwnerOrAdmin}
+			/>
 
 			{!isGetProductsInProgress && products.length === 0 && (
 				<Text color="gray.500">{t('components.product.noProducts')}</Text>
@@ -367,6 +378,28 @@ const ProductsPage = () => {
 				products={products as Product[]}
 				isLoading={isLoading || isFetching}
 			/>
+
+			{!isGetProductsInProgress && totalPages > 1 && (
+				<HStack justify="center" mt="2rem" gap="1rem">
+					<Button
+						onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+						isDisabled={currentPage === 0}
+						size="sm"
+					>
+						← Previous
+					</Button>
+					<Text fontSize="sm">
+						Page {currentPage + 1} of {totalPages}
+					</Text>
+					<Button
+						onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+						isDisabled={currentPage >= totalPages - 1}
+						size="sm"
+					>
+						Next →
+					</Button>
+				</HStack>
+			)}
 
 			{/* <Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
 				<ModalOverlay />

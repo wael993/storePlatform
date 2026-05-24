@@ -22,6 +22,40 @@ import { LoginData } from '../shared/types/api'
 import { config } from '../config/config'
 // import { loginRateLimiter, refreshRateLimiter } from '../middleware/rateLimiter'
 
+type ProductFilterQuery = {
+	searchText?: string
+	supplier?: string[]
+	brand?: string[]
+	state?: string[]
+	category?: string[]
+}
+
+type ProductPaginationQuery = {
+	limit?: number
+	offset?: number
+}
+
+const parseArrayQueryParam = (value: unknown): string[] | undefined => {
+	if (typeof value !== 'string') {
+		return undefined
+	}
+
+	const values = value
+		.split(',')
+		.map(item => item.trim())
+		.filter(Boolean)
+
+	return values.length > 0 ? values : undefined
+}
+
+const parseNumberQueryParam = (value: unknown): number | undefined => {
+	if (typeof value !== 'string') {
+		return undefined
+	}
+	const num = parseInt(value, 10)
+	return isNaN(num) ? undefined : num
+}
+
 export default class StoreRoutes extends PlatformValidator {
 	private startTime = 0
 	private readonly baseRoute = '/api/data'
@@ -519,9 +553,28 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+		const productFilterQuery: ProductFilterQuery = {
+			searchText:
+				typeof request.query.searchText === 'string'
+					? request.query.searchText.trim() || undefined
+					: undefined,
+			supplier: parseArrayQueryParam(request.query.supplier),
+			brand: parseArrayQueryParam(request.query.brand),
+			state: parseArrayQueryParam(request.query.state),
+			category: parseArrayQueryParam(request.query.category),
+		}
+
+		const paginationQuery: ProductPaginationQuery = {
+			limit: parseNumberQueryParam(request.query.limit) || 20,
+			offset: parseNumberQueryParam(request.query.offset) || 0,
+		}
 
 		try {
-			const resp = await this.productController.getProducts(requestContext)
+			const resp = await this.productController.getProducts(
+				requestContext,
+				productFilterQuery,
+				paginationQuery,
+			)
 			console.log('🚀 ~ StoreRoutes ~ getProducts ~ resp:', resp)
 
 			response.status(200).json(resp)

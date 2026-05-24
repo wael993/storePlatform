@@ -68,6 +68,14 @@ type TokenPayload = {
 	tokenVersion: number
 }
 
+type ProductFilterQuery = {
+	searchText?: string
+	supplier?: string[]
+	brand?: string[]
+	state?: string[]
+	category?: string[]
+}
+
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -151,6 +159,21 @@ export default class ProductController {
 
 	private hashToken(token: string): string {
 		return crypto.createHash('sha256').update(token).digest('hex')
+	}
+
+	private escapeRegex(value: string): string {
+		return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+	}
+
+	private buildCaseInsensitiveRegexList(values?: string[]): RegExp[] {
+		if (!values || values.length === 0) {
+			return []
+		}
+
+		return values
+			.map(value => value.trim())
+			.filter(Boolean)
+			.map(value => new RegExp(`^${this.escapeRegex(value)}$`, 'i'))
 	}
 
 	private normalizeOptionalNumberField(
@@ -730,34 +753,119 @@ export default class ProductController {
 		return { sessionsRevoked: result.deletedCount }
 	}
 
-	public async getProducts(requestContext: RequestContext) {
+	public async getProducts(
+		requestContext: RequestContext,
+		filters: ProductFilterQuery = {},
+		pagination?: { limit?: number; offset?: number },
+	) {
 		const tenantId = this.getTenantId(requestContext)
+		const limit = pagination?.limit || 20
+		const offset = pagination?.offset || 0
+
+		const hasFilters =
+			Boolean(filters.searchText?.trim()) ||
+			Boolean(filters.supplier?.length) ||
+			Boolean(filters.brand?.length) ||
+			Boolean(filters.state?.length) ||
+			Boolean(filters.category?.length)
 		const cacheKey = redisCache.buildProductListKey(tenantId)
-		const cachedProducts =
-			await redisCache.getJson<ProductRequestBody[]>(cacheKey)
-		if (cachedProducts) {
-			return cachedProducts
+
+		if (!hasFilters) {
+			const cachedProducts =
+				await redisCache.getJson<ProductRequestBody[]>(cacheKey)
+			if (cachedProducts) {
+				const paginatedCached = cachedProducts.slice(offset, offset + limit)
+				return {
+					products: paginatedCached,
+					totalCount: cachedProducts.length,
+				}
+			}
 		}
 
-		const products = await this.mongoDbClient.listDocuments<ProductAPI>(
-			requestContext,
-			'products',
-			Product,
-			{ name: 1 },
+		const searchText = filters.searchText?.trim()
+		const supplierRegexList = this.buildCaseInsensitiveRegexList(
+			filters.supplier,
 		)
+		const brandRegexList = this.buildCaseInsensitiveRegexList(filters.brand)
+		const categoryRegexList = this.buildCaseInsensitiveRegexList(
+			filters.category,
+		)
+		const stateFilterSet = new Set(
+			(filters.state ?? []).map(state => state.trim()),
+		)
+
+		const productQueryClauses: Record<string, unknown>[] = []
+
+		if (searchText) {
+			const searchRegex = new RegExp(this.escapeRegex(searchText), 'i')
+			productQueryClauses.push({
+				$or: [
+					{ name: searchRegex },
+					{ id: searchRegex },
+					{ productId: searchRegex },
+					{ barcode: searchRegex },
+				],
+			})
+		}
+
+		if (supplierRegexList.length > 0) {
+			productQueryClauses.push({
+				$or: [
+					{ supplierId: { $in: supplierRegexList } },
+					{ supplierName: { $in: supplierRegexList } },
+				],
+			})
+		}
+
+		if (brandRegexList.length > 0) {
+			productQueryClauses.push({
+				$or: [
+					{ brandId: { $in: brandRegexList } },
+					{ brandName: { $in: brandRegexList } },
+				],
+			})
+		}
+
+		if (categoryRegexList.length > 0) {
+			productQueryClauses.push({
+				$or: [
+					{ categoryId: { $in: categoryRegexList } },
+					{ categoryName: { $in: categoryRegexList } },
+				],
+			})
+		}
+
+		const mongoQuery =
+			productQueryClauses.length > 0 ? { $and: productQueryClauses } : {}
+
+		const products = await withTenantScope(
+			Product.find(mongoQuery).sort({ name: 1 }),
+			tenantId,
+		).lean<ProductAPI[]>()
 
 		const mappedProducts = products
 			?.map(product => this.productsMapper.mapProduct(product, requestContext))
 			.filter(Boolean) as ProductRequestBody[]
 
+		const filteredProductsByState =
+			stateFilterSet.size > 0
+				? mappedProducts.filter(product => stateFilterSet.has(product.state))
+				: mappedProducts
+
+		const totalCount = filteredProductsByState.length
+		const paginatedProducts = filteredProductsByState.slice(
+			offset,
+			offset + limit,
+		)
+
 		logger.debug(
-			`Finally ${mappedProducts.length} products after mappings and filters.`,
+			`Finally ${paginatedProducts.length} products (of ${totalCount} total) after mappings and filters. Page: offset=${offset}, limit=${limit}`,
 			{
 				entity: EntityType.PRODUCTS,
 			},
 		)
 
-		if (config.redis.enabled) {
+		if (config.redis.enabled && !hasFilters) {
 			logger.debug('Caching product list in Redis', {
 				entity: EntityType.CACHE,
 				tenantId,
@@ -766,7 +874,10 @@ export default class ProductController {
 			// await redisCache.setJson(cacheKey, mappedProducts)
 		}
 
-		return mappedProducts
+		return {
+			products: paginatedProducts,
+			totalCount,
+		}
 	}
 
 	public async getProduct(

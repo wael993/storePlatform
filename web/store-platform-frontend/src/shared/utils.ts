@@ -21,6 +21,7 @@ export const getEnabledActions = () => {
 		isOrdersEnabled: enabledActions.has('ORDERS'),
 		isInvoicesEnabled: enabledActions.has('INVOICE'),
 		isUsersEnabled: enabledActions.has('USERS'),
+		isSettingsEnabled: enabledActions.has('SETTINGS'),
 		isChangePasswordEnabled: enabledActions.has('CHANGE_PASSWORD'),
 	}
 }
@@ -36,6 +37,7 @@ export const getTenantActions = () => {
 		isTenantOrdersEnabled: enabledTenantActions.has('ORDERS'),
 		isTenantInvoicesEnabled: enabledTenantActions.has('INVOICE'),
 		isTenantUsersEnabled: enabledTenantActions.has('USERS'),
+		isTenantSettingsEnabled: enabledTenantActions.has('SETTINGS'),
 		isTenantChangePasswordEnabled: enabledTenantActions.has('CHANGE_PASSWORD'),
 	}
 }

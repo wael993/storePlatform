@@ -16,6 +16,7 @@ import TenantsList from './pages/TenantsList'
 import ProductsPage from './pages/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
 import InvoicesPage from './pages/InvoicesPage'
+import SettingsPage from './pages/SettingsPage'
 import { useAuth } from './shared/hooks/useAuth'
 import { useUser } from './shared/hooks/useUser'
 import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
@@ -56,6 +57,7 @@ const App = () => {
 		isOrdersEnabled,
 		isInvoicesEnabled,
 		isUsersEnabled,
+		isSettingsEnabled,
 	} = getEnabledActions()
 
 	const {
@@ -66,6 +68,7 @@ const App = () => {
 		isTenantOrdersEnabled,
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
+		isTenantSettingsEnabled,
 	} = getTenantActions()
 
 	return (
@@ -102,6 +105,9 @@ const App = () => {
 						)}
 						{isInvoicesEnabled && isTenantInvoicesEnabled && (
 							<Route path={RoutePaths.INVOICES} element={<InvoicesPage />} />
+						)}
+						{isSettingsEnabled && isTenantSettingsEnabled && (
+							<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />
 						)}
 					</Route>
 				</Route>

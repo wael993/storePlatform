@@ -1,5 +1,14 @@
 {
 	"components": {
+		"modal": {
+			"filterModal": {
+				"selectFiltersInfoInternal": "Please select at least one of the required filters to continue.",
+				"selectDateFiltersInfoInternal": "Please select the year or start and end date to continue.",
+				"selectFiltersInfoExternal": "Please select at least the year or start and end date to continue.",
+				"dateToMissingWarning": "Please select the end date to continue.",
+				"dateFromMissingWarning": "Please select the start date to continue."
+			}
+		},
 		"product": {
 			"states": {
 				"discontinued": "Discontinued",
@@ -12,10 +21,16 @@
 			"noProducts": "No products found"
 		},
 		"list": {
-			"preferredBrand": "preferredBrand"
+			"preferredBrand": "preferred Brand"
+		},
+		"filters": {
+			"clearFilters": "Clear Filters",
+			"filter": "Filters",
+			"saveFilterPreset": "Save Filter preset"
 		}
 	},
 	"common": {
+		"showResults": "Show Results",
 		"addProduct": "Add Product",
 		"productName": "Product Name",
 		"barcode": "Barcode",

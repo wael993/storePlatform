@@ -19,6 +19,57 @@ interface EditProductQueryArgument {
 	body: Partial<Omit<Product, 'id' | 'productId'>>
 }
 
+export interface ProductFiltersQueryParams {
+	searchText?: string
+	supplier?: string[]
+	brand?: string[]
+	state?: string[]
+	category?: string[]
+}
+
+export interface ProductPaginationParams {
+	limit?: number
+	offset?: number
+}
+
+export interface ProductsResponse {
+	products: Product[]
+	totalCount: number
+}
+
+const buildProductFilterQueryParams = (
+	filters: ProductFiltersQueryParams,
+	pagination?: ProductPaginationParams,
+): Record<string, string | number> => {
+	const params: Record<string, string | number> = {}
+
+	const setArrayParam = (key: string, values?: string[]) => {
+		if (!values || values.length === 0) return
+		const normalizedValues = values.map(value => value.trim()).filter(Boolean)
+		if (normalizedValues.length === 0) return
+		params[key] = normalizedValues.join(',')
+	}
+
+	const normalizedSearchText = filters.searchText?.trim()
+	if (normalizedSearchText) {
+		params.searchText = normalizedSearchText
+	}
+
+	setArrayParam('supplier', filters.supplier)
+	setArrayParam('brand', filters.brand)
+	setArrayParam('state', filters.state)
+	setArrayParam('category', filters.category)
+
+	if (pagination?.limit !== undefined) {
+		params.limit = pagination.limit
+	}
+	if (pagination?.offset !== undefined) {
+		params.offset = pagination.offset
+	}
+
+	return params
+}
+
 const persistenceBaseQuery = fetchBaseQuery({
 	baseUrl: `${config.endpoints.persistenceServiceEndpoint}`,
 	credentials: 'include',
@@ -37,13 +88,21 @@ const getQuery = (
 	>,
 ) => {
 	return {
-		getProducts: builder.query({
-			query: () => {
+		getProducts: builder.query<
+			ProductsResponse,
+			ProductFiltersQueryParams & ProductPaginationParams
+		>({
+			query: (args = {}) => {
+				const { limit, offset, ...filters } = args
 				return {
 					url: 'products',
+					params: buildProductFilterQueryParams(
+						filters as ProductFiltersQueryParams,
+						{ limit, offset },
+					),
 				}
 			},
-			transformResponse: (response: Product[]) => {
+			transformResponse: (response: ProductsResponse) => {
 				return response
 			},
 			providesTags: ['products'],

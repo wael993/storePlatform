@@ -9,6 +9,7 @@ import {
 	Text,
 } from '@chakra-ui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { RoutePaths } from '../shared/routes'
 import { AsBellIcon } from '../icons/Bell'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 
@@ -117,9 +118,7 @@ const TopBar = ({ navItems }: TopBarProps) => {
 						aria-label="Settings"
 						icon={<SettingsIcon boxSize={4} />}
 						sx={styles.iconButton}
-						onClick={e => {
-							e.stopPropagation()
-						}}
+						onClick={() => navigate(RoutePaths.SETTINGS)}
 					/>
 					<IconButton
 						aria-label="Menu"

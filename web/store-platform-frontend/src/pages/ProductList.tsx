@@ -2,7 +2,8 @@ import { Box, VStack, Text, HStack, Button, Spinner } from '@chakra-ui/react'
 import { useGetProductsQuery } from '../api/apiStore'
 
 const ProductList = ({ addToCart }: { addToCart: (p: Product) => void }) => {
-	const { data: products = [], isFetching, error } = useGetProductsQuery({})
+	const { data: response, isFetching, error } = useGetProductsQuery({})
+	const products = response?.products ?? []
 
 	return (
 		<Box>
