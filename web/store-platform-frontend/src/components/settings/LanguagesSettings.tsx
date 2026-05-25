@@ -28,8 +28,8 @@ const LanguagesSettings = ({
 				</FormLabel>
 				<RadioGroup value={displayLanguage} onChange={handleLanguageChange}>
 					<Stack spacing={3}>
-						<Radio value="en">English</Radio>
-						<Radio value="de">German (Deutsch)</Radio>
+						<Radio value="en">{t('components.settingsTabs.english')}</Radio>
+						<Radio value="de">{t('components.settingsTabs.german')}</Radio>
 					</Stack>
 				</RadioGroup>
 			</FormControl>

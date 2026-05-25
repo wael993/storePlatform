@@ -1,0 +1,94 @@
+{
+	"settings": {
+		"updateSuccessMessage": "Einstellungen erfolgreich aktualisiert.",
+		"updateFailedMessage": "Einstellungen konnten nicht aktualisiert werden."
+	},
+	"components": {
+		"activitySettingsSection": {
+			"title": "Produkte pro Seite",
+			"note": "Konfigurieren Sie hier Ihre zählerbezogenen Einstellungen."
+		},
+		"settings": {
+			"title": "Einstellungen",
+			"saveSettings": "Einstellungen speichern"
+		},
+		"settingsTabs": {
+			"product": "Produkt",
+			"language": "Sprache",
+			"displayLanguage": "Anzeigesprache",
+			"english": "Englisch",
+			"german": "Deutsch"
+		},
+		"productsSettings": {
+			"productsPerPage": "Produkte pro Seite",
+			"twentyPerPage": "20 Produkte pro Seite",
+			"hundredPerPage": "100 Produkte pro Seite",
+			"showAllProducts": "Alle Produkte anzeigen"
+		},
+		"modal": {
+			"filterModal": {
+				"selectFiltersInfoInternal": "Bitte wählen Sie mindestens einen der erforderlichen Filter aus, um fortzufahren.",
+				"selectDateFiltersInfoInternal": "Bitte wählen Sie das Jahr oder Start- und Enddatum aus, um fortzufahren.",
+				"selectFiltersInfoExternal": "Bitte wählen Sie mindestens das Jahr oder Start- und Enddatum aus, um fortzufahren.",
+				"dateToMissingWarning": "Bitte wählen Sie das Enddatum aus, um fortzufahren.",
+				"dateFromMissingWarning": "Bitte wählen Sie das Startdatum aus, um fortzufahren."
+			}
+		},
+		"product": {
+			"states": {
+				"discontinued": "Eingestellt",
+				"readyForRestock": "Bereit zur Nachbestellung",
+				"active": "Aktiv",
+				"draft": "Entwurf",
+				"inactive": "Inaktiv",
+				"outOfStock": "Nicht auf Lager"
+			},
+			"noProducts": "Keine Produkte gefunden"
+		},
+		"list": {
+			"preferredBrand": "bevorzugte Marke"
+		},
+		"filters": {
+			"clearFilters": "Filter löschen",
+			"filter": "Filter",
+			"saveFilterPreset": "Filter-Preset speichern",
+			"supplier": "Lieferant",
+			"category": "Kategorie",
+			"state": "Status",
+			"brand": "Marke"
+		}
+	},
+	"common": {
+		"noOptions": "Keine Optionen",
+		"inputSearch": "Suchen...",
+		"showResults": "Ergebnisse anzeigen",
+		"addProduct": "Produkt hinzufügen",
+		"productName": "Produktname",
+		"barcode": "Barcode",
+		"brand": "Markenname",
+		"category": "Kategoriename",
+		"buyCost": "Einkaufspreis",
+		"sellPrice": "Verkaufspreis",
+		"stockQuantity": "Lagerbestand",
+		"stockMinQuantity": "Minimale Lagerbestandsmenge",
+		"supplierName": "Lieferantenname",
+		"locationWarehouse": "Lagerort",
+		"locationShelf": "Regal",
+		"startDate": "Startdatum",
+		"status": "Status",
+		"selected": "ausgewählt",
+		"buttonText": "Erforderliches Dokument hinzufügen",
+		"name": "Dokumentname",
+		"namePlaceholder": "Dokumentnamen eingeben",
+		"deadline": "Frist",
+		"cancel": "Abbrechen",
+		"save": "Speichern",
+		"reject": "Ablehnen",
+		"accept": "Akzeptieren",
+		"priceSell": "Verkaufspreis",
+		"discount": "Rabatt",
+		"addDiscount": "Rabatt hinzufügen",
+		"color": "Farbe",
+		"createdAt": "Erstellt am"
+	}
+}

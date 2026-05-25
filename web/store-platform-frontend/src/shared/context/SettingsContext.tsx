@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useGetUserSettingsQuery } from '../../api/apiStore'
+import i18n from '../../i18n'
 
 interface SettingsContextType {
 	productsPerPage: number
@@ -28,6 +29,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (userSettings) {
 			setProductsPerPageState(userSettings.productsPerPage || 20)
 			setDisplayLanguageState(userSettings.displayLanguage || 'en')
+			if (i18n.resolvedLanguage !== userSettings.displayLanguage) {
+				void i18n.changeLanguage(userSettings.displayLanguage || 'en')
+			}
 		}
 	}, [userSettings])
 

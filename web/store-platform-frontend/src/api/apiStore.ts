@@ -334,6 +334,7 @@ const getQuery = (
 				url: 'user-settings',
 				method: 'GET',
 			}),
+			providesTags: ['user-settings'],
 		}),
 		updateUserSettings: builder.mutation<
 			UserSettings,
@@ -344,7 +345,7 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: [],
+			invalidatesTags: ['user-settings'],
 		}),
 	}
 }

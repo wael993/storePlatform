@@ -31,9 +31,15 @@ const ProductsSettings = ({
 					onChange={handleProductsPerPageChange}
 				>
 					<Stack spacing={3}>
-						<Radio value="20">20 products per page</Radio>
-						<Radio value="100">100 products per page</Radio>
-						<Radio value="all">Show all products</Radio>
+						<Radio value="20">
+							{t('components.productsSettings.twentyPerPage')}
+						</Radio>
+						<Radio value="100">
+							{t('components.productsSettings.hundredPerPage')}
+						</Radio>
+						<Radio value="all">
+							{t('components.productsSettings.showAllProducts')}
+						</Radio>
 					</Stack>
 				</RadioGroup>
 			</FormControl>

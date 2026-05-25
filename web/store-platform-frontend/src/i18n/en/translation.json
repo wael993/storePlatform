@@ -1,4 +1,8 @@
 {
+	"settings": {
+		"updateSuccessMessage": "Settings updated successfully.",
+		"updateFailedMessage": "Failed to update settings."
+	},
 	"components": {
 		"activitySettingsSection": {
 			"title": "Product Per page",
@@ -10,7 +14,16 @@
 		},
 		"settingsTabs": {
 			"product": "Product",
-			"language": "Language"
+			"language": "Language",
+			"displayLanguage": "Display Language",
+			"english": "English",
+			"german": "German"
+		},
+		"productsSettings": {
+			"productsPerPage": "Products Per Page",
+			"twentyPerPage": "20 products per page",
+			"hundredPerPage": "100 products per page",
+			"showAllProducts": "Show all products"
 		},
 		"modal": {
 			"filterModal": {

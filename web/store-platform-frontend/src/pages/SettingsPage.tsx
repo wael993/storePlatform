@@ -108,7 +108,6 @@ const SettingsPage = () => {
 	const handleLanguageChange = (value: string) => {
 		const selectedLanguage = value === 'de' ? 'de' : 'en'
 		setDisplayLanguage(selectedLanguage)
-		void i18n.changeLanguage(selectedLanguage)
 	}
 
 	const handleTabsChange = (index: number) => {
@@ -131,14 +130,13 @@ const SettingsPage = () => {
 				displayLanguage,
 			}).unwrap()
 
+			void i18n.changeLanguage(displayLanguage)
+
 			setHasChanges(false)
 			showToastMessage({
 				status: 'success',
 				description: t('settings.updateSuccessMessage'),
 			})
-
-			// Close the settings page after successful save
-			onClose()
 		} catch (error: any) {
 			console.error('Error saving settings:', error)
 			showToastMessage({
