@@ -1,8 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { useGetUserSettingsQuery } from '../../api/apiStore'
 
 interface SettingsContextType {
 	productsPerPage: number
 	setProductsPerPage: (value: number) => void
+	displayLanguage: 'en' | 'de'
+	setDisplayLanguage: (value: 'en' | 'de') => void
+	isLoading: boolean
+	hasChanges: boolean
+	setHasChanges: (value: boolean) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -12,26 +18,41 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
+	const { data: userSettings, isLoading } = useGetUserSettingsQuery()
 	const [productsPerPage, setProductsPerPageState] = useState<number>(20)
+	const [displayLanguage, setDisplayLanguageState] = useState<'en' | 'de'>('en')
+	const [hasChanges, setHasChanges] = useState(false)
 
-	// Load from localStorage on mount
+	// Initialize from fetched settings
 	useEffect(() => {
-		const saved = localStorage.getItem('productsPerPage')
-		if (saved) {
-			const value = parseInt(saved, 10)
-			if (!isNaN(value)) {
-				setProductsPerPageState(value)
-			}
+		if (userSettings) {
+			setProductsPerPageState(userSettings.productsPerPage || 20)
+			setDisplayLanguageState(userSettings.displayLanguage || 'en')
 		}
-	}, [])
+	}, [userSettings])
 
 	const setProductsPerPage = (value: number) => {
 		setProductsPerPageState(value)
-		localStorage.setItem('productsPerPage', value.toString())
+		setHasChanges(true)
+	}
+
+	const setDisplayLanguage = (value: 'en' | 'de') => {
+		setDisplayLanguageState(value)
+		setHasChanges(true)
 	}
 
 	return (
-		<SettingsContext.Provider value={{ productsPerPage, setProductsPerPage }}>
+		<SettingsContext.Provider
+			value={{
+				productsPerPage,
+				setProductsPerPage,
+				displayLanguage,
+				setDisplayLanguage,
+				isLoading,
+				hasChanges,
+				setHasChanges,
+			}}
+		>
 			{children}
 		</SettingsContext.Provider>
 	)

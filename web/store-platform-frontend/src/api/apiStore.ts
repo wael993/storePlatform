@@ -19,6 +19,16 @@ interface EditProductQueryArgument {
 	body: Partial<Omit<Product, 'id' | 'productId'>>
 }
 
+export interface UserSettings {
+	_id?: string
+	tenantId: string
+	userId: string
+	productsPerPage: number
+	displayLanguage: 'en' | 'de'
+	createdAt?: string
+	updatedAt?: string
+}
+
 export interface ProductFiltersQueryParams {
 	searchText?: string
 	supplier?: string[]
@@ -319,6 +329,23 @@ const getQuery = (
 				body,
 			}),
 		}),
+		getUserSettings: builder.query<UserSettings, void>({
+			query: () => ({
+				url: 'user-settings',
+				method: 'GET',
+			}),
+		}),
+		updateUserSettings: builder.mutation<
+			UserSettings,
+			Partial<Omit<UserSettings, 'tenantId' | 'userId' | '_id'>>
+		>({
+			query: body => ({
+				url: 'user-settings',
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: [],
+		}),
 	}
 }
 
@@ -348,4 +375,6 @@ export const {
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
 	useChangePasswordMutation,
+	useGetUserSettingsQuery,
+	useUpdateUserSettingsMutation,
 } = storeApi

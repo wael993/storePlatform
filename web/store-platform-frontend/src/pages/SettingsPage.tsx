@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-	Box,
 	Flex,
 	Heading,
 	Tab,
@@ -8,108 +7,222 @@ import {
 	TabPanel,
 	TabPanels,
 	Tabs,
-	VStack,
-	FormControl,
-	FormLabel,
-	RadioGroup,
-	Stack,
-	Radio,
+	Icon,
+	Text,
+	Divider,
 } from '@chakra-ui/react'
 import { useSettings } from '../shared/context/SettingsContext'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
-import { generateBreadcrumbs } from '../shared/routes'
+import { fullPaths, generateBreadcrumbs } from '../shared/routes'
+import i18n from '../i18n'
+import { useTranslation } from 'react-i18next'
+import { AsCloseIcon } from '../components/icons/Close'
+import { useNavigate } from 'react-router-dom'
+import ProductsSettings from '../components/settings/ProductsSettings'
+import LanguagesSettings from '../components/settings/LanguagesSettings'
+import SettingActions from '../components/settings/SettingActions'
+import useCustomToast from '../components/common/CustomToast'
+import { useUpdateUserSettingsMutation } from '../api/apiStore'
+
+enum StepKeys {
+	product = 0,
+	Language = 1,
+	SpaceAndLocation = 2,
+}
 
 const styles = {
 	wrapper: {
-		width: '100%',
 		flexDir: 'column',
-		paddingBottom: '2rem',
 	},
-	header: {
+	topbarWrapper: {
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
+	topbarContainer: {
 		flexDir: 'column',
-		width: '100%',
-		paddingX: '1rem',
 	},
-	title: {
+	titleHeader: {
+		color: '#333333',
+		fontSize: '1.25rem',
+		fontWeight: '700',
+		pt: '0.4rem',
+		pb: '1.5rem',
+	},
+	divider: {
+		borderBottom: '2px solid #ECECEC',
+		marginRight: '0.5rem',
+		width: '100%',
+		mb: '1.5rem',
+	},
+	icon: {
 		fontSize: '1.5rem',
+		color: '6F6F6F',
+	},
+	closeButtonWrapper: {
+		cursor: 'pointer',
+		alignItems: 'center',
+	},
+	tabs: { width: '100%' },
+	tabList: { width: '100%', borderBottom: '2px solid #DADADA' },
+	tab: {
+		paddingTop: '0.3rem',
+		paddingBottom: '0',
+		justifyContent: 'left',
+		mb: '-2px',
+	},
+	subHeaderDescription: {
 		fontWeight: 700,
-		marginTop: '0.4rem',
-		marginBottom: '2rem',
+		color: '#939596',
+		fontSize: '0.875rem',
 	},
-	tabsContainer: {
-		width: '100%',
-		paddingX: '1rem',
-	},
-	content: {
+	contentWrapper: {
 		paddingX: '2rem',
 		paddingY: '2rem',
+		width: '100%',
 	},
 } satisfies StylesObject
 
 const SettingsPage = () => {
-	const { productsPerPage, setProductsPerPage } = useSettings()
-	const [selectedTab, setSelectedTab] = useState(0)
+	const {
+		productsPerPage,
+		setProductsPerPage,
+		displayLanguage,
+		setDisplayLanguage,
+		hasChanges,
+		setHasChanges,
+	} = useSettings()
+	const [currentTabIndex, setCurrentTabIndex] = useState<number>(0)
 	const breadCrumbItems = generateBreadcrumbs()
+	const { t } = useTranslation()
+	const navigate = useNavigate()
+	const showToastMessage = useCustomToast()
+	const [updateUserSettings, { isLoading: isSaveInProgress }] =
+		useUpdateUserSettingsMutation()
 
 	const handleProductsPerPageChange = (value: string) => {
 		const numValue = value === 'all' ? 1000 : parseInt(value, 10)
 		setProductsPerPage(numValue)
 	}
 
+	const handleLanguageChange = (value: string) => {
+		const selectedLanguage = value === 'de' ? 'de' : 'en'
+		setDisplayLanguage(selectedLanguage)
+		void i18n.changeLanguage(selectedLanguage)
+	}
+
+	const handleTabsChange = (index: number) => {
+		setCurrentTabIndex(index)
+	}
+
+	const onClose = () => {
+		if (window.history.state && window.history.length > 1) {
+			navigate(-1)
+			return
+		}
+
+		navigate(fullPaths.PRODUCTS)
+	}
+
+	const onSaveSettings = async () => {
+		try {
+			await updateUserSettings({
+				productsPerPage,
+				displayLanguage,
+			}).unwrap()
+
+			setHasChanges(false)
+			showToastMessage({
+				status: 'success',
+				description: t('settings.updateSuccessMessage'),
+			})
+
+			// Close the settings page after successful save
+			onClose()
+		} catch (error: any) {
+			console.error('Error saving settings:', error)
+			showToastMessage({
+				status: 'error',
+				description: t('settings.updateFailedMessage'),
+			})
+		}
+	}
+
+	const getTabTextStyle = (tabIndex: number) => {
+		return {
+			...styles.subHeaderDescription,
+			color: `${currentTabIndex === tabIndex ? '#376288' : '#939596'}`,
+		}
+	}
+
+	const getTabStyle = (tabIndex: number) => {
+		return {
+			...styles.tab,
+			borderBottom: `2px solid ${
+				currentTabIndex === tabIndex ? '#376288' : '#DADADA'
+			}`,
+		}
+	}
+
 	return (
 		<Flex sx={styles.wrapper}>
-			<Flex sx={styles.header}>
-				<CustomBreadcrumb
-					marginTop="2rem"
-					items={breadCrumbItems[BreadCrumbItem.PRODUCTS]}
-				/>
+			<Flex sx={styles.topbarWrapper}>
+				<Flex sx={styles.topbarContainer}>
+					<CustomBreadcrumb
+						marginTop="2rem"
+						items={breadCrumbItems[BreadCrumbItem.SETTINGS]}
+					/>
+					<Heading sx={styles.titleHeader}>
+						{t('components.settings.title')}
+					</Heading>
+				</Flex>
+				<Flex sx={styles.closeButtonWrapper}>
+					<Icon sx={styles.icon} as={AsCloseIcon} onClick={onClose} />
+				</Flex>
 			</Flex>
 
-			<Heading sx={styles.title} variant="h5">
-				Settings
-			</Heading>
+			<Tabs
+				index={currentTabIndex}
+				onChange={handleTabsChange}
+				variant="unstyled"
+				sx={styles.tabs}
+			>
+				<TabList sx={styles.tabList}>
+					<Tab sx={getTabStyle(StepKeys.product)}>
+						<Text sx={getTabTextStyle(StepKeys.product)}>
+							{t('components.settingsTabs.product')}
+						</Text>
+					</Tab>
+					<Tab sx={getTabStyle(StepKeys.Language)}>
+						<Text sx={getTabTextStyle(StepKeys.Language)}>
+							{t('components.settingsTabs.language')}
+						</Text>
+					</Tab>
+				</TabList>
+				<Divider sx={styles.divider} />
 
-			<Box sx={styles.tabsContainer}>
-				<Tabs
-					index={selectedTab}
-					onChange={setSelectedTab}
-					variant="soft-rounded"
-					colorScheme="blue"
-				>
-					<TabList borderBottom="2px solid #EAEAEA" pb={0} mb={0}>
-						<Tab>Products</Tab>
-						{/* Future tabs can be added here */}
-					</TabList>
+				<TabPanels>
+					<TabPanel sx={styles.contentWrapper}>
+						<ProductsSettings
+							productsPerPage={productsPerPage}
+							handleProductsPerPageChange={handleProductsPerPageChange}
+						/>
+					</TabPanel>
 
-					<TabPanels>
-						{/* Products Tab */}
-						<TabPanel sx={styles.content}>
-							<VStack align="stretch" spacing={6}>
-								<FormControl>
-									<FormLabel fontWeight={600} mb={4}>
-										Products Per Page
-									</FormLabel>
-									<RadioGroup
-										value={
-											productsPerPage === 1000
-												? 'all'
-												: productsPerPage.toString()
-										}
-										onChange={handleProductsPerPageChange}
-									>
-										<Stack spacing={3}>
-											<Radio value="20">20 products per page</Radio>
-											<Radio value="100">100 products per page</Radio>
-											<Radio value="all">Show all products</Radio>
-										</Stack>
-									</RadioGroup>
-								</FormControl>
-							</VStack>
-						</TabPanel>
-					</TabPanels>
-				</Tabs>
-			</Box>
+					<TabPanel sx={styles.contentWrapper}>
+						<LanguagesSettings
+							displayLanguage={displayLanguage}
+							handleLanguageChange={handleLanguageChange}
+						/>
+					</TabPanel>
+				</TabPanels>
+			</Tabs>
+
+			<SettingActions
+				isSaveDisabled={!hasChanges}
+				isSaveInProgress={isSaveInProgress}
+				onSaveSettings={onSaveSettings}
+			/>
 		</Flex>
 	)
 }

@@ -1,5 +1,17 @@
 {
 	"components": {
+		"activitySettingsSection": {
+			"title": "Product Per page",
+			"note": "Configure your counter related settings here."
+		},
+		"settings": {
+			"title": "Settings",
+			"saveSettings": "Save Settings"
+		},
+		"settingsTabs": {
+			"product": "Product",
+			"language": "Language"
+		},
 		"modal": {
 			"filterModal": {
 				"selectFiltersInfoInternal": "Please select at least one of the required filters to continue.",
@@ -35,7 +47,6 @@
 	},
 	"common": {
 		"noOptions": "No options",
-
 		"inputSearch": "Search...",
 		"showResults": "Show Results",
 		"addProduct": "Add Product",

@@ -409,6 +409,21 @@ export default class StoreRoutes extends PlatformValidator {
 			.route(`${baseRoute}/logout-all`)
 			.post(this.startCalc.bind(this), this.logoutAll.bind(this))
 
+		app
+			.route(`${baseRoute}/user-settings`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getUserSettings.bind(this),
+			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchUserSettings.bind(this),
+			)
+
 		app.get('/test', (req, res) => {
 			res.send('OK')
 		})
@@ -1197,6 +1212,32 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 			)
 			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getUserSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.productController.getUserSettings(request, response)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchUserSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.productController.patchUserSettings(request, response)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {

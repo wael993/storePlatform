@@ -14,6 +14,7 @@ import { Product } from '../models/Products'
 import User, { IUser } from '../models/User'
 import RefreshToken, { IRefreshToken } from '../models/RefreshToken'
 import Tenant, { ITenant } from '../models/Tenant'
+import UserSettings, { IUserSettings } from '../models/UserSettings'
 import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { Inventory } from '../models/Inventory'
@@ -2021,6 +2022,79 @@ export default class ProductController {
 			tenantName: tenant.name,
 			tenantDomain: tenant.domain,
 			ownerUserId: owner.userId,
+		}
+	}
+
+	public async getUserSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const { tenantId, userId } = request.user
+
+			if (!tenantId || !userId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Missing tenantId or userId',
+				)
+			}
+
+			let userSettings = await UserSettings.findOne({
+				tenantId,
+				userId,
+			})
+
+			if (!userSettings) {
+				userSettings = await UserSettings.create({
+					tenantId,
+					userId,
+					productsPerPage: 20,
+					displayLanguage: 'en',
+				})
+			}
+
+			response.status(200).json(userSettings)
+		} catch (error: any) {
+			logger.error('Error fetching user settings', error)
+			throw error
+		}
+	}
+
+	public async patchUserSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const { tenantId, userId } = request.user
+			const { productsPerPage, displayLanguage } = request.body
+
+			if (!tenantId || !userId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Missing tenantId or userId',
+				)
+			}
+
+			const updateData: Partial<IUserSettings> = {}
+
+			if (productsPerPage !== undefined) {
+				updateData.productsPerPage = productsPerPage
+			}
+
+			if (displayLanguage !== undefined) {
+				updateData.displayLanguage = displayLanguage
+			}
+
+			const userSettings = await UserSettings.findOneAndUpdate(
+				{ tenantId, userId },
+				updateData,
+				{ new: true, upsert: true },
+			)
+
+			response.status(200).json(userSettings)
+		} catch (error: any) {
+			logger.error('Error updating user settings', error)
+			throw error
 		}
 	}
 }
