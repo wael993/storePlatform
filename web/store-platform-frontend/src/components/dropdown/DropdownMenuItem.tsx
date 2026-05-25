@@ -4,7 +4,6 @@ import {
 	MenuItem,
 	SystemStyleObject,
 	Tooltip,
-	Text,
 	Icon,
 	Spacer,
 	CloseButton,
@@ -36,9 +35,14 @@ const listItemStyles = {
 		maxHeight: `${DROPDOWN_OPTION_FIXED_HEIGHT_IN_REM}rem`,
 	},
 	statusDot: {
-		borderRadius: '0.625rem',
-		height: '0.375rem',
-		width: '0.375rem',
+		borderRadius: '50%',
+		height: '0.5rem',
+		width: '0.5rem',
+		minW: '0.5rem',
+		minH: '0.5rem',
+		display: 'flex',
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 	optionText: {
 		fontSize: '0.875rem',
@@ -86,12 +90,13 @@ const DropdownMenuItem = memo(
 
 				{option.icon}
 
-				{option.color && (
-					<Text
+				{(option.color || option.stateColor) && (
+					<Flex
 						sx={{
 							...listItemStyles.statusDot,
-							backgroundColor: option.color,
+							backgroundColor: option.stateColor || option.color,
 						}}
+						title={option.stateTitle || undefined}
 					/>
 				)}
 				<CustomTooltip

@@ -95,7 +95,7 @@ type ProductFilterValueSource = {
 	brandName?: string
 	categoryId?: string
 	categoryName?: string
-	state?: string
+	status?: string
 }
 
 export default class ProductController {
@@ -947,7 +947,7 @@ export default class ProductController {
 		const products = await withTenantScope(
 			Product.find({})
 				.select(
-					'supplierId supplierName brandId brandName categoryId categoryName state',
+					'supplierId supplierName brandId brandName categoryId categoryName status',
 				)
 				.lean<ProductFilterValueSource[]>(),
 			tenantId,
@@ -976,7 +976,7 @@ export default class ProductController {
 				product.categoryId || product.categoryName,
 				product.categoryName || product.categoryId,
 			)
-			this.addFilterOption(stateMap, product.state, product.state)
+			this.addFilterOption(stateMap, product.status, product.status)
 		}
 
 		return {
