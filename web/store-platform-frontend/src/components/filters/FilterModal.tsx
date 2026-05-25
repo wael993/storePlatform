@@ -248,31 +248,6 @@ const FilterModal = ({
 									setLocalFilters(prev => ({ ...prev, category }))
 								}
 							/>
-
-							{/* <ConditionalFilterDropdowns
-							// user={user}
-							// displayMode={displayMode}
-							// activityType={activityType}
-							// filterValues={filterValues}
-							// resetFiltersToInitial={resetFiltersToInitial}
-							// isSLLightRole={isSLLightRole}
-							// isPrice={isPrice}
-							// isPromotions={isPromotion}
-							// isSLTicket={isSLTicket}
-							// isComplaint={isComplaint}
-							// priceTicketStatusFilterOptions={priceTicketStatusFilterOptions}
-							// promotionTicketStatusFilterOptions={
-							// 	promotionTicketStatusFilterOptions
-							// }
-							// allTicketsStatusFilterOptions={allTicketsStatusFilterOptions}
-							// rentalStatusFilterOptions={rentalStatusFilterOptions}
-							// ticketTypeFilterOptions={ticketTypeFilterOptions}
-							// slTicketStatusFilterOptions={slTicketStatusFilterOptions}
-							// complaintStatusFilterOptions={complaintStatusFilterOptions}
-							// filtersInitial={filtersInitial}
-							// showWarningBorder={showWarningBorder}
-							// dropdownStyles={styles}
-							/> */}
 						</Grid>
 					</ModalBody>
 					<ModalFooter

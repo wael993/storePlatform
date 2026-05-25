@@ -42,6 +42,8 @@ export interface ProductFilterValueOption {
 	label: string
 }
 
+type ProductFilterParamValue = string | ProductFilterValueOption | null | undefined
+
 export interface ProductFilterValuesResponse {
 	supplier: ProductFilterValueOption[]
 	brand: ProductFilterValueOption[]
@@ -55,9 +57,24 @@ const buildProductFilterQueryParams = (
 ): Record<string, string | number> => {
 	const params: Record<string, string | number> = {}
 
-	const setArrayParam = (key: string, values?: string[]) => {
+	const normalizeFilterValue = (value: ProductFilterParamValue): string => {
+		if (typeof value === 'string') {
+			return value.trim()
+		}
+
+		if (value && typeof value.value === 'string') {
+			return value.value.trim()
+		}
+
+		return ''
+	}
+
+	const setArrayParam = (
+		key: string,
+		values?: Array<ProductFilterParamValue>,
+	) => {
 		if (!values || values.length === 0) return
-		const normalizedValues = values.map(value => value.trim()).filter(Boolean)
+		const normalizedValues = values.map(normalizeFilterValue).filter(Boolean)
 		if (normalizedValues.length === 0) return
 		params[key] = normalizedValues.join(',')
 	}
