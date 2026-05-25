@@ -8,7 +8,7 @@ import {
 	HStack,
 	Flex,
 } from '@chakra-ui/react'
-import { useGetProductsQuery } from '../api/apiStore'
+import { useGetProductsQuery, useGetFilterValuesQuery } from '../api/apiStore'
 import { useSettings } from '../shared/context/SettingsContext'
 import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
 import { useResources } from '../shared/hooks/useResources'
@@ -32,29 +32,6 @@ const EMPTY_PRODUCT_FILTERS: ProductFilterValues = {
 	brand: [],
 	state: [],
 	category: [],
-}
-
-const getUniqueFilterOptions = (
-	products: Product[],
-	getValue: (product: Product) => string | undefined,
-	getLabel?: (product: Product) => string | undefined,
-): FilterSelectOption[] => {
-	const optionsMap = new Map<string, string>()
-
-	products.forEach(product => {
-		const value = getValue(product)
-		if (!value) return
-
-		const trimmedValue = value.trim()
-		if (!trimmedValue) return
-
-		const label = getLabel?.(product)?.trim() || trimmedValue
-		optionsMap.set(trimmedValue, label)
-	})
-
-	return Array.from(optionsMap.entries())
-		.map(([value, label]) => ({ value, label }))
-		.sort((a, b) => a.label.localeCompare(b.label))
 }
 const fullWidth = '100%'
 
@@ -119,6 +96,8 @@ const ProductsPage = () => {
 		offset: currentPage * productsPerPage,
 	})
 
+	const { data: filterValuesResponse } = useGetFilterValuesQuery()
+
 	const products = response?.products ?? []
 	const totalCount = response?.totalCount ?? 0
 	const totalPages = Math.ceil(totalCount / productsPerPage)
@@ -136,47 +115,14 @@ const ProductsPage = () => {
 
 	const isGetProductsInProgress = isLoading || isFetching
 
-	const memoizedProducts = useMemo(
-		() => response?.products ?? [],
-		[response?.products],
-	)
-
-	const supplierOptions = useMemo(
-		() =>
-			getUniqueFilterOptions(
-				memoizedProducts,
-				product => product.supplierId || product.supplierName,
-				product => product.supplierName || product.supplierId,
-			),
-		[memoizedProducts],
-	)
-
-	const brandOptions = useMemo(
-		() =>
-			getUniqueFilterOptions(
-				memoizedProducts,
-				product => product.brandId || product.brandName,
-				product => product.brandName || product.brandId,
-			),
-		[memoizedProducts],
-	)
-
-	const categoryOptions = useMemo(
-		() =>
-			getUniqueFilterOptions(
-				memoizedProducts,
-				product => product.categoryId || product.categoryName,
-				product => product.categoryName || product.categoryId,
-			),
-		[memoizedProducts],
-	)
+	const supplierOptions: FilterSelectOption[] =
+		filterValuesResponse?.supplier ?? []
+	const brandOptions: FilterSelectOption[] = filterValuesResponse?.brand ?? []
+	const categoryOptions: FilterSelectOption[] =
+		filterValuesResponse?.category ?? []
 
 	const stateOptions = useMemo(() => {
-		const baseOptions = getUniqueFilterOptions(
-			memoizedProducts,
-			product => product.state,
-			product => product.state,
-		)
+		const baseOptions = filterValuesResponse?.state ?? []
 
 		return baseOptions.map(option => {
 			const stateConfig =
@@ -188,7 +134,7 @@ const ProductsPage = () => {
 				stateTitle: stateConfig?.translationKey ?? option.label,
 			}
 		})
-	}, [memoizedProducts])
+	}, [filterValuesResponse?.state])
 
 	const openAdd = () => {}
 

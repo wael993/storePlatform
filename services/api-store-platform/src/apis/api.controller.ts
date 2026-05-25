@@ -76,6 +76,28 @@ type ProductFilterQuery = {
 	category?: string[]
 }
 
+type ProductFilterValueOption = {
+	value: string
+	label: string
+}
+
+type ProductFilterValuesResponse = {
+	supplier: ProductFilterValueOption[]
+	brand: ProductFilterValueOption[]
+	state: ProductFilterValueOption[]
+	category: ProductFilterValueOption[]
+}
+
+type ProductFilterValueSource = {
+	supplierId?: string
+	supplierName?: string
+	brandId?: string
+	brandName?: string
+	categoryId?: string
+	categoryName?: string
+	state?: string
+}
+
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -174,6 +196,41 @@ export default class ProductController {
 			.map(value => value.trim())
 			.filter(Boolean)
 			.map(value => new RegExp(`^${this.escapeRegex(value)}$`, 'i'))
+	}
+
+	private normalizeFilterOptionValue(value?: string): string | undefined {
+		const normalizedValue = value?.trim()
+		return normalizedValue ? normalizedValue : undefined
+	}
+
+	private addFilterOption(
+		optionsMap: Map<string, ProductFilterValueOption>,
+		value?: string,
+		label?: string,
+	): void {
+		const normalizedValue = this.normalizeFilterOptionValue(value)
+		if (!normalizedValue) {
+			return
+		}
+
+		const normalizedLabel =
+			this.normalizeFilterOptionValue(label) ?? normalizedValue
+		const optionKey = normalizedValue.toLowerCase()
+
+		if (!optionsMap.has(optionKey)) {
+			optionsMap.set(optionKey, {
+				value: normalizedValue,
+				label: normalizedLabel,
+			})
+		}
+	}
+
+	private buildSortedFilterOptions(
+		optionsMap: Map<string, ProductFilterValueOption>,
+	): ProductFilterValueOption[] {
+		return Array.from(optionsMap.values()).sort((a, b) =>
+			a.label.localeCompare(b.label),
+		)
 	}
 
 	private normalizeOptionalNumberField(
@@ -877,6 +934,56 @@ export default class ProductController {
 		return {
 			products: paginatedProducts,
 			totalCount,
+		}
+	}
+
+	public async getProductFilterValues(
+		requestContext: RequestContext,
+	): Promise<ProductFilterValuesResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const canAccessSupplierFilter =
+			requestContext.role === 'owner' || requestContext.role === 'admin'
+
+		const products = await withTenantScope(
+			Product.find({})
+				.select(
+					'supplierId supplierName brandId brandName categoryId categoryName state',
+				)
+				.lean<ProductFilterValueSource[]>(),
+			tenantId,
+		)
+
+		const supplierMap = new Map<string, ProductFilterValueOption>()
+		const brandMap = new Map<string, ProductFilterValueOption>()
+		const categoryMap = new Map<string, ProductFilterValueOption>()
+		const stateMap = new Map<string, ProductFilterValueOption>()
+
+		for (const product of products) {
+			if (canAccessSupplierFilter) {
+				this.addFilterOption(
+					supplierMap,
+					product.supplierId || product.supplierName,
+					product.supplierName || product.supplierId,
+				)
+			}
+			this.addFilterOption(
+				brandMap,
+				product.brandId || product.brandName,
+				product.brandName || product.brandId,
+			)
+			this.addFilterOption(
+				categoryMap,
+				product.categoryId || product.categoryName,
+				product.categoryName || product.categoryId,
+			)
+			this.addFilterOption(stateMap, product.state, product.state)
+		}
+
+		return {
+			supplier: this.buildSortedFilterOptions(supplierMap),
+			brand: this.buildSortedFilterOptions(brandMap),
+			state: this.buildSortedFilterOptions(stateMap),
+			category: this.buildSortedFilterOptions(categoryMap),
 		}
 	}
 

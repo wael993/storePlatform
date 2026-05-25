@@ -1,5 +1,4 @@
 import {
-	Box,
 	Button,
 	Checkbox,
 	Circle,
@@ -10,7 +9,6 @@ import {
 	Grid,
 	HStack,
 	Input,
-	IconButton,
 	Modal,
 	ModalBody,
 	ModalContent,
@@ -18,15 +16,18 @@ import {
 	ModalHeader,
 	ModalOverlay,
 	Text,
-	VStack,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { AsFilterIcon } from '../icons/Filter'
-import StateCircle from '../StateCircle'
+import {
+	BrandDropdown,
+	CategoryDropdown,
+	StateDropdown,
+	SupplierDropdown,
+} from './dropdowns/index'
 
 export interface FilterSelectOption {
 	value: string
@@ -60,68 +61,6 @@ const styles = {
 		justifyContent: 'flex-start',
 		alignItems: 'center',
 	},
-	filterPanel: {
-		border: '1px solid #EAEAEA',
-		borderRadius: '0.5rem',
-		overflow: 'hidden',
-		backgroundColor: '#FFFFFF',
-	},
-	filterPanelHeader: {
-		padding: '0.625rem 0.75rem',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		cursor: 'pointer',
-		borderBottom: '1px solid #F2F2F2',
-	},
-	filterPanelBody: {
-		padding: '0.625rem 0.75rem 0.75rem',
-		gap: '0.5rem',
-	},
-	filterPanelList: {
-		maxHeight: '11rem',
-		overflowY: 'auto',
-		paddingRight: '0.25rem',
-	},
-	filterPanelItem: {
-		padding: '0.25rem 0.125rem',
-		alignItems: 'center',
-	},
-	selectionCount: {
-		fontSize: '0.75rem',
-		fontWeight: 600,
-		color: '#6F6F6F',
-	},
-	clearSingleFilterButton: {
-		minW: 'auto',
-		h: '1.5rem',
-		px: '0.4rem',
-		fontSize: '0.75rem',
-		fontWeight: 600,
-		color: '#6F6F6F',
-	},
-	dropdownNoBorder: {
-		width: '100%',
-		justifyContent: 'flex-start',
-		marginTop: '1.25rem',
-		flexWrap: 'wrap',
-		gap: '1rem',
-	},
-	savedFilterContainer: {
-		width: '100%',
-		justifyContent: 'flex-start',
-		paddingBottom: '1.25rem',
-	},
-	button: {
-		fontSize: '0.875rem',
-		fontWeight: '700',
-		borderRadius: 0,
-		...hoverFocusActiveButtonStyles,
-	},
-	savePresetText: {
-		fontSize: '0.875rem',
-		fontWeight: '700',
-		color: '#929494',
-	},
 	desktopFiltersFilterButton: {
 		gap: 2,
 		alignItems: 'center',
@@ -130,6 +69,17 @@ const styles = {
 		fontSize: '0.9rem',
 		px: 0,
 		color: '#929494',
+	},
+	savePresetText: {
+		fontSize: '0.875rem',
+		fontWeight: '700',
+		color: '#929494',
+	},
+	button: {
+		fontSize: '0.875rem',
+		fontWeight: '700',
+		borderRadius: 0,
+		...hoverFocusActiveButtonStyles,
 	},
 	grid: {
 		gridTemplateColumns: 'repeat(2, calc(50% - 0.625rem))',
@@ -153,19 +103,12 @@ const styles = {
 		textAlign: 'center',
 		marginRight: '0.25rem',
 	},
-	searchInput: {
-		height: '2rem',
-		fontSize: '0.875rem',
-	},
-}
-
-type MultiFilterKey = Exclude<keyof ProductFilterValues, 'searchText'>
+} satisfies StylesObject
 
 interface FilterModalProps {
 	selectedFiltersCount?: number
 	isMobile?: boolean
 	showSavedFilterOptions?: boolean
-	isInternalUser?: boolean
 	showSupplierFilter?: boolean
 	filterValues: ProductFilterValues
 	onApplyFilters: (filters: ProductFilterValues) => void
@@ -180,7 +123,6 @@ const FilterModal = ({
 	selectedFiltersCount = 0,
 	isMobile = false,
 	showSavedFilterOptions = true,
-	isInternalUser = false,
 	showSupplierFilter = false,
 	filterValues,
 	onApplyFilters,
@@ -198,15 +140,6 @@ const FilterModal = ({
 	} = useDisclosure()
 	const [localFilters, setLocalFilters] =
 		useState<ProductFilterValues>(filterValues)
-	const [openSection, setOpenSection] = useState<MultiFilterKey | null>('brand')
-	const [sectionSearch, setSectionSearch] = useState<
-		Record<MultiFilterKey, string>
-	>({
-		supplier: '',
-		brand: '',
-		state: '',
-		category: '',
-	})
 	const [isSaveCurrentSelection, setIsSaveCurrentSelection] = useState(false)
 
 	useEffect(() => {
@@ -215,160 +148,18 @@ const FilterModal = ({
 		}
 	}, [filterValues, isFilterModalOpen])
 
-	const updateLocalFilter = (key: keyof ProductFilterValues, value: string) => {
-		setLocalFilters(prev => ({ ...prev, [key]: value }))
-	}
-
-	const toggleFilterOption = (key: MultiFilterKey, value: string) => {
-		setLocalFilters(prev => {
-			const selectedValues = prev[key]
-			const nextValues = selectedValues.includes(value)
-				? selectedValues.filter(item => item !== value)
-				: [...selectedValues, value]
-
-			return {
-				...prev,
-				[key]: nextValues,
-			}
-		})
-	}
-
-	const clearSingleFilter = (key: MultiFilterKey) => {
-		setLocalFilters(prev => ({
-			...prev,
-			[key]: [],
-		}))
-	}
-
-	const updateSectionSearch = (key: MultiFilterKey, value: string) => {
-		setSectionSearch(prev => ({
-			...prev,
-			[key]: value,
-		}))
-	}
-
 	const handleShowResults = () => {
 		onApplyFilters(localFilters)
 		onFilterModalClose()
 	}
 
-	const handleResetAndClose = () => {
-		setLocalFilters(EMPTY_FILTERS)
-		onResetFilters()
-		onFilterModalClose()
-	}
+	// const handleResetAndClose = () => {
+	// 	setLocalFilters(EMPTY_FILTERS)
+	// 	onResetFilters()
+	// 	onFilterModalClose()
+	// }
 
-	const getFilteredOptions = (
-		key: MultiFilterKey,
-		options: FilterSelectOption[],
-	) => {
-		const query = sectionSearch[key].trim().toLowerCase()
-		if (!query) {
-			return options
-		}
-
-		return options.filter(option => {
-			return (
-				option.label.toLowerCase().includes(query) ||
-				option.value.toLowerCase().includes(query)
-			)
-		})
-	}
-
-	const renderMultiSelectSection = (
-		key: MultiFilterKey,
-		label: string,
-		options: FilterSelectOption[],
-		renderStateCircle = false,
-	) => {
-		const isOpen = openSection === key
-		const selectedCount = localFilters[key].length
-		const filteredOptions = getFilteredOptions(key, options)
-
-		return (
-			<Box sx={styles.filterPanel}>
-				<HStack
-					sx={styles.filterPanelHeader}
-					onClick={() => setOpenSection(prev => (prev === key ? null : key))}
-				>
-					<HStack gap={2}>
-						<Text fontWeight={700} fontSize="0.875rem">
-							{label}
-						</Text>
-						{selectedCount > 0 && (
-							<Text sx={styles.selectionCount}>{selectedCount} selected</Text>
-						)}
-					</HStack>
-					<HStack>
-						<Button
-							variant="ghost"
-							sx={styles.clearSingleFilterButton}
-							onClick={e => {
-								e.stopPropagation()
-								clearSingleFilter(key)
-							}}
-							isDisabled={selectedCount === 0}
-						>
-							Clear
-						</Button>
-						<IconButton
-							aria-label={isOpen ? `close ${label}` : `open ${label}`}
-							icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-							variant="ghost"
-							size="sm"
-							onClick={e => {
-								e.stopPropagation()
-								setOpenSection(prev => (prev === key ? null : key))
-							}}
-						/>
-					</HStack>
-				</HStack>
-
-				{isOpen && (
-					<VStack sx={styles.filterPanelBody} align="stretch">
-						<Input
-							placeholder={`Search ${label.toLowerCase()}`}
-							sx={styles.searchInput}
-							value={sectionSearch[key]}
-							onChange={e => updateSectionSearch(key, e.target.value)}
-						/>
-						<VStack sx={styles.filterPanelList} align="stretch" spacing={0}>
-							{filteredOptions.length === 0 && (
-								<Text fontSize="0.8125rem" color="#6F6F6F" px={1} py={2}>
-									No results
-								</Text>
-							)}
-							{filteredOptions.map(option => {
-								const isChecked = localFilters[key].includes(option.value)
-								return (
-									<HStack key={option.value} sx={styles.filterPanelItem}>
-										<Checkbox
-											isChecked={isChecked}
-											onChange={() => toggleFilterOption(key, option.value)}
-										/>
-										{renderStateCircle && (
-											<StateCircle
-												stateColor={option.stateColor ?? '#808080'}
-												stateTitle={option.stateTitle ?? option.label}
-												isTooltipEnabled={true}
-												customStyles={{
-													colorCircle: {
-														width: '0.875rem',
-														height: '0.875rem',
-													},
-												}}
-											/>
-										)}
-										<Text fontSize="0.875rem">{option.label}</Text>
-									</HStack>
-								)
-							})}
-						</VStack>
-					</VStack>
-				)}
-			</Box>
-		)
-	}
+	// const handleBrandsFilterChange = useHandleBrandsFilterChange()
 
 	return (
 		<>
@@ -414,29 +205,74 @@ const FilterModal = ({
 									placeholder="Name, Product ID, Barcode"
 									value={localFilters.searchText}
 									onChange={e =>
-										updateLocalFilter('searchText', e.target.value)
+										setLocalFilters(prev => ({
+											...prev,
+											searchText: e.target.value,
+										}))
 									}
 								/>
 							</FormControl>
 						</Flex>
 
 						<Grid sx={isMobile ? styles.mobileGrid : styles.grid}>
-							{showSupplierFilter &&
-								renderMultiSelectSection(
-									'supplier',
-									'Supplier',
-									supplierOptions,
-								)}
-
-							{renderMultiSelectSection('brand', 'Brand', brandOptions)}
-
-							{renderMultiSelectSection('state', 'State', stateOptions, true)}
-
-							{renderMultiSelectSection(
-								'category',
-								'Category',
-								categoryOptions,
+							{showSupplierFilter && (
+								<SupplierDropdown
+									options={supplierOptions}
+									selectedValues={localFilters.supplier}
+									onChange={supplier =>
+										setLocalFilters(prev => ({ ...prev, supplier }))
+									}
+								/>
 							)}
+
+							<BrandDropdown
+								options={brandOptions}
+								selectedValues={localFilters.brand}
+								onChange={brand =>
+									setLocalFilters(prev => ({ ...prev, brand }))
+								}
+							/>
+
+							<StateDropdown
+								options={stateOptions}
+								selectedValues={localFilters.state}
+								onChange={(state: string[]) =>
+									setLocalFilters(prev => ({ ...prev, state }))
+								}
+							/>
+
+							<CategoryDropdown
+								options={categoryOptions}
+								selectedValues={localFilters.category}
+								onChange={category =>
+									setLocalFilters(prev => ({ ...prev, category }))
+								}
+							/>
+
+							{/* <ConditionalFilterDropdowns
+							// user={user}
+							// displayMode={displayMode}
+							// activityType={activityType}
+							// filterValues={filterValues}
+							// resetFiltersToInitial={resetFiltersToInitial}
+							// isSLLightRole={isSLLightRole}
+							// isPrice={isPrice}
+							// isPromotions={isPromotion}
+							// isSLTicket={isSLTicket}
+							// isComplaint={isComplaint}
+							// priceTicketStatusFilterOptions={priceTicketStatusFilterOptions}
+							// promotionTicketStatusFilterOptions={
+							// 	promotionTicketStatusFilterOptions
+							// }
+							// allTicketsStatusFilterOptions={allTicketsStatusFilterOptions}
+							// rentalStatusFilterOptions={rentalStatusFilterOptions}
+							// ticketTypeFilterOptions={ticketTypeFilterOptions}
+							// slTicketStatusFilterOptions={slTicketStatusFilterOptions}
+							// complaintStatusFilterOptions={complaintStatusFilterOptions}
+							// filtersInitial={filtersInitial}
+							// showWarningBorder={showWarningBorder}
+							// dropdownStyles={styles}
+							/> */}
 						</Grid>
 					</ModalBody>
 					<ModalFooter
@@ -458,9 +294,9 @@ const FilterModal = ({
 							</HStack>
 						)}
 						<HStack>
-							<Button sx={styles.button} onClick={handleResetAndClose}>
+							{/* <Button sx={styles.button} onClick={handleResetAndClose}>
 								Clear
-							</Button>
+							</Button> */}
 							<Button sx={styles.button} onClick={onFilterModalClose}>
 								{t('common.cancel')}
 							</Button>

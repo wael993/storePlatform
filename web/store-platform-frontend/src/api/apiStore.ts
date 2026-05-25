@@ -37,6 +37,18 @@ export interface ProductsResponse {
 	totalCount: number
 }
 
+export interface ProductFilterValueOption {
+	value: string
+	label: string
+}
+
+export interface ProductFilterValuesResponse {
+	supplier: ProductFilterValueOption[]
+	brand: ProductFilterValueOption[]
+	state: ProductFilterValueOption[]
+	category: ProductFilterValueOption[]
+}
+
 const buildProductFilterQueryParams = (
 	filters: ProductFiltersQueryParams,
 	pagination?: ProductPaginationParams,
@@ -106,6 +118,13 @@ const getQuery = (
 				return response
 			},
 			providesTags: ['products'],
+		}),
+
+		getFilterValues: builder.query<ProductFilterValuesResponse, void>({
+			query: () => ({
+				url: 'filter-values',
+				method: 'GET',
+			}),
 		}),
 
 		getSingleProduct: builder.query({
@@ -310,6 +329,7 @@ export const storeApi = storePlatformApi.injectEndpoints({
 
 export const {
 	useGetProductsQuery,
+	useGetFilterValuesQuery,
 	useGetSingleProductQuery,
 	useEditProductMutation,
 	useDeleteProductMutation,

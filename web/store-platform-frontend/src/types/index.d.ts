@@ -109,3 +109,20 @@ interface BreadcrumbParams {
 	locationId?: string
 	locationName?: string
 }
+
+type DropdownOption = {
+	label: string
+	value: string
+	color?: string
+	icon?: React.ReactNode
+	isInvalid?: boolean
+	stateColor?: string
+	stateTitle?: string
+}
+
+interface SelectOption {
+	value: string
+	label: string
+	isInvalid?: boolean
+	color?: string
+}

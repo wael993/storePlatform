@@ -26,10 +26,17 @@
 		"filters": {
 			"clearFilters": "Clear Filters",
 			"filter": "Filters",
-			"saveFilterPreset": "Save Filter preset"
+			"saveFilterPreset": "Save Filter preset",
+			"supplier": "Supplier",
+			"category": "Category",
+			"state": "State",
+			"brand": "Brand"
 		}
 	},
 	"common": {
+		"noOptions": "No options",
+
+		"inputSearch": "Search...",
 		"showResults": "Show Results",
 		"addProduct": "Add Product",
 		"productName": "Product Name",

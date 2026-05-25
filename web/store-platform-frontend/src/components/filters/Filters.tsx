@@ -1,5 +1,4 @@
 import { Box, Button, Flex, HStack, Text } from '@chakra-ui/react'
-import React from 'react'
 import { RemoveArrowIcon } from '../icons/RemoveArrow'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusButtonStyles } from '../../theme/styles'
@@ -46,7 +45,7 @@ const styles = {
 		fontWeight: 500,
 		alignSelf: 'end',
 	},
-}
+} satisfies StylesObject
 
 interface FiltersProps {
 	filters: ProductFilterValues
