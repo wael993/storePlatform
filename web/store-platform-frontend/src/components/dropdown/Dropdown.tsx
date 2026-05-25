@@ -87,9 +87,15 @@ export const Dropdown = ({
 	// const [isOpen, setIsOpen] = useState(false)
 	const [search, setSearch] = useState('')
 
-	const [selectedOptions, setSelectedOptions] = useState<DropdownOption[]>(
-		initialOptions || [],
-	)
+	const selectedOptions = useMemo(() => {
+		const allOptions = [
+			...dropDownOptions,
+			...(noOptionsSelection ? [noOptionsSelection] : []),
+		]
+		return selectedValues
+			.map(val => allOptions.find(opt => opt.value === val))
+			.filter(isTruthy)
+	}, [dropDownOptions, noOptionsSelection, selectedValues])
 
 	const { onOpen, isOpen, onClose } = useDisclosure()
 
@@ -119,7 +125,6 @@ export const Dropdown = ({
 	}, [filteredOptions, selectedValues])
 
 	const onClearOptions = () => {
-		setSelectedOptions([])
 		onSelect([])
 		onClose()
 	}
@@ -128,32 +133,24 @@ export const Dropdown = ({
 
 	const handleMultipleSelectionChange = useCallback(
 		(options: DropdownOption[]) => {
-			const selectedValues = new Set(
-				selectedOptions.map(option => option.value),
-			)
+			const currentValues = new Set(selectedValues)
 			const processedValues = new Set<string>()
-			const optionsToAdd: DropdownOption[] = []
+			const valuesToAdd: string[] = []
 
 			options.forEach(option => {
 				if (!option?.value) return
-				if (selectedValues.has(option.value)) return
+				if (currentValues.has(option.value)) return
 				if (processedValues.has(option.value)) return
 
-				const existingOption = dropDownOptions.find(
-					dropDownOption => dropDownOption.value === option.value,
-				)
-
-				optionsToAdd.push(existingOption ?? option)
+				valuesToAdd.push(option.value)
 				processedValues.add(option.value)
 			})
 
-			if (optionsToAdd.length === 0) return
+			if (valuesToAdd.length === 0) return
 
-			const updatedSelection = [...selectedOptions, ...optionsToAdd]
-			setSelectedOptions(updatedSelection)
-			onSelect(updatedSelection)
+			onSelect([...selectedValues, ...valuesToAdd])
 		},
-		[dropDownOptions, onSelect, selectedOptions],
+		[onSelect, selectedValues],
 	)
 
 	const styles = {
@@ -279,46 +276,29 @@ export const Dropdown = ({
 
 	const handleSelectionChange = useCallback(
 		(value: string, isCleared?: boolean) => {
-			const optionAlreadySelected = selectedOptions.some(
-				option => option.value === value,
-			)
-			const option = [
-				...dropDownOptions,
-				...(noOptionsSelection ? [noOptionsSelection] : []),
-			].find(option => option.value === value)
-			const updatedSelection = optionAlreadySelected
-				? selectedOptions.filter(option => option.value !== value)
-				: [...selectedOptions, option]
-			let selectedItems = updatedSelection
-			if (isSingle) {
-				if (!optionAlreadySelected) {
-					selectedItems = [option]
-				} else {
-					return
-				}
-			}
+			const optionAlreadySelected = selectedValues.includes(value)
 
-			if (selectedItems.length < minimumSelectedOptions) {
+			if (isSingle && optionAlreadySelected) {
 				return
 			}
 
-			setSelectedOptions(selectedItems.filter(isTruthy))
-			onSelect(selectedItems.filter(isTruthy))
+			const updatedValues = isSingle
+				? [value]
+				: optionAlreadySelected
+					? selectedValues.filter(v => v !== value)
+					: [...selectedValues, value]
+
+			if (updatedValues.length < minimumSelectedOptions) {
+				return
+			}
+
+			onSelect(updatedValues)
 
 			if (isSingle) {
 				onClose()
 			}
 		},
-		[
-			isSingle,
-			onClose,
-			selectedOptions,
-			onSelect,
-			noOptionsSelection,
-			setSelectedOptions,
-			minimumSelectedOptions,
-			dropDownOptions,
-		],
+		[isSingle, onClose, selectedValues, onSelect, minimumSelectedOptions],
 	)
 
 	const renderDropdownList = (
