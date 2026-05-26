@@ -21,7 +21,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
 	const { data: userSettings, isLoading } = useGetUserSettingsQuery()
 	const [productsPerPage, setProductsPerPageState] = useState<number>(20)
-	const [displayLanguage, setDisplayLanguageState] = useState<'en' | 'de' | 'ar'>('en')
+	const [displayLanguage, setDisplayLanguageState] = useState<
+		'en' | 'de' | 'ar'
+	>('en')
 	const [hasChanges, setHasChanges] = useState(false)
 
 	// Initialize from fetched settings

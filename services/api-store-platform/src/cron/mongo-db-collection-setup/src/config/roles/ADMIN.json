@@ -33,6 +33,10 @@
 		"/services/store_platform": {
 			"access": true,
 			"allowedActions": ["selectActivityWatcher", "addComment"]
+		},
+		"/services/store_platform/daily": {
+			"access": true,
+			"allowedActions": ["deleteDailyAction"]
 		}
 	}
 }

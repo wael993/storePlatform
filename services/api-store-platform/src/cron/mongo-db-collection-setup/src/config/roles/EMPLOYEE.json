@@ -33,6 +33,29 @@
 	"include": [],
 	"frontendResources": {
 		"/services/store_platform/settings": { "access": false },
-		"/services/store_platform": { "access": false }
+		"/services/store_platform": {
+			"access": true,
+			"allowedActions": [
+				"seeProduct",
+				"seeSupplier",
+
+				"seeBuyCost",
+
+				"seeWholesalePrice",
+
+				"seeDiscount",
+
+				"seeStockQuantity",
+
+				"seeMinStockQuantity",
+
+				"seeReport",
+				"addReport"
+			]
+		},
+		"/services/store_platform/daily": {
+			"access": true,
+			"allowedActions": ["seeDailyAction", "addDailyAction", "editDailyAction"]
+		}
 	}
 }

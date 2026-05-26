@@ -147,9 +147,13 @@ const mergeFrontendResources = (
 
 	for (const [path, permission] of Object.entries(incoming)) {
 		const existing = merged[path]
+		const combinedActions = [
+			...(existing?.allowedActions || []),
+			...(permission.allowedActions || []),
+		].filter((action, index, array) => array.indexOf(action) === index)
 		merged[path] = {
 			access: permission.access,
-			allowedActions: permission.allowedActions || existing?.allowedActions,
+			allowedActions: combinedActions.length > 0 ? combinedActions : undefined,
 		}
 	}
 
