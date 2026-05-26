@@ -106,7 +106,7 @@ const SettingsPage = () => {
 	}
 
 	const handleLanguageChange = (value: string) => {
-		const selectedLanguage = value === 'de' ? 'de' : 'en'
+		const selectedLanguage = value === 'de' || value === 'ar' ? value : 'en'
 		setDisplayLanguage(selectedLanguage)
 	}
 

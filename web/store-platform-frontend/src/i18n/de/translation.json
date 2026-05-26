@@ -17,7 +17,8 @@
 			"language": "Sprache",
 			"displayLanguage": "Anzeigesprache",
 			"english": "Englisch",
-			"german": "Deutsch"
+			"german": "Deutsch",
+			"arabic": "العربية"
 		},
 		"productsSettings": {
 			"productsPerPage": "Produkte pro Seite",

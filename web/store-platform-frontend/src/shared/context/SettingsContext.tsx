@@ -5,8 +5,8 @@ import i18n from '../../i18n'
 interface SettingsContextType {
 	productsPerPage: number
 	setProductsPerPage: (value: number) => void
-	displayLanguage: 'en' | 'de'
-	setDisplayLanguage: (value: 'en' | 'de') => void
+	displayLanguage: 'en' | 'de' | 'ar'
+	setDisplayLanguage: (value: 'en' | 'de' | 'ar') => void
 	isLoading: boolean
 	hasChanges: boolean
 	setHasChanges: (value: boolean) => void
@@ -21,7 +21,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
 	const { data: userSettings, isLoading } = useGetUserSettingsQuery()
 	const [productsPerPage, setProductsPerPageState] = useState<number>(20)
-	const [displayLanguage, setDisplayLanguageState] = useState<'en' | 'de'>('en')
+	const [displayLanguage, setDisplayLanguageState] = useState<'en' | 'de' | 'ar'>('en')
 	const [hasChanges, setHasChanges] = useState(false)
 
 	// Initialize from fetched settings
@@ -40,7 +40,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 		setHasChanges(true)
 	}
 
-	const setDisplayLanguage = (value: 'en' | 'de') => {
+	const setDisplayLanguage = (value: 'en' | 'de' | 'ar') => {
 		setDisplayLanguageState(value)
 		setHasChanges(true)
 	}

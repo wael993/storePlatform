@@ -24,7 +24,7 @@ export interface UserSettings {
 	tenantId: string
 	userId: string
 	productsPerPage: number
-	displayLanguage: 'en' | 'de'
+	displayLanguage: 'en' | 'de' | 'ar'
 	createdAt?: string
 	updatedAt?: string
 }

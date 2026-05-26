@@ -4,7 +4,7 @@ export interface IUserSettings extends Document {
 	tenantId: string
 	userId: string
 	productsPerPage: number
-	displayLanguage: 'en' | 'de'
+	displayLanguage: 'en' | 'de' | 'ar'
 	createdAt: Date
 	updatedAt: Date
 }
@@ -31,7 +31,7 @@ const UserSettingsSchema: Schema<IUserSettings> = new mongoose.Schema(
 		},
 		displayLanguage: {
 			type: String,
-			enum: ['en', 'de'],
+			enum: ['en', 'de', 'ar'],
 			default: 'en',
 		},
 	},

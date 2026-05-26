@@ -1,0 +1,95 @@
+{
+	"settings": {
+		"updateSuccessMessage": "تم تحديث الإعدادات بنجاح.",
+		"updateFailedMessage": "فشل تحديث الإعدادات."
+	},
+	"components": {
+		"activitySettingsSection": {
+			"title": "المنتجات لكل صفحة",
+			"note": "قم بتكوين الإعدادات المتعلقة بالعداد هنا."
+		},
+		"settings": {
+			"title": "الإعدادات",
+			"saveSettings": "حفظ الإعدادات"
+		},
+		"settingsTabs": {
+			"product": "المنتج",
+			"language": "اللغة",
+			"displayLanguage": "لغة العرض",
+			"english": "الإنجليزية",
+			"german": "الألمانية",
+			"arabic": "العربية"
+		},
+		"productsSettings": {
+			"productsPerPage": "المنتجات لكل صفحة",
+			"twentyPerPage": "20 منتجًا لكل صفحة",
+			"hundredPerPage": "100 منتج لكل صفحة",
+			"showAllProducts": "عرض جميع المنتجات"
+		},
+		"modal": {
+			"filterModal": {
+				"selectFiltersInfoInternal": "يرجى اختيار واحد على الأقل من المرشحات المطلوبة للمتابعة.",
+				"selectDateFiltersInfoInternal": "يرجى اختيار السنة أو تاريخ البداية والنهاية للمتابعة.",
+				"selectFiltersInfoExternal": "يرجى اختيار السنة أو تاريخ البداية والنهاية على الأقل للمتابعة.",
+				"dateToMissingWarning": "يرجى اختيار تاريخ النهاية للمتابعة.",
+				"dateFromMissingWarning": "يرجى اختيار تاريخ البداية للمتابعة."
+			}
+		},
+		"product": {
+			"states": {
+				"discontinued": "متوقف",
+				"readyForRestock": "جاهز لإعادة التخزين",
+				"active": "نشط",
+				"draft": "مسودة",
+				"inactive": "غير نشط",
+				"outOfStock": "نفد المخزون"
+			},
+			"noProducts": "لم يتم العثور على منتجات"
+		},
+		"list": {
+			"preferredBrand": "العلامة التجارية المفضلة"
+		},
+		"filters": {
+			"clearFilters": "مسح المرشحات",
+			"filter": "المرشحات",
+			"saveFilterPreset": "حفظ إعدادات المرشحات",
+			"supplier": "المورد",
+			"category": "الفئة",
+			"state": "الحالة",
+			"brand": "العلامة التجارية"
+		}
+	},
+	"common": {
+		"noOptions": "لا توجد خيارات",
+		"inputSearch": "بحث...",
+		"showResults": "عرض النتائج",
+		"addProduct": "إضافة منتج",
+		"productName": "اسم المنتج",
+		"barcode": "الباركود",
+		"brand": "اسم العلامة التجارية",
+		"category": "اسم الفئة",
+		"buyCost": "سعر الشراء",
+		"sellPrice": "سعر البيع",
+		"stockQuantity": "كمية المخزون",
+		"stockMinQuantity": "الحد الأدنى لكمية المخزون",
+		"supplierName": "اسم المورد",
+		"locationWarehouse": "موقع المستودع",
+		"locationShelf": "الرف",
+		"startDate": "تاريخ البدء",
+		"status": "الحالة",
+		"selected": "محدد",
+		"buttonText": "إضافة مستند مطلوب",
+		"name": "اسم المستند",
+		"namePlaceholder": "أدخل اسم المستند",
+		"deadline": "الموعد النهائي",
+		"cancel": "إلغاء",
+		"save": "حفظ",
+		"reject": "رفض",
+		"accept": "قبول",
+		"priceSell": "سعر البيع",
+		"discount": "الخصم",
+		"addDiscount": "إضافة خصم",
+		"color": "اللون",
+		"createdAt": "تاريخ الإنشاء"
+	}
+}

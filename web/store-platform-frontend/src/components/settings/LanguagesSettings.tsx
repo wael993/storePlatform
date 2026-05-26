@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react'
 
 interface LanguagesSettingsProps {
-	displayLanguage: 'en' | 'de'
+	displayLanguage: 'en' | 'de' | 'ar'
 	handleLanguageChange?: (value: string) => void
 }
 
@@ -30,6 +30,7 @@ const LanguagesSettings = ({
 					<Stack spacing={3}>
 						<Radio value="en">{t('components.settingsTabs.english')}</Radio>
 						<Radio value="de">{t('components.settingsTabs.german')}</Radio>
+						<Radio value="ar">{t('components.settingsTabs.arabic')}</Radio>
 					</Stack>
 				</RadioGroup>
 			</FormControl>
