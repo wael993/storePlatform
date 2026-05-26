@@ -22,6 +22,7 @@ import { useUser } from './shared/hooks/useUser'
 import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
 import { getEnabledActions, getTenantActions } from './shared/utils'
 import { RoutePaths } from './shared/routes'
+import DailyPage from './pages/DailyPage'
 // import { useGetUserFrontendResourcesQuery } from './api/apiStore'
 // import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
 // import { skipToken } from '@reduxjs/toolkit/dist/query/react'
@@ -53,6 +54,7 @@ const App = () => {
 		isAddNewTenantEnabled,
 		isTenantsListEnabled,
 		isBarcodeEnabled,
+		isDailyEnabled,
 		isProductsEnabled,
 		isOrdersEnabled,
 		isInvoicesEnabled,
@@ -65,6 +67,7 @@ const App = () => {
 		isTenantTenantsListEnabled,
 		isTenantBarcodeEnabled,
 		isTenantProductsEnabled,
+		isTenantDailyEnabled,
 		isTenantOrdersEnabled,
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
@@ -103,6 +106,11 @@ const App = () => {
 						{isOrdersEnabled && isTenantOrdersEnabled && (
 							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
 						)}
+
+						{isDailyEnabled && isTenantDailyEnabled && (
+							<Route path={RoutePaths.DAILY} element={<DailyPage />} />
+						)}
+
 						{isInvoicesEnabled && isTenantInvoicesEnabled && (
 							<Route path={RoutePaths.INVOICES} element={<InvoicesPage />} />
 						)}

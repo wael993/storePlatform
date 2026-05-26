@@ -13,9 +13,7 @@ import { AsCloseIcon } from '../icons/Close'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { CustomTooltip } from './CustomTooltip'
 
-//let timeoutFn: NodeJS.Timeout | null = null
-
-let timeoutFn: any | null = null
+let timeoutFn: ReturnType<typeof setTimeout> | null = null
 const debounceTime: number = 300
 
 const defaultStyles = {
@@ -159,8 +157,7 @@ const InputLabel = ({
 							variant={variant}
 							value={value ?? inputValue}
 							placeholder={
-								inputPlaceholder ??
-								t('components.modals.activityLetter.textPlaceholder')
+								inputPlaceholder ?? t('components.daily.textPlaceholder')
 							}
 							onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
 								handleChange(event.target.value)
@@ -178,8 +175,7 @@ const InputLabel = ({
 							variant={variant}
 							value={value ?? inputValue}
 							placeholder={
-								inputPlaceholder ??
-								t('components.modals.activityLetter.textPlaceholder')
+								inputPlaceholder ?? t('components.daily.textPlaceholder')
 							}
 							onChange={(event: ChangeEvent<HTMLInputElement>) =>
 								handleChange(event.target.value)

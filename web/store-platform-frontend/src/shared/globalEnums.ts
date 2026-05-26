@@ -11,6 +11,12 @@ export enum AllowedActions {
 	ADD_PRODUCT = 'addProduct',
 	DELETE_PRODUCT = 'deleteProduct',
 
+	// DAILY ACTION
+	SEE_DAILY_ACTION = 'seeDailyAction',
+	CAN_ADD_DAILY_ACTION = 'addDailyAction',
+	CAN_EDIT_DAILY_ACTION = 'editDailyAction',
+	CAN_DELETE_DAILY_ACTION = 'deleteDailyAction',
+
 	// STOCK QUANTITY
 	SEE_STOCK_QUANTITY = 'seeStockQuantity',
 	CAN_EDIT_STOCK_QUANTITY = 'canEditStockQuantity',
@@ -77,6 +83,7 @@ export enum BreadCrumbItem {
 	PRODUCTS = 'products',
 	ORDERS = 'orders',
 	INVOICES = 'invoices',
+	DAILY = 'daily',
 	USERS = 'users',
 	ADD_NEW_TENANT = 'addNewTenant',
 	TENANTS_LIST = 'tenantsList',
@@ -115,4 +122,18 @@ export enum FilterAttribute {
 	TICKET_TYPE = 'ticketTypes',
 	FLAGGED_BY_ME = 'flaggedByMe',
 	COMPLAINT_CATEGORIES = 'complaintCategories',
+}
+
+export enum StepKeys {
+	actionType = 0,
+	ActionData = 1,
+	ActionSummery = 2,
+}
+
+export enum ActionTypes {
+	purchase = 'purchase',
+	procurement = 'procurement',
+	receipt = 'receipt',
+	expense = 'expense',
+	test = 'test',
 }

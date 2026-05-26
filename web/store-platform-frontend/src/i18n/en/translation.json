@@ -4,6 +4,23 @@
 		"updateFailedMessage": "Failed to update settings."
 	},
 	"components": {
+		"daily": {
+			"dailyActions": "Daily Actions",
+			"actionType": "Action Type",
+			"actionDate": "Action Date",
+			"actionSummary": "Action Summary",
+			"inputLockedWarning": "no Changes allowed for this action anymore.",
+			"textPlaceholder": "Add text.."
+		},
+		"pageHeaders": {
+			"settings": "Settings",
+			"daily": "Daily",
+			"products": "Products",
+			"orders": "Orders",
+			"invoices": "Invoices",
+			"users": "Users",
+			"tenants": "Tenants"
+		},
 		"activitySettingsSection": {
 			"title": "Product Per page",
 			"note": "Configure your counter related settings here."
@@ -59,7 +76,9 @@
 			"brand": "Brand"
 		}
 	},
+
 	"common": {
+		"addDailyAction": "Add Daily Action",
 		"noOptions": "No options",
 		"inputSearch": "Search...",
 		"showResults": "Show Results",

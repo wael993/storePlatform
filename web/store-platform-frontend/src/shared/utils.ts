@@ -16,6 +16,7 @@ export const getEnabledActions = () => {
 	return {
 		isAddNewTenantEnabled: enabledActions.has('ADD_NEW_TENANT'),
 		isTenantsListEnabled: enabledActions.has('TENANTS_LIST'),
+		isDailyEnabled: enabledActions.has('DAILY'),
 		isBarcodeEnabled: enabledActions.has('BARCODE'),
 		isProductsEnabled: enabledActions.has('PRODUCTS'),
 		isOrdersEnabled: enabledActions.has('ORDERS'),
@@ -34,6 +35,7 @@ export const getTenantActions = () => {
 		isTenantTenantsListEnabled: enabledTenantActions.has('TENANTS_LIST'),
 		isTenantBarcodeEnabled: enabledTenantActions.has('BARCODE'),
 		isTenantProductsEnabled: enabledTenantActions.has('PRODUCTS'),
+		isTenantDailyEnabled: enabledTenantActions.has('DAILY'),
 		isTenantOrdersEnabled: enabledTenantActions.has('ORDERS'),
 		isTenantInvoicesEnabled: enabledTenantActions.has('INVOICE'),
 		isTenantUsersEnabled: enabledTenantActions.has('USERS'),

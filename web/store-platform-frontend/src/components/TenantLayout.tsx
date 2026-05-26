@@ -69,6 +69,7 @@ const TenantLayout = () => {
 		isOrdersEnabled,
 		isInvoicesEnabled,
 		isUsersEnabled,
+		isDailyEnabled,
 		isChangePasswordEnabled,
 	} = getEnabledActions()
 	const {
@@ -77,10 +78,14 @@ const TenantLayout = () => {
 		isTenantOrdersEnabled,
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
+		isTenantDailyEnabled,
 		isTenantChangePasswordEnabled,
 	} = getTenantActions()
 
 	const topBarItems = [
+		isDailyEnabled && isTenantDailyEnabled
+			? { label: 'Daily', path: RoutePaths.DAILY }
+			: null,
 		isBarcodeEnabled && isTenantBarcodeEnabled
 			? { label: 'Barcode', path: RoutePaths.BARCODE }
 			: null,
@@ -112,92 +117,6 @@ const TenantLayout = () => {
 
 	return (
 		<Flex minH="100vh" bg="gray.50">
-			{/* <Box
-				w={{ base: 'full', md: '280px' }}
-				bg="white"
-				borderRightWidth="1px"
-				px={5}
-				py={6}
-				display="flex"
-				flexDir="column"
-				gap={6}
-			>
-				<Box>
-					<Text fontSize="xs" textTransform="uppercase" color="gray.500">
-						Store Platform
-					</Text>
-					<Heading size="md" mt={1}>
-						{tenantName}
-					</Heading>
-					{userRole && (
-						<Text
-							fontSize="xs"
-							color="blue.500"
-							fontWeight="semibold"
-							mt={1}
-							textTransform="capitalize"
-						>
-							{userRole}
-						</Text>
-					)}
-				</Box>
-
-				<Divider />
-
-				<Stack gap={2}>
-					{isBarcodeEnabled && isTenantBarcodeEnabled && (
-						<Box as={NavLink} to="/barcode" style={navStyle}>
-							Barcode
-						</Box>
-					)}
-
-					{isOwner && isUsersEnabled && isTenantUsersEnabled && (
-						<Box as={NavLink} to="/users" style={navStyle}>
-							Users
-						</Box>
-					)}
-
-					{isProductsEnabled && isTenantProductsEnabled && (
-						<Box as={NavLink} to="/products" style={navStyle}>
-							Products
-						</Box>
-					)}
-
-					{isOrdersEnabled && isTenantOrdersEnabled && (
-						<Box as={NavLink} to="/orders" style={navStyle}>
-							Orders
-						</Box>
-					)}
-
-					{isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled && (
-						<Box as={NavLink} to="/invoices" style={navStyle}>
-							Invoices
-						</Box>
-					)}
-				</Stack>
-
-				<Box mt="auto">
-					{error ? (
-						<Text color="red.500" fontSize="sm" mb={3}>
-							{error}
-						</Text>
-					) : null}
-					{isChangePasswordEnabled && isTenantChangePasswordEnabled && (
-						<Button w="full" variant="outline" mb={2} onClick={onPwOpen}>
-							Change Password
-						</Button>
-					)}
-					<Button
-						w="full"
-						colorScheme="gray"
-						onClick={handleLogout}
-						isLoading={isLoading}
-					>
-						Logout
-					</Button>
-				</Box>
-			</Box> */}
-
 			<Box flex="1" p={0}>
 				<TopBar navItems={topBarItems} />
 				<Box px={{ base: 4, md: 8 }} py={8}>

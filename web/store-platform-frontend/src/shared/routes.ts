@@ -10,6 +10,7 @@ export const RoutePaths = {
 	BARCODE: withBasePath('/barcode'),
 	PRODUCTS: withBasePath('/products'),
 	SINGLE_PRODUCT: withBasePath('/products/:productId'),
+	DAILY: withBasePath('/daily'),
 	ORDERS: withBasePath('/orders'),
 	INVOICES: withBasePath('/invoices'),
 	USERS: withBasePath('/users'),
@@ -27,6 +28,7 @@ export const fullPaths = {
 	BARCODE: RoutePaths.BARCODE,
 	PRODUCTS: RoutePaths.PRODUCTS,
 	ALL_PRODUCTS: RoutePaths.PRODUCTS,
+	DAILY: RoutePaths.DAILY,
 	ORDERS: RoutePaths.ORDERS,
 	INVOICES: RoutePaths.INVOICES,
 	USERS: RoutePaths.USERS,
@@ -112,6 +114,20 @@ export const generateBreadcrumbs = ({
 			isCurrentPage: true,
 		},
 	]
+	const daily: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: 'Store Platform',
+			href: fullPaths.PRODUCTS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'daily',
+			name: 'Daily',
+			href: fullPaths.DAILY,
+			isCurrentPage: true,
+		},
+	]
 	const invoices: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -176,6 +192,7 @@ export const generateBreadcrumbs = ({
 		barcode,
 		products,
 		orders,
+		daily,
 		invoices,
 		users,
 		addNewTenant,
