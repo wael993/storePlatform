@@ -6,8 +6,9 @@ import {
 	MongoClient,
 	FindOptions,
 	Filter,
-	Sort,
 } from 'mongodb'
+import { SortOrder } from 'mongoose'
+
 import logger, { EntityType } from '../logger/logger'
 import { config } from '../../config/config'
 import { DocumentError } from '../errors'
@@ -20,7 +21,7 @@ import {
 	deleteDocument as deleteDocumentAction,
 	EntityModel,
 	getDocumentByField as getDocumentByFieldAction,
-	listDocuments as listDocumentsAction,
+	getDocuments as getDocumentsAction,
 	updateDocument as updateDocumentAction,
 } from './documentActions'
 import {
@@ -29,6 +30,9 @@ import {
 } from './tenantUserActions'
 import { IUser } from '../../models/User'
 import { UpdateTenantUserRequestBody } from '../types'
+
+export type Sort = Record<string, SortOrder>
+
 interface DocumentReadOperationResponse {
 	id?: string[]
 	documents: any[]
@@ -45,11 +49,10 @@ interface AuthContext {
 	password: string
 }
 interface GetDocumentsContext<T> {
-	collectionName: string
-	fields?: object
-	filter: Filter<T>
-	pagination?: { skip?: number; limit?: number }
-	sort?: Sort
+	requestContext: RequestContext
+	collectionName: TenantResource
+	model: EntityModel
+	sort: Sort
 }
 type Maybe<T> = T | undefined
 interface CreateDocumentContext {
@@ -202,35 +205,34 @@ export default class MongodbController {
 		}
 	}
 
-	public async listDocuments<T>(
-		requestContext: RequestContext,
-		resource: TenantResource,
-		model: EntityModel,
-		sort: Record<string, 1 | -1>,
-	): Promise<T[]> {
+	public async getDocuments<T>({
+		requestContext,
+		collectionName,
+		model,
+		sort,
+	}: GetDocumentsContext<T>): Promise<DocumentReadOperationResponse> {
 		const startTime = new Date().getTime()
 
 		try {
 			await this.checkConnection()
 
-			const result = await listDocumentsAction<T>(
+			const result = await getDocumentsAction<T>(
 				requestContext,
-				resource,
+				collectionName,
 				model,
 				sort,
 			)
-			console.log('🚀 ~ MongodbController ~ listDocuments ~ result:', result)
 
-			logger.debug(`List documents for resource: ${resource}`, {
+			logger.debug(`List documents for resource: ${collectionName}`, {
 				entity: EntityType.MONGODB,
 				userId: requestContext.userId,
 				sort,
 			})
 
-			return result
+			return { documents: result }
 		} catch (error: any) {
 			logger.error(
-				`Error listing documents for resource ${resource}: ${error?.message || error}`,
+				`Error listing documents for resource ${collectionName}: ${error?.message || error}`,
 				{ entity: EntityType.MONGODB, userId: requestContext.userId },
 			)
 
@@ -238,7 +240,7 @@ export default class MongodbController {
 		} finally {
 			const endTime = new Date().getTime()
 
-			logger.debug(`LIST ${resource}: ${endTime - startTime} ms`, {
+			logger.debug(`LIST ${collectionName}: ${endTime - startTime} ms`, {
 				entity: EntityType.MONGODB,
 			})
 		}

@@ -308,6 +308,42 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/daily-actions`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getDailyActions.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postDailyAction.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/daily-actions/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getDailyAction.bind(this),
+			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchDailyAction.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteDailyAction.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/user/:id/frontend-resources`)
 			.get(
 				this.startCalc.bind(this),
@@ -427,6 +463,66 @@ export default class StoreRoutes extends PlatformValidator {
 		app.get('/test', (req, res) => {
 			res.send('OK')
 		})
+
+		app
+			.route(`${baseRoute}/suppliers`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getSuppliers.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postSupplier.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/customers`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getCustomers.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postCustomer.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/currencies`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getCurrencies.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postCurrency.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/units`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getUnits.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postUnit.bind(this),
+			)
 	}
 
 	private setRefreshTokenCookie(
@@ -639,6 +735,141 @@ export default class StoreRoutes extends PlatformValidator {
 			const resp =
 				await this.productController.getProductFilterValues(requestContext)
 			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getSuppliers(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		try {
+			const resp = await this.productController.getSuppliers(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postSupplier(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const name = request.body?.name
+		try {
+			const resp = await this.productController.postSupplier(
+				requestContext,
+				name,
+			)
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getCustomers(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		try {
+			const resp = await this.productController.getCustomers(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postCustomer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const name = request.body?.name
+		try {
+			const resp = await this.productController.postCustomer(
+				requestContext,
+				name,
+			)
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getCurrencies(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		try {
+			const resp = await this.productController.getCurrencies(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postCurrency(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const code = request.body?.code
+		const label = request.body?.label
+		try {
+			const resp = await this.productController.postCurrency(
+				requestContext,
+				code,
+				label,
+			)
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getUnits(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		try {
+			const resp = await this.productController.getUnits(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postUnit(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const name = request.body?.name
+		try {
+			const resp = await this.productController.postUnit(requestContext, name)
+			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {
@@ -1076,6 +1307,100 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			await this.productController.deleteReport(
+				request.params.id,
+				requestContext,
+			)
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getDailyActions(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getDailyActions(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getDailyAction(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getDailyAction(
+				request.params.id,
+				requestContext,
+			)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postDailyAction(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestBody = request.body
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.postDailyAction(
+				requestBody,
+				requestContext,
+			)
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchDailyAction(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.patchDailyAction(
+				request.params.id,
+				request.body,
+				requestContext,
+			)
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteDailyAction(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.deleteDailyAction(
 				request.params.id,
 				requestContext,
 			)

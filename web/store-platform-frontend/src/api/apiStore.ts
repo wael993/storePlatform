@@ -137,6 +137,38 @@ const getQuery = (
 			}),
 		}),
 
+		getSuppliers: builder.query<{ value: string; label: string }[], void>({
+			query: () => ({
+				url: 'suppliers',
+				method: 'GET',
+			}),
+			providesTags: ['suppliers'],
+		}),
+
+		getCustomers: builder.query<{ value: string; label: string }[], void>({
+			query: () => ({
+				url: 'customers',
+				method: 'GET',
+			}),
+			providesTags: ['customers'],
+		}),
+
+		getCurrencies: builder.query<{ value: string; label: string }[], void>({
+			query: () => ({
+				url: 'currencies',
+				method: 'GET',
+			}),
+			providesTags: ['currencies'],
+		}),
+
+		getUnits: builder.query<{ value: string; label: string }[], void>({
+			query: () => ({
+				url: 'units',
+				method: 'GET',
+			}),
+			providesTags: ['units'],
+		}),
+
 		getSingleProduct: builder.query({
 			query: (productId: string) => {
 				return {
@@ -179,6 +211,85 @@ const getQuery = (
 				}
 			},
 			invalidatesTags: ['products'],
+		}),
+
+		quickAddProduct: builder.mutation<
+			{ _id: string },
+			{
+				name: string
+				currency: string
+				unit: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
+				supplierId?: string
+			}
+		>({
+			query: ({ name, currency, unit, supplierId }) => ({
+				url: 'product',
+				method: 'POST',
+				body: {
+					name,
+					barcode: `AUTO-${Date.now()}`,
+					stock: { quantity: 0 },
+					price: {
+						wholesale: 0,
+						retailSale: 0,
+						semiWholesaleSales: 0,
+						buyCost: 0,
+						currency,
+					},
+					unit,
+					supplierId,
+					status: 'active',
+				},
+			}),
+			invalidatesTags: ['products'],
+		}),
+
+		createSupplier: builder.mutation<
+			{ value: string; label: string },
+			{ name: string }
+		>({
+			query: body => ({
+				url: 'suppliers',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['suppliers'],
+		}),
+
+		createCustomer: builder.mutation<
+			{ value: string; label: string },
+			{ name: string }
+		>({
+			query: body => ({
+				url: 'customers',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['customers'],
+		}),
+
+		createCurrency: builder.mutation<
+			{ value: string; label: string },
+			{ code: string; label: string }
+		>({
+			query: body => ({
+				url: 'currencies',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['currencies'],
+		}),
+
+		createUnit: builder.mutation<
+			{ value: string; label: string },
+			{ name: string }
+		>({
+			query: body => ({
+				url: 'units',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['units'],
 		}),
 
 		login: builder.mutation<LoginAPI, LoginRequestBody>({
@@ -347,6 +458,48 @@ const getQuery = (
 			}),
 			invalidatesTags: ['user-settings'],
 		}),
+
+		getDailyActions: builder.query<any[], void>({
+			query: () => ({
+				url: 'daily-actions',
+				method: 'GET',
+			}),
+			providesTags: ['daily-actions'],
+		}),
+
+		getSingleDailyAction: builder.query({
+			query: (actionId: string) => ({
+				url: `daily-actions/${actionId}`,
+				method: 'GET',
+			}),
+			providesTags: ['daily-action'],
+		}),
+
+		createDailyAction: builder.mutation({
+			query: (body: any) => ({
+				url: 'daily-actions',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['daily-actions'],
+		}),
+
+		updateDailyAction: builder.mutation({
+			query: ({ id, body }: { id: string; body: any }) => ({
+				url: `daily-actions/${id}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['daily-actions', 'daily-action'],
+		}),
+
+		deleteDailyAction: builder.mutation({
+			query: (actionId: string) => ({
+				url: `daily-actions/${actionId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['daily-actions'],
+		}),
 	}
 }
 
@@ -358,10 +511,19 @@ export const storeApi = storePlatformApi.injectEndpoints({
 export const {
 	useGetProductsQuery,
 	useGetFilterValuesQuery,
+	useGetSuppliersQuery,
+	useGetCustomersQuery,
+	useGetCurrenciesQuery,
+	useGetUnitsQuery,
 	useGetSingleProductQuery,
 	useEditProductMutation,
 	useDeleteProductMutation,
 	usePostProductMutation,
+	useQuickAddProductMutation,
+	useCreateSupplierMutation,
+	useCreateCustomerMutation,
+	useCreateCurrencyMutation,
+	useCreateUnitMutation,
 	useLoginMutation,
 	useLogoutCurrentMutation,
 	useLogoutAllMutation,
@@ -378,4 +540,9 @@ export const {
 	useChangePasswordMutation,
 	useGetUserSettingsQuery,
 	useUpdateUserSettingsMutation,
+	useGetDailyActionsQuery,
+	useGetSingleDailyActionQuery,
+	useCreateDailyActionMutation,
+	useUpdateDailyActionMutation,
+	useDeleteDailyActionMutation,
 } = storeApi

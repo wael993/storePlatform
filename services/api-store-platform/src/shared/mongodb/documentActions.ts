@@ -5,15 +5,19 @@ import { TenantResource, ensureTenantAccess, getTenantContext } from '../tenant'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import logger, { EntityType } from '../logger/logger'
+import { SortOrder } from 'mongoose'
+
+type Sort = Record<string, SortOrder>
 
 export type EntityModel = Model<any>
 
-export const listDocuments = async <T>(
+export const getDocuments = async <T>(
 	requestContext: RequestContext,
 	collectionName: TenantResource,
 	model: EntityModel,
-	sort: Record<string, 1 | -1>,
+	sort: Sort,
 ): Promise<T[]> => {
+	console.log('🚀 ~ getDocuments ~ collectionName:', collectionName)
 	await ensureTenantAccess(requestContext, collectionName, 'read')
 	const tenantContext = getTenantContext(requestContext)
 

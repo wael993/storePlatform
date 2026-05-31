@@ -16,6 +16,9 @@ import {
 	TabPanels,
 	TabPanel,
 	SimpleGrid,
+	useDisclosure,
+	IconButton,
+	Box,
 } from '@chakra-ui/react'
 import React, { useRef, useState } from 'react'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
@@ -23,6 +26,9 @@ import { useTranslation } from 'react-i18next'
 import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
 import DailyActionDataTab from './DailyActionDataTab'
 import { ActionTypes, StepKeys } from '../../shared/globalEnums'
+import ConfirmationDialog from '../ConfirmationDialog'
+import { ChevronLeftIcon } from '../icons/ChevronLeftIcon'
+import { ChevronRightIcon } from '../icons/ChevronRight'
 
 const styles: StylesObject = {
 	modalHeader: { paddingTop: '2.5rem', paddingLeft: '2.5rem' },
@@ -58,6 +64,8 @@ const styles: StylesObject = {
 	modalFooter: {
 		paddingRight: '2.5rem',
 		paddingBottom: '2.5rem',
+		width: '100%',
+		justifyContent: 'space-between',
 	},
 	addContentWrapper: { marginTop: '0.5rem' },
 	gwpDownloadImgButton: {
@@ -141,24 +149,48 @@ const DailyActionModal = ({
 }: DailyActionModalProps) => {
 	const { t } = useTranslation()
 	const activityLetterBodyRef = useRef<HTMLDivElement | null>(null)
-
+	const [shouldLeavingBeQuestioned, setShouldLeavingBeQuestioned] =
+		useState<boolean>(false)
 	const [currentTabIndex, setCurrentTabIndex] = useState<number>(
 		initialTab || 0,
 	)
 	const [actionType, setActionType] = useState<ActionTypes | ''>('')
 
 	const onClose = () => {
-		// setNewArticle({
-		// 	...newArticle,
-		// 	input: '',
-		// 	multipleInput: '',
-		// })
-		// setSelectedGwpPreviewAttachment(null)
 		setCurrentTabIndex(initialTab)
 		onCloseModal()
 	}
-	const handleTabsChange = (index: number) => {
-		setCurrentTabIndex(index)
+
+	const {
+		isOpen: isLeavingModalOpen,
+		onClose: onCloseLeavingModal,
+		onOpen: onOpenLeavingModal,
+	} = useDisclosure()
+
+	const handleStepChange = (step: StepKeys) => {
+		if (shouldLeavingBeQuestioned) {
+			onOpenLeavingModal()
+			return
+		}
+
+		setCurrentTabIndex(step)
+	}
+	const handleNextStep = () => {
+		if (shouldLeavingBeQuestioned) {
+			onOpenLeavingModal()
+			return
+		}
+
+		setCurrentTabIndex(currentTabIndex + 1)
+	}
+
+	const handlePreviousStep = () => {
+		if (shouldLeavingBeQuestioned) {
+			onOpenLeavingModal()
+			return
+		}
+
+		setCurrentTabIndex(currentTabIndex - 1)
 	}
 
 	const getTabStyle = (tabIndex: number) => {
@@ -179,12 +211,22 @@ const DailyActionModal = ({
 		}
 	}
 	const isCurrentTabActionSummary = currentTabIndex === StepKeys.ActionSummery
-
+	const actionSelect = (selectedAction: ActionTypes) => {
+		setActionType('')
+		setCurrentTabIndex(StepKeys.ActionData)
+		setActionType(selectedAction)
+	}
 	return (
 		<>
 			<Modal
 				isOpen={isOpen}
-				onClose={onClose}
+				onClose={() => {
+					if (shouldLeavingBeQuestioned) {
+						onOpenLeavingModal()
+					} else {
+						onCloseModal()
+					}
+				}}
 				size="5xl"
 				blockScrollOnMount={true}
 				scrollBehavior="inside"
@@ -217,7 +259,7 @@ const DailyActionModal = ({
 						<VStack sx={styles.bodyContainer} ref={activityLetterBodyRef}>
 							<Tabs
 								index={currentTabIndex}
-								onChange={handleTabsChange}
+								onChange={handleStepChange}
 								variant="unstyled"
 								sx={styles.tabs}
 							>
@@ -243,47 +285,32 @@ const DailyActionModal = ({
 										<SimpleGrid columns={[1, 2, 3]} gap={6}>
 											<Button sx={styles.actionButton}>حركة بيع</Button>
 											<Button
-												onClick={() => {
-													setCurrentTabIndex(StepKeys.ActionData)
-													setActionType(ActionTypes.purchase)
-												}}
+												onClick={() => actionSelect(ActionTypes.purchase)}
 												sx={styles.actionButton}
 											>
 												حركة شراء
 											</Button>
 											<Button
 												sx={styles.actionButton}
-												onClick={() => {
-													setCurrentTabIndex(StepKeys.ActionSummery)
-													setActionType(ActionTypes.procurement)
-												}}
+												onClick={() => actionSelect(ActionTypes.procurement)}
 											>
 												حركة دفع
 											</Button>
 											<Button
 												sx={styles.actionButton}
-												onClick={() => {
-													setCurrentTabIndex(StepKeys.ActionSummery)
-													setActionType(ActionTypes.receipt)
-												}}
+												onClick={() => actionSelect(ActionTypes.receipt)}
 											>
 												حركة قبض
 											</Button>
 											<Button
 												sx={styles.actionButton}
-												onClick={() => {
-													setCurrentTabIndex(StepKeys.ActionSummery)
-													setActionType(ActionTypes.expense)
-												}}
+												onClick={() => actionSelect(ActionTypes.expense)}
 											>
 												مصاريف
 											</Button>
 											<Button
 												sx={styles.actionButton}
-												onClick={() => {
-													setCurrentTabIndex(StepKeys.ActionSummery)
-													setActionType(ActionTypes.test)
-												}}
+												onClick={() => actionSelect(ActionTypes.test)}
 											>
 												اختبار
 											</Button>
@@ -291,7 +318,12 @@ const DailyActionModal = ({
 									</TabPanel>
 
 									<TabPanel sx={styles.tabPanel}>
-										<DailyActionDataTab actionType={actionType} />
+										<DailyActionDataTab
+											actionType={actionType}
+											setShouldLeavingBeQuestioned={
+												setShouldLeavingBeQuestioned
+											}
+										/>
 									</TabPanel>
 
 									<TabPanel sx={styles.tabPanel} />
@@ -301,8 +333,42 @@ const DailyActionModal = ({
 					</ModalBody>
 
 					<ModalFooter sx={styles.modalFooter}>
+						{currentTabIndex > StepKeys.actionType ? (
+							<IconButton
+								icon={<ChevronLeftIcon />}
+								onClick={handlePreviousStep}
+								aria-label="Previous Step"
+								sx={{
+									...hoverFocusActiveButtonStyles,
+									backgroundColor: '#EAEAEA',
+								}}
+							/>
+						) : (
+							<Box />
+						)}
+
+						{currentTabIndex < StepKeys.ActionSummery && (
+							<IconButton
+								icon={<ChevronRightIcon />}
+								onClick={handleNextStep}
+								aria-label="Next Step"
+								sx={{
+									...hoverFocusActiveButtonStyles,
+
+									backgroundColor:
+										currentTabIndex === StepKeys.actionType
+											? '#366085'
+											: '#EAEAEA',
+									color:
+										currentTabIndex === StepKeys.actionType
+											? '#FFFFFF'
+											: '#1E1E1E',
+								}}
+							/>
+						)}
+
 						{isCurrentTabActionSummary && (
-							<>
+							<Box>
 								<Button
 									sx={{
 										...styles.button,
@@ -327,11 +393,23 @@ const DailyActionModal = ({
 								>
 									{t('common.save')}
 								</Button>
-							</>
+							</Box>
 						)}
 					</ModalFooter>
 				</ModalContent>
 			</Modal>
+			<ConfirmationDialog
+				header={t('components.modal.leavingModal.header')}
+				body={t('components.modal.leavingModal.body')}
+				confirmationButtonText={t(
+					'components.modal.leavingModal.confirmationButtonText',
+				)}
+				isOpen={isLeavingModalOpen}
+				onClose={onCloseLeavingModal}
+				onConfirm={onCloseModal}
+				confirmIsPrimary
+				cancelButtonText={t('common.cancel')}
+			/>
 		</>
 	)
 }

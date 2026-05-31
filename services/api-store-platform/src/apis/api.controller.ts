@@ -11,6 +11,10 @@ import {
 	AuthenticationError,
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
+import { Supplier, ISupplier } from '../models/Supplier'
+import { Customer, ICustomer } from '../models/Customer'
+import { Currency, ICurrency } from '../models/Currency'
+import { Unit, IUnit } from '../models/Unit'
 import User, { IUser } from '../models/User'
 import RefreshToken, { IRefreshToken } from '../models/RefreshToken'
 import Tenant, { ITenant } from '../models/Tenant'
@@ -19,6 +23,7 @@ import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { Inventory } from '../models/Inventory'
 import { Report } from '../models/Report'
+import { DailyAction, ActionType } from '../models/DailyAction'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
@@ -1207,17 +1212,15 @@ export default class ProductController {
 			return cachedOrders
 		}
 
-		const orders = await this.mongoDbClient.listDocuments(
+		const orders = await this.mongoDbClient.getDocuments({
 			requestContext,
-			COLLECTION_NAMES.ORDERS,
-			Order,
-			{
-				createdAt: -1,
-			},
-		)
+			collectionName: COLLECTION_NAMES.ORDERS,
+			model: Order,
+			sort: { createdAt: 'desc' },
+		})
 
-		await redisCache.setJson(cacheKey, orders)
-		return orders
+		await redisCache.setJson(cacheKey, orders.documents)
+		return orders.documents
 	}
 
 	public async getOrder(orderId: string, requestContext: RequestContext) {
@@ -1308,17 +1311,15 @@ export default class ProductController {
 			return cachedInvoices
 		}
 
-		const invoices = await this.mongoDbClient.listDocuments(
+		const invoices = await this.mongoDbClient.getDocuments({
 			requestContext,
-			COLLECTION_NAMES.INVOICES,
-			Invoice,
-			{
-				createdAt: -1,
-			},
-		)
+			collectionName: COLLECTION_NAMES.INVOICES,
+			model: Invoice,
+			sort: { createdAt: 'desc' },
+		})
 
-		await redisCache.setJson(cacheKey, invoices)
-		return invoices
+		await redisCache.setJson(cacheKey, invoices.documents)
+		return invoices.documents
 	}
 
 	public async getInvoice(invoiceId: string, requestContext: RequestContext) {
@@ -1412,17 +1413,15 @@ export default class ProductController {
 			return cachedInventory
 		}
 
-		const inventory = await this.mongoDbClient.listDocuments(
+		const inventory = await this.mongoDbClient.getDocuments({
 			requestContext,
-			COLLECTION_NAMES.INVENTORY,
-			Inventory,
-			{
-				updatedAt: -1,
-			},
-		)
+			collectionName: COLLECTION_NAMES.INVENTORY,
+			model: Inventory,
+			sort: { createdAt: 'desc' },
+		})
 
 		await redisCache.setJson(cacheKey, inventory)
-		return inventory
+		return inventory.documents
 	}
 
 	public async getInventoryItem(
@@ -1518,14 +1517,14 @@ export default class ProductController {
 	}
 
 	public async getReports(requestContext: RequestContext) {
-		return this.mongoDbClient.listDocuments(
+		const reports = await this.mongoDbClient.getDocuments({
 			requestContext,
-			COLLECTION_NAMES.REPORTS,
-			Report,
-			{
-				createdAt: -1,
-			},
-		)
+			collectionName: COLLECTION_NAMES.REPORTS,
+			model: Report,
+			sort: { createdAt: 'desc' },
+		})
+
+		return reports.documents
 	}
 
 	public async getReport(reportId: string, requestContext: RequestContext) {
@@ -1577,6 +1576,173 @@ export default class ProductController {
 			requestContext,
 			Report,
 		)
+	}
+
+	public async getDailyActions(requestContext: RequestContext) {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = `dailyActions:${tenantId}`
+		const cachedDailyActions = await redisCache.getJson<any[]>(cacheKey)
+		if (cachedDailyActions) {
+			return cachedDailyActions
+		}
+
+		const dailyActions = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
+			model: DailyAction,
+			sort: { createdAt: 'desc' },
+		})
+
+		await redisCache.setJson(cacheKey, dailyActions.documents)
+		return dailyActions.documents
+	}
+
+	public async getDailyAction(
+		actionId: string,
+		requestContext: RequestContext,
+	) {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = `dailyAction:${tenantId}:${actionId}`
+		const cachedAction = await redisCache.getJson<any>(cacheKey)
+		if (cachedAction) {
+			return cachedAction
+		}
+
+		const dailyAction = await this.mongoDbClient.getDocumentByField(
+			requestContext,
+			COLLECTION_NAMES.DAILY_ACTIONS,
+			DailyAction,
+			{ fieldName: 'actionId', fieldValue: actionId },
+		)
+
+		if (!dailyAction) {
+			return null
+		}
+
+		await redisCache.setJson(cacheKey, dailyAction)
+		return dailyAction
+	}
+
+	public async postDailyAction(
+		requestBody: {
+			type: ActionType
+			salesArea?: string
+			locationCustomer?: string
+			shopTerminal?: string
+			promotionSpace?: string
+			amount?: number
+			description?: string
+			reference?: string
+		},
+		requestContext: RequestContext,
+	) {
+		if (!requestBody.type) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Action type is required.',
+			)
+		}
+
+		const validTypes: ActionType[] = [
+			'purchase',
+			'procurement',
+			'receipt',
+			'expense',
+			'test',
+		]
+		if (!validTypes.includes(requestBody.type)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Invalid action type.',
+			)
+		}
+
+		const dailyActionData = {
+			actionId: uuidv4(),
+			type: requestBody.type,
+			salesArea: requestBody.salesArea,
+			locationCustomer: requestBody.locationCustomer,
+			shopTerminal: requestBody.shopTerminal,
+			promotionSpace: requestBody.promotionSpace,
+			amount: requestBody.amount,
+			description: requestBody.description,
+			reference: requestBody.reference,
+		}
+
+		const createDailyActionResponse = await this.mongoDbClient.createDocument(
+			{
+				collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
+				data: dailyActionData,
+			},
+			DailyAction,
+			requestContext,
+		)
+
+		await this.invalidateDailyActionsCache(
+			requestContext,
+			dailyActionData.actionId,
+		)
+
+		return { _id: createDailyActionResponse._id }
+	}
+
+	public async patchDailyAction(
+		actionId: string,
+		requestBody: Partial<{
+			type: ActionType
+			salesArea: string
+			locationCustomer: string
+			shopTerminal: string
+			promotionSpace: string
+			amount: number
+			description: string
+			reference: string
+		}>,
+		requestContext: RequestContext,
+	) {
+		const updateResponse = await this.mongoDbClient.updateDocument(
+			{ collectionName: COLLECTION_NAMES.DAILY_ACTIONS, id: actionId },
+			requestContext,
+			DailyAction,
+			requestBody,
+		)
+
+		await this.invalidateDailyActionsCache(requestContext, actionId)
+		return updateResponse
+	}
+
+	public async deleteDailyAction(
+		actionId: string,
+		requestContext: RequestContext,
+	) {
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.DAILY_ACTIONS, id: actionId },
+			requestContext,
+			DailyAction,
+		)
+
+		await this.invalidateDailyActionsCache(requestContext, actionId)
+		return deleteResponse
+	}
+
+	private async invalidateDailyActionsCache(
+		requestContext: RequestContext,
+		actionId?: string,
+	): Promise<void> {
+		const tenantId = this.getTenantId(requestContext)
+		const listKey = `dailyActions:${tenantId}`
+		const listKeyDeleted = await redisCache.del(listKey)
+		if (listKeyDeleted) {
+			logger.debug('Daily actions list cache invalidated')
+		}
+
+		if (actionId) {
+			const detailKey = `dailyAction:${tenantId}:${actionId}`
+			const detailKeyDeleted = await redisCache.del(detailKey)
+			if (detailKeyDeleted) {
+				logger.debug(`Daily action ${actionId} deleted from cache`)
+			}
+		}
 	}
 
 	public async getTenantUsers(
@@ -2095,6 +2261,246 @@ export default class ProductController {
 		} catch (error: any) {
 			logger.error('Error updating user settings', error)
 			throw error
+		}
+	}
+
+	public async getSuppliers(
+		requestContext: RequestContext,
+	): Promise<{ value: string; label: string }[]> {
+		const tenantId = this.getTenantId(requestContext)
+		const suppliers = (await withTenantScope(
+			Supplier.find({}).select('_id name').sort({ name: 1 }).lean(),
+			tenantId,
+		)) as Pick<ISupplier, '_id' | 'name'>[]
+
+		return suppliers.map(s => ({
+			value: String((s as any)._id),
+			label: s.name,
+		}))
+	}
+
+	public async postSupplier(
+		requestContext: RequestContext,
+		name: string,
+	): Promise<{ value: string; label: string }> {
+		const tenantId = this.getTenantId(requestContext)
+		const normalizedName = name.trim()
+
+		if (!normalizedName) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Supplier name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Supplier.findOne({
+				name: new RegExp(`^${this.escapeRegex(normalizedName)}$`, 'i'),
+			}),
+			tenantId,
+		).lean()
+
+		if (existing) {
+			return {
+				value: String((existing as any)._id),
+				label: (existing as any).name,
+			}
+		}
+
+		const now = new Date()
+		const createdBy = {
+			_id: requestContext.userId ?? '',
+			displayName:
+				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+			createdAt: now,
+		}
+
+		const created = await Supplier.create({
+			tenantId,
+			name: normalizedName,
+			createdBy,
+			createdAt: now,
+			updatedAt: now,
+		})
+
+		return {
+			value: String(created._id),
+			label: created.name,
+		}
+	}
+
+	public async getCustomers(
+		requestContext: RequestContext,
+	): Promise<{ value: string; label: string }[]> {
+		const tenantId = this.getTenantId(requestContext)
+		const customers = (await withTenantScope(
+			Customer.find({}).select('_id name').sort({ name: 1 }).lean(),
+			tenantId,
+		)) as Pick<ICustomer, '_id' | 'name'>[]
+
+		return customers.map(c => ({
+			value: String((c as any)._id),
+			label: c.name,
+		}))
+	}
+
+	public async postCustomer(
+		requestContext: RequestContext,
+		name: string,
+	): Promise<{ value: string; label: string }> {
+		const tenantId = this.getTenantId(requestContext)
+		const normalizedName = name.trim()
+
+		if (!normalizedName) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Customer name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Customer.findOne({
+				name: new RegExp(`^${this.escapeRegex(normalizedName)}$`, 'i'),
+			}),
+			tenantId,
+		).lean()
+
+		if (existing) {
+			return {
+				value: String((existing as any)._id),
+				label: (existing as any).name,
+			}
+		}
+
+		const now = new Date()
+		const createdBy = {
+			_id: requestContext.userId ?? '',
+			displayName:
+				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+			createdAt: now,
+		}
+
+		const created = await Customer.create({
+			tenantId,
+			name: normalizedName,
+			createdBy,
+			createdAt: now,
+			updatedAt: now,
+		})
+
+		return {
+			value: String(created._id),
+			label: created.name,
+		}
+	}
+
+	public async getCurrencies(
+		requestContext: RequestContext,
+	): Promise<{ value: string; label: string }[]> {
+		const tenantId = this.getTenantId(requestContext)
+		const currencies = (await withTenantScope(
+			Currency.find({}).select('code label').sort({ code: 1 }).lean(),
+			tenantId,
+		)) as Pick<ICurrency, 'code' | 'label'>[]
+
+		return currencies.map(c => ({
+			value: c.code,
+			label: c.label,
+		}))
+	}
+
+	public async postCurrency(
+		requestContext: RequestContext,
+		code: string,
+		label?: string,
+	): Promise<{ value: string; label: string }> {
+		const tenantId = this.getTenantId(requestContext)
+		const normalizedCode = code.trim().toUpperCase()
+
+		if (!normalizedCode) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Currency code is required',
+			)
+		}
+
+		const normalizedLabel = (label?.trim() || normalizedCode).trim()
+
+		const existing = await withTenantScope(
+			Currency.findOne({ code: normalizedCode }),
+			tenantId,
+		).lean()
+
+		if (existing) {
+			return {
+				value: (existing as any).code,
+				label: (existing as any).label,
+			}
+		}
+
+		const created = await Currency.create({
+			tenantId,
+			code: normalizedCode,
+			label: normalizedLabel,
+		})
+
+		return {
+			value: created.code,
+			label: created.label,
+		}
+	}
+
+	public async getUnits(
+		requestContext: RequestContext,
+	): Promise<{ value: string; label: string }[]> {
+		const tenantId = this.getTenantId(requestContext)
+		const units = (await withTenantScope(
+			Unit.find({}).select('name').sort({ name: 1 }).lean(),
+			tenantId,
+		)) as Pick<IUnit, 'name'>[]
+
+		return units.map(unit => ({
+			value: unit.name,
+			label: unit.name,
+		}))
+	}
+
+	public async postUnit(
+		requestContext: RequestContext,
+		name: string,
+	): Promise<{ value: string; label: string }> {
+		const tenantId = this.getTenantId(requestContext)
+		const normalizedName = name.trim()
+
+		if (!normalizedName) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Unit name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Unit.findOne({
+				name: new RegExp(`^${this.escapeRegex(normalizedName)}$`, 'i'),
+			}),
+			tenantId,
+		).lean()
+
+		if (existing) {
+			return {
+				value: (existing as any).name,
+				label: (existing as any).name,
+			}
+		}
+
+		const created = await Unit.create({
+			tenantId,
+			name: normalizedName,
+		})
+
+		return {
+			value: created.name,
+			label: created.name,
 		}
 	}
 }

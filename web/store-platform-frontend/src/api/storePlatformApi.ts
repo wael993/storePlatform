@@ -15,6 +15,12 @@ export type TagType =
 	| 'tenant-users'
 	| 'tenants'
 	| 'user-settings'
+	| 'daily-actions'
+	| 'daily-action'
+	| 'suppliers'
+	| 'customers'
+	| 'currencies'
+	| 'units'
 
 const tagTypes: TagType[] = [
 	'products',
@@ -22,6 +28,12 @@ const tagTypes: TagType[] = [
 	'tenant-users',
 	'tenants',
 	'user-settings',
+	'daily-actions',
+	'daily-action',
+	'suppliers',
+	'customers',
+	'currencies',
+	'units',
 ]
 
 const baseQuery = fetchBaseQuery({

@@ -1,4 +1,5 @@
 import {
+	Box,
 	Button,
 	Flex,
 	Heading,
@@ -6,7 +7,7 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/icons'
-import React from 'react'
+import React, { useState } from 'react'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { AllowedActions, BreadCrumbItem, StepKeys } from '../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
@@ -16,6 +17,8 @@ import { useTranslation } from 'react-i18next'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
 import DailyActionModal from '../components/modals/DailyActionModal'
+import ListWithActionBar from '../components/list/ListWithActionBar'
+import { useGetDailyActionsQuery, useGetProductsQuery } from '../api/apiStore'
 
 const fullWidth = '100%'
 
@@ -66,6 +69,16 @@ const DailyPage = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
+	const { data: response, isLoading, isFetching } = useGetProductsQuery({})
+	const {
+		data: dailyActionsResponse,
+		isLoading: isDailyActionsLoading,
+		isFetching: isDailyActionsFetching,
+	} = useGetDailyActionsQuery()
+	console.log('🚀 ~ DailyPage ~ dailyActionsResponse:', dailyActionsResponse)
+
+	const products = response?.products ?? []
+
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
@@ -92,6 +105,13 @@ const DailyPage = () => {
 					</Button>
 				)}
 			</HStack>
+
+			<Box sx={styles.divider} />
+
+			<ListWithActionBar
+				products={products as Product[]}
+				isLoading={isLoading || isFetching}
+			/>
 
 			<DailyActionModal
 				isOpen={isOpen}

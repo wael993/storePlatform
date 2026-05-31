@@ -55,54 +55,24 @@ let dynamicRoleCache: {
 	frontendResources: {},
 }
 
-export const TENANT_PERMISSION_MATRIX: Record<TenantRole, TenantPermissionMap> =
-	{
-		owner: {
-			users: ['read', 'create', 'update', 'delete'],
-			products: ['read', 'create', 'update', 'delete'],
-			orders: ['read', 'create', 'update', 'delete'],
-			invoices: ['read', 'create', 'update', 'delete'],
-			inventory: ['read', 'create', 'update', 'delete'],
-			reports: ['read', 'create', 'update', 'delete'],
-			tenants: [],
-		},
-		admin: {
-			users: ['read', 'create', 'update', 'delete'],
-			products: ['read', 'create', 'update', 'delete'],
-			orders: ['read', 'create', 'update', 'delete'],
-			invoices: ['read', 'create', 'update', 'delete'],
-			inventory: ['read', 'create', 'update', 'delete'],
-			reports: ['read', 'create', 'update', 'delete'],
-			tenants: [],
-		},
-		cashier: {
-			users: ['read'],
-			products: ['read'],
-			orders: ['read', 'create', 'update'],
-			invoices: ['read', 'create', 'update'],
-			inventory: ['read'],
-			reports: ['read'],
-			tenants: [],
-		},
-		employee: {
-			users: ['read'],
-			products: ['read'],
-			orders: ['read'],
-			invoices: ['read'],
-			inventory: ['read'],
-			reports: ['read'],
-			tenants: [],
-		},
-		super_admin: {
-			users: [],
-			products: [],
-			orders: [],
-			invoices: [],
-			inventory: [],
-			reports: [],
-			tenants: ['read', 'create', 'update', 'delete'],
-		},
-	}
+const createEmptyPermissionMap = (): TenantPermissionMap => ({
+	users: [],
+	products: [],
+	orders: [],
+	invoices: [],
+	inventory: [],
+	reports: [],
+	tenants: [],
+	dailyActions: [],
+})
+
+const createEmptyRoleMatrix = (): Record<TenantRole, TenantPermissionMap> => ({
+	owner: createEmptyPermissionMap(),
+	admin: createEmptyPermissionMap(),
+	cashier: createEmptyPermissionMap(),
+	employee: createEmptyPermissionMap(),
+	super_admin: createEmptyPermissionMap(),
+})
 
 const isMethodAllowed = (
 	resourceMethods: Record<string, RoleMethodPermission> | undefined,
@@ -210,7 +180,7 @@ const buildDynamicMatrixFromRoles = (
 	matrix: Record<TenantRole, TenantPermissionMap>
 	frontendResources: Partial<Record<TenantRole, FrontendResources>>
 } => {
-	const matrix = { ...TENANT_PERMISSION_MATRIX }
+	const matrix = createEmptyRoleMatrix()
 	const frontendResourcesByRole: Partial<
 		Record<TenantRole, FrontendResources>
 	> = {}
@@ -221,15 +191,7 @@ const buildDynamicMatrixFromRoles = (
 			continue
 		}
 
-		const nextPermissions: TenantPermissionMap = {
-			users: [],
-			products: [],
-			orders: [],
-			invoices: [],
-			inventory: [],
-			reports: [],
-			tenants: [],
-		}
+		const nextPermissions: TenantPermissionMap = createEmptyPermissionMap()
 
 		for (const resource of TENANT_RESOURCES) {
 			const resourcePath = `/${resource}`
@@ -269,10 +231,13 @@ const getDynamicRoleEngine = async (): Promise<{
 		if (roles.length === 0) {
 			dynamicRoleCache = {
 				expiresAt: Date.now() + ROLE_CACHE_TTL_MS,
-				matrix: null,
+				matrix: createEmptyRoleMatrix(),
 				frontendResources: {},
 			}
-			return null
+			return {
+				matrix: createEmptyRoleMatrix(),
+				frontendResources: {},
+			}
 		}
 
 		const rolesById: Record<string, IRole> = {}
@@ -289,7 +254,6 @@ const getDynamicRoleEngine = async (): Promise<{
 
 		return built
 	} catch {
-		// Keep static matrix as a safe fallback when role collection is unavailable.
 		dynamicRoleCache = {
 			expiresAt: Date.now() + 5_000,
 			matrix: null,
@@ -345,8 +309,14 @@ export const ensureTenantAccess = async (
 ): Promise<void> => {
 	const tenantContext = getTenantContext(requestContext)
 	const dynamicEngine = await getDynamicRoleEngine()
-	const matrix = dynamicEngine?.matrix || TENANT_PERMISSION_MATRIX
-	const permissions = matrix[tenantContext.role][resource]
+	if (!dynamicEngine) {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Permission engine unavailable.',
+		)
+	}
+
+	const permissions = dynamicEngine.matrix[tenantContext.role][resource] || []
 
 	if (!permissions.includes(action)) {
 		throw new AuthorizationError(

@@ -50,6 +50,11 @@
 				"selectFiltersInfoExternal": "Please select at least the year or start and end date to continue.",
 				"dateToMissingWarning": "Please select the end date to continue.",
 				"dateFromMissingWarning": "Please select the start date to continue."
+			},
+			"leavingModal": {
+				"header": "Unsaved changes",
+				"body": "Are you sure you want to leave? There are unsaved changes. If you leave, your changes will be lost.",
+				"confirmationButtonText": "Yes, leave"
 			}
 		},
 		"product": {

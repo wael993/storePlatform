@@ -6,5 +6,6 @@ export const COLLECTION_NAMES = {
 	USERS: 'users',
 	INVENTORY: 'inventory',
 	REPORTS: 'reports',
+	DAILY_ACTIONS: 'dailyActions',
 	TENANTS: 'tenants',
 } as const
