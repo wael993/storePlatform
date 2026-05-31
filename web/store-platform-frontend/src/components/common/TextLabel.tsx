@@ -6,7 +6,6 @@ const styles: StylesObject = {
 		alignItems: 'flex-start',
 		gap: '0',
 		display: 'block',
-		paddingX: '1rem',
 	},
 	labelWrapper: {
 		color: '#747474',
@@ -15,6 +14,7 @@ const styles: StylesObject = {
 		width: '100%',
 	},
 	textWrapper: {
+		paddingTop: '1rem',
 		fontWeight: '700',
 		width: '100%',
 	},

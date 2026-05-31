@@ -44,6 +44,22 @@ export const getTenantActions = () => {
 	}
 }
 
+export const mapFee = (fee?: string): string | undefined => {
+	if (!fee || isNaN(Number(fee))) return undefined
+
+	const feeAsNumber: number = parseFloat(fee)
+	const roundedFee: number = parseFloat(feeAsNumber.toFixed(2))
+
+	const decimalPart: string =
+		roundedFee % 1 !== 0 ? (roundedFee % 1).toFixed(2).substring(2) : ''
+
+	const formattedAmount: string =
+		Math.floor(roundedFee).toLocaleString('en-US') +
+		(decimalPart ? `.${decimalPart}` : '')
+
+	return formattedAmount
+}
+
 export const formatNumber = (
 	value: string | number | null | undefined,
 	options?: { minimumDecimals?: number; maximumDecimals?: number },

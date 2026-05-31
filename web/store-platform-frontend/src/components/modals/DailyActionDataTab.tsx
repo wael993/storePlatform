@@ -6,7 +6,7 @@ import React, {
 	useState,
 } from 'react'
 import TextLabel from '../common/TextLabel'
-import { Box, Button, SimpleGrid, VStack } from '@chakra-ui/react'
+import { Box, Button, SimpleGrid, VStack, Heading } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { ActionTypes } from '../../shared/globalEnums'
 import { Dropdown } from '../dropdown/Dropdown'
@@ -29,10 +29,11 @@ import {
 	useCreateCurrencyMutation,
 	useCreateUnitMutation,
 } from '../../api/apiStore'
+import { mapFee } from '../../shared/utils'
 
 const styles = {
 	button: {
-		margin: { base: '0 0 1rem 2rem', md: '1rem' },
+		margin: { base: '0 0 1rem 2rem', md: '1rem 1rem 1rem 0rem' },
 		backgroundColor: '#376288',
 		fontSize: '0.875rem',
 		p: { base: '4', md: '1rem 1.5rem 1rem 1.5rem' },
@@ -130,6 +131,8 @@ const DailyActionDataTab = ({
 			selectedUnit === 'mm'
 				? selectedUnit
 				: 'piece'
+		const singleUnitPrice = Number(formData?.singleUnitPrice || 0)
+		const weight = String(formData?.weight || '').trim()
 
 		try {
 			await quickAddProduct({
@@ -137,6 +140,8 @@ const DailyActionDataTab = ({
 				currency,
 				unit,
 				supplierId: selectedValues.supplier[0],
+				singleUnitPrice: Number.isFinite(singleUnitPrice) ? singleUnitPrice : 0,
+				weight,
 			}).unwrap()
 		} catch (error) {
 			console.error('Failed to add product', error)
@@ -153,7 +158,6 @@ const DailyActionDataTab = ({
 			console.error('Failed to add supplier', error)
 		}
 	}
-
 	const addCustomer = async () => {
 		const name = askName('customer')
 		if (!name) return
@@ -164,7 +168,6 @@ const DailyActionDataTab = ({
 			console.error('Failed to add customer', error)
 		}
 	}
-
 	const addCurrency = async () => {
 		const codeInput = window.prompt('Enter currency code (e.g. EUR)')
 		if (!codeInput || !codeInput.trim()) return
@@ -181,7 +184,6 @@ const DailyActionDataTab = ({
 			console.error('Failed to add currency', error)
 		}
 	}
-
 	const addUnit = async () => {
 		const name = askName('unit')
 		if (!name) return
@@ -192,10 +194,12 @@ const DailyActionDataTab = ({
 			console.error('Failed to add unit', error)
 		}
 	}
-
-	const purchaseAction = () => {
+	const buyingAction = () => {
 		return (
 			<>
+				<Heading fontSize={'1rem'} marginBottom={'1rem'}>
+					Buying Action
+				</Heading>
 				<SimpleGrid columns={[1, 2, 3]} gap={6}>
 					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 						<TextLabel label={' Product'} />
@@ -221,6 +225,111 @@ const DailyActionDataTab = ({
 								selectedValues={selectedValues.supplier}
 								onSelect={(values: string[]) =>
 									handleSelectionChange('supplier', values)
+								}
+							/>
+						</Box>
+					</VStack>
+					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+						<TextLabel label={' Currency'} />
+						<Box sx={dropdownStyles.dropDownContainer}>
+							<Dropdown
+								placeholder={t('Currency Name')}
+								dropDownOptions={currencyOptions}
+								isSingle
+								selectedValues={selectedValues.currency}
+								onSelect={(values: string[]) =>
+									handleSelectionChange('currency', values)
+								}
+							/>
+						</Box>
+					</VStack>
+					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+						<TextLabel label={' Unit'} />
+						<Box sx={dropdownStyles.dropDownContainer}>
+							<Dropdown
+								placeholder={t('Unit Name')}
+								dropDownOptions={unitOptions}
+								selectedValues={selectedValues.unit}
+								isSingle={true}
+								onSelect={(values: string[]) =>
+									handleSelectionChange('unit', values)
+								}
+							/>
+						</Box>
+					</VStack>
+					<VStack>
+						<InputLabel
+							label={'Weight'}
+							inputPlaceholder={'Weight'}
+							inputType={'number'}
+							styles={documentNameStyles}
+							value={formData?.weight ?? ''}
+							onChange={(value: string) =>
+								setFormData((prev: any) => ({
+									...prev,
+									weight: value,
+								}))
+							}
+						/>
+					</VStack>
+					<VStack>
+						<InputLabel
+							label={'Single Unit Price'}
+							inputPlaceholder={'Single Unit Price'}
+							inputType={'number'}
+							styles={documentNameStyles}
+							value={formData?.singleUnitPrice ?? ''}
+							onChange={(value: string) =>
+								setFormData((prev: any) => ({
+									...prev,
+									singleUnitPrice: value,
+								}))
+							}
+						/>
+					</VStack>
+				</SimpleGrid>
+
+				<Box
+					sx={{
+						border: '3px solid #376288 ',
+						padding: '0.5rem',
+						marginTop: '1rem',
+					}}
+				>
+					<TextLabel
+						label={'Total Price'}
+						value={
+							formData?.singleUnitPrice && formData?.weight
+								? mapFee(
+										(
+											Number(formData.singleUnitPrice) * Number(formData.weight)
+										)?.toString(),
+									)
+								: ''
+						}
+					/>
+				</Box>
+				{footerActionsButtons()}
+			</>
+		)
+	}
+	const sellingAction = () => {
+		return (
+			<>
+				<Heading fontSize={'1rem'} marginBottom={'1rem'}>
+					Selling Action
+				</Heading>
+				<SimpleGrid columns={[1, 2, 3]} gap={6}>
+					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+						<TextLabel label={' Product'} />
+						<Box sx={dropdownStyles.dropDownContainer}>
+							<Dropdown
+								isSingle={true}
+								placeholder={t('Product Name')}
+								dropDownOptions={productOptions}
+								selectedValues={selectedValues.product}
+								onSelect={(values: string[]) =>
+									handleSelectionChange('product', values)
 								}
 							/>
 						</Box>
@@ -269,94 +378,46 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack>
 						<InputLabel
-							label={'Unit Type'}
-							inputPlaceholder={'Unit Type'}
-							inputType={'text'}
+							label={'Weight'}
+							inputPlaceholder={'Weight'}
+							inputType={'number'}
 							styles={documentNameStyles}
-							value={'documentName'}
-							onChange={() => {}}
+							value={formData?.weight ?? ''}
+							onChange={(value: string) =>
+								setFormData((prev: any) => ({
+									...prev,
+									weight: value,
+								}))
+							}
+						/>
+					</VStack>
+					<VStack>
+						<InputLabel
+							label={'Single Unit Price'}
+							inputPlaceholder={'Single Unit Price'}
+							inputType={'number'}
+							styles={documentNameStyles}
+							value={formData?.singleUnitPrice ?? ''}
+							onChange={(value: string) =>
+								setFormData((prev: any) => ({
+									...prev,
+									singleUnitPrice: value,
+								}))
+							}
 						/>
 					</VStack>
 				</SimpleGrid>
-
-				<SimpleGrid columns={[1, 2, 3]} gap={6} sx={{ marginTop: '2rem' }}>
-					<Button
-						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-						size={'md'}
-						variant={'primary'}
-						onClick={addProduct}
-						sx={{
-							...styles.button,
-							backgroundColor: '#376288',
-							color: '#FFFFFF',
-						}}
-					>
-						Add Product
-					</Button>
-					<Button
-						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-						size={'md'}
-						variant={'primary'}
-						onClick={addCurrency}
-						sx={{
-							...styles.button,
-							backgroundColor: '#376288',
-							color: '#FFFFFF',
-						}}
-					>
-						Add Currency
-					</Button>
-					<Button
-						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-						size={'md'}
-						variant={'primary'}
-						onClick={addSupplier}
-						sx={{
-							...styles.button,
-							backgroundColor: '#376288',
-							color: '#FFFFFF',
-						}}
-					>
-						Add Supplier
-					</Button>
-					<Button
-						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-						size={'md'}
-						variant={'primary'}
-						onClick={addCustomer}
-						sx={{
-							...styles.button,
-							backgroundColor: '#376288',
-							color: '#FFFFFF',
-						}}
-					>
-						Add Customer
-					</Button>
-					<Button
-						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-						size={'md'}
-						variant={'primary'}
-						onClick={addUnit}
-						sx={{
-							...styles.button,
-							backgroundColor: '#376288',
-							color: '#FFFFFF',
-						}}
-					>
-						Add Unit
-					</Button>
-				</SimpleGrid>
+				{footerActionsButtons()}
 			</>
 		)
 	}
-
-	const procurementAction = () => {
+	const PaymentAction = () => {
 		return (
 			<>
 				<SimpleGrid columns={[1, 2, 3]} gap={6}>
 					<VStack>
 						<InputLabel
-							label={'Payment Amount'}
+							label={'Expense Amount'}
 							inputPlaceholder={'Enter amount'}
 							inputType={'number'}
 							styles={documentNameStyles}
@@ -366,18 +427,18 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack>
 						<InputLabel
-							label={'Reference'}
-							inputPlaceholder={'Payment Reference'}
+							label={'Category'}
+							inputPlaceholder={'Expense Category'}
 							inputType={'text'}
 							styles={documentNameStyles}
-							value={'reference'}
+							value={'category'}
 							onChange={() => {}}
 						/>
 					</VStack>
 					<VStack>
 						<InputLabel
 							label={'Description'}
-							inputPlaceholder={'Description'}
+							inputPlaceholder={'Expense Description'}
 							inputType={'text'}
 							styles={documentNameStyles}
 							value={'description'}
@@ -385,10 +446,10 @@ const DailyActionDataTab = ({
 						/>
 					</VStack>
 				</SimpleGrid>
+				{footerActionsButtons()}
 			</>
 		)
 	}
-
 	const receiptAction = () => {
 		return (
 			<>
@@ -434,49 +495,10 @@ const DailyActionDataTab = ({
 						/>
 					</VStack>
 				</SimpleGrid>
+				{footerActionsButtons()}
 			</>
 		)
 	}
-
-	const expenseAction = () => {
-		return (
-			<>
-				<SimpleGrid columns={[1, 2, 3]} gap={6}>
-					<VStack>
-						<InputLabel
-							label={'Expense Amount'}
-							inputPlaceholder={'Enter amount'}
-							inputType={'number'}
-							styles={documentNameStyles}
-							value={'amount'}
-							onChange={() => {}}
-						/>
-					</VStack>
-					<VStack>
-						<InputLabel
-							label={'Category'}
-							inputPlaceholder={'Expense Category'}
-							inputType={'text'}
-							styles={documentNameStyles}
-							value={'category'}
-							onChange={() => {}}
-						/>
-					</VStack>
-					<VStack>
-						<InputLabel
-							label={'Description'}
-							inputPlaceholder={'Expense Description'}
-							inputType={'text'}
-							styles={documentNameStyles}
-							value={'description'}
-							onChange={() => {}}
-						/>
-					</VStack>
-				</SimpleGrid>
-			</>
-		)
-	}
-
 	const testAction = () => {
 		return (
 			<SimpleGrid columns={[1, 2, 3]} gap={6}>
@@ -484,13 +506,84 @@ const DailyActionDataTab = ({
 			</SimpleGrid>
 		)
 	}
+	const footerActionsButtons = () => {
+		return (
+			<SimpleGrid columns={[1, 2, 3]} gap={6} sx={{ marginTop: '2rem' }}>
+				<Button
+					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
+					size={'md'}
+					variant={'primary'}
+					onClick={addProduct}
+					sx={{
+						...styles.button,
+						backgroundColor: '#376288',
+						color: '#FFFFFF',
+					}}
+				>
+					Add Product
+				</Button>
+				<Button
+					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
+					size={'md'}
+					variant={'primary'}
+					onClick={addCurrency}
+					sx={{
+						...styles.button,
+						backgroundColor: '#376288',
+						color: '#FFFFFF',
+					}}
+				>
+					Add Currency
+				</Button>
+				<Button
+					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
+					size={'md'}
+					variant={'primary'}
+					onClick={addSupplier}
+					sx={{
+						...styles.button,
+						backgroundColor: '#376288',
+						color: '#FFFFFF',
+					}}
+				>
+					Add Supplier
+				</Button>
+				<Button
+					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
+					size={'md'}
+					variant={'primary'}
+					onClick={addCustomer}
+					sx={{
+						...styles.button,
+						backgroundColor: '#376288',
+						color: '#FFFFFF',
+					}}
+				>
+					Add Customer
+				</Button>
+				<Button
+					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
+					size={'md'}
+					variant={'primary'}
+					onClick={addUnit}
+					sx={{
+						...styles.button,
+						backgroundColor: '#376288',
+						color: '#FFFFFF',
+					}}
+				>
+					Add Unit
+				</Button>
+			</SimpleGrid>
+		)
+	}
 
 	return (
 		<>
-			{actionType === ActionTypes.purchase && purchaseAction()}
-			{actionType === ActionTypes.procurement && procurementAction()}
+			{actionType === ActionTypes.buying && buyingAction()}
+			{actionType === ActionTypes.selling && sellingAction()}
+			{actionType === ActionTypes.Payment && PaymentAction()}
 			{actionType === ActionTypes.receipt && receiptAction()}
-			{actionType === ActionTypes.expense && expenseAction()}
 			{actionType === ActionTypes.test && testAction()}
 		</>
 	)

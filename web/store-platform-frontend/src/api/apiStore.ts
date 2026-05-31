@@ -220,9 +220,18 @@ const getQuery = (
 				currency: string
 				unit: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
 				supplierId?: string
+				singleUnitPrice?: number
+				weight?: string
 			}
 		>({
-			query: ({ name, currency, unit, supplierId }) => ({
+			query: ({
+				name,
+				currency,
+				unit,
+				supplierId,
+				singleUnitPrice,
+				weight,
+			}) => ({
 				url: 'product',
 				method: 'POST',
 				body: {
@@ -230,14 +239,17 @@ const getQuery = (
 					barcode: `AUTO-${Date.now()}`,
 					stock: { quantity: 0 },
 					price: {
-						wholesale: 0,
-						retailSale: 0,
-						semiWholesaleSales: 0,
-						buyCost: 0,
+						wholesale: singleUnitPrice ?? 0,
+						retailSale: singleUnitPrice ?? 0,
+						semiWholesaleSales: singleUnitPrice ?? 0,
+						buyCost: singleUnitPrice ?? 0,
 						currency,
 					},
 					unit,
 					supplierId,
+					attributes: {
+						weight,
+					},
 					status: 'active',
 				},
 			}),

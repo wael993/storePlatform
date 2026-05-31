@@ -131,9 +131,11 @@ export enum StepKeys {
 }
 
 export enum ActionTypes {
+	buying = 'buying',
+	selling = 'selling',
 	purchase = 'purchase',
 	procurement = 'procurement',
 	receipt = 'receipt',
-	expense = 'expense',
+	Payment = 'Payment',
 	test = 'test',
 }

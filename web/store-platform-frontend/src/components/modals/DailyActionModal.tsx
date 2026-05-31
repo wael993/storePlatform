@@ -58,7 +58,7 @@ const styles: StylesObject = {
 		justifyContent: 'left',
 		mb: '-2px',
 	},
-	tabPanels: { marginTop: '2rem', minHeight: '20rem' },
+	tabPanels: { marginTop: '0.5rem', minHeight: '20rem' },
 	tabPanel: { paddingLeft: '0', paddingRight: '0', marginBottom: '2rem' },
 	thirdLine: { marginTop: '2rem', gap: 6 },
 	modalFooter: {
@@ -148,17 +148,24 @@ const DailyActionModal = ({
 	initialTab,
 }: DailyActionModalProps) => {
 	const { t } = useTranslation()
-	const activityLetterBodyRef = useRef<HTMLDivElement | null>(null)
+	const dailyActionBodyRef = useRef<HTMLDivElement | null>(null)
 	const [shouldLeavingBeQuestioned, setShouldLeavingBeQuestioned] =
 		useState<boolean>(false)
 	const [currentTabIndex, setCurrentTabIndex] = useState<number>(
-		initialTab || 0,
+		initialTab || StepKeys.actionType,
 	)
 	const [actionType, setActionType] = useState<ActionTypes | ''>('')
 
 	const onClose = () => {
 		setCurrentTabIndex(initialTab)
 		onCloseModal()
+	}
+
+	const onCloseActionModal = () => {
+		setShouldLeavingBeQuestioned(false)
+		setCurrentTabIndex(initialTab)
+
+		// onCloseModal()
 	}
 
 	const {
@@ -176,11 +183,6 @@ const DailyActionModal = ({
 		setCurrentTabIndex(step)
 	}
 	const handleNextStep = () => {
-		if (shouldLeavingBeQuestioned) {
-			onOpenLeavingModal()
-			return
-		}
-
 		setCurrentTabIndex(currentTabIndex + 1)
 	}
 
@@ -256,7 +258,7 @@ const DailyActionModal = ({
 					<ModalCloseButton size="lg" sx={styles.modalCloseButton} />
 
 					<ModalBody sx={styles.modalBody}>
-						<VStack sx={styles.bodyContainer} ref={activityLetterBodyRef}>
+						<VStack sx={styles.bodyContainer} ref={dailyActionBodyRef}>
 							<Tabs
 								index={currentTabIndex}
 								onChange={handleStepChange}
@@ -283,16 +285,21 @@ const DailyActionModal = ({
 								<TabPanels sx={styles.tabPanels}>
 									<TabPanel sx={styles.tabPanel}>
 										<SimpleGrid columns={[1, 2, 3]} gap={6}>
-											<Button sx={styles.actionButton}>حركة بيع</Button>
 											<Button
-												onClick={() => actionSelect(ActionTypes.purchase)}
+												onClick={() => actionSelect(ActionTypes.selling)}
+												sx={styles.actionButton}
+											>
+												حركة بيع
+											</Button>
+											<Button
+												onClick={() => actionSelect(ActionTypes.buying)}
 												sx={styles.actionButton}
 											>
 												حركة شراء
 											</Button>
 											<Button
 												sx={styles.actionButton}
-												onClick={() => actionSelect(ActionTypes.procurement)}
+												onClick={() => actionSelect(ActionTypes.Payment)}
 											>
 												حركة دفع
 											</Button>
@@ -304,7 +311,7 @@ const DailyActionModal = ({
 											</Button>
 											<Button
 												sx={styles.actionButton}
-												onClick={() => actionSelect(ActionTypes.expense)}
+												onClick={() => actionSelect(ActionTypes.Payment)}
 											>
 												مصاريف
 											</Button>
@@ -326,7 +333,9 @@ const DailyActionModal = ({
 										/>
 									</TabPanel>
 
-									<TabPanel sx={styles.tabPanel} />
+									<TabPanel sx={styles.tabPanel}>
+										<Text>Action Summary</Text>
+									</TabPanel>
 								</TabPanels>
 							</Tabs>
 						</VStack>
@@ -347,22 +356,15 @@ const DailyActionModal = ({
 							<Box />
 						)}
 
-						{currentTabIndex < StepKeys.ActionSummery && (
+						{currentTabIndex === StepKeys.ActionData && (
 							<IconButton
 								icon={<ChevronRightIcon />}
 								onClick={handleNextStep}
 								aria-label="Next Step"
 								sx={{
 									...hoverFocusActiveButtonStyles,
-
-									backgroundColor:
-										currentTabIndex === StepKeys.actionType
-											? '#366085'
-											: '#EAEAEA',
-									color:
-										currentTabIndex === StepKeys.actionType
-											? '#FFFFFF'
-											: '#1E1E1E',
+									backgroundColor: '#EAEAEA',
+									color: '#1E1E1E',
 								}}
 							/>
 						)}
@@ -406,7 +408,7 @@ const DailyActionModal = ({
 				)}
 				isOpen={isLeavingModalOpen}
 				onClose={onCloseLeavingModal}
-				onConfirm={onCloseModal}
+				onConfirm={onCloseActionModal}
 				confirmIsPrimary
 				cancelButtonText={t('common.cancel')}
 			/>

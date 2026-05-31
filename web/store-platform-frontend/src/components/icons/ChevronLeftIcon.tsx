@@ -10,8 +10,8 @@ const IconPath = () => (
 	/>
 )
 
-const width = '8'
-const height = '12'
+const width = '21'
+const height = '13'
 const viewBox = `0 0 ${width} ${height}`
 
 export const ChevronLeftIcon = (props: IconProps) => {
