@@ -3,6 +3,8 @@ interface APIResponse<T> {
 	data: T[]
 }
 
+interface DailyActionResponse extends APIResponse<DailyAction> {}
+
 interface LoginData {
 	email: string
 	password: string
@@ -15,6 +17,49 @@ interface UserAPIFormat {
 	_id: string
 	displayName: string
 	businessPartnerId?: string
-	// isInternal?: boolean
 	avatarColorId?: number
+}
+interface EntryType {
+	value: string
+	label: string
+}
+
+interface DailyAction {
+	entryType: EntryType
+	productId: string
+	productName: string
+	supplierId?: string
+	supplierName?: string
+	customerId?: string
+	customerName?: string
+	currencyId: string
+	currencyName: string
+	unitId: string
+	unitName: string
+	weight: string
+	singleUnitPrice?: string
+	totalPrice?: string
+}
+
+interface DailyActionRequestBody extends APIResponse<DailyAction> {}
+
+interface DailyActionRequestBody {
+	entryType: EntryType
+	productId: string
+	productName: string
+	supplierId?: string
+	supplierName?: string
+	customerId?: string
+	customerName?: string
+	currencyId: string
+	currencyName: string
+	unitId: string
+	unitName: string
+	weight: string
+	singleUnitPrice: string
+	totalPrice: string
+}
+
+type CreateDailyActionResponse = {
+	_id: string
 }

@@ -88,9 +88,11 @@ interface InputLabelProps {
 	inputRef?: RefObject<HTMLInputElement>
 	disabledTooltip?: string
 	invalidTooltip?: string
+	withGap?: boolean
 }
 
 const InputLabel = ({
+	withGap = false,
 	inputType,
 	isInvalid,
 	label,
@@ -135,7 +137,9 @@ const InputLabel = ({
 	}
 
 	return (
-		<VStack sx={defaultStyles.container}>
+		<VStack
+			sx={{ ...defaultStyles.container, gap: withGap ? '1.25rem' : 'none' }}
+		>
 			<CustomTooltip
 				label={label}
 				styles={{ ...defaultStyles.textWrapper, ...styles?.label }}

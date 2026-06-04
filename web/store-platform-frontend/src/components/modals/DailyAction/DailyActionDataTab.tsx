@@ -2,34 +2,43 @@ import React, {
 	Dispatch,
 	SetStateAction,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from 'react'
-import TextLabel from '../common/TextLabel'
-import { Box, Button, SimpleGrid, VStack, Heading } from '@chakra-ui/react'
+
+import {
+	Box,
+	Button,
+	SimpleGrid,
+	VStack,
+	Heading,
+	Text,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
-import { ActionTypes } from '../../shared/globalEnums'
-import { Dropdown } from '../dropdown/Dropdown'
-import { dropdownStyles } from '../filters/dropdowns/styles'
-import InputLabel from '../common/InputLabel'
 import {
 	documentNameStyles,
 	hoverFocusActiveButtonStyles,
-} from '../../theme/styles'
-import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
+} from '../../../theme/styles'
 import {
+	useCreateCurrencyMutation,
+	useCreateCustomerMutation,
+	useCreateSupplierMutation,
+	useCreateUnitMutation,
+	useGetCurrenciesQuery,
+	useGetCustomersQuery,
 	useGetProductsQuery,
 	useGetSuppliersQuery,
-	useGetCustomersQuery,
-	useGetCurrenciesQuery,
 	useGetUnitsQuery,
 	useQuickAddProductMutation,
-	useCreateSupplierMutation,
-	useCreateCustomerMutation,
-	useCreateCurrencyMutation,
-	useCreateUnitMutation,
-} from '../../api/apiStore'
-import { mapFee } from '../../shared/utils'
+} from '../../../api/apiStore'
+import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
+import { ActionTypes } from '../../../shared/globalEnums'
+import { mapFee } from '../../../shared/utils'
+import InputLabel from '../../common/InputLabel'
+import TextLabel from '../../common/TextLabel'
+import { Dropdown } from '../../dropdown/Dropdown'
+import { dropdownStyles } from '../../filters/dropdowns/styles'
 
 const styles = {
 	button: {
@@ -45,10 +54,29 @@ const styles = {
 interface DailyActionDataTabProps {
 	actionType: string
 	setShouldLeavingBeQuestioned: Dispatch<SetStateAction<boolean>>
+	registerNextStepValidation: (validator: () => boolean) => void
+	onSummaryChange: (summary: DailyActionSummary) => void
 }
+
+export interface DailyActionSummary {
+	actionType: string
+	product: string
+	supplier: string
+	customer: string
+	currency: string
+	unit: string
+	weight: string
+	singleUnitPrice: string
+	totalPrice: string
+	salesArea: string
+	locationCustomer: string
+}
+
 const DailyActionDataTab = ({
 	actionType,
 	setShouldLeavingBeQuestioned,
+	registerNextStepValidation,
+	onSummaryChange,
 }: DailyActionDataTabProps) => {
 	const { t } = useTranslation()
 
@@ -64,15 +92,19 @@ const DailyActionDataTab = ({
 	const [createCurrency] = useCreateCurrencyMutation()
 	const [createUnit] = useCreateUnitMutation()
 
-	const productOptions = (productsResponse?.products ?? []).map(p => ({
-		label: p.name,
-		value: String((p as any)._id ?? p.productId ?? p.name),
-	}))
+	const productOptions = useMemo(
+		() =>
+			(productsResponse?.products ?? []).map(p => ({
+				label: p.name,
+				value: String((p as any)._id ?? p.productId ?? p.name),
+			})),
+		[productsResponse?.products],
+	)
 
-	const supplierOptions = suppliersData ?? []
-	const customerOptions = customersData ?? []
-	const currencyOptions = currenciesData ?? []
-	const unitOptions = unitsData ?? []
+	const supplierOptions = useMemo(() => suppliersData ?? [], [suppliersData])
+	const customerOptions = useMemo(() => customersData ?? [], [customersData])
+	const currencyOptions = useMemo(() => currenciesData ?? [], [currenciesData])
+	const unitOptions = useMemo(() => unitsData ?? [], [unitsData])
 
 	const [formData, setFormData] = useState<any>(null)
 	const hasMountedRef = useRef(false)
@@ -83,11 +115,26 @@ const DailyActionDataTab = ({
 		currency: [] as string[],
 		unit: [] as string[],
 	})
+	const [requiredErrors, setRequiredErrors] = useState({
+		product: false,
+		supplier: false,
+		currency: false,
+		unit: false,
+		weight: false,
+		singleUnitPrice: false,
+	})
 
 	const handleSelectionChange = (
 		field: keyof typeof selectedValues,
 		values: string[],
 	) => {
+		if (values.length > 0) {
+			setRequiredErrors(prevErrors => ({
+				...prevErrors,
+				[field]: false,
+			}))
+		}
+
 		setSelectedValues(prevValues => ({
 			...prevValues,
 			[field]: values,
@@ -97,6 +144,127 @@ const DailyActionDataTab = ({
 			[field]: values,
 		}))
 	}
+
+	const handleInputChange = (
+		field: 'weight' | 'singleUnitPrice',
+		value: string,
+	) => {
+		if (value.trim()) {
+			setRequiredErrors(prevErrors => ({
+				...prevErrors,
+				[field]: false,
+			}))
+		}
+
+		setFormData((prev: any) => ({
+			...prev,
+			[field]: value,
+		}))
+	}
+
+	useEffect(() => {
+		registerNextStepValidation(() => {
+			if (actionType !== ActionTypes.buying) {
+				return true
+			}
+
+			const validationErrors = {
+				product: selectedValues.product.length === 0,
+				supplier: selectedValues.supplier.length === 0,
+				currency: selectedValues.currency.length === 0,
+				unit: selectedValues.unit.length === 0,
+				weight: !String(formData?.weight ?? '').trim(),
+				singleUnitPrice: !String(formData?.singleUnitPrice ?? '').trim(),
+			}
+
+			setRequiredErrors(validationErrors)
+
+			return !Object.values(validationErrors).some(Boolean)
+		})
+	}, [
+		selectedValues.product.length,
+		actionType,
+		formData?.singleUnitPrice,
+		formData?.weight,
+		registerNextStepValidation,
+		selectedValues.currency.length,
+		selectedValues.supplier.length,
+		selectedValues.unit.length,
+	])
+
+	useEffect(() => {
+		if (actionType !== ActionTypes.buying) {
+			setRequiredErrors({
+				product: false,
+				supplier: false,
+				currency: false,
+				unit: false,
+				weight: false,
+				singleUnitPrice: false,
+			})
+		}
+	}, [actionType])
+
+	const showSupplierWarningBorder = requiredErrors.supplier
+	const showCurrencyWarningBorder = requiredErrors.currency
+	const showUnitWarningBorder = requiredErrors.unit
+	const showWeightWarningBorder = requiredErrors.weight
+	const showSingleUnitPriceWarningBorder = requiredErrors.singleUnitPrice
+	const showProductWarningBorder = requiredErrors.product
+	const showWarningBorder = Object.values(requiredErrors).some(Boolean)
+
+	const getLabelByValue = (
+		options: Array<{ label: string; value: string }>,
+		value?: string,
+	): string => {
+		if (!value) {
+			return ''
+		}
+
+		return options.find(option => option.value === value)?.label || value
+	}
+
+	useEffect(() => {
+		const totalPrice =
+			formData?.singleUnitPrice && formData?.weight
+				? mapFee(
+						(
+							Number(formData.singleUnitPrice) * Number(formData.weight)
+						)?.toString(),
+					) || ''
+				: ''
+
+		onSummaryChange({
+			actionType,
+			product: getLabelByValue(productOptions, selectedValues.product[0]),
+			supplier: getLabelByValue(supplierOptions, selectedValues.supplier[0]),
+			customer: getLabelByValue(customerOptions, selectedValues.customer[0]),
+			currency: getLabelByValue(currencyOptions, selectedValues.currency[0]),
+			unit: getLabelByValue(unitOptions, selectedValues.unit[0]),
+			weight: String(formData?.weight ?? '').trim(),
+			singleUnitPrice: String(formData?.singleUnitPrice ?? '').trim(),
+			totalPrice,
+			salesArea: String(formData?.salesArea ?? '').trim(),
+			locationCustomer: String(formData?.locationCustomer ?? '').trim(),
+		})
+	}, [
+		actionType,
+		customerOptions,
+		currencyOptions,
+		formData?.locationCustomer,
+		formData?.salesArea,
+		formData?.singleUnitPrice,
+		formData?.weight,
+		onSummaryChange,
+		productOptions,
+		selectedValues.currency,
+		selectedValues.customer,
+		selectedValues.product,
+		selectedValues.supplier,
+		selectedValues.unit,
+		supplierOptions,
+		unitOptions,
+	])
 
 	useEffect(() => {
 		if (!hasMountedRef.current) {
@@ -203,7 +371,14 @@ const DailyActionDataTab = ({
 				<SimpleGrid columns={[1, 2, 3]} gap={6}>
 					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 						<TextLabel label={' Product'} />
-						<Box sx={dropdownStyles.dropDownContainer}>
+						<Box
+							sx={{
+								...dropdownStyles.dropDownContainer,
+								outline: showProductWarningBorder
+									? '1px solid #FF0000'
+									: 'none',
+							}}
+						>
 							<Dropdown
 								isSingle={true}
 								placeholder={t('Product Name')}
@@ -217,7 +392,14 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 						<TextLabel label={' Supplier'} />
-						<Box sx={dropdownStyles.dropDownContainer}>
+						<Box
+							sx={{
+								...dropdownStyles.dropDownContainer,
+								outline: showSupplierWarningBorder
+									? '1px solid #FF0000'
+									: 'none',
+							}}
+						>
 							<Dropdown
 								isSingle={true}
 								placeholder={t('Supplier Name')}
@@ -231,7 +413,14 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 						<TextLabel label={' Currency'} />
-						<Box sx={dropdownStyles.dropDownContainer}>
+						<Box
+							sx={{
+								...dropdownStyles.dropDownContainer,
+								outline: showCurrencyWarningBorder
+									? '1px solid #FF0000'
+									: 'none',
+							}}
+						>
 							<Dropdown
 								placeholder={t('Currency Name')}
 								dropDownOptions={currencyOptions}
@@ -245,7 +434,12 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 						<TextLabel label={' Unit'} />
-						<Box sx={dropdownStyles.dropDownContainer}>
+						<Box
+							sx={{
+								...dropdownStyles.dropDownContainer,
+								outline: showUnitWarningBorder ? '1px solid #FF0000' : 'none',
+							}}
+						>
 							<Dropdown
 								placeholder={t('Unit Name')}
 								dropDownOptions={unitOptions}
@@ -257,33 +451,29 @@ const DailyActionDataTab = ({
 							/>
 						</Box>
 					</VStack>
-					<VStack>
+					<VStack sx={{ gap: '1.25rem', alignItems: 'left' }}>
 						<InputLabel
+							withGap={true}
+							isInvalid={showWeightWarningBorder}
 							label={'Weight'}
 							inputPlaceholder={'Weight'}
 							inputType={'number'}
 							styles={documentNameStyles}
 							value={formData?.weight ?? ''}
-							onChange={(value: string) =>
-								setFormData((prev: any) => ({
-									...prev,
-									weight: value,
-								}))
-							}
+							onChange={(value: string) => handleInputChange('weight', value)}
 						/>
 					</VStack>
-					<VStack>
+					<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 						<InputLabel
+							withGap={true}
+							isInvalid={showSingleUnitPriceWarningBorder}
 							label={'Single Unit Price'}
 							inputPlaceholder={'Single Unit Price'}
 							inputType={'number'}
 							styles={documentNameStyles}
 							value={formData?.singleUnitPrice ?? ''}
 							onChange={(value: string) =>
-								setFormData((prev: any) => ({
-									...prev,
-									singleUnitPrice: value,
-								}))
+								handleInputChange('singleUnitPrice', value)
 							}
 						/>
 					</VStack>
@@ -309,6 +499,17 @@ const DailyActionDataTab = ({
 						}
 					/>
 				</Box>
+
+				{showWarningBorder && (
+					<Text
+						color="#FF0000"
+						fontSize="0.75rem"
+						alignSelf="flex-start"
+						paddingTop={'3rem'}
+					>
+						Please fill out the required fields.
+					</Text>
+				)}
 				{footerActionsButtons()}
 			</>
 		)
@@ -378,6 +579,7 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack>
 						<InputLabel
+							withGap={true}
 							label={'Weight'}
 							inputPlaceholder={'Weight'}
 							inputType={'number'}
@@ -393,6 +595,7 @@ const DailyActionDataTab = ({
 					</VStack>
 					<VStack>
 						<InputLabel
+							withGap={true}
 							label={'Single Unit Price'}
 							inputPlaceholder={'Single Unit Price'}
 							inputType={'number'}

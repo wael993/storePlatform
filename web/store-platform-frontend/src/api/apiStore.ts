@@ -58,6 +58,27 @@ export interface ProductFilterValuesResponse {
 	state: ProductFilterValueOption[]
 	category: ProductFilterValueOption[]
 }
+interface EntryType {
+	value: string
+	label: string
+}
+
+export interface AddDailyActionRequestBody {
+	entryType: EntryType
+	productId: string
+	productName: string
+	supplierId?: string
+	supplierName?: string
+	customerId?: string
+	customerName?: string
+	currencyId: string
+	currencyName: string
+	unitId: string
+	unitName: string
+	weight: string
+	singleUnitPrice?: string
+	totalPrice?: string
+}
 
 const buildProductFilterQueryParams = (
 	filters: ProductFiltersQueryParams,
@@ -471,15 +492,19 @@ const getQuery = (
 			invalidatesTags: ['user-settings'],
 		}),
 
-		getDailyActions: builder.query<any[], void>({
+		getDailyActions: builder.query<DailyActionsAPIResponse[], void>({
 			query: () => ({
 				url: 'daily-actions',
 				method: 'GET',
 			}),
+			transformResponse: (response: { data: DailyActionsAPIResponse[] }) => {
+				return response.data
+			},
+
 			providesTags: ['daily-actions'],
 		}),
 
-		getSingleDailyAction: builder.query({
+		getSingleDailyAction: builder.query<DailyActionsAPIResponse, string>({
 			query: (actionId: string) => ({
 				url: `daily-actions/${actionId}`,
 				method: 'GET',
@@ -487,8 +512,8 @@ const getQuery = (
 			providesTags: ['daily-action'],
 		}),
 
-		createDailyAction: builder.mutation({
-			query: (body: any) => ({
+		postDailyAction: builder.mutation<void, AddDailyActionRequestBody>({
+			query: (body: AddDailyActionRequestBody) => ({
 				url: 'daily-actions',
 				method: 'POST',
 				body,
@@ -496,7 +521,10 @@ const getQuery = (
 			invalidatesTags: ['daily-actions'],
 		}),
 
-		updateDailyAction: builder.mutation({
+		updateDailyAction: builder.mutation<
+			DailyActionsAPIResponse,
+			{ id: string; body: any }
+		>({
 			query: ({ id, body }: { id: string; body: any }) => ({
 				url: `daily-actions/${id}`,
 				method: 'PATCH',
@@ -554,7 +582,7 @@ export const {
 	useUpdateUserSettingsMutation,
 	useGetDailyActionsQuery,
 	useGetSingleDailyActionQuery,
-	useCreateDailyActionMutation,
+	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
 	useDeleteDailyActionMutation,
 } = storeApi

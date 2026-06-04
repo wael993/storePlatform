@@ -6,6 +6,13 @@ export enum UserRole {
 	EMPLOYEE = 'employee',
 }
 
+export enum DailyActionType {
+	BUYING_ENTRY = 'BUYING_ENTRY',
+	SELLING_ENTRY = 'SELLING_ENTRY',
+	PAYMENT_ENTRY = 'PAYMENT_ENTRY',
+	RECEIPT_ACTION = 'RECEIPT_ACTION',
+}
+
 export enum AllowedActions {
 	// PRODUCT
 	ADD_PRODUCT = 'addProduct',
@@ -125,9 +132,9 @@ export enum FilterAttribute {
 }
 
 export enum StepKeys {
-	actionType = 0,
-	ActionData = 1,
-	ActionSummery = 2,
+	ACTION_TYPE = 1,
+	ACTION_DATA = 2,
+	ACTION_SUMMARY = 3,
 }
 
 export enum ActionTypes {

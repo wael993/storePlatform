@@ -3,9 +3,80 @@ import { RequiredParameterMissingError } from '../shared/errors'
 import { ERROR_CODES } from '../shared/errorCodes'
 import { validateInternalId } from '../shared/validator/validator'
 import { handleError } from '../middleware/errorHandler'
+import { DailyActionType } from '../shared/globalEnums'
 
 export class PlatformValidator {
 	public constructor() {}
+
+	protected validatePostDailyAction(
+		req: express.Request,
+		res: express.Response,
+		next: express.NextFunction,
+	): void {
+		try {
+			const {
+				entryType,
+				productId,
+				supplierId,
+				customerId,
+				currencyId,
+				unitId,
+				weight,
+				singleUnitPrice,
+				totalPrice,
+			} = req.body ?? {}
+
+			if (!entryType) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'EntryType is Missing',
+				)
+			}
+
+			if (!Object.values(DailyActionType).includes(entryType)) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Invalid EntryType.',
+				)
+			}
+
+			if (entryType === DailyActionType.SELLING_ENTRY) {
+				if (!customerId || !String(customerId).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'CustomerId is Missing',
+					)
+				}
+			}
+
+			if (entryType === DailyActionType.BUYING_ENTRY) {
+				if (!supplierId || !String(supplierId).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'SupplierId is Missing',
+					)
+				}
+			}
+
+			if (
+				!productId ||
+				!currencyId ||
+				!unitId ||
+				!weight ||
+				!singleUnitPrice ||
+				!totalPrice
+			) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'One or more required fields are missing.',
+				)
+			}
+
+			next()
+		} catch (err: any) {
+			handleError(err, 400, res)
+		}
+	}
 
 	protected validateGetProducts(
 		req: express.Request,

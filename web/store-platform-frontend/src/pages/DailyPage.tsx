@@ -7,18 +7,18 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/icons'
-import React, { useState } from 'react'
+import React from 'react'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
-import { AllowedActions, BreadCrumbItem, StepKeys } from '../shared/globalEnums'
+import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import { generateBreadcrumbs } from '../shared/routes'
 import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
-import DailyActionModal from '../components/modals/DailyActionModal'
 import ListWithActionBar from '../components/list/ListWithActionBar'
-import { useGetDailyActionsQuery, useGetProductsQuery } from '../api/apiStore'
+import { useGetDailyActionsQuery } from '../api/apiStore'
+import AddDailyActionModal from '../components/modals/DailyAction/AddDailyActionModal'
 
 const fullWidth = '100%'
 
@@ -69,15 +69,12 @@ const DailyPage = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
-	const { data: response, isLoading, isFetching } = useGetProductsQuery({})
 	const {
 		data: dailyActionsResponse,
 		isLoading: isDailyActionsLoading,
 		isFetching: isDailyActionsFetching,
 	} = useGetDailyActionsQuery()
 	console.log('🚀 ~ DailyPage ~ dailyActionsResponse:', dailyActionsResponse)
-
-	const products = response?.products ?? []
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -105,19 +102,12 @@ const DailyPage = () => {
 					</Button>
 				)}
 			</HStack>
-
 			<Box sx={styles.divider} />
-
-			<ListWithActionBar
-				products={products as Product[]}
-				isLoading={isLoading || isFetching}
-			/>
-
-			<DailyActionModal
-				isOpen={isOpen}
-				onCloseModal={onClose}
-				initialTab={StepKeys.actionType}
-			/>
+			{/* <ListWithActionBar
+				products={dailyActionsResponse as DailyActionsAPIResponse[]}
+				isLoading={isDailyActionsLoading || isDailyActionsFetching}
+			/> */}
+			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />
 		</Flex>
 	)
 }

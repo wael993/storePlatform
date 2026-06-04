@@ -18,7 +18,7 @@ import {
 	UpdateTenantRequestBody,
 	UpdateTenantUserRequestBody,
 } from '../shared/types'
-import { LoginData } from '../shared/types/api'
+import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
 // import { loginRateLimiter, refreshRateLimiter } from '../middleware/rateLimiter'
 
@@ -319,6 +319,7 @@ export default class StoreRoutes extends PlatformValidator {
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
+				this.validatePostDailyAction.bind(this),
 				this.postDailyAction.bind(this),
 			)
 
@@ -1357,7 +1358,7 @@ export default class StoreRoutes extends PlatformValidator {
 		request: any,
 		response: express.Response,
 	): Promise<void> {
-		const requestBody = request.body
+		const requestBody: DailyActionRequestBody = request.body
 		const requestContext = this.getRequestContext(request)
 
 		try {

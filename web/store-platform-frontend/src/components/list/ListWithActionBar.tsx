@@ -2,10 +2,8 @@ import { Box, Center, Text, VStack } from '@chakra-ui/react'
 import ListActionBar from './ListActionBar'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useUser } from '../../shared/hooks/useUser'
 import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../../shared/utils'
-// import ListMobile from './ListMobile'
 import ListDesktop from './ListDesktop'
 import useCustomToast from '../common/CustomToast'
 
@@ -25,7 +23,6 @@ interface ListWithActionBarProps {
 const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 	const { t } = useTranslation()
 	const showToastMessage = useCustomToast()
-	const { user } = useUser()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([])
 	const listActivities: Product[] = useMemo(() => {

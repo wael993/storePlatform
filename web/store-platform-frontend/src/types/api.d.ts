@@ -1,10 +1,3 @@
-// interface AddFilterRequestBody {
-// 	filterName: string
-// 	activityType: ActivityType
-// 	filters: FilterOptions
-// 	isDefault: boolean
-// }
-
 interface AddUserRequestBody {
 	firstName: string
 	lastName: string
@@ -65,10 +58,8 @@ interface BearerTokenPayload {
 }
 
 //////////////////////////
-interface APIResponse<T> {
-	totalCount: number
-	data: T[]
-}
+
+interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
 
 interface ProductResponse extends APIResponse<Product[]> {}
 
@@ -145,7 +136,6 @@ interface LoginAPI {
 	firstName: string
 	lastName: string
 	role: UserRole
-	// isInternal: boolean
 }
 
 interface TenantUser {
@@ -156,7 +146,7 @@ interface TenantUser {
 	role: UserRole
 	firstName: string
 	lastName: string
-	// isInternal: boolean
+
 	createdAt: string
 	updatedAt: string
 }
@@ -166,7 +156,6 @@ interface InviteTenantUserRequest {
 	lastName: string
 	email: string
 	role: UserRole
-	// isInternal?: boolean
 }
 
 interface InviteTenantUserResponse {

@@ -70,7 +70,6 @@ export const Dropdown = ({
 	initialOptions,
 	showClearOptions = true,
 	showClearIconOnOption = false,
-
 	noOptionsSelection,
 	dropDownOptions,
 	usePortal = false,

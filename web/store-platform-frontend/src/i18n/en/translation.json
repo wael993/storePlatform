@@ -10,7 +10,11 @@
 			"actionDate": "Action Date",
 			"actionSummary": "Action Summary",
 			"inputLockedWarning": "no Changes allowed for this action anymore.",
-			"textPlaceholder": "Add text.."
+			"textPlaceholder": "Add text..",
+			"selectEntryType": "Select Entry Type",
+			"actionTypeMissing": "Please select the action type to continue.",
+			"actionDataMissing": "Please fill in the required fields to continue.",
+			"actionSavedSuccessfully": "Daily action saved successfully."
 		},
 		"pageHeaders": {
 			"settings": "Settings",
@@ -114,6 +118,11 @@
 		"discount": "Discount",
 		"addDiscount": "Add Discount",
 		"color": "Color",
-		"createdAt": "Created At"
+		"createdAt": "Created At",
+		"nextStep": "Next Step",
+		"actionTypeMissing": "Please select the action type to continue.",
+		"invoiceNumberMissing": "Please enter the invoice number to continue.",
+		"back": "Back",
+		"submit": "Submit"
 	}
 }

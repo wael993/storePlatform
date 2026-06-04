@@ -31,10 +31,11 @@ const TextLabel = ({ label, value }: TextLabelProps) => {
 			<CustomTooltip styles={styles.labelWrapper} label={label}>
 				{label}
 			</CustomTooltip>
-
-			<CustomTooltip styles={styles.textWrapper} label={value}>
-				{value}
-			</CustomTooltip>
+			{value && (
+				<CustomTooltip styles={styles.textWrapper} label={value}>
+					{value}
+				</CustomTooltip>
+			)}
 		</VStack>
 	)
 }

@@ -1,4 +1,5 @@
 import {
+	Box,
 	Button,
 	Checkbox,
 	Circle,
@@ -117,6 +118,7 @@ interface FilterModalProps {
 	brandOptions: FilterSelectOption[]
 	stateOptions: FilterSelectOption[]
 	categoryOptions: FilterSelectOption[]
+	showWarningBorder?: boolean
 }
 
 const FilterModal = ({
@@ -130,6 +132,7 @@ const FilterModal = ({
 	supplierOptions,
 	brandOptions,
 	stateOptions,
+	showWarningBorder,
 	categoryOptions,
 }: FilterModalProps) => {
 	const { t } = useTranslation()
@@ -225,13 +228,19 @@ const FilterModal = ({
 								/>
 							)}
 
-							<BrandDropdown
-								options={brandOptions}
-								selectedValues={localFilters.brand}
-								onChange={brand =>
-									setLocalFilters(prev => ({ ...prev, brand }))
-								}
-							/>
+							<Box
+								sx={{
+									outline: showWarningBorder ? '1px solid #FF0000' : 'none',
+								}}
+							>
+								<BrandDropdown
+									options={brandOptions}
+									selectedValues={localFilters.brand}
+									onChange={brand =>
+										setLocalFilters(prev => ({ ...prev, brand }))
+									}
+								/>
+							</Box>
 
 							<StateDropdown
 								options={stateOptions}

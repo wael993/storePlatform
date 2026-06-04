@@ -32,7 +32,6 @@ import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
-	CreateEntityResponse,
 	CreateProductResponse,
 	InviteTenantUserRequestBody,
 	InviteTenantUserResponse,
@@ -48,7 +47,12 @@ import {
 	UpdateTenantUserRequestBody,
 	ProductAPI,
 } from '../shared/types'
-import { LoginData } from '../shared/types/api'
+import {
+	CreateDailyActionResponse,
+	DailyActionRequestBody,
+	DailyActionResponse,
+	LoginData,
+} from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
 import { getTenantPermissions } from '../shared/Permissions'
 import {
@@ -64,7 +68,7 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
-import { log } from 'console'
+import { DailyActionType } from '../shared/globalEnums'
 
 type TokenPayload = {
 	userId: string
@@ -1578,10 +1582,13 @@ export default class ProductController {
 		)
 	}
 
-	public async getDailyActions(requestContext: RequestContext) {
+	public async getDailyActions(
+		requestContext: RequestContext,
+	): Promise<DailyActionResponse> {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = `dailyActions:${tenantId}`
-		const cachedDailyActions = await redisCache.getJson<any[]>(cacheKey)
+		const cachedDailyActions =
+			await redisCache.getJson<DailyActionResponse>(cacheKey)
 		if (cachedDailyActions) {
 			return cachedDailyActions
 		}
@@ -1593,8 +1600,14 @@ export default class ProductController {
 			sort: { createdAt: 'desc' },
 		})
 
-		await redisCache.setJson(cacheKey, dailyActions.documents)
-		return dailyActions.documents
+		await redisCache.setJson(cacheKey, {
+			data: dailyActions.documents,
+			totalCount: dailyActions.documents.length,
+		})
+		return {
+			data: dailyActions.documents,
+			totalCount: dailyActions.documents.length,
+		}
 	}
 
 	public async getDailyAction(
@@ -1603,7 +1616,7 @@ export default class ProductController {
 	) {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = `dailyAction:${tenantId}:${actionId}`
-		const cachedAction = await redisCache.getJson<any>(cacheKey)
+		const cachedAction = await redisCache.getJson<DailyActionResponse>(cacheKey)
 		if (cachedAction) {
 			return cachedAction
 		}
@@ -1619,54 +1632,39 @@ export default class ProductController {
 			return null
 		}
 
-		await redisCache.setJson(cacheKey, dailyAction)
-		return dailyAction
+		await redisCache.setJson(cacheKey, { data: [dailyAction], totalCount: 1 })
+		return { data: [dailyAction], totalCount: 1 }
 	}
 
 	public async postDailyAction(
-		requestBody: {
-			type: ActionType
-			salesArea?: string
-			locationCustomer?: string
-			shopTerminal?: string
-			promotionSpace?: string
-			amount?: number
-			description?: string
-			reference?: string
-		},
+		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
-	) {
-		if (!requestBody.type) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-				'Action type is required.',
-			)
+	): Promise<CreateDailyActionResponse> {
+		const createdAt = new Date()
+		const createdBy = {
+			_id: requestContext.userId ?? '',
+			displayName:
+				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+			role: requestContext.user?.role,
 		}
-
-		const validTypes: ActionType[] = [
-			'purchase',
-			'procurement',
-			'receipt',
-			'expense',
-			'test',
-		]
-		if (!validTypes.includes(requestBody.type)) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-				'Invalid action type.',
-			)
-		}
-
 		const dailyActionData = {
 			actionId: uuidv4(),
-			type: requestBody.type,
-			salesArea: requestBody.salesArea,
-			locationCustomer: requestBody.locationCustomer,
-			shopTerminal: requestBody.shopTerminal,
-			promotionSpace: requestBody.promotionSpace,
-			amount: requestBody.amount,
-			description: requestBody.description,
-			reference: requestBody.reference,
+			entryType: requestBody.entryType,
+			productId: requestBody.productId,
+			productName: requestBody.productName,
+			supplierId: requestBody.supplierId,
+			supplierName: requestBody.supplierName,
+			customerId: requestBody.customerId,
+			customerName: requestBody.customerName,
+			currencyId: requestBody.currencyId,
+			currencyName: requestBody.currencyName,
+			unitId: requestBody.unitId,
+			unitName: requestBody.unitName,
+			weight: requestBody.weight,
+			singleUnitPrice: requestBody.singleUnitPrice,
+			totalPrice: requestBody.totalPrice,
+			createdBy,
+			createdAt,
 		}
 
 		const createDailyActionResponse = await this.mongoDbClient.createDocument(
