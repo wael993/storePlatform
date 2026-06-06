@@ -23,6 +23,8 @@ type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
 type InputType = 'number' | 'text' | 'email' | 'text-area'
 
 interface DailyAction {
+	_id?: string
+	actionId?: string
 	entryType: EntryType
 	productId: string
 	productName: string
@@ -37,6 +39,8 @@ interface DailyAction {
 	weight: string
 	singleUnitPrice?: string
 	totalPrice?: string
+	createdAt?: string
+	updatedAt?: string
 }
 interface User {
 	_id: string

@@ -39,7 +39,6 @@ import {
 	useGetTenantsQuery,
 	useUpdateTenantMutation,
 } from '../api/apiStore'
-import type { TenantSummary } from '../types/tenant'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'

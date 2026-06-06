@@ -1,11 +1,12 @@
+import React from 'react'
 import { Heading, SimpleGrid, VStack, Box } from '@chakra-ui/react'
 import { t } from 'i18next'
-import React from 'react'
 import { documentNameStyles } from '../../../../theme/styles'
 import InputLabel from '../../../common/InputLabel'
 import TextLabel from '../../../common/TextLabel'
 import { Dropdown } from '../../../dropdown/Dropdown'
 import { dropdownStyles } from '../../../filters/dropdowns/styles'
+import DailyActionsHelperButtons from './DailyActionsHelperButtons'
 
 interface SecondStepProps {
 	isBuyingEntry: boolean
@@ -207,6 +208,7 @@ const SecondStep = ({
 					>
 						<TextLabel label={'Total Price'} value={totalPrice} />
 					</Box>
+					<DailyActionsHelperButtons />
 				</>
 			)}
 			{(isReceiptAction || isPaymentEntry) && (
@@ -250,6 +252,8 @@ const SecondStep = ({
 							/>
 						</VStack>
 					</SimpleGrid>
+
+					<DailyActionsHelperButtons />
 				</>
 			)}
 		</>

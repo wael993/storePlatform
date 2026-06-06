@@ -90,6 +90,12 @@
 		"discount": "Rabatt",
 		"addDiscount": "Rabatt hinzufügen",
 		"color": "Farbe",
-		"createdAt": "Erstellt am"
+		"createdAt": "Erstellt am",
+		"entryType": "Buchungsart",
+		"weight": "Gewicht",
+		"unitPrice": "Einzelpreis",
+		"totalPrice": "Gesamtpreis",
+		"supplierOrCustomer": "Lieferant / Kunde",
+		"addDailyAction": "Tagesaktion hinzufügen"
 	}
 }

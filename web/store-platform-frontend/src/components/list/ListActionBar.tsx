@@ -1,7 +1,6 @@
-import { Button, Flex, Text, useDisclosure } from '@chakra-ui/react'
+import { Button, Flex, Text } from '@chakra-ui/react'
 import { AsCloseCircleIcon } from '../../icons/CloseIconCircle'
 import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
-import { useMemo } from 'react'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useTranslation } from 'react-i18next'
 import { useResources } from '../../shared/hooks/useResources'

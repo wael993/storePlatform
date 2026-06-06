@@ -14,7 +14,10 @@
 			"selectEntryType": "Select Entry Type",
 			"actionTypeMissing": "Please select the action type to continue.",
 			"actionDataMissing": "Please fill in the required fields to continue.",
-			"actionSavedSuccessfully": "Daily action saved successfully."
+			"actionSavedSuccessfully": "Daily action saved successfully.",
+			"noDailyFound": "No Daily found",
+			"addQuickProduct": "Add Quick Product",
+			"productName": "Product Name"
 		},
 		"pageHeaders": {
 			"settings": "Settings",
@@ -87,7 +90,13 @@
 	},
 
 	"common": {
+		"noElementsFound": "No elements found",
 		"addDailyAction": "Add Daily Action",
+		"entryType": "Entry Type",
+		"weight": "Weight",
+		"unitPrice": "Unit Price",
+		"totalPrice": "Total Price",
+		"supplierOrCustomer": "Supplier / Customer",
 		"noOptions": "No options",
 		"inputSearch": "Search...",
 		"showResults": "Show Results",

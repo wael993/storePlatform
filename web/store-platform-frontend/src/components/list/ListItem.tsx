@@ -159,7 +159,7 @@ const ListItem = memo(
 						<Flex
 							sx={{ ...styles.cellContentWrapper, ...styles.checkboxWrapper }}
 							onClick={e => {
-								onSelect(productData.id)
+								onSelect(productData.productId)
 
 								e.stopPropagation()
 							}}

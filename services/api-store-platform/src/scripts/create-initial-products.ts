@@ -74,8 +74,7 @@ function buildProducts(
 		const buyCost = Number((wholesale * 1.15).toFixed(2))
 
 		return {
-			id: uuidv4(),
-			productId: `PRD-${idx.toString().padStart(4, '0')}`,
+			_id: uuidv4(),
 			productFactoryCode: `FC-${idx.toString().padStart(3, '0')}`,
 			name,
 			barcode: `900000000${idx.toString().padStart(4, '0')}`,
@@ -168,15 +167,14 @@ async function createInitialProducts() {
 		// Delete existing products (targeted by productId)
 		await Product.deleteMany({
 			tenantId: DEFAULT_TENANT_ID,
-			productId: { $in: initialProducts.map(p => p.productId) },
+			_id: { $in: initialProducts.map(p => p._id) },
 		} as any)
 		console.log('Deleted existing matching products')
 
 		const now = new Date()
 		const documents = initialProducts.map(productData => ({
-			id: productData.id,
+			_id: productData._id,
 			tenantId: DEFAULT_TENANT_ID,
-			productId: productData.productId,
 			productFactoryCode: productData.productFactoryCode,
 			name: productData.name,
 			barcode: productData.barcode,
@@ -207,11 +205,11 @@ async function createInitialProducts() {
 
 		const seededProducts = await Product.find({
 			tenantId: DEFAULT_TENANT_ID,
-			productId: { $in: initialProducts.map(p => p.productId) },
+			_id: { $in: initialProducts.map(p => p._id) },
 		})
 			.select({
 				name: 1,
-				productId: 1,
+				_id: 1,
 				brandName: 1,
 				categoryName: 1,
 				supplierName: 1,
@@ -219,13 +217,13 @@ async function createInitialProducts() {
 				categoryId: 1,
 				supplierId: 1,
 			})
-			.sort({ productId: 1 })
+			.sort({ _id: 1 })
 			.lean()
 
 		console.log('Seeded products:')
 		for (const product of seededProducts) {
 			console.log(
-				`${product.productId} | ${product.name} | brand=${product.brandName} | category=${product.categoryName} | supplier=${product.supplierName}`,
+				`${product._id} | ${product.name} | brand=${product.brandName} | category=${product.categoryName} | supplier=${product.supplierName}`,
 			)
 		}
 

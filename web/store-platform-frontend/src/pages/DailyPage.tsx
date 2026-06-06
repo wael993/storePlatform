@@ -4,6 +4,7 @@ import {
 	Flex,
 	Heading,
 	HStack,
+	Spinner,
 	Text,
 	useDisclosure,
 } from '@chakra-ui/icons'
@@ -70,11 +71,14 @@ const DailyPage = () => {
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const {
-		data: dailyActionsResponse,
+		data: response,
 		isLoading: isDailyActionsLoading,
 		isFetching: isDailyActionsFetching,
 	} = useGetDailyActionsQuery()
-	console.log('🚀 ~ DailyPage ~ dailyActionsResponse:', dailyActionsResponse)
+
+	const dailyAction = response ?? []
+	const isGetDailyActionsInProgress =
+		isDailyActionsLoading || isDailyActionsFetching
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -102,11 +106,15 @@ const DailyPage = () => {
 					</Button>
 				)}
 			</HStack>
+
+			{isGetDailyActionsInProgress && <Spinner />}
 			<Box sx={styles.divider} />
-			{/* <ListWithActionBar
-				products={dailyActionsResponse as DailyActionsAPIResponse[]}
+
+			<ListWithActionBar
+				dailyActions={dailyAction as unknown as DailyAction[]}
 				isLoading={isDailyActionsLoading || isDailyActionsFetching}
-			/> */}
+			/>
+
 			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />
 		</Flex>
 	)

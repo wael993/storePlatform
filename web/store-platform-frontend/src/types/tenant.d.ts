@@ -1,4 +1,4 @@
-export interface TenantSummary {
+interface TenantSummary {
 	tenantId: string
 	name: string
 	domain: string
@@ -13,7 +13,7 @@ export interface TenantSummary {
 	}
 }
 
-export interface UpdateTenantRequest {
+interface UpdateTenantRequest {
 	tenantName?: string
 	status?: 'active' | 'inactive'
 }

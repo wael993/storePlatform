@@ -34,8 +34,7 @@ interface VirtuosoContext {
 }
 
 const skeletonProduct: Product = {
-	id: 'skeleton-id',
-	productId: 'skeleton-product-id',
+	productId: 'skeleton-id',
 	name: 'dummy',
 	barcode: 'dummy',
 	categoryName: 'dummy',
@@ -156,9 +155,9 @@ const TableRowComponent = (props: {
 
 	return (
 		<ListRow
-			key={product.id}
+			key={product.productId}
 			product={product}
-			isSelected={selectedProducts.includes(product.id)}
+			isSelected={selectedProducts.includes(product.productId)}
 			tableRowProps={props}
 			onSelect={onSelect}
 			isLoading={isLoading}

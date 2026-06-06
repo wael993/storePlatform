@@ -26,7 +26,6 @@ interface RequestError {
 }
 
 export type ProductRequestBody = {
-	id?: string
 	productId?: string
 	productFactoryCode?: string
 	name: string
@@ -176,7 +175,8 @@ export type TenantSummary = {
 }
 interface ProductDocument {
 	tenantId: string
-	productId: string
+	_id?: string
+	productId?: string
 	productFactoryCode?: string
 	name: string
 	barcode: string
@@ -230,8 +230,7 @@ interface UserAPIFormat {
 
 type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
 interface ProductAPI {
-	id?: string
-	productId: string
+	_id?: string
 	productFactoryCode?: string
 	name: string
 	barcode: string

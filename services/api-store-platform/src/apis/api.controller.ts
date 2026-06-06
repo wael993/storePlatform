@@ -478,7 +478,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const requestedProductIds = items.map(item => item.productId)
 		const products = await withTenantScope(
-			Product.find({ productId: { $in: requestedProductIds } }),
+			Product.find({ _id: { $in: requestedProductIds } }),
 			tenantContext.tenantId,
 		).lean()
 
@@ -1012,7 +1012,7 @@ export default class ProductController {
 			requestContext,
 			COLLECTION_NAMES.PRODUCTS,
 			Product,
-			{ barcode: 'barcode', productId },
+			{ barcode: 'barcode', _id: productId },
 		)
 
 		if (!product) {
@@ -1101,9 +1101,11 @@ export default class ProductController {
 			createdAt: now,
 		}
 
+		const productId = uuidv4()
 		const productData: ProductDocument = {
 			tenantId: tenantContext.tenantId,
-			productId: uuidv4(),
+			_id: productId,
+			productId,
 			productFactoryCode,
 			name,
 			barcode,
@@ -1126,7 +1128,7 @@ export default class ProductController {
 		logger.info('Saving product to database.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			productId: productData.productId,
+			productId: productData._id,
 			name,
 		})
 
@@ -1139,11 +1141,11 @@ export default class ProductController {
 		logger.info('Product created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			productId: productData.productId,
+			productId: productData._id,
 			name,
 		})
 
-		await this.invalidateProductsCache(requestContext, productData.productId)
+		await this.invalidateProductsCache(requestContext, productData._id)
 
 		return { _id: createProductResponse._id }
 	}

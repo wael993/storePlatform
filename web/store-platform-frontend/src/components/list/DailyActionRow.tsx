@@ -1,29 +1,28 @@
-import { useNavigate } from 'react-router-dom'
 import { Tr } from '@chakra-ui/react'
-import ListItem from './ListItem'
 import { useState } from 'react'
+import DailyActionItem from './DailyActionItem'
 
-interface ListRowProps {
-	product: Product
+interface DailyActionRowProps {
+	dailyAction: DailyAction
 	onSelect: (id: string) => void
 	tableRowProps: Record<string, unknown>
 	isSelected: boolean
 	isLoading: boolean
 }
 
-const ListRow = ({
-	product,
+const DailyActionRow = ({
+	dailyAction,
 	onSelect,
 	isSelected,
 	tableRowProps,
 	isLoading,
-}: ListRowProps) => {
+}: DailyActionRowProps) => {
 	const [isHovered, setIsHovered] = useState(false)
-	const navigate = useNavigate()
+
 	const styles: StylesObject = {
 		row: {
 			backgroundColor: isHovered ? '#F9F9F9' : '#FFFFFF',
-			cursor: 'pointer',
+			cursor: 'default',
 		},
 	}
 
@@ -33,11 +32,10 @@ const ListRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
-			onClick={() => navigate(`${product.productId}`)}
 		>
-			<ListItem
-				key={product.productId}
-				product={product}
+			<DailyActionItem
+				key={dailyAction._id ?? dailyAction.actionId}
+				dailyAction={dailyAction}
 				onSelect={onSelect}
 				isSelected={isSelected}
 				isHovered={isHovered}
@@ -47,4 +45,4 @@ const ListRow = ({
 	)
 }
 
-export default ListRow
+export default DailyActionRow

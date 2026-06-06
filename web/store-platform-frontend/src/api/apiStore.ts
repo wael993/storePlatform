@@ -4,7 +4,6 @@ import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
-import type { TenantSummary, UpdateTenantRequest } from '../types/tenant'
 
 interface LoginData {
 	email: string
@@ -221,10 +220,10 @@ const getQuery = (
 			invalidatesTags: ['products', 'product'],
 		}),
 		postProduct: builder.mutation<
-			{ id: string },
-			Omit<Product, 'id' | 'productId'>
+			CreateProductAPIResponse,
+			Omit<Product, 'productId'>
 		>({
-			query: (newProduct: Omit<Product, '_id' | 'productId'>) => {
+			query: (newProduct: Omit<Product, 'productId'>) => {
 				return {
 					url: 'product',
 					method: 'POST',

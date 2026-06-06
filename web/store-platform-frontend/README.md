@@ -51,6 +51,9 @@ Password: S-uAboMHDZain010203
 Email: abd@zobanifood.sy
 Password: Abd321zo
 
+Email: ibrahem.zobani@zobani.sy
+Password: i120600Z
+
 Neutral 0 = #000000
 Neutral 100 = #1E1E1E
 Neutral 400 = #707070

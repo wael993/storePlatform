@@ -16,7 +16,7 @@ const BarcodePage = () => {
 
 	const addToCart = (p: Product) => {
 		setCart(prev => {
-			const existing = prev.find(item => item.id === p.id)
+			const existing = prev.find(item => item.productId === p.productId)
 			const maxStock = p.stock?.quantity ?? 0
 
 			if (existing) {
@@ -25,7 +25,7 @@ const BarcodePage = () => {
 				}
 
 				return prev.map(item =>
-					item.id === p.id
+					item.productId === p.productId
 						? {
 								...item,
 								cartQuantity: item.cartQuantity + 1,

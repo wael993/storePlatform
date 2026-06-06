@@ -20,6 +20,16 @@ export enum ProductSortHeaderKey {
 	COLOR = 'attributes.color',
 }
 
+export enum DailyActionSortHeaderKey {
+	ENTRY_TYPE = 'entryType',
+	PRODUCT_NAME = 'productName',
+	SUPPLIER_CUSTOMER = 'supplierName',
+	WEIGHT = 'weight',
+	UNIT_PRICE = 'singleUnitPrice',
+	TOTAL_PRICE = 'totalPrice',
+	CREATED_AT = 'createdAt',
+}
+
 export enum ActivityState {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive',

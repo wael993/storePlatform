@@ -90,6 +90,12 @@
 		"discount": "الخصم",
 		"addDiscount": "إضافة خصم",
 		"color": "اللون",
-		"createdAt": "تاريخ الإنشاء"
+		"createdAt": "تاريخ الإنشاء",
+		"entryType": "نوع الإدخال",
+		"weight": "الوزن",
+		"unitPrice": "سعر الوحدة",
+		"totalPrice": "السعر الإجمالي",
+		"supplierOrCustomer": "المورد / العميل",
+		"addDailyAction": "إضافة إجراء يومي"
 	}
 }

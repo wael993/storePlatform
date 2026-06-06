@@ -882,7 +882,7 @@ export default class StoreRoutes extends PlatformValidator {
 		request: any,
 		response: express.Response,
 	): Promise<void> {
-		const productId = request.params.id
+		const productId = request.params._id
 
 		const requestContext = this.getRequestContext(request)
 
@@ -904,7 +904,7 @@ export default class StoreRoutes extends PlatformValidator {
 		request: any,
 		response: express.Response,
 	): Promise<void> {
-		const productId = request.params.id
+		const productId = request.params._id
 		console.log('🚀 ~ StoreRoutes ~ patchProduct ~ productId:', productId)
 		const requestBody = request.body
 		const requestContext = this.getRequestContext(request)
@@ -932,7 +932,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			await this.productController.deleteProduct(
-				request.params.id,
+				request.params._id,
 				requestContext,
 			)
 			response.status(204).send()

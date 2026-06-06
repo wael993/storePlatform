@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
 	Alert,
 	AlertDescription,
@@ -11,6 +14,7 @@ import {
 	Container,
 	Flex,
 	FormControl,
+	FormErrorMessage,
 	FormLabel,
 	Heading,
 	Input,
@@ -36,6 +40,15 @@ import {
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
 
+const inviteUserSchema = z.object({
+	firstName: z.string().min(1, 'First name is required'),
+	lastName: z.string().min(1, 'Last name is required'),
+	email: z.string().email('Please enter a valid email address'),
+	role: z.nativeEnum(UserRole),
+})
+
+type InviteUserFormData = z.infer<typeof inviteUserSchema>
+
 const USER_ROLE_OPTIONS: UserRole[] = [
 	UserRole.OWNER,
 	UserRole.ADMIN,
@@ -53,13 +66,19 @@ const UsersLogIn = () => {
 	const [deleteTenantUser, { isLoading: isDeleting }] =
 		useDeleteTenantUserMutation()
 
-	const [firstName, setFirstName] = useState('')
-	const [lastName, setLastName] = useState('')
-	const [email, setEmail] = useState('')
-	const [role, setRole] = useState<UserRole>(UserRole.EMPLOYEE)
-	// const [isInternal, setIsInternal] = useState(false)
 	const [feedback, setFeedback] = useState<string>('')
 	const [tempPassword, setTempPassword] = useState<string>('')
+
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors, isValid },
+	} = useForm<InviteUserFormData>({
+		resolver: zodResolver(inviteUserSchema),
+		mode: 'onChange',
+		defaultValues: { role: UserRole.EMPLOYEE },
+	})
 
 	const isBusy =
 		isLoading || isFetching || isInviting || isUpdating || isDeleting
@@ -68,38 +87,19 @@ const UsersLogIn = () => {
 		return [...users].sort((a, b) => a.email.localeCompare(b.email))
 	}, [users])
 
-	const resetForm = () => {
-		setFirstName('')
-		setLastName('')
-		setEmail('')
-		setRole(UserRole.EMPLOYEE)
-		// setIsInternal(false)
-	}
-
-	const onInvite = async (event: React.FormEvent) => {
-		event.preventDefault()
+	const onInvite = async (formData: InviteUserFormData) => {
 		setFeedback('')
 		setTempPassword('')
 
-		if (!firstName || !lastName || !email) {
-			setFeedback('All invite fields are required.')
-			return
-		}
-
 		try {
-			const response = await inviteTenantUser({
-				firstName,
-				lastName,
-				email,
-				role,
-				// isInternal,
-			}).unwrap()
+			const response = await inviteTenantUser(formData).unwrap()
 
 			setFeedback(`User invited: ${response.email}`)
 			setTempPassword(response.temporaryPassword)
-			resetForm()
-		} catch (error: any) {
-			setFeedback(error?.data?.message || 'Failed to invite user.')
+			reset()
+		} catch (error: unknown) {
+			const err = error as { data?: { message?: string } }
+			setFeedback(err?.data?.message || 'Failed to invite user.')
 		}
 	}
 
@@ -113,8 +113,9 @@ const UsersLogIn = () => {
 				body: { role: nextRole },
 			}).unwrap()
 			setFeedback('User role updated successfully.')
-		} catch (error: any) {
-			setFeedback(error?.data?.message || 'Failed to update role.')
+		} catch (error: unknown) {
+			const err = error as { data?: { message?: string } }
+			setFeedback(err?.data?.message || 'Failed to update role.')
 		}
 	}
 
@@ -125,8 +126,9 @@ const UsersLogIn = () => {
 		try {
 			await deleteTenantUser(userId).unwrap()
 			setFeedback('User deleted successfully.')
-		} catch (error: any) {
-			setFeedback(error?.data?.message || 'Failed to delete user.')
+		} catch (error: unknown) {
+			const err = error as { data?: { message?: string } }
+			setFeedback(err?.data?.message || 'Failed to delete user.')
 		}
 	}
 
@@ -163,39 +165,29 @@ const UsersLogIn = () => {
 					<Heading size="md" mb={4}>
 						Invite User
 					</Heading>
-					<form onSubmit={onInvite}>
+					<form onSubmit={handleSubmit(onInvite)}>
 						<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-							<FormControl isRequired>
+							<FormControl isRequired isInvalid={Boolean(errors.firstName)}>
 								<FormLabel>First Name</FormLabel>
-								<Input
-									value={firstName}
-									onChange={event => setFirstName(event.target.value)}
-								/>
+								<Input {...register('firstName')} />
+								<FormErrorMessage>{errors.firstName?.message}</FormErrorMessage>
 							</FormControl>
 
-							<FormControl isRequired>
+							<FormControl isRequired isInvalid={Boolean(errors.lastName)}>
 								<FormLabel>Last Name</FormLabel>
-								<Input
-									value={lastName}
-									onChange={event => setLastName(event.target.value)}
-								/>
+								<Input {...register('lastName')} />
+								<FormErrorMessage>{errors.lastName?.message}</FormErrorMessage>
 							</FormControl>
 
-							<FormControl isRequired>
+							<FormControl isRequired isInvalid={Boolean(errors.email)}>
 								<FormLabel>Email</FormLabel>
-								<Input
-									type="email"
-									value={email}
-									onChange={event => setEmail(event.target.value)}
-								/>
+								<Input type="email" {...register('email')} />
+								<FormErrorMessage>{errors.email?.message}</FormErrorMessage>
 							</FormControl>
 
 							<FormControl isRequired>
 								<FormLabel>Role</FormLabel>
-								<Select
-									value={role}
-									onChange={event => setRole(event.target.value as UserRole)}
-								>
+								<Select {...register('role')}>
 									{USER_ROLE_OPTIONS.map(roleValue => (
 										<option key={roleValue} value={roleValue}>
 											{roleValue}
@@ -219,6 +211,7 @@ const UsersLogIn = () => {
 							type="submit"
 							colorScheme="blue"
 							isLoading={isInviting}
+							isDisabled={!isValid}
 						>
 							Invite User
 						</Button>

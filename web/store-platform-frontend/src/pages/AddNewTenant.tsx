@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
 	Alert,
 	AlertDescription,
@@ -8,6 +11,7 @@ import {
 	Button,
 	Container,
 	FormControl,
+	FormErrorMessage,
 	FormLabel,
 	Heading,
 	Input,
@@ -15,144 +19,192 @@ import {
 	Stack,
 	Text,
 } from '@chakra-ui/react'
+
 import { useAddTenantMutation } from '../api/apiStore'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
 
-const AddNewTenant = () => {
-	const breadCrumbItems = generateBreadcrumbs()
-	const [addTenant, { isLoading }] = useAddTenantMutation()
-	const [tenantName, setTenantName] = useState('')
-	const [tenantDomain, setTenantDomain] = useState('')
-	const [ownerFirstName, setOwnerFirstName] = useState('')
-	const [ownerLastName, setOwnerLastName] = useState('')
-	const [ownerEmail, setOwnerEmail] = useState('')
-	const [ownerPassword, setOwnerPassword] = useState('')
-	const [success, setSuccess] = useState<AddTenantResponse | null>(null)
-	const [error, setError] = useState('')
+const createTenantSchema = z
+	.object({
+		tenantName: z.string().min(1, 'Tenant name is required'),
+		tenantDomain: z.string().min(1, 'Tenant domain is required'),
+		ownerFirstName: z.string().min(1, 'First name is required'),
+		ownerLastName: z.string().min(1, 'Last name is required'),
+		ownerEmail: z.string().email('Please enter a valid email address'),
+		ownerPassword: z
+			.string()
+			.min(8, 'Password must be at least 8 characters')
+			.regex(/[a-z]/, 'Must contain at least one lowercase letter')
+			.regex(/\d/, 'Must contain at least one number'),
+	})
+	.superRefine((data, ctx) => {
+		if (data.ownerEmail && data.tenantDomain) {
+			const emailDomain = data.ownerEmail.split('@')[1]?.toLowerCase()
+			if (emailDomain !== data.tenantDomain.toLowerCase()) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: 'Owner email domain must match tenant domain',
+					path: ['ownerEmail'],
+				})
+			}
+		}
+	})
 
-	const onSubmit = async (event: React.FormEvent) => {
-		event.preventDefault()
+type TenantFormData = z.infer<typeof createTenantSchema>
+
+const AddNewTenant = () => {
+	const breadcrumbs = generateBreadcrumbs()
+
+	const [addTenant, { isLoading }] = useAddTenantMutation()
+
+	const [success, setSuccess] = useState<AddTenantResponse | null>(null)
+	const [serverError, setServerError] = useState<string>('')
+
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors, isValid },
+	} = useForm<TenantFormData>({
+		resolver: zodResolver(createTenantSchema),
+		mode: 'onChange',
+	})
+
+	const onSubmit = async (formData: TenantFormData) => {
 		setSuccess(null)
-		setError('')
+		setServerError('')
 
 		try {
-			const response = await addTenant({
-				tenantName,
-				tenantDomain,
-				ownerFirstName,
-				ownerLastName,
-				ownerEmail,
-				ownerPassword,
-			}).unwrap()
-
+			const response = await addTenant(formData).unwrap()
 			setSuccess(response)
-			setTenantName('')
-			setTenantDomain('')
-			setOwnerFirstName('')
-			setOwnerLastName('')
-			setOwnerEmail('')
-			setOwnerPassword('')
-		} catch (submitError: any) {
-			setError(submitError?.data?.message || 'Failed to create tenant.')
+			reset()
+		} catch (err: unknown) {
+			const errorMessage =
+				typeof err === 'object' &&
+				err !== null &&
+				'data' in err &&
+				typeof (err as { data?: { message?: unknown } }).data?.message ===
+					'string'
+					? (err as { data: { message: string } }).data.message
+					: 'Failed to create tenant.'
+
+			setServerError(errorMessage)
 		}
 	}
 
 	return (
 		<Container maxW="4xl" py={10}>
 			<Stack gap={6}>
-				<CustomBreadcrumb
-					items={breadCrumbItems[BreadCrumbItem.ADD_NEW_TENANT]}
-				/>
+				<CustomBreadcrumb items={breadcrumbs[BreadCrumbItem.ADD_NEW_TENANT]} />
+
 				<Box>
 					<Heading size="lg">Add New Tenant</Heading>
 					<Text color="gray.600">
-						Super admin can register a tenant and bootstrap its owner user.
+						Super administrators can register a tenant and provision its owner
+						account.
 					</Text>
 				</Box>
 
-				{error ? (
+				{serverError && (
 					<Alert status="error" borderRadius="md">
 						<AlertIcon />
-						<AlertDescription>{error}</AlertDescription>
+						<AlertDescription>{serverError}</AlertDescription>
 					</Alert>
-				) : null}
+				)}
 
-				{success ? (
+				{success && (
 					<Alert status="success" borderRadius="md">
 						<AlertIcon />
 						<Box>
-							<AlertTitle>Tenant Created</AlertTitle>
+							<AlertTitle>Tenant Created Successfully</AlertTitle>
 							<AlertDescription>Tenant ID: {success.tenantId}</AlertDescription>
+							<br />
 							<AlertDescription>
 								Owner User ID: {success.ownerUserId}
 							</AlertDescription>
 						</Box>
 					</Alert>
-				) : null}
+				)}
 
 				<Box borderWidth="1px" borderRadius="xl" p={6}>
-					<form onSubmit={onSubmit}>
+					<form onSubmit={handleSubmit(onSubmit)}>
 						<Stack gap={5}>
 							<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-								<FormControl isRequired>
+								<FormControl isRequired isInvalid={Boolean(errors.tenantName)}>
 									<FormLabel>Tenant Name</FormLabel>
-									<Input
-										value={tenantName}
-										onChange={event => setTenantName(event.target.value)}
-									/>
+									<Input {...register('tenantName')} />
+									<FormErrorMessage>
+										{errors.tenantName?.message}
+									</FormErrorMessage>
 								</FormControl>
 
-								<FormControl isRequired>
+								<FormControl
+									isRequired
+									isInvalid={Boolean(errors.tenantDomain)}
+								>
 									<FormLabel>Tenant Domain</FormLabel>
 									<Input
 										placeholder="example.com"
-										value={tenantDomain}
-										onChange={event => setTenantDomain(event.target.value)}
+										{...register('tenantDomain')}
 									/>
+									<FormErrorMessage>
+										{errors.tenantDomain?.message}
+									</FormErrorMessage>
 								</FormControl>
 							</SimpleGrid>
 
 							<Heading size="sm">Owner User</Heading>
 
 							<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-								<FormControl isRequired>
+								<FormControl
+									isRequired
+									isInvalid={Boolean(errors.ownerFirstName)}
+								>
 									<FormLabel>First Name</FormLabel>
-									<Input
-										value={ownerFirstName}
-										onChange={event => setOwnerFirstName(event.target.value)}
-									/>
+									<Input {...register('ownerFirstName')} />
+									<FormErrorMessage>
+										{errors.ownerFirstName?.message}
+									</FormErrorMessage>
 								</FormControl>
 
-								<FormControl isRequired>
+								<FormControl
+									isRequired
+									isInvalid={Boolean(errors.ownerLastName)}
+								>
 									<FormLabel>Last Name</FormLabel>
-									<Input
-										value={ownerLastName}
-										onChange={event => setOwnerLastName(event.target.value)}
-									/>
+									<Input {...register('ownerLastName')} />
+									<FormErrorMessage>
+										{errors.ownerLastName?.message}
+									</FormErrorMessage>
 								</FormControl>
 
-								<FormControl isRequired>
+								<FormControl isRequired isInvalid={Boolean(errors.ownerEmail)}>
 									<FormLabel>Email</FormLabel>
-									<Input
-										type="email"
-										value={ownerEmail}
-										onChange={event => setOwnerEmail(event.target.value)}
-									/>
+									<Input type="email" {...register('ownerEmail')} />
+									<FormErrorMessage>
+										{errors.ownerEmail?.message}
+									</FormErrorMessage>
 								</FormControl>
 
-								<FormControl isRequired>
+								<FormControl
+									isRequired
+									isInvalid={Boolean(errors.ownerPassword)}
+								>
 									<FormLabel>Temporary Password</FormLabel>
-									<Input
-										type="password"
-										value={ownerPassword}
-										onChange={event => setOwnerPassword(event.target.value)}
-									/>
+									<Input type="password" {...register('ownerPassword')} />
+									<FormErrorMessage>
+										{errors.ownerPassword?.message}
+									</FormErrorMessage>
 								</FormControl>
 							</SimpleGrid>
 
-							<Button type="submit" colorScheme="blue" isLoading={isLoading}>
+							<Button
+								type="submit"
+								colorScheme="blue"
+								isLoading={isLoading}
+								isDisabled={!isValid}
+							>
 								Create Tenant
 							</Button>
 						</Stack>

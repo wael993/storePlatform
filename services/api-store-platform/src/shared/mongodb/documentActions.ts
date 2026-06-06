@@ -73,6 +73,8 @@ export const createDocument = async (
 		updatedBy: requestContext.userId,
 	}
 
+	console.log('🚀 ~ createDocument ~ payload:', documentToCreate)
+
 	logger.debug(
 		`Creating MongoDB document: ${JSON.stringify(documentToCreate)}`,
 		{

@@ -46,11 +46,11 @@ export const useListItem = <T extends Product>(productData: T) => {
 	}
 
 	const handleProductUpdate = async (
-		data: Partial<Omit<Product, 'id'>>,
+		data: Partial<Omit<Product, 'productId'>>,
 	): Promise<void> => {
 		try {
 			await editProduct({
-				id: productData.id,
+				id: productData.productId,
 				body: data,
 			}).unwrap()
 		} catch (error) {

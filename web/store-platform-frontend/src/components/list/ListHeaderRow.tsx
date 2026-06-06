@@ -10,7 +10,22 @@ import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import TableSort from '../common/CustomTableSort'
 import useAllowedActions from '../../shared/hooks/useAllowedActions'
 
-const listStyles = {
+interface ListHeaderRowProps {
+	sortField: ProductSortHeaderKey | null
+	sortOrder: SortOrder | null
+	onSort: (field: ProductSortHeaderKey | null, order: SortOrder | null) => void
+	areAllItemsSelected: boolean
+	onAllItemsSelectedChange: () => void
+}
+
+const styles = {
+	checkboxHeader: {
+		left: '0',
+		position: 'sticky',
+		zIndex: 1,
+		background: '#FFFFFF',
+		padding: '4',
+	},
 	tableHeader: {
 		paddingY: '1rem',
 		paddingX: '0.375rem',
@@ -46,24 +61,6 @@ const listStyles = {
 	},
 } satisfies StylesObject
 
-const styles = {
-	checkboxHeader: {
-		left: '0',
-		position: 'sticky',
-		zIndex: 1,
-		background: '#FFFFFF',
-		padding: '4',
-	},
-} satisfies StylesObject
-
-interface ListHeaderRowProps {
-	sortField: ProductSortHeaderKey | null
-	sortOrder: SortOrder | null
-	onSort: (field: ProductSortHeaderKey | null, order: SortOrder | null) => void
-	areAllItemsSelected: boolean
-	onAllItemsSelectedChange: () => void
-}
-
 const ListHeaderRow = ({
 	sortField,
 	onSort,
@@ -71,8 +68,8 @@ const ListHeaderRow = ({
 	areAllItemsSelected,
 	onAllItemsSelectedChange,
 }: ListHeaderRowProps) => {
-	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 	const { t } = useTranslation()
+	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 	const { isOwnerOrAdmin } = useUser()
 
 	const { isActionAllowed } = useResources()
@@ -90,21 +87,14 @@ const ListHeaderRow = ({
 	}
 	const {
 		seeSupplier,
-		canEditStockQuantity,
-		canEditMinStockQuantity,
-		canEditWholesalePrice,
-		canEditDiscount,
-		canEditLocationShelf,
-		canEditLocationWarehouse,
-		canEditBuyCost,
 		seeStockQuantity,
 		seeMinStockQuantity,
-		seeWholesalePrice,
 		seeDiscount,
 		seeBuyCost,
 		seeLocationShelf,
 		seeLocationWarehouse,
 	} = useAllowedActions()
+
 	const getSortingButton = (sortKey: ProductSortHeaderKey) => {
 		return (
 			<TableSort
@@ -283,7 +273,7 @@ const ListHeaderRow = ({
 						<Th
 							key={index}
 							sx={{
-								...listStyles.tableHeaderStickyRight,
+								...styles.tableHeaderStickyRight,
 								background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${getStickyRightWidth()})`,
 								width: `${header.width}rem`,
 							}}
@@ -294,7 +284,7 @@ const ListHeaderRow = ({
 				return (
 					<Th
 						key={index}
-						sx={listStyles.tableHeader}
+						sx={styles.tableHeader}
 						width={`${header.width}rem`}
 						onMouseEnter={() => setHoveredIndex(index)}
 						onMouseLeave={() => setHoveredIndex(null)}
@@ -302,12 +292,10 @@ const ListHeaderRow = ({
 						{header.isShop ? (
 							<Flex alignItems="center" gap="0.25rem">
 								<Flex alignItems={'start'} flexDir={'column'} gap={'0.25rem'}>
-									<Text
-										sx={{ ...listStyles.tableHeaderText, lineHeight: '1.2' }}
-									>
+									<Text sx={{ ...styles.tableHeaderText, lineHeight: '1.2' }}>
 										{t('common.shop')}
 									</Text>
-									<Text sx={listStyles.tableHeaderText}>
+									<Text sx={styles.tableHeaderText}>
 										{t('common.promotionSpace')}
 									</Text>
 								</Flex>
@@ -325,13 +313,13 @@ const ListHeaderRow = ({
 									header.align === 'right' ? 'flex-end' : undefined
 								}
 								sx={{
-									...listStyles.tableHeaderText,
+									...styles.tableHeaderText,
 									...(header.align === 'right'
 										? { paddingRight: '1.5rem' }
 										: {}),
 								}}
 							>
-								<Text sx={listStyles.tableHeaderText}>{header.label}</Text>
+								<Text sx={styles.tableHeaderText}>{header.label}</Text>
 								{(hoveredIndex === index || sortField === header.sortKey) &&
 									header.sortKey && (
 										<Box sx={{ marginLeft: '0.5rem' }}>

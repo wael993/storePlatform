@@ -33,8 +33,7 @@ export default class ProductsMapper {
 		}
 
 		const mappedProducts: ProductRequestBody = {
-			id: product.id,
-			productId: product.productId,
+			productId: product._id,
 			productFactoryCode: product.productFactoryCode,
 			name: product.name,
 			barcode: product.barcode,
@@ -76,7 +75,7 @@ export default class ProductsMapper {
 		])
 
 		const enrichedProduct: ProductAPIEnriched = {
-			productId: product.productId,
+			_id: product._id,
 			productFactoryCode: product.productFactoryCode,
 			name: product.name,
 			barcode: product.barcode,

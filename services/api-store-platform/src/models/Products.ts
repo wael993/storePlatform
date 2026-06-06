@@ -3,8 +3,8 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface IProduct extends Document {
 	tenantId: string
-	id: string
-	productId: string
+	_id: string
+	productId?: string
 	productFactoryCode?: string
 	name: string
 	categoryId?: string
@@ -64,12 +64,8 @@ export interface IProduct extends Document {
 
 const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 	{
-		id: { type: String, required: [true, 'ID is required'], trim: true },
-		productId: {
-			type: String,
-			required: [true, 'Product ID is required'],
-			trim: true,
-		},
+		_id: { type: String, required: [true, 'ID is required'], trim: true },
+		productId: { type: String, trim: true },
 		productFactoryCode: {
 			type: String,
 			trim: true,
@@ -152,7 +148,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 
 tenantScopedSchema(ProductSchema)
 
-ProductSchema.index({ tenantId: 1, productId: 1 }, { unique: true })
+ProductSchema.index({ tenantId: 1, _id: 1 }, { unique: true })
 ProductSchema.index({ tenantId: 1, barcode: 1 }, { unique: true })
 
 export const Product = mongoose.model<IProduct>('Products', ProductSchema)

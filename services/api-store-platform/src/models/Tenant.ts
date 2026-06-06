@@ -1,26 +1,34 @@
-import mongoose, { Document, Schema } from 'mongoose'
+import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
+import {
+	TENANT_STATUS,
+	TenantStatus,
+} from '../shared/constants/tenant.constants'
 
-export interface ITenant extends Document {
+export interface ITenant {
 	tenantId: string
 	name: string
 	domain: string
-	status: 'active' | 'inactive'
+	status: TenantStatus
 	createdAt: Date
 	updatedAt: Date
 }
 
-const TenantSchema: Schema<ITenant> = new mongoose.Schema(
+export type TenantDocument = HydratedDocument<ITenant>
+
+const tenantSchema = new Schema<ITenant>(
 	{
 		tenantId: {
 			type: String,
 			required: [true, 'tenantId is required'],
 			unique: true,
 			trim: true,
+			index: true,
 		},
 		name: {
 			type: String,
 			required: [true, 'name is required'],
 			trim: true,
+			maxlength: 100,
 		},
 		domain: {
 			type: String,
@@ -28,16 +36,31 @@ const TenantSchema: Schema<ITenant> = new mongoose.Schema(
 			unique: true,
 			trim: true,
 			lowercase: true,
+			index: true,
+			validate: {
+				validator: (value: string) => /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(value),
+				message: 'Invalid domain format',
+			},
 		},
 		status: {
 			type: String,
-			enum: ['active', 'inactive'],
-			default: 'active',
+			enum: Object.values(TENANT_STATUS),
+			default: TENANT_STATUS.ACTIVE,
 		},
 	},
-	{ timestamps: true },
+	{
+		timestamps: true,
+		versionKey: false,
+		toJSON: {
+			transform: (_, ret) => {
+				delete ret._id
+				return ret
+			},
+		},
+	},
 )
 
-const Tenant = mongoose.model<ITenant>('Tenant', TenantSchema)
+const Tenant: Model<ITenant> =
+	mongoose.models.Tenant || mongoose.model<ITenant>('Tenant', tenantSchema)
 
 export default Tenant

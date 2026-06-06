@@ -21,6 +21,12 @@ interface APIResponse<T> {
 	data: T[]
 }
 
+interface CreateAPIResponse {
+	_id: string
+}
+
+interface CreateProductAPIResponse extends CreateAPIResponse {}
+
 interface SavedFiltersAPIResponse extends APIResponse<SavedFilters> {}
 
 interface UserSettings {
@@ -64,7 +70,6 @@ interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
 interface ProductResponse extends APIResponse<Product[]> {}
 
 interface Product {
-	id: string
 	productId: string
 	productFactoryCode?: string
 	state: string

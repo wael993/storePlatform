@@ -16,7 +16,7 @@ const ProductList = ({ addToCart }: { addToCart: (p: Product) => void }) => {
 
 			<VStack align="stretch">
 				{products.map(p => (
-					<HStack key={p.id} p={2} border="1px solid" borderRadius="md">
+					<HStack key={p.productId} p={2} border="1px solid" borderRadius="md">
 						<Text flex={2}>{p.name}</Text>
 						<Text flex={1}>
 							{(p.price?.retailSale ?? 0).toFixed(2)}{' '}
