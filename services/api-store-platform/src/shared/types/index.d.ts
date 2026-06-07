@@ -207,6 +207,7 @@ export type TenantSummary = {
 interface CustomerDocument {
 	tenantId: string
 	_id?: string
+	customerId: string
 	name: string
 	internalCode?: string
 	createdBy: UserAPIFormat
@@ -218,6 +219,7 @@ interface CustomerDocument {
 interface CurrencyDocument {
 	tenantId: string
 	_id?: string
+	currencyId: string
 	name: string
 	internalCode?: string
 	createdBy: UserAPIFormat
@@ -241,6 +243,7 @@ interface SupplierDocument {
 	tenantId: string
 	_id?: string
 	name: string
+	supplierId: string
 	internalCode?: string
 	createdBy: UserAPIFormat
 	updatedBy?: UserAPIFormat & { updatedAt: Date }

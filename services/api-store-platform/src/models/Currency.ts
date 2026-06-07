@@ -2,9 +2,10 @@ import mongoose, { Document, Schema } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface ICurrency extends Document {
+	_id: string
+	currencyId: string
 	tenantId: string
 	name: string
-	_id: string
 	internalCode?: string
 	createdBy: {
 		_id: string
@@ -20,8 +21,9 @@ export interface ICurrency extends Document {
 
 const CurrencySchema = new Schema<ICurrency>({
 	_id: { type: String, required: true },
-	name: { type: String, required: true, index: true },
+	currencyId: { type: String, required: true, index: true },
 	internalCode: { type: String, index: true, uppercase: true },
+	name: { type: String, required: true, index: true },
 	createdBy: {
 		_id: String,
 		displayName: String,
@@ -35,6 +37,9 @@ const CurrencySchema = new Schema<ICurrency>({
 })
 
 tenantScopedSchema(CurrencySchema)
-CurrencySchema.index({ tenantId: 1, _id: 1 }, { unique: true })
+CurrencySchema.index(
+	{ tenantId: 1, internalCode: 1 },
+	{ unique: true, sparse: true },
+)
 
 export const Currency = mongoose.model<ICurrency>('Currency', CurrencySchema)

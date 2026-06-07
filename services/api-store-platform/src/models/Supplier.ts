@@ -5,6 +5,7 @@ export interface ISupplier extends Document {
 	tenantId: string
 	name: string
 	_id: string
+	supplierId: string
 	internalCode?: string
 	email?: string
 	phone?: string
@@ -24,6 +25,7 @@ export interface ISupplier extends Document {
 const SupplierSchema = new Schema<ISupplier>({
 	_id: { type: String, required: true },
 	name: { type: String, required: true, index: true },
+	supplierId: { type: String, required: true, index: true },
 	internalCode: { type: String, index: true, uppercase: true },
 	email: { type: String },
 	phone: { type: String },
@@ -41,6 +43,6 @@ const SupplierSchema = new Schema<ISupplier>({
 })
 
 tenantScopedSchema(SupplierSchema)
-SupplierSchema.index({ tenantId: 1, _id: 1 }, { unique: true })
+SupplierSchema.index({ tenantId: 1, supplierId: 1 }, { unique: true })
 
 export const Supplier = mongoose.model<ISupplier>('Supplier', SupplierSchema)

@@ -20,7 +20,7 @@ import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
 import InputLabel from '../common/InputLabel'
 import { MODAL_CONFIG } from '../../shared/globalConstant'
 
-interface AddQuickProductsModalProps {
+interface AddQuickModalProps {
 	isOpen: boolean
 	onClose: () => void
 	handleQuickAdd: (value: { code: string; value: string }) => void
@@ -86,7 +86,7 @@ const styles: StylesObject = {
 	},
 }
 
-const AddQuickProductsModal = ({
+const AddQuickModal = ({
 	isOpen,
 	onClose,
 	handleQuickAdd,
@@ -96,7 +96,7 @@ const AddQuickProductsModal = ({
 	isLoading,
 	modalType,
 	handleInputChange,
-}: AddQuickProductsModalProps) => {
+}: AddQuickModalProps) => {
 	const onCloseModal = () => {
 		setFormData({ code: '', value: '' })
 		onClose()
@@ -180,4 +180,4 @@ const AddQuickProductsModal = ({
 	)
 }
 
-export default AddQuickProductsModal
+export default AddQuickModal

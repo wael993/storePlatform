@@ -59,21 +59,29 @@ const TopBar = ({ navItems }: TopBarProps) => {
 				gap={4}
 			>
 				<Flex align="center" gap={4} minW={0}>
-					<Image
-						src="/favicon.ico"
-						alt="Store Platform Logo"
-						w="46px"
-						h="46px"
-						objectFit="contain"
-					/>
-					<Text
-						fontSize="xl"
-						fontWeight="semibold"
-						color="gray.800"
-						whiteSpace="nowrap"
+					<Flex
+						align="center"
+						gap={4}
+						minW={0}
+						onClick={() => navigate(RoutePaths.DAILY)}
+						cursor="pointer"
 					>
-						Store Platform
-					</Text>
+						<Image
+							src="/favicon.ico"
+							alt="Store Platform Logo"
+							w="46px"
+							h="46px"
+							objectFit="contain"
+						/>
+						<Text
+							fontSize="xl"
+							fontWeight="semibold"
+							color="gray.800"
+							whiteSpace="nowrap"
+						>
+							Store Platform
+						</Text>
+					</Flex>
 
 					<FormControl maxW={{ base: '9rem', md: '10rem' }}>
 						<Select

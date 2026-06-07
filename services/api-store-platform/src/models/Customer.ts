@@ -3,6 +3,7 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface ICustomer extends Document {
 	_id: { type: String; required: true }
+	customerId: string
 	internalCode: { type: String; index: true }
 	tenantId: string
 	name: string
@@ -23,6 +24,7 @@ export interface ICustomer extends Document {
 
 const CustomerSchema = new Schema<ICustomer>({
 	_id: { type: String, required: true },
+	customerId: { type: String, required: true, index: true },
 	internalCode: { type: String, index: true, uppercase: true },
 	name: { type: String, required: true, index: true },
 	email: { type: String },
@@ -41,5 +43,8 @@ const CustomerSchema = new Schema<ICustomer>({
 })
 
 tenantScopedSchema(CustomerSchema)
-CustomerSchema.index({ tenantId: 1, _id: 1 }, { unique: true })
+CustomerSchema.index(
+	{ tenantId: 1, internalCode: 1 },
+	{ unique: true, sparse: true },
+)
 export const Customer = mongoose.model<ICustomer>('Customer', CustomerSchema)

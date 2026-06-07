@@ -2342,6 +2342,7 @@ export default class ProductController {
 		const supplierData: SupplierDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
+			supplierId: uuidv4(),
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {
@@ -2427,6 +2428,7 @@ export default class ProductController {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
 			name: name,
+			customerId: uuidv4(),
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {
 				_id: requestContext.userId as string,
@@ -2440,7 +2442,7 @@ export default class ProductController {
 		logger.info('Saving customer to database.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			customerId: customerData._id,
+			customerId: customerData.customerId,
 			name,
 		})
 
@@ -2453,7 +2455,7 @@ export default class ProductController {
 		logger.info('Customer created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			customerId: customerData._id,
+			customerId: customerData.customerId,
 			name,
 		})
 
@@ -2509,6 +2511,7 @@ export default class ProductController {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
 			name: name,
+			currencyId: uuidv4(),
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {
 				_id: requestContext.userId as string,
@@ -2522,7 +2525,7 @@ export default class ProductController {
 		logger.info('Saving currency to database.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			currencyId: currencyData._id,
+			currencyId: currencyData.currencyId,
 			name,
 		})
 
@@ -2535,7 +2538,7 @@ export default class ProductController {
 		logger.info('Currency created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			currencyId: currencyData._id,
+			currencyId: currencyData.currencyId,
 			name,
 		})
 

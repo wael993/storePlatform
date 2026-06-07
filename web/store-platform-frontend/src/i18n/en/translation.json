@@ -151,6 +151,10 @@
 		"actionTypeMissing": "Please select the action type to continue.",
 		"invoiceNumberMissing": "Please enter the invoice number to continue.",
 		"back": "Back",
-		"submit": "Submit"
+		"submit": "Submit",
+		"buyingEntry": "Buying Entry",
+		"sellingEntry": "Selling Entry",
+		"expenseEntry": "Expense Entry",
+		"otherEntry": "Other Entry"
 	}
 }

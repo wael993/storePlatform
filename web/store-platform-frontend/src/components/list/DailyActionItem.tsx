@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../shared/dateUtils'
 import { listStyles } from '../../shared/styles'
 import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
+import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
 
 interface DailyActionItemProps {
 	dailyAction: DailyAction
@@ -11,12 +12,6 @@ interface DailyActionItemProps {
 	isSelected: boolean
 	isHovered: boolean
 	isLoading: boolean
-}
-
-const getEntryTypeLabel = (entryType: DailyAction['entryType']): string => {
-	if (!entryType) return '-'
-	if (typeof entryType === 'string') return entryType
-	return entryType.label ?? entryType.value ?? '-'
 }
 
 const DailyActionItem = memo(
@@ -29,6 +24,12 @@ const DailyActionItem = memo(
 	}: DailyActionItemProps) => {
 		const { t } = useTranslation()
 
+		const getEntryTypeLabel = (entryType: DailyAction['entryType']): string => {
+			if (!entryType) return '-'
+			if (typeof entryType === 'string')
+				return t(ENTRY_TYPE_LABELS_MAP[entryType]) ?? entryType
+			return entryType.label ?? entryType.value ?? '-'
+		}
 		const rowId = dailyAction._id ?? dailyAction.actionId ?? ''
 
 		const supplierOrCustomer =

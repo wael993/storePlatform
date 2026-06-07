@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { Button, SimpleGrid, useDisclosure } from '@chakra-ui/react'
-import { v4 as uuidv4 } from 'uuid'
-
 import { AsCheckmarkCircleIcon } from '../../../../icons/CheckmarkCircle'
 import { hoverFocusActiveButtonStyles } from '../../../../theme/styles'
 import {
@@ -11,8 +9,8 @@ import {
 	useCreateUnitMutation,
 	usePostProductMutation,
 } from '../../../../api/apiStore'
-import AddQuickProductsModal from '../../AddQuickProductsModal'
 import { useUser } from '../../../../shared/hooks/useUser'
+import AddQuickModal from '../../AddQuickModal'
 
 const styles = {
 	button: {
@@ -202,7 +200,7 @@ const DailyActionsHelperButtons = () => {
 				))}
 			</SimpleGrid>
 
-			<AddQuickProductsModal
+			<AddQuickModal
 				handleInputChange={handleInputChange}
 				isOpen={isOpen}
 				modalType={modalType}
