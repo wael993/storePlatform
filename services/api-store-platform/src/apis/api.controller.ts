@@ -1667,6 +1667,7 @@ export default class ProductController {
 			actionId: uuidv4(),
 			entryType: requestBody.entryType,
 			productId: requestBody.productId,
+			invoiceNumber: requestBody.invoiceNumber,
 			productName: requestBody.productName,
 			supplierId: requestBody.supplierId,
 			supplierName: requestBody.supplierName,
@@ -1711,6 +1712,7 @@ export default class ProductController {
 			amount: number
 			description: string
 			reference: string
+			invoiceNumber: string
 		}>,
 		requestContext: RequestContext,
 	) {

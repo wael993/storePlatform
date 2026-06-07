@@ -14,6 +14,7 @@
 			"selectEntryType": "Select Entry Type",
 			"actionTypeMissing": "Please select the action type to continue.",
 			"actionDataMissing": "Please fill in the required fields to continue.",
+			"invoiceNumberMissing": "Please enter the invoice number to continue.",
 			"actionSavedSuccessfully": "Daily action saved successfully.",
 			"noDailyFound": "No Daily found",
 			"addQuickProduct": "Add Quick Product",

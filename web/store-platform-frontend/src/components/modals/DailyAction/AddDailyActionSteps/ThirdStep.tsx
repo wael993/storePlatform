@@ -1,10 +1,13 @@
 import { VStack, Heading, Text, SimpleGrid, Box } from '@chakra-ui/react'
 import React from 'react'
 import { DailyActionType } from '../../../../shared/globalEnums'
+import InputLabel from '../../../common/InputLabel'
+import { documentNameStyles } from '../../../../theme/styles'
 interface ThirdStepProps {
 	formData: Partial<DailyAction> | undefined
+	handleInputChange: (field: 'invoiceNumber', value: string) => void
 }
-const ThirdStep = ({ formData }: ThirdStepProps) => {
+const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 	const getActionSummaryRows = (
 		actionSummary: Partial<DailyAction> | undefined,
 	) => {
@@ -67,6 +70,16 @@ const ThirdStep = ({ formData }: ThirdStepProps) => {
 								</Text>
 							</Box>
 						))}
+						<InputLabel
+							label="Invoice Number"
+							inputPlaceholder={'invoice number ...'}
+							inputType={'text'}
+							value={formData?.invoiceNumber ?? ''}
+							onChange={(value: string) =>
+								handleInputChange('invoiceNumber', value)
+							}
+							styles={documentNameStyles}
+						/>
 					</SimpleGrid>
 				)}
 			</VStack>

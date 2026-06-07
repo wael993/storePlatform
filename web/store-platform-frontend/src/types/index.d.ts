@@ -42,6 +42,7 @@ interface DailyAction {
 	unitId: string
 	unitName: string
 	weight: string
+	invoiceNumber: string
 	singleUnitPrice?: string
 	totalPrice?: string
 	createdAt?: string

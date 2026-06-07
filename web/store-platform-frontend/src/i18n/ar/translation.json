@@ -96,6 +96,10 @@
 		"unitPrice": "سعر الوحدة",
 		"totalPrice": "السعر الإجمالي",
 		"supplierOrCustomer": "المورد / العميل",
-		"addDailyAction": "إضافة إجراء يومي"
+		"addDailyAction": "إضافة إجراء يومي",
+		"buyingEntry": " شراء",
+		"sellingEntry": " بيع",
+		"expenseEntry": " مصروف",
+		"otherEntry": " آخر"
 	}
 }

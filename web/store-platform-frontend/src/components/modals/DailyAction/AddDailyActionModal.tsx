@@ -218,13 +218,10 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 	}, [isNextButtonDisabled, step, t])
 
 	const isSubmitButtonDisabled = useMemo(() => {
-		if (isSavingDailyAction) return true
-		// if (isInvoiceIncorrect) {
-		// 	return !newDailyAction?.entryType
-		// }
+		if (isSavingDailyAction || !formData?.invoiceNumber) return true
 
 		return false
-	}, [isSavingDailyAction])
+	}, [isSavingDailyAction, formData?.invoiceNumber])
 
 	// const actionSummaryRows = getActionSummaryRows(formData)
 
@@ -286,7 +283,10 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 
 								{/* 3rd Step */}
 								{step === StepKeys.ACTION_SUMMARY && (
-									<ThirdStep formData={formData} />
+									<ThirdStep
+										formData={formData}
+										handleInputChange={handleInputChange}
+									/>
 								)}
 							</>
 						)}
@@ -303,7 +303,7 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 							<Button
 								sx={{ ...styles.button, ...styles.secondaryButton }}
 								onClick={() => setStep(prevStep => prevStep - 1)}
-								// isDisabled={isAddingComplaint}
+								isDisabled={isSavingDailyAction}
 							>
 								{t('common.back')}
 							</Button>
@@ -312,7 +312,7 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 							<Tooltip
 								label={
 									isSubmitButtonDisabled
-										? t('components.daily.actionDataMissing')
+										? t('components.daily.invoiceNumberMissing')
 										: undefined
 								}
 							>

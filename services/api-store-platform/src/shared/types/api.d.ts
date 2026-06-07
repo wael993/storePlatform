@@ -26,6 +26,7 @@ interface DailyAction {
 	entryType: EntryType
 	productId: string
 	productName: string
+	invoiceNumber: string
 	supplierId?: string
 	supplierName?: string
 	customerId?: string
@@ -54,6 +55,7 @@ interface DailyActionRequestBody {
 	weight: string
 	singleUnitPrice: string
 	totalPrice: string
+	invoiceNumber: string
 }
 
 type CreateDailyActionResponse = {

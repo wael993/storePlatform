@@ -43,6 +43,7 @@ const skeletonDailyAction: DailyAction = {
 	weight: '0',
 	singleUnitPrice: '0',
 	totalPrice: '0',
+	invoiceNumber: '0000503',
 }
 
 const styles: StylesObject = {
