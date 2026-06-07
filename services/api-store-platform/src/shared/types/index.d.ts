@@ -231,6 +231,7 @@ interface CurrencyDocument {
 interface UnitDocument {
 	tenantId: string
 	_id?: string
+	unitId: string
 	name: string
 	internalCode?: string
 	createdBy: UserAPIFormat
@@ -310,6 +311,7 @@ type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
 interface ProductAPI {
 	_id?: string
 	productFactoryCode?: string
+	internalCode?: string
 	name: string
 	barcode: string
 	supplierId?: string

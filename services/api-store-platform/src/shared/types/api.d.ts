@@ -3,8 +3,6 @@ interface APIResponse<T> {
 	data: T[]
 }
 
-interface DailyActionResponse extends APIResponse<DailyAction> {}
-
 interface LoginData {
 	email: string
 	password: string
@@ -41,8 +39,6 @@ interface DailyAction {
 	totalPrice?: string
 }
 
-interface DailyActionRequestBody extends APIResponse<DailyAction> {}
-
 interface DailyActionRequestBody {
 	entryType: EntryType
 	productId: string
@@ -63,11 +59,69 @@ interface DailyActionRequestBody {
 type CreateDailyActionResponse = {
 	_id: string
 }
-
+interface CustomersResponse extends APIResponse<Customer> {}
+interface CurrenciesResponse extends APIResponse<Currency> {}
+interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
+interface DailyActionResponse extends APIResponse<DailyAction> {}
+interface DailyActionRequestBody extends APIResponse<DailyAction> {}
 
 interface Supplier {
 	supplierId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Unit {
+	unitId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Currency {
+	currencyId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Customer {
+	customerId: string
 	name: string
 	internalCode?: string
 	createdAt?: string

@@ -60,10 +60,13 @@ import {
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
+	CurrenciesResponse,
+	CustomersResponse,
 	DailyActionRequestBody,
 	DailyActionResponse,
 	LoginData,
 	SuppliersResponse,
+	UnitsResponse,
 } from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
 import { getTenantPermissions } from '../shared/Permissions'
@@ -2275,40 +2278,29 @@ export default class ProductController {
 		}
 	}
 
-	// public async getSuppliers(
-	// 	requestContext: RequestContext,
-	// ): Promise<SuppliersResponse> {
-	// 	const tenantId = this.getTenantId(requestContext)
-	// 	const cacheKey = redisCache.buildInvoiceListKey(tenantId)
-	// 	const cachedSuppliers =
-	// 		await redisCache.getJson<SuppliersResponse>(cacheKey)
-	// 	if (cachedSuppliers) {
-	// 		return cachedSuppliers
-	// 	}
-	// 	const suppliers = await this.mongoDbClient.getDocuments({
-	// 		requestContext,
-	// 		collectionName: COLLECTION_NAMES.SUPPLIERS,
-	// 		model: Supplier,
-	// 		sort: { createdAt: 'desc' },
-	// 	})
-
-	// 	await redisCache.setJson(cacheKey, suppliers.documents)
-	// 	return { data: suppliers.documents, totalCount: suppliers.documents.length }
-	// }
-
 	public async getSuppliers(
 		requestContext: RequestContext,
-	): Promise<{ value: string; label: string }[]> {
+	): Promise<SuppliersResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const suppliers = (await withTenantScope(
-			Supplier.find({}).select('_id name').sort({ name: 1 }).lean(),
-			tenantId,
-		)) as Pick<ISupplier, '_id' | 'name'>[]
+		const cacheKey = redisCache.buildSupplierListKey(tenantId)
+		const cachedSuppliers =
+			await redisCache.getJson<SuppliersResponse>(cacheKey)
+		if (cachedSuppliers) {
+			return cachedSuppliers
+		}
+		const suppliers = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.SUPPLIERS,
+			model: Supplier,
+			sort: { createdAt: 'desc' },
+		})
 
-		return suppliers.map(s => ({
-			value: String((s as any)._id),
-			label: s.name,
-		}))
+		const response: SuppliersResponse = {
+			data: suppliers.documents,
+			totalCount: suppliers.documents.length,
+		}
+		await redisCache.setJson(cacheKey, response)
+		return response
 	}
 
 	public async postSupplier(
@@ -2383,17 +2375,27 @@ export default class ProductController {
 
 	public async getCustomers(
 		requestContext: RequestContext,
-	): Promise<{ value: string; label: string }[]> {
+	): Promise<CustomersResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const customers = (await withTenantScope(
-			Customer.find({}).select('_id name').sort({ name: 1 }).lean(),
-			tenantId,
-		)) as Pick<ICustomer, '_id' | 'name'>[]
+		const cacheKey = redisCache.buildCustomerListKey(tenantId)
+		const cachedCustomers =
+			await redisCache.getJson<CustomersResponse>(cacheKey)
+		if (cachedCustomers) {
+			return cachedCustomers
+		}
+		const customers = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.CUSTOMERS,
+			model: Customer,
+			sort: { createdAt: 'desc' },
+		})
 
-		return customers.map(c => ({
-			value: String((c as any)._id),
-			label: c.name,
-		}))
+		const response: CustomersResponse = {
+			data: customers.documents,
+			totalCount: customers.documents.length,
+		}
+		await redisCache.setJson(cacheKey, response)
+		return response
 	}
 
 	public async postCustomer(
@@ -2466,17 +2468,27 @@ export default class ProductController {
 
 	public async getCurrencies(
 		requestContext: RequestContext,
-	): Promise<{ value: string; label: string }[]> {
+	): Promise<CurrenciesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const currencies = (await withTenantScope(
-			Currency.find({}).select('_id name').sort({ name: 1 }).lean(),
-			tenantId,
-		)) as Pick<ICurrency, '_id' | 'name'>[]
+		const cacheKey = redisCache.buildCurrencyListKey(tenantId)
+		const cachedCurrencies =
+			await redisCache.getJson<CurrenciesResponse>(cacheKey)
+		if (cachedCurrencies) {
+			return cachedCurrencies
+		}
+		const currencies = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.CURRENCIES,
+			model: Currency,
+			sort: { createdAt: 'desc' },
+		})
 
-		return currencies.map(c => ({
-			value: c._id,
-			label: c.name,
-		}))
+		const response: CurrenciesResponse = {
+			data: currencies.documents,
+			totalCount: currencies.documents.length,
+		}
+		await redisCache.setJson(cacheKey, response)
+		return response
 	}
 
 	public async postCurrency(
@@ -2549,17 +2561,26 @@ export default class ProductController {
 
 	public async getUnits(
 		requestContext: RequestContext,
-	): Promise<{ value: string; label: string }[]> {
+	): Promise<UnitsResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const units = (await withTenantScope(
-			Unit.find({}).select('name').sort({ name: 1 }).lean(),
-			tenantId,
-		)) as Pick<IUnit, 'name'>[]
+		const cacheKey = redisCache.buildUnitListKey(tenantId)
+		const cachedUnits = await redisCache.getJson<UnitsResponse>(cacheKey)
+		if (cachedUnits) {
+			return cachedUnits
+		}
+		const units = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.UNITS,
+			model: Unit,
+			sort: { createdAt: 'desc' },
+		})
 
-		return units.map(unit => ({
-			value: unit.name,
-			label: unit.name,
-		}))
+		const response: UnitsResponse = {
+			data: units.documents,
+			totalCount: units.documents.length,
+		}
+		await redisCache.setJson(cacheKey, response)
+		return response
 	}
 
 	public async postUnit(
@@ -2593,6 +2614,7 @@ export default class ProductController {
 		const unitData: UnitDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
+			unitId: uuidv4(),
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {

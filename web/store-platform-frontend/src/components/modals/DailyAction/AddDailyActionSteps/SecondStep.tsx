@@ -14,11 +14,11 @@ interface SecondStepProps {
 	isReceiptAction: boolean
 	isPaymentEntry: boolean
 	formData: Partial<DailyAction> | undefined
-	productOptions: any
-	supplierOptions: DropdownOption[]
-	customerOptions: DropdownOption[]
-	currencyOptions: DropdownOption[]
-	unitOptions: DropdownOption[]
+	products: Product[]
+	suppliers: Supplier[]
+	customers: Customer[]
+	currency: Currency[]
+	unit: Unit[]
 	totalPrice: string
 	handleDropdownChange: (
 		valueField: keyof DailyAction,
@@ -38,22 +38,15 @@ const SecondStep = ({
 	isReceiptAction,
 	isPaymentEntry,
 	formData,
-	productOptions,
-	supplierOptions,
-	customerOptions,
-	currencyOptions,
-	unitOptions,
+	products,
+	suppliers,
+	customers,
+	currency,
+	unit,
 	totalPrice,
 	handleDropdownChange,
 	handleInputChange,
 }: SecondStepProps) => {
-	const dropdownOptions = !Array.isArray(productOptions)
-		? productOptions.products.map((product: Product) => ({
-				value: product.productId,
-				label: product.name,
-			}))
-		: []
-
 	return (
 		<>
 			{(isBuyingEntry || isSellingEntry) && (
@@ -69,7 +62,10 @@ const SecondStep = ({
 								<Dropdown
 									isSingle={true}
 									placeholder={t('Product Name')}
-									dropDownOptions={dropdownOptions}
+									dropDownOptions={products.map((product: Product) => ({
+										value: product.internalCode || product.productId,
+										label: `${product.name} (${product.internalCode ?? 'TBD'})`,
+									}))}
 									selectedValues={
 										formData?.productId ? [formData.productId] : []
 									}
@@ -78,7 +74,10 @@ const SecondStep = ({
 											'productId',
 											'productName',
 											values,
-											dropdownOptions,
+											products.map((product: Product) => ({
+												value: product.internalCode || product.productId,
+												label: `${product.name} (${product.internalCode ?? 'TBD'})`,
+											})),
 										)
 									}
 								/>
@@ -92,7 +91,10 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('Supplier Name')}
-										dropDownOptions={supplierOptions}
+										dropDownOptions={suppliers.map(supplier => ({
+											value: supplier.internalCode || supplier.supplierId,
+											label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+										}))}
 										selectedValues={
 											formData?.supplierId ? [formData.supplierId] : []
 										}
@@ -101,7 +103,10 @@ const SecondStep = ({
 												'supplierId',
 												'supplierName',
 												values,
-												supplierOptions,
+												suppliers.map(supplier => ({
+													value: supplier.internalCode || supplier.supplierId,
+													label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+												})),
 											)
 										}
 									/>
@@ -116,7 +121,10 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('Customer Name')}
-										dropDownOptions={customerOptions}
+										dropDownOptions={customers.map(customer => ({
+											value: customer.internalCode || customer.customerId,
+											label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+										}))}
 										selectedValues={
 											formData?.customerId ? [formData.customerId] : []
 										}
@@ -125,7 +133,10 @@ const SecondStep = ({
 												'customerId',
 												'customerName',
 												values,
-												customerOptions,
+												customers.map(customer => ({
+													value: customer.internalCode || customer.customerId,
+													label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+												})),
 											)
 										}
 									/>
@@ -138,7 +149,10 @@ const SecondStep = ({
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									placeholder={t('Currency Name')}
-									dropDownOptions={currencyOptions}
+									dropDownOptions={currency.map((currency: Currency) => ({
+										value: currency.currencyId,
+										label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+									}))}
 									isSingle
 									selectedValues={
 										formData?.currencyId ? [formData.currencyId] : []
@@ -148,7 +162,10 @@ const SecondStep = ({
 											'currencyId',
 											'currencyName',
 											values,
-											currencyOptions,
+											currency.map((currency: Currency) => ({
+												value: currency.currencyId,
+												label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+											})),
 										)
 									}
 								/>
@@ -159,7 +176,10 @@ const SecondStep = ({
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									placeholder={t('Unit Name')}
-									dropDownOptions={unitOptions}
+									dropDownOptions={unit.map((unit: Unit) => ({
+										value: unit.unitId,
+										label: `${unit.name} (${unit.internalCode ?? 'TBD'})`,
+									}))}
 									selectedValues={formData?.unitId ? [formData.unitId] : []}
 									isSingle={true}
 									onSelect={(values: string[]) =>
@@ -167,7 +187,10 @@ const SecondStep = ({
 											'unitId',
 											'unitName',
 											values,
-											unitOptions,
+											unit.map((unit: Unit) => ({
+												value: unit.unitId,
+												label: `${unit.name} (${unit.internalCode ?? 'TBD'})`,
+											})),
 										)
 									}
 								/>
@@ -222,7 +245,10 @@ const SecondStep = ({
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									placeholder={t('Currency Name')}
-									dropDownOptions={currencyOptions}
+									dropDownOptions={currency.map((currency: Currency) => ({
+										value: currency.currencyId,
+										label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+									}))}
 									isSingle
 									selectedValues={
 										formData?.currencyId ? [formData.currencyId] : []
@@ -232,7 +258,10 @@ const SecondStep = ({
 											'currencyId',
 											'currencyName',
 											values,
-											currencyOptions,
+											currency.map((currency: Currency) => ({
+												value: currency.currencyId,
+												label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+											})),
 										)
 									}
 								/>

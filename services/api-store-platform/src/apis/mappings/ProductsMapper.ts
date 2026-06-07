@@ -37,6 +37,7 @@ export default class ProductsMapper {
 			productFactoryCode: product.productFactoryCode,
 			name: product.name,
 			barcode: product.barcode,
+			internalCode: product.internalCode,
 			state: productState(),
 			categoryId: product.categoryId,
 			categoryName: product.categoryName,

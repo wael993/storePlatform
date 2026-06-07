@@ -31,11 +31,13 @@ interface CreateCustomerAPIResponse extends CreateAPIResponse {}
 interface CreateCurrencyAPIResponse extends CreateAPIResponse {}
 interface CreateUnitAPIResponse extends CreateAPIResponse {}
 
-interface SavedFiltersAPIResponse extends APIResponse<SavedFilters> {}
+interface ProductsAPIResponse extends APIResponse<Product> {}
 interface SuppliersAPIResponse extends APIResponse<Supplier> {}
 interface CustomersAPIResponse extends APIResponse<Customer> {}
 interface CurrenciesAPIResponse extends APIResponse<Currency> {}
 interface UnitsAPIResponse extends APIResponse<Unit> {}
+interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
+interface SavedFiltersAPIResponse extends APIResponse<SavedFilters> {}
 interface UserSettings {
 	enabledAccess: Access[]
 }
@@ -72,11 +74,8 @@ interface BearerTokenPayload {
 
 //////////////////////////
 
-interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
-
-interface ProductResponse extends APIResponse<Product[]> {}
-
 interface Supplier {
+	_id?: string
 	supplierId: string
 	name: string
 	internalCode?: string

@@ -101,12 +101,12 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 		entryType,
 		totalPrice,
 		bodyHeading,
-		unitOptions,
-		productOptions,
+		unit,
+		products,
 		isAllDataLoaded,
-		supplierOptions,
-		customerOptions,
-		currencyOptions,
+		suppliers,
+		customers,
+		currency,
 	} = useDailyActionHandlers()
 
 	const { t } = useTranslation()
@@ -273,11 +273,11 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 										isReceiptAction={isReceiptAction}
 										isPaymentEntry={isPaymentEntry}
 										formData={formData}
-										productOptions={productOptions}
-										supplierOptions={supplierOptions}
-										customerOptions={customerOptions}
-										currencyOptions={currencyOptions}
-										unitOptions={unitOptions}
+										products={products}
+										suppliers={suppliers}
+										customers={customers}
+										currency={currency}
+										unit={unit}
 										totalPrice={totalPrice ?? ''}
 										handleDropdownChange={handleDropdownChange}
 										handleInputChange={handleInputChange}

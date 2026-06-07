@@ -24,15 +24,24 @@ export const useDailyActionHandlers = () => {
 
 	const [postDailyAction, { isLoading: isSavingDailyAction }] =
 		usePostDailyActionMutation()
-	const { data: productsData, isLoading: isProductsLoading } =
-		useGetProductsQuery({})
-	const { data: suppliersData, isLoading: isSuppliersLoading } =
-		useGetSuppliersQuery()
-	const { data: customersData, isLoading: isCustomersLoading } =
-		useGetCustomersQuery()
-	const { data: currenciesData, isLoading: isCurrenciesLoading } =
-		useGetCurrenciesQuery()
-	const { data: unitsData, isLoading: isUnitsLoading } = useGetUnitsQuery()
+
+	const {
+		data: productsResponse = { products: [], totalCount: 0 },
+		isLoading: isProductsLoading,
+	} = useGetProductsQuery({})
+
+	const { data: suppliersResponse = [], isLoading: isSuppliersLoading } =
+		useGetSuppliersQuery({})
+
+	const { data: customersResponse = [], isLoading: isCustomersLoading } =
+		useGetCustomersQuery({})
+
+	const { data: currenciesResponse = [], isLoading: isCurrenciesLoading } =
+		useGetCurrenciesQuery({})
+
+	const { data: unitsResponse = [], isLoading: isUnitsLoading } =
+		useGetUnitsQuery({})
+
 	const isAllDataLoaded =
 		!isProductsLoading &&
 		!isSuppliersLoading &&
@@ -40,11 +49,14 @@ export const useDailyActionHandlers = () => {
 		!isCurrenciesLoading &&
 		!isUnitsLoading
 
-	const productOptions = useMemo(() => productsData ?? [], [productsData])
-	const supplierOptions = useMemo(() => suppliersData ?? [], [suppliersData])
-	const customerOptions = useMemo(() => customersData ?? [], [customersData])
-	const currencyOptions = useMemo(() => currenciesData ?? [], [currenciesData])
-	const unitOptions = useMemo(() => unitsData ?? [], [unitsData])
+	const products = useMemo(
+		() => productsResponse.products ?? [],
+		[productsResponse],
+	)
+	const suppliers = useMemo(() => suppliersResponse ?? [], [suppliersResponse])
+	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
+	const currency = useMemo(() => currenciesResponse ?? [], [currenciesResponse])
+	const unit = useMemo(() => unitsResponse ?? [], [unitsResponse])
 
 	const totalPrice = useMemo(() => {
 		if (!formData?.singleUnitPrice || !formData?.weight) return ''
@@ -153,11 +165,11 @@ export const useDailyActionHandlers = () => {
 		entryType,
 		totalPrice,
 		bodyHeading,
-		unitOptions,
-		productOptions,
+		unit,
+		products,
 		isAllDataLoaded,
-		supplierOptions,
-		customerOptions,
-		currencyOptions,
+		suppliers,
+		customers,
+		currency,
 	}
 }

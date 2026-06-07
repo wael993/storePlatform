@@ -169,7 +169,7 @@ const DailyActionsHelperButtons = () => {
 					() =>
 						createUnit({
 							name: value,
-							//internalCode: (code.trim() || value).toUpperCase(),
+							internalCode: (code.trim() || value).toUpperCase(),
 						}).unwrap(),
 					'Failed to add unit',
 				)

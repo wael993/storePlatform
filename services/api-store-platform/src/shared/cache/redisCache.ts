@@ -190,6 +190,22 @@ class RedisCache {
 		return `cache:invoices:list:${tenantId}`
 	}
 
+	public buildSupplierListKey(tenantId: string): string {
+		return `cache:suppliers:list:${tenantId}`
+	}
+
+	public buildCustomerListKey(tenantId: string): string {
+		return `cache:customers:list:${tenantId}`
+	}
+
+	public buildCurrencyListKey(tenantId: string): string {
+		return `cache:currencies:list:${tenantId}`
+	}
+
+	public buildUnitListKey(tenantId: string): string {
+		return `cache:units:list:${tenantId}`
+	}
+
 	public buildInvoiceDetailKey(tenantId: string, invoiceId: string): string {
 		return `cache:invoices:detail:${tenantId}:${invoiceId}`
 	}

@@ -157,48 +157,55 @@ const getQuery = (
 			}),
 		}),
 
-		// getSuppliers: builder.query({
-		// 	query: () => {
-		// 		return {
-		// 			url: 'suppliers',
-		// 			method: 'GET',
-		// 		}
-		// 	},
-		// 	transformResponse: (response: SuppliersAPIResponse) => {
-		// 		return response.data
-		// 	},
-		// 	providesTags: ['suppliers'],
-		// }),
-
-		getSuppliers: builder.query<{ value: string; label: string }[], void>({
-			query: () => ({
-				url: 'suppliers',
-				method: 'GET',
-			}),
+		getSuppliers: builder.query({
+			query: () => {
+				return {
+					url: 'suppliers',
+					method: 'GET',
+				}
+			},
+			transformResponse: (response: SuppliersAPIResponse) => {
+				return response.data
+			},
 			providesTags: ['suppliers'],
 		}),
 
-		getCustomers: builder.query<{ value: string; label: string }[], void>({
-			query: () => ({
-				url: 'customers',
-				method: 'GET',
-			}),
+		getCustomers: builder.query({
+			query: () => {
+				return {
+					url: 'customers',
+					method: 'GET',
+				}
+			},
+			transformResponse: (response: CustomersAPIResponse) => {
+				return response.data
+			},
 			providesTags: ['customers'],
 		}),
 
-		getCurrencies: builder.query<{ value: string; label: string }[], void>({
-			query: () => ({
-				url: 'currencies',
-				method: 'GET',
-			}),
+		getCurrencies: builder.query({
+			query: () => {
+				return {
+					url: 'currencies',
+					method: 'GET',
+				}
+			},
+			transformResponse: (response: CurrenciesAPIResponse) => {
+				return response.data
+			},
 			providesTags: ['currencies'],
 		}),
 
-		getUnits: builder.query<{ value: string; label: string }[], void>({
-			query: () => ({
-				url: 'units',
-				method: 'GET',
-			}),
+		getUnits: builder.query({
+			query: () => {
+				return {
+					url: 'units',
+					method: 'GET',
+				}
+			},
+			transformResponse: (response: UnitsAPIResponse) => {
+				return response.data
+			},
 			providesTags: ['units'],
 		}),
 
