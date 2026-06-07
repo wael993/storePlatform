@@ -61,6 +61,12 @@ export enum AllowedActions {
 	// LOCATION WAREHOUSE
 	SEE_LOCATION_WAREHOUSE = 'seeLocationWarehouse',
 	CAN_EDIT_LOCATION_WAREHOUSE = 'canEditLocationWarehouse',
+
+	// CUSTOMER
+	SEE_CUSTOMER = 'seeCustomer',
+	CAN_ADD_CUSTOMER = 'canAddCustomer',
+	CAN_EDIT_CUSTOMER = 'canEditCustomer',
+	CAN_DELETE_CUSTOMER = 'canDeleteCustomer',
 }
 export enum Breakpoints {
 	MOBILE = 'mobile',
@@ -95,6 +101,8 @@ export enum BreadCrumbItem {
 	ADD_NEW_TENANT = 'addNewTenant',
 	TENANTS_LIST = 'tenantsList',
 	ALL_PRODUCTS = 'allProducts',
+	CUSTOMERS = 'customers',
+	SUPPLIERS = 'suppliers',
 }
 
 export enum FilterAttribute {

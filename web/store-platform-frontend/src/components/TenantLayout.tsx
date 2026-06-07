@@ -71,6 +71,8 @@ const TenantLayout = () => {
 		isUsersEnabled,
 		isDailyEnabled,
 		isChangePasswordEnabled,
+		isCustomersEnabled,
+		isSuppliersEnabled,
 	} = getEnabledActions()
 	const {
 		isTenantBarcodeEnabled,
@@ -80,6 +82,8 @@ const TenantLayout = () => {
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
 		isTenantChangePasswordEnabled,
+		isTenantCustomersEnabled,
+		isTenantSuppliersEnabled,
 	} = getTenantActions()
 
 	const topBarItems = [
@@ -100,6 +104,12 @@ const TenantLayout = () => {
 			: null,
 		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
 			? { label: 'Invoices', path: RoutePaths.INVOICES }
+			: null,
+		isCustomersEnabled && isTenantCustomersEnabled
+			? { label: 'Customers', path: RoutePaths.CUSTOMERS }
+			: null,
+		isSuppliersEnabled && isTenantSuppliersEnabled
+			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
 

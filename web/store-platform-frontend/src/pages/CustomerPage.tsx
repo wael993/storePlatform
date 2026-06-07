@@ -20,6 +20,7 @@ import { useUser } from '../shared/hooks/useUser'
 import ListWithActionBar from '../components/list/ListWithActionBar'
 import { useGetDailyActionsQuery } from '../api/apiStore'
 import AddDailyActionModal from '../components/modals/DailyAction/AddDailyActionModal'
+import { useDailyActionHandlers } from '../components/modals/DailyAction/hooks/useDailyActionHandlers'
 
 const fullWidth = '100%'
 
@@ -63,57 +64,47 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
-const DailyPage = () => {
+const CustomerPage = () => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
-
-	const {
-		data: response,
-		isLoading: isDailyActionsLoading,
-		isFetching: isDailyActionsFetching,
-	} = useGetDailyActionsQuery()
-
-	const dailyAction = response ?? []
-	const isGetDailyActionsInProgress =
-		isDailyActionsLoading || isDailyActionsFetching
+	const { customers, isCustomersLoading } = useDailyActionHandlers()
 
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
 				<CustomBreadcrumb
 					marginTop="2rem"
-					items={breadCrumbItems[BreadCrumbItem.DAILY]}
+					items={breadCrumbItems[BreadCrumbItem.CUSTOMERS]}
 				/>
 			</Flex>
 
 			<HStack justify="space-between" mb={'4rem'}>
 				<Heading sx={styles.title} variant={'h5'}>
-					{t('components.pageHeaders.daily')}
+					{t('components.pageHeaders.customers')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
-					isOwnerOrAdmin && (
-						<Button
-							leftIcon={<AddSquareIcon />}
-							onClick={onOpen}
-							sx={styles.addProductButton}
-							variant="ghost"
-						>
-							<Text sx={styles.addProductButtonText}>
-								{t('common.addDailyAction')}
-							</Text>
-						</Button>
-					)}
+				{isActionAllowed(AllowedActions.CAN_ADD_CUSTOMER) && isOwnerOrAdmin && (
+					<Button
+						leftIcon={<AddSquareIcon />}
+						onClick={onOpen}
+						sx={styles.addProductButton}
+						variant="ghost"
+					>
+						<Text sx={styles.addProductButtonText}>
+							{t('common.addCustomer')}
+						</Text>
+					</Button>
+				)}
 			</HStack>
 
-			{isGetDailyActionsInProgress && <Spinner />}
+			{isCustomersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
 			<ListWithActionBar
-				dailyActions={dailyAction as unknown as DailyAction[]}
-				isLoading={isDailyActionsLoading || isDailyActionsFetching}
+				customers={customers as Customer[]}
+				isLoading={isCustomersLoading}
 			/>
 
 			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />
@@ -121,4 +112,4 @@ const DailyPage = () => {
 	)
 }
 
-export default DailyPage
+export default CustomerPage

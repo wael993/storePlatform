@@ -6,6 +6,9 @@ import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../../shared/utils'
 import ListDesktop from './ListDesktop'
 import DailyActionListDesktop from './DailyActionListDesktop'
+import SimpleEntityListDesktop, {
+	SimpleEntity,
+} from './SimpleEntityListDesktop'
 import useCustomToast from '../common/CustomToast'
 
 const styles: StylesObject = {
@@ -16,13 +19,34 @@ const styles: StylesObject = {
 	},
 }
 
+type ListMode = 'product' | 'dailyAction' | 'customer' | 'supplier'
+
 interface ListWithActionBarProps {
+	customers?: Customer[]
+	suppliers?: Supplier[]
 	products?: Product[]
 	dailyActions?: DailyAction[]
 	isLoading: boolean
 }
 
+const toSimpleEntity = {
+	fromCustomer: (c: Customer): SimpleEntity => ({
+		id: c.customerId,
+		name: c.name,
+		internalCode: c.internalCode,
+		createdAt: c.createdAt,
+	}),
+	fromSupplier: (s: Supplier): SimpleEntity => ({
+		id: s.supplierId,
+		name: s.name,
+		internalCode: s.internalCode,
+		createdAt: s.createdAt,
+	}),
+}
+
 const ListWithActionBar = ({
+	customers,
+	suppliers,
 	products,
 	dailyActions,
 	isLoading,
@@ -32,28 +56,60 @@ const ListWithActionBar = ({
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedElementId, setSelectedElementIds] = useState<string[]>([])
 
-	const isDailyActionMode = dailyActions !== undefined
+	const mode: ListMode = useMemo(() => {
+		if (dailyActions !== undefined) return 'dailyAction'
+		if (customers !== undefined) return 'customer'
+		if (suppliers !== undefined) return 'supplier'
+		return 'product'
+	}, [dailyActions, customers, suppliers])
 
 	// --- Product list state ---
 	const listElements: Product[] = useMemo(() => {
-		if (isDailyActionMode) return []
+		if (mode !== 'product') return []
 		return (
 			products?.map((product: Product) => ({
 				...product,
 				isSelectable: true,
 			})) || []
 		)
-	}, [products, isDailyActionMode])
+	}, [products, mode])
 
 	// --- Daily action list state ---
 	const dailyActionElements: DailyAction[] = useMemo(() => {
-		if (!isDailyActionMode) return []
+		if (mode !== 'dailyAction') return []
 		return dailyActions ?? []
-	}, [dailyActions, isDailyActionMode])
+	}, [dailyActions, mode])
 
-	const activeLength = isDailyActionMode
-		? dailyActionElements.length
-		: listElements.length
+	// --- Customer list state ---
+	const customerElements: SimpleEntity[] = useMemo(() => {
+		if (mode !== 'customer') return []
+		return customers?.map(toSimpleEntity.fromCustomer) ?? []
+	}, [customers, mode])
+
+	// --- Supplier list state ---
+	const supplierElements: SimpleEntity[] = useMemo(() => {
+		if (mode !== 'supplier') return []
+		return suppliers?.map(toSimpleEntity.fromSupplier) ?? []
+	}, [suppliers, mode])
+
+	const activeLength = useMemo(() => {
+		switch (mode) {
+			case 'dailyAction':
+				return dailyActionElements.length
+			case 'customer':
+				return customerElements.length
+			case 'supplier':
+				return supplierElements.length
+			default:
+				return listElements.length
+		}
+	}, [
+		mode,
+		dailyActionElements,
+		customerElements,
+		supplierElements,
+		listElements,
+	])
 
 	const onSelect = useCallback((id: string) => {
 		setSelectedElementIds(prev =>
@@ -64,36 +120,77 @@ const ListWithActionBar = ({
 	}, [])
 
 	const onAllItemsSelectedChange = useCallback(() => {
-		if (isDailyActionMode) {
-			setSelectedElementIds(prevSelectedIds =>
-				prevSelectedIds.length === dailyActionElements.length
-					? []
-					: dailyActionElements.map(a => a._id ?? a.actionId ?? ''),
-			)
-		} else {
-			setSelectedElementIds(prevSelectedIds =>
-				prevSelectedIds.length === listElements.length
-					? []
-					: listElements.map(a => a.productId),
-			)
+		switch (mode) {
+			case 'dailyAction':
+				setSelectedElementIds(prev =>
+					prev.length === dailyActionElements.length
+						? []
+						: dailyActionElements.map(a => a._id ?? a.actionId ?? ''),
+				)
+				break
+			case 'customer':
+				setSelectedElementIds(prev =>
+					prev.length === customerElements.length
+						? []
+						: customerElements.map(e => e.id),
+				)
+				break
+			case 'supplier':
+				setSelectedElementIds(prev =>
+					prev.length === supplierElements.length
+						? []
+						: supplierElements.map(e => e.id),
+				)
+				break
+			default:
+				setSelectedElementIds(prev =>
+					prev.length === listElements.length
+						? []
+						: listElements.map(a => a.productId),
+				)
 		}
-	}, [listElements, dailyActionElements, isDailyActionMode])
+	}, [
+		mode,
+		listElements,
+		dailyActionElements,
+		customerElements,
+		supplierElements,
+	])
 
-	const areAllItemsSelected = selectedElementId.length === activeLength
+	const areAllItemsSelected =
+		selectedElementId.length === activeLength && activeLength > 0
 
 	useEffect(() => {
-		if (isDailyActionMode) {
-			setSelectedElementIds(prev =>
-				prev.filter(id =>
-					dailyActionElements.some(a => (a._id ?? a.actionId ?? '') === id),
-				),
-			)
-		} else {
-			setSelectedElementIds(prev =>
-				prev.filter(id => listElements.some(a => a.productId === id)),
-			)
+		switch (mode) {
+			case 'dailyAction':
+				setSelectedElementIds(prev =>
+					prev.filter(id =>
+						dailyActionElements.some(a => (a._id ?? a.actionId ?? '') === id),
+					),
+				)
+				break
+			case 'customer':
+				setSelectedElementIds(prev =>
+					prev.filter(id => customerElements.some(e => e.id === id)),
+				)
+				break
+			case 'supplier':
+				setSelectedElementIds(prev =>
+					prev.filter(id => supplierElements.some(e => e.id === id)),
+				)
+				break
+			default:
+				setSelectedElementIds(prev =>
+					prev.filter(id => listElements.some(a => a.productId === id)),
+				)
 		}
-	}, [listElements, dailyActionElements, isDailyActionMode])
+	}, [
+		mode,
+		listElements,
+		dailyActionElements,
+		customerElements,
+		supplierElements,
+	])
 
 	const onAddRequiredDocument = async (
 		selectedElements: Product[],
@@ -138,9 +235,60 @@ const ListWithActionBar = ({
 		)
 	}
 
+	const renderList = () => {
+		if (isMobile) return <></>
+
+		switch (mode) {
+			case 'dailyAction':
+				return (
+					<DailyActionListDesktop
+						dailyActions={dailyActionElements}
+						isLoading={isLoading}
+						onSelect={onSelect}
+						selectedIds={selectedElementId}
+						areAllItemsSelected={areAllItemsSelected}
+						onAllItemsSelectedChange={onAllItemsSelectedChange}
+					/>
+				)
+			case 'customer':
+				return (
+					<SimpleEntityListDesktop
+						entities={customerElements}
+						isLoading={isLoading}
+						onSelect={onSelect}
+						selectedIds={selectedElementId}
+						areAllItemsSelected={areAllItemsSelected}
+						onAllItemsSelectedChange={onAllItemsSelectedChange}
+					/>
+				)
+			case 'supplier':
+				return (
+					<SimpleEntityListDesktop
+						entities={supplierElements}
+						isLoading={isLoading}
+						onSelect={onSelect}
+						selectedIds={selectedElementId}
+						areAllItemsSelected={areAllItemsSelected}
+						onAllItemsSelectedChange={onAllItemsSelectedChange}
+					/>
+				)
+			default:
+				return (
+					<ListDesktop
+						products={listElements ?? []}
+						isLoading={isLoading}
+						onSelect={onSelect}
+						selectedProducts={selectedElementId}
+						areAllItemsSelected={areAllItemsSelected}
+						onAllItemsSelectedChange={onAllItemsSelectedChange}
+					/>
+				)
+		}
+	}
+
 	return (
 		<VStack w="100%" p={0}>
-			{!isDailyActionMode && selectedElementId.length > 0 && (
+			{mode === 'product' && selectedElementId.length > 0 && (
 				<ListActionBar
 					selectedActivities={
 						(selectedElementId
@@ -154,27 +302,7 @@ const ListWithActionBar = ({
 					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
-			{isMobile ? (
-				<></>
-			) : isDailyActionMode ? (
-				<DailyActionListDesktop
-					dailyActions={dailyActionElements}
-					isLoading={isLoading}
-					onSelect={onSelect}
-					selectedIds={selectedElementId}
-					areAllItemsSelected={areAllItemsSelected}
-					onAllItemsSelectedChange={onAllItemsSelectedChange}
-				/>
-			) : (
-				<ListDesktop
-					products={listElements ?? []}
-					isLoading={isLoading}
-					onSelect={onSelect}
-					selectedProducts={selectedElementId}
-					areAllItemsSelected={areAllItemsSelected}
-					onAllItemsSelectedChange={onAllItemsSelectedChange}
-				/>
-			)}
+			{renderList()}
 		</VStack>
 	)
 }

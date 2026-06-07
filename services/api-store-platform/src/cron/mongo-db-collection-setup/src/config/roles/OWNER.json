@@ -76,6 +76,10 @@
 				"canAddSupplier",
 				"canEditSupplier",
 				"canDeleteSupplier",
+				"seeCustomer",
+				"canAddCustomer",
+				"canEditCustomer",
+				"canDeleteCustomer",
 
 				"seeBuyCost",
 				"canEditBuyCost",
@@ -102,6 +106,24 @@
 
 				"seeLocationWarehouse",
 				"canEditLocationWarehouse"
+			]
+		},
+		"/services/store_platform/customers": {
+			"access": true,
+			"allowedActions": [
+				"seeCustomer",
+				"canAddCustomer",
+				"canEditCustomer",
+				"canDeleteCustomer"
+			]
+		},
+		"/services/store_platform/suppliers": {
+			"access": true,
+			"allowedActions": [
+				"seeSupplier",
+				"canAddSupplier",
+				"canEditSupplier",
+				"canDeleteSupplier"
 			]
 		}
 	}

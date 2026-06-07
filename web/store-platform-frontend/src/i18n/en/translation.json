@@ -45,8 +45,12 @@
 			"products": "Products",
 			"orders": "Orders",
 			"invoices": "Invoices",
+			"customer": "Customer",
+			"supplier": "Supplier",
 			"users": "Users",
-			"tenants": "Tenants"
+			"tenants": "Tenants",
+			"customers": "Customers",
+			"suppliers": "Suppliers"
 		},
 		"activitySettingsSection": {
 			"title": "Product Per page",
@@ -156,6 +160,8 @@
 		"buyingEntry": "Buying Entry",
 		"sellingEntry": "Selling Entry",
 		"expenseEntry": "Expense Entry",
-		"otherEntry": "Other Entry"
+		"otherEntry": "Other Entry",
+		"addCustomer": "Add Customer",
+		"addSupplier": "Add Supplier"
 	}
 }

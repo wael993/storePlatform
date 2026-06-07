@@ -30,6 +30,12 @@ export enum DailyActionSortHeaderKey {
 	CREATED_AT = 'createdAt',
 }
 
+export enum SimpleEntitySortHeaderKey {
+	NAME = 'name',
+	INTERNAL_CODE = 'internalCode',
+	CREATED_AT = 'createdAt',
+}
+
 export enum ActivityState {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive',

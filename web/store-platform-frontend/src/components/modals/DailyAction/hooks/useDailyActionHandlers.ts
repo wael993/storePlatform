@@ -172,5 +172,10 @@ export const useDailyActionHandlers = () => {
 		suppliers,
 		customers,
 		currency,
+		isProductsLoading,
+		isSuppliersLoading,
+		isCustomersLoading,
+		isCurrenciesLoading,
+		isUnitsLoading,
 	}
 }

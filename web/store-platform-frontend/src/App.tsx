@@ -23,6 +23,8 @@ import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
 import { getEnabledActions, getTenantActions } from './shared/utils'
 import { RoutePaths } from './shared/routes'
 import DailyPage from './pages/DailyPage'
+import SupplierPage from './pages/SupplierPage'
+import CustomerPage from './pages/CustomerPage'
 // import { useGetUserFrontendResourcesQuery } from './api/apiStore'
 // import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
 // import { skipToken } from '@reduxjs/toolkit/dist/query/react'
@@ -60,6 +62,8 @@ const App = () => {
 		isInvoicesEnabled,
 		isUsersEnabled,
 		isSettingsEnabled,
+		isCustomersEnabled,
+		isSuppliersEnabled,
 	} = getEnabledActions()
 
 	const {
@@ -72,6 +76,8 @@ const App = () => {
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
 		isTenantSettingsEnabled,
+		isTenantCustomersEnabled,
+		isTenantSuppliersEnabled,
 	} = getTenantActions()
 
 	return (
@@ -116,6 +122,12 @@ const App = () => {
 						)}
 						{isSettingsEnabled && isTenantSettingsEnabled && (
 							<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />
+						)}
+						{isCustomersEnabled && isTenantCustomersEnabled && (
+							<Route path={RoutePaths.CUSTOMERS} element={<CustomerPage />} />
+						)}
+						{isSuppliersEnabled && isTenantSuppliersEnabled && (
+							<Route path={RoutePaths.SUPPLIERS} element={<SupplierPage />} />
 						)}
 					</Route>
 				</Route>
