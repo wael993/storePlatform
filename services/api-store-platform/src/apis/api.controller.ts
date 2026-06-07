@@ -46,12 +46,24 @@ import {
 	TenantUserSummary,
 	UpdateTenantUserRequestBody,
 	ProductAPI,
+	SupplierRequestBody,
+	CreateSupplierResponse,
+	SupplierDocument,
+	CustomerRequestBody,
+	CreateCustomerResponse,
+	CustomerDocument,
+	CurrencyRequestBody,
+	CurrencyDocument,
+	CreateCurrencyResponse,
+	UnitRequestBody,
+	UnitDocument,
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
 	DailyActionRequestBody,
 	DailyActionResponse,
 	LoginData,
+	SuppliersResponse,
 } from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
 import { getTenantPermissions } from '../shared/Permissions'
@@ -65,6 +77,7 @@ import {
 	getEmailDomain,
 	getTenantContext,
 	ensureSuperAdmin,
+	TenantRole,
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
@@ -1034,6 +1047,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const {
 			barcode,
+			internalCode,
 			name,
 			price,
 			stock,
@@ -1093,19 +1107,12 @@ export default class ProductController {
 			)
 		}
 
-		const now = new Date()
-		const createdBy = {
-			_id: requestContext.userId as string,
-			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-			role: requestContext.user?.role,
-			createdAt: now,
-		}
-
 		const productId = uuidv4()
 		const productData: ProductDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: productId,
 			productId,
+			internalCode,
 			productFactoryCode,
 			name,
 			barcode,
@@ -1120,8 +1127,12 @@ export default class ProductController {
 			location,
 			attributes,
 			status: status ?? 'active',
-			createdBy,
-			createdAt: now,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
 			description,
 		}
 
@@ -2264,6 +2275,27 @@ export default class ProductController {
 		}
 	}
 
+	// public async getSuppliers(
+	// 	requestContext: RequestContext,
+	// ): Promise<SuppliersResponse> {
+	// 	const tenantId = this.getTenantId(requestContext)
+	// 	const cacheKey = redisCache.buildInvoiceListKey(tenantId)
+	// 	const cachedSuppliers =
+	// 		await redisCache.getJson<SuppliersResponse>(cacheKey)
+	// 	if (cachedSuppliers) {
+	// 		return cachedSuppliers
+	// 	}
+	// 	const suppliers = await this.mongoDbClient.getDocuments({
+	// 		requestContext,
+	// 		collectionName: COLLECTION_NAMES.SUPPLIERS,
+	// 		model: Supplier,
+	// 		sort: { createdAt: 'desc' },
+	// 	})
+
+	// 	await redisCache.setJson(cacheKey, suppliers.documents)
+	// 	return { data: suppliers.documents, totalCount: suppliers.documents.length }
+	// }
+
 	public async getSuppliers(
 		requestContext: RequestContext,
 	): Promise<{ value: string; label: string }[]> {
@@ -2281,12 +2313,12 @@ export default class ProductController {
 
 	public async postSupplier(
 		requestContext: RequestContext,
-		name: string,
-	): Promise<{ value: string; label: string }> {
-		const tenantId = this.getTenantId(requestContext)
-		const normalizedName = name.trim()
+		requestBody: SupplierRequestBody,
+	): Promise<CreateSupplierResponse | null> {
+		const { name, internalCode } = requestBody
+		const tenantContext = getTenantContext(requestContext)
 
-		if (!normalizedName) {
+		if (!name || !name.trim()) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Supplier name is required',
@@ -2295,37 +2327,56 @@ export default class ProductController {
 
 		const existing = await withTenantScope(
 			Supplier.findOne({
-				name: new RegExp(`^${this.escapeRegex(normalizedName)}$`, 'i'),
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
 			}),
-			tenantId,
+			tenantContext.tenantId,
 		).lean()
 
-		if (existing) {
-			return {
-				value: String((existing as any)._id),
-				label: (existing as any).name,
-			}
+		if (!!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'supplier already exists in this tenant.',
+			)
 		}
 
-		const now = new Date()
-		const createdBy = {
-			_id: requestContext.userId ?? '',
-			displayName:
-				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-			createdAt: now,
+		const supplierData: SupplierDocument = {
+			tenantId: tenantContext.tenantId,
+			_id: uuidv4(),
+			name: name,
+			internalCode: internalCode?.trim() || undefined,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
+			updatedAt: new Date(),
 		}
 
-		const created = await Supplier.create({
-			tenantId,
-			name: normalizedName,
-			createdBy,
-			createdAt: now,
-			updatedAt: now,
+		logger.info('Saving supplier to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			supplierId: supplierData._id,
+			name,
 		})
 
+		const createSupplierResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.SUPPLIERS, data: supplierData },
+			Supplier,
+			requestContext,
+		)
+
+		logger.info('Supplier created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			supplierId: supplierData._id,
+			name,
+		})
+
+		//await this.invalidateSuppliersCache(requestContext, supplierData._id)
+
 		return {
-			value: String(created._id),
-			label: created.name,
+			_id: createSupplierResponse._id,
 		}
 	}
 
@@ -2346,12 +2397,12 @@ export default class ProductController {
 
 	public async postCustomer(
 		requestContext: RequestContext,
-		name: string,
-	): Promise<{ value: string; label: string }> {
-		const tenantId = this.getTenantId(requestContext)
-		const normalizedName = name.trim()
+		requestBody: CustomerRequestBody,
+	): Promise<CreateCustomerResponse | null> {
+		const { name, internalCode } = requestBody
+		const tenantContext = getTenantContext(requestContext)
 
-		if (!normalizedName) {
+		if (!name || !name.trim()) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Customer name is required',
@@ -2360,37 +2411,54 @@ export default class ProductController {
 
 		const existing = await withTenantScope(
 			Customer.findOne({
-				name: new RegExp(`^${this.escapeRegex(normalizedName)}$`, 'i'),
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
 			}),
-			tenantId,
+			tenantContext.tenantId,
 		).lean()
 
-		if (existing) {
-			return {
-				value: String((existing as any)._id),
-				label: (existing as any).name,
-			}
+		if (!!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Customer already exists in this tenant.',
+			)
 		}
 
-		const now = new Date()
-		const createdBy = {
-			_id: requestContext.userId ?? '',
-			displayName:
-				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-			createdAt: now,
+		const customerData: CustomerDocument = {
+			tenantId: tenantContext.tenantId,
+			_id: uuidv4(),
+			name: name,
+			internalCode: internalCode?.trim() || undefined,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
+			updatedAt: new Date(),
 		}
 
-		const created = await Customer.create({
-			tenantId,
-			name: normalizedName,
-			createdBy,
-			createdAt: now,
-			updatedAt: now,
+		logger.info('Saving customer to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			customerId: customerData._id,
+			name,
+		})
+
+		const createCustomerResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.CUSTOMERS, data: customerData },
+			Customer,
+			requestContext,
+		)
+
+		logger.info('Customer created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			customerId: customerData._id,
+			name,
 		})
 
 		return {
-			value: String(created._id),
-			label: created.name,
+			_id: createCustomerResponse._id,
 		}
 	}
 
@@ -2399,54 +2467,80 @@ export default class ProductController {
 	): Promise<{ value: string; label: string }[]> {
 		const tenantId = this.getTenantId(requestContext)
 		const currencies = (await withTenantScope(
-			Currency.find({}).select('code label').sort({ code: 1 }).lean(),
+			Currency.find({}).select('_id name').sort({ name: 1 }).lean(),
 			tenantId,
-		)) as Pick<ICurrency, 'code' | 'label'>[]
+		)) as Pick<ICurrency, '_id' | 'name'>[]
 
 		return currencies.map(c => ({
-			value: c.code,
-			label: c.label,
+			value: c._id,
+			label: c.name,
 		}))
 	}
 
 	public async postCurrency(
 		requestContext: RequestContext,
-		code: string,
-		label?: string,
-	): Promise<{ value: string; label: string }> {
-		const tenantId = this.getTenantId(requestContext)
-		const normalizedCode = code.trim().toUpperCase()
+		requestBody: CurrencyRequestBody,
+	): Promise<CreateCurrencyResponse | null> {
+		const { name, internalCode } = requestBody
+		const tenantContext = getTenantContext(requestContext)
 
-		if (!normalizedCode) {
+		if (!name || !name.trim()) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Currency code is required',
+				'Currency name is required',
 			)
 		}
 
-		const normalizedLabel = (label?.trim() || normalizedCode).trim()
-
 		const existing = await withTenantScope(
-			Currency.findOne({ code: normalizedCode }),
-			tenantId,
+			Currency.findOne({
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			}),
+			tenantContext.tenantId,
 		).lean()
 
-		if (existing) {
-			return {
-				value: (existing as any).code,
-				label: (existing as any).label,
-			}
+		if (!!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Currency already exists in this tenant.',
+			)
 		}
 
-		const created = await Currency.create({
-			tenantId,
-			code: normalizedCode,
-			label: normalizedLabel,
+		const currencyData: CurrencyDocument = {
+			tenantId: tenantContext.tenantId,
+			_id: uuidv4(),
+			name: name,
+			internalCode: internalCode?.trim() || undefined,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		}
+
+		logger.info('Saving currency to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			currencyId: currencyData._id,
+			name,
+		})
+
+		const createCurrencyResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.CURRENCIES, data: currencyData },
+			Currency,
+			requestContext,
+		)
+
+		logger.info('Currency created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			currencyId: currencyData._id,
+			name,
 		})
 
 		return {
-			value: created.code,
-			label: created.label,
+			_id: createCurrencyResponse._id,
 		}
 	}
 
@@ -2467,12 +2561,12 @@ export default class ProductController {
 
 	public async postUnit(
 		requestContext: RequestContext,
-		name: string,
-	): Promise<{ value: string; label: string }> {
-		const tenantId = this.getTenantId(requestContext)
-		const normalizedName = name.trim()
+		requestBody: UnitRequestBody,
+	): Promise<CreateCurrencyResponse | null> {
+		const { name, internalCode } = requestBody
+		const tenantContext = getTenantContext(requestContext)
 
-		if (!normalizedName) {
+		if (!name || !name.trim()) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Unit name is required',
@@ -2481,26 +2575,54 @@ export default class ProductController {
 
 		const existing = await withTenantScope(
 			Unit.findOne({
-				name: new RegExp(`^${this.escapeRegex(normalizedName)}$`, 'i'),
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
 			}),
-			tenantId,
+			tenantContext.tenantId,
 		).lean()
 
-		if (existing) {
-			return {
-				value: (existing as any).name,
-				label: (existing as any).name,
-			}
+		if (!!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Unit already exists in this tenant.',
+			)
 		}
 
-		const created = await Unit.create({
-			tenantId,
-			name: normalizedName,
+		const unitData: UnitDocument = {
+			tenantId: tenantContext.tenantId,
+			_id: uuidv4(),
+			name: name,
+			internalCode: internalCode?.trim() || undefined,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		}
+
+		logger.info('Saving unit to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			unitId: unitData._id,
+			name,
+		})
+
+		const createUnitResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.UNITS, data: unitData },
+			Unit,
+			requestContext,
+		)
+
+		logger.info('Unit created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			unitId: unitData._id,
+			name,
 		})
 
 		return {
-			value: created.name,
-			label: created.name,
+			_id: createUnitResponse._id,
 		}
 	}
 }

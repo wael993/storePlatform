@@ -1,45 +1,57 @@
-import { SimpleGrid, Button, useDisclosure } from '@chakra-ui/react'
+import { useState } from 'react'
+import { Button, SimpleGrid, useDisclosure } from '@chakra-ui/react'
+import { v4 as uuidv4 } from 'uuid'
+
 import { AsCheckmarkCircleIcon } from '../../../../icons/CheckmarkCircle'
 import { hoverFocusActiveButtonStyles } from '../../../../theme/styles'
-import { useState } from 'react'
 import {
 	useCreateCurrencyMutation,
 	useCreateCustomerMutation,
 	useCreateSupplierMutation,
 	useCreateUnitMutation,
-	useGetCurrenciesQuery,
-	useGetCustomersQuery,
-	useGetProductsQuery,
-	useGetSuppliersQuery,
-	useGetUnitsQuery,
-	useQuickAddProductMutation,
 	usePostProductMutation,
 } from '../../../../api/apiStore'
 import AddQuickProductsModal from '../../AddQuickProductsModal'
 import { useUser } from '../../../../shared/hooks/useUser'
-import { v4 as uuidv4 } from 'uuid'
 
 const styles = {
 	button: {
 		margin: { base: '0 0 1rem 2rem', md: '1rem 1rem 1rem 0rem' },
 		backgroundColor: '#376288',
 		fontSize: '0.875rem',
-		p: { base: '4', md: '1rem 1.5rem 1rem 1.5rem' },
+		p: { base: '4', md: '1rem 1.5rem' },
 		whiteSpace: 'nowrap',
 		borderRadius: '0',
+		color: '#FFFFFF',
 		...hoverFocusActiveButtonStyles,
 	},
 } satisfies StylesObject
 
+type FormData = {
+	code: string
+	value: string
+}
+
+const BUTTONS: {
+	type: AddQuickModalType
+	label: string
+}[] = [
+	{ type: 'product', label: 'Add Product' },
+	{ type: 'customer', label: 'Add Customer' },
+	{ type: 'supplier', label: 'Add Supplier' },
+	{ type: 'currency', label: 'Add Currency' },
+	{ type: 'unit', label: 'Add Unit' },
+]
+
 const DailyActionsHelperButtons = () => {
-	const [productName, setProductName] = useState<string>('')
-	const {
-		isOpen: isQuickAddModalOpen,
-		onOpen: onQuickAddModalOpen,
-		onClose: onQuickAddModalClose,
-	} = useDisclosure()
+	const [modalType, setModalType] = useState<AddQuickModalType>('product')
+	const [formData, setFormData] = useState<FormData>({
+		code: '',
+		value: '',
+	})
 
 	const { isOwnerOrAdmin } = useUser()
+	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const [postNewProduct, { isLoading }] = usePostProductMutation()
 	const [createSupplier] = useCreateSupplierMutation()
@@ -47,177 +59,162 @@ const DailyActionsHelperButtons = () => {
 	const [createCurrency] = useCreateCurrencyMutation()
 	const [createUnit] = useCreateUnitMutation()
 
-	const askName = (label: string): string | null => {
-		const value = window.prompt(`Enter ${label} name`)
-		if (!value || !value.trim()) {
-			return null
-		}
-
-		return value.trim()
+	const handleInputChange = (field: keyof FormData, value: string) => {
+		setFormData(prev => ({
+			...prev,
+			[field]: value,
+		}))
 	}
 
-	const onAddQuickProduct = async (productName: string) => {
-		if (!productName) return
+	const resetModal = () => {
+		setFormData({
+			code: '',
+			value: '',
+		})
+		onClose()
+	}
 
-		const unit = 'kg'
-
+	const executeAction = async (
+		action: () => Promise<unknown>,
+		errorMessage: string,
+	) => {
 		try {
-			await postNewProduct({
-				name: productName,
-				barcode: uuidv4(),
-				unit,
-				supplierId: '',
-				state: '',
-				stock: {
-					quantity: 0,
-					minQuantity: undefined,
-				},
-				price: {
-					wholesale: 0,
-					retailSale: 0,
-					semiWholesaleSales: 0,
-					buyCost: 0,
-					discount: undefined,
-					currency: 'EUR',
-				},
-			}).unwrap()
+			await action()
 		} catch (error) {
-			console.error('Failed to add product', error)
+			console.error(errorMessage, error)
 		} finally {
-			onQuickAddModalClose()
-			setProductName('')
+			resetModal()
 		}
 	}
 
-	const addSupplier = async () => {
-		const name = askName('supplier')
-		if (!name) return
+	const actions: Record<AddQuickModalType, (data: FormData) => Promise<void>> =
+		{
+			product: async ({ value, code }) => {
+				if (!value.trim()) return
 
-		try {
-			await createSupplier({ name }).unwrap()
-		} catch (error) {
-			console.error('Failed to add supplier', error)
+				const generateRandomBarcode = (): string => {
+					return Math.floor(Math.random() * 1000000)
+						.toString()
+						.padStart(6, '0')
+				}
+				await executeAction(
+					() =>
+						postNewProduct({
+							name: value,
+							internalCode: (code.trim() || value).toUpperCase(),
+							barcode: generateRandomBarcode(),
+							unit: 'kg',
+							supplierId: '',
+							state: '',
+							stock: {
+								quantity: 0,
+								minQuantity: undefined,
+							},
+							price: {
+								wholesale: 0,
+								retailSale: 0,
+								semiWholesaleSales: 0,
+								buyCost: 0,
+								discount: undefined,
+								currency: 'EUR',
+							},
+						}).unwrap(),
+					'Failed to add product',
+				)
+			},
+
+			supplier: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createSupplier({
+							name: value,
+							internalCode: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					'Failed to add supplier',
+				)
+			},
+
+			customer: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createCustomer({
+							name: value,
+							internalCode: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					'Failed to add customer',
+				)
+			},
+
+			currency: async ({ value, code }) => {
+				const label = value.trim()
+
+				if (!label) return
+
+				await executeAction(
+					() =>
+						createCurrency({
+							name: label,
+							internalCode: (code.trim() || label).toUpperCase(),
+						}).unwrap(),
+					'Failed to add currency',
+				)
+			},
+
+			unit: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createUnit({
+							name: value,
+							//internalCode: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					'Failed to add unit',
+				)
+			},
 		}
-	}
-	const addCustomer = async () => {
-		const name = askName('customer')
-		if (!name) return
 
-		try {
-			await createCustomer({ name }).unwrap()
-		} catch (error) {
-			console.error('Failed to add customer', error)
-		}
-	}
-	const addCurrency = async () => {
-		const codeInput = window.prompt('Enter currency code (e.g. EUR)')
-		if (!codeInput || !codeInput.trim()) return
-
-		const code = codeInput.trim().toUpperCase()
-		const labelInput = window.prompt(
-			`Enter currency label for ${code} (optional)`,
-		)
-		const label = labelInput?.trim() || code
-
-		try {
-			await createCurrency({ code, label }).unwrap()
-		} catch (error) {
-			console.error('Failed to add currency', error)
-		}
-	}
-	const addUnit = async () => {
-		const name = askName('unit')
-		if (!name) return
-
-		try {
-			await createUnit({ name }).unwrap()
-		} catch (error) {
-			console.error('Failed to add unit', error)
-		}
+	const handleQuickAdd = async (data: FormData) => {
+		await actions[modalType](data)
 	}
 
 	return (
 		<>
 			<SimpleGrid columns={[1, 2, 3]} gap={6} sx={{ marginTop: '2rem' }}>
-				<Button
-					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-					size={'md'}
-					variant={'primary'}
-					onClick={onQuickAddModalOpen}
-					sx={{
-						...styles.button,
-						backgroundColor: '#376288',
-						color: '#FFFFFF',
-					}}
-				>
-					Add Product
-				</Button>
-				<Button
-					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-					size={'md'}
-					variant={'primary'}
-					onClick={addCurrency}
-					sx={{
-						...styles.button,
-						backgroundColor: '#376288',
-						color: '#FFFFFF',
-					}}
-				>
-					Add Currency
-				</Button>
-				<Button
-					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-					size={'md'}
-					variant={'primary'}
-					onClick={addSupplier}
-					sx={{
-						...styles.button,
-						backgroundColor: '#376288',
-						color: '#FFFFFF',
-					}}
-				>
-					Add Supplier
-				</Button>
-				<Button
-					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-					size={'md'}
-					variant={'primary'}
-					onClick={addCustomer}
-					sx={{
-						...styles.button,
-						backgroundColor: '#376288',
-						color: '#FFFFFF',
-					}}
-				>
-					Add Customer
-				</Button>
-				<Button
-					rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
-					size={'md'}
-					variant={'primary'}
-					onClick={addUnit}
-					sx={{
-						...styles.button,
-						backgroundColor: '#376288',
-						color: '#FFFFFF',
-					}}
-				>
-					Add Unit
-				</Button>
+				{BUTTONS.map(({ type, label }) => (
+					<Button
+						key={type}
+						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
+						size="md"
+						variant="primary"
+						sx={styles.button}
+						onClick={() => {
+							setModalType(type)
+							onOpen()
+						}}
+					>
+						{label}
+					</Button>
+				))}
 			</SimpleGrid>
 
 			<AddQuickProductsModal
-				isOpen={isQuickAddModalOpen}
-				onClose={() => onQuickAddModalClose()}
+				handleInputChange={handleInputChange}
+				isOpen={isOpen}
+				modalType={modalType}
+				onClose={onClose}
 				isLoading={isLoading}
-				setProductName={setProductName}
-				productName={productName}
-				onAddQuickProduct={product => {
-					onAddQuickProduct(product)
-				}}
+				setFormData={setFormData}
+				inputValue={formData}
+				handleQuickAdd={handleQuickAdd}
 				userHasAdminRole={isOwnerOrAdmin}
 			/>
 		</>
 	)
 }
+
 export default DailyActionsHelperButtons

@@ -18,7 +18,12 @@ interface FilterOptions {
 	priceOfferStatuses?: PriceLevel3StatusAPI[]
 	resetFilters?: boolean
 }
-
+type AddQuickModalType =
+	| 'product'
+	| 'currency'
+	| 'supplier'
+	| 'customer'
+	| 'unit'
 type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
 type InputType = 'number' | 'text' | 'email' | 'text-area'
 

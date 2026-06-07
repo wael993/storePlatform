@@ -64,6 +64,10 @@ const createEmptyPermissionMap = (): TenantPermissionMap => ({
 	reports: [],
 	tenants: [],
 	dailyActions: [],
+	suppliers: [],
+	customers: [],
+	currencies: [],
+	units: [],
 })
 
 const createEmptyRoleMatrix = (): Record<TenantRole, TenantPermissionMap> => ({

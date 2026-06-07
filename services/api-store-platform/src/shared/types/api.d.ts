@@ -63,3 +63,23 @@ interface DailyActionRequestBody {
 type CreateDailyActionResponse = {
 	_id: string
 }
+
+interface SuppliersResponse extends APIResponse<Supplier> {}
+
+interface Supplier {
+	supplierId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}

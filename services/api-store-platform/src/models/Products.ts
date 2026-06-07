@@ -5,6 +5,7 @@ export interface IProduct extends Document {
 	tenantId: string
 	_id: string
 	productId?: string
+	internalCode?: string
 	productFactoryCode?: string
 	name: string
 	categoryId?: string
@@ -66,6 +67,12 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 	{
 		_id: { type: String, required: [true, 'ID is required'], trim: true },
 		productId: { type: String, trim: true },
+		internalCode: {
+			type: String,
+			trim: true,
+			index: true,
+			uppercase: true,
+		},
 		productFactoryCode: {
 			type: String,
 			trim: true,

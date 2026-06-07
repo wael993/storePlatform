@@ -17,6 +17,10 @@ import {
 	RequestContext,
 	UpdateTenantRequestBody,
 	UpdateTenantUserRequestBody,
+	SupplierRequestBody,
+	CustomerRequestBody,
+	CurrencyRequestBody,
+	UnitRequestBody,
 } from '../shared/types'
 import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
@@ -763,11 +767,12 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
-		const name = request.body?.name
+		const requestBody: SupplierRequestBody = request.body
+
 		try {
 			const resp = await this.productController.postSupplier(
 				requestContext,
-				name,
+				requestBody,
 			)
 			response.status(201).json(resp)
 		} catch (error: any) {
@@ -782,6 +787,7 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+
 		try {
 			const resp = await this.productController.getCustomers(requestContext)
 			response.status(200).json(resp)
@@ -797,11 +803,12 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
-		const name = request.body?.name
+		const requestBody: CustomerRequestBody = request.body
+
 		try {
 			const resp = await this.productController.postCustomer(
 				requestContext,
-				name,
+				requestBody,
 			)
 			response.status(201).json(resp)
 		} catch (error: any) {
@@ -831,13 +838,12 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
-		const code = request.body?.code
-		const label = request.body?.label
+		const requestBody: CurrencyRequestBody = request.body
+
 		try {
 			const resp = await this.productController.postCurrency(
 				requestContext,
-				code,
-				label,
+				requestBody,
 			)
 			response.status(201).json(resp)
 		} catch (error: any) {
@@ -867,9 +873,13 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
-		const name = request.body?.name
+		const requestBody: UnitRequestBody = request.body
+
 		try {
-			const resp = await this.productController.postUnit(requestContext, name)
+			const resp = await this.productController.postUnit(
+				requestContext,
+				requestBody,
+			)
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)

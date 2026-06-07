@@ -76,6 +76,8 @@ function buildProducts(
 		return {
 			_id: uuidv4(),
 			productFactoryCode: `FC-${idx.toString().padStart(3, '0')}`,
+			internalCode: `IC-${idx.toString().padStart(3, '0')}`,
+			productId: `PID-${idx.toString().padStart(3, '0')}`,
 			name,
 			barcode: `900000000${idx.toString().padStart(4, '0')}`,
 			categoryId: categoryIds[index % categoryIds.length],
@@ -175,6 +177,8 @@ async function createInitialProducts() {
 		const documents = initialProducts.map(productData => ({
 			_id: productData._id,
 			tenantId: DEFAULT_TENANT_ID,
+			productId: productData.productId,
+			internalCode: productData.internalCode,
 			productFactoryCode: productData.productFactoryCode,
 			name: productData.name,
 			barcode: productData.barcode,

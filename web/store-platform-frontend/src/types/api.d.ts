@@ -26,9 +26,16 @@ interface CreateAPIResponse {
 }
 
 interface CreateProductAPIResponse extends CreateAPIResponse {}
+interface CreateSupplierAPIResponse extends CreateAPIResponse {}
+interface CreateCustomerAPIResponse extends CreateAPIResponse {}
+interface CreateCurrencyAPIResponse extends CreateAPIResponse {}
+interface CreateUnitAPIResponse extends CreateAPIResponse {}
 
 interface SavedFiltersAPIResponse extends APIResponse<SavedFilters> {}
-
+interface SuppliersAPIResponse extends APIResponse<Supplier> {}
+interface CustomersAPIResponse extends APIResponse<Customer> {}
+interface CurrenciesAPIResponse extends APIResponse<Currency> {}
+interface UnitsAPIResponse extends APIResponse<Unit> {}
 interface UserSettings {
 	enabledAccess: Access[]
 }
@@ -69,11 +76,84 @@ interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
 
 interface ProductResponse extends APIResponse<Product[]> {}
 
+interface Supplier {
+	supplierId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Customer {
+	customerId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Currency {
+	currencyId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Unit {
+	unitId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
 interface Product {
 	productId: string
+	name: string
+	internalCode?: string
 	productFactoryCode?: string
 	state: string
-	name: string
 	categoryId?: string
 	categoryName?: string
 	category?: { _id: string; name: string }

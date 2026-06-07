@@ -4,6 +4,8 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 export interface ISupplier extends Document {
 	tenantId: string
 	name: string
+	_id: string
+	internalCode?: string
 	email?: string
 	phone?: string
 	country?: string
@@ -17,12 +19,12 @@ export interface ISupplier extends Document {
 		displayName: string
 		updatedAt: Date
 	}
-	createdAt: Date
-	updatedAt: Date
 }
 
 const SupplierSchema = new Schema<ISupplier>({
+	_id: { type: String, required: true },
 	name: { type: String, required: true, index: true },
+	internalCode: { type: String, index: true, uppercase: true },
 	email: { type: String },
 	phone: { type: String },
 	country: { type: String },
@@ -36,10 +38,9 @@ const SupplierSchema = new Schema<ISupplier>({
 		displayName: String,
 		updatedAt: Date,
 	},
-	createdAt: { type: Date, default: Date.now },
-	updatedAt: { type: Date, default: Date.now },
 })
 
 tenantScopedSchema(SupplierSchema)
+SupplierSchema.index({ tenantId: 1, _id: 1 }, { unique: true })
 
 export const Supplier = mongoose.model<ISupplier>('Supplier', SupplierSchema)

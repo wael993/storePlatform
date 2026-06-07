@@ -146,3 +146,11 @@ export enum ActionTypes {
 	Payment = 'Payment',
 	test = 'test',
 }
+
+export enum AddQuickStateEnum {
+	PRODUCT = 'product',
+	CURRENCY = 'currency',
+	SUPPLIER = 'supplier',
+	CUSTOMER = 'customer',
+	UNIT = 'unit',
+}

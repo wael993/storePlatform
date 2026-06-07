@@ -8,4 +8,8 @@ export const COLLECTION_NAMES = {
 	REPORTS: 'reports',
 	DAILY_ACTIONS: 'dailyActions',
 	TENANTS: 'tenants',
+	SUPPLIERS: 'suppliers',
+	CUSTOMERS: 'customers',
+	CURRENCIES: 'currencies',
+	UNITS: 'units',
 } as const

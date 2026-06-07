@@ -3,27 +3,38 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface ICurrency extends Document {
 	tenantId: string
-	code: string
-	label: string
-	createdAt: Date
-	updatedAt: Date
+	name: string
+	_id: string
+	internalCode?: string
+	createdBy: {
+		_id: string
+		displayName: string
+		createdAt: Date
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: Date
+	}
 }
 
-const CurrencySchema = new Schema<ICurrency>(
-	{
-		code: {
-			type: String,
-			required: true,
-			trim: true,
-			uppercase: true,
-			index: true,
-		},
-		label: { type: String, required: true, trim: true },
+const CurrencySchema = new Schema<ICurrency>({
+	_id: { type: String, required: true },
+	name: { type: String, required: true, index: true },
+	internalCode: { type: String, index: true, uppercase: true },
+	createdBy: {
+		_id: String,
+		displayName: String,
+		createdAt: Date,
 	},
-	{ timestamps: true },
-)
+	updatedBy: {
+		_id: String,
+		displayName: String,
+		updatedAt: Date,
+	},
+})
 
 tenantScopedSchema(CurrencySchema)
-CurrencySchema.index({ tenantId: 1, code: 1 }, { unique: true })
+CurrencySchema.index({ tenantId: 1, _id: 1 }, { unique: true })
 
 export const Currency = mongoose.model<ICurrency>('Currency', CurrencySchema)

@@ -6,26 +6,32 @@ import {
 	Heading,
 	ModalCloseButton,
 	ModalBody,
-	HStack,
-	FormControl,
-	FormLabel,
-	Input,
 	ButtonGroup,
 	Button,
+	VStack,
 } from '@chakra-ui/react'
 import { t } from 'i18next'
 import React from 'react'
-import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import {
+	documentNameStyles,
+	hoverFocusActiveButtonStyles,
+} from '../../theme/styles'
 import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
+import InputLabel from '../common/InputLabel'
+import { MODAL_CONFIG } from '../../shared/globalConstant'
 
 interface AddQuickProductsModalProps {
 	isOpen: boolean
 	onClose: () => void
-	onAddQuickProduct: (productName: string) => void
+	handleQuickAdd: (value: { code: string; value: string }) => void
 	userHasAdminRole: boolean
-	setProductName: React.Dispatch<React.SetStateAction<string>>
-	productName: string
+	setFormData: React.Dispatch<
+		React.SetStateAction<{ code: string; value: string }>
+	>
+	inputValue: { code: string; value: string }
 	isLoading?: boolean
+	modalType: AddQuickModalType
+	handleInputChange: (field: 'value' | 'code', value: string) => void
 }
 
 const styles: StylesObject = {
@@ -83,14 +89,16 @@ const styles: StylesObject = {
 const AddQuickProductsModal = ({
 	isOpen,
 	onClose,
-	onAddQuickProduct,
+	handleQuickAdd,
 	userHasAdminRole,
-	setProductName,
-	productName,
+	setFormData,
+	inputValue,
 	isLoading,
+	modalType,
+	handleInputChange,
 }: AddQuickProductsModalProps) => {
 	const onCloseModal = () => {
-		setProductName('')
+		setFormData({ code: '', value: '' })
 		onClose()
 	}
 
@@ -107,27 +115,40 @@ const AddQuickProductsModal = ({
 			<ModalContent style={{ padding: '1rem' }}>
 				<ModalHeader sx={styles.modalHeader}>
 					<Heading variant="h5" sx={styles.headerText}>
-						{t('components.daily.addQuickProduct')}
+						{t(MODAL_CONFIG[modalType].title)}
 					</Heading>
 				</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>
-					<HStack sx={styles.verticalContainer}>
-						<FormControl>
-							<FormLabel sx={styles.label}>
-								{t('components.daily.productName')}
-							</FormLabel>
-							<Input
-								size="sm"
-								isRequired
-								sx={styles.input}
-								type="text"
-								variant="filled"
-								value={productName}
-								onChange={event => setProductName(event.target.value)}
-							/>
-						</FormControl>
-					</HStack>
+					<VStack
+						sx={{ gap: '1rem', alignItems: 'left', marginBottom: '1.5rem' }}
+					>
+						<InputLabel
+							withGap={true}
+							label={t(MODAL_CONFIG[modalType].label)}
+							inputPlaceholder={t(MODAL_CONFIG[modalType].placeholder)}
+							inputType={MODAL_CONFIG[modalType].inputType}
+							styles={documentNameStyles}
+							value={inputValue.value ?? ''}
+							isDisabled={false}
+							onChange={(value: string) => handleInputChange('value', value)}
+						/>
+					</VStack>
+
+					<VStack
+						sx={{ gap: '1.25rem', alignItems: 'left', marginBottom: '1.5rem' }}
+					>
+						<InputLabel
+							withGap={true}
+							label={t(MODAL_CONFIG[modalType].code)}
+							inputPlaceholder={t(MODAL_CONFIG[modalType].code)}
+							inputType={MODAL_CONFIG[modalType].inputType}
+							styles={documentNameStyles}
+							value={inputValue.code ?? ''}
+							onChange={(value: string) => handleInputChange('code', value)}
+						/>
+					</VStack>
+
 					<ButtonGroup size="sm" sx={styles.buttonRow}>
 						<Button
 							rightIcon={
@@ -135,15 +156,15 @@ const AddQuickProductsModal = ({
 							}
 							size={'sm'}
 							variant={'primary'}
-							isDisabled={!productName || !userHasAdminRole || isLoading}
-							onClick={() => onAddQuickProduct(productName)}
+							isDisabled={!inputValue.value || !userHasAdminRole || isLoading}
+							onClick={() => handleQuickAdd(inputValue)}
 							sx={{
 								...styles.button,
 								backgroundColor: '#376288',
 								color: '#FFFFFF',
 							}}
 						>
-							{t('common.addProduct')}
+							{t(MODAL_CONFIG[modalType].buttonText)}
 						</Button>
 
 						<Button

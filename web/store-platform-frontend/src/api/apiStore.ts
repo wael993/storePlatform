@@ -157,6 +157,19 @@ const getQuery = (
 			}),
 		}),
 
+		// getSuppliers: builder.query({
+		// 	query: () => {
+		// 		return {
+		// 			url: 'suppliers',
+		// 			method: 'GET',
+		// 		}
+		// 	},
+		// 	transformResponse: (response: SuppliersAPIResponse) => {
+		// 		return response.data
+		// 	},
+		// 	providesTags: ['suppliers'],
+		// }),
+
 		getSuppliers: builder.query<{ value: string; label: string }[], void>({
 			query: () => ({
 				url: 'suppliers',
@@ -232,94 +245,47 @@ const getQuery = (
 			},
 			invalidatesTags: ['products'],
 		}),
-
-		quickAddProduct: builder.mutation<
-			{ _id: string },
-			{
-				name: string
-				currency: string
-				unit: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
-				supplierId?: string
-				singleUnitPrice?: number
-				weight?: string
-			}
-		>({
-			query: ({
-				name,
-				currency,
-				unit,
-				supplierId,
-				singleUnitPrice,
-				weight,
-			}) => ({
-				url: 'product',
-				method: 'POST',
-				body: {
-					name,
-					barcode: `AUTO-${Date.now()}`,
-					stock: { quantity: 0 },
-					price: {
-						wholesale: singleUnitPrice ?? 0,
-						retailSale: singleUnitPrice ?? 0,
-						semiWholesaleSales: singleUnitPrice ?? 0,
-						buyCost: singleUnitPrice ?? 0,
-						currency,
-					},
-					unit,
-					supplierId,
-					attributes: {
-						weight,
-					},
-					status: 'active',
-				},
-			}),
-			invalidatesTags: ['products'],
-		}),
-
 		createSupplier: builder.mutation<
-			{ value: string; label: string },
-			{ name: string }
+			CreateSupplierAPIResponse,
+			Omit<Supplier, 'supplierId'>
 		>({
-			query: body => ({
+			query: (newSupplier: Omit<Supplier, 'supplierId'>) => ({
 				url: 'suppliers',
 				method: 'POST',
-				body,
+				body: newSupplier,
 			}),
 			invalidatesTags: ['suppliers'],
 		}),
 
 		createCustomer: builder.mutation<
-			{ value: string; label: string },
-			{ name: string }
+			CreateCustomerAPIResponse,
+			Omit<Customer, 'customerId'>
 		>({
-			query: body => ({
+			query: (newCustomer: Omit<Customer, 'customerId'>) => ({
 				url: 'customers',
 				method: 'POST',
-				body,
+				body: newCustomer,
 			}),
 			invalidatesTags: ['customers'],
 		}),
 
 		createCurrency: builder.mutation<
-			{ value: string; label: string },
-			{ code: string; label: string }
+			CreateCurrencyAPIResponse,
+			Omit<Currency, 'currencyId'>
 		>({
-			query: body => ({
+			query: (newCurrency: Omit<Currency, 'currencyId'>) => ({
 				url: 'currencies',
 				method: 'POST',
-				body,
+				body: newCurrency,
 			}),
 			invalidatesTags: ['currencies'],
 		}),
 
-		createUnit: builder.mutation<
-			{ value: string; label: string },
-			{ name: string }
-		>({
-			query: body => ({
+		createUnit: builder.mutation<CreateUnitAPIResponse, Omit<Unit, 'unitId'>>({
+			query: (newUnit: Omit<Unit, 'unitId'>) => ({
 				url: 'units',
 				method: 'POST',
-				body,
+				body: newUnit,
 			}),
 			invalidatesTags: ['units'],
 		}),
@@ -558,7 +524,6 @@ export const {
 	useEditProductMutation,
 	useDeleteProductMutation,
 	usePostProductMutation,
-	useQuickAddProductMutation,
 	useCreateSupplierMutation,
 	useCreateCustomerMutation,
 	useCreateCurrencyMutation,

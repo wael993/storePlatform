@@ -25,8 +25,31 @@ interface RequestError {
 	hint?: string
 }
 
+type SupplierRequestBody = {
+	supplierId: string
+	name: string
+	internalCode?: string
+}
+
+type CustomerRequestBody = {
+	customerId: string
+	name: string
+	internalCode?: string
+}
+type CurrencyRequestBody = {
+	currencyId: string
+	name: string
+	internalCode?: string
+}
+
+type UnitRequestBody = {
+	unitId: string
+	name: string
+	internalCode?: string
+}
 export type ProductRequestBody = {
 	productId?: string
+	internalCode?: string
 	productFactoryCode?: string
 	name: string
 	barcode: string
@@ -131,7 +154,16 @@ export type UpdateTenantRequestBody = {
 export type CreateProductResponse = {
 	_id: string
 }
-export type CreateEntityResponse = {
+export type CreateSupplierResponse = {
+	_id: string
+}
+export type CreateCustomerResponse = {
+	_id: string
+}
+export type CreateCurrencyResponse = {
+	_id: string
+}
+export type CreateUnitResponse = {
 	_id: string
 }
 export type InviteTenantUserResponse = {
@@ -149,7 +181,6 @@ export type TenantUserSummary = {
 	role: TenantRole
 	firstName: string
 	lastName: string
-	// isInternal: boolean
 	createdAt: Date
 	updatedAt: Date
 }
@@ -173,9 +204,53 @@ export type TenantSummary = {
 		reason?: string
 	}
 }
+interface CustomerDocument {
+	tenantId: string
+	_id?: string
+	name: string
+	internalCode?: string
+	createdBy: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
+	updatedAt: Date
+}
+
+interface CurrencyDocument {
+	tenantId: string
+	_id?: string
+	name: string
+	internalCode?: string
+	createdBy: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
+	updatedAt: Date
+}
+
+interface UnitDocument {
+	tenantId: string
+	_id?: string
+	name: string
+	internalCode?: string
+	createdBy: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
+	updatedAt: Date
+}
+
+interface SupplierDocument {
+	tenantId: string
+	_id?: string
+	name: string
+	internalCode?: string
+	createdBy: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
+	updatedAt: Date
+}
 interface ProductDocument {
 	tenantId: string
 	_id?: string
+	internalCode?: string
 	productId?: string
 	productFactoryCode?: string
 	name: string
@@ -217,15 +292,15 @@ interface ProductDocument {
 	}
 	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
-	createdBy: UserAPIFormat & { createdAt: Date }
+	createdBy: UserAPIFormat
 	updatedBy?: UserAPIFormat & { updatedAt: Date }
 	createdAt: Date
 }
 interface UserAPIFormat {
 	_id: string
 	displayName: string
-	isInternal?: boolean
 	avatarColorId?: number
+	role: TenantRole
 }
 
 type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'

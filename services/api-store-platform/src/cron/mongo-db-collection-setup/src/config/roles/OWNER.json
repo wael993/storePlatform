@@ -25,6 +25,42 @@
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/reports": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/settings": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/suppliers": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/customers": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/currencies": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/units": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		}
 	},
 	"include": ["ADMIN", "EMPLOYEE"],
