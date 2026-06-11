@@ -10,6 +10,7 @@ import { formatDate } from '../../../shared/dateUtils'
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
+import { mapFee } from '../../../shared/utils'
 
 const styles = {
 	tableRow: {
@@ -174,6 +175,15 @@ const CustomerListItem = ({
 					<Skeleton isLoaded={!isLoading}>
 						<Text sx={{ ...styles.text, fontWeight: 500 }}>
 							{customer.internalCode}
+						</Text>
+					</Skeleton>
+				</Flex>
+			</Td>
+			<Td sx={styles.tableRow}>
+				<Flex sx={styles.cellContentWrapper}>
+					<Skeleton isLoaded={!isLoading}>
+						<Text sx={{ ...styles.text, fontWeight: 500 }}>
+							{mapFee(customer.sold.toString())}
 						</Text>
 					</Skeleton>
 				</Flex>

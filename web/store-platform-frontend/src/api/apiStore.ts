@@ -179,6 +179,7 @@ const getQuery = (
 				}
 			},
 			transformResponse: (response: CustomersAPIResponse) => {
+				console.log('🚀 ~ getQuery ~ response:', response.data)
 				return response.data
 			},
 			providesTags: ['customers'],

@@ -1,3 +1,5 @@
+import { TenantRole } from '../tenant'
+
 interface DocumentReadOperationResponse {
 	id?: string[]
 	documents: any[]
@@ -12,4 +14,11 @@ interface RequestError {
 interface AuthContext {
 	username: string
 	password: string
+}
+
+interface UserAPIFormat {
+	_id: string
+	displayName: string
+	avatarColorId?: number
+	role: TenantRole
 }

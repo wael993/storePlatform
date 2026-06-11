@@ -28,6 +28,7 @@ export enum SupplierSortHeaderKey {
 export enum CustomerSortHeaderKey {
 	NAME = 'name',
 	INTERNAL_CODE = 'internalCode',
+	SOLD = 'sold',
 	CREATED_AT = 'createdAt',
 }
 

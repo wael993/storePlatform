@@ -28,7 +28,7 @@ import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
-
+import { mapCustomers } from './mappings/mapper'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -62,9 +62,11 @@ import {
 import {
 	CreateDailyActionResponse,
 	CurrenciesResponse,
+	CustomerDailyAction,
 	CustomersResponse,
 	DailyActionRequestBody,
 	DailyActionResponse,
+	EntryType,
 	LoginData,
 	SuppliersResponse,
 	UnitsResponse,
@@ -85,7 +87,6 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
-import { DailyActionType } from '../shared/globalEnums'
 
 type TokenPayload = {
 	userId: string
@@ -2392,11 +2393,37 @@ export default class ProductController {
 			model: Customer,
 			sort: { createdAt: 'desc' },
 		})
+		console.log('🚀 ~ ProductController ~ getCustomers ~ customers:', customers)
+
+		const dailyActions = await this.getDailyActions(requestContext)
+
+		// Group actions by customerId
+		const actionsByCustomer = new Map<string, CustomerDailyAction[]>()
+
+		for (const action of dailyActions.data) {
+			if (action.entryType.value === 'BUYING_ENTRY') continue
+			const customerActions =
+				actionsByCustomer.get(action.customerId ?? '') ?? []
+
+			customerActions.push(action)
+
+			actionsByCustomer.set(action.customerId ?? '', customerActions)
+		}
+
+		const data = customers.documents.map(customer => {
+			return {
+				...customer,
+				actions: actionsByCustomer.get(customer.internalCode) ?? [],
+			}
+		})
+
+		const mappedCustomers = mapCustomers(data)
 
 		const response: CustomersResponse = {
-			data: customers.documents,
-			totalCount: customers.documents.length,
+			data: mappedCustomers,
+			totalCount: mappedCustomers.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
 		return response
 	}
@@ -2434,11 +2461,17 @@ export default class ProductController {
 			_id: uuidv4(),
 			customerId: uuidv4(),
 			internalCode: internalCode?.trim() || undefined,
-			name: name,
+			name,
 			createdBy: {
 				_id: requestContext.userId as string,
 				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
 				role: requestContext.user?.role as TenantRole,
+			},
+			updatedBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+				updatedAt: new Date(),
 			},
 			createdAt: new Date(),
 			updatedAt: new Date(),
@@ -2455,6 +2488,10 @@ export default class ProductController {
 			{ collectionName: COLLECTION_NAMES.CUSTOMERS, data: customerData },
 			Customer,
 			requestContext,
+		)
+		console.log(
+			'🚀 ~ ProductController ~ postCustomer ~ createCustomerResponse:',
+			createCustomerResponse,
 		)
 
 		logger.info('Customer created successfully.', {

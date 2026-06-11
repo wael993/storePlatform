@@ -30,6 +30,7 @@ interface VirtuosoContext {
 }
 
 const skeletonCustomer: Customer = {
+	sold: 0,
 	customerId: 'skeleton-id',
 	name: 'dummy',
 	barcode: 'dummy',

@@ -129,6 +129,7 @@ const DailyActionsHelperButtons = () => {
 						createSupplier({
 							name: value,
 							internalCode: (code.trim() || value).toUpperCase(),
+							// sold: 0,
 						}).unwrap(),
 					'Failed to add supplier',
 				)
@@ -142,6 +143,7 @@ const DailyActionsHelperButtons = () => {
 						createCustomer({
 							name: value,
 							internalCode: (code.trim() || value).toUpperCase(),
+							sold: 0,
 						}).unwrap(),
 					'Failed to add customer',
 				)

@@ -42,14 +42,6 @@ const CustomerListRow = ({
 				isHovered={isHovered}
 				isLoading={isLoading}
 			/>
-			{/* <ListItem
-				key={customer.customerId}
-				customer={customer}
-				onSelect={onSelect}
-				isSelected={isSelected}
-				isHovered={isHovered}
-				isLoading={isLoading}
-			/> */}
 		</Tr>
 	)
 }

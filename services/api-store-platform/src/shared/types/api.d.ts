@@ -22,7 +22,27 @@ interface EntryType {
 	label: string
 }
 
+interface CustomerDailyAction {
+	actionId: string
+	entryType: EntryType
+	productId: string
+	productName: string
+	invoiceNumber: string
+	supplierId?: string
+	supplierName?: string
+	customerId?: string
+	customerName?: string
+	currencyId: string
+	currencyName: string
+	unitId: string
+	unitName: string
+	weight: string
+	singleUnitPrice?: string
+	totalPrice?: string
+}
+
 interface DailyAction {
+	actionId: string
 	entryType: EntryType
 	productId: string
 	productName: string
@@ -124,6 +144,7 @@ interface Currency {
 
 interface Customer {
 	customerId: string
+	sold: number
 	name: string
 	internalCode?: string
 	createdAt?: string
@@ -138,4 +159,5 @@ interface Customer {
 		displayName: string
 		updatedAt: string
 	}
+	actions?: CustomerDailyAction[]
 }

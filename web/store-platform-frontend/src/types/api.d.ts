@@ -96,6 +96,7 @@ interface Supplier {
 interface Customer {
 	customerId: string
 	name: string
+	sold: number
 	internalCode?: string
 	createdAt?: string
 	updatedAt?: string
@@ -109,6 +110,7 @@ interface Customer {
 		displayName: string
 		updatedAt: string
 	}
+	actions?: DailyAction[]
 }
 
 interface Currency {

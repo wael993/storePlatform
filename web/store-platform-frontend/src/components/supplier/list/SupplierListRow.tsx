@@ -26,7 +26,6 @@ const SupplierListRow = ({
 		},
 	}
 
-	console.log('🚀 ~ SupplierListRow ~ supplier:', supplier)
 	return (
 		<Tr
 			{...tableRowProps}
@@ -43,14 +42,6 @@ const SupplierListRow = ({
 				isHovered={isHovered}
 				isLoading={isLoading}
 			/>
-			{/* <ListItem
-				key={supplier.supplierId}
-				supplier={supplier}
-				onSelect={onSelect}
-				isSelected={isSelected}
-				isHovered={isHovered}
-				isLoading={isLoading}
-			/> */}
 		</Tr>
 	)
 }
