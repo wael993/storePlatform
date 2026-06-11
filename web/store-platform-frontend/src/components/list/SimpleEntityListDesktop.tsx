@@ -32,6 +32,7 @@ import {
 import { listStyles } from '../../shared/styles'
 import { formatDate } from '../../shared/dateUtils'
 import TableSort from '../common/CustomTableSort'
+import { mapFee } from '../../shared/utils'
 
 export interface SimpleEntity {
 	id: string
@@ -182,6 +183,10 @@ const EntityRow = ({
 		},
 	} satisfies StylesObject
 
+	const entityWithBalance = {
+		...entity,
+		balance: 300000,
+	}
 	return (
 		<Tr
 			{...tableRowProps}
@@ -234,11 +239,28 @@ const EntityRow = ({
 			</Td>
 
 			{/* Created At */}
-			<Td sx={rowStyles.tableRow}>
+			{/* <Td sx={rowStyles.tableRow}>
 				<Flex sx={rowStyles.cellContentWrapper}>
 					<Skeleton isLoaded={!isLoading}>
 						<Text sx={rowStyles.text}>
 							{entity.createdAt ? formatDate(entity.createdAt) : '-'}
+						</Text>
+					</Skeleton>
+				</Flex>
+			</Td> */}
+
+			{/* Balance  */}
+			<Td sx={rowStyles.tableRow}>
+				<Flex sx={rowStyles.cellContentWrapper}>
+					<Skeleton isLoaded={!isLoading}>
+						<Text
+							sx={{
+								...rowStyles.text,
+								color: entityWithBalance.balance > 0 ? 'green' : 'red',
+								fontWeight: 700,
+							}}
+						>
+							{mapFee(entityWithBalance.balance.toString()) ?? '-'}
 						</Text>
 					</Skeleton>
 				</Flex>
@@ -321,10 +343,15 @@ const EntityHeaderRow = ({
 			width: SIMPLE_ENTITY_LIST_WIDTHS_MAP_IN_REM.INTERNAL_CODE,
 			sortKey: SimpleEntitySortHeaderKey.INTERNAL_CODE,
 		},
+		// {
+		// 	label: t('common.createdAt'),
+		// 	width: SIMPLE_ENTITY_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
+		// 	sortKey: SimpleEntitySortHeaderKey.CREATED_AT,
+		// },
 		{
-			label: t('common.createdAt'),
-			width: SIMPLE_ENTITY_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
-			sortKey: SimpleEntitySortHeaderKey.CREATED_AT,
+			label: 'Balance',
+			width: SIMPLE_ENTITY_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT,
+			sortKey: null,
 		},
 	]
 

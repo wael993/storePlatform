@@ -9,6 +9,7 @@ import {
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
 	AddDailyActionRequestBody,
+	useGetDailyActionsQuery,
 } from '../../../../api/apiStore'
 import { StepKeys } from '../../../../shared/globalEnums'
 import { mapFee } from '../../../../shared/utils'
@@ -33,6 +34,9 @@ export const useDailyActionHandlers = () => {
 	const { data: suppliersResponse = [], isLoading: isSuppliersLoading } =
 		useGetSuppliersQuery({})
 
+	const { data: dailyActionsResponse = [], isLoading: isDailyActionsLoading } =
+		useGetDailyActionsQuery()
+
 	const { data: customersResponse = [], isLoading: isCustomersLoading } =
 		useGetCustomersQuery({})
 
@@ -47,11 +51,16 @@ export const useDailyActionHandlers = () => {
 		!isSuppliersLoading &&
 		!isCustomersLoading &&
 		!isCurrenciesLoading &&
-		!isUnitsLoading
+		!isUnitsLoading &&
+		!isDailyActionsLoading
 
 	const products = useMemo(
 		() => productsResponse.products ?? [],
 		[productsResponse],
+	)
+	const dailyActions = useMemo(
+		() => dailyActionsResponse ?? [],
+		[dailyActionsResponse],
 	)
 	const suppliers = useMemo(() => suppliersResponse ?? [], [suppliersResponse])
 	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
@@ -166,6 +175,7 @@ export const useDailyActionHandlers = () => {
 		products,
 		isAllDataLoaded,
 		suppliers,
+		dailyActions,
 		customers,
 		currency,
 		isProductsLoading,
@@ -173,5 +183,6 @@ export const useDailyActionHandlers = () => {
 		isCustomersLoading,
 		isCurrenciesLoading,
 		isUnitsLoading,
+		isDailyActionsLoading,
 	}
 }

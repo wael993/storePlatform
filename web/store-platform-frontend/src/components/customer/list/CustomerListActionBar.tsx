@@ -1,12 +1,12 @@
 import { Button, Flex, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
-import { AsCloseCircleIcon } from '../../icons/CloseIconCircle'
-import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
-import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import { useResources } from '../../shared/hooks/useResources'
-import { AllowedActions } from '../../shared/globalEnums'
-import { useUser } from '../../shared/hooks/useUser'
-import AddRequiredDocumentButton from '../common/AddRequiredDocumentButton'
+import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
+import { useResources } from '../../../shared/hooks/useResources'
+import { useUser } from '../../../shared/hooks/useUser'
+import { AllowedActions } from '../../../shared/globalEnums'
+import AddRequiredDocumentButton from '../../common/AddRequiredDocumentButton'
+import { AsCloseCircleIcon } from '../../../icons/CloseIconCircle'
+import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
 
 const styles = {
 	mainFlexWrapper: {
@@ -48,29 +48,29 @@ const styles = {
 	},
 } satisfies StylesObject
 
-interface ListActionBarProps {
-	selectedActivities: Product[]
+interface CustomerListActionBarProps {
+	selectedCustomers: Customer[]
 	isRejectActivityInProgress: boolean
 	onAddRequiredDocument: (
-		selectedActivities: Product[],
+		selectedCustomers: Customer[],
 		data: {},
 	) => Promise<void>
 	isAddRequiredDocumentInProgress: boolean
 }
-const ListActionBar = ({
-	selectedActivities,
+
+const CustomerListActionBar = ({
+	selectedCustomers,
 	isRejectActivityInProgress,
 	onAddRequiredDocument,
 	isAddRequiredDocumentInProgress,
-}: ListActionBarProps) => {
+}: CustomerListActionBarProps) => {
+	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin: isInternalUser } = useUser()
 
 	const isRequiredDocumentCreationAllowed = isActionAllowed(
 		AllowedActions.ADD_PRODUCT,
 	)
-
-	const { t } = useTranslation()
 
 	const requiredDocumentCreatableOffers = true
 
@@ -84,7 +84,7 @@ const ListActionBar = ({
 	return (
 		<Flex sx={styles.mainFlexWrapper}>
 			<Text sx={styles.text}>
-				{`${selectedActivities.length} 	${t('common.selected')}`}
+				{`${selectedCustomers.length} 	${t('common.selected')}`}
 			</Text>
 			<Flex sx={styles.iconWrapper}>
 				{isRequiredDocumentCreationAllowed && isInternalUser && (
@@ -137,4 +137,5 @@ const ListActionBar = ({
 		</Flex>
 	)
 }
-export default ListActionBar
+
+export default CustomerListActionBar

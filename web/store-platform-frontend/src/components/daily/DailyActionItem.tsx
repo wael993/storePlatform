@@ -3,8 +3,8 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../shared/dateUtils'
 import { listStyles } from '../../shared/styles'
-import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
 import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
+import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
 
 interface DailyActionItemProps {
 	dailyAction: DailyAction
@@ -189,7 +189,5 @@ const DailyActionItem = memo(
 		)
 	},
 )
-
-DailyActionItem.displayName = 'DailyActionItem'
 
 export default DailyActionItem

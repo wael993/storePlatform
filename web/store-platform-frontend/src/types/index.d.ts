@@ -29,7 +29,7 @@ type InputType = 'number' | 'text' | 'email' | 'text-area'
 
 interface DailyAction {
 	_id?: string
-	actionId?: string
+	actionId: string
 	entryType: EntryType
 	productId: string
 	productName: string

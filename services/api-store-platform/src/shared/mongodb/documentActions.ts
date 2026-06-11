@@ -17,7 +17,6 @@ export const getDocuments = async <T>(
 	model: EntityModel,
 	sort: Sort,
 ): Promise<T[]> => {
-	console.log('🚀 ~ getDocuments ~ collectionName:', collectionName)
 	await ensureTenantAccess(requestContext, collectionName, 'read')
 	const tenantContext = getTenantContext(requestContext)
 

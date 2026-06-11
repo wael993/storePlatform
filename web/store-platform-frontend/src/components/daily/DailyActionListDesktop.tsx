@@ -11,19 +11,19 @@ import React, {
 import { TableVirtuoso } from 'react-virtuoso'
 
 import DraggableScrollContainer from '../common/DraggableScrollContainer'
-import DailyActionHeaderRow from './DailyActionHeaderRow'
 import DailyActionRow from './DailyActionRow'
-import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
-import { DailyActionSortHeaderKey, SortOrder } from './shared/globalEnums'
+import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
+import { DailyActionSortHeaderKey, SortOrder } from '../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
 	compareStringsForSorting,
 	getTableWidth,
-} from './shared/utils'
+} from '../list/shared/utils'
+import DailyActionHeaderRow from './DailyActionHeaderRow'
 
 interface VirtuosoContext {
 	listData: DailyAction[]
-	selectedIds: string[]
+	selectedDailyActionIds: string[]
 	onSelect: (id: string) => void
 	isLoading: boolean
 }
@@ -120,7 +120,7 @@ const TableRowComponent = (props: {
 }) => {
 	const index = props['data-index']
 	const context = props.context
-	const { listData, selectedIds, onSelect, isLoading } =
+	const { listData, selectedDailyActionIds, onSelect, isLoading } =
 		context as VirtuosoContext
 
 	const dailyAction = listData[index]
@@ -130,7 +130,7 @@ const TableRowComponent = (props: {
 		<DailyActionRow
 			key={rowId}
 			dailyAction={dailyAction}
-			isSelected={selectedIds.includes(rowId)}
+			isSelected={selectedDailyActionIds.includes(rowId)}
 			tableRowProps={props}
 			onSelect={onSelect}
 			isLoading={isLoading}
@@ -139,10 +139,10 @@ const TableRowComponent = (props: {
 }
 
 interface DailyActionListDesktopProps {
-	dailyActions?: DailyAction[]
+	dailyActions: DailyAction[]
 	isLoading: boolean
 	onSelect: (id: string) => void
-	selectedIds: string[]
+	selectedDailyActionIds: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
 }
@@ -152,7 +152,7 @@ const DailyActionListDesktop = memo(
 		dailyActions,
 		isLoading,
 		onSelect,
-		selectedIds,
+		selectedDailyActionIds,
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
 	}: DailyActionListDesktopProps) => {
@@ -218,7 +218,7 @@ const DailyActionListDesktop = memo(
 
 		const context: VirtuosoContext = {
 			listData,
-			selectedIds,
+			selectedDailyActionIds,
 			onSelect,
 			isLoading,
 		}

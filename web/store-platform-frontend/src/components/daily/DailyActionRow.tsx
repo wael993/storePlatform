@@ -1,5 +1,6 @@
 import { Tr } from '@chakra-ui/react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DailyActionItem from './DailyActionItem'
 
 interface DailyActionRowProps {
@@ -18,6 +19,7 @@ const DailyActionRow = ({
 	isLoading,
 }: DailyActionRowProps) => {
 	const [isHovered, setIsHovered] = useState(false)
+	const navigate = useNavigate()
 
 	const styles: StylesObject = {
 		row: {
@@ -32,6 +34,10 @@ const DailyActionRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
+			onClick={() =>
+				// navigate(`/daily-action/${dailyAction._id ?? dailyAction.actionId}`)
+				navigate('/services/store_platform/suppliers')
+			}
 		>
 			<DailyActionItem
 				key={dailyAction._id ?? dailyAction.actionId}

@@ -9,18 +9,19 @@ import {
 	useDisclosure,
 } from '@chakra-ui/icons'
 import React from 'react'
-import CustomBreadcrumb from '../components/CustomBreadcrumb'
-import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
-import { hoverFocusActiveButtonStyles } from '../theme/styles'
-import { generateBreadcrumbs } from '../shared/routes'
+
 import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
-import { useResources } from '../shared/hooks/useResources'
-import { useUser } from '../shared/hooks/useUser'
-import ListWithActionBar from '../components/list/ListWithActionBar'
-import { useGetDailyActionsQuery } from '../api/apiStore'
-import AddDailyActionModal from '../components/modals/DailyAction/AddDailyActionModal'
-import { useDailyActionHandlers } from '../components/modals/DailyAction/hooks/useDailyActionHandlers'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import { generateBreadcrumbs } from '../../shared/routes'
+import { BreadCrumbItem, AllowedActions } from '../../shared/globalEnums'
+import { useResources } from '../../shared/hooks/useResources'
+import { useUser } from '../../shared/hooks/useUser'
+import CustomBreadcrumb from '../CustomBreadcrumb'
+import Filters from '../filters/Filters'
+import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
+import { useDailyActionHandlers } from '../modals/DailyAction/hooks/useDailyActionHandlers'
+import CustomerListWithActionBar from './list/CustomerListWithActionBar'
 
 const fullWidth = '100%'
 
@@ -102,7 +103,23 @@ const CustomerPage = () => {
 			{isCustomersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			<ListWithActionBar
+			<Filters
+				filters={{
+					brand: [],
+					category: [],
+					state: [],
+					supplier: [],
+					searchText: '',
+				}}
+				onApplyFilters={() => {}}
+				onResetFilters={() => {}}
+				supplierOptions={[]}
+				brandOptions={[]}
+				stateOptions={[]}
+				categoryOptions={[]}
+				showSupplierFilter={isOwnerOrAdmin}
+			/>
+			<CustomerListWithActionBar
 				customers={customers as Customer[]}
 				isLoading={isCustomersLoading}
 			/>

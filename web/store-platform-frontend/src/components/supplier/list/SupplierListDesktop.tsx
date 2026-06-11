@@ -9,32 +9,28 @@ import React, {
 	useState,
 } from 'react'
 import { TableVirtuoso } from 'react-virtuoso'
-
-import { useUser } from '../../shared/hooks/useUser'
-
-import ListHeaderRow from './ListHeaderRow'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
-import { ProductSortHeaderKey, SortOrder } from './shared/globalEnums'
+import DraggableScrollContainer from '../../common/DraggableScrollContainer'
 import {
 	compareDatesForSorting,
-	compareNumbersForSorting,
 	compareStringsForSorting,
 	getTableWidth,
-	parseNumberForSorting,
-} from './shared/utils'
-import DraggableScrollContainer from '../common/DraggableScrollContainer'
-import ListRow from './ListRow'
+} from '../../list/shared/utils'
+import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { useUser } from '../../../shared/hooks/useUser'
+import { SortOrder, SupplierSortHeaderKey } from '../../list/shared/globalEnums'
+import SupplierListHeaderRow from './SupplierListHeaderRow'
+import SupplierListRow from './SupplierListRow'
 
 interface VirtuosoContext {
-	listData: Product[]
-	selectedProducts: string[]
+	listData: Supplier[]
+	selectedSuppliers: string[]
 	onSelect: (id: string) => void
 	isLoading: boolean
 	isInternalUser: boolean
 }
 
-const skeletonProduct: Product = {
-	productId: 'skeleton-id',
+const skeletonSupplier: Supplier = {
+	supplierId: 'skeleton-id',
 	name: 'dummy',
 	barcode: 'dummy',
 	categoryName: 'dummy',
@@ -63,7 +59,7 @@ const skeletonProduct: Product = {
 	},
 	updatedAt: '2024-01-01T00:00:00.000Z',
 	state: 'draft',
-} as Product
+} as Supplier
 
 const styles: StylesObject = {
 	mainBoxWrapper: {
@@ -149,16 +145,16 @@ const TableRowComponent = (props: {
 	const index = props['data-index']
 
 	const context = props.context
-	const { listData, selectedProducts, onSelect, isLoading } =
+	const { listData, selectedSuppliers, onSelect, isLoading } =
 		context as VirtuosoContext
 
-	const product = listData[index]
+	const supplier = listData[index]
 
 	return (
-		<ListRow
-			key={product.productId}
-			product={product}
-			isSelected={selectedProducts.includes(product.productId)}
+		<SupplierListRow
+			key={supplier.supplierId}
+			supplier={supplier}
+			isSelected={selectedSuppliers.includes(supplier.supplierId)}
 			tableRowProps={props}
 			onSelect={onSelect}
 			isLoading={isLoading}
@@ -166,132 +162,61 @@ const TableRowComponent = (props: {
 	)
 }
 
-interface ListDesktopProps {
-	products?: Product[]
+interface SupplierListDesktopProps {
+	suppliers?: Supplier[]
 	isLoading: boolean
-	onSelect: (productId: string) => void
-	selectedProducts: string[]
+	onSelect: (supplierId: string) => void
+	selectedSuppliers: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
 }
 
-const ListDesktop = memo(
+const SupplierListDesktop = memo(
 	({
-		products,
+		suppliers,
 		isLoading,
 		onSelect,
-		selectedProducts,
+		selectedSuppliers,
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
-	}: ListDesktopProps) => {
+	}: SupplierListDesktopProps) => {
 		const { isOwnerOrAdmin } = useUser()
-		const [sortField, setSortField] = useState<ProductSortHeaderKey | null>(
+		const [sortField, setSortField] = useState<SupplierSortHeaderKey | null>(
 			null,
 		)
 		const [sortOrder, setSortOrder] = useState<SortOrder | null>(null)
 
-		const sortedProducts = useMemo(() => {
-			if (!products) return []
-			const clonedProducts = structuredClone(products)
+		const sortedSuppliers = useMemo(() => {
+			if (!suppliers) return []
+			const clonedSuppliers = structuredClone(suppliers)
 			if (sortField === null) {
-				return clonedProducts
+				return clonedSuppliers
 			}
 
-			return clonedProducts.sort((a, b) => {
+			return clonedSuppliers.sort((a, b) => {
 				switch (sortField) {
-					case ProductSortHeaderKey.NAME: {
+					case SupplierSortHeaderKey.NAME: {
 						return compareStringsForSorting(a.name, b.name, sortOrder)
 					}
 
-					case ProductSortHeaderKey.BARCODE: {
-						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
-					}
-					case ProductSortHeaderKey.BRAND_NAME: {
-						return compareStringsForSorting(a.brandName, b.brandName, sortOrder)
-					}
-					case ProductSortHeaderKey.CATEGORY_NAME: {
+					case SupplierSortHeaderKey.INTERNAL_CODE: {
 						return compareStringsForSorting(
-							a.categoryName,
-							b.categoryName,
+							a.internalCode,
+							b.internalCode,
 							sortOrder,
 						)
 					}
-					case ProductSortHeaderKey.SUPPLIER_NAME: {
-						return compareStringsForSorting(
-							a.supplierName,
-							b.supplierName,
-							sortOrder,
-						)
+					case SupplierSortHeaderKey.CREATED_AT: {
+						return compareDatesForSorting(a.createdAt, b.createdAt, sortOrder)
 					}
-					case ProductSortHeaderKey.STOCK_QUANTITY: {
-						return compareNumbersForSorting(
-							a.stock?.quantity,
-							b.stock?.quantity,
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.STOCK_MIN_QUANTITY: {
-						return compareNumbersForSorting(
-							a.stock?.minQuantity,
-							b.stock?.minQuantity,
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.PRICE_BUY_COST: {
-						return compareNumbersForSorting(
-							parseNumberForSorting(a.price?.buyCost),
-							parseNumberForSorting(b.price?.buyCost),
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.PRICE_SELL: {
-						return compareNumbersForSorting(
-							parseNumberForSorting(a.price?.wholesale),
-							parseNumberForSorting(b.price?.wholesale),
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.DISCOUNT: {
-						return compareNumbersForSorting(
-							parseNumberForSorting(a.price?.discount),
-							parseNumberForSorting(b.price?.discount),
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.LOCATION_SHELF: {
-						return compareStringsForSorting(
-							a.location?.shelf,
-							b.location?.shelf,
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
-						return compareStringsForSorting(
-							a.location?.warehouse,
-							b.location?.warehouse,
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.COLOR: {
-						return compareStringsForSorting(
-							a.attributes?.color,
-							b.attributes?.color,
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.START_DATE: {
-						return compareDatesForSorting(a.updatedAt, b.updatedAt, sortOrder)
-					}
-
-					default: {
+					default:
 						return 0
-					}
 				}
 			})
-		}, [products, sortField, sortOrder])
+		}, [suppliers, sortField, sortOrder])
 
 		const onSort = (
-			field: ProductSortHeaderKey | null,
+			field: SupplierSortHeaderKey | null,
 			order: SortOrder | null,
 		) => {
 			setSortField(field)
@@ -299,14 +224,14 @@ const ListDesktop = memo(
 		}
 
 		const listData = useMemo(() => {
-			return sortedProducts.length === 0 && isLoading
-				? Array(5).fill(skeletonProduct)
-				: sortedProducts
-		}, [sortedProducts, isLoading])
+			return sortedSuppliers.length === 0 && isLoading
+				? Array(5).fill(skeletonSupplier)
+				: sortedSuppliers
+		}, [sortedSuppliers, isLoading])
 
 		const context: VirtuosoContext = {
 			listData,
-			selectedProducts,
+			selectedSuppliers,
 			onSelect,
 			isLoading,
 			isInternalUser: isOwnerOrAdmin,
@@ -326,7 +251,7 @@ const ListDesktop = memo(
 					}}
 					fixedHeaderContent={useCallback(
 						() => (
-							<ListHeaderRow
+							<SupplierListHeaderRow
 								sortField={sortField}
 								sortOrder={sortOrder}
 								onSort={onSort}
@@ -346,7 +271,6 @@ const ListDesktop = memo(
 		)
 	},
 )
+SupplierListDesktop.displayName = 'SupplierListDesktop'
 
-ListDesktop.displayName = 'List'
-
-export default ListDesktop
+export default SupplierListDesktop

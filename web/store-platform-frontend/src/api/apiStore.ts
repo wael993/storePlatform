@@ -465,12 +465,12 @@ const getQuery = (
 			invalidatesTags: ['user-settings'],
 		}),
 
-		getDailyActions: builder.query<DailyActionsAPIResponse[], void>({
+		getDailyActions: builder.query<DailyAction[], void>({
 			query: () => ({
 				url: 'daily-actions',
 				method: 'GET',
 			}),
-			transformResponse: (response: { data: DailyActionsAPIResponse[] }) => {
+			transformResponse: (response: { data: DailyAction[] }) => {
 				return response.data
 			},
 

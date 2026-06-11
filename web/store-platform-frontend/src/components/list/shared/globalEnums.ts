@@ -20,6 +20,17 @@ export enum ProductSortHeaderKey {
 	COLOR = 'attributes.color',
 }
 
+export enum SupplierSortHeaderKey {
+	NAME = 'name',
+	INTERNAL_CODE = 'internalCode',
+	CREATED_AT = 'createdAt',
+}
+export enum CustomerSortHeaderKey {
+	NAME = 'name',
+	INTERNAL_CODE = 'internalCode',
+	CREATED_AT = 'createdAt',
+}
+
 export enum DailyActionSortHeaderKey {
 	ENTRY_TYPE = 'entryType',
 	PRODUCT_NAME = 'productName',

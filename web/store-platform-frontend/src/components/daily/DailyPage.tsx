@@ -9,17 +9,19 @@ import {
 	useDisclosure,
 } from '@chakra-ui/icons'
 import React from 'react'
-import CustomBreadcrumb from '../components/CustomBreadcrumb'
-import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
-import { hoverFocusActiveButtonStyles } from '../theme/styles'
-import { generateBreadcrumbs } from '../shared/routes'
-import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
-import { useResources } from '../shared/hooks/useResources'
-import { useUser } from '../shared/hooks/useUser'
-import ListWithActionBar from '../components/list/ListWithActionBar'
-import { useGetDailyActionsQuery } from '../api/apiStore'
-import AddDailyActionModal from '../components/modals/DailyAction/AddDailyActionModal'
+import { BreadCrumbItem, AllowedActions } from '../../shared/globalEnums'
+import { useResources } from '../../shared/hooks/useResources'
+import { useUser } from '../../shared/hooks/useUser'
+import { generateBreadcrumbs } from '../../shared/routes'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import CustomBreadcrumb from '../CustomBreadcrumb'
+import Filters from '../filters/Filters'
+import { AddSquareIcon } from '../icons/AddSquare'
+import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
+import DailyActionsListWithActionBar from './DailyActionsListWithActionBar'
+import { useDailyActionHandlers } from '../modals/DailyAction/hooks/useDailyActionHandlers'
+import { useGetDailyActionsQuery } from '../../api/apiStore'
 
 const fullWidth = '100%'
 
@@ -70,15 +72,7 @@ const DailyPage = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
-	const {
-		data: response,
-		isLoading: isDailyActionsLoading,
-		isFetching: isDailyActionsFetching,
-	} = useGetDailyActionsQuery()
-
-	const dailyAction = response ?? []
-	const isGetDailyActionsInProgress =
-		isDailyActionsLoading || isDailyActionsFetching
+	const { dailyActions, isDailyActionsLoading } = useDailyActionHandlers()
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -108,12 +102,29 @@ const DailyPage = () => {
 					)}
 			</HStack>
 
-			{isGetDailyActionsInProgress && <Spinner />}
+			{isDailyActionsLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			<ListWithActionBar
-				dailyActions={dailyAction as unknown as DailyAction[]}
-				isLoading={isDailyActionsLoading || isDailyActionsFetching}
+			<Filters
+				filters={{
+					brand: [],
+					category: [],
+					state: [],
+					supplier: [],
+					searchText: '',
+				}}
+				onApplyFilters={() => {}}
+				onResetFilters={() => {}}
+				supplierOptions={[]}
+				brandOptions={[]}
+				stateOptions={[]}
+				categoryOptions={[]}
+				showSupplierFilter={isOwnerOrAdmin}
+			/>
+
+			<DailyActionsListWithActionBar
+				dailyActions={dailyActions ?? []}
+				isLoading={isDailyActionsLoading}
 			/>
 
 			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />

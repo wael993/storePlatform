@@ -4,6 +4,13 @@
 		"updateFailedMessage": "Failed to update settings."
 	},
 	"components": {
+		"customer": {
+			"name": "Customer Name",
+			"code": "Customer Code",
+			"createdAt": "Created At",
+			"searchPlaceholder": "Search customers...",
+			"noCustomers": "No customers found"
+		},
 		"daily": {
 			"dailyActions": "Daily Actions",
 			"actionType": "Action Type",

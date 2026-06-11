@@ -7,20 +7,20 @@ import {
 	Spinner,
 	Text,
 	useDisclosure,
-} from '@chakra-ui/icons'
+} from '@chakra-ui/react'
 import React from 'react'
-import CustomBreadcrumb from '../components/CustomBreadcrumb'
-import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
-import { hoverFocusActiveButtonStyles } from '../theme/styles'
-import { generateBreadcrumbs } from '../shared/routes'
+import CustomBreadcrumb from '../CustomBreadcrumb'
+import { AllowedActions, BreadCrumbItem } from '../../shared/globalEnums'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import { generateBreadcrumbs } from '../../shared/routes'
 import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
-import { useResources } from '../shared/hooks/useResources'
-import { useUser } from '../shared/hooks/useUser'
-import ListWithActionBar from '../components/list/ListWithActionBar'
-import { useGetDailyActionsQuery } from '../api/apiStore'
-import AddDailyActionModal from '../components/modals/DailyAction/AddDailyActionModal'
-import { useDailyActionHandlers } from '../components/modals/DailyAction/hooks/useDailyActionHandlers'
+import { useResources } from '../../shared/hooks/useResources'
+import { useUser } from '../../shared/hooks/useUser'
+import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
+import { useDailyActionHandlers } from '../modals/DailyAction/hooks/useDailyActionHandlers'
+import Filters from '../filters/Filters'
+import SupplierListWithActionBar from './list/SupplierListWithActionBar'
 
 const fullWidth = '100%'
 
@@ -102,7 +102,23 @@ const SupplierPage = () => {
 			{isSuppliersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			<ListWithActionBar
+			<Filters
+				filters={{
+					brand: [],
+					category: [],
+					state: [],
+					supplier: [],
+					searchText: '',
+				}}
+				onApplyFilters={() => {}}
+				onResetFilters={() => {}}
+				supplierOptions={[]}
+				brandOptions={[]}
+				stateOptions={[]}
+				categoryOptions={[]}
+				showSupplierFilter={isOwnerOrAdmin}
+			/>
+			<SupplierListWithActionBar
 				suppliers={suppliers as Supplier[]}
 				isLoading={isSuppliersLoading}
 			/>
