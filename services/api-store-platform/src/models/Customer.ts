@@ -2,23 +2,19 @@ import mongoose, { Schema, Document } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface ICustomer extends Document {
-	_id: { type: String; required: true }
-	customerId: string
-	internalCode: { type: String; index: true }
 	tenantId: string
+	_id: string
+	customerId: string
+	internalCode: string
 	name: string
 	email?: string
 	phone?: string
 	country?: string
+	updatedBy?: string
 	createdBy: {
 		_id: string
 		displayName: string
-		createdAt: Date
-	}
-	updatedBy?: {
-		_id: string
-		displayName: string
-		updatedAt: Date
+		role: string
 	}
 }
 
@@ -30,15 +26,11 @@ const CustomerSchema = new Schema<ICustomer>({
 	email: { type: String },
 	phone: { type: String },
 	country: { type: String },
+	updatedBy: { type: String },
 	createdBy: {
 		_id: String,
 		displayName: String,
-		createdAt: Date,
-	},
-	updatedBy: {
-		_id: String,
-		displayName: String,
-		updatedAt: Date,
+		role: String,
 	},
 })
 

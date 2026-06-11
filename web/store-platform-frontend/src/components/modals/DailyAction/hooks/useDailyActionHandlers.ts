@@ -140,12 +140,8 @@ export const useDailyActionHandlers = () => {
 					})
 			} catch (error) {
 				console.error('Error saving daily action:', error)
-				// Here you could set an error state to display an error message to the user
 				return
 			}
-			// Here you would typically send formData to your backend API to save the daily action
-			console.log('Saving Daily Action:', payload)
-			// Reset form after saving
 
 			setFormData(undefined)
 			setEntryType([])

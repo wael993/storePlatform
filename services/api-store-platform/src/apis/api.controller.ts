@@ -11,10 +11,10 @@ import {
 	AuthenticationError,
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
-import { Supplier, ISupplier } from '../models/Supplier'
-import { Customer, ICustomer } from '../models/Customer'
-import { Currency, ICurrency } from '../models/Currency'
-import { Unit, IUnit } from '../models/Unit'
+import { Supplier } from '../models/Supplier'
+import { Customer } from '../models/Customer'
+import { Currency } from '../models/Currency'
+import { Unit } from '../models/Unit'
 import User, { IUser } from '../models/User'
 import RefreshToken, { IRefreshToken } from '../models/RefreshToken'
 import Tenant, { ITenant } from '../models/Tenant'
@@ -57,6 +57,7 @@ import {
 	CreateCurrencyResponse,
 	UnitRequestBody,
 	UnitDocument,
+	CreateUnitResponse,
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
@@ -2431,9 +2432,9 @@ export default class ProductController {
 		const customerData: CustomerDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
-			name: name,
 			customerId: uuidv4(),
 			internalCode: internalCode?.trim() || undefined,
+			name: name,
 			createdBy: {
 				_id: requestContext.userId as string,
 				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
@@ -2588,7 +2589,7 @@ export default class ProductController {
 	public async postUnit(
 		requestContext: RequestContext,
 		requestBody: UnitRequestBody,
-	): Promise<CreateCurrencyResponse | null> {
+	): Promise<CreateUnitResponse | null> {
 		const { name, internalCode } = requestBody
 		const tenantContext = getTenantContext(requestContext)
 
@@ -2631,7 +2632,7 @@ export default class ProductController {
 		logger.info('Saving unit to database.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			unitId: unitData._id,
+			unitId: unitData.unitId,
 			name,
 		})
 

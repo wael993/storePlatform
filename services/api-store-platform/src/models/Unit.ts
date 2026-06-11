@@ -2,14 +2,10 @@ import mongoose, { Document, Schema } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface IUnit extends Document {
-	_id: { type: String; required: true }
+	_id: string
 	tenantId: string
 	name: string
-	internalCode: {
-		type: String
-		trim: true
-		index: true
-	}
+	internalCode: string
 	createdBy: {
 		_id: String
 		displayName: String
