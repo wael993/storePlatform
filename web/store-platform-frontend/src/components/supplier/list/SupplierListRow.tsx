@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Tr } from '@chakra-ui/react'
 import { useState } from 'react'
 import SupplierListItem from './SupplierListItem'
+import { buildRoutePath } from '../../../shared/routes'
 
 interface SupplierListRowProps {
 	supplier: Supplier
@@ -32,7 +33,7 @@ const SupplierListRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
-			onClick={() => navigate(`${supplier.supplierId}`)}
+			onClick={() => navigate(buildRoutePath.supplierById(supplier.supplierId))}
 		>
 			<SupplierListItem
 				key={supplier.supplierId}

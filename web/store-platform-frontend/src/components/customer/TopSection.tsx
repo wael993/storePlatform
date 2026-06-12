@@ -183,13 +183,17 @@ const styles = {
 
 interface TopSectionProps {
 	entryType: EntryModalType
-	customer: Customer
+	customer?: Customer
+	supplier?: Supplier
 }
 
-const TopSection = ({ entryType, customer }: TopSectionProps) => {
+const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { isCustomerEntry } = compareEntryType(entryType)
 	const { t } = useTranslation()
+	const entry = customer ?? supplier
+
+	if (!entry) return null
 
 	const editableFieldProps = {
 		ariaLabelName: t('common.supplierFocus'),
@@ -197,7 +201,7 @@ const TopSection = ({ entryType, customer }: TopSectionProps) => {
 		tooltip: t('common.supplierFocus'),
 		textWidth: fullWidth,
 		iconLeft: AsTargetIcon,
-		value: customer.internalCode ?? '',
+		value: entry.internalCode ?? '',
 		onFieldEdition: () => Promise.resolve(),
 		isLoading: false,
 		isNumberField: false,
@@ -218,18 +222,18 @@ const TopSection = ({ entryType, customer }: TopSectionProps) => {
 					items={
 						isCustomerEntry
 							? breadCrumbItems[BreadCrumbItem.CUSTOMER]
-							: breadCrumbItems[BreadCrumbItem.SUPPLIERS]
+							: breadCrumbItems[BreadCrumbItem.SUPPLIER]
 					}
 				/>
 
 				<Flex sx={styles.titleWrapper}>
-					<Text sx={styles.titleDrawer}>{customer.name}</Text>
+					<Text sx={styles.titleDrawer}>{entry.name}</Text>
 				</Flex>
 				<Spacer />
 
 				<Flex sx={styles.subHeaderText}>
-					<Text marginRight="1rem">{customer.name}</Text>
-					<Text>{customer.internalCode ?? ''}</Text>
+					<Text marginRight="1rem">{entry.name}</Text>
+					<Text>{entry.internalCode ?? ''}</Text>
 				</Flex>
 				<Box sx={styles.divider} />
 
@@ -238,17 +242,17 @@ const TopSection = ({ entryType, customer }: TopSectionProps) => {
 						<Flex sx={styles.itemWrapperWithTwoChildren}>
 							<Icon sx={styles.icon} as={AsStarIcon} />
 							<VStack sx={styles.brandsList}>
-								<Text sx={styles.itemText}>{customer.name}</Text>
+								<Text sx={styles.itemText}>{entry.name}</Text>
 							</VStack>
 						</Flex>
 						<Flex sx={styles.itemWrapperLastChild}>
 							<Icon sx={styles.icon} as={AsTruckIcon} />
 							<CustomTooltip
 								styles={styles.itemTextHidden}
-								label={customer.internalCode ?? ''}
+								label={entry.internalCode ?? ''}
 								placement="bottom-start"
 							>
-								{customer.internalCode ?? ''}
+								{entry.internalCode ?? ''}
 							</CustomTooltip>
 						</Flex>
 					</GridItem>
@@ -264,8 +268,8 @@ const TopSection = ({ entryType, customer }: TopSectionProps) => {
 								sx={{ ...styles.itemText, textAlign: 'left' }}
 							>
 								{formatDateFromAndDateTo(
-									customer?.createdAt,
-									customer?.updatedAt,
+									entry?.createdAt,
+									entry?.updatedAt,
 								)}
 							</Text>
 						</Flex>
@@ -300,7 +304,7 @@ const TopSection = ({ entryType, customer }: TopSectionProps) => {
 						<TicketStatus
 							entryType={entryType}
 							showReasonName={true}
-							reasonName={customer.internalCode ?? ''}
+							reasonName={entry.internalCode ?? ''}
 							isMobileView={false}
 						/>
 					</GridItem>

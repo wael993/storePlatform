@@ -16,6 +16,7 @@ export const RoutePaths = {
 	CUSTOMERS: withBasePath('/customers'),
 	SINGLE_CUSTOMER: withBasePath('/customers/:customerId'),
 	SUPPLIERS: withBasePath('/suppliers'),
+	SINGLE_SUPPLIER: withBasePath('/suppliers/:supplierId'),
 	USERS: withBasePath('/users'),
 	SETTINGS: withBasePath('/settings'),
 	ADD_NEW_TENANT: withBasePath('/add-new-tenant'),
@@ -28,6 +29,8 @@ export const buildRoutePath = {
 	productById: (productId: string) => withBasePath(`/products/${productId}`),
 	customerById: (customerId: string) =>
 		withBasePath(`/customers/${customerId}`),
+	supplierById: (supplierId: string) =>
+		withBasePath(`/suppliers/${supplierId}`),
 }
 
 export const fullPaths = {
@@ -179,6 +182,20 @@ export const generateBreadcrumbs = ({
 			isCurrentPage: true,
 		},
 	]
+	const supplier: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: 'Store Platform',
+			href: fullPaths.PRODUCTS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'supplier',
+			name: 'Supplier',
+			href: fullPaths.SUPPLIERS,
+			isCurrentPage: true,
+		},
+	]
 	const invoices: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -248,6 +265,7 @@ export const generateBreadcrumbs = ({
 		customers,
 		customer,
 		suppliers,
+		supplier,
 		users,
 		addNewTenant,
 		tenantsList,

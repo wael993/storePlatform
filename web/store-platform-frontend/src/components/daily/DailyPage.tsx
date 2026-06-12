@@ -20,7 +20,6 @@ import Filters from '../filters/Filters'
 import { AddSquareIcon } from '../icons/AddSquare'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 import DailyActionsListWithActionBar from './DailyActionsListWithActionBar'
-import { useDailyActionHandlers } from '../modals/DailyAction/hooks/useDailyActionHandlers'
 import { useGetDailyActionsQuery } from '../../api/apiStore'
 
 const fullWidth = '100%'
@@ -72,7 +71,8 @@ const DailyPage = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
-	const { dailyActions, isDailyActionsLoading } = useDailyActionHandlers()
+	const { data: dailyActions = [], isLoading: isDailyActionsLoading } =
+		useGetDailyActionsQuery()
 
 	return (
 		<Flex sx={styles.wrapper}>

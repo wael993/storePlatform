@@ -107,7 +107,7 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 		suppliers,
 		customers,
 		currency,
-	} = useDailyActionHandlers()
+	} = useDailyActionHandlers({ shouldLoadOptions: isOpen })
 
 	const { t } = useTranslation()
 

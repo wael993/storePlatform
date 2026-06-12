@@ -485,6 +485,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/suppliers/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getSupplier.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/customers`)
 			.get(
 				this.startCalc.bind(this),
@@ -784,6 +793,25 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 			)
 			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getSupplier(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getSupplier(
+				request.params.id,
+				requestContext,
+			)
+			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

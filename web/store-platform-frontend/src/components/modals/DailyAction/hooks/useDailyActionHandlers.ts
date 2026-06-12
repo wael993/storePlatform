@@ -9,13 +9,18 @@ import {
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
 	AddDailyActionRequestBody,
-	useGetDailyActionsQuery,
 } from '../../../../api/apiStore'
 import { StepKeys } from '../../../../shared/globalEnums'
 import { mapFee } from '../../../../shared/utils'
 import useCustomToast from '../../../common/CustomToast'
 
-export const useDailyActionHandlers = () => {
+interface UseDailyActionHandlersOptions {
+	shouldLoadOptions?: boolean
+}
+
+export const useDailyActionHandlers = ({
+	shouldLoadOptions = true,
+}: UseDailyActionHandlersOptions = {}) => {
 	const { t } = useTranslation()
 	const showToastMessage = useCustomToast()
 
@@ -29,38 +34,30 @@ export const useDailyActionHandlers = () => {
 	const {
 		data: productsResponse = { products: [], totalCount: 0 },
 		isLoading: isProductsLoading,
-	} = useGetProductsQuery({})
+	} = useGetProductsQuery({}, { skip: !shouldLoadOptions })
 
 	const { data: suppliersResponse = [], isLoading: isSuppliersLoading } =
-		useGetSuppliersQuery({})
-
-	const { data: dailyActionsResponse = [], isLoading: isDailyActionsLoading } =
-		useGetDailyActionsQuery()
+		useGetSuppliersQuery({}, { skip: !shouldLoadOptions })
 
 	const { data: customersResponse = [], isLoading: isCustomersLoading } =
-		useGetCustomersQuery({})
+		useGetCustomersQuery({}, { skip: !shouldLoadOptions })
 
 	const { data: currenciesResponse = [], isLoading: isCurrenciesLoading } =
-		useGetCurrenciesQuery({})
+		useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
 
 	const { data: unitsResponse = [], isLoading: isUnitsLoading } =
-		useGetUnitsQuery({})
+		useGetUnitsQuery({}, { skip: !shouldLoadOptions })
 
 	const isAllDataLoaded =
 		!isProductsLoading &&
 		!isSuppliersLoading &&
 		!isCustomersLoading &&
 		!isCurrenciesLoading &&
-		!isUnitsLoading &&
-		!isDailyActionsLoading
+		!isUnitsLoading
 
 	const products = useMemo(
 		() => productsResponse.products ?? [],
 		[productsResponse],
-	)
-	const dailyActions = useMemo(
-		() => dailyActionsResponse ?? [],
-		[dailyActionsResponse],
 	)
 	const suppliers = useMemo(() => suppliersResponse ?? [], [suppliersResponse])
 	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
@@ -175,7 +172,6 @@ export const useDailyActionHandlers = () => {
 		products,
 		isAllDataLoaded,
 		suppliers,
-		dailyActions,
 		customers,
 		currency,
 		isProductsLoading,
@@ -183,6 +179,5 @@ export const useDailyActionHandlers = () => {
 		isCustomersLoading,
 		isCurrenciesLoading,
 		isUnitsLoading,
-		isDailyActionsLoading,
 	}
 }

@@ -9,13 +9,13 @@ import {
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useGetSingleCustomerQuery } from '../../api/apiStore'
+import { useGetSingleSupplierQuery } from '../../api/apiStore'
 import { fullPaths } from '../../shared/routes'
 import { EntryModalType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
 import { CloseButton } from '../common/CloseButton'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
-import TopSection from './TopSection'
+import TopSection from '../customer/TopSection'
 import DailyActionsListWithActionBar from '../daily/DailyActionsListWithActionBar'
 
 const fullWidth = '100%'
@@ -71,24 +71,24 @@ const styles = {
 	},
 } satisfies StylesObject
 
-interface CustomerModalProps {
+interface SupplierModalProps {
 	entryType: EntryModalType
 }
 
-const CustomerModal = ({ entryType }: CustomerModalProps) => {
+const SupplierModal = ({ entryType }: SupplierModalProps) => {
 	const params = useParams()
 	const navigate = useNavigate()
 	const { t } = useTranslation()
 
-	const customerId = params.customerId as string
+	const supplierId = params.supplierId as string
 	const {
-		data: customer,
-		isLoading: isCustomerLoading,
-		isError: isCustomerError,
-	} = useGetSingleCustomerQuery(customerId)
+		data: supplier,
+		isLoading: isSupplierLoading,
+		isError: isSupplierError,
+	} = useGetSingleSupplierQuery(supplierId)
 
 	const handleClose = () => {
-		navigate(fullPaths.CUSTOMERS)
+		navigate(fullPaths.SUPPLIERS)
 	}
 
 	return (
@@ -110,17 +110,17 @@ const CustomerModal = ({ entryType }: CustomerModalProps) => {
 						<CloseButton onClose={handleClose} />
 					</Box>
 					<Grid sx={styles.grid}>
-						{isCustomerLoading ? (
+						{isSupplierLoading ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
 								entryType={entryType}
 							/>
-						) : !isCustomerError && customer ? (
+						) : !isSupplierError && supplier ? (
 							<Box sx={styles.fullWidthSection}>
-								<TopSection entryType={entryType} customer={customer} />
+								<TopSection entryType={entryType} supplier={supplier} />
 							</Box>
 						) : (
-							isCustomerError && (
+							isSupplierError && (
 								<Flex sx={styles.errorSection}>
 									<Box sx={styles.errorTextBox}>
 										<CenteredText
@@ -135,8 +135,8 @@ const CustomerModal = ({ entryType }: CustomerModalProps) => {
 						)}
 					</Grid>
 					<DailyActionsListWithActionBar
-						dailyActions={customer?.relatedActions ?? []}
-						isLoading={isCustomerLoading}
+						dailyActions={supplier?.relatedActions ?? []}
+						isLoading={isSupplierLoading}
 					/>
 				</ModalBody>
 			</ModalContent>
@@ -144,4 +144,4 @@ const CustomerModal = ({ entryType }: CustomerModalProps) => {
 	)
 }
 
-export default CustomerModal
+export default SupplierModal

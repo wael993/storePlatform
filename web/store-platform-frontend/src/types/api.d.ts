@@ -91,6 +91,7 @@ interface Supplier {
 		displayName: string
 		updatedAt: string
 	}
+	relatedActions?: DailyAction[]
 }
 
 interface Customer {

@@ -171,6 +171,17 @@ const getQuery = (
 			providesTags: ['suppliers'],
 		}),
 
+		getSingleSupplier: builder.query<Supplier, string>({
+			query: (supplierId: string) => ({
+				url: `suppliers/${supplierId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Supplier) => {
+				return response
+			},
+			providesTags: ['supplier'],
+		}),
+
 		getCustomers: builder.query({
 			query: () => {
 				return {
@@ -536,6 +547,7 @@ export const {
 	useGetProductsQuery,
 	useGetFilterValuesQuery,
 	useGetSuppliersQuery,
+	useGetSingleSupplierQuery,
 	useGetCustomersQuery,
 	useGetSingleCustomerQuery,
 	useGetCurrenciesQuery,

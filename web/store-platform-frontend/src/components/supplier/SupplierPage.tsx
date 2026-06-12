@@ -18,9 +18,9 @@ import { useTranslation } from 'react-i18next'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import { useDailyActionHandlers } from '../modals/DailyAction/hooks/useDailyActionHandlers'
 import Filters from '../filters/Filters'
 import SupplierListWithActionBar from './list/SupplierListWithActionBar'
+import { useGetSuppliersQuery } from '../../api/apiStore'
 
 const fullWidth = '100%'
 
@@ -70,7 +70,8 @@ const SupplierPage = () => {
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
-	const { suppliers, isSuppliersLoading } = useDailyActionHandlers()
+	const { data: suppliers = [], isLoading: isSuppliersLoading } =
+		useGetSuppliersQuery({})
 
 	return (
 		<Flex sx={styles.wrapper}>

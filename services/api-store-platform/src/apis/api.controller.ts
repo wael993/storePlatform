@@ -28,7 +28,7 @@ import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
-import { mapCustomers } from './mappings/mapper'
+import { mapCustomers, mapSuppliers } from './mappings/mapper'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -2299,12 +2299,78 @@ export default class ProductController {
 			sort: { createdAt: 'desc' },
 		})
 
+		const dailyActions = await this.getDailyActions(requestContext)
+		const data = suppliers.documents.map((supplier: SupplierDocument) => ({
+			supplierId: supplier.supplierId,
+			name: supplier.name,
+			internalCode: supplier.internalCode,
+			createdAt: supplier.createdAt?.toISOString(),
+			updatedAt: supplier.updatedAt?.toISOString(),
+			createdBy: supplier.createdBy as any,
+			updatedBy: supplier.updatedBy
+				? {
+						...supplier.updatedBy,
+						updatedAt: supplier.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+			actions: dailyActions.data.filter(
+				action =>
+					action.supplierId === supplier.supplierId ||
+					action.supplierId === supplier.internalCode,
+			),
+		}))
+
+		const mappedSuppliers = mapSuppliers(data)
+
 		const response: SuppliersResponse = {
-			data: suppliers.documents,
-			totalCount: suppliers.documents.length,
+			data: mappedSuppliers,
+			totalCount: mappedSuppliers.length,
 		}
 		await redisCache.setJson(cacheKey, response)
 		return response
+	}
+
+	public async getSupplier(
+		supplierId: string,
+		requestContext: RequestContext,
+	): Promise<SuppliersResponse['data'][number] | null> {
+		const supplier = await this.mongoDbClient.getDocumentByField<SupplierDocument>(
+			requestContext,
+			COLLECTION_NAMES.SUPPLIERS,
+			Supplier,
+			{ fieldName: 'supplierId', fieldValue: supplierId },
+		)
+
+		if (!supplier) {
+			return null
+		}
+
+		const dailyActions = await this.getDailyActions(requestContext)
+		const actions = dailyActions.data.filter(
+			action =>
+				action.supplierId === supplier.supplierId ||
+				action.supplierId === supplier.internalCode,
+		)
+
+		const mappedSuppliers = mapSuppliers([
+			{
+				supplierId: supplier.supplierId,
+				name: supplier.name,
+				internalCode: supplier.internalCode,
+				createdAt: supplier.createdAt?.toISOString(),
+				updatedAt: supplier.updatedAt?.toISOString(),
+				createdBy: supplier.createdBy as any,
+				updatedBy: supplier.updatedBy
+					? {
+							...supplier.updatedBy,
+							updatedAt: supplier.updatedBy.updatedAt.toISOString(),
+						}
+					: undefined,
+				actions,
+			},
+		])
+
+		return mappedSuppliers[0]
 	}
 
 	public async postSupplier(

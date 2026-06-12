@@ -27,6 +27,7 @@ import SupplierPage from './components/supplier/SupplierPage'
 import CustomerPage from './components/customer/CustomerPage'
 import DailyPage from './components/daily/DailyPage'
 import CustomerModal from './components/customer/CustomerModal'
+import SupplierModal from './components/supplier/SupplierModal'
 // import { useGetUserFrontendResourcesQuery } from './api/apiStore'
 // import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
 // import { skipToken } from '@reduxjs/toolkit/dist/query/react'
@@ -137,7 +138,15 @@ const App = () => {
 							</>
 						)}
 						{isSuppliersEnabled && isTenantSuppliersEnabled && (
-							<Route path={RoutePaths.SUPPLIERS} element={<SupplierPage />} />
+							<>
+								<Route path={RoutePaths.SUPPLIERS} element={<SupplierPage />} />
+								<Route
+									path={RoutePaths.SINGLE_SUPPLIER}
+									element={
+										<SupplierModal entryType={EntryModalType.SUPPLIER_ENTRY} />
+									}
+								/>
+							</>
 						)}
 					</Route>
 				</Route>

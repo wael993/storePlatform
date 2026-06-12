@@ -8,7 +8,7 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/icons'
-import React from 'react'
+import React, { useMemo } from 'react'
 
 import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
@@ -20,8 +20,8 @@ import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import Filters from '../filters/Filters'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import { useDailyActionHandlers } from '../modals/DailyAction/hooks/useDailyActionHandlers'
 import CustomerListWithActionBar from './list/CustomerListWithActionBar'
+import { useGetCustomersQuery } from '../../api/apiStore'
 
 const fullWidth = '100%'
 
@@ -71,7 +71,11 @@ const CustomerPage = () => {
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
-	const { customers, isCustomersLoading } = useDailyActionHandlers()
+
+	const { data: customersResponse = [], isLoading: isCustomersLoading } =
+		useGetCustomersQuery({})
+
+	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
 
 	return (
 		<Flex sx={styles.wrapper}>
