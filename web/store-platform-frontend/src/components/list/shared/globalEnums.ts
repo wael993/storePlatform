@@ -39,6 +39,7 @@ export enum DailyActionSortHeaderKey {
 	WEIGHT = 'weight',
 	UNIT_PRICE = 'singleUnitPrice',
 	TOTAL_PRICE = 'totalPrice',
+	INVOICE_DATE = 'invoiceDate',
 	CREATED_AT = 'createdAt',
 }
 

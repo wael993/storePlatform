@@ -94,7 +94,7 @@ export const useDailyActionHandlers = ({
 	}
 
 	const handleInputChange = (
-		field: 'weight' | 'singleUnitPrice' | 'invoiceNumber',
+		field: 'weight' | 'singleUnitPrice' | 'invoiceNumber' | 'invoiceDate',
 		value: string,
 	) => {
 		setFormData((prev: any) => ({
@@ -134,6 +134,7 @@ export const useDailyActionHandlers = ({
 				singleUnitPrice: formData.singleUnitPrice ?? undefined,
 				totalPrice: formData.totalPrice ?? undefined,
 				invoiceNumber: formData.invoiceNumber ?? '',
+				invoiceDate: formData.invoiceDate ?? '',
 			}
 			try {
 				await postDailyAction(payload)

@@ -28,6 +28,7 @@ interface CustomerDailyAction {
 	productId: string
 	productName: string
 	invoiceNumber: string
+	invoiceDate: Date
 	supplierId?: string
 	supplierName?: string
 	customerId?: string
@@ -47,6 +48,7 @@ interface DailyAction {
 	productId: string
 	productName: string
 	invoiceNumber: string
+	invoiceDate: Date
 	supplierId?: string
 	supplierName?: string
 	customerId?: string
@@ -76,6 +78,7 @@ interface DailyActionRequestBody {
 	singleUnitPrice: string
 	totalPrice: string
 	invoiceNumber: string
+	invoiceDate: Date
 }
 
 type CreateDailyActionResponse = {

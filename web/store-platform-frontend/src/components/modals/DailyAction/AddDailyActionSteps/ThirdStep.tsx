@@ -1,13 +1,41 @@
-import { VStack, Heading, Text, SimpleGrid, Box } from '@chakra-ui/react'
-import React from 'react'
+import { VStack, Heading, Text, SimpleGrid, Box, Checkbox } from '@chakra-ui/react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DailyActionType } from '../../../../shared/globalEnums'
 import InputLabel from '../../../common/InputLabel'
 import { documentNameStyles } from '../../../../theme/styles'
 interface ThirdStepProps {
 	formData: Partial<DailyAction> | undefined
-	handleInputChange: (field: 'invoiceNumber', value: string) => void
+	handleInputChange: (
+		field: 'invoiceNumber' | 'invoiceDate',
+		value: string,
+	) => void
 }
+const getTodayDateInputValue = () => {
+	const today = new Date()
+	const month = String(today.getMonth() + 1).padStart(2, '0')
+	const day = String(today.getDate()).padStart(2, '0')
+
+	return `${today.getFullYear()}-${month}-${day}`
+}
+
+const getDateInputValue = (date?: string) => date?.split('T')[0] ?? ''
+
 const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
+	const todayDateInputValue = useMemo(() => getTodayDateInputValue(), [])
+	const hasInitializedInvoiceDate = useRef(false)
+	const [isInvoiceDateToday, setIsInvoiceDateToday] = useState(
+		() =>
+			!formData?.invoiceDate ||
+			getDateInputValue(formData.invoiceDate) === todayDateInputValue,
+	)
+
+	useEffect(() => {
+		if (hasInitializedInvoiceDate.current || formData?.invoiceDate) return
+
+		hasInitializedInvoiceDate.current = true
+		handleInputChange('invoiceDate', todayDateInputValue)
+	}, [formData?.invoiceDate, handleInputChange, todayDateInputValue])
+
 	const getActionSummaryRows = (
 		actionSummary: Partial<DailyAction> | undefined,
 	) => {
@@ -70,16 +98,47 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 								</Text>
 							</Box>
 						))}
-						<InputLabel
-							label="Invoice Number"
-							inputPlaceholder={'invoice number ...'}
-							inputType={'text'}
-							value={formData?.invoiceNumber ?? ''}
-							onChange={(value: string) =>
-								handleInputChange('invoiceNumber', value)
-							}
-							styles={documentNameStyles}
-						/>
+						<Box border="1px solid #EAEAEA" padding="0.75rem">
+							<InputLabel
+								label="Invoice Number"
+								inputPlaceholder={'invoice number ...'}
+								inputType={'text'}
+								value={formData?.invoiceNumber ?? ''}
+								onChange={(value: string) =>
+									handleInputChange('invoiceNumber', value)
+								}
+								styles={documentNameStyles}
+							/>
+						</Box>
+						<Box border="1px solid #EAEAEA" padding="0.75rem">
+							<VStack alignItems="flex-start" spacing={3}>
+								<Checkbox
+									isChecked={isInvoiceDateToday}
+									onChange={event => {
+										const isChecked = event.target.checked
+										setIsInvoiceDateToday(isChecked)
+										handleInputChange(
+											'invoiceDate',
+											isChecked ? todayDateInputValue : '',
+										)
+									}}
+								>
+									Invoice date is today
+								</Checkbox>
+								{!isInvoiceDateToday && (
+									<InputLabel
+										label="Invoice Date"
+										inputPlaceholder={'invoice date ...'}
+										inputType={'date'}
+										value={getDateInputValue(formData?.invoiceDate)}
+										onChange={(value: string) =>
+											handleInputChange('invoiceDate', value)
+										}
+										styles={documentNameStyles}
+									/>
+								)}
+							</VStack>
+						</Box>
 					</SimpleGrid>
 				)}
 			</VStack>

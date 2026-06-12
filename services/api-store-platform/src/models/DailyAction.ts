@@ -18,6 +18,7 @@ export interface IDailyAction extends Document {
 		| 'RECEIPT_ENTRY'
 	productId: string
 	invoiceNumber: string
+	invoiceDate: Date
 	productName?: string
 	supplierId: string
 	supplierName?: string
@@ -58,6 +59,11 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			type: String,
 			trim: true,
 			required: [true, 'invoiceNumber is required'],
+		},
+		invoiceDate: {
+			type: Date,
+			required: [true, 'invoiceDate is required'],
+			default: Date.now,
 		},
 		productName: {
 			type: String,

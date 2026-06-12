@@ -91,6 +91,7 @@
 		"addDiscount": "Rabatt hinzufügen",
 		"color": "Farbe",
 		"createdAt": "Erstellt am",
+		"invoiceDate": "Rechnungsdatum",
 		"entryType": "Buchungsart",
 		"weight": "Gewicht",
 		"unitPrice": "Einzelpreis",

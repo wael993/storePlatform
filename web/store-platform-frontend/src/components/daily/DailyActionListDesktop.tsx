@@ -12,10 +12,7 @@ import { TableVirtuoso } from 'react-virtuoso'
 
 import DraggableScrollContainer from '../common/DraggableScrollContainer'
 import DailyActionRow from './DailyActionRow'
-import {
-	DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM,
-	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
-} from '../list/shared/constants'
+import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
 import { DailyActionSortHeaderKey, SortOrder } from '../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
@@ -49,6 +46,7 @@ const skeletonDailyAction: DailyAction = {
 	singleUnitPrice: '0',
 	totalPrice: '0',
 	invoiceNumber: '0000503',
+	invoiceDate: '2024-01-01T00:00:00.000Z',
 }
 
 const styles: StylesObject = {
@@ -209,6 +207,8 @@ const DailyActionListDesktop = memo(
 							b.totalPrice,
 							sortOrder,
 						)
+					case DailyActionSortHeaderKey.INVOICE_DATE:
+						return compareDatesForSorting(a.invoiceDate, b.invoiceDate, sortOrder)
 					case DailyActionSortHeaderKey.CREATED_AT:
 						return compareDatesForSorting(a.createdAt, b.createdAt, sortOrder)
 					default:

@@ -2,7 +2,6 @@ import { Tr, Th, Text, Flex, Checkbox, Box } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import TableSort from '../common/CustomTableSort'
-import { listStyles } from '../../shared/styles'
 import { DailyActionSortHeaderKey, SortOrder } from '../list/shared/globalEnums'
 import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
 import { isTruthy } from '../list/shared/utils'
@@ -122,6 +121,11 @@ const DailyActionHeaderRow = ({
 			label: t('common.totalPrice'),
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.TOTAL_PRICE,
 			sortKey: DailyActionSortHeaderKey.TOTAL_PRICE,
+		},
+		{
+			label: t('common.invoiceDate'),
+			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.INVOICE_DATE,
+			sortKey: DailyActionSortHeaderKey.INVOICE_DATE,
 		},
 		{
 			label: t('common.createdAt'),

@@ -218,10 +218,11 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 	}, [isNextButtonDisabled, step, t])
 
 	const isSubmitButtonDisabled = useMemo(() => {
-		if (isSavingDailyAction || !formData?.invoiceNumber) return true
+		if (isSavingDailyAction || !formData?.invoiceNumber || !formData?.invoiceDate)
+			return true
 
 		return false
-	}, [isSavingDailyAction, formData?.invoiceNumber])
+	}, [isSavingDailyAction, formData?.invoiceNumber, formData?.invoiceDate])
 
 	// const actionSummaryRows = getActionSummaryRows(formData)
 
@@ -312,7 +313,10 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 							<Tooltip
 								label={
 									isSubmitButtonDisabled
-										? t('components.daily.invoiceNumberMissing')
+										? t('components.daily.invoiceDetailsMissing', {
+												defaultValue:
+													'Please enter the invoice number and invoice date to continue.',
+										  })
 										: undefined
 								}
 							>

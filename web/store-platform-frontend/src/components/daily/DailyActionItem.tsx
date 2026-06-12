@@ -168,6 +168,19 @@ const DailyActionItem = memo(
 					</Flex>
 				</Td>
 
+				{/* Invoice Date */}
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>
+								{dailyAction.invoiceDate
+									? formatDate(dailyAction.invoiceDate)
+									: '-'}
+							</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+
 				{/* Created At */}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>

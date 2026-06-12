@@ -93,6 +93,7 @@ export interface AddDailyActionRequestBody {
 	singleUnitPrice?: string
 	totalPrice?: string
 	invoiceNumber: string
+	invoiceDate: string
 }
 
 const buildProductFilterQueryParams = (

@@ -91,6 +91,7 @@
 		"addDiscount": "إضافة خصم",
 		"color": "اللون",
 		"createdAt": "تاريخ الإنشاء",
+		"invoiceDate": "تاريخ الفاتورة",
 		"entryType": "نوع الإدخال",
 		"weight": "الوزن",
 		"unitPrice": "سعر الوحدة",

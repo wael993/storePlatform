@@ -1823,6 +1823,9 @@ export default class ProductController {
 			entryType: requestBody.entryType,
 			productId: requestBody.productId,
 			invoiceNumber: requestBody.invoiceNumber,
+			invoiceDate: requestBody.invoiceDate
+				? new Date(requestBody.invoiceDate)
+				: createdAt,
 			productName: requestBody.productName,
 			supplierId: requestBody.supplierId,
 			supplierName: requestBody.supplierName,
