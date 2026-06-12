@@ -40,17 +40,6 @@ const styles = {
 		letterSpacing: 'normal',
 		whiteSpace: 'nowrap',
 	},
-	tableCell: {
-		paddingY: '1rem',
-		paddingX: '0.375rem',
-	},
-	tableCellText: {
-		fontWeight: 500,
-		color: '#1E1E1E',
-		fontSize: '0.875rem',
-		lineHeight: '1.2rem',
-		overflowWrap: 'anywhere',
-	},
 	tableHeaderStickyRight: {
 		position: 'sticky',
 		right: 0,

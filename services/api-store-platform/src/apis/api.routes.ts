@@ -500,6 +500,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/customers/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getCustomer.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/currencies`)
 			.get(
 				this.startCalc.bind(this),
@@ -811,6 +820,25 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 			)
 			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getCustomer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getCustomer(
+				request.params.id,
+				requestContext,
+			)
+			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

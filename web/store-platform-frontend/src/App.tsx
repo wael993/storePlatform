@@ -7,7 +7,7 @@ import {
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import BarcodePage from './pages/BarcodePage'
-import { UserRole } from './shared/globalEnums'
+import { EntryModalType, UserRole } from './shared/globalEnums'
 import UsersLogIn from './pages/UsersLogIn'
 import AddNewTenant from './pages/AddNewTenant'
 import SuperAdminLayout from './components/SuperAdminLayout'
@@ -26,6 +26,7 @@ import { RoutePaths } from './shared/routes'
 import SupplierPage from './components/supplier/SupplierPage'
 import CustomerPage from './components/customer/CustomerPage'
 import DailyPage from './components/daily/DailyPage'
+import CustomerModal from './components/customer/CustomerModal'
 // import { useGetUserFrontendResourcesQuery } from './api/apiStore'
 // import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
 // import { skipToken } from '@reduxjs/toolkit/dist/query/react'
@@ -125,7 +126,15 @@ const App = () => {
 							<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />
 						)}
 						{isCustomersEnabled && isTenantCustomersEnabled && (
-							<Route path={RoutePaths.CUSTOMERS} element={<CustomerPage />} />
+							<>
+								<Route path={RoutePaths.CUSTOMERS} element={<CustomerPage />} />
+								<Route
+									path={RoutePaths.SINGLE_CUSTOMER}
+									element={
+										<CustomerModal entryType={EntryModalType.CUSTOMER_ENTRY} />
+									}
+								/>
+							</>
 						)}
 						{isSuppliersEnabled && isTenantSuppliersEnabled && (
 							<Route path={RoutePaths.SUPPLIERS} element={<SupplierPage />} />

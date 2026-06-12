@@ -12,7 +12,7 @@ import {
 	PRODUCT_STATE_CONFIG,
 	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
 } from './shared/constants'
-import { ACTIVITY_TYPE } from '../../shared/globalEnums'
+import { EntryModalType } from '../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useListItem } from './hooks/useListItem'
 import OptionsPopover from '../modals/OptionsPopover'
@@ -70,9 +70,9 @@ const ListItem = memo(
 
 		const getMapActivityType = (activityType: any) => {
 			switch (activityType) {
-				case ACTIVITY_TYPE.PRICE:
+				case EntryModalType.CUSTOMER_ENTRY:
 					return t('common.price')
-				case ACTIVITY_TYPE.PROMOTIONS:
+				case EntryModalType.SUPPLIER_ENTRY:
 					return t('common.promo')
 				default:
 					return t('appTitle')

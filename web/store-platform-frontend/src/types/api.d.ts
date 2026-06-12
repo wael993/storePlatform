@@ -110,7 +110,7 @@ interface Customer {
 		displayName: string
 		updatedAt: string
 	}
-	actions?: DailyAction[]
+	relatedActions?: DailyAction[]
 }
 
 interface Currency {

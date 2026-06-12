@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Tr } from '@chakra-ui/react'
 import { useState } from 'react'
 import CustomerListItem from './CustomerListItem'
+import { buildRoutePath } from '../../../shared/routes'
 
 interface CustomerListRowProps {
 	customer: Customer
@@ -32,7 +33,7 @@ const CustomerListRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
-			onClick={() => navigate(`${customer.customerId}`)}
+			onClick={() => navigate(buildRoutePath.customerById(customer.customerId))}
 		>
 			<CustomerListItem
 				key={customer.customerId}

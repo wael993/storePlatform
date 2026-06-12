@@ -1,0 +1,154 @@
+import {
+	ModalContent,
+	Modal,
+	ModalBody,
+	Grid,
+	Flex,
+	Box,
+} from '@chakra-ui/react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useGetSingleCustomerQuery } from '../../api/apiStore'
+import { fullPaths } from '../../shared/routes'
+import { EntryModalType } from '../../shared/globalEnums'
+import CenteredText from '../common/CenteredText'
+import { CloseButton } from '../common/CloseButton'
+import DetailModalSkeleton from '../common/DetailModalSkeleton'
+import TopSection from './TopSection'
+import DailyActionsListWithActionBar from '../daily/DailyActionsListWithActionBar'
+
+const fullWidth = '100%'
+const pageContentPadding = '2rem'
+const pageContentPaddingMobile = '1.25rem'
+
+const styles = {
+	grid: {
+		gridTemplateColumns: 'repeat(12, 1fr)',
+		paddingLeft: {
+			base: pageContentPaddingMobile,
+			md: pageContentPadding,
+		},
+		paddingRight: {
+			base: pageContentPaddingMobile,
+			md: pageContentPadding,
+		},
+		flexGrow: '1',
+	},
+	fullWidthSection: {
+		width: fullWidth,
+		gridColumn: '1 / span 12',
+		paddingBottom: { base: '2rem', md: '3rem', lg: '2rem' },
+	},
+	errorSection: {
+		width: fullWidth,
+		gridColumn: '1 / span 12',
+		paddingBottom: { base: '2rem', md: '3rem', lg: '2rem' },
+		justifyContent: 'space-between',
+		marginTop: '3rem',
+	},
+	errorTextBox: {
+		width: '90%',
+	},
+	errorText: {
+		marginTop: '7rem',
+	},
+	modalContent: {
+		marginTop: '10rem',
+		paddingBottom: 'clamp(5rem, 10vw, 9rem)',
+		alignItems: 'center',
+		zIndex: '1',
+	},
+	modalBody: {
+		width: fullWidth,
+		paddingX: 0,
+		overflowY: 'auto',
+	},
+	closeButtonWrapper: {
+		position: 'absolute',
+		top: '2rem',
+		right: '2rem',
+	},
+} satisfies StylesObject
+
+interface CustomerModalProps {
+	entryType: EntryModalType
+}
+
+const CustomerModal = ({ entryType }: CustomerModalProps) => {
+	const params = useParams()
+	const navigate = useNavigate()
+	const { t } = useTranslation()
+
+	const customerId = params.customerId as string
+	const {
+		data: customer,
+		isLoading: isCustomerLoading,
+		isError: isCustomerError,
+	} = useGetSingleCustomerQuery(customerId)
+
+	const handleClose = () => {
+		if (window.history.state && window.history.length > 1) {
+			navigate(-1)
+		}
+		navigate(fullPaths.CUSTOMERS)
+	}
+
+	if (!customer) {
+		handleClose()
+	}
+
+	return (
+		<Modal
+			isOpen={true}
+			onClose={handleClose}
+			size="full"
+			blockScrollOnMount={true}
+			scrollBehavior="inside"
+			motionPreset="slideInRight"
+			closeOnOverlayClick={false}
+			trapFocus={false}
+			allowPinchZoom={true}
+			preserveScrollBarGap={false}
+		>
+			<ModalContent sx={styles.modalContent} containerProps={{ zIndex: 300 }}>
+				<ModalBody sx={styles.modalBody} height={window.innerHeight}>
+					<Box sx={styles.closeButtonWrapper}>
+						<CloseButton onClose={handleClose} />
+					</Box>
+					<Grid sx={styles.grid}>
+						{isCustomerLoading ? (
+							<DetailModalSkeleton
+								onClose={handleClose}
+								entryType={entryType}
+							/>
+						) : !isCustomerError && customer ? (
+							<Box sx={styles.fullWidthSection}>
+								<TopSection entryType={entryType} customer={customer} />
+							</Box>
+						) : (
+							isCustomerError && (
+								<Flex sx={styles.errorSection}>
+									<Box sx={styles.errorTextBox}>
+										<CenteredText
+											text={t(
+												'components.modals.offerModal.errorLoadingActivity',
+											)}
+											customStyles={styles.errorText}
+										/>
+									</Box>
+								</Flex>
+							)
+						)}
+					</Grid>
+					<DailyActionsListWithActionBar
+						dailyActions={customer?.relatedActions ?? []}
+						isLoading={isCustomerLoading}
+					/>
+				</ModalBody>
+			</ModalContent>
+		</Modal>
+	)
+}
+
+export default CustomerModal

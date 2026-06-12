@@ -19,6 +19,7 @@ export type TagType =
 	| 'daily-action'
 	| 'suppliers'
 	| 'customers'
+	| 'customer'
 	| 'currencies'
 	| 'units'
 
@@ -32,6 +33,7 @@ const tagTypes: TagType[] = [
 	'daily-action',
 	'suppliers',
 	'customers',
+	'customer',
 	'currencies',
 	'units',
 ]

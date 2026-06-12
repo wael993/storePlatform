@@ -12,7 +12,10 @@ import { TableVirtuoso } from 'react-virtuoso'
 
 import DraggableScrollContainer from '../common/DraggableScrollContainer'
 import DailyActionRow from './DailyActionRow'
-import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
+import {
+	DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM,
+	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+} from '../list/shared/constants'
 import { DailyActionSortHeaderKey, SortOrder } from '../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
@@ -20,18 +23,20 @@ import {
 	getTableWidth,
 } from '../list/shared/utils'
 import DailyActionHeaderRow from './DailyActionHeaderRow'
+import { useUser } from '../../shared/hooks/useUser'
 
 interface VirtuosoContext {
 	listData: DailyAction[]
 	selectedDailyActionIds: string[]
 	onSelect: (id: string) => void
 	isLoading: boolean
+	isOwnerOrAdmin: boolean
 }
 
 const skeletonDailyAction: DailyAction = {
 	_id: 'skeleton-id',
 	actionId: 'skeleton-action-id',
-	entryType: { value: 'BUYING_ENTRY', label: 'Buying Entry' },
+	entryType: 'dailyAction',
 	productId: 'dummy',
 	productName: 'dummy',
 	supplierId: 'dummy',
@@ -101,7 +106,15 @@ const TableComponent = ({
 	style?: CSSProperties
 	context?: VirtuosoContext
 }) => {
-	const tableWidth = getTableWidth(DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM, true)
+	// const tableWidth = getTableWidth(DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM, true)
+	const { isOwnerOrAdmin } = context as VirtuosoContext
+
+	const tableWidth = getTableWidth(
+		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+		isOwnerOrAdmin,
+		14,
+		4,
+	)
 
 	return (
 		<Table
@@ -156,6 +169,8 @@ const DailyActionListDesktop = memo(
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
 	}: DailyActionListDesktopProps) => {
+		const { isOwnerOrAdmin } = useUser()
+
 		const [sortField, setSortField] = useState<DailyActionSortHeaderKey | null>(
 			null,
 		)
@@ -221,6 +236,7 @@ const DailyActionListDesktop = memo(
 			selectedDailyActionIds,
 			onSelect,
 			isLoading,
+			isOwnerOrAdmin,
 		}
 
 		return (

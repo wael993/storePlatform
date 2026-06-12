@@ -179,10 +179,20 @@ const getQuery = (
 				}
 			},
 			transformResponse: (response: CustomersAPIResponse) => {
-				console.log('🚀 ~ getQuery ~ response:', response.data)
 				return response.data
 			},
 			providesTags: ['customers'],
+		}),
+
+		getSingleCustomer: builder.query<Customer, string>({
+			query: (customerId: string) => ({
+				url: `customers/${customerId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Customer) => {
+				return response
+			},
+			providesTags: ['customer'],
 		}),
 
 		getCurrencies: builder.query({
@@ -527,6 +537,7 @@ export const {
 	useGetFilterValuesQuery,
 	useGetSuppliersQuery,
 	useGetCustomersQuery,
+	useGetSingleCustomerQuery,
 	useGetCurrenciesQuery,
 	useGetUnitsQuery,
 	useGetSingleProductQuery,

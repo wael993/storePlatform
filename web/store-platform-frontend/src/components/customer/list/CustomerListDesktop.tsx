@@ -26,7 +26,7 @@ interface VirtuosoContext {
 	selectedCustomers: string[]
 	onSelect: (id: string) => void
 	isLoading: boolean
-	isInternalUser: boolean
+	isOwnerOrAdmin: boolean
 }
 
 const skeletonCustomer: Customer = {
@@ -118,10 +118,10 @@ const TableComponent = ({
 	style?: CSSProperties
 	context?: VirtuosoContext
 }) => {
-	const { isInternalUser } = context as VirtuosoContext
+	const { isOwnerOrAdmin } = context as VirtuosoContext
 	const tableWidth = getTableWidth(
 		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
-		isInternalUser,
+		isOwnerOrAdmin,
 		14,
 		4,
 	)
@@ -235,7 +235,7 @@ const CustomerListDesktop = memo(
 			selectedCustomers,
 			onSelect,
 			isLoading,
-			isInternalUser: isOwnerOrAdmin,
+			isOwnerOrAdmin,
 		}
 
 		return (

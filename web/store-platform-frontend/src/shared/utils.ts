@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { Breakpoints } from './globalEnums'
+import { Breakpoints, EntryModalType } from './globalEnums'
 
 export function compareBreakpoint(breakpoint: Breakpoints | undefined) {
 	return {
@@ -7,6 +7,20 @@ export function compareBreakpoint(breakpoint: Breakpoints | undefined) {
 		isTablet: breakpoint === Breakpoints.TABLET || !breakpoint,
 		isDesktop: breakpoint === Breakpoints.DESKTOP || !breakpoint,
 		isLargeDesktop: breakpoint === Breakpoints.LARGE_DESKTOP || !breakpoint,
+	}
+}
+
+export function compareEntryType(entryType: EntryModalType) {
+	return {
+		isCustomerEntry: entryType === EntryModalType.CUSTOMER_ENTRY,
+		isSupplierEntry: entryType === EntryModalType.SUPPLIER_ENTRY,
+		isProductEntry: entryType === EntryModalType.PRODUCT_ENTRY,
+		isDailyActionEntry: entryType === EntryModalType.DAILY_ACTION_ENTRY,
+		isPaymentEntry: entryType === EntryModalType.PAYMENT_ENTRY,
+		isReceiptEntry: entryType === EntryModalType.RECEIPT_ENTRY,
+		isSaleEntry: entryType === EntryModalType.SALE_ENTRY,
+		isPurchaseEntry: entryType === EntryModalType.PURCHASE_ENTRY,
+		isOtherEntry: entryType === EntryModalType.OTHER_ENTRY,
 	}
 }
 

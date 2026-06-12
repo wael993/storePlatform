@@ -30,7 +30,7 @@ type InputType = 'number' | 'text' | 'email' | 'text-area'
 interface DailyAction {
 	_id?: string
 	actionId: string
-	entryType: EntryType
+	entryType: EntryActionType
 	productId: string
 	productName: string
 	supplierId?: string
@@ -118,3 +118,14 @@ interface SelectOption {
 	isInvalid?: boolean
 	color?: string
 }
+
+type EntryType =
+	| 'customer'
+	| 'supplier'
+	| 'product'
+	| 'dailyAction'
+	| 'payment'
+	| 'receipt'
+	| 'sale'
+	| 'purchase'
+	| 'other'

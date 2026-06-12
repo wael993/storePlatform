@@ -2428,6 +2428,50 @@ export default class ProductController {
 		return response
 	}
 
+	public async getCustomer(
+		customerId: string,
+		requestContext: RequestContext,
+	): Promise<CustomersResponse['data'][number] | null> {
+		const customer = await this.mongoDbClient.getDocumentByField<CustomerDocument>(
+				requestContext,
+				COLLECTION_NAMES.CUSTOMERS,
+				Customer,
+				{ fieldName: 'customerId', fieldValue: customerId },
+			)
+
+		if (!customer) {
+			return null
+		}
+
+		const dailyActions = await this.getDailyActions(requestContext)
+		const actions = dailyActions.data.filter(
+			action =>
+				action.entryType.value !== 'BUYING_ENTRY' &&
+				action.customerId === (customer.internalCode ?? customer.customerId),
+		)
+
+		const mappedCustomers = mapCustomers([
+			{
+				customerId: customer.customerId,
+				name: customer.name,
+				sold: 0,
+				internalCode: customer.internalCode,
+				createdAt: customer.createdAt?.toISOString(),
+				updatedAt: customer.updatedAt?.toISOString(),
+				createdBy: customer.createdBy as any,
+				updatedBy: customer.updatedBy
+					? {
+							...customer.updatedBy,
+							updatedAt: customer.updatedBy.updatedAt.toISOString(),
+						}
+					: undefined,
+				actions,
+			},
+		])
+
+		return mappedCustomers[0]
+	}
+
 	public async postCustomer(
 		requestContext: RequestContext,
 		requestBody: CustomerRequestBody,

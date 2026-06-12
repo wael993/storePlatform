@@ -26,6 +26,39 @@ const styles = {
 		background: '#FFFFFF',
 		padding: '4',
 	},
+	tableHeader: {
+		paddingY: '1rem',
+		paddingX: '0.375rem',
+	},
+	tableHeaderText: {
+		fontStyle: 'normal',
+		textTransform: 'none',
+		color: '#939596',
+		fontSize: '0.625rem',
+		fontWeight: 500,
+		lineHeight: '1.2rem',
+		letterSpacing: 'normal',
+		whiteSpace: 'nowrap',
+	},
+	tableCell: {
+		paddingY: '1rem',
+		paddingX: '0.375rem',
+	},
+	tableCellText: {
+		fontWeight: 500,
+		color: '#1E1E1E',
+		fontSize: '0.875rem',
+		lineHeight: '1.2rem',
+		overflowWrap: 'anywhere',
+	},
+	tableHeaderStickyRight: {
+		position: 'sticky',
+		right: 0,
+		zIndex: 4,
+		height: '3rem',
+		margin: 0,
+		padding: 0,
+	},
 } satisfies StylesObject
 
 const DailyActionHeaderRow = ({
@@ -42,12 +75,16 @@ const DailyActionHeaderRow = ({
 		onSort(sortKey, order)
 	}
 
-	const getSortingButton = (sortKey: DailyActionSortHeaderKey) => (
-		<TableSort
-			handleSort={order => handleSort(sortKey, order)}
-			sortingOrder={sortField === sortKey ? sortOrder : null}
-		/>
-	)
+	const getSortingButton = (sortKey: DailyActionSortHeaderKey) => {
+		return (
+			<TableSort
+				handleSort={order => {
+					handleSort(sortKey, order)
+				}}
+				sortingOrder={sortField === sortKey ? sortOrder : null}
+			/>
+		)
+	}
 
 	const headers = [
 		{
@@ -90,6 +127,7 @@ const DailyActionHeaderRow = ({
 			label: t('common.createdAt'),
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
 			sortKey: DailyActionSortHeaderKey.CREATED_AT,
+			align: 'right' as const,
 		},
 		{
 			label: null,
@@ -99,8 +137,14 @@ const DailyActionHeaderRow = ({
 		},
 	].filter(isTruthy)
 
+	const getStickyRightWidth = () => {
+		//change this later
+
+		return `${DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 7}rem`
+	}
+
 	return (
-		<Tr background="#fff">
+		<Tr background={'#fff'}>
 			{headers.map((header, index) => {
 				if (header.isCheckbox) {
 					return (
@@ -122,7 +166,8 @@ const DailyActionHeaderRow = ({
 						<Th
 							key={index}
 							sx={{
-								...listStyles.tableHeaderStickyRight,
+								...styles.tableHeaderStickyRight,
+								background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${getStickyRightWidth()})`,
 								width: `${header.width}rem`,
 							}}
 						/>
@@ -132,13 +177,20 @@ const DailyActionHeaderRow = ({
 				return (
 					<Th
 						key={index}
-						sx={listStyles.tableHeader}
+						sx={styles.tableHeader}
 						width={`${header.width}rem`}
 						onMouseEnter={() => setHoveredIndex(index)}
 						onMouseLeave={() => setHoveredIndex(null)}
 					>
-						<Flex alignItems="center" gap="0.25rem">
-							<Text sx={listStyles.tableHeaderText}>{header.label}</Text>
+						<Flex
+							alignItems={'center'}
+							justifyContent={header.align === 'right' ? 'flex-end' : undefined}
+							sx={{
+								...styles.tableHeaderText,
+								...(header.align === 'right' ? { paddingRight: '1.5rem' } : {}),
+							}}
+						>
+							<Text sx={styles.tableHeaderText}>{header.label}</Text>
 							{(hoveredIndex === index || sortField === header.sortKey) &&
 								header.sortKey && (
 									<Box sx={{ marginLeft: '0.5rem' }}>

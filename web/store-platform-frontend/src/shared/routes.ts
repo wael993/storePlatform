@@ -1,4 +1,3 @@
-import { Customer } from './../../../../services/api-store-platform/src/models/Customer'
 const ROUTE_PREFIX = '/services/store_platform'
 
 const withBasePath = (suffix: string) => `${ROUTE_PREFIX}${suffix}`
@@ -15,16 +14,20 @@ export const RoutePaths = {
 	ORDERS: withBasePath('/orders'),
 	INVOICES: withBasePath('/invoices'),
 	CUSTOMERS: withBasePath('/customers'),
+	SINGLE_CUSTOMER: withBasePath('/customers/:customerId'),
 	SUPPLIERS: withBasePath('/suppliers'),
 	USERS: withBasePath('/users'),
 	SETTINGS: withBasePath('/settings'),
 	ADD_NEW_TENANT: withBasePath('/add-new-tenant'),
 	TENANTS_LIST: withBasePath('/tenants-list'),
+	CUSTOMER_MODAL: withBasePath('/customer-modal'),
 	WILDCARD: '*',
 }
 
 export const buildRoutePath = {
 	productById: (productId: string) => withBasePath(`/products/${productId}`),
+	customerById: (customerId: string) =>
+		withBasePath(`/customers/${customerId}`),
 }
 
 export const fullPaths = {
@@ -40,6 +43,7 @@ export const fullPaths = {
 	ADD_NEW_TENANT: RoutePaths.ADD_NEW_TENANT,
 	TENANTS_LIST: RoutePaths.TENANTS_LIST,
 	SETTINGS: RoutePaths.SETTINGS,
+	CUSTOMER_MODAL: RoutePaths.CUSTOMER_MODAL,
 }
 
 export const generateBreadcrumbs = ({
@@ -147,6 +151,20 @@ export const generateBreadcrumbs = ({
 			isCurrentPage: true,
 		},
 	]
+	const customer: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: 'Store Platform',
+			href: fullPaths.PRODUCTS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'customer',
+			name: 'Customer',
+			href: fullPaths.CUSTOMERS,
+			isCurrentPage: true,
+		},
+	]
 	const suppliers: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -228,6 +246,7 @@ export const generateBreadcrumbs = ({
 		daily,
 		invoices,
 		customers,
+		customer,
 		suppliers,
 		users,
 		addNewTenant,

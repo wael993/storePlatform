@@ -7,3 +7,12 @@ export const formatDate = (date: string | Date): string => {
 		return date?.toString()
 	}
 }
+
+export const formatDateFromAndDateTo = (
+	dateFrom?: string,
+	dateTo?: string,
+): string => {
+	return `${dateFrom ? formatDate(dateFrom) : ''} - ${
+		dateTo ? formatDate(dateTo) : ''
+	}`
+}
