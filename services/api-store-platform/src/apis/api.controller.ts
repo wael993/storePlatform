@@ -104,6 +104,14 @@ type ProductFilterQuery = {
 	category?: string[]
 }
 
+type DailyActionFilterQuery = {
+	searchText?: string
+	entryType?: string[]
+	productName?: string[]
+	supplier?: string[]
+	customer?: string[]
+}
+
 type ProductFilterValueOption = {
 	value: string
 	label: string
@@ -116,6 +124,13 @@ type ProductFilterValuesResponse = {
 	category: ProductFilterValueOption[]
 }
 
+type DailyActionFilterValuesResponse = {
+	entryType: ProductFilterValueOption[]
+	productName: ProductFilterValueOption[]
+	supplier: ProductFilterValueOption[]
+	customer: ProductFilterValueOption[]
+}
+
 type ProductFilterValueSource = {
 	supplierId?: string
 	supplierName?: string
@@ -124,6 +139,16 @@ type ProductFilterValueSource = {
 	categoryId?: string
 	categoryName?: string
 	status?: string
+}
+
+type DailyActionFilterValueSource = {
+	entryType?: string
+	productId?: string
+	productName?: string
+	supplierId?: string
+	supplierName?: string
+	customerId?: string
+	customerName?: string
 }
 
 export default class ProductController {
@@ -1602,29 +1627,157 @@ export default class ProductController {
 
 	public async getDailyActions(
 		requestContext: RequestContext,
+		filters: DailyActionFilterQuery = {},
 	): Promise<DailyActionResponse> {
 		const tenantId = this.getTenantId(requestContext)
+		const hasFilters =
+			Boolean(filters.searchText?.trim()) ||
+			Boolean(filters.entryType?.length) ||
+			Boolean(filters.productName?.length) ||
+			Boolean(filters.supplier?.length) ||
+			Boolean(filters.customer?.length)
 		const cacheKey = `dailyActions:${tenantId}`
-		const cachedDailyActions =
-			await redisCache.getJson<DailyActionResponse>(cacheKey)
-		if (cachedDailyActions) {
-			return cachedDailyActions
+
+		if (!hasFilters) {
+			const cachedDailyActions =
+				await redisCache.getJson<DailyActionResponse>(cacheKey)
+			if (cachedDailyActions) {
+				return cachedDailyActions
+			}
 		}
 
-		const dailyActions = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
-			model: DailyAction,
-			sort: { createdAt: 'desc' },
-		})
+		const searchText = filters.searchText?.trim()
+		const entryTypeRegexList = this.buildCaseInsensitiveRegexList(
+			filters.entryType,
+		)
+		const productNameRegexList = this.buildCaseInsensitiveRegexList(
+			filters.productName,
+		)
+		const supplierRegexList = this.buildCaseInsensitiveRegexList(
+			filters.supplier,
+		)
+		const customerRegexList = this.buildCaseInsensitiveRegexList(
+			filters.customer,
+		)
+		const dailyActionQueryClauses: Record<string, unknown>[] = []
 
-		await redisCache.setJson(cacheKey, {
-			data: dailyActions.documents,
-			totalCount: dailyActions.documents.length,
-		})
+		if (searchText) {
+			const searchRegex = new RegExp(this.escapeRegex(searchText), 'i')
+			dailyActionQueryClauses.push({
+				$or: [
+					{ actionId: searchRegex },
+					{ entryType: searchRegex },
+					{ productId: searchRegex },
+					{ productName: searchRegex },
+					{ supplierId: searchRegex },
+					{ supplierName: searchRegex },
+					{ customerId: searchRegex },
+					{ customerName: searchRegex },
+					{ invoiceNumber: searchRegex },
+				],
+			})
+		}
+
+		if (entryTypeRegexList.length > 0) {
+			dailyActionQueryClauses.push({
+				entryType: { $in: entryTypeRegexList },
+			})
+		}
+
+		if (productNameRegexList.length > 0) {
+			dailyActionQueryClauses.push({
+				$or: [
+					{ productId: { $in: productNameRegexList } },
+					{ productName: { $in: productNameRegexList } },
+				],
+			})
+		}
+
+		if (supplierRegexList.length > 0) {
+			dailyActionQueryClauses.push({
+				$or: [
+					{ supplierId: { $in: supplierRegexList } },
+					{ supplierName: { $in: supplierRegexList } },
+				],
+			})
+		}
+
+		if (customerRegexList.length > 0) {
+			dailyActionQueryClauses.push({
+				$or: [
+					{ customerId: { $in: customerRegexList } },
+					{ customerName: { $in: customerRegexList } },
+				],
+			})
+		}
+
+		const mongoQuery =
+			dailyActionQueryClauses.length > 0
+				? { $and: dailyActionQueryClauses }
+				: {}
+		const dailyActions = await withTenantScope(
+			DailyAction.find(mongoQuery).sort({ createdAt: 'desc' }),
+			tenantId,
+		).lean<DailyActionResponse['data']>()
+
+		if (!hasFilters) {
+			await redisCache.setJson(cacheKey, {
+				data: dailyActions,
+				totalCount: dailyActions.length,
+			})
+		}
 		return {
-			data: dailyActions.documents,
-			totalCount: dailyActions.documents.length,
+			data: dailyActions,
+			totalCount: dailyActions.length,
+		}
+	}
+
+	public async getDailyActionFilterValues(
+		requestContext: RequestContext,
+	): Promise<DailyActionFilterValuesResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const dailyActions = await withTenantScope(
+			DailyAction.find({})
+				.select(
+					'entryType productId productName supplierId supplierName customerId customerName',
+				)
+				.lean<DailyActionFilterValueSource[]>(),
+			tenantId,
+		)
+
+		const entryTypeMap = new Map<string, ProductFilterValueOption>()
+		const productNameMap = new Map<string, ProductFilterValueOption>()
+		const supplierMap = new Map<string, ProductFilterValueOption>()
+		const customerMap = new Map<string, ProductFilterValueOption>()
+
+		for (const dailyAction of dailyActions) {
+			this.addFilterOption(
+				entryTypeMap,
+				dailyAction.entryType,
+				dailyAction.entryType,
+			)
+			this.addFilterOption(
+				productNameMap,
+				dailyAction.productName || dailyAction.productId,
+				dailyAction.productName || dailyAction.productId,
+			)
+			this.addFilterOption(
+				supplierMap,
+				dailyAction.supplierId || dailyAction.supplierName,
+				dailyAction.supplierName || dailyAction.supplierId,
+			)
+			this.addFilterOption(
+				customerMap,
+				dailyAction.customerId || dailyAction.customerName,
+				dailyAction.customerName || dailyAction.customerId,
+			)
+		}
+
+		return {
+			entryType: this.buildSortedFilterOptions(entryTypeMap),
+			productName: this.buildSortedFilterOptions(productNameMap),
+			supplier: this.buildSortedFilterOptions(supplierMap),
+			customer: this.buildSortedFilterOptions(customerMap),
 		}
 	}
 

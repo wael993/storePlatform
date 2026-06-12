@@ -7,22 +7,41 @@ import {
 	Spinner,
 	Text,
 	useDisclosure,
-} from '@chakra-ui/icons'
-import React from 'react'
+} from '@chakra-ui/react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BreadCrumbItem, AllowedActions } from '../../shared/globalEnums'
+import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import Filters from '../filters/Filters'
+import {
+	FilterSelectOption,
+	ProductFilterValues,
+} from '../filters/FilterModal'
 import { AddSquareIcon } from '../icons/AddSquare'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 import DailyActionsListWithActionBar from './DailyActionsListWithActionBar'
-import { useGetDailyActionsQuery } from '../../api/apiStore'
+import {
+	useGetDailyActionFilterValuesQuery,
+	useGetDailyActionsQuery,
+} from '../../api/apiStore'
 
 const fullWidth = '100%'
+
+const EMPTY_DAILY_FILTERS: ProductFilterValues = {
+	searchText: '',
+	supplier: [],
+	brand: [],
+	state: [],
+	category: [],
+	entryType: [],
+	productName: [],
+	customer: [],
+}
 
 const styles = {
 	wrapper: {
@@ -64,15 +83,37 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
+
 const DailyPage = () => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
+	const [dailyFilters, setDailyFilters] =
+		useState<ProductFilterValues>(EMPTY_DAILY_FILTERS)
 
 	const { data: dailyActions = [], isLoading: isDailyActionsLoading } =
-		useGetDailyActionsQuery()
+		useGetDailyActionsQuery(dailyFilters)
+	const { data: dailyFilterValues } = useGetDailyActionFilterValuesQuery()
+
+	const entryTypeOptions: FilterSelectOption[] = useMemo(() => {
+		return (dailyFilterValues?.entryType ?? []).map(option => {
+			const translationKey = ENTRY_TYPE_LABELS_MAP[option.value]
+			return {
+				...option,
+				label: translationKey ? t(translationKey) : option.label,
+			}
+		})
+	}, [dailyFilterValues?.entryType, t])
+
+	const handleApplyFilters = (filters: ProductFilterValues) => {
+		setDailyFilters(filters)
+	}
+
+	const handleResetFilters = () => {
+		setDailyFilters(EMPTY_DAILY_FILTERS)
+	}
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -106,24 +147,30 @@ const DailyPage = () => {
 			<Box sx={styles.divider} />
 
 			<Filters
-				filters={{
-					brand: [],
-					category: [],
-					state: [],
-					supplier: [],
-					searchText: '',
-				}}
-				onApplyFilters={() => {}}
-				onResetFilters={() => {}}
-				supplierOptions={[]}
+				filters={dailyFilters}
+				onApplyFilters={handleApplyFilters}
+				onResetFilters={handleResetFilters}
+				supplierOptions={dailyFilterValues?.supplier ?? []}
 				brandOptions={[]}
 				stateOptions={[]}
 				categoryOptions={[]}
-				showSupplierFilter={isOwnerOrAdmin}
+				entryTypeOptions={entryTypeOptions}
+				productNameOptions={dailyFilterValues?.productName ?? []}
+				customerOptions={dailyFilterValues?.customer ?? []}
+				showSupplierFilter={true}
+				fieldVisibility={{
+					entryType: true,
+					productName: true,
+					supplier: true,
+					customer: true,
+					brand: false,
+					state: false,
+					category: false,
+				}}
 			/>
 
 			<DailyActionsListWithActionBar
-				dailyActions={dailyActions ?? []}
+				dailyActions={dailyActions}
 				isLoading={isDailyActionsLoading}
 			/>
 

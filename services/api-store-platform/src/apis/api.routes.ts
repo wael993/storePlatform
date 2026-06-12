@@ -34,6 +34,14 @@ type ProductFilterQuery = {
 	category?: string[]
 }
 
+type DailyActionFilterQuery = {
+	searchText?: string
+	entryType?: string[]
+	productName?: string[]
+	supplier?: string[]
+	customer?: string[]
+}
+
 type ProductPaginationQuery = {
 	limit?: number
 	offset?: number
@@ -325,6 +333,15 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.validatePostDailyAction.bind(this),
 				this.postDailyAction.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/daily-actions/filter-values`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getDailyActionFilterValues.bind(this),
 			)
 
 		app
@@ -1390,9 +1407,39 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+		const dailyActionFilterQuery: DailyActionFilterQuery = {
+			searchText:
+				typeof request.query.searchText === 'string'
+					? request.query.searchText.trim() || undefined
+					: undefined,
+			entryType: parseArrayQueryParam(request.query.entryType),
+			productName: parseArrayQueryParam(request.query.productName),
+			supplier: parseArrayQueryParam(request.query.supplier),
+			customer: parseArrayQueryParam(request.query.customer),
+		}
 
 		try {
-			const resp = await this.productController.getDailyActions(requestContext)
+			const resp = await this.productController.getDailyActions(
+				requestContext,
+				dailyActionFilterQuery,
+			)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getDailyActionFilterValues(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.productController.getDailyActionFilterValues(requestContext)
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)

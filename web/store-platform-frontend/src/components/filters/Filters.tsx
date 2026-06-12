@@ -3,6 +3,7 @@ import { RemoveArrowIcon } from '../icons/RemoveArrow'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusButtonStyles } from '../../theme/styles'
 import FilterModal, {
+	FilterFieldVisibility,
 	FilterSelectOption,
 	ProductFilterValues,
 } from './FilterModal'
@@ -55,7 +56,11 @@ interface FiltersProps {
 	brandOptions: FilterSelectOption[]
 	stateOptions: FilterSelectOption[]
 	categoryOptions: FilterSelectOption[]
+	entryTypeOptions?: FilterSelectOption[]
+	productNameOptions?: FilterSelectOption[]
+	customerOptions?: FilterSelectOption[]
 	showSupplierFilter: boolean
+	fieldVisibility?: FilterFieldVisibility
 }
 
 const Filters = ({
@@ -66,16 +71,31 @@ const Filters = ({
 	brandOptions,
 	stateOptions,
 	categoryOptions,
+	entryTypeOptions = [],
+	productNameOptions = [],
+	customerOptions = [],
 	showSupplierFilter,
+	fieldVisibility,
 }: FiltersProps) => {
 	const { t } = useTranslation()
+	const isFieldVisible = (
+		field: keyof FilterFieldVisibility,
+		defaultValue = true,
+	) => fieldVisibility?.[field] ?? defaultValue
 
 	const selectedFiltersCount =
 		(filters.searchText ? 1 : 0) +
-		filters.supplier.length +
-		filters.brand.length +
-		filters.state.length +
-		filters.category.length
+		(showSupplierFilter && isFieldVisible('supplier')
+			? filters.supplier.length
+			: 0) +
+		(isFieldVisible('brand') ? filters.brand.length : 0) +
+		(isFieldVisible('state') ? filters.state.length : 0) +
+		(isFieldVisible('category') ? filters.category.length : 0) +
+		(isFieldVisible('entryType', false) ? (filters.entryType ?? []).length : 0) +
+		(isFieldVisible('productName', false)
+			? (filters.productName ?? []).length
+			: 0) +
+		(isFieldVisible('customer', false) ? (filters.customer ?? []).length : 0)
 
 	return (
 		<Flex sx={styles.desktopFiltersRow}>
@@ -109,7 +129,11 @@ const Filters = ({
 					brandOptions={brandOptions}
 					stateOptions={stateOptions}
 					categoryOptions={categoryOptions}
+					entryTypeOptions={entryTypeOptions}
+					productNameOptions={productNameOptions}
+					customerOptions={customerOptions}
 					showSupplierFilter={showSupplierFilter}
+					fieldVisibility={fieldVisibility}
 					showSavedFilterOptions={false}
 				/>
 			</HStack>

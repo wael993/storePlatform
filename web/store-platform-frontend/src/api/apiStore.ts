@@ -36,6 +36,14 @@ export interface ProductFiltersQueryParams {
 	category?: string[]
 }
 
+export interface DailyActionFiltersQueryParams {
+	searchText?: string
+	entryType?: string[]
+	productName?: string[]
+	supplier?: string[]
+	customer?: string[]
+}
+
 export interface ProductPaginationParams {
 	limit?: number
 	offset?: number
@@ -56,6 +64,13 @@ export interface ProductFilterValuesResponse {
 	brand: ProductFilterValueOption[]
 	state: ProductFilterValueOption[]
 	category: ProductFilterValueOption[]
+}
+
+export interface DailyActionFilterValuesResponse {
+	entryType: ProductFilterValueOption[]
+	productName: ProductFilterValueOption[]
+	supplier: ProductFilterValueOption[]
+	customer: ProductFilterValueOption[]
 }
 interface EntryType {
 	value: string
@@ -109,6 +124,34 @@ const buildProductFilterQueryParams = (
 	if (pagination?.offset !== undefined) {
 		params.offset = pagination.offset
 	}
+
+	return params
+}
+
+const buildDailyActionFilterQueryParams = (
+	filters: DailyActionFiltersQueryParams,
+): Record<string, string> => {
+	const params: Record<string, string> = {}
+
+	const setArrayParam = (
+		key: keyof Omit<DailyActionFiltersQueryParams, 'searchText'>,
+		values?: string[],
+	) => {
+		if (!values || values.length === 0) return
+		const normalizedValues = values.map(value => value.trim()).filter(Boolean)
+		if (normalizedValues.length === 0) return
+		params[key] = normalizedValues.join(',')
+	}
+
+	const normalizedSearchText = filters.searchText?.trim()
+	if (normalizedSearchText) {
+		params.searchText = normalizedSearchText
+	}
+
+	setArrayParam('entryType', filters.entryType)
+	setArrayParam('productName', filters.productName)
+	setArrayParam('supplier', filters.supplier)
+	setArrayParam('customer', filters.customer)
 
 	return params
 }
@@ -487,16 +530,30 @@ const getQuery = (
 			invalidatesTags: ['user-settings'],
 		}),
 
-		getDailyActions: builder.query<DailyAction[], void>({
-			query: () => ({
+		getDailyActions: builder.query<
+			DailyAction[],
+			DailyActionFiltersQueryParams | void
+		>({
+			query: filters => ({
 				url: 'daily-actions',
 				method: 'GET',
+				params: buildDailyActionFilterQueryParams(filters ?? {}),
 			}),
 			transformResponse: (response: { data: DailyAction[] }) => {
 				return response.data
 			},
 
 			providesTags: ['daily-actions'],
+		}),
+
+		getDailyActionFilterValues: builder.query<
+			DailyActionFilterValuesResponse,
+			void
+		>({
+			query: () => ({
+				url: 'daily-actions/filter-values',
+				method: 'GET',
+			}),
 		}),
 
 		getSingleDailyAction: builder.query<DailyActionsAPIResponse, string>({
@@ -577,6 +634,7 @@ export const {
 	useGetUserSettingsQuery,
 	useUpdateUserSettingsMutation,
 	useGetDailyActionsQuery,
+	useGetDailyActionFilterValuesQuery,
 	useGetSingleDailyActionQuery,
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,

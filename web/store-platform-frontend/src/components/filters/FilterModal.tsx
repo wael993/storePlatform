@@ -23,12 +23,14 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { AsFilterIcon } from '../icons/Filter'
+import { Dropdown } from '../dropdown/Dropdown'
 import {
 	BrandDropdown,
 	CategoryDropdown,
 	StateDropdown,
 	SupplierDropdown,
 } from './dropdowns/index'
+import { dropdownStyles } from './dropdowns/styles'
 
 export interface FilterSelectOption {
 	value: string
@@ -43,14 +45,19 @@ export interface ProductFilterValues {
 	brand: string[]
 	state: string[]
 	category: string[]
+	entryType?: string[]
+	productName?: string[]
+	customer?: string[]
 }
 
-const EMPTY_FILTERS: ProductFilterValues = {
-	searchText: '',
-	supplier: [],
-	brand: [],
-	state: [],
-	category: [],
+export type FilterFieldVisibility = {
+	supplier?: boolean
+	brand?: boolean
+	state?: boolean
+	category?: boolean
+	entryType?: boolean
+	productName?: boolean
+	customer?: boolean
 }
 
 const styles = {
@@ -118,6 +125,10 @@ interface FilterModalProps {
 	brandOptions: FilterSelectOption[]
 	stateOptions: FilterSelectOption[]
 	categoryOptions: FilterSelectOption[]
+	entryTypeOptions?: FilterSelectOption[]
+	productNameOptions?: FilterSelectOption[]
+	customerOptions?: FilterSelectOption[]
+	fieldVisibility?: FilterFieldVisibility
 	showWarningBorder?: boolean
 }
 
@@ -134,6 +145,10 @@ const FilterModal = ({
 	stateOptions,
 	showWarningBorder,
 	categoryOptions,
+	entryTypeOptions = [],
+	productNameOptions = [],
+	customerOptions = [],
+	fieldVisibility,
 }: FilterModalProps) => {
 	const { t } = useTranslation()
 	const {
@@ -163,6 +178,11 @@ const FilterModal = ({
 	// }
 
 	// const handleBrandsFilterChange = useHandleBrandsFilterChange()
+
+	const isFieldVisible = (
+		field: keyof FilterFieldVisibility,
+		defaultValue = true,
+	) => fieldVisibility?.[field] ?? defaultValue
 
 	return (
 		<>
@@ -218,7 +238,33 @@ const FilterModal = ({
 						</Flex>
 
 						<Grid sx={isMobile ? styles.mobileGrid : styles.grid}>
-							{showSupplierFilter && (
+							{isFieldVisible('entryType', false) && (
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<Dropdown
+										placeholder={t('common.entryType')}
+										dropDownOptions={entryTypeOptions}
+										selectedValues={localFilters.entryType ?? []}
+										onSelect={(entryType: string[]) =>
+											setLocalFilters(prev => ({ ...prev, entryType }))
+										}
+									/>
+								</Box>
+							)}
+
+							{isFieldVisible('productName', false) && (
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<Dropdown
+										placeholder={t('common.productName')}
+										dropDownOptions={productNameOptions}
+										selectedValues={localFilters.productName ?? []}
+										onSelect={(productName: string[]) =>
+											setLocalFilters(prev => ({ ...prev, productName }))
+										}
+									/>
+								</Box>
+							)}
+
+							{showSupplierFilter && isFieldVisible('supplier') && (
 								<SupplierDropdown
 									options={supplierOptions}
 									selectedValues={localFilters.supplier}
@@ -228,35 +274,54 @@ const FilterModal = ({
 								/>
 							)}
 
-							<Box
-								sx={{
-									outline: showWarningBorder ? '1px solid #FF0000' : 'none',
-								}}
-							>
-								<BrandDropdown
-									options={brandOptions}
-									selectedValues={localFilters.brand}
-									onChange={brand =>
-										setLocalFilters(prev => ({ ...prev, brand }))
+							{isFieldVisible('customer', false) && (
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<Dropdown
+										placeholder={t('components.pageHeaders.customer')}
+										dropDownOptions={customerOptions}
+										selectedValues={localFilters.customer ?? []}
+										onSelect={(customer: string[]) =>
+											setLocalFilters(prev => ({ ...prev, customer }))
+										}
+									/>
+								</Box>
+							)}
+
+							{isFieldVisible('brand') && (
+								<Box
+									sx={{
+										outline: showWarningBorder ? '1px solid #FF0000' : 'none',
+									}}
+								>
+									<BrandDropdown
+										options={brandOptions}
+										selectedValues={localFilters.brand}
+										onChange={brand =>
+											setLocalFilters(prev => ({ ...prev, brand }))
+										}
+									/>
+								</Box>
+							)}
+
+							{isFieldVisible('state') && (
+								<StateDropdown
+									options={stateOptions}
+									selectedValues={localFilters.state}
+									onChange={(state: string[]) =>
+										setLocalFilters(prev => ({ ...prev, state }))
 									}
 								/>
-							</Box>
+							)}
 
-							<StateDropdown
-								options={stateOptions}
-								selectedValues={localFilters.state}
-								onChange={(state: string[]) =>
-									setLocalFilters(prev => ({ ...prev, state }))
-								}
-							/>
-
-							<CategoryDropdown
-								options={categoryOptions}
-								selectedValues={localFilters.category}
-								onChange={category =>
-									setLocalFilters(prev => ({ ...prev, category }))
-								}
-							/>
+							{isFieldVisible('category') && (
+								<CategoryDropdown
+									options={categoryOptions}
+									selectedValues={localFilters.category}
+									onChange={category =>
+										setLocalFilters(prev => ({ ...prev, category }))
+									}
+								/>
+							)}
 						</Grid>
 					</ModalBody>
 					<ModalFooter

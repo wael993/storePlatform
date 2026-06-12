@@ -103,7 +103,7 @@ const SupplierPage = () => {
 			{isSuppliersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			<Filters
+			{/* <Filters
 				filters={{
 					brand: [],
 					category: [],
@@ -118,7 +118,7 @@ const SupplierPage = () => {
 				stateOptions={[]}
 				categoryOptions={[]}
 				showSupplierFilter={isOwnerOrAdmin}
-			/>
+			/> */}
 			<SupplierListWithActionBar
 				suppliers={suppliers as Supplier[]}
 				isLoading={isSuppliersLoading}

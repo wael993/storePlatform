@@ -34,10 +34,7 @@ const DailyActionRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
-			onClick={() =>
-				// navigate(`/daily-action/${dailyAction._id ?? dailyAction.actionId}`)
-				navigate('/services/store_platform/suppliers')
-			}
+			onClick={() => navigate('/services/store_platform/suppliers')}
 		>
 			<DailyActionItem
 				key={dailyAction._id ?? dailyAction.actionId}
