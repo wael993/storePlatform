@@ -3,7 +3,7 @@ const ROUTE_PREFIX = '/services/store_platform'
 const withBasePath = (suffix: string) => `${ROUTE_PREFIX}${suffix}`
 
 export const RoutePaths = {
-	ROOT: '/',
+	ROOT: withBasePath('/'),
 	SERVICES: '/services',
 	STORE_PLATFORM: ROUTE_PREFIX,
 	LOGIN: withBasePath('/login'),
@@ -34,6 +34,7 @@ export const buildRoutePath = {
 }
 
 export const fullPaths = {
+	ROOT: RoutePaths.ROOT,
 	BARCODE: RoutePaths.BARCODE,
 	PRODUCTS: RoutePaths.PRODUCTS,
 	ALL_PRODUCTS: RoutePaths.PRODUCTS,
@@ -65,7 +66,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: '#',
+			href: fullPaths.ROOT,
 			isCurrentPage: true,
 		},
 	]
@@ -74,7 +75,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -88,7 +89,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -102,7 +103,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -116,7 +117,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -130,7 +131,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -144,7 +145,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -158,7 +159,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -172,7 +173,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -186,7 +187,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -200,7 +201,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
@@ -214,7 +215,7 @@ export const generateBreadcrumbs = ({
 		{
 			id: 'store-platform',
 			name: 'Store Platform',
-			href: fullPaths.PRODUCTS,
+			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{

@@ -86,7 +86,10 @@ const TenantLayout = () => {
 		isTenantSuppliersEnabled,
 	} = getTenantActions()
 
+	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+
 	const topBarItems = [
+		{ label: 'Welcome', path: RoutePaths.ROOT },
 		isDailyEnabled && isTenantDailyEnabled
 			? { label: 'Daily', path: RoutePaths.DAILY }
 			: null,
@@ -128,7 +131,12 @@ const TenantLayout = () => {
 	return (
 		<Flex minH="100vh" bg="gray.50">
 			<Box flex="1" p={0}>
-				<TopBar navItems={topBarItems} />
+				<TopBar
+					navItems={topBarItems}
+					userName={userName || user?.email || 'User'}
+					onLogout={handleLogout}
+					isLogoutLoading={isLoading}
+				/>
 				<Box px={{ base: 4, md: 8 }} py={8}>
 					<Outlet />
 				</Box>

@@ -1,10 +1,24 @@
-import { HamburgerIcon, RepeatIcon, SettingsIcon } from '@chakra-ui/icons'
 import {
+	ArrowForwardIcon,
+	AtSignIcon,
+	ChevronDownIcon,
+	HamburgerIcon,
+	QuestionIcon,
+	RepeatIcon,
+	SettingsIcon,
+} from '@chakra-ui/icons'
+import {
+	Avatar,
 	Box,
+	Divider,
 	Flex,
 	FormControl,
 	Image,
 	IconButton,
+	Menu,
+	MenuButton,
+	MenuItem,
+	MenuList,
 	Select,
 	Text,
 } from '@chakra-ui/react'
@@ -18,6 +32,9 @@ interface TopBarProps {
 		label: string
 		path: string
 	}[]
+	userName: string
+	onLogout: () => void | Promise<void>
+	isLogoutLoading?: boolean
 }
 
 const styles = {
@@ -28,9 +45,25 @@ const styles = {
 		color: '#353535',
 		...hoverFocusActiveButtonStyles,
 	},
+	menuItem: {
+		px: 6,
+		py: 4,
+		gap: 4,
+		fontSize: 'xl',
+		fontWeight: 700,
+		color: '#6F7173',
+		bg: 'white',
+		_hover: { bg: 'gray.50' },
+		_focus: { bg: 'gray.50' },
+	},
 } satisfies StylesObject
 
-const TopBar = ({ navItems }: TopBarProps) => {
+const TopBar = ({
+	navItems,
+	userName,
+	onLogout,
+	isLogoutLoading = false,
+}: TopBarProps) => {
 	const location = useLocation()
 	const navigate = useNavigate()
 
@@ -39,7 +72,7 @@ const TopBar = ({ navItems }: TopBarProps) => {
 			item =>
 				location.pathname === item.path ||
 				location.pathname.startsWith(`${item.path}/`),
-		)?.path ?? ''
+		)?.path ?? RoutePaths.ROOT
 
 	return (
 		<Box
@@ -63,7 +96,7 @@ const TopBar = ({ navItems }: TopBarProps) => {
 						align="center"
 						gap={4}
 						minW={0}
-						onClick={() => navigate(RoutePaths.DAILY)}
+						onClick={() => navigate(RoutePaths.ROOT)}
 						cursor="pointer"
 					>
 						<Image
@@ -96,7 +129,7 @@ const TopBar = ({ navItems }: TopBarProps) => {
 						>
 							{navItems.map(item => (
 								<option key={item.path} value={item.path}>
-									{item.label}
+									{item.label || 'Welcome'}
 								</option>
 							))}
 						</Select>
@@ -128,14 +161,71 @@ const TopBar = ({ navItems }: TopBarProps) => {
 						sx={styles.iconButton}
 						onClick={() => navigate(RoutePaths.SETTINGS)}
 					/>
-					<IconButton
-						aria-label="Menu"
-						icon={<HamburgerIcon boxSize={5} />}
-						sx={styles.iconButton}
-						onClick={e => {
-							e.stopPropagation()
-						}}
-					/>
+					<Menu placement="bottom-end">
+						<MenuButton
+							as={IconButton}
+							aria-label="Menu"
+							icon={<HamburgerIcon boxSize={5} />}
+							sx={styles.iconButton}
+						/>
+						<MenuList
+							w={{ base: 'calc(100vw - 2rem)', md: '25rem' }}
+							p={0}
+							borderRadius={0}
+							borderColor="gray.200"
+							boxShadow="0 12px 28px rgba(15, 23, 42, 0.12)"
+							overflow="hidden"
+						>
+							<Flex align="center" justify="space-between" px={8} py={8}>
+								<Text fontSize="2xl" fontWeight={800} color="black">
+									Hello, {userName}
+								</Text>
+								<Avatar
+									name={userName}
+									size="md"
+									bg="#E071D4"
+									color="black"
+									fontWeight={800}
+								>
+									{/* {userInitials} */}
+								</Avatar>
+							</Flex>
+
+							{/* <MenuItem sx={styles.menuItem}>
+								<HamburgerIcon boxSize={7} color="#6F7173" />
+								<Text flex="1">Services</Text>
+								<ChevronDownIcon boxSize={6} color="#6F7173" />
+							</MenuItem>
+							<MenuItem sx={styles.menuItem}>
+								<SettingsIcon boxSize={7} color="#6F7173" />
+								<Text flex="1">Settings</Text>
+								<ChevronDownIcon boxSize={6} color="#6F7173" />
+							</MenuItem>
+							<MenuItem sx={styles.menuItem}>
+								<AsBellIcon />
+								<Text>Notification Settings</Text>
+							</MenuItem>
+							<MenuItem sx={styles.menuItem}>
+								<AtSignIcon boxSize={7} color="#6F7173" />
+								<Text>Account</Text>
+							</MenuItem>
+							<MenuItem sx={styles.menuItem}>
+								<QuestionIcon boxSize={7} color="#6F7173" />
+								<Text>Support</Text>
+							</MenuItem> */}
+
+							<Divider my={2} />
+
+							<MenuItem
+								sx={styles.menuItem}
+								onClick={onLogout}
+								isDisabled={isLogoutLoading}
+							>
+								<ArrowForwardIcon boxSize={7} color="#6F7173" />
+								<Text>Logout</Text>
+							</MenuItem>
+						</MenuList>
+					</Menu>
 				</Flex>
 			</Flex>
 			{navItems.length === 0 && (

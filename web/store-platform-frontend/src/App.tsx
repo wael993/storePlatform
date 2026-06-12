@@ -17,6 +17,7 @@ import ProductsPage from './pages/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
 import InvoicesPage from './pages/InvoicesPage'
 import SettingsPage from './pages/SettingsPage'
+import WelcomePage from './pages/WelcomePage'
 import { useAuth } from './shared/hooks/useAuth'
 import { useUser } from './shared/hooks/useUser'
 import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
@@ -100,6 +101,8 @@ const App = () => {
 					}
 				>
 					<Route element={<TenantLayout />}>
+						<Route path={RoutePaths.ROOT} element={<WelcomePage />} />
+						<Route path={RoutePaths.STORE_PLATFORM} element={<WelcomePage />} />
 						{isBarcodeEnabled && isTenantBarcodeEnabled && (
 							<Route path={RoutePaths.BARCODE} element={<BarcodePage />} />
 						)}
@@ -197,7 +200,7 @@ const App = () => {
 					path={RoutePaths.WILDCARD}
 					element={
 						<Navigate
-							to={isAuthenticated ? RoutePaths.PRODUCTS : RoutePaths.LOGIN}
+							to={isAuthenticated ? RoutePaths.ROOT : RoutePaths.LOGIN}
 							replace
 						/>
 					}

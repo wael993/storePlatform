@@ -61,7 +61,7 @@ const Login = () => {
 			const nextRoute =
 				response.role === UserRole.SUPER_ADMIN
 					? RoutePaths.ADD_NEW_TENANT
-					: RoutePaths.BARCODE
+					: RoutePaths.ROOT
 
 			navigate(nextRoute, {
 				state: { role: response.role, tenantId: response.tenantId },

@@ -15,7 +15,7 @@ import { logout } from '../store/user/reducer'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths } from '../shared/routes'
 import TopBar from './TopBar'
-// import { useUser } from '../shared/hooks/useUser'
+import { useUser } from '../shared/hooks/useUser'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -33,6 +33,7 @@ const SuperAdminLayout = () => {
 	const [error, setError] = useState('')
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
+	const { user } = useUser()
 
 	const { isAddNewTenantEnabled, isTenantsListEnabled } = getEnabledActions()
 	const { isTenantAddNewTenantEnabled, isTenantTenantsListEnabled } =
@@ -46,6 +47,7 @@ const SuperAdminLayout = () => {
 			? { label: 'Tenants List', path: RoutePaths.TENANTS_LIST }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
+	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
 	const handleLogout = async () => {
 		setError('')
@@ -114,7 +116,12 @@ const SuperAdminLayout = () => {
 			</Box>
 
 			<Box flex="1" p={0}>
-				<TopBar navItems={topBarItems} />
+				<TopBar
+					navItems={topBarItems}
+					userName={userName || user?.email || 'User'}
+					onLogout={handleLogout}
+					isLogoutLoading={isLoading}
+				/>
 				<Box px={{ base: 4, md: 8 }} py={8}>
 					<Outlet />
 				</Box>
