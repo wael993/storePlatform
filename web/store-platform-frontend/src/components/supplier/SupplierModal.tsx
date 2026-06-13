@@ -11,12 +11,11 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useGetSingleSupplierQuery } from '../../api/apiStore'
 import { fullPaths } from '../../shared/routes'
-import { EntryModalType } from '../../shared/globalEnums'
+import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
-import { CloseButton } from '../common/CloseButton'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
 import TopSection from '../customer/TopSection'
-import DailyActionsListWithActionBar from '../daily/DailyActionsListWithActionBar'
+import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
 
 const fullWidth = '100%'
 const pageContentPadding = '2rem'
@@ -72,10 +71,10 @@ const styles = {
 } satisfies StylesObject
 
 interface SupplierModalProps {
-	entryType: EntryModalType
+	targetType: TargetType
 }
 
-const SupplierModal = ({ entryType }: SupplierModalProps) => {
+const SupplierModal = ({ targetType }: SupplierModalProps) => {
 	const params = useParams()
 	const navigate = useNavigate()
 	const { t } = useTranslation()
@@ -111,17 +110,21 @@ const SupplierModal = ({ entryType }: SupplierModalProps) => {
 			<ModalContent sx={styles.modalContent} containerProps={{ zIndex: 300 }}>
 				<ModalBody sx={styles.modalBody} height={window.innerHeight}>
 					<Box sx={styles.closeButtonWrapper}>
-						<CloseButton onClose={handleClose} />
+						{/* <CloseButton onClose={handleClose} /> */}
 					</Box>
 					<Grid sx={styles.grid}>
 						{isSupplierLoading ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
-								entryType={entryType}
+								targetType={targetType}
 							/>
 						) : !isSupplierError && supplier ? (
 							<Box sx={styles.fullWidthSection}>
-								<TopSection entryType={entryType} supplier={supplier} />
+								<TopSection
+									targetType={targetType}
+									supplier={supplier}
+									onClose={handleClose}
+								/>
 							</Box>
 						) : (
 							isSupplierError && (

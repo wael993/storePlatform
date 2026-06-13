@@ -1,23 +1,15 @@
-import { Box, Center, Text, VStack } from '@chakra-ui/react'
+import { VStack } from '@chakra-ui/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import useCustomToast from '../../common/CustomToast'
-import { compareBreakpoint } from '../../../shared/utils'
-import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import SupplierListActionBar from './SupplierListActionBar'
 import SupplierListDesktop from './SupplierListDesktop'
-
-const styles: StylesObject = {
-	noActivities: {
-		color: '#6F6F6F',
-		fontWeight: '700',
-		marginTop: '3rem',
-	},
-}
+import { TargetType } from '../../../shared/globalEnums'
+import EmptyState from '../../common/EmptyState'
 
 interface SupplierListWithActionBarProps {
 	suppliers?: Supplier[]
 	isLoading: boolean
+	targetType?: TargetType
 }
 
 const SupplierListWithActionBar = ({
@@ -25,8 +17,6 @@ const SupplierListWithActionBar = ({
 	isLoading,
 }: SupplierListWithActionBarProps) => {
 	const { t } = useTranslation()
-	const showToastMessage = useCustomToast()
-	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([])
 	const supplierElements: Supplier[] = useMemo(() => {
 		return (
@@ -57,11 +47,10 @@ const SupplierListWithActionBar = ({
 
 	if ((!supplierElements || supplierElements.length === 0) && !isLoading) {
 		return (
-			<Box>
-				<Center>
-					<Text sx={styles.noActivities}>{t('common.noActivitiesFound')}</Text>
-				</Center>
-			</Box>
+			<EmptyState
+				title={t('common.emptyStateTitle')}
+				description={t('common.emptyStateDescription')}
+			/>
 		)
 	}
 

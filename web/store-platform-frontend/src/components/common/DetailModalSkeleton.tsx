@@ -1,8 +1,8 @@
 import { Flex, Skeleton } from '@chakra-ui/react'
 import { CloseButton } from './CloseButton'
-import { compareBreakpoint, compareEntryType } from '../../shared/utils'
+import { compareBreakpoint, compareTargetType } from '../../shared/utils'
 import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
-import { EntryModalType } from '../../shared/globalEnums'
+import { TargetType } from '../../shared/globalEnums'
 
 const skeletonStyles = {
 	wrapper: {
@@ -43,14 +43,14 @@ const skeletonStyles = {
 
 interface DetailModalSkeletonProps {
 	onClose: () => void
-	entryType: EntryModalType
+	targetType: TargetType
 }
 
 const DetailModalSkeleton = ({
 	onClose,
-	entryType,
+	targetType,
 }: DetailModalSkeletonProps) => {
-	const { isCustomerEntry, isSupplierEntry } = compareEntryType(entryType)
+	const { isCustomerTarget, isSupplierTarget } = compareTargetType(targetType)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 
 	return (
@@ -81,7 +81,7 @@ const DetailModalSkeleton = ({
 						/>
 					))}
 				</Flex>
-				{isCustomerEntry && (
+				{isCustomerTarget && (
 					<Flex gap="2rem" flexDir={{ base: 'column', md: 'row' }}>
 						{Array.from({ length: 5 }).map((_, index) => (
 							<Skeleton
@@ -92,7 +92,7 @@ const DetailModalSkeleton = ({
 						))}
 					</Flex>
 				)}
-				{isSupplierEntry && <Skeleton width="30%" height="10rem" />}
+				{isSupplierTarget && <Skeleton width="30%" height="10rem" />}
 
 				<Flex sx={skeletonStyles.bottomSectionWrapper}>
 					<Flex sx={skeletonStyles.leftSideSectionWrapper}>

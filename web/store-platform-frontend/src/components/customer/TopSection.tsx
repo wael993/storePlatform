@@ -1,18 +1,21 @@
 import {
 	Box,
+	Button,
 	Flex,
 	GridItem,
+	HStack,
 	Icon,
 	Spacer,
 	Text,
+	useDisclosure,
 	VStack,
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import { generateBreadcrumbs } from '../../shared/routes'
-import { compareEntryType } from '../../shared/utils'
-import { BreadCrumbItem, EntryModalType } from '../../shared/globalEnums'
+import { compareBreakpoint, compareTargetType } from '../../shared/utils'
+import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
 import { CustomTooltip } from '../common/CustomTooltip'
 import { AsStarIcon } from '../icons/Star'
 import { AsTruckIcon } from '../icons/Truck'
@@ -24,6 +27,11 @@ import { formatDateFromAndDateTo } from '../../shared/dateUtils'
 import { TicketStatus } from '../common/TicketStatus'
 import { BudgetOverview } from '../common/BudgetOverview'
 import { useGetBudgetOverviewQuery } from '../../api/apiStore'
+import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
+import { CloseButton } from '../common/CloseButton'
+import { AddSquareIcon } from '../icons/AddSquare'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -57,6 +65,15 @@ const styles = {
 		color: mutedTextColor,
 		fontWeight: 700,
 		marginBottom: '1rem',
+	},
+	addButton: {
+		...hoverFocusActiveButtonStyles,
+		gap: '0.25rem',
+	},
+	addButtonText: {
+		fontSize: '0.875rem',
+		fontWeight: 700,
+		color: '#1E1E1E',
 	},
 	divider: {
 		borderWidth: 0,
@@ -184,14 +201,26 @@ const styles = {
 } satisfies StylesObject
 
 interface TopSectionProps {
-	entryType: EntryModalType
+	targetType: TargetType
 	customer?: Customer
 	supplier?: Supplier
+	onClose: () => void
 }
 
-const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
+const TopSection = ({
+	targetType,
+	customer,
+	supplier,
+	onClose,
+}: TopSectionProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
-	const { isCustomerEntry } = compareEntryType(entryType)
+	const { isCustomerTarget } = compareTargetType(targetType)
+	const { isMobile } = compareBreakpoint(useBreakpoints())
+	const {
+		isOpen: isAddDailyActionModalOpen,
+		onOpen: onAddDailyActionModalOpen,
+		onClose: onAddDailyActionModalClose,
+	} = useDisclosure()
 	const { t } = useTranslation()
 	const entry = customer ?? supplier
 	const budgetOverviewArgs = customer?.customerId
@@ -239,21 +268,33 @@ const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 				<CustomBreadcrumb
 					marginTop="2rem"
 					items={
-						isCustomerEntry
+						isCustomerTarget
 							? breadCrumbItems[BreadCrumbItem.CUSTOMER]
 							: breadCrumbItems[BreadCrumbItem.SUPPLIER]
 					}
 				/>
-
+				<HStack alignSelf={'flex-end'}>
+					<Button
+						leftIcon={<AddSquareIcon />}
+						onClick={onAddDailyActionModalOpen}
+						sx={styles.addButton}
+						variant="ghost"
+					>
+						<Text sx={styles.addButtonText}>Add Entry</Text>
+					</Button>
+					<CloseButton onClose={onClose} />
+				</HStack>
 				<Flex sx={styles.titleWrapper}>
 					<Text sx={styles.titleDrawer}>{entry.name}</Text>
 				</Flex>
-				<Spacer />
 
 				<Flex sx={styles.subHeaderText}>
 					<Text marginRight="1rem">{entry.name}</Text>
 					<Text>{entry.internalCode ?? ''}</Text>
 				</Flex>
+
+				<Spacer />
+
 				<Box sx={styles.divider} />
 
 				<Box id="ContentWrapper" sx={styles.contentWrapper}>
@@ -326,7 +367,7 @@ const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 						}}
 					>
 						<TicketStatus
-							entryType={entryType}
+							targetType={targetType}
 							showReasonName={true}
 							reasonName={entry.internalCode ?? ''}
 							isMobileView={false}
@@ -335,6 +376,12 @@ const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 				</Box>
 			</Flex>
 			<Box sx={styles.divider} />
+
+			<AddDailyActionModal
+				isOpen={isAddDailyActionModalOpen}
+				onClose={onAddDailyActionModalClose}
+				targetType={targetType}
+			/>
 		</Flex>
 	)
 }

@@ -10,7 +10,11 @@ import {
 } from '@chakra-ui/react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BreadCrumbItem, AllowedActions } from '../../shared/globalEnums'
+import {
+	BreadCrumbItem,
+	AllowedActions,
+	TargetType,
+} from '../../shared/globalEnums'
 import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
@@ -18,13 +22,10 @@ import { generateBreadcrumbs } from '../../shared/routes'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import Filters from '../filters/Filters'
-import {
-	FilterSelectOption,
-	ProductFilterValues,
-} from '../filters/FilterModal'
+import { FilterSelectOption, ProductFilterValues } from '../filters/FilterModal'
 import { AddSquareIcon } from '../icons/AddSquare'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import DailyActionsListWithActionBar from './DailyActionsListWithActionBar'
+import DailyActionsListWithActionBar from './list/DailyActionsListWithActionBar'
 import {
 	useGetDailyActionFilterValuesQuery,
 	useGetDailyActionsQuery,
@@ -83,8 +84,11 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
+interface DailyPageProps {
+	targetType: TargetType
+}
 
-const DailyPage = () => {
+const DailyPage = ({ targetType }: DailyPageProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
@@ -174,7 +178,11 @@ const DailyPage = () => {
 				isLoading={isDailyActionsLoading}
 			/>
 
-			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />
+			<AddDailyActionModal
+				isOpen={isOpen}
+				onClose={onClose}
+				targetType={targetType}
+			/>
 		</Flex>
 	)
 }

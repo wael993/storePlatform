@@ -2,7 +2,7 @@ import { Tr } from '@chakra-ui/react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DailyActionItem from './DailyActionItem'
-import { buildRoutePath } from '../../shared/routes'
+import { buildRoutePath } from '../../../shared/routes'
 
 interface DailyActionRowProps {
 	dailyAction: DailyAction

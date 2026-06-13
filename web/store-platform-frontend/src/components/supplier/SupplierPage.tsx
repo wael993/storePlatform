@@ -10,7 +10,11 @@ import {
 } from '@chakra-ui/react'
 import React from 'react'
 import CustomBreadcrumb from '../CustomBreadcrumb'
-import { AllowedActions, BreadCrumbItem } from '../../shared/globalEnums'
+import {
+	AllowedActions,
+	BreadCrumbItem,
+	TargetType,
+} from '../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { AddSquareIcon } from '../icons/AddSquare'
@@ -64,7 +68,12 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
-const SupplierPage = () => {
+
+interface SupplierPageProps {
+	targetType: TargetType
+}
+
+const SupplierPage = ({ targetType }: SupplierPageProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
@@ -122,9 +131,14 @@ const SupplierPage = () => {
 			<SupplierListWithActionBar
 				suppliers={suppliers as Supplier[]}
 				isLoading={isSuppliersLoading}
+				targetType={targetType}
 			/>
 
-			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />
+			<AddDailyActionModal
+				isOpen={isOpen}
+				onClose={onClose}
+				targetType={targetType}
+			/>
 		</Flex>
 	)
 }

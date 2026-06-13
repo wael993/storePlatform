@@ -1,19 +1,9 @@
-import { Box, Center, Text, VStack } from '@chakra-ui/react'
+import { VStack } from '@chakra-ui/react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import useCustomToast from '../../common/CustomToast'
-import { compareBreakpoint } from '../../../shared/utils'
-import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import CustomerListActionBar from './CustomerListActionBar'
 import CustomerListDesktop from './CustomerListDesktop'
-
-const styles: StylesObject = {
-	noActivities: {
-		color: '#6F6F6F',
-		fontWeight: '700',
-		marginTop: '3rem',
-	},
-}
+import EmptyState from '../../common/EmptyState'
 
 interface CustomerListWithActionBarProps {
 	customers?: Customer[]
@@ -25,8 +15,6 @@ const CustomerListWithActionBar = ({
 	isLoading,
 }: CustomerListWithActionBarProps) => {
 	const { t } = useTranslation()
-	const showToastMessage = useCustomToast()
-	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([])
 	const customerElements: Customer[] = useMemo(() => {
 		return (
@@ -57,11 +45,10 @@ const CustomerListWithActionBar = ({
 
 	if ((!customerElements || customerElements.length === 0) && !isLoading) {
 		return (
-			<Box>
-				<Center>
-					<Text sx={styles.noActivities}>{t('common.noActivitiesFound')}</Text>
-				</Center>
-			</Box>
+			<EmptyState
+				title={t('common.emptyStateTitle')}
+				description={t('common.emptyStateDescription')}
+			/>
 		)
 	}
 

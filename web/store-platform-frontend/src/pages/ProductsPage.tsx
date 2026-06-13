@@ -10,7 +10,11 @@ import {
 } from '@chakra-ui/react'
 import { useGetProductsQuery, useGetFilterValuesQuery } from '../api/apiStore'
 import { useSettings } from '../shared/context/SettingsContext'
-import { AllowedActions, BreadCrumbItem } from '../shared/globalEnums'
+import {
+	AllowedActions,
+	BreadCrumbItem,
+	TargetType,
+} from '../shared/globalEnums'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
 import ListWithActionBar from '../components/list/ListWithActionBar'
@@ -76,7 +80,11 @@ const styles = {
 	},
 } satisfies StylesObject
 
-const ProductsPage = () => {
+interface ProductsPageProps {
+	targetType: TargetType
+}
+
+const ProductsPage = ({ targetType }: ProductsPageProps) => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isActionAllowed } = useResources()
 	const { productsPerPage } = useSettings()

@@ -75,16 +75,21 @@ export enum Breakpoints {
 	LARGE_DESKTOP = 'large_desktop',
 }
 
-export enum EntryModalType {
-	CUSTOMER_ENTRY = 'CUSTOMER_ENTRY',
-	SUPPLIER_ENTRY = 'SUPPLIER_ENTRY',
-	PRODUCT_ENTRY = 'PRODUCT_ENTRY',
-	DAILY_ACTION_ENTRY = 'DAILY_ACTION_ENTRY',
-	PAYMENT_ENTRY = 'PAYMENT_ACTION',
-	RECEIPT_ENTRY = 'RECEIPT_ENTRY',
-	SALE_ENTRY = 'SALE_ACTION',
-	PURCHASE_ENTRY = 'PURCHASE_ACTION',
-	OTHER_ENTRY = 'OTHER_ACTION',
+export enum TargetType {
+	CUSTOMER = 'CUSTOMER', //عميل
+	SUPPLIER = 'SUPPLIER', //مورد
+	PRODUCT = 'PRODUCT', //منتج
+	DAILY_ACTION = 'DAILY_ACTION', //إجراء يومي
+	// PAYMENT = 'PAYMENT',//دفع
+	// RECEIPT = 'RECEIPT',//قبض
+}
+
+export enum EntryType {
+	BUYING_ENTRY = 'BUYING_ENTRY', //حركة شراء
+	SELLING_ENTRY = 'SELLING_ENTRY', //حركة بيع
+	PAYMENT_ENTRY = 'PAYMENT_ENTRY', //حركة دفع
+	RECEIPT_ENTRY = 'RECEIPT_ENTRY', //حركة قبض
+	EXPENSE_ENTRY = 'EXPENSE_ENTRY', //مصروف
 }
 
 export enum BreadCrumbItem {

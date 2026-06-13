@@ -20,7 +20,12 @@ import MultiStepper from '../../common/MultiStepper'
 import { isEqual } from 'lodash'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { AsSendIcon } from '../../icons/Send'
-import { DailyActionType, StepKeys } from '../../../shared/globalEnums'
+import {
+	DailyActionType,
+	EntryType,
+	StepKeys,
+	TargetType,
+} from '../../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 
 import { ChevronRightIcon } from '../../icons/ChevronRight'
@@ -28,6 +33,7 @@ import FirstStep from './AddDailyActionSteps/FirstStep'
 import SecondStep from './AddDailyActionSteps/SecondStep'
 import { useDailyActionHandlers } from './hooks/useDailyActionHandlers'
 import ThirdStep from './AddDailyActionSteps/ThirdStep'
+import { compareEntryType } from '../../../shared/utils'
 
 const styles = {
 	header: {
@@ -85,9 +91,16 @@ const styles = {
 interface AddDailyActionModalProps {
 	isOpen: boolean
 	onClose: () => void
+	targetType?: TargetType
 }
 
-const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
+const AddDailyActionModal = ({
+	isOpen,
+	onClose,
+	targetType,
+}: AddDailyActionModalProps) => {
+	const { t } = useTranslation()
+
 	const {
 		setStep,
 		setFormData,
@@ -109,7 +122,8 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 		currency,
 	} = useDailyActionHandlers({ shouldLoadOptions: isOpen })
 
-	const { t } = useTranslation()
+	const { isSellingEntry, isBuyingEntry, isReceiptEntry, isPaymentEntry } =
+		compareEntryType(entryType?.[0]?.value as EntryType)
 
 	const [shouldLeavingBeQuestioned, setShouldLeavingBeQuestioned] =
 		useState<boolean>(false)
@@ -132,29 +146,49 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 		}))
 	}
 
-	const actionEntryTypesOptions: DropdownOption[] = [
-		{
-			value: DailyActionType.BUYING_ENTRY,
-			label: 'حركة شراء',
-		},
-		{
-			value: DailyActionType.SELLING_ENTRY,
-			label: 'حركة بيع',
-		},
-		{
-			value: DailyActionType.PAYMENT_ENTRY,
-			label: 'حركة دفع',
-		},
-		{
-			value: DailyActionType.RECEIPT_ENTRY,
-			label: 'حركة قبض',
-		},
-	]
+	const getActionEntryTypesOptions = () => {
+		if (targetType === TargetType.CUSTOMER) {
+			return [
+				{
+					value: DailyActionType.SELLING_ENTRY,
+					label: t('common.sellingEntry'),
+				},
+				{
+					value: DailyActionType.RECEIPT_ENTRY,
+					label: t('common.receiptEntry'),
+				},
+			]
+		}
+		if (targetType === TargetType.SUPPLIER) {
+			return [
+				{ value: DailyActionType.BUYING_ENTRY, label: t('common.buyingEntry') },
+				{
+					value: DailyActionType.PAYMENT_ENTRY,
+					label: t('common.paymentEntry'),
+				},
+			]
+		}
+		if (targetType === TargetType.DAILY_ACTION) {
+			return [
+				{ value: DailyActionType.BUYING_ENTRY, label: t('common.buyingEntry') },
+				{
+					value: DailyActionType.SELLING_ENTRY,
+					label: t('common.sellingEntry'),
+				},
+				{
+					value: DailyActionType.RECEIPT_ENTRY,
+					label: t('common.receiptEntry'),
+				},
+				{
+					value: DailyActionType.PAYMENT_ENTRY,
+					label: t('common.paymentEntry'),
+				},
+			]
+		}
+		return []
+	}
 
-	const isSellingEntry = entryType?.[0]?.value === 'SELLING_ENTRY'
-	const isBuyingEntry = entryType?.[0]?.value === 'BUYING_ENTRY'
-	const isReceiptEntry = entryType?.[0]?.value === 'RECEIPT_ENTRY'
-	const isPaymentEntry = entryType?.[0]?.value === 'PAYMENT_ENTRY'
+	const actionEntryTypesOptions: DropdownOption[] = getActionEntryTypesOptions()
 
 	const {
 		isOpen: isLeavingModalOpen,

@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { Breakpoints, EntryModalType } from './globalEnums'
+import { Breakpoints, EntryType, TargetType } from './globalEnums'
 
 export function compareBreakpoint(breakpoint: Breakpoints | undefined) {
 	return {
@@ -10,17 +10,21 @@ export function compareBreakpoint(breakpoint: Breakpoints | undefined) {
 	}
 }
 
-export function compareEntryType(entryType: EntryModalType) {
+export function compareTargetType(entryType: TargetType) {
 	return {
-		isCustomerEntry: entryType === EntryModalType.CUSTOMER_ENTRY,
-		isSupplierEntry: entryType === EntryModalType.SUPPLIER_ENTRY,
-		isProductEntry: entryType === EntryModalType.PRODUCT_ENTRY,
-		isDailyActionEntry: entryType === EntryModalType.DAILY_ACTION_ENTRY,
-		isPaymentEntry: entryType === EntryModalType.PAYMENT_ENTRY,
-		isReceiptEntry: entryType === EntryModalType.RECEIPT_ENTRY,
-		isSaleEntry: entryType === EntryModalType.SALE_ENTRY,
-		isPurchaseEntry: entryType === EntryModalType.PURCHASE_ENTRY,
-		isOtherEntry: entryType === EntryModalType.OTHER_ENTRY,
+		isCustomerTarget: entryType === TargetType.CUSTOMER,
+		isSupplierTarget: entryType === TargetType.SUPPLIER,
+		isProductTarget: entryType === TargetType.PRODUCT,
+		isDailyActionTarget: entryType === TargetType.DAILY_ACTION,
+	}
+}
+
+export function compareEntryType(entryType: EntryType) {
+	return {
+		isSellingEntry: entryType === EntryType.SELLING_ENTRY,
+		isBuyingEntry: entryType === EntryType.BUYING_ENTRY,
+		isReceiptEntry: entryType === EntryType.RECEIPT_ENTRY,
+		isPaymentEntry: entryType === EntryType.PAYMENT_ENTRY,
 	}
 }
 

@@ -7,7 +7,7 @@ import {
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import BarcodePage from './pages/BarcodePage'
-import { EntryModalType, UserRole } from './shared/globalEnums'
+import { TargetType, UserRole } from './shared/globalEnums'
 import UsersLogIn from './pages/UsersLogIn'
 import AddNewTenant from './pages/AddNewTenant'
 import SuperAdminLayout from './components/SuperAdminLayout'
@@ -108,10 +108,13 @@ const App = () => {
 						)}
 						{isProductsEnabled && isTenantProductsEnabled && (
 							<>
-								<Route path={RoutePaths.PRODUCTS} element={<ProductsPage />} />
+								<Route
+									path={RoutePaths.PRODUCTS}
+									element={<ProductsPage targetType={TargetType.PRODUCT} />}
+								/>
 								<Route
 									path={RoutePaths.SINGLE_PRODUCT}
-									element={<ProductsPage />}
+									element={<ProductsPage targetType={TargetType.PRODUCT} />}
 								/>
 							</>
 						)}
@@ -120,7 +123,10 @@ const App = () => {
 						)}
 
 						{isDailyEnabled && isTenantDailyEnabled && (
-							<Route path={RoutePaths.DAILY} element={<DailyPage />} />
+							<Route
+								path={RoutePaths.DAILY}
+								element={<DailyPage targetType={TargetType.DAILY_ACTION} />}
+							/>
 						)}
 
 						{isInvoicesEnabled && isTenantInvoicesEnabled && (
@@ -131,23 +137,25 @@ const App = () => {
 						)}
 						{isCustomersEnabled && isTenantCustomersEnabled && (
 							<>
-								<Route path={RoutePaths.CUSTOMERS} element={<CustomerPage />} />
+								<Route
+									path={RoutePaths.CUSTOMERS}
+									element={<CustomerPage targetType={TargetType.CUSTOMER} />}
+								/>
 								<Route
 									path={RoutePaths.SINGLE_CUSTOMER}
-									element={
-										<CustomerModal entryType={EntryModalType.CUSTOMER_ENTRY} />
-									}
+									element={<CustomerModal targetType={TargetType.CUSTOMER} />}
 								/>
 							</>
 						)}
 						{isSuppliersEnabled && isTenantSuppliersEnabled && (
 							<>
-								<Route path={RoutePaths.SUPPLIERS} element={<SupplierPage />} />
+								<Route
+									path={RoutePaths.SUPPLIERS}
+									element={<SupplierPage targetType={TargetType.SUPPLIER} />}
+								/>
 								<Route
 									path={RoutePaths.SINGLE_SUPPLIER}
-									element={
-										<SupplierModal entryType={EntryModalType.SUPPLIER_ENTRY} />
-									}
+									element={<SupplierModal targetType={TargetType.SUPPLIER} />}
 								/>
 							</>
 						)}

@@ -1,4 +1,4 @@
-import { Box, Center, Text, VStack } from '@chakra-ui/react'
+import { VStack } from '@chakra-ui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import ListActionBar from './ListActionBar'
@@ -6,14 +6,7 @@ import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../../shared/utils'
 import ListDesktop from './ListDesktop'
 import useCustomToast from '../common/CustomToast'
-
-const styles: StylesObject = {
-	noActivities: {
-		color: '#6F6F6F',
-		fontWeight: '700',
-		marginTop: '3rem',
-	},
-}
+import EmptyState from '../common/EmptyState'
 
 interface ListWithActionBarProps {
 	products?: Product[]
@@ -98,11 +91,10 @@ const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 
 	if ((!productElements || productElements.length === 0) && !isLoading) {
 		return (
-			<Box>
-				<Center>
-					<Text sx={styles.noActivities}>{t('common.noActivitiesFound')}</Text>
-				</Center>
-			</Box>
+			<EmptyState
+				title={t('common.emptyStateTitle')}
+				description={t('common.emptyStateDescription')}
+			/>
 		)
 	}
 

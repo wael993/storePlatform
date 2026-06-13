@@ -1,10 +1,13 @@
 import { Tr, Th, Text, Flex, Checkbox, Box } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
-import TableSort from '../common/CustomTableSort'
-import { DailyActionSortHeaderKey, SortOrder } from '../list/shared/globalEnums'
-import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
-import { isTruthy } from '../list/shared/utils'
+import TableSort from '../../common/CustomTableSort'
+import {
+	DailyActionSortHeaderKey,
+	SortOrder,
+} from '../../list/shared/globalEnums'
+import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { isTruthy } from '../../list/shared/utils'
 
 interface DailyActionHeaderRowProps {
 	sortField: DailyActionSortHeaderKey | null

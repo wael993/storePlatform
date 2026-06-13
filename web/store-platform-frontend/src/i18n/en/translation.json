@@ -131,6 +131,8 @@
 
 	"common": {
 		"noElementsFound": "No elements found",
+		"emptyStateTitle": "Nothing to show yet",
+		"emptyStateDescription": "Try adjusting your search or add a new item to get started.",
 		"addDailyAction": "Add Daily Action",
 		"entryType": "Entry Type",
 		"weight": "Weight",
@@ -184,7 +186,7 @@
 		"buyingEntry": "Buying Entry",
 		"sellingEntry": "Selling Entry",
 		"paymentEntry": "Payment Entry",
-		"receiptAction": "Receipt Action",
+		"receiptEntry": "Receipt Entry",
 		"expenseEntry": "Expense Entry",
 		"otherEntry": "Other Entry",
 		"addCustomer": "Add Customer",

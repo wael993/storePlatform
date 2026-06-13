@@ -10,12 +10,13 @@ import {
 	Icon,
 	Tooltip,
 } from '@chakra-ui/react'
-import { compareEntryType } from '../../shared/utils'
-import { EntryModalType } from '../../shared/globalEnums'
+
 import { AsQuestionIcon } from '../icons/QuestionIcon'
+import { TargetType } from '../../shared/globalEnums'
+import { compareTargetType } from '../../shared/utils'
 
 interface TicketStatusProps {
-	entryType: EntryModalType
+	targetType: TargetType
 	reasonName?: string
 	showReasonName?: boolean
 	customStyles?: Partial<Record<'itemTextBold', SystemStyleObject>>
@@ -23,49 +24,37 @@ interface TicketStatusProps {
 }
 
 export const TicketStatus = ({
-	entryType,
+	targetType,
 	reasonName,
 	showReasonName = false,
 	customStyles,
 	isMobileView = false,
 }: TicketStatusProps) => {
 	const { t } = useTranslation()
-	const { isSupplierEntry } = compareEntryType(entryType)
+	const { isSupplierTarget } = compareTargetType(targetType)
 
 	const MODAL_STATE_CONFIG: Partial<
-		Record<EntryModalType, { translationKey: string; color: string }>
+		Record<TargetType, { translationKey: string; color: string }>
 	> = {
-		[EntryModalType.CUSTOMER_ENTRY]: {
+		[TargetType.CUSTOMER]: {
 			translationKey: 'زبون',
 			color: '#5698E6',
 		},
-		[EntryModalType.SUPPLIER_ENTRY]: {
+		[TargetType.SUPPLIER]: {
 			translationKey: 'مورد',
 			color: '#E7CB3A',
 		},
-		[EntryModalType.PRODUCT_ENTRY]: {
+		[TargetType.PRODUCT]: {
 			translationKey: 'components.activity.states.inExecution',
 			color: '#36CE4E',
 		},
-		[EntryModalType.DAILY_ACTION_ENTRY]: {
+		[TargetType.DAILY_ACTION]: {
 			translationKey: 'components.activity.states.done',
 			color: '#C7C7C7',
 		},
-		[EntryModalType.PAYMENT_ENTRY]: {
-			translationKey: 'components.activity.states.rejected',
-			color: '#E45151',
-		},
-		[EntryModalType.RECEIPT_ENTRY]: {
-			translationKey: 'components.activity.states.rejected',
-			color: '#E45151',
-		},
-		[EntryModalType.SALE_ENTRY]: {
-			translationKey: 'components.activity.states.rejected',
-			color: '#E45151',
-		},
 	}
 
-	const stateInfo = MODAL_STATE_CONFIG[entryType as EntryModalType] ?? {
+	const stateInfo = MODAL_STATE_CONFIG[targetType as TargetType] ?? {
 		color: '#929494',
 		translationKey: t('common.unknownState'),
 	}
@@ -74,8 +63,8 @@ export const TicketStatus = ({
 
 	const styles = {
 		colorCircle: {
-			width: isSupplierEntry ? '0.875rem' : '1.25rem',
-			height: isSupplierEntry ? '0.875rem' : '1.25rem',
+			width: isSupplierTarget ? '0.875rem' : '1.25rem',
+			height: isSupplierTarget ? '0.875rem' : '1.25rem',
 			bgColor: stateInfo?.color ?? '#929494',
 			borderRadius: 50,
 		},
@@ -88,8 +77,8 @@ export const TicketStatus = ({
 		},
 		itemTextBold: {
 			paddingLeft: '0.5rem',
-			fontSize: isSupplierEntry && !isMobileView ? '0.875rem' : '1rem',
-			fontWeight: isSupplierEntry && !isMobileView ? '500' : '700',
+			fontSize: isSupplierTarget && !isMobileView ? '0.875rem' : '1rem',
+			fontWeight: isSupplierTarget && !isMobileView ? '500' : '700',
 			overflow: 'hidden',
 			textOverflow: 'ellipsis',
 			whiteSpace: 'nowrap',
@@ -108,7 +97,10 @@ export const TicketStatus = ({
 
 	return (
 		<GridItem
-			paddingBlock={{ base: isSupplierEntry ? '0 1rem' : '1rem 0.5rem', md: 0 }}
+			paddingBlock={{
+				base: isSupplierTarget ? '0 1rem' : '1rem 0.5rem',
+				md: 0,
+			}}
 		>
 			<Flex sx={styles.itemWrapperWithOneChild}>
 				<Box sx={styles.colorCircle} />

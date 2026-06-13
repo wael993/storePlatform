@@ -1,12 +1,12 @@
 import { Button, Flex, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
-import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
-import { AsCloseCircleIcon } from '../../icons/CloseIconCircle'
-import { AllowedActions } from '../../shared/globalEnums'
-import { useResources } from '../../shared/hooks/useResources'
-import { useUser } from '../../shared/hooks/useUser'
-import AddRequiredDocumentButton from '../common/AddRequiredDocumentButton'
+import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
+import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
+import { AsCloseCircleIcon } from '../../../icons/CloseIconCircle'
+import { AllowedActions } from '../../../shared/globalEnums'
+import { useResources } from '../../../shared/hooks/useResources'
+import { useUser } from '../../../shared/hooks/useUser'
+import AddRequiredDocumentButton from '../../common/AddRequiredDocumentButton'
 
 const styles = {
 	mainFlexWrapper: {

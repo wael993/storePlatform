@@ -14,7 +14,11 @@ import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
-import { BreadCrumbItem, AllowedActions } from '../../shared/globalEnums'
+import {
+	BreadCrumbItem,
+	AllowedActions,
+	TargetType,
+} from '../../shared/globalEnums'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
@@ -65,7 +69,11 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
-const CustomerPage = () => {
+interface CustomerPageProps {
+	targetType: TargetType
+}
+
+const CustomerPage = ({ targetType }: CustomerPageProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
@@ -128,7 +136,11 @@ const CustomerPage = () => {
 				isLoading={isCustomersLoading}
 			/>
 
-			<AddDailyActionModal isOpen={isOpen} onClose={onClose} />
+			<AddDailyActionModal
+				isOpen={isOpen}
+				onClose={onClose}
+				targetType={targetType}
+			/>
 		</Flex>
 	)
 }

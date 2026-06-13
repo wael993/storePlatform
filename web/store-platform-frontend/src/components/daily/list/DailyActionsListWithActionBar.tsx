@@ -1,19 +1,9 @@
-import { Box, Center, Text, VStack } from '@chakra-ui/react'
+import { VStack } from '@chakra-ui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import DailyListActionBar from './DailyActionsListActionBar'
-import useCustomToast from '../common/CustomToast'
-import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
-import { compareBreakpoint } from '../../shared/utils'
 import DailyActionListDesktop from './DailyActionListDesktop'
-
-const styles: StylesObject = {
-	noActivities: {
-		color: '#6F6F6F',
-		fontWeight: '700',
-		marginTop: '3rem',
-	},
-}
+import EmptyState from '../../common/EmptyState'
 
 interface DailyActionsListWithActionBarProps {
 	dailyActions: DailyAction[]
@@ -25,8 +15,6 @@ const DailyActionsListWithActionBar = ({
 	isLoading,
 }: DailyActionsListWithActionBarProps) => {
 	const { t } = useTranslation()
-	const showToastMessage = useCustomToast()
-	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedDailyActionIds, setSelectedDailyActionIds] = useState<
 		string[]
 	>([])
@@ -71,11 +59,10 @@ const DailyActionsListWithActionBar = ({
 		!isLoading
 	) {
 		return (
-			<Box>
-				<Center>
-					<Text sx={styles.noActivities}>{t('common.noActivitiesFound')}</Text>
-				</Center>
-			</Box>
+			<EmptyState
+				title={t('common.emptyStateTitle')}
+				description={t('common.emptyStateDescription')}
+			/>
 		)
 	}
 

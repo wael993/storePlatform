@@ -12,10 +12,10 @@ import {
 	PRODUCT_STATE_CONFIG,
 	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
 } from './shared/constants'
-import { EntryModalType } from '../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useListItem } from './hooks/useListItem'
 import OptionsPopover from '../modals/OptionsPopover'
+import { TargetType } from '../../shared/globalEnums'
 interface ListItemProps {
 	product: Product
 	onSelect: (id: string) => void
@@ -68,19 +68,23 @@ const ListItem = memo(
 			seeLocationWarehouse,
 		} = useAllowedActions()
 
-		const getMapActivityType = (activityType: any) => {
-			switch (activityType) {
-				case EntryModalType.CUSTOMER_ENTRY:
-					return t('common.price')
-				case EntryModalType.SUPPLIER_ENTRY:
-					return t('common.promo')
+		const getMapTargetTypeLabel = (targetType: TargetType) => {
+			switch (targetType) {
+				case TargetType.PRODUCT:
+					return t('components.pageHeaders.products')
+				case TargetType.DAILY_ACTION:
+					return t('components.pageHeaders.daily')
+				case TargetType.SUPPLIER:
+					return t('components.pageHeaders.suppliers')
+				case TargetType.CUSTOMER:
+					return t('components.pageHeaders.customers')
 				default:
 					return t('appTitle')
 			}
 		}
 
-		const activityType = getMapActivityType(eventType)
-		void activityType
+		// const targetTypeLabel = getMapTargetTypeLabel(targetType)
+		// void targetTypeLabel
 
 		const styles = {
 			tableRow: {

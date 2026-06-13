@@ -66,6 +66,9 @@
 		}
 	},
 	"common": {
+		"noElementsFound": "لم يتم العثور على عناصر",
+		"emptyStateTitle": "لا يوجد شيء لعرضه بعد",
+		"emptyStateDescription": "جرّب تعديل البحث أو أضف عنصرًا جديدًا للبدء.",
 		"noOptions": "لا توجد خيارات",
 		"inputSearch": "بحث...",
 		"showResults": "عرض النتائج",
@@ -111,11 +114,11 @@
 		"totalPrice": "السعر الإجمالي",
 		"supplierOrCustomer": "المورد / العميل",
 		"addDailyAction": "إضافة إجراء يومي",
-		"buyingEntry": " شراء",
-		"sellingEntry": " بيع",
-		"paymentEntry": " دفع",
-		"receiptAction": " قبض",
-		"expenseEntry": " مصروف",
-		"otherEntry": " آخر"
+		"buyingEntry": " حركة شراء",
+		"sellingEntry": " حركة بيع",
+		"paymentEntry": " حركة دفع",
+		"receiptEntry": " حركة قبض",
+		"expenseEntry": " حركة مصروف",
+		"otherEntry": " آخر حركة"
 	}
 }

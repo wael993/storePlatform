@@ -11,12 +11,11 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useGetSingleCustomerQuery } from '../../api/apiStore'
 import { fullPaths } from '../../shared/routes'
-import { EntryModalType } from '../../shared/globalEnums'
+import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
-import { CloseButton } from '../common/CloseButton'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
 import TopSection from './TopSection'
-import DailyActionsListWithActionBar from '../daily/DailyActionsListWithActionBar'
+import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
 
 const fullWidth = '100%'
 const pageContentPadding = '2rem'
@@ -72,10 +71,10 @@ const styles = {
 } satisfies StylesObject
 
 interface CustomerModalProps {
-	entryType: EntryModalType
+	targetType: TargetType
 }
 
-const CustomerModal = ({ entryType }: CustomerModalProps) => {
+const CustomerModal = ({ targetType }: CustomerModalProps) => {
 	const params = useParams()
 	const navigate = useNavigate()
 	const { t } = useTranslation()
@@ -111,18 +110,20 @@ const CustomerModal = ({ entryType }: CustomerModalProps) => {
 		>
 			<ModalContent sx={styles.modalContent} containerProps={{ zIndex: 300 }}>
 				<ModalBody sx={styles.modalBody} height={window.innerHeight}>
-					<Box sx={styles.closeButtonWrapper}>
-						<CloseButton onClose={handleClose} />
-					</Box>
+					<Box sx={styles.closeButtonWrapper}></Box>
 					<Grid sx={styles.grid}>
 						{isCustomerLoading ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
-								entryType={entryType}
+								targetType={targetType}
 							/>
 						) : !isCustomerError && customer ? (
 							<Box sx={styles.fullWidthSection}>
-								<TopSection entryType={entryType} customer={customer} />
+								<TopSection
+									targetType={targetType}
+									customer={customer}
+									onClose={handleClose}
+								/>
 							</Box>
 						) : (
 							isCustomerError && (

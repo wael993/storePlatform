@@ -10,17 +10,20 @@ import React, {
 } from 'react'
 import { TableVirtuoso } from 'react-virtuoso'
 
-import DraggableScrollContainer from '../common/DraggableScrollContainer'
+import DraggableScrollContainer from '../../common/DraggableScrollContainer'
 import DailyActionRow from './DailyActionRow'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
-import { DailyActionSortHeaderKey, SortOrder } from '../list/shared/globalEnums'
+import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import {
+	DailyActionSortHeaderKey,
+	SortOrder,
+} from '../../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
 	compareStringsForSorting,
 	getTableWidth,
-} from '../list/shared/utils'
+} from '../../list/shared/utils'
 import DailyActionHeaderRow from './DailyActionHeaderRow'
-import { useUser } from '../../shared/hooks/useUser'
+import { useUser } from '../../../shared/hooks/useUser'
 
 interface VirtuosoContext {
 	listData: DailyAction[]
