@@ -51,11 +51,15 @@ const DailyActionsHelperButtons = () => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
-	const [postNewProduct, { isLoading }] = usePostProductMutation()
-	const [createSupplier] = useCreateSupplierMutation()
-	const [createCustomer] = useCreateCustomerMutation()
-	const [createCurrency] = useCreateCurrencyMutation()
-	const [createUnit] = useCreateUnitMutation()
+	const [postNewProduct, { isLoading: isProductLoading }] =
+		usePostProductMutation()
+	const [createSupplier, { isLoading: isSupplierLoading }] =
+		useCreateSupplierMutation()
+	const [createCustomer, { isLoading: isCustomerLoading }] =
+		useCreateCustomerMutation()
+	const [createCurrency, { isLoading: isCurrencyLoading }] =
+		useCreateCurrencyMutation()
+	const [createUnit, { isLoading: isUnitLoading }] = useCreateUnitMutation()
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
 		setFormData(prev => ({
@@ -84,6 +88,13 @@ const DailyActionsHelperButtons = () => {
 			resetModal()
 		}
 	}
+
+	const isQuickAddLoading =
+		isProductLoading ||
+		isSupplierLoading ||
+		isCustomerLoading ||
+		isCurrencyLoading ||
+		isUnitLoading
 
 	const actions: Record<AddQuickModalType, (data: FormData) => Promise<void>> =
 		{
@@ -207,7 +218,7 @@ const DailyActionsHelperButtons = () => {
 				isOpen={isOpen}
 				modalType={modalType}
 				onClose={onClose}
-				isLoading={isLoading}
+				isLoading={isQuickAddLoading}
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handleQuickAdd}

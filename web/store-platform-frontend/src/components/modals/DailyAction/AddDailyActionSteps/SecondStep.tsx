@@ -166,7 +166,7 @@ const SecondStep = ({
 											values,
 											currency.map((currency: Currency) => ({
 												value: currency.currencyId ?? currency.internalCode,
-												label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+												label: currency.name ?? currency.internalCode ?? 'TBD',
 											})),
 										)
 									}

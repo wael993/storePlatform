@@ -42,14 +42,16 @@ const DailyActionsListWithActionBar = ({
 		setSelectedDailyActionIds(prevSelectedIds => {
 			return prevSelectedIds.length === dailyActionElements.length
 				? []
-				: dailyActionElements.map(a => a.actionId)
+				: dailyActionElements.map(a => a._id ?? a.actionId)
 		})
 	}, [dailyActionElements])
 
 	useEffect(() => {
 		setSelectedDailyActionIds(prevSelectedIds =>
 			prevSelectedIds.filter(id =>
-				dailyActionElements.some(dailyAction => dailyAction.actionId === id),
+				dailyActionElements.some(
+					dailyAction => dailyAction._id === id || dailyAction.actionId === id,
+				),
 			),
 		)
 	}, [dailyActionElements])
@@ -74,7 +76,8 @@ const DailyActionsListWithActionBar = ({
 						(selectedDailyActionIds
 							.map(id =>
 								dailyActionElements?.find(
-									dailyAction => dailyAction.actionId === id,
+									dailyAction =>
+										dailyAction.actionId === id || dailyAction._id === id,
 								),
 							)
 							.filter(Boolean) as DailyAction[]) ?? []

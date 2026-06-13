@@ -36,17 +36,25 @@ export const useDailyActionHandlers = ({
 		isLoading: isProductsLoading,
 	} = useGetProductsQuery({}, { skip: !shouldLoadOptions })
 
-	const { data: suppliersResponse = [], isLoading: isSuppliersLoading } =
-		useGetSuppliersQuery({}, { skip: !shouldLoadOptions })
+	const {
+		data: suppliersResponse = [],
+		isLoading: isSuppliersLoading,
+	} = useGetSuppliersQuery({}, { skip: !shouldLoadOptions })
 
-	const { data: customersResponse = [], isLoading: isCustomersLoading } =
-		useGetCustomersQuery({}, { skip: !shouldLoadOptions })
+	const {
+		data: customersResponse = [],
+		isLoading: isCustomersLoading,
+	} = useGetCustomersQuery({}, { skip: !shouldLoadOptions })
 
-	const { data: currenciesResponse = [], isLoading: isCurrenciesLoading } =
-		useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
+	const {
+		data: currenciesResponse = [],
+		isLoading: isCurrenciesLoading,
+	} = useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
 
-	const { data: unitsResponse = [], isLoading: isUnitsLoading } =
-		useGetUnitsQuery({}, { skip: !shouldLoadOptions })
+	const {
+		data: unitsResponse = [],
+		isLoading: isUnitsLoading,
+	} = useGetUnitsQuery({}, { skip: !shouldLoadOptions })
 
 	const isAllDataLoaded =
 		!isProductsLoading &&

@@ -2734,7 +2734,9 @@ export default class ProductController {
 			name,
 		})
 
-		//await this.invalidateSuppliersCache(requestContext, supplierData._id)
+		await redisCache.del(
+			redisCache.buildSupplierListKey(tenantContext.tenantId),
+		)
 
 		return {
 			_id: createSupplierResponse._id,
@@ -2905,10 +2907,6 @@ export default class ProductController {
 			Customer,
 			requestContext,
 		)
-		console.log(
-			'🚀 ~ ProductController ~ postCustomer ~ createCustomerResponse:',
-			createCustomerResponse,
-		)
 
 		logger.info('Customer created successfully.', {
 			entity: EntityType.MONGODB,
@@ -2916,6 +2914,10 @@ export default class ProductController {
 			customerId: customerData.customerId,
 			name,
 		})
+
+		await redisCache.del(
+			redisCache.buildCustomerListKey(tenantContext.tenantId),
+		)
 
 		return {
 			_id: createCustomerResponse._id,
@@ -3010,6 +3012,10 @@ export default class ProductController {
 			name,
 		})
 
+		await redisCache.del(
+			redisCache.buildCurrencyListKey(tenantContext.tenantId),
+		)
+
 		return {
 			_id: createCurrencyResponse._id,
 		}
@@ -3101,6 +3107,8 @@ export default class ProductController {
 			unitId: unitData._id,
 			name,
 		})
+
+		await redisCache.del(redisCache.buildUnitListKey(tenantContext.tenantId))
 
 		return {
 			_id: createUnitResponse._id,
