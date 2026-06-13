@@ -12,6 +12,7 @@ import {
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { usePostProductMutation } from '../api/apiStore'
+import { useTranslation } from 'react-i18next'
 
 interface AddProductModalProps {
 	isOpen: boolean
@@ -26,6 +27,7 @@ const AddProductModal = ({
 	barcode,
 	onSuccess,
 }: AddProductModalProps) => {
+	const { t } = useTranslation()
 	const [postNewProduct, { isLoading }] = usePostProductMutation()
 	const [error, setError] = useState('')
 
@@ -79,7 +81,7 @@ const AddProductModal = ({
 		setError('')
 
 		if (!form.name.trim() || !form.barcode.trim()) {
-			setError('Name and barcode are required.')
+			setError(t('productModal.nameBarcodeRequired'))
 			return
 		}
 
@@ -89,9 +91,7 @@ const AddProductModal = ({
 			!form.priceBuyCost ||
 			!form.stockQuantity
 		) {
-			setError(
-				'Wholesale price, retail sale price, buy cost and stock quantity are required.',
-			)
+			setError(t('productModal.requiredProductValues'))
 			return
 		}
 
@@ -145,7 +145,7 @@ const AddProductModal = ({
 				description: form.description.trim() || undefined,
 			}).unwrap()
 		} catch (err: any) {
-			setError(err?.data?.message || 'Failed to create product.')
+			setError(err?.data?.message || t('productModal.createFailed'))
 			return
 		}
 
@@ -162,45 +162,45 @@ const AddProductModal = ({
 			<ModalOverlay />
 
 			<ModalContent>
-				<ModalHeader>New Product</ModalHeader>
+				<ModalHeader>{t('productModal.newProduct')}</ModalHeader>
 				<ModalBody>
 					<VStack spacing={3} pb={4}>
 						{error ? <Text color="red.500">{error}</Text> : null}
 						<Input
-							placeholder="Name"
+							placeholder={t('common.productName')}
 							value={form.name}
 							onChange={e => handleChange('name', e.target.value)}
 						/>
 						<Input
-							placeholder="Product Factory Code"
+							placeholder={t('productModal.productFactoryCode')}
 							value={form.productFactoryCode}
 							onChange={e => handleChange('productFactoryCode', e.target.value)}
 						/>
-						<Input placeholder="Barcode" value={form.barcode} isReadOnly />
+						<Input placeholder={t('common.barcode')} value={form.barcode} isReadOnly />
 						<Input
-							placeholder="Category ID"
+							placeholder={t('productModal.categoryId')}
 							value={form.categoryId}
 							onChange={e => handleChange('categoryId', e.target.value)}
 						/>
 						<Input
-							placeholder="Brand ID"
+							placeholder={t('productModal.brandId')}
 							value={form.brandId}
 							onChange={e => handleChange('brandId', e.target.value)}
 						/>
 						<Input
-							placeholder="Wholesale Price"
+							placeholder={t('productModal.wholesalePrice')}
 							type="number"
 							value={form.priceWholesale}
 							onChange={e => handleChange('priceWholesale', e.target.value)}
 						/>
 						<Input
-							placeholder="Retail Sale Price"
+							placeholder={t('productModal.retailSalePrice')}
 							type="number"
 							value={form.priceRetailSale}
 							onChange={e => handleChange('priceRetailSale', e.target.value)}
 						/>
 						<Input
-							placeholder="Semi-Wholesale Sales Price"
+							placeholder={t('productModal.semiWholesaleSalesPrice')}
 							type="number"
 							value={form.priceSemiWholesaleSales}
 							onChange={e =>
@@ -208,30 +208,30 @@ const AddProductModal = ({
 							}
 						/>
 						<Input
-							placeholder="Buy Cost"
+							placeholder={t('common.buyCost')}
 							type="number"
 							value={form.priceBuyCost}
 							onChange={e => handleChange('priceBuyCost', e.target.value)}
 						/>
 						<Input
-							placeholder="Discount Price"
+							placeholder={t('productModal.discountPrice')}
 							type="number"
 							value={form.priceDiscount}
 							onChange={e => handleChange('priceDiscount', e.target.value)}
 						/>
 						<Input
-							placeholder="Currency (e.g. EUR)"
+							placeholder={t('productModal.currencyPlaceholder')}
 							value={form.currency}
 							onChange={e => handleChange('currency', e.target.value)}
 						/>
 						<Input
-							placeholder="Stock Quantity"
+							placeholder={t('common.stockQuantity')}
 							type="number"
 							value={form.stockQuantity}
 							onChange={e => handleChange('stockQuantity', e.target.value)}
 						/>
 						<Input
-							placeholder="Stock Min Quantity"
+							placeholder={t('common.stockMinQuantity')}
 							type="number"
 							value={form.stockMinQuantity}
 							onChange={e => handleChange('stockMinQuantity', e.target.value)}
@@ -240,70 +240,70 @@ const AddProductModal = ({
 							value={form.unit}
 							onChange={e => handleChange('unit', e.target.value)}
 						>
-							<option value="piece">Piece</option>
-							<option value="kg">KG</option>
-							<option value="meter">Meter</option>
-							<option value="set">Set</option>
-							<option value="mm">MM</option>
+							<option value="piece">{t('productModal.units.piece')}</option>
+							<option value="kg">{t('productModal.units.kg')}</option>
+							<option value="meter">{t('productModal.units.meter')}</option>
+							<option value="set">{t('productModal.units.set')}</option>
+							<option value="mm">{t('productModal.units.mm')}</option>
 						</Select>
 						<Input
-							placeholder="Tax Type"
+							placeholder={t('productModal.taxType')}
 							value={form.taxType}
 							onChange={e => handleChange('taxType', e.target.value)}
 						/>
 						<Input
-							placeholder="Tax Value"
+							placeholder={t('productModal.taxValue')}
 							type="number"
 							value={form.taxValue}
 							onChange={e => handleChange('taxValue', e.target.value)}
 						/>
 						<Input
-							placeholder="Supplier ID"
+							placeholder={t('productModal.supplierId')}
 							value={form.supplierId}
 							onChange={e => handleChange('supplierId', e.target.value)}
 						/>
 						<Input
-							placeholder="Warehouse"
+							placeholder={t('productModal.warehouse')}
 							value={form.warehouse}
 							onChange={e => handleChange('warehouse', e.target.value)}
 						/>
 						<Input
-							placeholder="Shelf"
+							placeholder={t('productModal.shelf')}
 							value={form.shelf}
 							onChange={e => handleChange('shelf', e.target.value)}
 						/>
 						<Input
-							placeholder="Color"
+							placeholder={t('common.color')}
 							value={form.color}
 							onChange={e => handleChange('color', e.target.value)}
 						/>
 						<Input
-							placeholder="Size"
+							placeholder={t('productModal.size')}
 							value={form.size}
 							onChange={e => handleChange('size', e.target.value)}
 						/>
 						<Input
-							placeholder="Weight"
+							placeholder={t('common.weight')}
 							value={form.weight}
 							onChange={e => handleChange('weight', e.target.value)}
 						/>
 						<Input
-							placeholder="Length"
+							placeholder={t('productModal.length')}
 							value={form.length}
 							onChange={e => handleChange('length', e.target.value)}
 						/>
 						<Input
-							placeholder="Width"
+							placeholder={t('productModal.width')}
 							value={form.width}
 							onChange={e => handleChange('width', e.target.value)}
 						/>
 						<Input
-							placeholder="Height"
+							placeholder={t('productModal.height')}
 							value={form.height}
 							onChange={e => handleChange('height', e.target.value)}
 						/>
 						<Input
-							placeholder="Weight"
+							placeholder={t('common.weight')}
 							value={form.weight}
 							onChange={e => handleChange('weight', e.target.value)}
 						/>
@@ -311,12 +311,14 @@ const AddProductModal = ({
 							value={form.status}
 							onChange={e => handleChange('status', e.target.value)}
 						>
-							<option value="active">active</option>
-							<option value="inactive">inactive</option>
-							<option value="discontinued">discontinued</option>
+							<option value="active">{t('common.active')}</option>
+							<option value="inactive">{t('common.inactive')}</option>
+							<option value="discontinued">
+								{t('components.product.states.discontinued')}
+							</option>
 						</Select>
 						<Input
-							placeholder="Description"
+							placeholder={t('productModal.description')}
 							value={form.description}
 							onChange={e => handleChange('description', e.target.value)}
 						/>
@@ -326,7 +328,7 @@ const AddProductModal = ({
 							onClick={handleSubmit}
 							isLoading={isLoading}
 						>
-							Save Product
+							{t('productModal.saveProduct')}
 						</Button>
 					</VStack>
 				</ModalBody>

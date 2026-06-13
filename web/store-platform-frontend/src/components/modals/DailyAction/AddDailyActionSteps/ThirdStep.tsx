@@ -70,43 +70,43 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 		switch (actionSummary?.entryType) {
 			case DailyActionType.BUYING_ENTRY:
 				return [
-					{ label: 'Product', value: actionSummary?.productName },
-					{ label: 'Supplier', value: actionSummary?.supplierName },
-					{ label: 'Currency', value: actionSummary?.currencyName },
-					{ label: 'Unit', value: actionSummary?.unitName },
-					{ label: 'Weight', value: actionSummary?.weight },
+					{ label: t('common.product'), value: actionSummary?.productName },
+					{ label: t('common.supplier'), value: actionSummary?.supplierName },
+					{ label: t('common.currency'), value: actionSummary?.currencyName },
+					{ label: t('common.unit'), value: actionSummary?.unitName },
+					{ label: t('common.weight'), value: actionSummary?.weight },
 					{
-						label: 'Single Unit Price',
+						label: t('common.singleUnitPrice'),
 						value: actionSummary?.singleUnitPrice,
 					},
-					{ label: 'Total Price', value: actionSummary?.totalPrice },
+					{ label: t('common.totalPrice'), value: actionSummary?.totalPrice },
 				]
 			case DailyActionType.SELLING_ENTRY:
 				return [
-					{ label: 'Product', value: actionSummary?.productName },
-					{ label: 'Customer', value: actionSummary?.customerName },
-					{ label: 'Currency', value: actionSummary?.currencyName },
-					{ label: 'Unit', value: actionSummary?.unitName },
-					{ label: 'Weight', value: actionSummary?.weight },
+					{ label: t('common.product'), value: actionSummary?.productName },
+					{ label: t('common.customer'), value: actionSummary?.customerName },
+					{ label: t('common.currency'), value: actionSummary?.currencyName },
+					{ label: t('common.unit'), value: actionSummary?.unitName },
+					{ label: t('common.weight'), value: actionSummary?.weight },
 					{
-						label: 'Single Unit Price',
+						label: t('common.singleUnitPrice'),
 						value: actionSummary?.singleUnitPrice,
 					},
 				]
 			case DailyActionType.RECEIPT_ENTRY:
 				return [
 					{
-						label: 'Customer',
+						label: t('common.customer'),
 						value: actionSummary?.customerName,
 					},
-					{ label: 'Currency', value: actionSummary?.currencyName },
-					{ label: 'Amount', value: actionSummary?.singleUnitPrice },
+					{ label: t('common.currency'), value: actionSummary?.currencyName },
+					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
 				]
 			case DailyActionType.PAYMENT_ENTRY:
 				return [
-					{ label: 'Supplier', value: actionSummary?.supplierName },
-					{ label: 'Currency', value: actionSummary?.currencyName },
-					{ label: 'Amount', value: actionSummary?.singleUnitPrice },
+					{ label: t('common.supplier'), value: actionSummary?.supplierName },
+					{ label: t('common.currency'), value: actionSummary?.currencyName },
+					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
 				]
 			default:
 				return []
@@ -120,10 +120,10 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 	return (
 		<>
 			<VStack alignItems="flex-start" spacing={4}>
-				<Heading fontSize="1rem">Action Summary</Heading>
+				<Heading fontSize="1rem">{t('components.daily.actionSummary')}</Heading>
 
 				{actionSummaryRows.length === 0 ? (
-					<Text color="#747474">No summary available for this action.</Text>
+					<Text color="#747474">{t('components.daily.noActionSummary')}</Text>
 				) : (
 					<SimpleGrid columns={[1, 2]} spacing={4} width="100%">
 						{actionSummaryRows.map(row => (

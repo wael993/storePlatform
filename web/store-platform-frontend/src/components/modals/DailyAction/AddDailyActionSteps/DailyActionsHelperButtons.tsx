@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button, SimpleGrid, useDisclosure } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 import { AsCheckmarkCircleIcon } from '../../../../icons/CheckmarkCircle'
 import { hoverFocusActiveButtonStyles } from '../../../../theme/styles'
 import {
@@ -32,16 +33,17 @@ type FormData = {
 
 const BUTTONS: {
 	type: AddQuickModalType
-	label: string
+	labelKey: string
 }[] = [
-	{ type: 'product', label: 'Add Product' },
-	{ type: 'customer', label: 'Add Customer' },
-	{ type: 'supplier', label: 'Add Supplier' },
-	{ type: 'currency', label: 'Add Currency' },
-	{ type: 'unit', label: 'Add Unit' },
+	{ type: 'product', labelKey: 'components.daily.addProduct' },
+	{ type: 'customer', labelKey: 'components.daily.addCustomer' },
+	{ type: 'supplier', labelKey: 'components.daily.addSupplier' },
+	{ type: 'currency', labelKey: 'components.daily.addCurrency' },
+	{ type: 'unit', labelKey: 'components.daily.addUnit' },
 ]
 
 const DailyActionsHelperButtons = () => {
+	const { t } = useTranslation()
 	const [modalType, setModalType] = useState<AddQuickModalType>('product')
 	const [formData, setFormData] = useState<FormData>({
 		code: '',
@@ -128,7 +130,7 @@ const DailyActionsHelperButtons = () => {
 								currency: 'EUR',
 							},
 						}).unwrap(),
-					'Failed to add product',
+					t('components.daily.errors.addProductFailed'),
 				)
 			},
 
@@ -142,7 +144,7 @@ const DailyActionsHelperButtons = () => {
 							internalCode: (code.trim() || value).toUpperCase(),
 							// sold: 0,
 						}).unwrap(),
-					'Failed to add supplier',
+					t('components.daily.errors.addSupplierFailed'),
 				)
 			},
 
@@ -156,7 +158,7 @@ const DailyActionsHelperButtons = () => {
 							internalCode: (code.trim() || value).toUpperCase(),
 							sold: 0,
 						}).unwrap(),
-					'Failed to add customer',
+					t('components.daily.errors.addCustomerFailed'),
 				)
 			},
 
@@ -171,7 +173,7 @@ const DailyActionsHelperButtons = () => {
 							name: label,
 							internalCode: (code.trim() || label).toUpperCase(),
 						}).unwrap(),
-					'Failed to add currency',
+					t('components.daily.errors.addCurrencyFailed'),
 				)
 			},
 
@@ -184,7 +186,7 @@ const DailyActionsHelperButtons = () => {
 							name: value,
 							internalCode: (code.trim() || value).toUpperCase(),
 						}).unwrap(),
-					'Failed to add unit',
+					t('components.daily.errors.addUnitFailed'),
 				)
 			},
 		}
@@ -196,7 +198,7 @@ const DailyActionsHelperButtons = () => {
 	return (
 		<>
 			<SimpleGrid columns={[1, 2, 3]} gap={6} sx={{ marginTop: '2rem' }}>
-				{BUTTONS.map(({ type, label }) => (
+				{BUTTONS.map(({ type, labelKey }) => (
 					<Button
 						key={type}
 						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
@@ -208,7 +210,7 @@ const DailyActionsHelperButtons = () => {
 							onOpen()
 						}}
 					>
-						{label}
+						{t(labelKey)}
 					</Button>
 				))}
 			</SimpleGrid>

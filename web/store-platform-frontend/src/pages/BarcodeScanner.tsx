@@ -16,12 +16,14 @@ import { useGetSingleProductQuery } from '../api/apiStore'
 import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import ProductModal from './ProductModal'
 import AddProductModal from './AddProductModal'
+import { useTranslation } from 'react-i18next'
 
 interface BarcodeScannerProps {
 	addToCart: (product: Product) => void
 }
 
 const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
+	const { t } = useTranslation()
 	const [barcodeInput, setBarcodeInput] = useState('')
 	const [searchBarcode, setSearchBarcode] = useState('')
 	const [pendingBarcode, setPendingBarcode] = useState('')
@@ -206,7 +208,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 				value={barcodeInput}
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
-				placeholder="Scan barcode or type manually..."
+				placeholder={t('barcode.scanPlaceholder')}
 				size="lg"
 				autoComplete="off"
 				autoCorrect="off"
@@ -215,20 +217,20 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 			/>
 
 			<Button onClick={handleScan} isLoading={isFetching} colorScheme="blue">
-				Scan
+				{t('barcode.scan')}
 			</Button>
 
 			{isFetching && (
 				<Box display="flex" justifyContent="center" py={2}>
 					<Spinner size="md" />
-					<Text ml={3}>Searching for product...</Text>
+					<Text ml={3}>{t('barcode.searching')}</Text>
 				</Box>
 			)}
 
 			{error && !isFetching && (
 				<Alert status="error" variant="solid" borderRadius="md">
 					<AlertIcon />
-					<AlertTitle mr={2}>Error!</AlertTitle>
+					<AlertTitle mr={2}>{t('common.error')}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}

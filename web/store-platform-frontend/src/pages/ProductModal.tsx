@@ -15,6 +15,7 @@ import {
 	Divider,
 	Flex,
 } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 
 interface ProductModalProps {
 	isOpen: boolean
@@ -31,6 +32,7 @@ const ProductModal = ({
 	isLoading,
 	onAdd,
 }: ProductModalProps) => {
+	const { t } = useTranslation()
 	const handleAdd = () => {
 		if (product) {
 			onAdd(product)
@@ -52,7 +54,7 @@ const ProductModal = ({
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size="md">
 			<ModalOverlay />
 			<ModalContent borderRadius="xl" overflow="hidden">
-				<ModalHeader>Product Details</ModalHeader>
+				<ModalHeader>{t('productModal.productDetails')}</ModalHeader>
 				<CloseButton
 					position="absolute"
 					top="12px"
@@ -67,20 +69,20 @@ const ProductModal = ({
 						</Flex>
 					) : !product ? (
 						<Text textAlign="center" color="gray.500">
-							Product not found
+							{t('productModal.notFound')}
 						</Text>
 					) : (
 						<VStack spacing={4} align="stretch">
 							<Box>
 								<Text fontSize="sm" color="gray.500">
-									Name
+									{t('common.productName')}
 								</Text>
 								<Text fontWeight="semibold">{product.name}</Text>
 							</Box>
 
 							<Box>
 								<Text fontSize="sm" color="gray.500">
-									Price
+									{t('common.price')}
 								</Text>
 								<Text fontWeight="semibold">
 									{formatPrice(
@@ -95,14 +97,14 @@ const ProductModal = ({
 							<HStack justify="space-between">
 								<Box>
 									<Text fontSize="sm" color="gray.500">
-										Barcode
+										{t('common.barcode')}
 									</Text>
 									<Text>{product.barcode || '-'}</Text>
 								</Box>
 
 								<Box textAlign="right">
 									<Text fontSize="sm" color="gray.500">
-										Stock
+										{t('common.stock')}
 									</Text>
 									<Text>{stockQuantity}</Text>
 								</Box>
@@ -110,10 +112,10 @@ const ProductModal = ({
 
 							<Box>
 								<Text fontSize="sm" color="gray.500">
-									Description
+									{t('productModal.description')}
 								</Text>
 								<Text whiteSpace="pre-wrap">
-									{product.description || 'No description'}
+									{product.description || t('productModal.noDescription')}
 								</Text>
 							</Box>
 						</VStack>
@@ -124,7 +126,7 @@ const ProductModal = ({
 					<ModalFooter>
 						<HStack w="100%">
 							<Button variant="ghost" onClick={onClose} w="full">
-								Cancel
+								{t('common.cancel')}
 							</Button>
 							<Button
 								colorScheme="green"
@@ -132,7 +134,7 @@ const ProductModal = ({
 								w="full"
 								isDisabled={stockQuantity <= 0}
 							>
-								Add to Cart
+								{t('productModal.addToCart')}
 							</Button>
 						</HStack>
 					</ModalFooter>

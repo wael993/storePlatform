@@ -1,18 +1,297 @@
 {
+	"appTitle": "منصة المتجر",
 	"settings": {
 		"updateSuccessMessage": "تم تحديث الإعدادات بنجاح.",
 		"updateFailedMessage": "فشل تحديث الإعدادات."
 	},
+	"navigation": {
+		"welcome": "مرحبًا",
+		"barcode": "الباركود",
+		"allProducts": "جميع المنتجات",
+		"addTenant": "إضافة مستأجر"
+	},
+	"welcome": {
+		"title": "مرحبًا بك في مساحة عمل متجرك",
+		"subtitle": "ابدأ يومك بالأدوات التي تحتاجها لإدارة المخزون والمبيعات والعملاء والموردين وعمليات المتجر.",
+		"cards": {
+			"manage": {
+				"title": "إدارة متجرك",
+				"description": "حافظ على تنظيم المنتجات والموردين والعملاء في مكان واحد."
+			},
+			"track": {
+				"title": "متابعة العمل اليومي",
+				"description": "تابع المبيعات والمشتريات والإجراءات اليومية بسجلات واضحة."
+			},
+			"control": {
+				"title": "ابقَ مسيطرًا",
+				"description": "راجع الفواتير والمستخدمين والإعدادات من منصة واحدة."
+			}
+		}
+	},
+	"tenants": {
+		"title": "قائمة المستأجرين",
+		"description": "راجع المستأجرين، وغيّر حالتهم، وعدّل الأسماء، أو احذفهم.",
+		"tenant": "المستأجر",
+		"tenantName": "اسم المستأجر",
+		"domain": "النطاق",
+		"created": "تاريخ الإنشاء",
+		"actions": "الإجراءات",
+		"empty": "لم يتم العثور على مستأجرين.",
+		"updateTenant": "تحديث المستأجر",
+		"deleteTenant": "حذف المستأجر",
+		"activateTenant": "تفعيل المستأجر",
+		"deactivateTenant": "إلغاء تفعيل المستأجر",
+		"noActionsAvailable": "لا توجد إجراءات متاحة",
+		"cannotUpdate": "لا يمكن تحديث المستأجر.",
+		"cannotDelete": "لا يمكن حذف المستأجر.",
+		"statusCannotChange": "لا يمكن تغيير حالة المستأجر.",
+		"updateSuccess": "تم تحديث المستأجر بنجاح.",
+		"updateFailed": "فشل تحديث المستأجر.",
+		"deleteSuccess": "تم حذف المستأجر بنجاح.",
+		"deleteFailed": "فشل حذف المستأجر.",
+		"activated": "تم تفعيل المستأجر.",
+		"deactivated": "تم إلغاء تفعيل المستأجر.",
+		"statusChangeFailed": "فشل تغيير حالة المستأجر.",
+		"deleteConfirmation": "هل تريد حذف المستأجر {{tenantName}}؟ سيؤدي ذلك إلى حذف جميع بيانات المستأجر."
+	},
+	"login": {
+		"welcomeBack": "مرحبًا بعودتك",
+		"signInSubtitle": "سجّل الدخول إلى حسابك",
+		"email": "البريد الإلكتروني",
+		"emailPlaceholder": "you@example.com",
+		"password": "كلمة المرور",
+		"passwordPlaceholder": "أدخل كلمة المرور",
+		"forgotPassword": "هل نسيت كلمة المرور؟",
+		"signingIn": "جارٍ تسجيل الدخول...",
+		"signIn": "تسجيل الدخول",
+		"inactiveTenant": "المستأجر غير نشط. تواصل مع مسؤول المنصة.",
+		"validationError": "يرجى التحقق من صيغة البريد الإلكتروني وكلمة المرور ثم المحاولة مرة أخرى.",
+		"emailRequired": "يرجى إدخال بريدك الإلكتروني.",
+		"emailRequiredFirst": "يرجى إدخال بريدك الإلكتروني أولًا.",
+		"emailInvalid": "يرجى إدخال بريد إلكتروني صالح (مثل user@example.com).",
+		"passwordMinLength": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+		"tooManyAttempts": "محاولات تسجيل الدخول كثيرة جدًا. يرجى المحاولة بعد دقيقة واحدة.",
+		"invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+		"resetSent": "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.",
+		"resetFailed": "فشل إرسال بريد إعادة التعيين."
+	},
+	"barcode": {
+		"scanPlaceholder": "امسح الباركود أو اكتبه يدويًا...",
+		"scan": "مسح",
+		"searching": "جارٍ البحث عن المنتج..."
+	},
+	"pagination": {
+		"previous": "السابق",
+		"next": "التالي",
+		"pageOf": "الصفحة {{currentPage}} من {{totalPages}}"
+	},
+	"orders": {
+		"empty": "لم يتم العثور على طلبات.",
+		"orderNumber": "رقم الطلب",
+		"items": "العناصر",
+		"total": "الإجمالي (€)",
+		"date": "التاريخ"
+	},
+	"invoices": {
+		"empty": "لم يتم العثور على فواتير.",
+		"invoiceNumber": "رقم الفاتورة",
+		"amount": "المبلغ (€)",
+		"issued": "تاريخ الإصدار"
+	},
+	"users": {
+		"title": "مستخدمو المستأجر",
+		"description": "ادعُ المستخدمين وأدرهم داخل المستأجر الخاص بك.",
+		"update": "تحديث",
+		"temporaryPassword": "كلمة المرور المؤقتة",
+		"inviteUser": "دعوة مستخدم",
+		"role": "الدور",
+		"name": "الاسم",
+		"invited": "تمت دعوة المستخدم: {{email}}",
+		"inviteFailed": "فشلت دعوة المستخدم.",
+		"roleUpdateSuccess": "تم تحديث دور المستخدم بنجاح.",
+		"roleUpdateFailed": "فشل تحديث الدور.",
+		"deleteSuccess": "تم حذف المستخدم بنجاح.",
+		"deleteFailed": "فشل حذف المستخدم."
+	},
+	"changePassword": {
+		"title": "تغيير كلمة المرور",
+		"currentPassword": "كلمة المرور الحالية",
+		"newPassword": "كلمة المرور الجديدة",
+		"confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+		"allFieldsRequired": "جميع الحقول مطلوبة.",
+		"passwordsDoNotMatch": "كلمتا المرور الجديدتان غير متطابقتين.",
+		"passwordMustDiffer": "يجب أن تختلف كلمة المرور الجديدة عن كلمة المرور الحالية.",
+		"failed": "فشل تغيير كلمة المرور."
+	},
+	"products": {
+		"allProducts": "جميع المنتجات",
+		"loadFailed": "فشل التحميل",
+		"stockValue": "المخزون: {{stock}}"
+	},
+	"notFound": {
+		"status": "الحالة: 404",
+		"title": "404",
+		"description": "عذرًا، الصفحة التي زرتها غير موجودة بعد. تواصل مع المسؤول إذا كنت تعتقد أن هذا خطأ.",
+		"goHome": "العودة إلى التتبع"
+	},
+	"addTenant": {
+		"title": "إضافة مستأجر جديد",
+		"description": "يمكن للمسؤولين العامين تسجيل مستأجر وتجهيز حساب المالك الخاص به.",
+		"successTitle": "تم إنشاء المستأجر بنجاح",
+		"tenantId": "معرّف المستأجر: {{tenantId}}",
+		"ownerUserId": "معرّف مستخدم المالك: {{ownerUserId}}",
+		"tenantDomain": "نطاق المستأجر",
+		"tenantDomainPlaceholder": "example.com",
+		"ownerUser": "مستخدم المالك",
+		"firstName": "الاسم الأول",
+		"lastName": "اسم العائلة",
+		"temporaryPassword": "كلمة المرور المؤقتة",
+		"createTenant": "إنشاء مستأجر",
+		"createFailed": "فشل إنشاء المستأجر.",
+		"validation": {
+			"tenantNameRequired": "اسم المستأجر مطلوب",
+			"tenantDomainRequired": "نطاق المستأجر مطلوب",
+			"firstNameRequired": "الاسم الأول مطلوب",
+			"lastNameRequired": "اسم العائلة مطلوب",
+			"emailInvalid": "يرجى إدخال بريد إلكتروني صالح",
+			"passwordMinLength": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+			"passwordLowercase": "يجب أن تحتوي على حرف صغير واحد على الأقل",
+			"passwordNumber": "يجب أن تحتوي على رقم واحد على الأقل",
+			"emailDomainMismatch": "يجب أن يطابق نطاق بريد المالك نطاق المستأجر"
+		}
+	},
+	"productModal": {
+		"newProduct": "منتج جديد",
+		"productDetails": "تفاصيل المنتج",
+		"notFound": "لم يتم العثور على المنتج",
+		"noDescription": "لا يوجد وصف",
+		"addToCart": "إضافة إلى السلة",
+		"saveProduct": "حفظ المنتج",
+		"nameBarcodeRequired": "الاسم والباركود مطلوبان.",
+		"requiredProductValues": "سعر الجملة وسعر البيع بالتجزئة وسعر الشراء وكمية المخزون مطلوبة.",
+		"createFailed": "فشل إنشاء المنتج.",
+		"productFactoryCode": "رمز المنتج في المصنع",
+		"categoryId": "معرّف الفئة",
+		"brandId": "معرّف العلامة التجارية",
+		"wholesalePrice": "سعر الجملة",
+		"retailSalePrice": "سعر البيع بالتجزئة",
+		"semiWholesaleSalesPrice": "سعر نصف الجملة",
+		"discountPrice": "سعر الخصم",
+		"currencyPlaceholder": "العملة (مثل EUR)",
+		"taxType": "نوع الضريبة",
+		"taxValue": "قيمة الضريبة",
+		"supplierId": "معرّف المورد",
+		"warehouse": "المستودع",
+		"shelf": "الرف",
+		"size": "الحجم",
+		"length": "الطول",
+		"width": "العرض",
+		"height": "الارتفاع",
+		"description": "الوصف",
+		"units": {
+			"piece": "قطعة",
+			"kg": "كغ",
+			"meter": "متر",
+			"set": "مجموعة",
+			"mm": "مم"
+		}
+	},
+	"supplier": {
+		"list": {
+			"name": "اسم المورد",
+			"internalCode": "رمز المورد",
+			"createdAt": "تاريخ الإنشاء"
+		}
+	},
 	"components": {
 		"budgetOverview": {
-			"tooltip": "موضوع الميزانية هو ملخص الميزانية للعميل.",
-			"text": "موضوع الميزانية",
-			"open": "مفتوح",
-			"accepted": "مقبول"
+			"tooltip": "نظرة عامة مختصرة على ميزانية العميل.",
+			"text": "نظرة عامة على الميزانية",
+			"purchase": "قيمة المشتريات",
+			"payments": "قيمة المدفوعات",
+			"balance": "الرصيد"
+		},
+		"customer": {
+			"name": "اسم العميل",
+			"code": "رمز العميل",
+			"sold": "المبيعات",
+			"createdAt": "تاريخ الإنشاء"
+		},
+		"daily": {
+			"dailyActions": "الإجراءات اليومية",
+			"buyingAction": "إجراء شراء",
+			"sellingAction": "إجراء بيع",
+			"receiptAction": "إجراء قبض",
+			"paymentAction": "إجراء دفع",
+			"confirmations": {
+				"deleteDailyAction": "حذف الإجراء اليومي",
+				"deleteDailyActionConfirmationBody": "هل أنت متأكد أنك تريد حذف هذا الإجراء اليومي؟",
+				"deleteDailyActionSuccess": "تم حذف الإجراء اليومي بنجاح.",
+				"deleteDailyActionError": "فشل حذف الإجراء اليومي."
+			},
+			"errors": {
+				"addProductFailed": "فشل إضافة المنتج",
+				"addSupplierFailed": "فشل إضافة المورد",
+				"addCustomerFailed": "فشل إضافة العميل",
+				"addCurrencyFailed": "فشل إضافة العملة",
+				"addUnitFailed": "فشل إضافة الوحدة"
+			},
+			"actionType": "نوع الإجراء",
+			"actionDate": "تاريخ الإجراء",
+			"actionSummary": "ملخص الإجراء",
+			"noActionSummary": "لا يوجد ملخص متاح لهذا الإجراء.",
+			"inputLockedWarning": "لم يعد مسموحًا بإجراء تغييرات على هذا الإجراء.",
+			"textPlaceholder": "أضف نصًا...",
+			"selectEntryType": "اختر نوع الإدخال",
+			"actionTypeMissing": "يرجى اختيار نوع الإجراء للمتابعة.",
+			"actionDataMissing": "يرجى ملء الحقول المطلوبة للمتابعة.",
+			"invoiceNumberMissing": "يرجى إدخال رقم الفاتورة للمتابعة.",
+			"invoiceDetailsMissing": "يرجى إدخال رقم الفاتورة وتاريخها للمتابعة.",
+			"actionSavedSuccessfully": "تم حفظ الإجراء اليومي بنجاح.",
+			"noDailyFound": "لم يتم العثور على إجراءات يومية",
+			"addQuickProduct": "إضافة منتج سريع",
+			"productName": "اسم المنتج",
+			"internalReference": "المرجع الداخلي",
+			"addQuickCurrency": "إضافة عملة سريعة",
+			"currencyName": "اسم العملة",
+			"addQuickSupplier": "إضافة مورد سريع",
+			"supplierName": "اسم المورد",
+			"addQuickCustomer": "إضافة عميل سريع",
+			"customerName": "اسم العميل",
+			"addQuickUnit": "إضافة وحدة سريعة",
+			"unitName": "اسم الوحدة",
+			"addProduct": "إضافة منتج",
+			"addCurrency": "إضافة عملة",
+			"addSupplier": "إضافة مورد",
+			"addCustomer": "إضافة عميل",
+			"addUnit": "إضافة وحدة",
+			"productCode": "رمز المنتج",
+			"currencyCode": "رمز العملة",
+			"supplierCode": "رمز المورد",
+			"customerCode": "رمز العميل",
+			"unitCode": "رمز الوحدة"
+		},
+		"pageHeaders": {
+			"settings": "الإعدادات",
+			"daily": "اليومية",
+			"products": "المنتجات",
+			"orders": "الطلبات",
+			"invoices": "الفواتير",
+			"customer": "العميل",
+			"supplier": "المورد",
+			"users": "المستخدمون",
+			"tenants": "المستأجرون",
+			"customers": "العملاء",
+			"suppliers": "الموردون"
 		},
 		"activitySettingsSection": {
-			"title": "المنتجات لكل صفحة",
-			"note": "قم بتكوين الإعدادات المتعلقة بالعداد هنا."
+			"title": "المنتجات لكل صفحة"
+		},
+		"activityDetail": {
+			"topSection": {
+				"failUpdateMessage": "فشل تحديث المنتج.",
+				"buyCostNoValue": "يرجى إدخال سعر شراء صالح."
+			}
 		},
 		"settings": {
 			"title": "الإعدادات",
@@ -39,6 +318,11 @@
 				"selectFiltersInfoExternal": "يرجى اختيار السنة أو تاريخ البداية والنهاية على الأقل للمتابعة.",
 				"dateToMissingWarning": "يرجى اختيار تاريخ النهاية للمتابعة.",
 				"dateFromMissingWarning": "يرجى اختيار تاريخ البداية للمتابعة."
+			},
+			"leavingModal": {
+				"header": "تغييرات غير محفوظة",
+				"body": "هل أنت متأكد أنك تريد المغادرة؟ توجد تغييرات غير محفوظة. إذا غادرت، ستفقد هذه التغييرات.",
+				"confirmationButtonText": "نعم، غادر"
 			}
 		},
 		"product": {
@@ -52,42 +336,88 @@
 			},
 			"noProducts": "لم يتم العثور على منتجات"
 		},
-		"list": {
-			"preferredBrand": "العلامة التجارية المفضلة"
-		},
 		"filters": {
+			"clearFilter": "مسح المرشح",
 			"clearFilters": "مسح المرشحات",
 			"filter": "المرشحات",
+			"search": "بحث",
+			"searchPlaceholder": "الاسم، معرّف المنتج، الباركود",
 			"saveFilterPreset": "حفظ إعدادات المرشحات",
 			"supplier": "المورد",
 			"category": "الفئة",
 			"state": "الحالة",
 			"brand": "العلامة التجارية"
+		},
+		"topBar": {
+			"logoAlt": "شعار منصة المتجر",
+			"welcome": "مرحبًا",
+			"notifications": "الإشعارات",
+			"releaseNotes": "ملاحظات الإصدار",
+			"settings": "الإعدادات",
+			"menu": "القائمة",
+			"greeting": "مرحبًا، {{userName}}",
+			"logout": "تسجيل الخروج",
+			"noNavigationItems": "لا توجد عناصر تنقل متاحة."
 		}
 	},
 	"common": {
+		"delete": "حذف",
+		"lock": "قفل",
+		"superAdmin": "المسؤول العام",
+		"logoutFailed": "فشل تسجيل الخروج.",
+		"active": "نشط",
+		"inactive": "غير نشط",
 		"noElementsFound": "لم يتم العثور على عناصر",
 		"emptyStateTitle": "لا يوجد شيء لعرضه بعد",
 		"emptyStateDescription": "جرّب تعديل البحث أو أضف عنصرًا جديدًا للبدء.",
-		"noOptions": "لا توجد خيارات",
-		"inputSearch": "بحث...",
-		"showResults": "عرض النتائج",
-		"addProduct": "إضافة منتج",
+		"addDailyAction": "إضافة إجراء يومي",
 		"downloadExcel": "تنزيل Excel",
 		"downloadExcelError": "فشل تنزيل ملف Excel.",
+		"entryType": "نوع الإدخال",
+		"weight": "الوزن",
+		"unitPrice": "سعر الوحدة",
+		"singleUnitPrice": "سعر الوحدة",
+		"totalPrice": "السعر الإجمالي",
+		"amount": "المبلغ",
+		"price": "السعر",
+		"stock": "المخزون",
+		"supplierOrCustomer": "المورد / العميل",
+		"noOptions": "لا توجد خيارات",
+		"optionDoesNotExist": "هذا الخيار غير موجود",
+		"inputSearch": "بحث...",
+		"showResults": "عرض النتائج",
+		"show": "إظهار",
+		"hide": "إخفاء",
+		"add": "إضافة",
+		"addEntry": "إضافة إدخال",
+		"addProduct": "إضافة منتج",
+		"addCustomer": "إضافة عميل",
+		"addSupplier": "إضافة مورد",
+		"product": "المنتج",
+		"supplier": "المورد",
+		"customer": "العميل",
+		"dailyAction": "إجراء يومي",
+		"currency": "العملة",
+		"unit": "الوحدة",
 		"productName": "اسم المنتج",
+		"supplierName": "اسم المورد",
+		"customerName": "اسم العميل",
+		"currencyName": "اسم العملة",
+		"unitName": "اسم الوحدة",
 		"barcode": "الباركود",
 		"brand": "اسم العلامة التجارية",
 		"category": "اسم الفئة",
 		"buyCost": "سعر الشراء",
+		"addBuyCost": "إضافة سعر الشراء",
 		"sellPrice": "سعر البيع",
 		"stockQuantity": "كمية المخزون",
 		"stockMinQuantity": "الحد الأدنى لكمية المخزون",
-		"supplierName": "اسم المورد",
 		"locationWarehouse": "موقع المستودع",
 		"locationShelf": "الرف",
-		"startDate": "تاريخ البدء",
 		"status": "الحالة",
+		"error": "خطأ!",
+		"tooltip": "تلميح",
+		"unknownState": "غير معروف",
 		"from": "من",
 		"to": "إلى",
 		"selected": "محدد",
@@ -110,19 +440,22 @@
 		"invoiceDateIsToday": "تاريخ الفاتورة هو اليوم",
 		"invoiceDatePlaceholder": "اختر تاريخ الفاتورة",
 		"datePlaceholder": "اختر التاريخ",
+		"datePicker": "منتقي التاريخ",
 		"openCalendar": "فتح التقويم",
 		"clearDate": "مسح التاريخ",
-		"entryType": "نوع الإدخال",
-		"weight": "الوزن",
-		"unitPrice": "سعر الوحدة",
-		"totalPrice": "السعر الإجمالي",
-		"supplierOrCustomer": "المورد / العميل",
-		"addDailyAction": "إضافة إجراء يومي",
-		"buyingEntry": " حركة شراء",
-		"sellingEntry": " حركة بيع",
-		"paymentEntry": " حركة دفع",
-		"receiptEntry": " حركة قبض",
-		"expenseEntry": " حركة مصروف",
-		"otherEntry": " آخر حركة"
+		"fileOptions": "خيارات الملف",
+		"listOptions": "خيارات القائمة",
+		"warning": "تحذير",
+		"nextStep": "الخطوة التالية",
+		"back": "رجوع",
+		"submit": "إرسال",
+		"buyingEntry": "حركة شراء",
+		"sellingEntry": "حركة بيع",
+		"paymentEntry": "حركة دفع",
+		"receiptEntry": "حركة قبض",
+		"supplierFocus": "تركيز المورد",
+		"addFocus": "إضافة تركيز",
+		"shop": "المتجر",
+		"promotionSpace": "مساحة العرض"
 	}
 }

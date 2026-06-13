@@ -330,10 +330,12 @@
 // 	)
 // }
 
-import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 const CustomSingleDatePicker = () => {
-	return <div>CustomSingleDatePicker</div>
+	const { t } = useTranslation()
+
+	return <div>{t('common.datePicker')}</div>
 }
 
 export default CustomSingleDatePicker

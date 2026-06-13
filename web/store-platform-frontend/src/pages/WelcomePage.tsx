@@ -1,17 +1,18 @@
 import { Box, Flex, Heading, Image, SimpleGrid, Stack, Text } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
 
 const infoItems = [
 	{
-		title: 'Manage your store',
-		description: 'Keep products, suppliers, and customers organized in one place.',
+		titleKey: 'welcome.cards.manage.title',
+		descriptionKey: 'welcome.cards.manage.description',
 	},
 	{
-		title: 'Track daily work',
-		description: 'Follow sales, purchases, and daily actions with clear records.',
+		titleKey: 'welcome.cards.track.title',
+		descriptionKey: 'welcome.cards.track.description',
 	},
 	{
-		title: 'Stay in control',
-		description: 'Review invoices, users, and settings from a single platform.',
+		titleKey: 'welcome.cards.control.title',
+		descriptionKey: 'welcome.cards.control.description',
 	},
 ]
 
@@ -64,6 +65,8 @@ const styles = {
 } satisfies StylesObject
 
 const WelcomePage = () => {
+	const { t } = useTranslation()
+
 	return (
 		<Flex sx={styles.wrapper}>
 			<Stack sx={styles.card} gap={0}>
@@ -72,7 +75,7 @@ const WelcomePage = () => {
 						<Flex sx={styles.logoWrap}>
 							<Image
 								src="/favicon.ico"
-								alt="Store Platform"
+								alt={t('components.topBar.logoAlt')}
 								w={{ base: '4.5rem', md: '5.5rem' }}
 								h={{ base: '4.5rem', md: '5.5rem' }}
 								objectFit="contain"
@@ -85,18 +88,17 @@ const WelcomePage = () => {
 							letterSpacing="0.14em"
 							textTransform="uppercase"
 						>
-							Store Platform
+							{t('appTitle')}
 						</Text>
 						<Heading
 							color="gray.900"
 							fontSize={{ base: '2rem', md: '3rem' }}
 							lineHeight={1.1}
 						>
-							Welcome to your store workspace
+							{t('welcome.title')}
 						</Heading>
 						<Text color="gray.600" fontSize={{ base: 'md', md: 'lg' }} maxW="34rem">
-							Start your day with the tools you need to manage stock, sales,
-							customers, suppliers, and store operations.
+							{t('welcome.subtitle')}
 						</Text>
 					</Stack>
 				</Flex>
@@ -104,12 +106,12 @@ const WelcomePage = () => {
 				<Box sx={styles.infoPanel}>
 					<SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
 						{infoItems.map(item => (
-							<Stack key={item.title} sx={styles.infoItem} gap={2}>
+							<Stack key={item.titleKey} sx={styles.infoItem} gap={2}>
 								<Text color="gray.900" fontWeight={800}>
-									{item.title}
+									{t(item.titleKey)}
 								</Text>
 								<Text color="gray.600" fontSize="sm" lineHeight="1.6">
-									{item.description}
+									{t(item.descriptionKey)}
 								</Text>
 							</Stack>
 						))}

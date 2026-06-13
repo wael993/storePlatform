@@ -280,7 +280,7 @@ const TopSection = ({
 						sx={styles.addButton}
 						variant="ghost"
 					>
-						<Text sx={styles.addButtonText}>Add Entry</Text>
+						<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
 					</Button>
 					<CloseButton onClose={onClose} />
 				</HStack>

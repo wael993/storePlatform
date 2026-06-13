@@ -201,7 +201,7 @@ export const ExcelDownload = ({
 				<PopoverTrigger>
 					<IconButton
 						sx={styles.iconButton}
-						aria-label="file-options"
+						aria-label={t('common.fileOptions')}
 						icon={<ThreeDotsIcon boxSize={6} />}
 						isDisabled={isDisabled || !excelUrl || isDownloading}
 						isLoading={isDownloading}

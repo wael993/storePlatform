@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -24,19 +24,27 @@ import { useAddTenantMutation } from '../api/apiStore'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
 
-const createTenantSchema = z
+const createTenantSchema = (t: (key: string) => string) =>
+	z
 	.object({
-		tenantName: z.string().min(1, 'Tenant name is required'),
-		tenantDomain: z.string().min(1, 'Tenant domain is required'),
-		ownerFirstName: z.string().min(1, 'First name is required'),
-		ownerLastName: z.string().min(1, 'Last name is required'),
-		ownerEmail: z.string().email('Please enter a valid email address'),
+		tenantName: z.string().min(1, t('addTenant.validation.tenantNameRequired')),
+		tenantDomain: z
+			.string()
+			.min(1, t('addTenant.validation.tenantDomainRequired')),
+		ownerFirstName: z
+			.string()
+			.min(1, t('addTenant.validation.firstNameRequired')),
+		ownerLastName: z
+			.string()
+			.min(1, t('addTenant.validation.lastNameRequired')),
+		ownerEmail: z.string().email(t('addTenant.validation.emailInvalid')),
 		ownerPassword: z
 			.string()
-			.min(8, 'Password must be at least 8 characters')
-			.regex(/[a-z]/, 'Must contain at least one lowercase letter')
-			.regex(/\d/, 'Must contain at least one number'),
+			.min(8, t('addTenant.validation.passwordMinLength'))
+			.regex(/[a-z]/, t('addTenant.validation.passwordLowercase'))
+			.regex(/\d/, t('addTenant.validation.passwordNumber')),
 	})
 	.superRefine((data, ctx) => {
 		if (data.ownerEmail && data.tenantDomain) {
@@ -44,17 +52,19 @@ const createTenantSchema = z
 			if (emailDomain !== data.tenantDomain.toLowerCase()) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
-					message: 'Owner email domain must match tenant domain',
+					message: t('addTenant.validation.emailDomainMismatch'),
 					path: ['ownerEmail'],
 				})
 			}
 		}
 	})
 
-type TenantFormData = z.infer<typeof createTenantSchema>
+type TenantFormData = z.infer<ReturnType<typeof createTenantSchema>>
 
 const AddNewTenant = () => {
+	const { t } = useTranslation()
 	const breadcrumbs = generateBreadcrumbs()
+	const tenantSchema = useMemo(() => createTenantSchema(t), [t])
 
 	const [addTenant, { isLoading }] = useAddTenantMutation()
 
@@ -67,7 +77,7 @@ const AddNewTenant = () => {
 		reset,
 		formState: { errors, isValid },
 	} = useForm<TenantFormData>({
-		resolver: zodResolver(createTenantSchema),
+		resolver: zodResolver(tenantSchema),
 		mode: 'onChange',
 	})
 
@@ -87,7 +97,7 @@ const AddNewTenant = () => {
 				typeof (err as { data?: { message?: unknown } }).data?.message ===
 					'string'
 					? (err as { data: { message: string } }).data.message
-					: 'Failed to create tenant.'
+					: t('addTenant.createFailed')
 
 			setServerError(errorMessage)
 		}
@@ -99,10 +109,9 @@ const AddNewTenant = () => {
 				<CustomBreadcrumb items={breadcrumbs[BreadCrumbItem.ADD_NEW_TENANT]} />
 
 				<Box>
-					<Heading size="lg">Add New Tenant</Heading>
+					<Heading size="lg">{t('addTenant.title')}</Heading>
 					<Text color="gray.600">
-						Super administrators can register a tenant and provision its owner
-						account.
+						{t('addTenant.description')}
 					</Text>
 				</Box>
 
@@ -117,11 +126,15 @@ const AddNewTenant = () => {
 					<Alert status="success" borderRadius="md">
 						<AlertIcon />
 						<Box>
-							<AlertTitle>Tenant Created Successfully</AlertTitle>
-							<AlertDescription>Tenant ID: {success.tenantId}</AlertDescription>
+							<AlertTitle>{t('addTenant.successTitle')}</AlertTitle>
+							<AlertDescription>
+								{t('addTenant.tenantId', { tenantId: success.tenantId })}
+							</AlertDescription>
 							<br />
 							<AlertDescription>
-								Owner User ID: {success.ownerUserId}
+								{t('addTenant.ownerUserId', {
+									ownerUserId: success.ownerUserId,
+								})}
 							</AlertDescription>
 						</Box>
 					</Alert>
@@ -132,7 +145,7 @@ const AddNewTenant = () => {
 						<Stack gap={5}>
 							<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
 								<FormControl isRequired isInvalid={Boolean(errors.tenantName)}>
-									<FormLabel>Tenant Name</FormLabel>
+									<FormLabel>{t('tenants.tenantName')}</FormLabel>
 									<Input {...register('tenantName')} />
 									<FormErrorMessage>
 										{errors.tenantName?.message}
@@ -143,9 +156,9 @@ const AddNewTenant = () => {
 									isRequired
 									isInvalid={Boolean(errors.tenantDomain)}
 								>
-									<FormLabel>Tenant Domain</FormLabel>
+									<FormLabel>{t('addTenant.tenantDomain')}</FormLabel>
 									<Input
-										placeholder="example.com"
+										placeholder={t('addTenant.tenantDomainPlaceholder')}
 										{...register('tenantDomain')}
 									/>
 									<FormErrorMessage>
@@ -154,14 +167,14 @@ const AddNewTenant = () => {
 								</FormControl>
 							</SimpleGrid>
 
-							<Heading size="sm">Owner User</Heading>
+							<Heading size="sm">{t('addTenant.ownerUser')}</Heading>
 
 							<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
 								<FormControl
 									isRequired
 									isInvalid={Boolean(errors.ownerFirstName)}
 								>
-									<FormLabel>First Name</FormLabel>
+									<FormLabel>{t('addTenant.firstName')}</FormLabel>
 									<Input {...register('ownerFirstName')} />
 									<FormErrorMessage>
 										{errors.ownerFirstName?.message}
@@ -172,7 +185,7 @@ const AddNewTenant = () => {
 									isRequired
 									isInvalid={Boolean(errors.ownerLastName)}
 								>
-									<FormLabel>Last Name</FormLabel>
+									<FormLabel>{t('addTenant.lastName')}</FormLabel>
 									<Input {...register('ownerLastName')} />
 									<FormErrorMessage>
 										{errors.ownerLastName?.message}
@@ -180,7 +193,7 @@ const AddNewTenant = () => {
 								</FormControl>
 
 								<FormControl isRequired isInvalid={Boolean(errors.ownerEmail)}>
-									<FormLabel>Email</FormLabel>
+									<FormLabel>{t('login.email')}</FormLabel>
 									<Input type="email" {...register('ownerEmail')} />
 									<FormErrorMessage>
 										{errors.ownerEmail?.message}
@@ -191,7 +204,7 @@ const AddNewTenant = () => {
 									isRequired
 									isInvalid={Boolean(errors.ownerPassword)}
 								>
-									<FormLabel>Temporary Password</FormLabel>
+									<FormLabel>{t('addTenant.temporaryPassword')}</FormLabel>
 									<Input type="password" {...register('ownerPassword')} />
 									<FormErrorMessage>
 										{errors.ownerPassword?.message}
@@ -205,7 +218,7 @@ const AddNewTenant = () => {
 								isLoading={isLoading}
 								isDisabled={!isValid}
 							>
-								Create Tenant
+								{t('addTenant.createTenant')}
 							</Button>
 						</Stack>
 					</form>

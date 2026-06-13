@@ -65,7 +65,7 @@ const OptionsPopover = ({ offer }: OptionsPopoverProps) => {
 			<PopoverTrigger>
 				<IconButton
 					sx={styles.iconButton}
-					aria-label="list-options"
+					aria-label={t('common.listOptions')}
 					icon={<ThreeDotsIcon />}
 					onClick={e => {
 						onPopoverOpen()

@@ -1,7 +1,9 @@
 import { Box, Input, Button, VStack } from '@chakra-ui/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const AddProductForm = () => {
+	const { t } = useTranslation()
 	const [form, setForm] = useState({
 		name: '',
 		price: '',
@@ -22,23 +24,23 @@ const AddProductForm = () => {
 		<Box>
 			<VStack>
 				<Input
-					placeholder="Name"
+					placeholder={t('common.productName')}
 					onChange={e => handleChange('name', e.target.value)}
 				/>
 				<Input
-					placeholder="Price"
+					placeholder={t('common.price')}
 					onChange={e => handleChange('price', e.target.value)}
 				/>
 				<Input
-					placeholder="Barcode"
+					placeholder={t('common.barcode')}
 					onChange={e => handleChange('barcode', e.target.value)}
 				/>
 				<Input
-					placeholder="Stock"
+					placeholder={t('common.stock')}
 					onChange={e => handleChange('count', e.target.value)}
 				/>
 				<Button onClick={handleSubmit} colorScheme="green">
-					Add Product
+					{t('common.addProduct')}
 				</Button>
 			</VStack>
 		</Box>

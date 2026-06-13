@@ -245,9 +245,9 @@ const FilterModal = ({
 							key={'searchbar'}
 						>
 							<FormControl sx={styles.filterField}>
-								<FormLabel mb={1}>Search</FormLabel>
+								<FormLabel mb={1}>{t('components.filters.search')}</FormLabel>
 								<Input
-									placeholder="Name, Product ID, Barcode"
+									placeholder={t('components.filters.searchPlaceholder')}
 									value={localFilters.searchText}
 									onChange={e =>
 										setLocalFilters(prev => ({

@@ -13,9 +13,10 @@ import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
-import { RoutePaths } from '../shared/routes'
+import { RoutePaths, routeLabelKeys } from '../shared/routes'
 import TopBar from './TopBar'
 import { useUser } from '../shared/hooks/useUser'
+import { useTranslation } from 'react-i18next'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	display: 'block',
@@ -29,6 +30,7 @@ const navStyle = ({ isActive }: { isActive: boolean }) => ({
 })
 
 const SuperAdminLayout = () => {
+	const { t } = useTranslation()
 	const [logoutCurrent, { isLoading }] = useLogoutCurrentMutation()
 	const [error, setError] = useState('')
 	const dispatch = useDispatch()
@@ -41,10 +43,10 @@ const SuperAdminLayout = () => {
 
 	const topBarItems = [
 		isAddNewTenantEnabled && isTenantAddNewTenantEnabled
-			? { label: 'Add Tenant', path: RoutePaths.ADD_NEW_TENANT }
+			? { label: t(routeLabelKeys.ADD_NEW_TENANT), path: RoutePaths.ADD_NEW_TENANT }
 			: null,
 		isTenantsListEnabled && isTenantTenantsListEnabled
-			? { label: 'Tenants List', path: RoutePaths.TENANTS_LIST }
+			? { label: t(routeLabelKeys.TENANTS_LIST), path: RoutePaths.TENANTS_LIST }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
@@ -55,7 +57,7 @@ const SuperAdminLayout = () => {
 		try {
 			await logoutCurrent().unwrap()
 		} catch (submitError: any) {
-			setError(submitError?.data?.message || 'Logout failed.')
+			setError(submitError?.data?.message || t('common.logoutFailed'))
 		} finally {
 			dispatch(logout())
 			navigate(RoutePaths.LOGIN, { replace: true })
@@ -76,10 +78,10 @@ const SuperAdminLayout = () => {
 			>
 				<Box>
 					<Text fontSize="xs" textTransform="uppercase" color="gray.500">
-						Store Platform
+						{t('appTitle')}
 					</Text>
 					<Heading size="md" mt={1}>
-						Super Admin
+						{t('common.superAdmin')}
 					</Heading>
 				</Box>
 
@@ -88,12 +90,12 @@ const SuperAdminLayout = () => {
 				<Stack gap={2}>
 					{isAddNewTenantEnabled && isTenantAddNewTenantEnabled && (
 						<Box as={NavLink} to={RoutePaths.ADD_NEW_TENANT} style={navStyle}>
-							Add Tenant
+							{t(routeLabelKeys.ADD_NEW_TENANT)}
 						</Box>
 					)}
 					{isTenantsListEnabled && isTenantTenantsListEnabled && (
 						<Box as={NavLink} to={RoutePaths.TENANTS_LIST} style={navStyle}>
-							Tenants List
+							{t(routeLabelKeys.TENANTS_LIST)}
 						</Box>
 					)}
 				</Stack>
@@ -110,7 +112,7 @@ const SuperAdminLayout = () => {
 						onClick={handleLogout}
 						isLoading={isLoading}
 					>
-						Logout
+						{t('components.topBar.logout')}
 					</Button>
 				</Box>
 			</Box>

@@ -39,11 +39,13 @@ import {
 	useGetTenantsQuery,
 	useUpdateTenantMutation,
 } from '../api/apiStore'
+import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
 
 const TenantsList = () => {
+	const { t } = useTranslation()
 	const breadCrumbItems = generateBreadcrumbs()
 	const { data: tenants = [], isLoading, isFetching } = useGetTenantsQuery()
 	const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation()
@@ -66,7 +68,7 @@ const TenantsList = () => {
 
 	const openEditModal = (tenant: TenantSummary) => {
 		if (!tenant.permissions.canUpdate) {
-			setFeedback(tenant.permissions.reason || 'Tenant cannot be updated.')
+			setFeedback(tenant.permissions.reason || t('tenants.cannotUpdate'))
 			return
 		}
 
@@ -93,18 +95,16 @@ const TenantsList = () => {
 				tenantId: selectedTenant.tenantId,
 				body: { tenantName, status: selectedTenant.status },
 			}).unwrap()
-			setFeedback('Tenant updated successfully.')
+			setFeedback(t('tenants.updateSuccess'))
 			closeEditModal()
 		} catch (error: any) {
-			setFeedback(error?.data?.message || 'Failed to update tenant.')
+			setFeedback(error?.data?.message || t('tenants.updateFailed'))
 		}
 	}
 
 	const toggleTenantStatus = async (tenant: TenantSummary) => {
 		if (!tenant.permissions.canToggleStatus) {
-			setFeedback(
-				tenant.permissions.reason || 'Tenant status cannot be changed.',
-			)
+			setFeedback(tenant.permissions.reason || t('tenants.statusCannotChange'))
 			return
 		}
 
@@ -114,21 +114,23 @@ const TenantsList = () => {
 				body: { status: tenant.status === 'active' ? 'inactive' : 'active' },
 			}).unwrap()
 			setFeedback(
-				`Tenant ${tenant.status === 'active' ? 'deactivated' : 'activated'}.`,
+				tenant.status === 'active'
+					? t('tenants.deactivated')
+					: t('tenants.activated'),
 			)
 		} catch (error: any) {
-			setFeedback(error?.data?.message || 'Failed to change tenant status.')
+			setFeedback(error?.data?.message || t('tenants.statusChangeFailed'))
 		}
 	}
 
 	const removeTenant = async (tenant: TenantSummary) => {
 		if (!tenant.permissions.canDelete) {
-			setFeedback(tenant.permissions.reason || 'Tenant cannot be deleted.')
+			setFeedback(tenant.permissions.reason || t('tenants.cannotDelete'))
 			return
 		}
 
 		const confirmed = window.confirm(
-			`Delete tenant ${tenant.name}? This will remove all tenant data.`,
+			t('tenants.deleteConfirmation', { tenantName: tenant.name }),
 		)
 		if (!confirmed) {
 			return
@@ -136,9 +138,9 @@ const TenantsList = () => {
 
 		try {
 			await deleteTenant(tenant.tenantId).unwrap()
-			setFeedback('Tenant deleted successfully.')
+			setFeedback(t('tenants.deleteSuccess'))
 		} catch (error: any) {
-			setFeedback(error?.data?.message || 'Failed to delete tenant.')
+			setFeedback(error?.data?.message || t('tenants.deleteFailed'))
 		}
 	}
 
@@ -149,9 +151,9 @@ const TenantsList = () => {
 					items={breadCrumbItems[BreadCrumbItem.TENANTS_LIST]}
 				/>
 				<Box>
-					<Heading size="lg">Tenants List</Heading>
+					<Heading size="lg">{t('tenants.title')}</Heading>
 					<Text color="gray.600">
-						Review tenants, switch their status, edit names, or delete them.
+						{t('tenants.description')}
 					</Text>
 				</Box>
 
@@ -166,11 +168,11 @@ const TenantsList = () => {
 					<Table>
 						<Thead>
 							<Tr>
-								<Th>Tenant</Th>
-								<Th>Domain</Th>
-								<Th>Status</Th>
-								<Th>Created</Th>
-								<Th textAlign="right">Actions</Th>
+								<Th>{t('tenants.tenant')}</Th>
+								<Th>{t('tenants.domain')}</Th>
+								<Th>{t('common.status')}</Th>
+								<Th>{t('tenants.created')}</Th>
+								<Th textAlign="right">{t('tenants.actions')}</Th>
 							</Tr>
 						</Thead>
 						<Tbody>
@@ -193,7 +195,9 @@ const TenantsList = () => {
 													tenant.status === 'active' ? 'green' : 'orange'
 												}
 											>
-												{tenant.status}
+												{tenant.status === 'active'
+													? t('common.active')
+													: t('common.inactive')}
 											</Badge>
 										</Td>
 										<Td>{new Date(tenant.createdAt).toLocaleString()}</Td>
@@ -202,7 +206,7 @@ const TenantsList = () => {
 											!permissions.canToggleStatus &&
 											!permissions.canDelete ? (
 												<Text fontSize="sm" color="gray.500" textAlign="right">
-													{permissions.reason || 'No actions available'}
+													{permissions.reason || t('tenants.noActionsAvailable')}
 												</Text>
 											) : (
 												<ButtonGroup
@@ -211,9 +215,9 @@ const TenantsList = () => {
 													display="flex"
 												>
 													{permissions.canUpdate ? (
-														<Tooltip label="Update tenant" hasArrow>
+														<Tooltip label={t('tenants.updateTenant')} hasArrow>
 															<IconButton
-																aria-label="Update tenant"
+																aria-label={t('tenants.updateTenant')}
 																onClick={() => openEditModal(tenant)}
 																icon={<EditIcon />}
 															/>
@@ -223,16 +227,16 @@ const TenantsList = () => {
 														<Tooltip
 															label={
 																tenant.status === 'active'
-																	? 'Deactivate tenant'
-																	: 'Activate tenant'
+																	? t('tenants.deactivateTenant')
+																	: t('tenants.activateTenant')
 															}
 															hasArrow
 														>
 															<IconButton
 																aria-label={
 																	tenant.status === 'active'
-																		? 'Deactivate tenant'
-																		: 'Activate tenant'
+																		? t('tenants.deactivateTenant')
+																		: t('tenants.activateTenant')
 																}
 																colorScheme={
 																	tenant.status === 'active'
@@ -251,9 +255,9 @@ const TenantsList = () => {
 														</Tooltip>
 													) : null}
 													{permissions.canDelete ? (
-														<Tooltip label="Delete tenant" hasArrow>
+														<Tooltip label={t('tenants.deleteTenant')} hasArrow>
 															<IconButton
-																aria-label="Delete tenant"
+																aria-label={t('tenants.deleteTenant')}
 																colorScheme="red"
 																onClick={() => removeTenant(tenant)}
 																icon={<DeleteIcon />}
@@ -270,7 +274,7 @@ const TenantsList = () => {
 					</Table>
 					{!sortedTenants.length && !isBusy ? (
 						<Box p={6} textAlign="center">
-							<Text color="gray.500">No tenants found.</Text>
+							<Text color="gray.500">{t('tenants.empty')}</Text>
 						</Box>
 					) : null}
 					{isBusy ? (
@@ -284,20 +288,20 @@ const TenantsList = () => {
 			<Modal isOpen={isOpen} onClose={closeEditModal}>
 				<ModalOverlay />
 				<ModalContent>
-					<ModalHeader>Update Tenant</ModalHeader>
+					<ModalHeader>{t('tenants.updateTenant')}</ModalHeader>
 					<ModalCloseButton />
 					<form onSubmit={saveTenant}>
 						<ModalBody>
 							<Stack gap={4}>
 								<FormControl isRequired>
-									<FormLabel>Tenant Name</FormLabel>
+									<FormLabel>{t('tenants.tenantName')}</FormLabel>
 									<Input
 										value={tenantName}
 										onChange={event => setTenantName(event.target.value)}
 									/>
 								</FormControl>
 								<FormControl>
-									<FormLabel>Status</FormLabel>
+									<FormLabel>{t('common.status')}</FormLabel>
 									<Select
 										value={selectedTenant?.status ?? 'active'}
 										onChange={event =>
@@ -313,18 +317,18 @@ const TenantsList = () => {
 											)
 										}
 									>
-										<option value="active">active</option>
-										<option value="inactive">inactive</option>
+										<option value="active">{t('common.active')}</option>
+										<option value="inactive">{t('common.inactive')}</option>
 									</Select>
 								</FormControl>
 							</Stack>
 						</ModalBody>
 						<ModalFooter>
 							<Button variant="ghost" mr={3} onClick={closeEditModal}>
-								Cancel
+								{t('common.cancel')}
 							</Button>
 							<Button colorScheme="blue" type="submit" isLoading={isUpdating}>
-								Save
+								{t('common.save')}
 							</Button>
 						</ModalFooter>
 					</form>

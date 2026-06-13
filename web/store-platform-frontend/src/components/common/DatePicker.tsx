@@ -235,10 +235,12 @@
 
 // export default DatePicker
 
-import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 const DatePicker = () => {
-	return <div>DatePicker</div>
+	const { t } = useTranslation()
+
+	return <div>{t('common.datePicker')}</div>
 }
 
 export default DatePicker

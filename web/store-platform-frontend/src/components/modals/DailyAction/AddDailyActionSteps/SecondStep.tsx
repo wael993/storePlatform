@@ -1,6 +1,6 @@
 import React from 'react'
 import { Heading, SimpleGrid, VStack, Box } from '@chakra-ui/react'
-import { t } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import { documentNameStyles } from '../../../../theme/styles'
 import InputLabel from '../../../common/InputLabel'
 import TextLabel from '../../../common/TextLabel'
@@ -47,21 +47,25 @@ const SecondStep = ({
 	handleDropdownChange,
 	handleInputChange,
 }: SecondStepProps) => {
+	const { t } = useTranslation()
+
 	return (
 		<>
 			{(isBuyingEntry || isSellingEntry) && (
 				<>
 					<Heading fontSize={'1rem'} marginBottom={'1rem'}>
-						{isBuyingEntry ? 'Buying Action' : 'Selling Action'}
+						{isBuyingEntry
+							? t('components.daily.buyingAction')
+							: t('components.daily.sellingAction')}
 					</Heading>
 
 					<SimpleGrid columns={[1, 2, 3]} gap={6}>
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<TextLabel label={' Product'} />
+							<TextLabel label={t('common.product')} />
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									isSingle={true}
-									placeholder={t('Product Name')}
+									placeholder={t('common.productName')}
 									dropDownOptions={products.map((product: Product) => ({
 										value: product.productId ?? product.internalCode,
 										label: product.name ?? product.internalCode ?? 'TBD',
@@ -86,11 +90,11 @@ const SecondStep = ({
 
 						{isBuyingEntry && (
 							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-								<TextLabel label={' Supplier'} />
+								<TextLabel label={t('common.supplier')} />
 								<Box sx={dropdownStyles.dropDownContainer}>
 									<Dropdown
 										isSingle={true}
-										placeholder={t('Supplier Name')}
+										placeholder={t('common.supplierName')}
 										dropDownOptions={suppliers.map(supplier => ({
 											value: supplier.supplierId ?? supplier.internalCode,
 											label: supplier.name ?? supplier.internalCode ?? 'TBD',
@@ -117,11 +121,11 @@ const SecondStep = ({
 
 						{isSellingEntry && (
 							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-								<TextLabel label={' Customer'} />
+								<TextLabel label={t('common.customer')} />
 								<Box sx={dropdownStyles.dropDownContainer}>
 									<Dropdown
 										isSingle={true}
-										placeholder={t('Customer Name')}
+										placeholder={t('common.customerName')}
 										dropDownOptions={customers.map(customer => ({
 											value: customer.customerId ?? customer.internalCode,
 											label: customer.name ?? customer.internalCode ?? 'TBD',
@@ -147,10 +151,10 @@ const SecondStep = ({
 						)}
 
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<TextLabel label={' Currency'} />
+							<TextLabel label={t('common.currency')} />
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
-									placeholder={t('Currency Name')}
+									placeholder={t('common.currencyName')}
 									dropDownOptions={currency.map((currency: Currency) => ({
 										value: currency.currencyId ?? currency.internalCode,
 										label: currency.name ?? currency.internalCode ?? 'TBD',
@@ -174,10 +178,10 @@ const SecondStep = ({
 							</Box>
 						</VStack>
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<TextLabel label={' Unit'} />
+							<TextLabel label={t('common.unit')} />
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
-									placeholder={t('Unit Name')}
+									placeholder={t('common.unitName')}
 									dropDownOptions={unit.map((unit: Unit) => ({
 										value: unit.unitId ?? unit.internalCode,
 										label: unit.name ?? unit.internalCode ?? 'TBD',
@@ -201,8 +205,8 @@ const SecondStep = ({
 						<VStack sx={{ gap: '1.25rem', alignItems: 'left' }}>
 							<InputLabel
 								withGap={true}
-								label={'Weight'}
-								inputPlaceholder={'Weight'}
+								label={t('common.weight')}
+								inputPlaceholder={t('common.weight')}
 								inputType={'number'}
 								styles={documentNameStyles}
 								value={formData?.weight ?? ''}
@@ -212,8 +216,8 @@ const SecondStep = ({
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 							<InputLabel
 								withGap={true}
-								label={'Single Unit Price'}
-								inputPlaceholder={'Single Unit Price'}
+								label={t('common.singleUnitPrice')}
+								inputPlaceholder={t('common.singleUnitPrice')}
 								inputType={'number'}
 								styles={documentNameStyles}
 								value={formData?.singleUnitPrice ?? ''}
@@ -231,7 +235,7 @@ const SecondStep = ({
 							marginTop: '1rem',
 						}}
 					>
-						<TextLabel label={'Total Price'} value={totalPrice} />
+						<TextLabel label={t('common.totalPrice')} value={totalPrice} />
 					</Box>
 					<DailyActionsHelperButtons />
 				</>
@@ -239,16 +243,18 @@ const SecondStep = ({
 			{(isReceiptEntry || isPaymentEntry) && (
 				<>
 					<Heading fontSize={'1rem'} marginBottom={'1rem'}>
-						{isReceiptEntry ? 'Receipt Action' : 'Payment Entry'}
+						{isReceiptEntry
+							? t('components.daily.receiptAction')
+							: t('components.daily.paymentAction')}
 					</Heading>
 					<SimpleGrid columns={[1, 2, 3]} gap={6}>
 						{isPaymentEntry && (
 							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-								<TextLabel label={' Supplier'} />
+								<TextLabel label={t('common.supplier')} />
 								<Box sx={dropdownStyles.dropDownContainer}>
 									<Dropdown
 										isSingle={true}
-										placeholder={t('Supplier Name')}
+										placeholder={t('common.supplierName')}
 										dropDownOptions={suppliers.map(supplier => ({
 											value: supplier.supplierId ?? supplier.internalCode,
 											label: supplier.name ?? supplier.internalCode ?? 'TBD',
@@ -275,11 +281,11 @@ const SecondStep = ({
 
 						{isReceiptEntry && (
 							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-								<TextLabel label={' Customer'} />
+								<TextLabel label={t('common.customer')} />
 								<Box sx={dropdownStyles.dropDownContainer}>
 									<Dropdown
 										isSingle={true}
-										placeholder={t('Customer Name')}
+										placeholder={t('common.customerName')}
 										dropDownOptions={customers.map(customer => ({
 											value: customer.customerId ?? customer.internalCode,
 											label: customer.name ?? customer.internalCode ?? 'TBD',
@@ -305,10 +311,10 @@ const SecondStep = ({
 						)}
 
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<TextLabel label={' Currency'} />
+							<TextLabel label={t('common.currency')} />
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
-									placeholder={t('Currency Name')}
+									placeholder={t('common.currencyName')}
 									dropDownOptions={currency.map((currency: Currency) => ({
 										value: currency.currencyId ?? currency.internalCode,
 										label: currency.name ?? currency.internalCode ?? 'TBD',
@@ -334,8 +340,8 @@ const SecondStep = ({
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 							<InputLabel
 								withGap={true}
-								label={'Amount'}
-								inputPlaceholder={'Amount'}
+								label={t('common.amount')}
+								inputPlaceholder={t('common.amount')}
 								inputType={'number'}
 								styles={documentNameStyles}
 								value={formData?.singleUnitPrice ?? ''}

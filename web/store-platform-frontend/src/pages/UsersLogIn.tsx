@@ -39,15 +39,17 @@ import {
 } from '../api/apiStore'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
 
-const inviteUserSchema = z.object({
-	firstName: z.string().min(1, 'First name is required'),
-	lastName: z.string().min(1, 'Last name is required'),
-	email: z.string().email('Please enter a valid email address'),
-	role: z.nativeEnum(UserRole),
-})
+const createInviteUserSchema = (t: (key: string) => string) =>
+	z.object({
+		firstName: z.string().min(1, t('addTenant.validation.firstNameRequired')),
+		lastName: z.string().min(1, t('addTenant.validation.lastNameRequired')),
+		email: z.string().email(t('addTenant.validation.emailInvalid')),
+		role: z.nativeEnum(UserRole),
+	})
 
-type InviteUserFormData = z.infer<typeof inviteUserSchema>
+type InviteUserFormData = z.infer<ReturnType<typeof createInviteUserSchema>>
 
 const USER_ROLE_OPTIONS: UserRole[] = [
 	UserRole.OWNER,
@@ -57,7 +59,9 @@ const USER_ROLE_OPTIONS: UserRole[] = [
 ]
 
 const UsersLogIn = () => {
+	const { t } = useTranslation()
 	const breadCrumbItems = generateBreadcrumbs()
+	const inviteUserSchema = useMemo(() => createInviteUserSchema(t), [t])
 	const { data: users = [], isLoading, isFetching } = useGetTenantUsersQuery()
 	const [inviteTenantUser, { isLoading: isInviting }] =
 		useInviteTenantUserMutation()
@@ -94,12 +98,12 @@ const UsersLogIn = () => {
 		try {
 			const response = await inviteTenantUser(formData).unwrap()
 
-			setFeedback(`User invited: ${response.email}`)
+			setFeedback(t('users.invited', { email: response.email }))
 			setTempPassword(response.temporaryPassword)
 			reset()
 		} catch (error: unknown) {
 			const err = error as { data?: { message?: string } }
-			setFeedback(err?.data?.message || 'Failed to invite user.')
+			setFeedback(err?.data?.message || t('users.inviteFailed'))
 		}
 	}
 
@@ -112,10 +116,10 @@ const UsersLogIn = () => {
 				userId,
 				body: { role: nextRole },
 			}).unwrap()
-			setFeedback('User role updated successfully.')
+			setFeedback(t('users.roleUpdateSuccess'))
 		} catch (error: unknown) {
 			const err = error as { data?: { message?: string } }
-			setFeedback(err?.data?.message || 'Failed to update role.')
+			setFeedback(err?.data?.message || t('users.roleUpdateFailed'))
 		}
 	}
 
@@ -125,10 +129,10 @@ const UsersLogIn = () => {
 
 		try {
 			await deleteTenantUser(userId).unwrap()
-			setFeedback('User deleted successfully.')
+			setFeedback(t('users.deleteSuccess'))
 		} catch (error: unknown) {
 			const err = error as { data?: { message?: string } }
-			setFeedback(err?.data?.message || 'Failed to delete user.')
+			setFeedback(err?.data?.message || t('users.deleteFailed'))
 		}
 	}
 
@@ -138,9 +142,9 @@ const UsersLogIn = () => {
 				<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.USERS]} />
 				<Flex justify="space-between" align="center">
 					<Box>
-						<Heading size="lg">Tenant Users</Heading>
+						<Heading size="lg">{t('users.title')}</Heading>
 						<Text color="gray.600">
-							Invite and manage users within your tenant.
+							{t('users.description')}
 						</Text>
 					</Box>
 					{isBusy ? <Spinner size="sm" /> : null}
@@ -150,11 +154,12 @@ const UsersLogIn = () => {
 					<Alert status={tempPassword ? 'success' : 'info'} borderRadius="md">
 						<AlertIcon />
 						<Box>
-							<AlertTitle>Update</AlertTitle>
+							<AlertTitle>{t('users.update')}</AlertTitle>
 							<AlertDescription>{feedback}</AlertDescription>
 							{tempPassword ? (
 								<AlertDescription mt={1}>
-									Temporary password: <strong>{tempPassword}</strong>
+									{t('users.temporaryPassword')}:{' '}
+									<strong>{tempPassword}</strong>
 								</AlertDescription>
 							) : null}
 						</Box>
@@ -163,30 +168,30 @@ const UsersLogIn = () => {
 
 				<Box borderWidth="1px" borderRadius="xl" p={5}>
 					<Heading size="md" mb={4}>
-						Invite User
+						{t('users.inviteUser')}
 					</Heading>
 					<form onSubmit={handleSubmit(onInvite)}>
 						<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
 							<FormControl isRequired isInvalid={Boolean(errors.firstName)}>
-								<FormLabel>First Name</FormLabel>
+								<FormLabel>{t('addTenant.firstName')}</FormLabel>
 								<Input {...register('firstName')} />
 								<FormErrorMessage>{errors.firstName?.message}</FormErrorMessage>
 							</FormControl>
 
 							<FormControl isRequired isInvalid={Boolean(errors.lastName)}>
-								<FormLabel>Last Name</FormLabel>
+								<FormLabel>{t('addTenant.lastName')}</FormLabel>
 								<Input {...register('lastName')} />
 								<FormErrorMessage>{errors.lastName?.message}</FormErrorMessage>
 							</FormControl>
 
 							<FormControl isRequired isInvalid={Boolean(errors.email)}>
-								<FormLabel>Email</FormLabel>
+								<FormLabel>{t('login.email')}</FormLabel>
 								<Input type="email" {...register('email')} />
 								<FormErrorMessage>{errors.email?.message}</FormErrorMessage>
 							</FormControl>
 
 							<FormControl isRequired>
-								<FormLabel>Role</FormLabel>
+								<FormLabel>{t('users.role')}</FormLabel>
 								<Select {...register('role')}>
 									{USER_ROLE_OPTIONS.map(roleValue => (
 										<option key={roleValue} value={roleValue}>
@@ -213,7 +218,7 @@ const UsersLogIn = () => {
 							isLoading={isInviting}
 							isDisabled={!isValid}
 						>
-							Invite User
+							{t('users.inviteUser')}
 						</Button>
 					</form>
 				</Box>
@@ -222,11 +227,11 @@ const UsersLogIn = () => {
 					<Table>
 						<Thead>
 							<Tr>
-								<Th>Name</Th>
-								<Th>Email</Th>
-								<Th>Role</Th>
+								<Th>{t('users.name')}</Th>
+								<Th>{t('login.email')}</Th>
+								<Th>{t('users.role')}</Th>
 								{/* <Th>Type</Th> */}
-								<Th textAlign="right">Actions</Th>
+								<Th textAlign="right">{t('tenants.actions')}</Th>
 							</Tr>
 						</Thead>
 						<Tbody>
@@ -269,7 +274,7 @@ const UsersLogIn = () => {
 											variant="outline"
 											onClick={() => onDeleteUser(user.userId)}
 										>
-											Delete
+											{t('common.delete')}
 										</Button>
 									</Td>
 								</Tr>

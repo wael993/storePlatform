@@ -17,8 +17,10 @@ import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
 import { UserRole } from '../shared/globalEnums'
 import { RoutePaths } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
 
 const Login = () => {
+	const { t } = useTranslation()
 	const [email, setEmail] = useState('admin@example.com')
 	const [password, setPassword] = useState('admin123')
 	const [error, setError] = useState('')
@@ -26,10 +28,8 @@ const Login = () => {
 	const [login, { isLoading: isLoggingLoading }] = useLoginMutation()
 	const navigate = useNavigate()
 	const dispatch = useDispatch()
-	const inactiveTenantMessage =
-		'Tenant is inactive. Contact the platform admin.'
-	const validationErrorMessage =
-		'Please check your email and password format and try again.'
+	const inactiveTenantMessage = t('login.inactiveTenant')
+	const validationErrorMessage = t('login.validationError')
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -37,16 +37,16 @@ const Login = () => {
 
 		// Client-side validation
 		if (!email) {
-			setError('Please enter your email address.')
+			setError(t('login.emailRequired'))
 			return
 		}
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 		if (!emailRegex.test(email)) {
-			setError('Please provide a valid email address (e.g. user@example.com).')
+			setError(t('login.emailInvalid'))
 			return
 		}
 		if (!password || password.length < 8) {
-			setError('Password must be at least 8 characters.')
+			setError(t('login.passwordMinLength'))
 			return
 		}
 
@@ -70,7 +70,7 @@ const Login = () => {
 			const status = err?.status
 			const errorCode = err?.data?.errorCode
 			if (status === 429) {
-				setError('Too many login attempts. Please try again after 1 minute.')
+				setError(t('login.tooManyAttempts'))
 			} else if (errorCode === 'INACTIVE_TENANT') {
 				setError(inactiveTenantMessage)
 			} else if (
@@ -80,7 +80,7 @@ const Login = () => {
 			) {
 				setError(validationErrorMessage)
 			} else {
-				setError('Invalid email or password.')
+				setError(t('login.invalidCredentials'))
 			}
 		}
 	}
@@ -90,14 +90,14 @@ const Login = () => {
 		setResetMessage('')
 
 		if (!email) {
-			setError('Please enter your email first')
+			setError(t('login.emailRequiredFirst'))
 			return
 		}
 
 		try {
-			setResetMessage('Password reset link sent to your email')
+			setResetMessage(t('login.resetSent'))
 		} catch (err: any) {
-			setError(err.response?.data?.error || 'Failed to send reset email')
+			setError(err.response?.data?.error || t('login.resetFailed'))
 		}
 	}
 
@@ -107,11 +107,11 @@ const Login = () => {
 				<Box bg="white" p={10} borderRadius="2xl" boxShadow="xl">
 					<Stack gap={6}>
 						<Heading textAlign="center" color="blue.600">
-							Welcome Back
+							{t('login.welcomeBack')}
 						</Heading>
 
 						<Text textAlign="center" color="gray.500">
-							Sign in to your account
+							{t('login.signInSubtitle')}
 						</Text>
 
 						{/* Error Message */}
@@ -135,22 +135,22 @@ const Login = () => {
 						<form onSubmit={handleLogin}>
 							<Stack gap={4}>
 								<Box>
-									<Text>Email</Text>
+									<Text>{t('login.email')}</Text>
 									<Input
 										type="email"
 										value={email}
 										onChange={e => setEmail(e.target.value)}
-										placeholder="you@example.com"
+										placeholder={t('login.emailPlaceholder')}
 									/>
 								</Box>
 
 								<Box>
-									<Text>Password</Text>
+									<Text>{t('login.password')}</Text>
 									<Input
 										type="password"
 										value={password}
 										onChange={e => setPassword(e.target.value)}
-										placeholder="Enter your password"
+										placeholder={t('login.passwordPlaceholder')}
 									/>
 								</Box>
 
@@ -160,7 +160,7 @@ const Login = () => {
 										color="blue.500"
 										onClick={handleForgotPassword}
 									>
-										Forgot password?
+										{t('login.forgotPassword')}
 									</Link>
 								</Flex>
 
@@ -168,11 +168,11 @@ const Login = () => {
 									type="submit"
 									size="lg"
 									isLoading={isLoggingLoading}
-									loadingText="Signing in..."
+									loadingText={t('login.signingIn')}
 									spinner={<Spinner size="sm" />}
 									w="full"
 								>
-									Sign In
+									{t('login.signIn')}
 								</Button>
 							</Stack>
 						</form>

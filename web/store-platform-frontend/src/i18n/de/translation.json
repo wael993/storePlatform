@@ -1,12 +1,297 @@
 {
+	"appTitle": "Store Platform",
 	"settings": {
 		"updateSuccessMessage": "Einstellungen erfolgreich aktualisiert.",
 		"updateFailedMessage": "Einstellungen konnten nicht aktualisiert werden."
 	},
+	"navigation": {
+		"welcome": "Willkommen",
+		"barcode": "Barcode",
+		"allProducts": "Alle Produkte",
+		"addTenant": "Mandant hinzufügen"
+	},
+	"welcome": {
+		"title": "Willkommen in Ihrem Store-Arbeitsbereich",
+		"subtitle": "Starten Sie Ihren Tag mit den Werkzeugen, die Sie zur Verwaltung von Bestand, Verkäufen, Kunden, Lieferanten und Store-Abläufen benötigen.",
+		"cards": {
+			"manage": {
+				"title": "Store verwalten",
+				"description": "Produkte, Lieferanten und Kunden an einem Ort organisiert halten."
+			},
+			"track": {
+				"title": "Tägliche Arbeit verfolgen",
+				"description": "Verkäufe, Einkäufe und Tagesaktionen mit klaren Aufzeichnungen verfolgen."
+			},
+			"control": {
+				"title": "Kontrolle behalten",
+				"description": "Rechnungen, Benutzer und Einstellungen über eine zentrale Plattform prüfen."
+			}
+		}
+	},
+	"tenants": {
+		"title": "Mandantenliste",
+		"description": "Mandanten prüfen, Status ändern, Namen bearbeiten oder löschen.",
+		"tenant": "Mandant",
+		"tenantName": "Mandantenname",
+		"domain": "Domain",
+		"created": "Erstellt",
+		"actions": "Aktionen",
+		"empty": "Keine Mandanten gefunden.",
+		"updateTenant": "Mandant aktualisieren",
+		"deleteTenant": "Mandant löschen",
+		"activateTenant": "Mandant aktivieren",
+		"deactivateTenant": "Mandant deaktivieren",
+		"noActionsAvailable": "Keine Aktionen verfügbar",
+		"cannotUpdate": "Mandant kann nicht aktualisiert werden.",
+		"cannotDelete": "Mandant kann nicht gelöscht werden.",
+		"statusCannotChange": "Mandantenstatus kann nicht geändert werden.",
+		"updateSuccess": "Mandant erfolgreich aktualisiert.",
+		"updateFailed": "Mandant konnte nicht aktualisiert werden.",
+		"deleteSuccess": "Mandant erfolgreich gelöscht.",
+		"deleteFailed": "Mandant konnte nicht gelöscht werden.",
+		"activated": "Mandant aktiviert.",
+		"deactivated": "Mandant deaktiviert.",
+		"statusChangeFailed": "Mandantenstatus konnte nicht geändert werden.",
+		"deleteConfirmation": "Mandant {{tenantName}} löschen? Dadurch werden alle Mandantendaten entfernt."
+	},
+	"login": {
+		"welcomeBack": "Willkommen zurück",
+		"signInSubtitle": "Melden Sie sich bei Ihrem Konto an",
+		"email": "E-Mail",
+		"emailPlaceholder": "you@example.com",
+		"password": "Passwort",
+		"passwordPlaceholder": "Geben Sie Ihr Passwort ein",
+		"forgotPassword": "Passwort vergessen?",
+		"signingIn": "Anmeldung läuft...",
+		"signIn": "Anmelden",
+		"inactiveTenant": "Mandant ist inaktiv. Wenden Sie sich an den Plattformadministrator.",
+		"validationError": "Bitte prüfen Sie E-Mail und Passwortformat und versuchen Sie es erneut.",
+		"emailRequired": "Bitte geben Sie Ihre E-Mail-Adresse ein.",
+		"emailRequiredFirst": "Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.",
+		"emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein (z. B. user@example.com).",
+		"passwordMinLength": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+		"tooManyAttempts": "Zu viele Anmeldeversuche. Bitte versuchen Sie es nach 1 Minute erneut.",
+		"invalidCredentials": "Ungültige E-Mail-Adresse oder ungültiges Passwort.",
+		"resetSent": "Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet.",
+		"resetFailed": "E-Mail zum Zurücksetzen konnte nicht gesendet werden."
+	},
+	"barcode": {
+		"scanPlaceholder": "Barcode scannen oder manuell eingeben...",
+		"scan": "Scannen",
+		"searching": "Produkt wird gesucht..."
+	},
+	"pagination": {
+		"previous": "Zurück",
+		"next": "Weiter",
+		"pageOf": "Seite {{currentPage}} von {{totalPages}}"
+	},
+	"orders": {
+		"empty": "Keine Bestellungen gefunden.",
+		"orderNumber": "Bestellnr.",
+		"items": "Artikel",
+		"total": "Gesamt (€)",
+		"date": "Datum"
+	},
+	"invoices": {
+		"empty": "Keine Rechnungen gefunden.",
+		"invoiceNumber": "Rechnungsnr.",
+		"amount": "Betrag (€)",
+		"issued": "Ausgestellt"
+	},
+	"users": {
+		"title": "Mandantenbenutzer",
+		"description": "Benutzer innerhalb Ihres Mandanten einladen und verwalten.",
+		"update": "Aktualisierung",
+		"temporaryPassword": "Temporäres Passwort",
+		"inviteUser": "Benutzer einladen",
+		"role": "Rolle",
+		"name": "Name",
+		"invited": "Benutzer eingeladen: {{email}}",
+		"inviteFailed": "Benutzer konnte nicht eingeladen werden.",
+		"roleUpdateSuccess": "Benutzerrolle erfolgreich aktualisiert.",
+		"roleUpdateFailed": "Rolle konnte nicht aktualisiert werden.",
+		"deleteSuccess": "Benutzer erfolgreich gelöscht.",
+		"deleteFailed": "Benutzer konnte nicht gelöscht werden."
+	},
+	"changePassword": {
+		"title": "Passwort ändern",
+		"currentPassword": "Aktuelles Passwort",
+		"newPassword": "Neues Passwort",
+		"confirmNewPassword": "Neues Passwort bestätigen",
+		"allFieldsRequired": "Alle Felder sind erforderlich.",
+		"passwordsDoNotMatch": "Die neuen Passwörter stimmen nicht überein.",
+		"passwordMustDiffer": "Das neue Passwort muss sich vom aktuellen Passwort unterscheiden.",
+		"failed": "Passwort konnte nicht geändert werden."
+	},
+	"products": {
+		"allProducts": "Alle Produkte",
+		"loadFailed": "Laden fehlgeschlagen",
+		"stockValue": "Bestand: {{stock}}"
+	},
+	"notFound": {
+		"status": "Status: 404",
+		"title": "404",
+		"description": "Die besuchte Seite existiert noch nicht. Wenden Sie sich an Ihren Administrator, wenn Sie glauben, dass dies ein Fehler ist.",
+		"goHome": "Zur Nachverfolgung"
+	},
+	"addTenant": {
+		"title": "Neuen Mandanten hinzufügen",
+		"description": "Superadministratoren können einen Mandanten registrieren und dessen Besitzerkonto bereitstellen.",
+		"successTitle": "Mandant erfolgreich erstellt",
+		"tenantId": "Mandanten-ID: {{tenantId}}",
+		"ownerUserId": "Besitzer-Benutzer-ID: {{ownerUserId}}",
+		"tenantDomain": "Mandantendomain",
+		"tenantDomainPlaceholder": "example.com",
+		"ownerUser": "Besitzerkonto",
+		"firstName": "Vorname",
+		"lastName": "Nachname",
+		"temporaryPassword": "Temporäres Passwort",
+		"createTenant": "Mandant erstellen",
+		"createFailed": "Mandant konnte nicht erstellt werden.",
+		"validation": {
+			"tenantNameRequired": "Mandantenname ist erforderlich",
+			"tenantDomainRequired": "Mandantendomain ist erforderlich",
+			"firstNameRequired": "Vorname ist erforderlich",
+			"lastNameRequired": "Nachname ist erforderlich",
+			"emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+			"passwordMinLength": "Das Passwort muss mindestens 8 Zeichen lang sein",
+			"passwordLowercase": "Muss mindestens einen Kleinbuchstaben enthalten",
+			"passwordNumber": "Muss mindestens eine Zahl enthalten",
+			"emailDomainMismatch": "Die E-Mail-Domain des Besitzers muss mit der Mandantendomain übereinstimmen"
+		}
+	},
+	"productModal": {
+		"newProduct": "Neues Produkt",
+		"productDetails": "Produktdetails",
+		"notFound": "Produkt nicht gefunden",
+		"noDescription": "Keine Beschreibung",
+		"addToCart": "In den Warenkorb",
+		"saveProduct": "Produkt speichern",
+		"nameBarcodeRequired": "Name und Barcode sind erforderlich.",
+		"requiredProductValues": "Großhandelspreis, Einzelhandelspreis, Einkaufspreis und Lagerbestand sind erforderlich.",
+		"createFailed": "Produkt konnte nicht erstellt werden.",
+		"productFactoryCode": "Produkt-Fabrikcode",
+		"categoryId": "Kategorie-ID",
+		"brandId": "Marken-ID",
+		"wholesalePrice": "Großhandelspreis",
+		"retailSalePrice": "Einzelhandelspreis",
+		"semiWholesaleSalesPrice": "Halbgroßhandelspreis",
+		"discountPrice": "Rabattpreis",
+		"currencyPlaceholder": "Währung (z. B. EUR)",
+		"taxType": "Steuerart",
+		"taxValue": "Steuerwert",
+		"supplierId": "Lieferanten-ID",
+		"warehouse": "Lager",
+		"shelf": "Regal",
+		"size": "Größe",
+		"length": "Länge",
+		"width": "Breite",
+		"height": "Höhe",
+		"description": "Beschreibung",
+		"units": {
+			"piece": "Stück",
+			"kg": "KG",
+			"meter": "Meter",
+			"set": "Set",
+			"mm": "MM"
+		}
+	},
+	"supplier": {
+		"list": {
+			"name": "Lieferantenname",
+			"internalCode": "Lieferantencode",
+			"createdAt": "Erstellt am"
+		}
+	},
 	"components": {
+		"budgetOverview": {
+			"tooltip": "Die Budgetübersicht ist eine Zusammenfassung des Budgets für den Kunden.",
+			"text": "Budgetübersicht",
+			"purchase": "Einkaufswert",
+			"payments": "Zahlungswert",
+			"balance": "Saldo"
+		},
+		"customer": {
+			"name": "Kundenname",
+			"code": "Kundencode",
+			"sold": "Verkauft",
+			"createdAt": "Erstellt am"
+		},
+		"daily": {
+			"dailyActions": "Tagesaktionen",
+			"buyingAction": "Kaufaktion",
+			"sellingAction": "Verkaufsaktion",
+			"receiptAction": "Eingangsaktion",
+			"paymentAction": "Zahlungsaktion",
+			"confirmations": {
+				"deleteDailyAction": "Tagesaktion löschen",
+				"deleteDailyActionConfirmationBody": "Möchten Sie diese Tagesaktion wirklich löschen?",
+				"deleteDailyActionSuccess": "Tagesaktion erfolgreich gelöscht.",
+				"deleteDailyActionError": "Tagesaktion konnte nicht gelöscht werden."
+			},
+			"errors": {
+				"addProductFailed": "Produkt konnte nicht hinzugefügt werden",
+				"addSupplierFailed": "Lieferant konnte nicht hinzugefügt werden",
+				"addCustomerFailed": "Kunde konnte nicht hinzugefügt werden",
+				"addCurrencyFailed": "Währung konnte nicht hinzugefügt werden",
+				"addUnitFailed": "Einheit konnte nicht hinzugefügt werden"
+			},
+			"actionType": "Aktionstyp",
+			"actionDate": "Aktionsdatum",
+			"actionSummary": "Aktionsübersicht",
+			"noActionSummary": "Für diese Aktion ist keine Übersicht verfügbar.",
+			"inputLockedWarning": "Für diese Aktion sind keine Änderungen mehr erlaubt.",
+			"textPlaceholder": "Text hinzufügen...",
+			"selectEntryType": "Eintragsart auswählen",
+			"actionTypeMissing": "Bitte wählen Sie den Aktionstyp aus, um fortzufahren.",
+			"actionDataMissing": "Bitte füllen Sie die erforderlichen Felder aus, um fortzufahren.",
+			"invoiceNumberMissing": "Bitte geben Sie die Rechnungsnummer ein, um fortzufahren.",
+			"invoiceDetailsMissing": "Bitte geben Sie Rechnungsnummer und Rechnungsdatum ein, um fortzufahren.",
+			"actionSavedSuccessfully": "Tagesaktion erfolgreich gespeichert.",
+			"noDailyFound": "Keine Tagesaktionen gefunden",
+			"addQuickProduct": "Schnell Produkt hinzufügen",
+			"productName": "Produktname",
+			"internalReference": "Interne Referenz",
+			"addQuickCurrency": "Schnell Währung hinzufügen",
+			"currencyName": "Währungsname",
+			"addQuickSupplier": "Schnell Lieferant hinzufügen",
+			"supplierName": "Lieferantenname",
+			"addQuickCustomer": "Schnell Kunde hinzufügen",
+			"customerName": "Kundenname",
+			"addQuickUnit": "Schnell Einheit hinzufügen",
+			"unitName": "Einheitsname",
+			"addProduct": "Produkt hinzufügen",
+			"addCurrency": "Währung hinzufügen",
+			"addSupplier": "Lieferant hinzufügen",
+			"addCustomer": "Kunde hinzufügen",
+			"addUnit": "Einheit hinzufügen",
+			"productCode": "Produktcode",
+			"currencyCode": "Währungscode",
+			"supplierCode": "Lieferantencode",
+			"customerCode": "Kundencode",
+			"unitCode": "Einheitscode"
+		},
+		"pageHeaders": {
+			"settings": "Einstellungen",
+			"daily": "Täglich",
+			"products": "Produkte",
+			"orders": "Bestellungen",
+			"invoices": "Rechnungen",
+			"customer": "Kunde",
+			"supplier": "Lieferant",
+			"users": "Benutzer",
+			"tenants": "Mandanten",
+			"customers": "Kunden",
+			"suppliers": "Lieferanten"
+		},
 		"activitySettingsSection": {
-			"title": "Produkte pro Seite",
-			"note": "Konfigurieren Sie hier Ihre zählerbezogenen Einstellungen."
+			"title": "Produkte pro Seite"
+		},
+		"activityDetail": {
+			"topSection": {
+				"failUpdateMessage": "Produkt konnte nicht aktualisiert werden.",
+				"buyCostNoValue": "Bitte geben Sie einen gültigen Einkaufspreis ein."
+			}
 		},
 		"settings": {
 			"title": "Einstellungen",
@@ -18,7 +303,7 @@
 			"displayLanguage": "Anzeigesprache",
 			"english": "Englisch",
 			"german": "Deutsch",
-			"arabic": "العربية"
+			"arabic": "Arabisch"
 		},
 		"productsSettings": {
 			"productsPerPage": "Produkte pro Seite",
@@ -33,6 +318,11 @@
 				"selectFiltersInfoExternal": "Bitte wählen Sie mindestens das Jahr oder Start- und Enddatum aus, um fortzufahren.",
 				"dateToMissingWarning": "Bitte wählen Sie das Enddatum aus, um fortzufahren.",
 				"dateFromMissingWarning": "Bitte wählen Sie das Startdatum aus, um fortzufahren."
+			},
+			"leavingModal": {
+				"header": "Nicht gespeicherte Änderungen",
+				"body": "Möchten Sie die Seite wirklich verlassen? Es gibt nicht gespeicherte Änderungen. Wenn Sie gehen, gehen diese Änderungen verloren.",
+				"confirmationButtonText": "Ja, verlassen"
 			}
 		},
 		"product": {
@@ -46,39 +336,88 @@
 			},
 			"noProducts": "Keine Produkte gefunden"
 		},
-		"list": {
-			"preferredBrand": "bevorzugte Marke"
-		},
 		"filters": {
+			"clearFilter": "Filter löschen",
 			"clearFilters": "Filter löschen",
 			"filter": "Filter",
+			"search": "Suchen",
+			"searchPlaceholder": "Name, Produkt-ID, Barcode",
 			"saveFilterPreset": "Filter-Preset speichern",
 			"supplier": "Lieferant",
 			"category": "Kategorie",
 			"state": "Status",
 			"brand": "Marke"
+		},
+		"topBar": {
+			"logoAlt": "Store Platform Logo",
+			"welcome": "Willkommen",
+			"notifications": "Benachrichtigungen",
+			"releaseNotes": "Versionshinweise",
+			"settings": "Einstellungen",
+			"menu": "Menü",
+			"greeting": "Hallo, {{userName}}",
+			"logout": "Abmelden",
+			"noNavigationItems": "Keine Navigationselemente verfügbar."
 		}
 	},
 	"common": {
-		"noOptions": "Keine Optionen",
-		"inputSearch": "Suchen...",
-		"showResults": "Ergebnisse anzeigen",
-		"addProduct": "Produkt hinzufügen",
+		"delete": "Löschen",
+		"lock": "Sperren",
+		"superAdmin": "Super Admin",
+		"logoutFailed": "Abmeldung fehlgeschlagen.",
+		"active": "Aktiv",
+		"inactive": "Inaktiv",
+		"noElementsFound": "Keine Elemente gefunden",
+		"emptyStateTitle": "Noch nichts anzuzeigen",
+		"emptyStateDescription": "Passen Sie die Suche an oder fügen Sie ein neues Element hinzu, um zu beginnen.",
+		"addDailyAction": "Tagesaktion hinzufügen",
 		"downloadExcel": "Excel herunterladen",
 		"downloadExcelError": "Excel-Datei konnte nicht heruntergeladen werden.",
+		"entryType": "Eintragsart",
+		"weight": "Gewicht",
+		"unitPrice": "Einzelpreis",
+		"singleUnitPrice": "Einzelpreis",
+		"totalPrice": "Gesamtpreis",
+		"amount": "Betrag",
+		"price": "Preis",
+		"stock": "Bestand",
+		"supplierOrCustomer": "Lieferant / Kunde",
+		"noOptions": "Keine Optionen",
+		"optionDoesNotExist": "Diese Option existiert nicht",
+		"inputSearch": "Suchen...",
+		"showResults": "Ergebnisse anzeigen",
+		"show": "Anzeigen",
+		"hide": "Ausblenden",
+		"add": "Hinzufügen",
+		"addEntry": "Eintrag hinzufügen",
+		"addProduct": "Produkt hinzufügen",
+		"addCustomer": "Kunde hinzufügen",
+		"addSupplier": "Lieferant hinzufügen",
+		"product": "Produkt",
+		"supplier": "Lieferant",
+		"customer": "Kunde",
+		"dailyAction": "Tagesaktion",
+		"currency": "Währung",
+		"unit": "Einheit",
 		"productName": "Produktname",
+		"supplierName": "Lieferantenname",
+		"customerName": "Kundenname",
+		"currencyName": "Währungsname",
+		"unitName": "Einheitsname",
 		"barcode": "Barcode",
 		"brand": "Markenname",
 		"category": "Kategoriename",
 		"buyCost": "Einkaufspreis",
+		"addBuyCost": "Einkaufspreis hinzufügen",
 		"sellPrice": "Verkaufspreis",
 		"stockQuantity": "Lagerbestand",
 		"stockMinQuantity": "Minimale Lagerbestandsmenge",
-		"supplierName": "Lieferantenname",
 		"locationWarehouse": "Lagerort",
 		"locationShelf": "Regal",
-		"startDate": "Startdatum",
 		"status": "Status",
+		"error": "Fehler!",
+		"tooltip": "Tooltip",
+		"unknownState": "Unbekannt",
 		"from": "Von",
 		"to": "Bis",
 		"selected": "ausgewählt",
@@ -101,17 +440,22 @@
 		"invoiceDateIsToday": "Rechnungsdatum ist heute",
 		"invoiceDatePlaceholder": "Rechnungsdatum auswählen",
 		"datePlaceholder": "Datum auswählen",
+		"datePicker": "Datumsauswahl",
 		"openCalendar": "Kalender öffnen",
 		"clearDate": "Datum löschen",
-		"entryType": "Buchungsart",
-		"weight": "Gewicht",
-		"unitPrice": "Einzelpreis",
-		"totalPrice": "Gesamtpreis",
-		"supplierOrCustomer": "Lieferant / Kunde",
-		"addDailyAction": "Tagesaktion hinzufügen",
+		"fileOptions": "Dateioptionen",
+		"listOptions": "Listenoptionen",
+		"warning": "Warnung",
+		"nextStep": "Nächster Schritt",
+		"back": "Zurück",
+		"submit": "Absenden",
 		"buyingEntry": "Kaufeintrag",
 		"sellingEntry": "Verkaufseintrag",
 		"paymentEntry": "Zahlungseintrag",
-		"receiptAction": "Zahlungseingang"
+		"receiptEntry": "Zahlungseingang",
+		"supplierFocus": "Lieferantenfokus",
+		"addFocus": "Fokus hinzufügen",
+		"shop": "Shop",
+		"promotionSpace": "Aktionsfläche"
 	}
 }

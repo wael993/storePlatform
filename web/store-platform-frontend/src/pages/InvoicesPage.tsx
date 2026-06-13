@@ -14,6 +14,7 @@ import {
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
 
 // Placeholder invoices data until backend invoices API is wired up
 const MOCK_INVOICES: {
@@ -34,6 +35,7 @@ const statusColor: Record<string, string> = {
 }
 
 const InvoicesPage = () => {
+	const { t } = useTranslation()
 	// Replace with useGetInvoicesQuery() once invoices API is available
 	const isLoading = false
 	const invoices = MOCK_INVOICES
@@ -43,13 +45,13 @@ const InvoicesPage = () => {
 		<Box>
 			<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.INVOICES]} />
 			<Heading size="lg" mb={6}>
-				Invoices
+				{t('components.pageHeaders.invoices')}
 			</Heading>
 
 			{isLoading && <Spinner />}
 
 			{!isLoading && invoices.length === 0 && (
-				<Text color="gray.500">No invoices found.</Text>
+				<Text color="gray.500">{t('invoices.empty')}</Text>
 			)}
 
 			{!isLoading && invoices.length > 0 && (
@@ -57,11 +59,11 @@ const InvoicesPage = () => {
 					<Table variant="simple" size="sm">
 						<Thead>
 							<Tr>
-								<Th>Invoice #</Th>
-								<Th>Order #</Th>
-								<Th>Status</Th>
-								<Th isNumeric>Amount (€)</Th>
-								<Th>Issued</Th>
+								<Th>{t('invoices.invoiceNumber')}</Th>
+								<Th>{t('orders.orderNumber')}</Th>
+								<Th>{t('common.status')}</Th>
+								<Th isNumeric>{t('invoices.amount')}</Th>
+								<Th>{t('invoices.issued')}</Th>
 							</Tr>
 						</Thead>
 						<Tbody>

@@ -23,6 +23,7 @@ import {
 } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
 import { RoutePaths } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
 
 interface ChangePasswordModalProps {
 	isOpen: boolean
@@ -30,6 +31,7 @@ interface ChangePasswordModalProps {
 }
 
 const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
+	const { t } = useTranslation()
 	const [changePassword, { isLoading }] = useChangePasswordMutation()
 	const [logoutCurrent] = useLogoutCurrentMutation()
 	const dispatch = useDispatch()
@@ -54,17 +56,17 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 		setError('')
 
 		if (!currentPassword || !newPassword || !confirmPassword) {
-			setError('All fields are required.')
+			setError(t('changePassword.allFieldsRequired'))
 			return
 		}
 
 		if (newPassword !== confirmPassword) {
-			setError('New passwords do not match.')
+			setError(t('changePassword.passwordsDoNotMatch'))
 			return
 		}
 
 		if (newPassword === currentPassword) {
-			setError('New password must differ from the current password.')
+			setError(t('changePassword.passwordMustDiffer'))
 			return
 		}
 
@@ -79,7 +81,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 			dispatch(logout())
 			navigate(RoutePaths.LOGIN, { replace: true })
 		} catch (err: any) {
-			setError(err?.data?.message || 'Failed to change password.')
+			setError(err?.data?.message || t('changePassword.failed'))
 		}
 	}
 
@@ -87,11 +89,11 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 		<Modal isOpen={isOpen} onClose={handleClose} isCentered>
 			<ModalOverlay />
 			<ModalContent>
-				<ModalHeader>Change Password</ModalHeader>
+				<ModalHeader>{t('changePassword.title')}</ModalHeader>
 				<ModalBody>
 					<VStack gap={4}>
 						<FormControl>
-							<FormLabel>Current Password</FormLabel>
+							<FormLabel>{t('changePassword.currentPassword')}</FormLabel>
 							<InputGroup>
 								<Input
 									type={showCurrent ? 'text' : 'password'}
@@ -106,14 +108,14 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 										variant="ghost"
 										onClick={() => setShowCurrent(v => !v)}
 									>
-										{showCurrent ? 'Hide' : 'Show'}
+										{showCurrent ? t('common.hide') : t('common.show')}
 									</Button>
 								</InputRightElement>
 							</InputGroup>
 						</FormControl>
 
 						<FormControl>
-							<FormLabel>New Password</FormLabel>
+							<FormLabel>{t('changePassword.newPassword')}</FormLabel>
 							<InputGroup>
 								<Input
 									type={showNew ? 'text' : 'password'}
@@ -128,14 +130,14 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 										variant="ghost"
 										onClick={() => setShowNew(v => !v)}
 									>
-										{showNew ? 'Hide' : 'Show'}
+										{showNew ? t('common.hide') : t('common.show')}
 									</Button>
 								</InputRightElement>
 							</InputGroup>
 						</FormControl>
 
 						<FormControl>
-							<FormLabel>Confirm New Password</FormLabel>
+							<FormLabel>{t('changePassword.confirmNewPassword')}</FormLabel>
 							<Input
 								type="password"
 								value={confirmPassword}
@@ -153,14 +155,14 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 				</ModalBody>
 				<ModalFooter gap={2}>
 					<Button variant="ghost" onClick={handleClose} isDisabled={isLoading}>
-						Cancel
+						{t('common.cancel')}
 					</Button>
 					<Button
 						colorScheme="blue"
 						onClick={handleSubmit}
 						isLoading={isLoading}
 					>
-						Change Password
+						{t('changePassword.title')}
 					</Button>
 				</ModalFooter>
 			</ModalContent>

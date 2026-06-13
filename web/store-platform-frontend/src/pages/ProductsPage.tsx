@@ -225,7 +225,7 @@ const ProductsPage = ({ targetType }: ProductsPageProps) => {
 
 			<HStack justify="space-between" mb={'4rem'}>
 				<Heading sx={styles.title} variant={'h5'}>
-					Products
+					{t('components.pageHeaders.products')}
 				</Heading>
 				{isActionAllowed(AllowedActions.ADD_PRODUCT) && isOwnerOrAdmin && (
 					<Button
@@ -272,17 +272,20 @@ const ProductsPage = ({ targetType }: ProductsPageProps) => {
 						isDisabled={currentPage === 0}
 						size="sm"
 					>
-						← Previous
+						{t('pagination.previous')}
 					</Button>
 					<Text fontSize="sm">
-						Page {currentPage + 1} of {totalPages}
+						{t('pagination.pageOf', {
+							currentPage: currentPage + 1,
+							totalPages,
+						})}
 					</Text>
 					<Button
 						onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
 						isDisabled={currentPage >= totalPages - 1}
 						size="sm"
 					>
-						Next →
+						{t('pagination.next')}
 					</Button>
 				</HStack>
 			)}

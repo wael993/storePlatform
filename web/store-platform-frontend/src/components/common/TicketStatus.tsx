@@ -37,29 +37,29 @@ export const TicketStatus = ({
 		Record<TargetType, { translationKey: string; color: string }>
 	> = {
 		[TargetType.CUSTOMER]: {
-			translationKey: 'زبون',
+			translationKey: 'common.customer',
 			color: '#5698E6',
 		},
 		[TargetType.SUPPLIER]: {
-			translationKey: 'مورد',
+			translationKey: 'common.supplier',
 			color: '#E7CB3A',
 		},
 		[TargetType.PRODUCT]: {
-			translationKey: 'components.activity.states.inExecution',
+			translationKey: 'common.product',
 			color: '#36CE4E',
 		},
 		[TargetType.DAILY_ACTION]: {
-			translationKey: 'components.activity.states.done',
+			translationKey: 'common.dailyAction',
 			color: '#C7C7C7',
 		},
 	}
 
 	const stateInfo = MODAL_STATE_CONFIG[targetType as TargetType] ?? {
 		color: '#929494',
-		translationKey: t('common.unknownState'),
+		translationKey: 'common.unknownState',
 	}
 
-	const stateTitle: string = stateInfo ? stateInfo.translationKey : ''
+	const stateTitle = t(stateInfo.translationKey as TranslationKey)
 
 	const styles = {
 		colorCircle: {

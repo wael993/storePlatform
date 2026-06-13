@@ -112,7 +112,7 @@ const DropdownMenuItem = memo(
 						<Icon
 							sx={{ color: '#E45252' }}
 							as={AsWarningIcon}
-							aria-label="warning"
+							aria-label={t('common.warning')}
 						/>
 					</Tooltip>
 				)}

@@ -83,7 +83,7 @@ export const BudgetOverview = ({
 					{t('components.budgetOverview.tooltip')}
 				</Text>
 			}
-			aria-label="A tooltip"
+			aria-label={t('common.tooltip')}
 		>
 			<Flex sx={{ ...styles.budgetOverviewContainer, width: '100%' }}>
 				<Heading variant="h4" sx={styles.header}>

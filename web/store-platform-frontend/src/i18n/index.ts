@@ -5,9 +5,9 @@ import deTranslation from './de/translation.json'
 import arTranslation from './ar/translation.json'
 
 const persistedLanguage = window.localStorage.getItem('store-platform-language')
-const language = ['de', 'ar'].includes(persistedLanguage || '')
-	? (persistedLanguage as 'de' | 'ar')
-	: 'en'
+const language = ['ar', 'en', 'de'].includes(persistedLanguage || '')
+	? (persistedLanguage as 'ar' | 'en' | 'de')
+	: 'ar'
 
 const applyDocumentLanguage = (nextLanguage: string) => {
 	const direction = nextLanguage === 'ar' ? 'rtl' : 'ltr'
@@ -28,7 +28,7 @@ void i18n.use(initReactI18next).init({
 		},
 	},
 	lng: language,
-	fallbackLng: 'en',
+	fallbackLng: ['ar', 'en', 'de'],
 	interpolation: {
 		escapeValue: false,
 	},

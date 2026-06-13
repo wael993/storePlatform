@@ -14,6 +14,7 @@ import {
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
 
 // Placeholder orders data until backend orders API is wired up
 const MOCK_ORDERS: {
@@ -33,6 +34,7 @@ const statusColor: Record<string, string> = {
 }
 
 const OrdersPage = () => {
+	const { t } = useTranslation()
 	// Replace with useGetOrdersQuery() once orders API is available
 	const isLoading = false
 	const orders = MOCK_ORDERS
@@ -42,13 +44,13 @@ const OrdersPage = () => {
 		<Box>
 			<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.ORDERS]} />
 			<Heading size="lg" mb={6}>
-				Orders
+				{t('components.pageHeaders.orders')}
 			</Heading>
 
 			{isLoading && <Spinner />}
 
 			{!isLoading && orders.length === 0 && (
-				<Text color="gray.500">No orders found.</Text>
+				<Text color="gray.500">{t('orders.empty')}</Text>
 			)}
 
 			{!isLoading && orders.length > 0 && (
@@ -56,11 +58,11 @@ const OrdersPage = () => {
 					<Table variant="simple" size="sm">
 						<Thead>
 							<Tr>
-								<Th>Order #</Th>
-								<Th>Status</Th>
-								<Th isNumeric>Items</Th>
-								<Th isNumeric>Total (€)</Th>
-								<Th>Date</Th>
+								<Th>{t('orders.orderNumber')}</Th>
+								<Th>{t('common.status')}</Th>
+								<Th isNumeric>{t('orders.items')}</Th>
+								<Th isNumeric>{t('orders.total')}</Th>
+								<Th>{t('orders.date')}</Th>
 							</Tr>
 						</Thead>
 						<Tbody>

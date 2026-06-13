@@ -1,9 +1,6 @@
 import {
 	ArrowForwardIcon,
-	AtSignIcon,
-	ChevronDownIcon,
 	HamburgerIcon,
-	QuestionIcon,
 	RepeatIcon,
 	SettingsIcon,
 } from '@chakra-ui/icons'
@@ -23,7 +20,8 @@ import {
 	Text,
 } from '@chakra-ui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { RoutePaths } from '../shared/routes'
+import { useTranslation } from 'react-i18next'
+import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { AsBellIcon } from '../icons/Bell'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 
@@ -66,6 +64,7 @@ const TopBar = ({
 }: TopBarProps) => {
 	const location = useLocation()
 	const navigate = useNavigate()
+	const { t } = useTranslation()
 
 	const activePath =
 		navItems.find(
@@ -101,7 +100,7 @@ const TopBar = ({
 					>
 						<Image
 							src="/favicon.ico"
-							alt="Store Platform Logo"
+							alt={t('components.topBar.logoAlt')}
 							w="46px"
 							h="46px"
 							objectFit="contain"
@@ -112,7 +111,7 @@ const TopBar = ({
 							color="gray.800"
 							whiteSpace="nowrap"
 						>
-							Store Platform
+							{t('appTitle')}
 						</Text>
 					</Flex>
 
@@ -129,7 +128,10 @@ const TopBar = ({
 						>
 							{navItems.map(item => (
 								<option key={item.path} value={item.path}>
-									{item.label || 'Welcome'}
+									{getRouteLabel(
+										item.path,
+										item.label || t('components.topBar.welcome'),
+									)}
 								</option>
 							))}
 						</Select>
@@ -138,7 +140,7 @@ const TopBar = ({
 
 				<Flex align="center" gap={2}>
 					<IconButton
-						aria-label="Notifications"
+						aria-label={t('components.topBar.notifications')}
 						icon={<AsBellIcon />}
 						sx={styles.iconButton}
 						onClick={e => {
@@ -147,7 +149,7 @@ const TopBar = ({
 					/>
 
 					<IconButton
-						aria-label="Release Notes"
+						aria-label={t('components.topBar.releaseNotes')}
 						icon={<RepeatIcon boxSize={4} />}
 						sx={styles.iconButton}
 						onClick={e => {
@@ -156,7 +158,7 @@ const TopBar = ({
 					/>
 
 					<IconButton
-						aria-label="Settings"
+						aria-label={t('components.topBar.settings')}
 						icon={<SettingsIcon boxSize={4} />}
 						sx={styles.iconButton}
 						onClick={() => navigate(RoutePaths.SETTINGS)}
@@ -164,7 +166,7 @@ const TopBar = ({
 					<Menu placement="bottom-end">
 						<MenuButton
 							as={IconButton}
-							aria-label="Menu"
+							aria-label={t('components.topBar.menu')}
 							icon={<HamburgerIcon boxSize={5} />}
 							sx={styles.iconButton}
 						/>
@@ -178,7 +180,7 @@ const TopBar = ({
 						>
 							<Flex align="center" justify="space-between" px={8} py={8}>
 								<Text fontSize="2xl" fontWeight={800} color="black">
-									Hello, {userName}
+									{t('components.topBar.greeting', { userName })}
 								</Text>
 								<Avatar
 									name={userName}
@@ -222,7 +224,7 @@ const TopBar = ({
 								isDisabled={isLogoutLoading}
 							>
 								<ArrowForwardIcon boxSize={7} color="#6F7173" />
-								<Text>Logout</Text>
+								<Text>{t('components.topBar.logout')}</Text>
 							</MenuItem>
 						</MenuList>
 					</Menu>
@@ -230,7 +232,7 @@ const TopBar = ({
 			</Flex>
 			{navItems.length === 0 && (
 				<Text p={0} fontSize="sm" color="gray.500">
-					No navigation items available.
+					{t('components.topBar.noNavigationItems')}
 				</Text>
 			)}
 		</Box>

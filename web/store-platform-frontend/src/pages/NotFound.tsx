@@ -1,18 +1,19 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const NotFound = () => {
 	const navigate = useNavigate()
+	const { t } = useTranslation()
 
 	return (
 		<div>
-			<h1>status="404"</h1>
-			<h3>title="404"</h3>
+			<h1>{t('notFound.status')}</h1>
+			<h3>{t('notFound.title')}</h3>
 			<div>
-				Sorry, the page you visited does not exist yet. <br />
-				Talk to your admin if you believe this is an error.
+				{t('notFound.description')}
 			</div>
 
-			<button onClick={() => navigate('/')}>Go to Tracking</button>
+			<button onClick={() => navigate('/')}>{t('notFound.goHome')}</button>
 		</div>
 	)
 }

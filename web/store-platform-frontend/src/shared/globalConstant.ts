@@ -4,7 +4,7 @@ export const ENTRY_TYPE_LABELS_MAP: Record<string, string> = {
 	BUYING_ENTRY: 'common.buyingEntry',
 	SELLING_ENTRY: 'common.sellingEntry',
 	PAYMENT_ENTRY: 'common.paymentEntry',
-	RECEIPT_ENTRY: 'common.receiptAction',
+	RECEIPT_ENTRY: 'common.receiptEntry',
 }
 
 export const MODAL_CONFIG = {

@@ -1,3 +1,5 @@
+import { t } from 'i18next'
+
 const ROUTE_PREFIX = '/services/store_platform'
 
 const withBasePath = (suffix: string) => `${ROUTE_PREFIX}${suffix}`
@@ -50,6 +52,45 @@ export const fullPaths = {
 	CUSTOMER_MODAL: RoutePaths.CUSTOMER_MODAL,
 }
 
+export const routeLabelKeys = {
+	ROOT: 'navigation.welcome',
+	BARCODE: 'navigation.barcode',
+	PRODUCTS: 'components.pageHeaders.products',
+	ALL_PRODUCTS: 'navigation.allProducts',
+	DAILY: 'components.pageHeaders.daily',
+	ORDERS: 'components.pageHeaders.orders',
+	INVOICES: 'components.pageHeaders.invoices',
+	CUSTOMERS: 'components.pageHeaders.customers',
+	CUSTOMER: 'components.pageHeaders.customer',
+	SUPPLIERS: 'components.pageHeaders.suppliers',
+	SUPPLIER: 'components.pageHeaders.supplier',
+	USERS: 'components.pageHeaders.users',
+	SETTINGS: 'components.pageHeaders.settings',
+	ADD_NEW_TENANT: 'navigation.addTenant',
+	TENANTS_LIST: 'tenants.title',
+	STORE_PLATFORM: 'appTitle',
+} as const
+
+export const getRouteLabel = (path: string, fallback = '') => {
+	const routeLabelKeyByPath: Record<string, string> = {
+		[RoutePaths.ROOT]: routeLabelKeys.ROOT,
+		[RoutePaths.BARCODE]: routeLabelKeys.BARCODE,
+		[RoutePaths.PRODUCTS]: routeLabelKeys.PRODUCTS,
+		[RoutePaths.DAILY]: routeLabelKeys.DAILY,
+		[RoutePaths.ORDERS]: routeLabelKeys.ORDERS,
+		[RoutePaths.INVOICES]: routeLabelKeys.INVOICES,
+		[RoutePaths.CUSTOMERS]: routeLabelKeys.CUSTOMERS,
+		[RoutePaths.SUPPLIERS]: routeLabelKeys.SUPPLIERS,
+		[RoutePaths.USERS]: routeLabelKeys.USERS,
+		[RoutePaths.SETTINGS]: routeLabelKeys.SETTINGS,
+		[RoutePaths.ADD_NEW_TENANT]: routeLabelKeys.ADD_NEW_TENANT,
+		[RoutePaths.TENANTS_LIST]: routeLabelKeys.TENANTS_LIST,
+	}
+	const labelKey = routeLabelKeyByPath[path]
+
+	return labelKey ? t(labelKey) : fallback
+}
+
 export const generateBreadcrumbs = ({
 	locationId,
 	locationName,
@@ -57,7 +98,7 @@ export const generateBreadcrumbs = ({
 	const settings: BreadcrumbItem[] = [
 		{
 			id: 'settings',
-			name: 'Settings',
+			name: t(routeLabelKeys.SETTINGS),
 			href: '#',
 			isCurrentPage: true,
 		},
@@ -65,7 +106,7 @@ export const generateBreadcrumbs = ({
 	const StorePlatform: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: true,
 		},
@@ -74,13 +115,13 @@ export const generateBreadcrumbs = ({
 	const allActivities: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'all-products',
-			name: 'All products',
+			name: t(routeLabelKeys.ALL_PRODUCTS),
 			href: `${fullPaths.ALL_PRODUCTS}`,
 			isCurrentPage: true,
 		},
@@ -88,13 +129,13 @@ export const generateBreadcrumbs = ({
 	const products: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'products',
-			name: 'Products',
+			name: t(routeLabelKeys.PRODUCTS),
 			href: `${fullPaths.PRODUCTS}`,
 			isCurrentPage: true,
 		},
@@ -102,13 +143,13 @@ export const generateBreadcrumbs = ({
 	const barcode: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'barcode',
-			name: 'Barcode',
+			name: t(routeLabelKeys.BARCODE),
 			href: fullPaths.BARCODE,
 			isCurrentPage: true,
 		},
@@ -116,13 +157,13 @@ export const generateBreadcrumbs = ({
 	const orders: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'orders',
-			name: 'Orders',
+			name: t(routeLabelKeys.ORDERS),
 			href: fullPaths.ORDERS,
 			isCurrentPage: true,
 		},
@@ -130,13 +171,13 @@ export const generateBreadcrumbs = ({
 	const daily: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'daily',
-			name: 'Daily',
+			name: t(routeLabelKeys.DAILY),
 			href: fullPaths.DAILY,
 			isCurrentPage: true,
 		},
@@ -144,13 +185,13 @@ export const generateBreadcrumbs = ({
 	const customers: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'customers',
-			name: 'Customers',
+			name: t(routeLabelKeys.CUSTOMERS),
 			href: fullPaths.CUSTOMERS,
 			isCurrentPage: true,
 		},
@@ -158,13 +199,13 @@ export const generateBreadcrumbs = ({
 	const customer: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'customer',
-			name: 'Customer',
+			name: t(routeLabelKeys.CUSTOMER),
 			href: fullPaths.CUSTOMERS,
 			isCurrentPage: true,
 		},
@@ -172,13 +213,13 @@ export const generateBreadcrumbs = ({
 	const suppliers: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'suppliers',
-			name: 'Suppliers',
+			name: t(routeLabelKeys.SUPPLIERS),
 			href: fullPaths.SUPPLIERS,
 			isCurrentPage: true,
 		},
@@ -186,13 +227,13 @@ export const generateBreadcrumbs = ({
 	const supplier: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'supplier',
-			name: 'Supplier',
+			name: t(routeLabelKeys.SUPPLIER),
 			href: fullPaths.SUPPLIERS,
 			isCurrentPage: true,
 		},
@@ -200,13 +241,13 @@ export const generateBreadcrumbs = ({
 	const invoices: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'invoices',
-			name: 'Invoices',
+			name: t(routeLabelKeys.INVOICES),
 			href: fullPaths.INVOICES,
 			isCurrentPage: true,
 		},
@@ -214,13 +255,13 @@ export const generateBreadcrumbs = ({
 	const users: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ROOT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'users',
-			name: 'Users',
+			name: t(routeLabelKeys.USERS),
 			href: `${fullPaths.USERS}`,
 			isCurrentPage: true,
 		},
@@ -228,13 +269,13 @@ export const generateBreadcrumbs = ({
 	const addNewTenant: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ADD_NEW_TENANT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'add-new-tenant',
-			name: 'Add Tenant',
+			name: t(routeLabelKeys.ADD_NEW_TENANT),
 			href: fullPaths.ADD_NEW_TENANT,
 			isCurrentPage: true,
 		},
@@ -242,13 +283,13 @@ export const generateBreadcrumbs = ({
 	const tenantsList: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
-			name: 'Store Platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
 			href: fullPaths.ADD_NEW_TENANT,
 			isCurrentPage: false,
 		},
 		{
 			id: 'tenants-list',
-			name: 'Tenants List',
+			name: t(routeLabelKeys.TENANTS_LIST),
 			href: fullPaths.TENANTS_LIST,
 			isCurrentPage: true,
 		},
