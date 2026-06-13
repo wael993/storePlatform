@@ -86,6 +86,8 @@
 		"locationShelf": "الرف",
 		"startDate": "تاريخ البدء",
 		"status": "الحالة",
+		"from": "من",
+		"to": "إلى",
 		"selected": "محدد",
 		"buttonText": "إضافة مستند مطلوب",
 		"name": "اسم المستند",

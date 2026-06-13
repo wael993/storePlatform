@@ -42,6 +42,8 @@ export interface DailyActionFiltersQueryParams {
 	productName?: string[]
 	supplier?: string[]
 	customer?: string[]
+	invoiceDateFrom?: string
+	invoiceDateTo?: string
 }
 
 export interface ProductPaginationParams {
@@ -130,7 +132,10 @@ const buildDailyActionFilterQueryParams = (
 	const params: Record<string, string> = {}
 
 	const setArrayParam = (
-		key: keyof Omit<DailyActionFiltersQueryParams, 'searchText'>,
+		key: keyof Omit<
+			DailyActionFiltersQueryParams,
+			'searchText' | 'invoiceDateFrom' | 'invoiceDateTo'
+		>,
 		values?: string[],
 	) => {
 		if (!values || values.length === 0) return
@@ -142,6 +147,16 @@ const buildDailyActionFilterQueryParams = (
 	const normalizedSearchText = filters.searchText?.trim()
 	if (normalizedSearchText) {
 		params.searchText = normalizedSearchText
+	}
+
+	const invoiceDateFrom = filters.invoiceDateFrom?.trim()
+	if (invoiceDateFrom) {
+		params.invoiceDateFrom = invoiceDateFrom
+	}
+
+	const invoiceDateTo = filters.invoiceDateTo?.trim()
+	if (invoiceDateTo) {
+		params.invoiceDateTo = invoiceDateTo
 	}
 
 	setArrayParam('entryType', filters.entryType)
@@ -607,10 +622,11 @@ const getQuery = (
 			],
 		}),
 
-		deleteDailyAction: builder.mutation({
-			query: (actionId: string) => ({
-				url: `daily-actions/${actionId}`,
+		deleteDailyAction: builder.mutation<void, string[]>({
+			query: (actionIds: string[]) => ({
+				url: 'daily-actions',
 				method: 'DELETE',
+				body: { actionIds },
 			}),
 			invalidatesTags: [
 				'daily-actions',

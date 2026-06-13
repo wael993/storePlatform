@@ -19,6 +19,7 @@ import { TenantResource } from '../tenant'
 import {
 	createDocument as createDocumentAction,
 	deleteDocument as deleteDocumentAction,
+	deleteDocuments as deleteDocumentsAction,
 	EntityModel,
 	getDocumentByField as getDocumentByFieldAction,
 	getDocuments as getDocumentsAction,
@@ -67,6 +68,11 @@ interface UpdateDocumentContext {
 interface DeleteDocumentContext {
 	collectionName: TenantResource
 	id: string
+}
+interface DeleteDocumentsContext {
+	collectionName: TenantResource
+	fieldName: string
+	fieldValues: string[]
 }
 
 export default class MongodbController {
@@ -349,6 +355,17 @@ export default class MongodbController {
 		model: EntityModel,
 	) {
 		return deleteDocumentAction(requestContext, collectionName, model, id)
+	}
+
+	public async deleteDocuments(
+		{ collectionName, fieldName, fieldValues }: DeleteDocumentsContext,
+		requestContext: RequestContext,
+		model: EntityModel,
+	) {
+		return deleteDocumentsAction(requestContext, collectionName, model, {
+			fieldName,
+			fieldValues,
+		})
 	}
 
 	public async updateTenantUser(

@@ -1,4 +1,4 @@
-import { Button, Flex, Text } from '@chakra-ui/react'
+import { Button, Flex, Text, useDisclosure } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
@@ -7,6 +7,9 @@ import { AllowedActions } from '../../../shared/globalEnums'
 import { useResources } from '../../../shared/hooks/useResources'
 import { useUser } from '../../../shared/hooks/useUser'
 import AddRequiredDocumentButton from '../../common/AddRequiredDocumentButton'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteDailyActionMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
 
 const styles = {
 	mainFlexWrapper: {
@@ -67,10 +70,31 @@ const DailyListActionBar = ({
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin: isInternalUser } = useUser()
-
+	const { isOpen, onOpen, onClose } = useDisclosure()
+	const showToastMessage = useCustomToast()
+	const [deleteDailyAction, { isLoading: isDeletingDailyAction }] =
+		useDeleteDailyActionMutation()
 	const isRequiredDocumentCreationAllowed = isActionAllowed(
 		AllowedActions.ADD_PRODUCT,
 	)
+
+	const handleDeleteDailyAction = async (dailyActionIds: string[]) => {
+		try {
+			await deleteDailyAction(dailyActionIds).unwrap()
+			onClose()
+			showToastMessage({
+				status: 'success',
+				description: t(
+					'components.daily.confirmations.deleteDailyActionSuccess',
+				),
+			})
+		} catch (error) {
+			showToastMessage({
+				status: 'error',
+				description: t('components.daily.confirmations.deleteDailyActionError'),
+			})
+		}
+	}
 
 	const requiredDocumentCreatableOffers = true
 
@@ -113,27 +137,50 @@ const DailyListActionBar = ({
 						size={'sm'}
 						rightIcon={<AsCloseCircleIcon boxSize={6} />}
 						onClick={() => {
-							console.log('modal opened')
+							onOpen()
 						}}
-						aria-label={t('common.reject')}
+						aria-label={t('common.delete')}
 					>
-						{t('common.reject')}
+						{t('common.delete')}
 					</Button>
 				)}
 				<Button
 					isDisabled={false}
 					size={'sm'}
 					rightIcon={<AsCheckmarkCircleIcon boxSize={6} />}
-					aria-label={t('common.accept')}
+					aria-label={t('common.lock')}
 					variant="primary"
-					// sx={hoverFocusActiveButtonStyles}
+					sx={{
+						...styles.iconButton,
+						backgroundColor: '#376288',
+						color: '#FFFFFF',
+						hoverFocusActiveButtonStyles,
+					}}
 					onClick={() => {
 						console.log('modal closed')
 					}}
 				>
-					{t('common.accept')}
+					{t('common.lock')}
 				</Button>
 			</Flex>
+
+			<ConfirmationDialog
+				header={t('components.daily.confirmations.deleteDailyAction')}
+				body={t(
+					'components.daily.confirmations.deleteDailyActionConfirmationBody',
+				)}
+				isOpen={isOpen}
+				onClose={onClose}
+				onConfirm={() =>
+					handleDeleteDailyAction(
+						selectedDailies.map(dailyAction => dailyAction.actionId),
+					)
+				}
+				confirmIsPrimary
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeletingDailyAction}
+			/>
 		</Flex>
 	)
 }

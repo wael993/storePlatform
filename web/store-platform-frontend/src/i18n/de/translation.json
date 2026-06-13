@@ -77,6 +77,8 @@
 		"locationShelf": "Regal",
 		"startDate": "Startdatum",
 		"status": "Status",
+		"from": "Von",
+		"to": "Bis",
 		"selected": "ausgewählt",
 		"buttonText": "Erforderliches Dokument hinzufügen",
 		"name": "Dokumentname",

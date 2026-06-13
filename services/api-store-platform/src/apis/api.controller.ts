@@ -110,6 +110,8 @@ type DailyActionFilterQuery = {
 	productName?: string[]
 	supplier?: string[]
 	customer?: string[]
+	invoiceDateFrom?: string
+	invoiceDateTo?: string
 }
 
 type ProductFilterValueOption = {
@@ -149,6 +151,23 @@ type DailyActionFilterValueSource = {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+}
+
+const getInvoiceDateBoundary = (
+	dateValue: string | undefined,
+	boundary: 'start' | 'end',
+): Date | undefined => {
+	const trimmedDateValue = dateValue?.trim()
+	if (!trimmedDateValue) return undefined
+
+	const isDateOnlyValue = /^\d{4}-\d{2}-\d{2}$/.test(trimmedDateValue)
+	const date = isDateOnlyValue
+		? new Date(
+				`${trimmedDateValue}T${boundary === 'start' ? '00:00:00.000' : '23:59:59.999'}Z`,
+			)
+		: new Date(trimmedDateValue)
+
+	return Number.isNaN(date.getTime()) ? undefined : date
 }
 
 type BudgetOverviewResponse = {
@@ -1644,7 +1663,9 @@ export default class ProductController {
 			Boolean(filters.entryType?.length) ||
 			Boolean(filters.productName?.length) ||
 			Boolean(filters.supplier?.length) ||
-			Boolean(filters.customer?.length)
+			Boolean(filters.customer?.length) ||
+			Boolean(filters.invoiceDateFrom?.trim()) ||
+			Boolean(filters.invoiceDateTo?.trim())
 		const cacheKey = `dailyActions:${tenantId}`
 
 		if (!hasFilters) {
@@ -1668,6 +1689,11 @@ export default class ProductController {
 		const customerRegexList = this.buildCaseInsensitiveRegexList(
 			filters.customer,
 		)
+		const invoiceDateFrom = getInvoiceDateBoundary(
+			filters.invoiceDateFrom,
+			'start',
+		)
+		const invoiceDateTo = getInvoiceDateBoundary(filters.invoiceDateTo, 'end')
 		const dailyActionQueryClauses: Record<string, unknown>[] = []
 
 		if (searchText) {
@@ -1717,6 +1743,15 @@ export default class ProductController {
 					{ customerId: { $in: customerRegexList } },
 					{ customerName: { $in: customerRegexList } },
 				],
+			})
+		}
+
+		if (invoiceDateFrom || invoiceDateTo) {
+			dailyActionQueryClauses.push({
+				invoiceDate: {
+					...(invoiceDateFrom ? { $gte: invoiceDateFrom } : {}),
+					...(invoiceDateTo ? { $lte: invoiceDateTo } : {}),
+				},
 			})
 		}
 
@@ -1939,16 +1974,25 @@ export default class ProductController {
 	}
 
 	public async deleteDailyAction(
-		actionId: string,
+		actionIds: string[],
 		requestContext: RequestContext,
 	) {
-		const deleteResponse = await this.mongoDbClient.deleteDocument(
-			{ collectionName: COLLECTION_NAMES.DAILY_ACTIONS, id: actionId },
+		const uniqueActionIds = Array.from(new Set(actionIds))
+
+		const deleteResponse = await this.mongoDbClient.deleteDocuments(
+			{
+				collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
+				fieldName: 'actionId',
+				fieldValues: uniqueActionIds,
+			},
 			requestContext,
 			DailyAction,
 		)
 
-		await this.invalidateDailyActionsCache(requestContext, actionId)
+		for (const actionId of uniqueActionIds) {
+			await this.invalidateDailyActionsCache(requestContext, actionId)
+		}
+
 		return deleteResponse
 	}
 

@@ -21,6 +21,12 @@
 		},
 		"daily": {
 			"dailyActions": "Daily Actions",
+			"confirmations": {
+				"deleteDailyAction": "Delete Daily Action",
+				"deleteDailyActionConfirmationBody": "Are you sure you want to delete this daily action?",
+				"deleteDailyActionSuccess": "Daily action deleted successfully.",
+				"deleteDailyActionError": "Failed to delete daily action."
+			},
 			"actionType": "Action Type",
 			"actionDate": "Action Date",
 			"actionSummary": "Action Summary",
@@ -130,6 +136,8 @@
 	},
 
 	"common": {
+		"delete": "Delete",
+		"lock": "Lock",
 		"noElementsFound": "No elements found",
 		"emptyStateTitle": "Nothing to show yet",
 		"emptyStateDescription": "Try adjusting your search or add a new item to get started.",
@@ -156,6 +164,8 @@
 		"locationShelf": "Location Shelf",
 		"startDate": "Start Date",
 		"status": "Status",
+		"from": "From",
+		"to": "To",
 		"selected": "selected",
 		"buttonText": "Add Required Document",
 		"name": "Document Name",

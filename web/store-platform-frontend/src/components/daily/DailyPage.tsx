@@ -30,18 +30,39 @@ import {
 	useGetDailyActionFilterValuesQuery,
 	useGetDailyActionsQuery,
 } from '../../api/apiStore'
+import { ExcelDownload } from '../ExcelDownload'
 
 const fullWidth = '100%'
 
-const EMPTY_DAILY_FILTERS: ProductFilterValues = {
-	searchText: '',
-	supplier: [],
-	brand: [],
-	state: [],
-	category: [],
-	entryType: [],
-	productName: [],
-	customer: [],
+const getDateInputValueFromDate = (date: Date) => {
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+
+	return `${year}-${month}-${day}`
+}
+
+const getDefaultDailyFilters = (): ProductFilterValues => {
+	const today = new Date()
+	const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+	const endOfCurrentMonth = new Date(
+		today.getFullYear(),
+		today.getMonth() + 1,
+		0,
+	)
+
+	return {
+		searchText: '',
+		supplier: [],
+		brand: [],
+		state: [],
+		category: [],
+		entryType: [],
+		productName: [],
+		customer: [],
+		invoiceDateFrom: getDateInputValueFromDate(startOfCurrentMonth),
+		invoiceDateTo: getDateInputValueFromDate(endOfCurrentMonth),
+	}
 }
 
 const styles = {
@@ -94,8 +115,9 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
-	const [dailyFilters, setDailyFilters] =
-		useState<ProductFilterValues>(EMPTY_DAILY_FILTERS)
+	const [dailyFilters, setDailyFilters] = useState<ProductFilterValues>(
+		getDefaultDailyFilters,
+	)
 
 	const { data: dailyActions = [], isLoading: isDailyActionsLoading } =
 		useGetDailyActionsQuery(dailyFilters)
@@ -116,7 +138,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 	}
 
 	const handleResetFilters = () => {
-		setDailyFilters(EMPTY_DAILY_FILTERS)
+		setDailyFilters(getDefaultDailyFilters())
 	}
 
 	return (
@@ -134,16 +156,20 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				</Heading>
 				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
 					isOwnerOrAdmin && (
-						<Button
-							leftIcon={<AddSquareIcon />}
-							onClick={onOpen}
-							sx={styles.addProductButton}
-							variant="ghost"
-						>
-							<Text sx={styles.addProductButtonText}>
-								{t('common.addDailyAction')}
-							</Text>
-						</Button>
+						<>
+							<Button
+								leftIcon={<AddSquareIcon />}
+								onClick={onOpen}
+								sx={styles.addProductButton}
+								variant="ghost"
+							>
+								<Text sx={styles.addProductButtonText}>
+									{t('common.addDailyAction')}
+								</Text>
+							</Button>
+
+							<ExcelDownload url={'/api/daily-actions/export'} />
+						</>
 					)}
 			</HStack>
 
@@ -167,6 +193,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 					productName: true,
 					supplier: true,
 					customer: true,
+					invoiceDate: true,
 					brand: false,
 					state: false,
 					category: false,

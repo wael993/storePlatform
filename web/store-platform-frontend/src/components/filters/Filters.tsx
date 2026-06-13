@@ -95,7 +95,9 @@ const Filters = ({
 		(isFieldVisible('productName', false)
 			? (filters.productName ?? []).length
 			: 0) +
-		(isFieldVisible('customer', false) ? (filters.customer ?? []).length : 0)
+		(isFieldVisible('customer', false) ? (filters.customer ?? []).length : 0) +
+		(isFieldVisible('invoiceDate', false) && filters.invoiceDateFrom ? 1 : 0) +
+		(isFieldVisible('invoiceDate', false) && filters.invoiceDateTo ? 1 : 0)
 
 	return (
 		<Flex sx={styles.desktopFiltersRow}>

@@ -40,6 +40,8 @@ type DailyActionFilterQuery = {
 	productName?: string[]
 	supplier?: string[]
 	customer?: string[]
+	invoiceDateFrom?: string
+	invoiceDateTo?: string
 }
 
 type ProductPaginationQuery = {
@@ -66,6 +68,14 @@ const parseNumberQueryParam = (value: unknown): number | undefined => {
 	}
 	const num = parseInt(value, 10)
 	return isNaN(num) ? undefined : num
+}
+
+const parseStringQueryParam = (value: unknown): string | undefined => {
+	if (typeof value !== 'string') {
+		return undefined
+	}
+
+	return value.trim() || undefined
 }
 
 export default class StoreRoutes extends PlatformValidator {
@@ -334,6 +344,13 @@ export default class StoreRoutes extends PlatformValidator {
 				this.validatePostDailyAction.bind(this),
 				this.postDailyAction.bind(this),
 			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.validateDeleteDailyAction.bind(this),
+				this.deleteDailyAction.bind(this),
+			)
 
 		app
 			.route(`${baseRoute}/daily-actions/filter-values`)
@@ -362,6 +379,7 @@ export default class StoreRoutes extends PlatformValidator {
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
+				this.validateDeleteDailyAction.bind(this),
 				this.deleteDailyAction.bind(this),
 			)
 
@@ -1450,14 +1468,13 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
 		const dailyActionFilterQuery: DailyActionFilterQuery = {
-			searchText:
-				typeof request.query.searchText === 'string'
-					? request.query.searchText.trim() || undefined
-					: undefined,
+			searchText: parseStringQueryParam(request.query.searchText),
 			entryType: parseArrayQueryParam(request.query.entryType),
 			productName: parseArrayQueryParam(request.query.productName),
 			supplier: parseArrayQueryParam(request.query.supplier),
 			customer: parseArrayQueryParam(request.query.customer),
+			invoiceDateFrom: parseStringQueryParam(request.query.invoiceDateFrom),
+			invoiceDateTo: parseStringQueryParam(request.query.invoiceDateTo),
 		}
 
 		try {
@@ -1554,10 +1571,13 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+		const actionIds = Array.isArray(request.body?.actionIds)
+			? request.body.actionIds
+			: [request.params.id]
 
 		try {
 			await this.productController.deleteDailyAction(
-				request.params.id,
+				actionIds,
 				requestContext,
 			)
 			response.status(204).send()

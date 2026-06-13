@@ -146,3 +146,34 @@ export const deleteDocument = async (
 
 	return deleted
 }
+
+export const deleteDocuments = async (
+	requestContext: RequestContext,
+	resource: TenantResource,
+	model: EntityModel,
+	{
+		fieldName,
+		fieldValues,
+	}: {
+		fieldName: string
+		fieldValues: string[]
+	},
+) => {
+	await ensureTenantAccess(requestContext, resource, 'delete')
+	const { tenantId } = getTenantContext(requestContext)
+
+	const valuesToDelete = Array.from(new Set(fieldValues))
+	const deleted = await model
+		.deleteMany({ [fieldName]: { $in: valuesToDelete } })
+		.setOptions({ __tenantContext: { tenantId } })
+		.exec()
+
+	if (deleted.deletedCount === 0) {
+		throw new BusinessLogicError(
+			ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+			`${resource} not found.`,
+		)
+	}
+
+	return deleted
+}

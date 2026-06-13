@@ -22,7 +22,9 @@ import {
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import { datePickerStyles } from '../../theme/styles'
 import { AsFilterIcon } from '../icons/Filter'
+import DatePickerLabel from '../common/DatePickerLabel'
 import { Dropdown } from '../dropdown/Dropdown'
 import {
 	BrandDropdown,
@@ -48,6 +50,8 @@ export interface ProductFilterValues {
 	entryType?: string[]
 	productName?: string[]
 	customer?: string[]
+	invoiceDateFrom?: string
+	invoiceDateTo?: string
 }
 
 export type FilterFieldVisibility = {
@@ -58,6 +62,7 @@ export type FilterFieldVisibility = {
 	entryType?: boolean
 	productName?: boolean
 	customer?: boolean
+	invoiceDate?: boolean
 }
 
 const styles = {
@@ -112,6 +117,23 @@ const styles = {
 		marginRight: '0.25rem',
 	},
 } satisfies StylesObject
+
+const getDateInputValueFromDate = (date: Date) => {
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+
+	return `${year}-${month}-${day}`
+}
+
+const getDateFromInputValue = (dateInputValue?: string) => {
+	if (!dateInputValue) return undefined
+	const [year, month, day] = dateInputValue.split('-').map(Number)
+
+	if (!year || !month || !day) return undefined
+
+	return new Date(year, month - 1, day)
+}
 
 interface FilterModalProps {
 	selectedFiltersCount?: number
@@ -283,6 +305,54 @@ const FilterModal = ({
 										onSelect={(customer: string[]) =>
 											setLocalFilters(prev => ({ ...prev, customer }))
 										}
+									/>
+								</Box>
+							)}
+
+							{isFieldVisible('invoiceDate', false) && (
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<DatePickerLabel
+										label={t('common.from')}
+										onChange={(date: Date | undefined) =>
+											setLocalFilters(prev => ({
+												...prev,
+												invoiceDateFrom: date
+													? getDateInputValueFromDate(date)
+													: '',
+											}))
+										}
+										defaultDate={getDateFromInputValue(
+											localFilters.invoiceDateFrom,
+										)}
+										maxDate={getDateFromInputValue(localFilters.invoiceDateTo)}
+										allowClear
+										placeholder={t('common.datePlaceholder')}
+										styles={datePickerStyles}
+										usePortal
+									/>
+								</Box>
+							)}
+
+							{isFieldVisible('invoiceDate', false) && (
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<DatePickerLabel
+										label={t('common.to')}
+										onChange={(date: Date | undefined) =>
+											setLocalFilters(prev => ({
+												...prev,
+												invoiceDateTo: date
+													? getDateInputValueFromDate(date)
+													: '',
+											}))
+										}
+										defaultDate={getDateFromInputValue(localFilters.invoiceDateTo)}
+										minDate={getDateFromInputValue(
+											localFilters.invoiceDateFrom,
+										)}
+										allowClear
+										placeholder={t('common.datePlaceholder')}
+										styles={datePickerStyles}
+										usePortal
 									/>
 								</Box>
 							)}

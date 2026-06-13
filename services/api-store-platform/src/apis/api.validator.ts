@@ -110,6 +110,38 @@ export class PlatformValidator {
 		}
 	}
 
+	protected validateDeleteDailyAction(
+		req: express.Request,
+		res: express.Response,
+		next: express.NextFunction,
+	): void {
+		try {
+			const actionIds: unknown[] = Array.isArray(req.body?.actionIds)
+				? req.body.actionIds
+				: req.params.id
+					? [req.params.id]
+					: []
+
+			const hasOnlyValidActionIds =
+				actionIds.length > 0 &&
+				actionIds.every(
+					(actionId: unknown) =>
+						typeof actionId === 'string' && actionId.trim().length > 0,
+				)
+
+			if (!hasOnlyValidActionIds) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Daily action ids are missing.',
+				)
+			}
+
+			next()
+		} catch (err: any) {
+			handleError(err, 400, res)
+		}
+	}
+
 	protected validateGetProducts(
 		req: express.Request,
 		res: express.Response,
