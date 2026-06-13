@@ -1,8 +1,18 @@
-import { VStack, Heading, Text, SimpleGrid, Box, Checkbox } from '@chakra-ui/react'
+import {
+	VStack,
+	Heading,
+	Text,
+	SimpleGrid,
+	Box,
+	Checkbox,
+} from '@chakra-ui/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DailyActionType } from '../../../../shared/globalEnums'
 import InputLabel from '../../../common/InputLabel'
 import { documentNameStyles } from '../../../../theme/styles'
+import DatePickerLabel from '../../../common/DatePickerLabel'
+import { useTranslation } from 'react-i18next'
+
 interface ThirdStepProps {
 	formData: Partial<DailyAction> | undefined
 	handleInputChange: (
@@ -10,18 +20,36 @@ interface ThirdStepProps {
 		value: string,
 	) => void
 }
-const getTodayDateInputValue = () => {
-	const today = new Date()
-	const month = String(today.getMonth() + 1).padStart(2, '0')
-	const day = String(today.getDate()).padStart(2, '0')
 
-	return `${today.getFullYear()}-${month}-${day}`
+const getDateInputValueFromDate = (date: Date) => {
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+
+	return `${date.getFullYear()}-${month}-${day}`
 }
+
+const getTodayDateInputValue = () => getDateInputValueFromDate(new Date())
 
 const getDateInputValue = (date?: string) => date?.split('T')[0] ?? ''
 
+const getDateFromInputValue = (date?: string) => {
+	const dateInputValue = getDateInputValue(date)
+
+	if (!dateInputValue) return undefined
+
+	const [year, month, day] = dateInputValue.split('-').map(Number)
+
+	return new Date(year, month - 1, day)
+}
+
 const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
+	const { t } = useTranslation()
+
 	const todayDateInputValue = useMemo(() => getTodayDateInputValue(), [])
+	const selectedInvoiceDate = useMemo(
+		() => getDateFromInputValue(formData?.invoiceDate),
+		[formData?.invoiceDate],
+	)
 	const hasInitializedInvoiceDate = useRef(false)
 	const [isInvoiceDateToday, setIsInvoiceDateToday] = useState(
 		() =>
@@ -100,8 +128,8 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 						))}
 						<Box border="1px solid #EAEAEA" padding="0.75rem">
 							<InputLabel
-								label="Invoice Number"
-								inputPlaceholder={'invoice number ...'}
+								label={t('common.invoiceNumber')}
+								inputPlaceholder={t('common.invoiceNumberPlaceholder')}
 								inputType={'text'}
 								value={formData?.invoiceNumber ?? ''}
 								onChange={(value: string) =>
@@ -123,19 +151,23 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 										)
 									}}
 								>
-									Invoice date is today
+									{t('common.invoiceDateIsToday')}
 								</Checkbox>
 								{!isInvoiceDateToday && (
-									<InputLabel
-										label="Invoice Date"
-										inputPlaceholder={'invoice date ...'}
-										inputType={'date'}
-										value={getDateInputValue(formData?.invoiceDate)}
-										onChange={(value: string) =>
-											handleInputChange('invoiceDate', value)
-										}
-										styles={documentNameStyles}
-									/>
+									<VStack alignItems="flex-start" width="100%">
+										<DatePickerLabel
+											label={t('common.invoiceDate')}
+											onChange={(date: Date | undefined) =>
+												handleInputChange(
+													'invoiceDate',
+													date ? getDateInputValueFromDate(date) : '',
+												)
+											}
+											defaultDate={selectedInvoiceDate}
+											allowClear
+											placeholder={t('common.invoiceDatePlaceholder')}
+										/>
+									</VStack>
 								)}
 							</VStack>
 						</Box>

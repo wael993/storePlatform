@@ -1,15 +1,15 @@
 import {
 	Box,
-	HStack,
 	IconButton,
 	InputGroup,
 	InputRightElement,
 	Tooltip,
 	VStack,
+	type CSSObject,
 } from '@chakra-ui/react'
-// import { SingleDatepicker } from 'chakra-dayzed-datepicker'
-// import { PropsConfigs } from 'chakra-dayzed-datepicker/dist/utils/commonTypes'
-import { useRef, useState } from 'react'
+import { SingleDatepicker } from 'chakra-dayzed-datepicker'
+import { PropsConfigs } from 'chakra-dayzed-datepicker/dist/utils/commonTypes'
+import { useEffect, useRef, useState } from 'react'
 import { CustomTooltip } from './CustomTooltip'
 import { t } from 'i18next'
 import { addYears, endOfYear } from 'date-fns'
@@ -28,6 +28,12 @@ interface DateInputStyle {
 	color?: string
 	fontSize?: string
 	fontWeight?: number
+	backgroundColor?: string
+	borderRadius?: string
+	border?: string
+	width?: string
+	paddingRight?: string
+	_focusVisible?: CSSObject
 }
 
 interface CalendarIconStyle {
@@ -38,7 +44,7 @@ export interface DatePickerLabelStyles {
 	label?: LabelStyle
 	dateInput?: DateInputStyle
 	calendarIcon?: CalendarIconStyle
-	placeholder?: StylesObject
+	placeholder?: CSSObject
 }
 
 interface DatePickerLabelProps {
@@ -84,6 +90,12 @@ const defaultStyles = {
 		width: '100%',
 		caretColor: 'transparent',
 		borderColor: '#E8E8E8',
+		'& > div': {
+			width: '100%',
+		},
+		'& input': {
+			width: '100%',
+		},
 	},
 } satisfies StylesObject
 
@@ -98,7 +110,7 @@ const DatePickerLabel = ({
 	styles,
 	isDateDisabled,
 	isDisabled = false,
-	placeholder = t('components.modals.activityLetter.datePlaceholder'),
+	placeholder = t('common.datePlaceholder'),
 	allowClear = false,
 	usePortal = false,
 	minDateForDisabledDates,
@@ -112,61 +124,61 @@ const DatePickerLabel = ({
 		filterFn: isDateDisabled,
 	})
 
-	// const propsConfig: PropsConfigs = {
-	// 	dayOfMonthBtnProps: {
-	// 		defaultBtnProps: {
-	// 			borderColor: 'red.300',
-	// 			_hover: {
-	// 				background: 'blue.400',
-	// 			},
-	// 		},
-	// 		selectedBtnProps: {
-	// 			background: 'blue.200',
-	// 		},
-	// 		isInRangeBtnProps: {
-	// 			background: 'blue.200',
-	// 		},
-	// 	},
-	// 	inputProps: {
-	// 		height: '2.5rem',
-	// 		paddingLeft: '0.6rem',
-	// 		cursor: 'pointer',
-	// 		color: '#6A6A6A',
-	// 		backgroundColor: '#F8F8F8',
-	// 		lineHeight: '1.2rem',
-	// 		fontSize: '1rem',
-	// 		paddingRight: '1.9rem',
-	// 		borderRadius: '0',
-	// 		_focusVisible: {
-	// 			borderColor: '#E8E8E8',
-	// 		},
-	// 		placeholder: placeholder,
-	// 		_placeholder: {
-	// 			color: '#929494',
-	// 			...(styles?.placeholder ?? {}),
-	// 		},
-	// 		...styles?.dateInput,
-	// 	},
-	// }
+	useEffect(() => {
+		setDate(defaultDate)
+	}, [defaultDate])
+
+	const propsConfig: PropsConfigs = {
+		dayOfMonthBtnProps: {
+			defaultBtnProps: {
+				borderColor: 'transparent',
+				_hover: {
+					background: '#F4F4F4',
+				},
+			},
+			selectedBtnProps: {
+				background: '#1E1E1E',
+				color: '#FFFFFF',
+				_hover: {
+					background: '#1E1E1E',
+				},
+			},
+			isInRangeBtnProps: {
+				background: '#F4F4F4',
+			},
+		},
+		inputProps: {
+			width: '100%',
+			height: '2.5rem',
+			paddingLeft: '0.6rem',
+			cursor: 'pointer',
+			color: '#1E1E1E',
+			backgroundColor: '#F4F4F4',
+			lineHeight: '1.2rem',
+			fontSize: '0.875rem',
+			fontWeight: 500,
+			paddingRight: allowClear ? '4.8rem' : '2.5rem',
+			borderRadius: '0px',
+			border: '1px solid #EAEAEA',
+			_focusVisible: {
+				borderColor: '#E8E8E8',
+			},
+			placeholder: placeholder,
+			_placeholder: {
+				color: '#929494',
+				...(styles?.placeholder ?? {}),
+			},
+			...styles?.dateInput,
+		},
+	}
 
 	const handleDateChange = (selectedDate: Date) => {
 		setDate(selectedDate)
 		onChange(selectedDate)
 	}
 
-	const simulateDatePickerOpen = () => {
-		/**
-		 * The SingleDatePicker has no external mechanism to be open.
-		 * This is just a workaround to a wrapping box to simulate the action.
-		 *
-		 * It can be slightly improved but works consistently at least for now.
-		 */
-		if (datePickerRef && datePickerRef.current) {
-			datePickerRef.current.firstChild?.dispatchEvent(
-				new MouseEvent('click', { bubbles: true }),
-			)
-		}
-	}
+	const openDatePicker = () =>
+		datePickerRef.current?.querySelector<HTMLButtonElement>('button')?.click()
 
 	return (
 		<VStack sx={defaultStyles.container}>
@@ -178,43 +190,44 @@ const DatePickerLabel = ({
 			</CustomTooltip>
 
 			<InputGroup sx={defaultStyles.inputGroup}>
-				<InputRightElement sx={defaultStyles.inputRightElement}>
-					<HStack>
-						<IconButton
-							aria-label={t('common.openCalendar')}
-							variant="ghost"
-							sx={{ ...defaultStyles.calendarIcon, ...styles?.calendarIcon }}
-							onClick={simulateDatePickerOpen}
-							icon={<AsCalendarIcon />}
-							isDisabled={isDisabled}
-						/>
-						{allowClear && (
-							<Tooltip label={t('common.clearDate')}>
-								<IconButton
-									aria-label={t('common.clearDate')}
-									variant="ghost"
-									sx={{
-										...defaultStyles.calendarIcon,
-										...styles?.calendarIcon,
-									}}
-									onClick={() => {
-										setDate(undefined)
-										onChange(undefined)
-									}}
-									icon={<AsCloseIcon />}
-									isDisabled={isDisabled}
-								/>
-							</Tooltip>
-						)}
-					</HStack>
-				</InputRightElement>
+				{allowClear && (
+					<InputRightElement
+						sx={{ ...defaultStyles.inputRightElement, right: '2.5rem' }}
+					>
+						<Tooltip label={t('common.clearDate')}>
+							<IconButton
+								aria-label={t('common.clearDate')}
+								variant="ghost"
+								sx={{
+									...defaultStyles.calendarIcon,
+									...styles?.calendarIcon,
+								}}
+								onClick={() => {
+									setDate(undefined)
+									onChange(undefined)
+								}}
+								icon={<AsCloseIcon />}
+								isDisabled={isDisabled}
+							/>
+						</Tooltip>
+					</InputRightElement>
+				)}
 
-				<Box sx={defaultStyles.datePickerWrapper} ref={datePickerRef}>
-					{/* <SingleDatepicker
+				<Box
+					sx={defaultStyles.datePickerWrapper}
+					ref={datePickerRef}
+				>
+					<SingleDatepicker
 						minDate={minDate}
 						maxDate={maximumAllowedDate}
+						triggerVariant="input"
+						triggerIcon={<AsCalendarIcon />}
 						propsConfigs={{
 							...propsConfig,
+							inputProps: {
+								...propsConfig.inputProps,
+								onClick: openDatePicker,
+							},
 							...(usePortal
 								? {
 										popoverCompProps: {
@@ -237,7 +250,7 @@ const DatePickerLabel = ({
 						disabledDates={disabledDates}
 						disabled={isDisabled}
 						usePortal={usePortal}
-					/> */}
+					/>
 				</Box>
 			</InputGroup>
 		</VStack>
