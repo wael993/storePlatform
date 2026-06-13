@@ -91,7 +91,9 @@ const Filters = ({
 		(isFieldVisible('brand') ? filters.brand.length : 0) +
 		(isFieldVisible('state') ? filters.state.length : 0) +
 		(isFieldVisible('category') ? filters.category.length : 0) +
-		(isFieldVisible('entryType', false) ? (filters.entryType ?? []).length : 0) +
+		(isFieldVisible('entryType', false)
+			? (filters.entryType ?? []).length
+			: 0) +
 		(isFieldVisible('productName', false)
 			? (filters.productName ?? []).length
 			: 0) +
@@ -101,13 +103,7 @@ const Filters = ({
 
 	return (
 		<Flex sx={styles.desktopFiltersRow}>
-			<HStack sx={styles.desktopFiltersRowLeft}>
-				<Text sx={styles.spaceCount}>
-					{selectedFiltersCount > 0
-						? `${selectedFiltersCount} active filter${selectedFiltersCount > 1 ? 's' : ''}`
-						: ''}
-				</Text>
-			</HStack>
+			<HStack sx={styles.desktopFiltersRowLeft}></HStack>
 			<HStack sx={styles.desktopFiltersRowRight}>
 				<Box>
 					<Button

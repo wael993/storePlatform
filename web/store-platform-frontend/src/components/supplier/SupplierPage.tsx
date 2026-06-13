@@ -22,7 +22,6 @@ import { useTranslation } from 'react-i18next'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import Filters from '../filters/Filters'
 import SupplierListWithActionBar from './list/SupplierListWithActionBar'
 import { useGetSuppliersQuery } from '../../api/apiStore'
 
@@ -112,22 +111,6 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 			{isSuppliersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			{/* <Filters
-				filters={{
-					brand: [],
-					category: [],
-					state: [],
-					supplier: [],
-					searchText: '',
-				}}
-				onApplyFilters={() => {}}
-				onResetFilters={() => {}}
-				supplierOptions={[]}
-				brandOptions={[]}
-				stateOptions={[]}
-				categoryOptions={[]}
-				showSupplierFilter={isOwnerOrAdmin}
-			/> */}
 			<SupplierListWithActionBar
 				suppliers={suppliers as Supplier[]}
 				isLoading={isSuppliersLoading}

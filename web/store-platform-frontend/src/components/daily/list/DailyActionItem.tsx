@@ -189,7 +189,14 @@ const DailyActionItem = memo(
 						</Skeleton>
 					</Flex>
 				</Td>
-
+				{/* Invoice Number */}
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>{dailyAction.invoiceNumber}</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
 				{/* Invoice Date */}
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
@@ -197,19 +204,6 @@ const DailyActionItem = memo(
 							<Text sx={styles.text}>
 								{dailyAction.invoiceDate
 									? formatDate(dailyAction.invoiceDate)
-									: '-'}
-							</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
-
-				{/* Created At */}
-				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{dailyAction.createdAt
-									? formatDate(dailyAction.createdAt)
 									: '-'}
 							</Text>
 						</Skeleton>

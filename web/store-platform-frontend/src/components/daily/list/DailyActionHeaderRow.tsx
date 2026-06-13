@@ -125,17 +125,19 @@ const DailyActionHeaderRow = ({
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.TOTAL_PRICE,
 			sortKey: DailyActionSortHeaderKey.TOTAL_PRICE,
 		},
+
+		{
+			label: t('common.invoiceNumber'),
+			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.INVOICE_NUMBER,
+			sortKey: DailyActionSortHeaderKey.INVOICE_NUMBER,
+		},
 		{
 			label: t('common.invoiceDate'),
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.INVOICE_DATE,
 			sortKey: DailyActionSortHeaderKey.INVOICE_DATE,
+			align: 'center' as const,
 		},
-		{
-			label: t('common.createdAt'),
-			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
-			sortKey: DailyActionSortHeaderKey.CREATED_AT,
-			align: 'right' as const,
-		},
+
 		{
 			label: null,
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT,
@@ -191,10 +193,10 @@ const DailyActionHeaderRow = ({
 					>
 						<Flex
 							alignItems={'center'}
-							justifyContent={header.align === 'right' ? 'flex-end' : undefined}
+							justifyContent={header.align === 'center' ? 'flex' : undefined}
 							sx={{
 								...styles.tableHeaderText,
-								...(header.align === 'right' ? { paddingRight: '1.5rem' } : {}),
+								...(header.align === 'center' ? { paddingRight: '0rem' } : {}),
 							}}
 						>
 							<Text sx={styles.tableHeaderText}>{header.label}</Text>

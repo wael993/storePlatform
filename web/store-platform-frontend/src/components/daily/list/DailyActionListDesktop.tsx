@@ -241,8 +241,12 @@ const DailyActionListDesktop = memo(
 							b.invoiceDate,
 							sortOrder,
 						)
-					case DailyActionSortHeaderKey.CREATED_AT:
-						return compareDatesForSorting(a.createdAt, b.createdAt, sortOrder)
+					case DailyActionSortHeaderKey.INVOICE_NUMBER:
+						return compareStringsForSorting(
+							a.invoiceNumber,
+							b.invoiceNumber,
+							sortOrder,
+						)
 					default:
 						return 0
 				}

@@ -96,7 +96,7 @@ export const BudgetOverview = ({
 							{t('components.budgetOverview.purchase')}
 						</Text>
 						<Heading variant="h4" sx={styles.budgetInfoText}>
-							{`${mapFee(purchase) ?? '0'} ${'N.SYR'}`}
+							{`${mapFee(purchase) ?? '0'} ${currency ?? 'N.SYP'}`}
 						</Heading>
 					</Flex>
 					<Flex sx={{ ...styles.budgetInfo, width: '50%' }}>
@@ -104,7 +104,7 @@ export const BudgetOverview = ({
 							{t('components.budgetOverview.payments')}
 						</Text>
 						<Heading variant="h4" sx={styles.budgetInfoText}>
-							{`${mapFee(payments) ?? '0'} ${'N.SYR'}`}
+							{`${mapFee(payments) ?? '0'} ${currency ?? 'N.SYP'}`}
 						</Heading>
 					</Flex>
 				</HStack>
@@ -119,7 +119,7 @@ export const BudgetOverview = ({
 							color: isBalanceNegative ? 'red' : 'green',
 						}}
 					>
-						{`${isBalanceNegative ? '-' : ''}${mapFee(balance) ?? '0'} ${'N.SYR'}`}
+						{`${isBalanceNegative ? '-' : ''}${mapFee(balance) ?? '0'} ${currency ?? 'N.SYP'}`}
 					</Heading>
 				</Flex>
 			</Flex>

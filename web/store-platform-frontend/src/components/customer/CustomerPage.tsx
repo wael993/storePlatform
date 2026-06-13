@@ -22,7 +22,6 @@ import {
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
-import Filters from '../filters/Filters'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 import CustomerListWithActionBar from './list/CustomerListWithActionBar'
 import { useGetCustomersQuery } from '../../api/apiStore'
@@ -115,22 +114,6 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 			{isCustomersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			{/* <Filters
-				filters={{
-					brand: [],
-					category: [],
-					state: [],
-					supplier: [],
-					searchText: '',
-				}}
-				onApplyFilters={() => {}}
-				onResetFilters={() => {}}
-				supplierOptions={[]}
-				brandOptions={[]}
-				stateOptions={[]}
-				categoryOptions={[]}
-				showSupplierFilter={isOwnerOrAdmin}
-			/> */}
 			<CustomerListWithActionBar
 				customers={customers as Customer[]}
 				isLoading={isCustomersLoading}
