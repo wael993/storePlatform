@@ -22,6 +22,8 @@ import { cellFieldStyles } from '../../shared/styles'
 import { AsClockIcon } from '../icons/Clock'
 import { formatDateFromAndDateTo } from '../../shared/dateUtils'
 import { TicketStatus } from '../common/TicketStatus'
+import { BudgetOverview } from '../common/BudgetOverview'
+import { useGetBudgetOverviewQuery } from '../../api/apiStore'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -192,6 +194,23 @@ const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 	const { isCustomerEntry } = compareEntryType(entryType)
 	const { t } = useTranslation()
 	const entry = customer ?? supplier
+	const budgetOverviewArgs = customer?.customerId
+		? ({
+				entityType: 'customer',
+				id: customer.customerId,
+			} satisfies BudgetOverviewQueryArgument)
+		: supplier?.supplierId
+			? ({
+					entityType: 'supplier',
+					id: supplier.supplierId,
+				} satisfies BudgetOverviewQueryArgument)
+			: undefined
+
+	const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
+		useGetBudgetOverviewQuery(
+			budgetOverviewArgs ?? { entityType: 'customer', id: '' },
+			{ skip: !budgetOverviewArgs },
+		)
 
 	if (!entry) return null
 
@@ -267,17 +286,12 @@ const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 								variant="baseStyle"
 								sx={{ ...styles.itemText, textAlign: 'left' }}
 							>
-								{formatDateFromAndDateTo(
-									entry?.createdAt,
-									entry?.updatedAt,
-								)}
+								{formatDateFromAndDateTo(entry?.createdAt, entry?.updatedAt)}
 							</Text>
 						</Flex>
 					</GridItem>
 
-					<GridItem
-						sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}
-					>
+					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
 						<Flex sx={styles.feeSectionFlexWrapper}>
 							<Flex sx={styles.itemWrapperWithMargin}>
 								<EditableField {...editableFieldProps} />
@@ -285,12 +299,22 @@ const TopSection = ({ entryType, customer, supplier }: TopSectionProps) => {
 						</Flex>
 					</GridItem>
 
-					<GridItem
-						sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}
-					>
-						<Flex sx={styles.feeSectionFlexWrapper}>
+					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
+						<Flex
+							sx={{
+								...styles.feeSectionFlexWrapper,
+								justifyContent: 'center',
+								width: '100%',
+							}}
+						>
 							<Flex sx={styles.itemWrapperWithMargin}>
-								<EditableField {...editableFieldProps} />
+								<BudgetOverview
+									payments={budgetOverview?.payments}
+									purchase={budgetOverview?.purchase}
+									currency={budgetOverview?.currency}
+									balance={budgetOverview?.balance}
+									isFetching={isBudgetOverviewFetching}
+								/>
 							</Flex>
 						</Flex>
 					</GridItem>

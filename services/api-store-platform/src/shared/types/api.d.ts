@@ -82,6 +82,13 @@ interface DailyActionRequestBody {
 	invoiceDate: Date
 }
 
+interface BudgetOverviewResponse {
+	payments: string
+	purchase: string
+	currency?: string
+	balance: string
+}
+
 type CreateDailyActionResponse = {
 	_id: string
 }

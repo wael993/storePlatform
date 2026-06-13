@@ -4,6 +4,12 @@
 		"updateFailedMessage": "فشل تحديث الإعدادات."
 	},
 	"components": {
+		"budgetOverview": {
+			"tooltip": "موضوع الميزانية هو ملخص الميزانية للعميل.",
+			"text": "موضوع الميزانية",
+			"open": "مفتوح",
+			"accepted": "مقبول"
+		},
 		"activitySettingsSection": {
 			"title": "المنتجات لكل صفحة",
 			"note": "قم بتكوين الإعدادات المتعلقة بالعداد هنا."

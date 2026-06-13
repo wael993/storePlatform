@@ -262,7 +262,8 @@ export default class MongodbController {
 				resource,
 				model,
 				{
-					[fieldName]: fieldValue,
+					fieldName,
+					fieldValue,
 				},
 			)
 

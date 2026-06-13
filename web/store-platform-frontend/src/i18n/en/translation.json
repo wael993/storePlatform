@@ -4,6 +4,13 @@
 		"updateFailedMessage": "Failed to update settings."
 	},
 	"components": {
+		"budgetOverview": {
+			"tooltip": "The budget overview is a summary of the budget for the customer.",
+			"text": "Budget Overview",
+			"purchase": "Purchase value",
+			"payments": "Value of payments",
+			"balance": "Balance"
+		},
 		"customer": {
 			"name": "Customer Name",
 			"code": "Customer Code",

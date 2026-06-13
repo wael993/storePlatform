@@ -38,6 +38,16 @@ interface CurrenciesAPIResponse extends APIResponse<Currency> {}
 interface UnitsAPIResponse extends APIResponse<Unit> {}
 interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
 interface SavedFiltersAPIResponse extends APIResponse<SavedFilters> {}
+interface BudgetOverviewAPIResponse {
+	payments: string
+	purchase: string
+	currency?: string
+	balance: string
+}
+interface BudgetOverviewQueryArgument {
+	entityType: 'customer' | 'supplier'
+	id: string
+}
 interface UserSettings {
 	enabledAccess: Access[]
 }

@@ -11,7 +11,7 @@ export const mapCustomers = (customers: Customer[]) => {
 			return sum + price
 		}, 0)
 		return {
-			customerId: customer.customerId,
+			customerId: customer.customerId ?? customer.internalCode,
 			name: customer.name,
 			sold,
 			internalCode: customer.internalCode,

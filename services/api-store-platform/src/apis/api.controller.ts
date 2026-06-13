@@ -151,6 +151,15 @@ type DailyActionFilterValueSource = {
 	customerName?: string
 }
 
+type BudgetOverviewResponse = {
+	payments: string
+	purchase: string
+	currency?: string
+	balance: string
+}
+
+type BudgetOverviewEntityType = 'customer' | 'supplier'
+
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -1807,6 +1816,50 @@ export default class ProductController {
 		return { data: [dailyAction], totalCount: 1 }
 	}
 
+	public async getBudgetOverview(
+		entityType: BudgetOverviewEntityType,
+		entityId: string,
+		requestContext: RequestContext,
+	): Promise<BudgetOverviewResponse | null> {
+		const identifiers = await this.getBudgetOverviewIdentifiers(
+			entityType,
+			entityId,
+			requestContext,
+		)
+
+		if (!identifiers) {
+			return null
+		}
+
+		const dailyActions = await this.getDailyActions(requestContext)
+		const relevantActions = dailyActions.data.filter(action => {
+			if (entityType === 'customer') {
+				return action.customerId && identifiers.has(action.customerId)
+			}
+
+			return action.supplierId && identifiers.has(action.supplierId)
+		})
+
+		const purchaseEntryType =
+			entityType === 'customer' ? 'SELLING_ENTRY' : 'BUYING_ENTRY'
+		const paymentEntryType =
+			entityType === 'customer' ? 'RECEIPT_ENTRY' : 'PAYMENT_ENTRY'
+
+		const purchase = this.sumActionAmounts(relevantActions, purchaseEntryType)
+		const payments = this.sumActionAmounts(relevantActions, paymentEntryType)
+		const currency =
+			relevantActions.find(action => action.currencyName || action.currencyId)
+				?.currencyName ??
+			relevantActions.find(action => action.currencyId)?.currencyId
+
+		return {
+			payments: payments.toFixed(2),
+			purchase: purchase.toFixed(2),
+			currency,
+			balance: (purchase - payments).toFixed(2),
+		}
+	}
+
 	public async postDailyAction(
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
@@ -1910,6 +1963,11 @@ export default class ProductController {
 			logger.debug('Daily actions list cache invalidated')
 		}
 
+		await Promise.all([
+			redisCache.del(redisCache.buildCustomerListKey(tenantId)),
+			redisCache.del(redisCache.buildSupplierListKey(tenantId)),
+		])
+
 		if (actionId) {
 			const detailKey = `dailyAction:${tenantId}:${actionId}`
 			const detailKeyDeleted = await redisCache.del(detailKey)
@@ -1917,6 +1975,89 @@ export default class ProductController {
 				logger.debug(`Daily action ${actionId} deleted from cache`)
 			}
 		}
+	}
+
+	private async getBudgetOverviewIdentifiers(
+		entityType: BudgetOverviewEntityType,
+		entityId: string,
+		requestContext: RequestContext,
+	): Promise<Set<string> | null> {
+		if (entityType === 'customer') {
+			let customer =
+				await this.mongoDbClient.getDocumentByField<CustomerDocument>(
+					requestContext,
+					COLLECTION_NAMES.CUSTOMERS,
+					Customer,
+					{ fieldName: 'customerId', fieldValue: entityId },
+				)
+
+			if (!customer) {
+				customer =
+					await this.mongoDbClient.getDocumentByField<CustomerDocument>(
+						requestContext,
+						COLLECTION_NAMES.CUSTOMERS,
+						Customer,
+						{ fieldName: 'internalCode', fieldValue: entityId },
+					)
+			}
+
+			if (!customer) {
+				return null
+			}
+
+			return new Set(
+				[customer.customerId, customer.internalCode].filter(
+					(value): value is string => Boolean(value),
+				),
+			)
+		}
+
+		let supplier =
+			await this.mongoDbClient.getDocumentByField<SupplierDocument>(
+				requestContext,
+				COLLECTION_NAMES.SUPPLIERS,
+				Supplier,
+				{ fieldName: 'supplierId', fieldValue: entityId },
+			)
+
+		if (!supplier) {
+			supplier = await this.mongoDbClient.getDocumentByField<SupplierDocument>(
+				requestContext,
+				COLLECTION_NAMES.SUPPLIERS,
+				Supplier,
+				{ fieldName: 'internalCode', fieldValue: entityId },
+			)
+		}
+
+		if (!supplier) {
+			return null
+		}
+
+		return new Set(
+			[supplier.supplierId, supplier.internalCode].filter(
+				(value): value is string => Boolean(value),
+			),
+		)
+	}
+
+	private parseActionAmount(
+		action: DailyActionResponse['data'][number],
+	): number {
+		const rawAmount = action.totalPrice ?? action.singleUnitPrice ?? '0'
+		return parseFloat(rawAmount.replace(/,/g, '')) || 0
+	}
+
+	private sumActionAmounts(
+		actions: DailyActionResponse['data'],
+		entryType: EntryType,
+	): number {
+		return actions.reduce((sum, action) => {
+			if (action.entryType !== entryType) {
+				return sum
+			}
+
+			return sum + this.parseActionAmount(action)
+		}, 0)
 	}
 
 	public async getTenantUsers(
@@ -2490,12 +2631,13 @@ export default class ProductController {
 		supplierId: string,
 		requestContext: RequestContext,
 	): Promise<SuppliersResponse['data'][number] | null> {
-		const supplier = await this.mongoDbClient.getDocumentByField<SupplierDocument>(
-			requestContext,
-			COLLECTION_NAMES.SUPPLIERS,
-			Supplier,
-			{ fieldName: 'supplierId', fieldValue: supplierId },
-		)
+		const supplier =
+			await this.mongoDbClient.getDocumentByField<SupplierDocument>(
+				requestContext,
+				COLLECTION_NAMES.SUPPLIERS,
+				Supplier,
+				{ fieldName: 'supplierId', fieldValue: supplierId },
+			)
 
 		if (!supplier) {
 			return null
@@ -2652,12 +2794,22 @@ export default class ProductController {
 		customerId: string,
 		requestContext: RequestContext,
 	): Promise<CustomersResponse['data'][number] | null> {
-		const customer = await this.mongoDbClient.getDocumentByField<CustomerDocument>(
+		let customer =
+			await this.mongoDbClient.getDocumentByField<CustomerDocument>(
 				requestContext,
 				COLLECTION_NAMES.CUSTOMERS,
 				Customer,
 				{ fieldName: 'customerId', fieldValue: customerId },
 			)
+
+		if (!customer) {
+			customer = await this.mongoDbClient.getDocumentByField<CustomerDocument>(
+				requestContext,
+				COLLECTION_NAMES.CUSTOMERS,
+				Customer,
+				{ fieldName: 'internalCode', fieldValue: customerId },
+			)
+		}
 
 		if (!customer) {
 			return null
@@ -2672,7 +2824,7 @@ export default class ProductController {
 
 		const mappedCustomers = mapCustomers([
 			{
-				customerId: customer.customerId,
+				customerId: customer.customerId ?? customer.internalCode ?? customerId,
 				name: customer.name,
 				sold: 0,
 				internalCode: customer.internalCode,

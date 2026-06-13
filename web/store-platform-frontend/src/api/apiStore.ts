@@ -245,6 +245,17 @@ const getQuery = (
 			providesTags: ['customer'],
 		}),
 
+		getBudgetOverview: builder.query<
+			BudgetOverviewAPIResponse | null,
+			BudgetOverviewQueryArgument
+		>({
+			query: ({ entityType, id }: BudgetOverviewQueryArgument) => ({
+				url: `budget-overview/${entityType}/${id}`,
+				method: 'GET',
+			}),
+			providesTags: ['budget-overview'],
+		}),
+
 		getCurrencies: builder.query({
 			query: () => {
 				return {
@@ -566,7 +577,14 @@ const getQuery = (
 				method: 'POST',
 				body,
 			}),
-			invalidatesTags: ['daily-actions'],
+			invalidatesTags: [
+				'daily-actions',
+				'budget-overview',
+				'customers',
+				'customer',
+				'suppliers',
+				'supplier',
+			],
 		}),
 
 		updateDailyAction: builder.mutation<
@@ -578,7 +596,15 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: ['daily-actions', 'daily-action'],
+			invalidatesTags: [
+				'daily-actions',
+				'daily-action',
+				'budget-overview',
+				'customers',
+				'customer',
+				'suppliers',
+				'supplier',
+			],
 		}),
 
 		deleteDailyAction: builder.mutation({
@@ -586,7 +612,14 @@ const getQuery = (
 				url: `daily-actions/${actionId}`,
 				method: 'DELETE',
 			}),
-			invalidatesTags: ['daily-actions'],
+			invalidatesTags: [
+				'daily-actions',
+				'budget-overview',
+				'customers',
+				'customer',
+				'suppliers',
+				'supplier',
+			],
 		}),
 	}
 }
@@ -603,6 +636,7 @@ export const {
 	useGetSingleSupplierQuery,
 	useGetCustomersQuery,
 	useGetSingleCustomerQuery,
+	useGetBudgetOverviewQuery,
 	useGetCurrenciesQuery,
 	useGetUnitsQuery,
 	useGetSingleProductQuery,

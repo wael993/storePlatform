@@ -535,6 +535,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/budget-overview/:entityType/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getBudgetOverview.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/currencies`)
 			.get(
 				this.startCalc.bind(this),
@@ -883,6 +892,39 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+			console.log('🚀 ~ StoreRoutes ~ getCustomer ~ resp:', resp)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getBudgetOverview(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const entityType = request.params.entityType
+		console.log(
+			'🚀 ~ StoreRoutes ~ getBudgetOverview ~ entityType:',
+			entityType,
+		)
+
+		try {
+			if (entityType !== 'customer' && entityType !== 'supplier') {
+				response.status(400).json({ message: 'Invalid budget overview type' })
+				return
+			}
+
+			const resp = await this.productController.getBudgetOverview(
+				entityType,
+				request.params.id,
+				requestContext,
+			)
+			console.log('🚀 ~ StoreRoutes ~ getBudgetOverview ~ resp:', resp)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
