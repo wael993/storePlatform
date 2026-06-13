@@ -129,6 +129,12 @@ const AddDailyActionModal = ({
 		useState<boolean>(false)
 	const [newDailyAction, setNewDailyAction] = useState<Partial<DailyAction>>()
 
+	const {
+		isOpen: isLeavingModalOpen,
+		onClose: onCloseLeavingModal,
+		onOpen: onOpenLeavingModal,
+	} = useDisclosure()
+
 	useEffect(() => {
 		if (!isOpen) {
 			setEntryType([])
@@ -137,6 +143,10 @@ const AddDailyActionModal = ({
 			setStep(StepKeys.ACTION_TYPE)
 		}
 	}, [isOpen, setEntryType, setFormData, setStep])
+
+	useEffect(() => {
+		setShouldLeavingBeQuestioned(!isEqual(formData, undefined))
+	}, [formData, newDailyAction])
 
 	const handleEntryTypeChange = (values: DropdownOption[]) => {
 		setEntryType(values)
@@ -189,16 +199,6 @@ const AddDailyActionModal = ({
 	}
 
 	const actionEntryTypesOptions: DropdownOption[] = getActionEntryTypesOptions()
-
-	const {
-		isOpen: isLeavingModalOpen,
-		onClose: onCloseLeavingModal,
-		onOpen: onOpenLeavingModal,
-	} = useDisclosure()
-
-	useEffect(() => {
-		setShouldLeavingBeQuestioned(!isEqual(formData, undefined))
-	}, [formData, newDailyAction])
 
 	const handleCloseModal = (forceClose?: boolean) => {
 		if (shouldLeavingBeQuestioned && !forceClose) {

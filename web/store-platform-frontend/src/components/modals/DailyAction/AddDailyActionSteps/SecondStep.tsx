@@ -63,8 +63,8 @@ const SecondStep = ({
 									isSingle={true}
 									placeholder={t('Product Name')}
 									dropDownOptions={products.map((product: Product) => ({
-										value: product.internalCode || product.productId,
-										label: `${product.name} (${product.internalCode ?? 'TBD'})`,
+										value: product.productId ?? product.internalCode,
+										label: product.name ?? product.internalCode ?? 'TBD',
 									}))}
 									selectedValues={
 										formData?.productId ? [formData.productId] : []
@@ -75,8 +75,8 @@ const SecondStep = ({
 											'productName',
 											values,
 											products.map((product: Product) => ({
-												value: product.internalCode || product.productId,
-												label: `${product.name} (${product.internalCode ?? 'TBD'})`,
+												value: product.productId ?? product.internalCode,
+												label: product.name ?? product.internalCode ?? 'TBD',
 											})),
 										)
 									}
@@ -92,8 +92,8 @@ const SecondStep = ({
 										isSingle={true}
 										placeholder={t('Supplier Name')}
 										dropDownOptions={suppliers.map(supplier => ({
-											value: supplier.internalCode || supplier.supplierId,
-											label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+											value: supplier.supplierId ?? supplier.internalCode,
+											label: supplier.name ?? supplier.internalCode ?? 'TBD',
 										}))}
 										selectedValues={
 											formData?.supplierId ? [formData.supplierId] : []
@@ -104,8 +104,9 @@ const SecondStep = ({
 												'supplierName',
 												values,
 												suppliers.map(supplier => ({
-													value: supplier.internalCode || supplier.supplierId,
-													label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+													value: supplier.supplierId ?? supplier.internalCode,
+													label:
+														supplier.name ?? supplier.internalCode ?? 'TBD',
 												})),
 											)
 										}
@@ -122,8 +123,8 @@ const SecondStep = ({
 										isSingle={true}
 										placeholder={t('Customer Name')}
 										dropDownOptions={customers.map(customer => ({
-											value: customer.internalCode || customer.customerId,
-											label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+											value: customer.customerId ?? customer.internalCode,
+											label: customer.name ?? customer.internalCode ?? 'TBD',
 										}))}
 										selectedValues={
 											formData?.customerId ? [formData.customerId] : []
@@ -134,8 +135,9 @@ const SecondStep = ({
 												'customerName',
 												values,
 												customers.map(customer => ({
-													value: customer.internalCode || customer.customerId,
-													label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+													value: customer.customerId ?? customer.internalCode,
+													label:
+														customer.name ?? customer.internalCode ?? 'TBD',
 												})),
 											)
 										}
@@ -150,8 +152,8 @@ const SecondStep = ({
 								<Dropdown
 									placeholder={t('Currency Name')}
 									dropDownOptions={currency.map((currency: Currency) => ({
-										value: currency.currencyId,
-										label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+										value: currency.currencyId ?? currency.internalCode,
+										label: currency.name ?? currency.internalCode ?? 'TBD',
 									}))}
 									isSingle
 									selectedValues={
@@ -163,7 +165,7 @@ const SecondStep = ({
 											'currencyName',
 											values,
 											currency.map((currency: Currency) => ({
-												value: currency.currencyId,
+												value: currency.currencyId ?? currency.internalCode,
 												label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
 											})),
 										)
@@ -177,8 +179,8 @@ const SecondStep = ({
 								<Dropdown
 									placeholder={t('Unit Name')}
 									dropDownOptions={unit.map((unit: Unit) => ({
-										value: unit.unitId,
-										label: `${unit.name} (${unit.internalCode ?? 'TBD'})`,
+										value: unit.unitId ?? unit.internalCode,
+										label: unit.name ?? unit.internalCode ?? 'TBD',
 									}))}
 									selectedValues={formData?.unitId ? [formData.unitId] : []}
 									isSingle={true}
@@ -188,8 +190,8 @@ const SecondStep = ({
 											'unitName',
 											values,
 											unit.map((unit: Unit) => ({
-												value: unit.unitId,
-												label: `${unit.name} (${unit.internalCode ?? 'TBD'})`,
+												value: unit.unitId ?? unit.internalCode,
+												label: unit.name ?? unit.internalCode ?? 'TBD',
 											})),
 										)
 									}
@@ -248,8 +250,8 @@ const SecondStep = ({
 										isSingle={true}
 										placeholder={t('Supplier Name')}
 										dropDownOptions={suppliers.map(supplier => ({
-											value: supplier.internalCode || supplier.supplierId,
-											label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+											value: supplier.supplierId ?? supplier.internalCode,
+											label: supplier.name ?? supplier.internalCode ?? 'TBD',
 										}))}
 										selectedValues={
 											formData?.supplierId ? [formData.supplierId] : []
@@ -260,8 +262,9 @@ const SecondStep = ({
 												'supplierName',
 												values,
 												suppliers.map(supplier => ({
-													value: supplier.internalCode || supplier.supplierId,
-													label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+													value: supplier.supplierId ?? supplier.internalCode,
+													label:
+														supplier.name ?? supplier.internalCode ?? 'TBD',
 												})),
 											)
 										}
@@ -278,8 +281,8 @@ const SecondStep = ({
 										isSingle={true}
 										placeholder={t('Customer Name')}
 										dropDownOptions={customers.map(customer => ({
-											value: customer.internalCode || customer.customerId,
-											label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+											value: customer.customerId ?? customer.internalCode,
+											label: customer.name ?? customer.internalCode ?? 'TBD',
 										}))}
 										selectedValues={
 											formData?.customerId ? [formData.customerId] : []
@@ -290,8 +293,9 @@ const SecondStep = ({
 												'customerName',
 												values,
 												customers.map(customer => ({
-													value: customer.internalCode || customer.customerId,
-													label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+													value: customer.customerId ?? customer.internalCode,
+													label:
+														customer.name ?? customer.internalCode ?? 'TBD',
 												})),
 											)
 										}
@@ -306,8 +310,8 @@ const SecondStep = ({
 								<Dropdown
 									placeholder={t('Currency Name')}
 									dropDownOptions={currency.map((currency: Currency) => ({
-										value: currency.currencyId,
-										label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+										value: currency.currencyId ?? currency.internalCode,
+										label: currency.name ?? currency.internalCode ?? 'TBD',
 									}))}
 									isSingle
 									selectedValues={
@@ -319,8 +323,8 @@ const SecondStep = ({
 											'currencyName',
 											values,
 											currency.map((currency: Currency) => ({
-												value: currency.currencyId,
-												label: `${currency.name} (${currency.internalCode ?? 'TBD'})`,
+												value: currency.currencyId ?? currency.internalCode,
+												label: currency.name ?? currency.internalCode ?? 'TBD',
 											})),
 										)
 									}

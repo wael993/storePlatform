@@ -65,6 +65,8 @@ const EmptyState = ({ title, description }: EmptyStateProps) => {
 					<Text sx={styles.title}>{title}</Text>
 					{description && <Text sx={styles.description}>{description}</Text>}
 				</Box>
+				{/* TODO: Add button to add new item */}
+				{/* <Button>Add</Button> */}
 			</Flex>
 		</Center>
 	)
