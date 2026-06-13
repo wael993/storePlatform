@@ -88,6 +88,11 @@ const CustomerModal = ({ entryType }: CustomerModalProps) => {
 	} = useGetSingleCustomerQuery(customerId)
 
 	const handleClose = () => {
+		if (window.history.state && window.history.length > 1) {
+			navigate(-1)
+			return
+		}
+
 		navigate(fullPaths.CUSTOMERS)
 	}
 

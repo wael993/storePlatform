@@ -2,6 +2,7 @@ import { Tr } from '@chakra-ui/react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DailyActionItem from './DailyActionItem'
+import { buildRoutePath } from '../../shared/routes'
 
 interface DailyActionRowProps {
 	dailyAction: DailyAction
@@ -20,11 +21,17 @@ const DailyActionRow = ({
 }: DailyActionRowProps) => {
 	const [isHovered, setIsHovered] = useState(false)
 	const navigate = useNavigate()
+	const targetPath = dailyAction.supplierId
+		? buildRoutePath.supplierById(dailyAction.supplierId)
+		: dailyAction.customerId
+			? buildRoutePath.customerById(dailyAction.customerId)
+			: undefined
+	const canNavigateToRelatedParty = !isLoading && Boolean(targetPath)
 
 	const styles: StylesObject = {
 		row: {
 			backgroundColor: isHovered ? '#F9F9F9' : '#FFFFFF',
-			cursor: 'default',
+			cursor: canNavigateToRelatedParty ? 'pointer' : 'default',
 		},
 	}
 
@@ -34,7 +41,10 @@ const DailyActionRow = ({
 			sx={styles.row}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
-			onClick={() => navigate('/services/store_platform/suppliers')}
+			onClick={() => {
+				if (!targetPath || !canNavigateToRelatedParty) return
+				navigate(targetPath)
+			}}
 		>
 			<DailyActionItem
 				key={dailyAction._id ?? dailyAction.actionId}

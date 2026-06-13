@@ -88,6 +88,10 @@ const SupplierModal = ({ entryType }: SupplierModalProps) => {
 	} = useGetSingleSupplierQuery(supplierId)
 
 	const handleClose = () => {
+		if (window.history.state && window.history.length > 1) {
+			navigate(-1)
+			return
+		}
 		navigate(fullPaths.SUPPLIERS)
 	}
 

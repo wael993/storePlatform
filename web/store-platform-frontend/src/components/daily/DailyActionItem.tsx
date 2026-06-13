@@ -133,7 +133,10 @@ const DailyActionItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{dailyAction.productName !== '' ? dailyAction.productName : '-'}
+								{dailyAction.productName !== '' &&
+								dailyAction.productName !== undefined
+									? dailyAction.productName
+									: '-'}
 							</Text>
 						</Skeleton>
 					</Flex>
