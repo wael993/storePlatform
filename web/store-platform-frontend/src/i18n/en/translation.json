@@ -142,6 +142,8 @@
 		"emptyStateTitle": "Nothing to show yet",
 		"emptyStateDescription": "Try adjusting your search or add a new item to get started.",
 		"addDailyAction": "Add Daily Action",
+		"downloadExcel": "Download Excel",
+		"downloadExcelError": "Failed to download Excel file.",
 		"entryType": "Entry Type",
 		"weight": "Weight",
 		"unitPrice": "Unit Price",

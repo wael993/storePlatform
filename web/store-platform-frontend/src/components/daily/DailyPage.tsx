@@ -156,7 +156,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				</Heading>
 				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
 					isOwnerOrAdmin && (
-						<>
+						<HStack>
 							<Button
 								leftIcon={<AddSquareIcon />}
 								onClick={onOpen}
@@ -167,9 +167,11 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 									{t('common.addDailyAction')}
 								</Text>
 							</Button>
-
-							<ExcelDownload url={'/api/daily-actions/export'} />
-						</>
+							<ExcelDownload
+								targetType={TargetType.DAILY_ACTION}
+								queryParams={dailyFilters}
+							/>
+						</HStack>
 					)}
 			</HStack>
 

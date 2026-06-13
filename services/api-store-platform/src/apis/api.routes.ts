@@ -24,6 +24,7 @@ import {
 } from '../shared/types'
 import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
+import { format } from 'date-fns'
 // import { loginRateLimiter, refreshRateLimiter } from '../middleware/rateLimiter'
 
 type ProductFilterQuery = {
@@ -362,6 +363,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/daily-actions/excel`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getDailyActionsExcel.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/daily-actions/:id`)
 			.get(
 				this.startCalc.bind(this),
@@ -590,6 +600,45 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.postUnit.bind(this),
 			)
+
+	}
+
+	private async getDailyActionsExcel(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const dailyActionFilterQuery: DailyActionFilterQuery = {
+			searchText: parseStringQueryParam(request.query.searchText),
+			entryType: parseArrayQueryParam(request.query.entryType),
+			productName: parseArrayQueryParam(request.query.productName),
+			supplier: parseArrayQueryParam(request.query.supplier),
+			customer: parseArrayQueryParam(request.query.customer),
+			invoiceDateFrom: parseStringQueryParam(request.query.invoiceDateFrom),
+			invoiceDateTo: parseStringQueryParam(request.query.invoiceDateTo),
+		}
+
+		try {
+			let workbook
+
+			workbook = await this.productController.getDailyActionsExcel(
+				requestContext,
+				dailyActionFilterQuery,
+			)
+			const today = new Date()
+			const filename = `${format(today, 'yyyy.MM.dd')}_daily_actions.xlsx`
+
+			const workbookBuffer = await workbook.xlsx.writeBuffer({
+				useStyles: true,
+				useSharedStrings: true,
+				filename: filename,
+			})
+			response.attachment(filename).send(workbookBuffer)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
 	}
 
 	private setRefreshTokenCookie(
@@ -1576,10 +1625,7 @@ export default class StoreRoutes extends PlatformValidator {
 			: [request.params.id]
 
 		try {
-			await this.productController.deleteDailyAction(
-				actionIds,
-				requestContext,
-			)
+			await this.productController.deleteDailyAction(actionIds, requestContext)
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)

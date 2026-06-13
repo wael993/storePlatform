@@ -64,6 +64,8 @@
 		"inputSearch": "Suchen...",
 		"showResults": "Ergebnisse anzeigen",
 		"addProduct": "Produkt hinzufügen",
+		"downloadExcel": "Excel herunterladen",
+		"downloadExcelError": "Excel-Datei konnte nicht heruntergeladen werden.",
 		"productName": "Produktname",
 		"barcode": "Barcode",
 		"brand": "Markenname",

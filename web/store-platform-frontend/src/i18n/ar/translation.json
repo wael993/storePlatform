@@ -73,6 +73,8 @@
 		"inputSearch": "بحث...",
 		"showResults": "عرض النتائج",
 		"addProduct": "إضافة منتج",
+		"downloadExcel": "تنزيل Excel",
+		"downloadExcelError": "فشل تنزيل ملف Excel.",
 		"productName": "اسم المنتج",
 		"barcode": "الباركود",
 		"brand": "اسم العلامة التجارية",

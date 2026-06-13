@@ -87,6 +87,8 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
+import type { Workbook } from 'exceljs'
+import { generateDailyActionsExcel } from '../shared/files/excel'
 
 type TokenPayload = {
 	userId: string
@@ -1277,6 +1279,18 @@ export default class ProductController {
 
 		await this.invalidateProductsCache(requestContext, productId)
 		return deleteResponse
+	}
+
+	public async getDailyActionsExcel(
+		requestContext: RequestContext,
+		dailyActionFilterQuery: DailyActionFilterQuery,
+	): Promise<Workbook> {
+		const { data: dailyActions } = await this.getDailyActions(
+			requestContext,
+			dailyActionFilterQuery,
+		)
+
+		return generateDailyActionsExcel(dailyActions)
 	}
 
 	public async getOrders(requestContext: RequestContext) {
