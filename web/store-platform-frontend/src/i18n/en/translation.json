@@ -176,6 +176,8 @@
 		"submit": "Submit",
 		"buyingEntry": "Buying Entry",
 		"sellingEntry": "Selling Entry",
+		"paymentEntry": "Payment Entry",
+		"receiptAction": "Receipt Action",
 		"expenseEntry": "Expense Entry",
 		"otherEntry": "Other Entry",
 		"addCustomer": "Add Customer",

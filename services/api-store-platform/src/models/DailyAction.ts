@@ -16,19 +16,19 @@ export interface IDailyAction extends Document {
 		| 'SELLING_ENTRY'
 		| 'PAYMENT_ENTRY'
 		| 'RECEIPT_ENTRY'
-	productId: string
-	invoiceNumber: string
+	productId?: string
+	invoiceNumber?: string
 	invoiceDate: Date
 	productName?: string
-	supplierId: string
+	supplierId?: string
 	supplierName?: string
 	customerId?: string
 	customerName?: string
 	currencyId: string
 	currencyName: string
-	unitId: string
-	unitName: string
-	weight: string
+	unitId?: string
+	unitName?: string
+	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
 	createdBy: string
@@ -53,12 +53,10 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 		productId: {
 			type: String,
 			trim: true,
-			required: [true, 'productId is required'],
 		},
 		invoiceNumber: {
 			type: String,
 			trim: true,
-			required: [true, 'invoiceNumber is required'],
 		},
 		invoiceDate: {
 			type: Date,
@@ -68,7 +66,6 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 		productName: {
 			type: String,
 			trim: true,
-			required: [true, 'productName is required'],
 		},
 		supplierId: {
 			type: String,
@@ -99,17 +96,14 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 		unitId: {
 			type: String,
 			trim: true,
-			required: [true, 'unitId is required'],
 		},
 		unitName: {
 			type: String,
 			trim: true,
-			required: [true, 'unitName is required'],
 		},
 		weight: {
 			type: String,
 			trim: true,
-			required: [true, 'weight is required'],
 		},
 		singleUnitPrice: {
 			type: String,

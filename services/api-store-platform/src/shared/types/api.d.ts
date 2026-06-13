@@ -17,17 +17,18 @@ interface UserAPIFormat {
 	businessPartnerId?: string
 	avatarColorId?: number
 }
-interface EntryType {
-	value: string
-	label: string
-}
+type EntryType =
+	| 'BUYING_ENTRY'
+	| 'SELLING_ENTRY'
+	| 'PAYMENT_ENTRY'
+	| 'RECEIPT_ENTRY'
 
 interface CustomerDailyAction {
 	actionId: string
 	entryType: EntryType
-	productId: string
-	productName: string
-	invoiceNumber: string
+	productId?: string
+	productName?: string
+	invoiceNumber?: string
 	invoiceDate: Date
 	supplierId?: string
 	supplierName?: string
@@ -35,9 +36,9 @@ interface CustomerDailyAction {
 	customerName?: string
 	currencyId: string
 	currencyName: string
-	unitId: string
-	unitName: string
-	weight: string
+	unitId?: string
+	unitName?: string
+	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
 }
@@ -45,9 +46,9 @@ interface CustomerDailyAction {
 interface DailyAction {
 	actionId: string
 	entryType: EntryType
-	productId: string
-	productName: string
-	invoiceNumber: string
+	productId?: string
+	productName?: string
+	invoiceNumber?: string
 	invoiceDate: Date
 	supplierId?: string
 	supplierName?: string
@@ -55,29 +56,29 @@ interface DailyAction {
 	customerName?: string
 	currencyId: string
 	currencyName: string
-	unitId: string
-	unitName: string
-	weight: string
+	unitId?: string
+	unitName?: string
+	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
 }
 
 interface DailyActionRequestBody {
 	entryType: EntryType
-	productId: string
-	productName: string
+	productId?: string
+	productName?: string
 	supplierId?: string
 	supplierName?: string
 	customerId?: string
 	customerName?: string
 	currencyId: string
 	currencyName: string
-	unitId: string
-	unitName: string
-	weight: string
-	singleUnitPrice: string
-	totalPrice: string
-	invoiceNumber: string
+	unitId?: string
+	unitName?: string
+	weight?: string
+	singleUnitPrice?: string
+	totalPrice?: string
+	invoiceNumber?: string
 	invoiceDate: Date
 }
 
@@ -89,7 +90,6 @@ interface CurrenciesResponse extends APIResponse<Currency> {}
 interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
 interface DailyActionResponse extends APIResponse<DailyAction> {}
-interface DailyActionRequestBody extends APIResponse<DailyAction> {}
 
 interface Supplier {
 	supplierId: string

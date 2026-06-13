@@ -11,7 +11,7 @@ import DailyActionsHelperButtons from './DailyActionsHelperButtons'
 interface SecondStepProps {
 	isBuyingEntry: boolean
 	isSellingEntry: boolean
-	isReceiptAction: boolean
+	isReceiptEntry: boolean
 	isPaymentEntry: boolean
 	formData: Partial<DailyAction> | undefined
 	products: Product[]
@@ -35,7 +35,7 @@ interface SecondStepProps {
 const SecondStep = ({
 	isBuyingEntry,
 	isSellingEntry,
-	isReceiptAction,
+	isReceiptEntry,
 	isPaymentEntry,
 	formData,
 	products,
@@ -234,12 +234,72 @@ const SecondStep = ({
 					<DailyActionsHelperButtons />
 				</>
 			)}
-			{(isReceiptAction || isPaymentEntry) && (
+			{(isReceiptEntry || isPaymentEntry) && (
 				<>
 					<Heading fontSize={'1rem'} marginBottom={'1rem'}>
-						{isReceiptAction ? 'Receipt Action' : 'Payment Entry'}
+						{isReceiptEntry ? 'Receipt Action' : 'Payment Entry'}
 					</Heading>
 					<SimpleGrid columns={[1, 2, 3]} gap={6}>
+						{isPaymentEntry && (
+							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+								<TextLabel label={' Supplier'} />
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<Dropdown
+										isSingle={true}
+										placeholder={t('Supplier Name')}
+										dropDownOptions={suppliers.map(supplier => ({
+											value: supplier.internalCode || supplier.supplierId,
+											label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+										}))}
+										selectedValues={
+											formData?.supplierId ? [formData.supplierId] : []
+										}
+										onSelect={(values: string[]) =>
+											handleDropdownChange(
+												'supplierId',
+												'supplierName',
+												values,
+												suppliers.map(supplier => ({
+													value: supplier.internalCode || supplier.supplierId,
+													label: `${supplier.name} (${supplier.internalCode ?? 'TBD'})`,
+												})),
+											)
+										}
+									/>
+								</Box>
+							</VStack>
+						)}
+
+						{isReceiptEntry && (
+							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+								<TextLabel label={' Customer'} />
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<Dropdown
+										isSingle={true}
+										placeholder={t('Customer Name')}
+										dropDownOptions={customers.map(customer => ({
+											value: customer.internalCode || customer.customerId,
+											label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+										}))}
+										selectedValues={
+											formData?.customerId ? [formData.customerId] : []
+										}
+										onSelect={(values: string[]) =>
+											handleDropdownChange(
+												'customerId',
+												'customerName',
+												values,
+												customers.map(customer => ({
+													value: customer.internalCode || customer.customerId,
+													label: `${customer.name} (${customer.internalCode ?? 'TBD'})`,
+												})),
+											)
+										}
+									/>
+								</Box>
+							</VStack>
+						)}
+
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 							<TextLabel label={' Currency'} />
 							<Box sx={dropdownStyles.dropDownContainer}>

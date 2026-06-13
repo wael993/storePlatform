@@ -117,23 +117,23 @@ export const useDailyActionHandlers = ({
 	}, [step, t])
 
 	const handleSaveDailyAction = async () => {
-		if (formData) {
+		if (formData?.entryType) {
 			const payload: AddDailyActionRequestBody = {
 				entryType: formData.entryType,
-				productId: formData.productId ?? '',
-				productName: formData.productName ?? '',
+				productId: formData.productId ?? undefined,
+				productName: formData.productName ?? undefined,
 				supplierId: formData.supplierId ?? undefined,
 				supplierName: formData.supplierName ?? undefined,
 				customerId: formData.customerId ?? undefined,
 				customerName: formData.customerName ?? undefined,
 				currencyId: formData.currencyId ?? '',
 				currencyName: formData.currencyName ?? '',
-				unitId: formData.unitId ?? '',
-				unitName: formData.unitName ?? '',
-				weight: formData.weight ?? '',
+				unitId: formData.unitId ?? undefined,
+				unitName: formData.unitName ?? undefined,
+				weight: formData.weight ?? undefined,
 				singleUnitPrice: formData.singleUnitPrice ?? undefined,
 				totalPrice: formData.totalPrice ?? undefined,
-				invoiceNumber: formData.invoiceNumber ?? '',
+				invoiceNumber: formData.invoiceNumber ?? undefined,
 				invoiceDate: formData.invoiceDate ?? '',
 			}
 			try {

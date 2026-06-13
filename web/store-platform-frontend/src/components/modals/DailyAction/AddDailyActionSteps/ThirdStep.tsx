@@ -93,19 +93,29 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 						value: actionSummary?.singleUnitPrice,
 					},
 				]
-			case DailyActionType.RECEIPT_ACTION:
+			case DailyActionType.RECEIPT_ENTRY:
 				return [
-					{ label: 'Currency', value: actionSummary?.currencyName },
 					{
-						label: 'Location/Customer',
+						label: 'Customer',
 						value: actionSummary?.customerName,
 					},
+					{ label: 'Currency', value: actionSummary?.currencyName },
+					{ label: 'Amount', value: actionSummary?.singleUnitPrice },
+				]
+			case DailyActionType.PAYMENT_ENTRY:
+				return [
+					{ label: 'Supplier', value: actionSummary?.supplierName },
+					{ label: 'Currency', value: actionSummary?.currencyName },
+					{ label: 'Amount', value: actionSummary?.singleUnitPrice },
 				]
 			default:
 				return []
 		}
 	}
 	const actionSummaryRows = getActionSummaryRows(formData)
+	const requiresInvoiceNumber =
+		formData?.entryType === DailyActionType.BUYING_ENTRY ||
+		formData?.entryType === DailyActionType.SELLING_ENTRY
 
 	return (
 		<>
@@ -126,18 +136,20 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 								</Text>
 							</Box>
 						))}
-						<Box border="1px solid #EAEAEA" padding="0.75rem">
-							<InputLabel
-								label={t('common.invoiceNumber')}
-								inputPlaceholder={t('common.invoiceNumberPlaceholder')}
-								inputType={'text'}
-								value={formData?.invoiceNumber ?? ''}
-								onChange={(value: string) =>
-									handleInputChange('invoiceNumber', value)
-								}
-								styles={documentNameStyles}
-							/>
-						</Box>
+						{requiresInvoiceNumber && (
+							<Box border="1px solid #EAEAEA" padding="0.75rem">
+								<InputLabel
+									label={t('common.invoiceNumber')}
+									inputPlaceholder={t('common.invoiceNumberPlaceholder')}
+									inputType={'text'}
+									value={formData?.invoiceNumber ?? ''}
+									onChange={(value: string) =>
+										handleInputChange('invoiceNumber', value)
+									}
+									styles={documentNameStyles}
+								/>
+							</Box>
+						)}
 						<Box border="1px solid #EAEAEA" padding="0.75rem">
 							<VStack alignItems="flex-start" spacing={3}>
 								<Checkbox

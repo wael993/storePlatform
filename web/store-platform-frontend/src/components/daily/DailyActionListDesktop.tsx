@@ -33,7 +33,7 @@ interface VirtuosoContext {
 const skeletonDailyAction: DailyAction = {
 	_id: 'skeleton-id',
 	actionId: 'skeleton-action-id',
-	entryType: 'dailyAction',
+	entryType: 'BUYING_ENTRY',
 	productId: 'dummy',
 	productName: 'dummy',
 	supplierId: 'dummy',
@@ -47,6 +47,25 @@ const skeletonDailyAction: DailyAction = {
 	totalPrice: '0',
 	invoiceNumber: '0000503',
 	invoiceDate: '2024-01-01T00:00:00.000Z',
+}
+
+const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
+	if (!entryType) return undefined
+	if (typeof entryType === 'string') return entryType
+	return entryType.value
+}
+
+const getDailyActionTotalPrice = (dailyAction: DailyAction) => {
+	const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
+
+	if (
+		entryTypeValue === 'PAYMENT_ENTRY' ||
+		entryTypeValue === 'RECEIPT_ENTRY'
+	) {
+		return dailyAction.singleUnitPrice
+	}
+
+	return dailyAction.totalPrice
 }
 
 const styles: StylesObject = {
@@ -181,6 +200,12 @@ const DailyActionListDesktop = memo(
 
 			return cloned.sort((a, b) => {
 				switch (sortField) {
+					case DailyActionSortHeaderKey.ENTRY_TYPE:
+						return compareStringsForSorting(
+							getEntryTypeValue(a.entryType),
+							getEntryTypeValue(b.entryType),
+							sortOrder,
+						)
 					case DailyActionSortHeaderKey.PRODUCT_NAME:
 						return compareStringsForSorting(
 							a.productName,
@@ -203,12 +228,16 @@ const DailyActionListDesktop = memo(
 						)
 					case DailyActionSortHeaderKey.TOTAL_PRICE:
 						return compareStringsForSorting(
-							a.totalPrice,
-							b.totalPrice,
+							getDailyActionTotalPrice(a),
+							getDailyActionTotalPrice(b),
 							sortOrder,
 						)
 					case DailyActionSortHeaderKey.INVOICE_DATE:
-						return compareDatesForSorting(a.invoiceDate, b.invoiceDate, sortOrder)
+						return compareDatesForSorting(
+							a.invoiceDate,
+							b.invoiceDate,
+							sortOrder,
+						)
 					case DailyActionSortHeaderKey.CREATED_AT:
 						return compareDatesForSorting(a.createdAt, b.createdAt, sortOrder)
 					default:

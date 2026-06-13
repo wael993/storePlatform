@@ -26,23 +26,32 @@ type AddQuickModalType =
 	| 'unit'
 type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
 type InputType = 'number' | 'text' | 'email' | 'text-area' | 'date'
+type EntryActionType =
+	| 'BUYING_ENTRY'
+	| 'SELLING_ENTRY'
+	| 'PAYMENT_ENTRY'
+	| 'RECEIPT_ENTRY'
+	| {
+			value: string
+			label?: string
+	  }
 
 interface DailyAction {
 	_id?: string
 	actionId: string
 	entryType: EntryActionType
-	productId: string
-	productName: string
+	productId?: string
+	productName?: string
 	supplierId?: string
 	supplierName?: string
 	customerId?: string
 	customerName?: string
 	currencyId: string
 	currencyName: string
-	unitId: string
-	unitName: string
-	weight: string
-	invoiceNumber: string
+	unitId?: string
+	unitName?: string
+	weight?: string
+	invoiceNumber?: string
 	invoiceDate: string
 	singleUnitPrice?: string
 	totalPrice?: string

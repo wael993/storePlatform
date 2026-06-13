@@ -146,14 +146,14 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 			label: 'حركة دفع',
 		},
 		{
-			value: DailyActionType.RECEIPT_ACTION,
+			value: DailyActionType.RECEIPT_ENTRY,
 			label: 'حركة قبض',
 		},
 	]
 
 	const isSellingEntry = entryType?.[0]?.value === 'SELLING_ENTRY'
 	const isBuyingEntry = entryType?.[0]?.value === 'BUYING_ENTRY'
-	const isReceiptAction = entryType?.[0]?.value === 'RECEIPT_ACTION'
+	const isReceiptEntry = entryType?.[0]?.value === 'RECEIPT_ENTRY'
 	const isPaymentEntry = entryType?.[0]?.value === 'PAYMENT_ENTRY'
 
 	const {
@@ -182,6 +182,22 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 			return !entryType.length
 		}
 		if (step === StepKeys.ACTION_DATA) {
+			if (isPaymentEntry) {
+				return (
+					!formData?.supplierId ||
+					!formData?.currencyId ||
+					!formData?.singleUnitPrice
+				)
+			}
+			if (isReceiptEntry) {
+				return (
+					!formData?.customerId ||
+					!formData?.currencyId ||
+					!formData?.singleUnitPrice
+				)
+			}
+
+			if (!formData?.productId) return true
 			if (isBuyingEntry && !formData?.supplierId) return true
 			if (isSellingEntry && !formData?.customerId) return true
 			return (
@@ -194,14 +210,17 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 		}
 	}, [
 		step,
-		entryType,
-		isBuyingEntry,
+		entryType.length,
+		isPaymentEntry,
 		formData?.supplierId,
 		formData?.customerId,
+		formData?.productId,
 		formData?.currencyId,
 		formData?.unitId,
 		formData?.weight,
 		formData?.singleUnitPrice,
+		isReceiptEntry,
+		isBuyingEntry,
 		isSellingEntry,
 		totalPrice,
 	])
@@ -218,13 +237,18 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 	}, [isNextButtonDisabled, step, t])
 
 	const isSubmitButtonDisabled = useMemo(() => {
-		if (isSavingDailyAction || !formData?.invoiceNumber || !formData?.invoiceDate)
+		if (isSavingDailyAction || !formData?.invoiceDate) return true
+		if (!isPaymentEntry && !isReceiptEntry && !formData?.invoiceNumber)
 			return true
 
 		return false
-	}, [isSavingDailyAction, formData?.invoiceNumber, formData?.invoiceDate])
-
-	// const actionSummaryRows = getActionSummaryRows(formData)
+	}, [
+		isSavingDailyAction,
+		formData?.invoiceDate,
+		formData?.invoiceNumber,
+		isPaymentEntry,
+		isReceiptEntry,
+	])
 
 	return (
 		<>
@@ -268,7 +292,7 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 									<SecondStep
 										isBuyingEntry={isBuyingEntry}
 										isSellingEntry={isSellingEntry}
-										isReceiptAction={isReceiptAction}
+										isReceiptEntry={isReceiptEntry}
 										isPaymentEntry={isPaymentEntry}
 										formData={formData}
 										products={products}
@@ -316,7 +340,7 @@ const AddDailyActionModal = ({ isOpen, onClose }: AddDailyActionModalProps) => {
 										? t('components.daily.invoiceDetailsMissing', {
 												defaultValue:
 													'Please enter the invoice number and invoice date to continue.',
-										  })
+											})
 										: undefined
 								}
 							>

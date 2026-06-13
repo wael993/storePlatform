@@ -107,6 +107,8 @@
 		"addDailyAction": "إضافة إجراء يومي",
 		"buyingEntry": " شراء",
 		"sellingEntry": " بيع",
+		"paymentEntry": " دفع",
+		"receiptAction": " قبض",
 		"expenseEntry": " مصروف",
 		"otherEntry": " آخر"
 	}

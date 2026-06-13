@@ -104,6 +104,10 @@
 		"unitPrice": "Einzelpreis",
 		"totalPrice": "Gesamtpreis",
 		"supplierOrCustomer": "Lieferant / Kunde",
-		"addDailyAction": "Tagesaktion hinzufügen"
+		"addDailyAction": "Tagesaktion hinzufügen",
+		"buyingEntry": "Kaufeintrag",
+		"sellingEntry": "Verkaufseintrag",
+		"paymentEntry": "Zahlungseintrag",
+		"receiptAction": "Zahlungseingang"
 	}
 }

@@ -3,16 +3,9 @@ import { AddQuickStateEnum } from './globalEnums'
 export const ENTRY_TYPE_LABELS_MAP: Record<string, string> = {
 	BUYING_ENTRY: 'common.buyingEntry',
 	SELLING_ENTRY: 'common.sellingEntry',
-	SALE: 'common.sale',
-	PURCHASE: 'common.purchase',
+	PAYMENT_ENTRY: 'common.paymentEntry',
+	RECEIPT_ENTRY: 'common.receiptAction',
 }
-
-// buying = 'buying',
-// selling = 'selling',
-// purchase = 'purchase',
-// procurement = 'procurement',
-// receipt = 'receipt',
-// Payment = 'Payment',
 
 export const MODAL_CONFIG = {
 	[AddQuickStateEnum.PRODUCT]: {

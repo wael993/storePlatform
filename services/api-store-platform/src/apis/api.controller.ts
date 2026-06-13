@@ -2615,15 +2615,13 @@ export default class ProductController {
 			model: Customer,
 			sort: { createdAt: 'desc' },
 		})
-		console.log('🚀 ~ ProductController ~ getCustomers ~ customers:', customers)
-
 		const dailyActions = await this.getDailyActions(requestContext)
 
 		// Group actions by customerId
 		const actionsByCustomer = new Map<string, CustomerDailyAction[]>()
 
 		for (const action of dailyActions.data) {
-			if (action.entryType.value === 'BUYING_ENTRY') continue
+			if (action.entryType === 'BUYING_ENTRY') continue
 			const customerActions =
 				actionsByCustomer.get(action.customerId ?? '') ?? []
 
@@ -2668,7 +2666,7 @@ export default class ProductController {
 		const dailyActions = await this.getDailyActions(requestContext)
 		const actions = dailyActions.data.filter(
 			action =>
-				action.entryType.value !== 'BUYING_ENTRY' &&
+				action.entryType !== 'BUYING_ENTRY' &&
 				action.customerId === (customer.internalCode ?? customer.customerId),
 		)
 

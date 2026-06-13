@@ -17,13 +17,17 @@ export class PlatformValidator {
 			const {
 				entryType,
 				productId,
+				productName,
 				supplierId,
 				customerId,
 				currencyId,
+				currencyName,
 				unitId,
+				unitName,
 				weight,
 				singleUnitPrice,
 				totalPrice,
+				invoiceNumber,
 			} = req.body ?? {}
 
 			if (!entryType) {
@@ -58,13 +62,41 @@ export class PlatformValidator {
 				}
 			}
 
+			if (entryType === DailyActionType.PAYMENT_ENTRY) {
+				if (!supplierId || !String(supplierId).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'SupplierId is Missing',
+					)
+				}
+			}
+
+			if (entryType === DailyActionType.RECEIPT_ENTRY) {
+				if (!customerId || !String(customerId).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'CustomerId is Missing',
+					)
+				}
+			}
+
+			if (!currencyId || !currencyName || !singleUnitPrice) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'One or more required fields are missing.',
+				)
+			}
+
 			if (
-				!productId ||
-				!currencyId ||
-				!unitId ||
-				!weight ||
-				!singleUnitPrice ||
-				!totalPrice
+				(entryType === DailyActionType.BUYING_ENTRY ||
+					entryType === DailyActionType.SELLING_ENTRY) &&
+				(!productId ||
+					!productName ||
+					!unitId ||
+					!unitName ||
+					!weight ||
+					!totalPrice ||
+					!invoiceNumber)
 			) {
 				throw new RequiredParameterMissingError(
 					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,

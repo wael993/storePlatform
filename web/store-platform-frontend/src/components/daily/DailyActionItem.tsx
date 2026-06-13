@@ -6,6 +6,12 @@ import { listStyles } from '../../shared/styles'
 import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
 import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../list/shared/constants'
 
+const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
+	if (!entryType) return undefined
+	if (typeof entryType === 'string') return entryType
+	return entryType.value
+}
+
 interface DailyActionItemProps {
 	dailyAction: DailyAction
 	onSelect: (id: string) => void
@@ -25,12 +31,23 @@ const DailyActionItem = memo(
 		const { t } = useTranslation()
 
 		const getEntryTypeLabel = (entryType: DailyAction['entryType']): string => {
-			if (!entryType) return '-'
-			if (typeof entryType === 'string')
-				return t(ENTRY_TYPE_LABELS_MAP[entryType]) ?? entryType
-			return entryType.label ?? entryType.value ?? '-'
+			const entryTypeValue = getEntryTypeValue(entryType)
+
+			if (!entryTypeValue) return '-'
+			const translationKey = ENTRY_TYPE_LABELS_MAP[entryTypeValue]
+			if (translationKey) return t(translationKey)
+
+			return typeof entryType === 'string'
+				? entryTypeValue
+				: (entryType.label ?? entryType.value ?? '-')
 		}
 		const rowId = dailyAction._id ?? dailyAction.actionId ?? ''
+		const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
+		const isPaymentOrReceiptAction =
+			entryTypeValue === 'PAYMENT_ENTRY' || entryTypeValue === 'RECEIPT_ENTRY'
+		const totalPrice = isPaymentOrReceiptAction
+			? dailyAction.singleUnitPrice
+			: dailyAction.totalPrice
 
 		const supplierOrCustomer =
 			dailyAction.supplierName ??
@@ -115,7 +132,9 @@ const DailyActionItem = memo(
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{dailyAction.productName ?? '-'}</Text>
+							<Text sx={styles.text}>
+								{dailyAction.productName !== '' ? dailyAction.productName : '-'}
+							</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
@@ -147,7 +166,7 @@ const DailyActionItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{dailyAction.singleUnitPrice
+								{dailyAction.singleUnitPrice && !isPaymentOrReceiptAction
 									? `${dailyAction.singleUnitPrice} ${dailyAction.currencyName ?? ''}`
 									: '-'}
 							</Text>
@@ -160,8 +179,8 @@ const DailyActionItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{dailyAction.totalPrice
-									? `${dailyAction.totalPrice} ${dailyAction.currencyName ?? ''}`
+								{totalPrice
+									? `${totalPrice} ${dailyAction.currencyName ?? ''}`
 									: '-'}
 							</Text>
 						</Skeleton>

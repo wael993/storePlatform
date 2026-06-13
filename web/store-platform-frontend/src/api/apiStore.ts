@@ -72,27 +72,22 @@ export interface DailyActionFilterValuesResponse {
 	supplier: ProductFilterValueOption[]
 	customer: ProductFilterValueOption[]
 }
-interface EntryType {
-	value: string
-	label: string
-}
-
 export interface AddDailyActionRequestBody {
-	entryType: EntryType
-	productId: string
-	productName: string
+	entryType: DailyAction['entryType']
+	productId?: string
+	productName?: string
 	supplierId?: string
 	supplierName?: string
 	customerId?: string
 	customerName?: string
 	currencyId: string
 	currencyName: string
-	unitId: string
-	unitName: string
-	weight: string
+	unitId?: string
+	unitName?: string
+	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
-	invoiceNumber: string
+	invoiceNumber?: string
 	invoiceDate: string
 }
 
