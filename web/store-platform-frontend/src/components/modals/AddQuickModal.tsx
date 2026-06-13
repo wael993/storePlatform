@@ -63,11 +63,9 @@ const styles: StylesObject = {
 	},
 	buttonRow: {
 		width: { base: '50%', md: '35%' },
-		justifyContent: 'flex-end',
 		gap: '0.5rem',
 	},
 	button: {
-		margin: { base: '0 0 1rem 2rem', md: '1rem 1rem 1rem 0rem' },
 		backgroundColor: '#376288',
 		fontSize: '0.875rem',
 		color: '#FFFFFF',

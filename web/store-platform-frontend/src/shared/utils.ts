@@ -28,6 +28,14 @@ export function compareEntryType(entryType: EntryType) {
 	}
 }
 
+export function compareLanguage(language?: string) {
+	return {
+		isArabic: language?.toLowerCase().startsWith('ar') ?? false,
+		isEnglish: language?.toLowerCase().startsWith('en') ?? false,
+		isGerman: language?.toLowerCase().startsWith('de') ?? false,
+	}
+}
+
 export const getEnabledActions = () => {
 	const enabledActions = new Set(config.actionsEnabled)
 

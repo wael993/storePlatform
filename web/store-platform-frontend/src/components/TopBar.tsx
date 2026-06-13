@@ -22,8 +22,11 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getRouteLabel, RoutePaths } from '../shared/routes'
+import { compareLanguage, compareBreakpoint } from '../shared/utils'
 import { AsBellIcon } from '../icons/Bell'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
+import { useBreakpoints } from '../shared/hooks/useBreakpoints'
+import ServiceMenu from './ServiceMenu'
 
 interface TopBarProps {
 	navItems: {
@@ -64,7 +67,9 @@ const TopBar = ({
 }: TopBarProps) => {
 	const location = useLocation()
 	const navigate = useNavigate()
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
+	const { isMobile } = compareBreakpoint(useBreakpoints())
 
 	const activePath =
 		navItems.find(
@@ -114,28 +119,39 @@ const TopBar = ({
 							{t('appTitle')}
 						</Text>
 					</Flex>
-
-					<FormControl maxW={{ base: '9rem', md: '10rem' }}>
-						<Select
-							size="lg"
-							value={activePath}
-							onChange={event => navigate(event.target.value)}
-							bg="white"
-							borderColor="transparent"
-							color={'#939495'}
-							fontWeight={700}
-							width={'10rem'}
-						>
-							{navItems.map(item => (
-								<option key={item.path} value={item.path}>
-									{getRouteLabel(
-										item.path,
-										item.label || t('components.topBar.welcome'),
-									)}
-								</option>
-							))}
-						</Select>
-					</FormControl>
+					{!isMobile && (
+						<FormControl maxW={{ base: '9rem', md: '10rem' }}>
+							<Select
+								size="lg"
+								value={activePath}
+								onChange={event => navigate(event.target.value)}
+								bg="white"
+								borderColor="transparent"
+								color={'#939495'}
+								fontWeight={700}
+								width={'10rem'}
+								sx={{
+									direction: isArabic ? 'rtl' : 'ltr',
+									textAlign: isArabic ? 'right' : 'left',
+									paddingLeft: isArabic ? '2rem' : undefined,
+									paddingRight: isArabic ? undefined : '2rem',
+									'& + .chakra-select__icon-wrapper': {
+										left: isArabic ? '0.75rem' : 'auto',
+										right: isArabic ? 'auto' : '0.75rem',
+									},
+								}}
+							>
+								{navItems.map(item => (
+									<option key={item.path} value={item.path}>
+										{getRouteLabel(
+											item.path,
+											item.label || t('components.topBar.welcome'),
+										)}
+									</option>
+								))}
+							</Select>
+						</FormControl>
+					)}
 				</Flex>
 
 				<Flex align="center" gap={2}>
@@ -148,86 +164,76 @@ const TopBar = ({
 						}}
 					/>
 
-					<IconButton
-						aria-label={t('components.topBar.releaseNotes')}
-						icon={<RepeatIcon boxSize={4} />}
-						sx={styles.iconButton}
-						onClick={e => {
-							e.stopPropagation()
-						}}
-					/>
+					{!isMobile && (
+						<>
+							<IconButton
+								aria-label={t('components.topBar.releaseNotes')}
+								icon={<RepeatIcon boxSize={4} />}
+								sx={styles.iconButton}
+								onClick={e => {
+									e.stopPropagation()
+								}}
+							/>
+							<IconButton
+								aria-label={t('components.topBar.settings')}
+								icon={<SettingsIcon boxSize={4} />}
+								sx={styles.iconButton}
+								onClick={() => navigate(RoutePaths.SETTINGS)}
+							/>
+						</>
+					)}
 
-					<IconButton
-						aria-label={t('components.topBar.settings')}
-						icon={<SettingsIcon boxSize={4} />}
-						sx={styles.iconButton}
-						onClick={() => navigate(RoutePaths.SETTINGS)}
-					/>
-					<Menu placement="bottom-end">
-						<MenuButton
-							as={IconButton}
-							aria-label={t('components.topBar.menu')}
-							icon={<HamburgerIcon boxSize={5} />}
-							sx={styles.iconButton}
+					{isMobile && (
+						<ServiceMenu
+							navItems={navItems}
+							activePath={activePath}
+							userName={userName}
+							onLogout={onLogout}
+							isLogoutLoading={isLogoutLoading}
 						/>
-						<MenuList
-							w={{ base: 'calc(100vw - 2rem)', md: '25rem' }}
-							p={0}
-							borderRadius={0}
-							borderColor="gray.200"
-							boxShadow="0 12px 28px rgba(15, 23, 42, 0.12)"
-							overflow="hidden"
-						>
-							<Flex align="center" justify="space-between" px={8} py={8}>
-								<Text fontSize="2xl" fontWeight={800} color="black">
-									{t('components.topBar.greeting', { userName })}
-								</Text>
-								<Avatar
-									name={userName}
-									size="md"
-									bg="#E071D4"
-									color="black"
-									fontWeight={800}
-								>
-									{/* {userInitials} */}
-								</Avatar>
-							</Flex>
-
-							{/* <MenuItem sx={styles.menuItem}>
-								<HamburgerIcon boxSize={7} color="#6F7173" />
-								<Text flex="1">Services</Text>
-								<ChevronDownIcon boxSize={6} color="#6F7173" />
-							</MenuItem>
-							<MenuItem sx={styles.menuItem}>
-								<SettingsIcon boxSize={7} color="#6F7173" />
-								<Text flex="1">Settings</Text>
-								<ChevronDownIcon boxSize={6} color="#6F7173" />
-							</MenuItem>
-							<MenuItem sx={styles.menuItem}>
-								<AsBellIcon />
-								<Text>Notification Settings</Text>
-							</MenuItem>
-							<MenuItem sx={styles.menuItem}>
-								<AtSignIcon boxSize={7} color="#6F7173" />
-								<Text>Account</Text>
-							</MenuItem>
-							<MenuItem sx={styles.menuItem}>
-								<QuestionIcon boxSize={7} color="#6F7173" />
-								<Text>Support</Text>
-							</MenuItem> */}
-
-							<Divider my={2} />
-
-							<MenuItem
-								sx={styles.menuItem}
-								onClick={onLogout}
-								isDisabled={isLogoutLoading}
+					)}
+					{!isMobile && (
+						<Menu placement="bottom-end">
+							<MenuButton
+								as={IconButton}
+								aria-label={t('components.topBar.menu')}
+								icon={<HamburgerIcon boxSize={5} />}
+								sx={styles.iconButton}
+							/>
+							<MenuList
+								w={{ base: 'calc(100vw - 2rem)', md: '25rem' }}
+								p={0}
+								borderRadius={0}
+								borderColor="gray.200"
+								boxShadow="0 12px 28px rgba(15, 23, 42, 0.12)"
+								overflow="hidden"
 							>
-								<ArrowForwardIcon boxSize={7} color="#6F7173" />
-								<Text>{t('components.topBar.logout')}</Text>
-							</MenuItem>
-						</MenuList>
-					</Menu>
+								<Flex align="center" justify="space-between" px={8} py={8}>
+									<Text fontSize="1rem" fontWeight={500} color="black">
+										{t('components.topBar.greeting', { userName })}
+									</Text>
+									<Avatar
+										name={userName}
+										size="md"
+										bg="#E071D4"
+										color="black"
+										fontWeight={800}
+									/>
+								</Flex>
+
+								<Divider my={2} />
+
+								<MenuItem
+									sx={styles.menuItem}
+									onClick={onLogout}
+									isDisabled={isLogoutLoading}
+								>
+									<ArrowForwardIcon boxSize={7} color="#6F7173" />
+									<Text>{t('components.topBar.logout')}</Text>
+								</MenuItem>
+							</MenuList>
+						</Menu>
+					)}
 				</Flex>
 			</Flex>
 			{navItems.length === 0 && (

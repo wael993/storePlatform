@@ -9,6 +9,7 @@ import {
 	InputRightElement,
 	Icon,
 	Input,
+	InputLeftElement,
 } from '@chakra-ui/react'
 import React, {
 	memo,
@@ -29,6 +30,8 @@ import {
 	dropdownStyleVariables,
 } from '../filters/dropdowns/sharedConstants'
 import { parsePastedValues } from '../filters/filterUtils'
+import { compareLanguage } from '../../shared/utils'
+import i18n from '../../i18n'
 
 type DropdownMenuListProps = {
 	styles: StylesObject
@@ -119,6 +122,8 @@ const DropdownMenuList = memo(
 		>([])
 		const [currentItemIndex, setCurrentItemIndex] = useState(-1)
 		const { t } = useTranslation()
+
+		const { isArabic } = compareLanguage(i18n.language)
 		const inputRef = useRef<HTMLInputElement>(null)
 
 		const optionsScrollRef = useRef<HTMLDivElement>(null)
@@ -379,26 +384,52 @@ const DropdownMenuList = memo(
 										}
 									}}
 								/>
-								<InputRightElement>
-									{searchTerm.length > 0 ? (
-										<Icon
-											onClick={e => {
-												e.stopPropagation()
-												e.preventDefault()
-												setSearchTerm('')
-											}}
-											boxSize={5}
-											as={AsCloseIcon}
-											sx={listStyles.searchClearIcon}
-										/>
-									) : (
-										<Icon
-											as={AsSearchIcon}
-											sx={{ color: dropdownStyleVariables.color }}
-											pointerEvents="none"
-										/>
-									)}
-								</InputRightElement>
+
+								{!isArabic && (
+									<InputRightElement>
+										{searchTerm.length > 0 ? (
+											<Icon
+												onClick={e => {
+													e.stopPropagation()
+													e.preventDefault()
+													setSearchTerm('')
+												}}
+												boxSize={5}
+												as={AsCloseIcon}
+												sx={listStyles.searchClearIcon}
+											/>
+										) : (
+											<Icon
+												as={AsSearchIcon}
+												sx={{ color: dropdownStyleVariables.color }}
+												pointerEvents="none"
+											/>
+										)}
+									</InputRightElement>
+								)}
+
+								{isArabic && (
+									<InputLeftElement>
+										{searchTerm.length > 0 ? (
+											<Icon
+												onClick={e => {
+													e.stopPropagation()
+													e.preventDefault()
+													setSearchTerm('')
+												}}
+												boxSize={5}
+												as={AsCloseIcon}
+												sx={listStyles.searchClearIcon}
+											/>
+										) : (
+											<Icon
+												as={AsSearchIcon}
+												sx={{ color: dropdownStyleVariables.color }}
+												pointerEvents="none"
+											/>
+										)}
+									</InputLeftElement>
+								)}
 							</InputGroup>
 						</MenuItem>
 

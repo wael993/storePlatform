@@ -19,7 +19,6 @@ import { useEffect, useMemo, useState } from 'react'
 import MultiStepper from '../../common/MultiStepper'
 import { isEqual } from 'lodash'
 import ConfirmationDialog from '../../ConfirmationDialog'
-import { AsSendIcon } from '../../icons/Send'
 import {
 	DailyActionType,
 	EntryType,
@@ -27,13 +26,14 @@ import {
 	TargetType,
 } from '../../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
-
-import { ChevronRightIcon } from '../../icons/ChevronRight'
 import FirstStep from './AddDailyActionSteps/FirstStep'
 import SecondStep from './AddDailyActionSteps/SecondStep'
 import { useDailyActionHandlers } from './hooks/useDailyActionHandlers'
 import ThirdStep from './AddDailyActionSteps/ThirdStep'
-import { compareEntryType } from '../../../shared/utils'
+import { compareEntryType, compareLanguage } from '../../../shared/utils'
+import { AsSendIcon } from '../../icons/Send'
+import { ChevronRightIcon } from '../../icons/ChevronRight'
+import { ChevronLeftIcon } from '../../icons/ChevronLeftIcon'
 
 const styles = {
 	header: {
@@ -99,7 +99,8 @@ const AddDailyActionModal = ({
 	onClose,
 	targetType,
 }: AddDailyActionModalProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 
 	const {
 		setStep,
@@ -303,7 +304,15 @@ const AddDailyActionModal = ({
 							</Text>
 							<MultiStepper numberOfSteps={3} currentStep={step} />
 						</VStack>
-						<ModalCloseButton size="lg" sx={styles.modalCloseButton} />
+						<ModalCloseButton
+							size="lg"
+							sx={{
+								...styles.modalCloseButton,
+								left: isArabic ? '0.4rem' : 'auto',
+								right: isArabic ? 'auto' : '0.4rem',
+								marginRight: 0,
+							}}
+						/>
 					</ModalHeader>
 					<ModalBody sx={styles.body}>
 						{!isAllDataLoaded ? (
@@ -386,7 +395,15 @@ const AddDailyActionModal = ({
 										setShouldLeavingBeQuestioned(false)
 										onClose()
 									}}
-									leftIcon={<AsSendIcon />}
+									{...(isArabic
+										? {
+												rightIcon: (
+													<AsSendIcon sx={{ transform: 'rotate(260deg)' }} />
+												),
+											}
+										: {
+												leftIcon: <AsSendIcon />,
+											})}
 									isDisabled={isSubmitButtonDisabled}
 									isLoading={isSavingDailyAction}
 								>
@@ -399,7 +416,9 @@ const AddDailyActionModal = ({
 									sx={styles.button}
 									variant={'primary'}
 									onClick={() => setStep(prevStep => prevStep + 1)}
-									rightIcon={<ChevronRightIcon />}
+									rightIcon={
+										!isArabic ? <ChevronRightIcon /> : <ChevronLeftIcon />
+									}
 									isDisabled={isNextButtonDisabled}
 								>
 									{t('common.nextStep')}

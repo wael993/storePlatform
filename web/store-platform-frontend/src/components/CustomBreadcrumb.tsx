@@ -6,6 +6,8 @@ import {
 	Text,
 } from '@chakra-ui/react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 
 interface BreadcrumbProps {
 	items: BreadcrumbItem[]
@@ -14,6 +16,8 @@ interface BreadcrumbProps {
 
 const CustomBreadcrumb = ({ items, marginTop }: BreadcrumbProps) => {
 	const navigate = useNavigate()
+	const { i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 
 	const handleClick = (href: string, e: React.MouseEvent) => {
 		e.preventDefault()
@@ -26,6 +30,7 @@ const CustomBreadcrumb = ({ items, marginTop }: BreadcrumbProps) => {
 		},
 		separator: {
 			color: '#939596',
+			transform: isArabic ? 'rotate(180deg)' : undefined,
 		},
 		item: {
 			color: '#939596',

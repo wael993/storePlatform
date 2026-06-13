@@ -148,6 +148,7 @@ const DatePickerLabel = ({
 			},
 		},
 		inputProps: {
+			marginRight: '1rem',
 			width: '100%',
 			height: '2.5rem',
 			paddingLeft: '0.6rem',
@@ -213,10 +214,7 @@ const DatePickerLabel = ({
 					</InputRightElement>
 				)}
 
-				<Box
-					sx={defaultStyles.datePickerWrapper}
-					ref={datePickerRef}
-				>
+				<Box sx={defaultStyles.datePickerWrapper} ref={datePickerRef}>
 					<SingleDatepicker
 						minDate={minDate}
 						maxDate={maximumAllowedDate}
