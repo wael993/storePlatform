@@ -115,3 +115,6 @@ export const formatNumber = (
 	})
 	return formattedAmount
 }
+
+export const withNoValueFallback = (value: string | null | undefined) =>
+	value || 'N/A'

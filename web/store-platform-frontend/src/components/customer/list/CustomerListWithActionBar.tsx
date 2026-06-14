@@ -1,9 +1,12 @@
 import { VStack } from '@chakra-ui/react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomerListActionBar from './CustomerListActionBar'
 import CustomerListDesktop from './CustomerListDesktop'
 import EmptyState from '../../common/EmptyState'
+import { compareBreakpoint } from '../../../shared/utils'
+import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
+import CustomerListMobil from './CustomerListMobil'
 
 interface CustomerListWithActionBarProps {
 	customers?: Customer[]
@@ -15,6 +18,7 @@ const CustomerListWithActionBar = ({
 	isLoading,
 }: CustomerListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([])
 	const customerElements: Customer[] = useMemo(() => {
 		return (
@@ -43,6 +47,14 @@ const CustomerListWithActionBar = ({
 		)
 	}, [customerElements])
 
+	useEffect(() => {
+		setSelectedCustomerIds(prevSelectedIds =>
+			prevSelectedIds.filter(id =>
+				customerElements.some(customer => customer.customerId === id),
+			),
+		)
+	}, [customerElements])
+
 	if ((!customerElements || customerElements.length === 0) && !isLoading) {
 		return (
 			<EmptyState
@@ -68,16 +80,29 @@ const CustomerListWithActionBar = ({
 					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
-			<CustomerListDesktop
-				customers={customerElements}
-				isLoading={isLoading}
-				onSelect={onSelect}
-				selectedCustomers={selectedCustomerIds}
-				areAllItemsSelected={
-					selectedCustomerIds.length === customerElements.length
-				}
-				onAllItemsSelectedChange={onAllItemsSelectedChange}
-			/>
+			{isMobile ? (
+				<CustomerListMobil
+					customers={customerElements}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedCustomers={selectedCustomerIds}
+					areAllItemsSelected={
+						selectedCustomerIds.length === customerElements.length
+					}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
+			) : (
+				<CustomerListDesktop
+					customers={customerElements}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedCustomers={selectedCustomerIds}
+					areAllItemsSelected={
+						selectedCustomerIds.length === customerElements.length
+					}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
+			)}
 		</VStack>
 	)
 }

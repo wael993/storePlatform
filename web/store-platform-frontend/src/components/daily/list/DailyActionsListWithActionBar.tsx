@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next'
 import DailyListActionBar from './DailyActionsListActionBar'
 import DailyActionListDesktop from './DailyActionListDesktop'
 import EmptyState from '../../common/EmptyState'
+import { compareBreakpoint } from '../../../shared/utils'
+import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
+import DailyActionListMobil from './DailyActionListMobil'
 
 interface DailyActionsListWithActionBarProps {
 	dailyActions: DailyAction[]
@@ -15,6 +18,7 @@ const DailyActionsListWithActionBar = ({
 	isLoading,
 }: DailyActionsListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedDailyActionIds, setSelectedDailyActionIds] = useState<
 		string[]
 	>([])
@@ -88,16 +92,29 @@ const DailyActionsListWithActionBar = ({
 				/>
 			)}
 
-			<DailyActionListDesktop
-				dailyActions={dailyActionElements}
-				isLoading={isLoading}
-				onSelect={onSelect}
-				selectedDailyActionIds={selectedDailyActionIds}
-				areAllItemsSelected={
-					selectedDailyActionIds.length === dailyActionElements.length
-				}
-				onAllItemsSelectedChange={onAllItemsSelectedChange}
-			/>
+			{isMobile ? (
+				<DailyActionListMobil
+					dailyActions={dailyActionElements}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedDailyActionIds={selectedDailyActionIds}
+					areAllItemsSelected={
+						selectedDailyActionIds.length === dailyActionElements.length
+					}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
+			) : (
+				<DailyActionListDesktop
+					dailyActions={dailyActionElements}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedDailyActionIds={selectedDailyActionIds}
+					areAllItemsSelected={
+						selectedDailyActionIds.length === dailyActionElements.length
+					}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
+			)}
 		</VStack>
 	)
 }

@@ -1,0 +1,339 @@
+import {
+	Accordion,
+	AccordionButton,
+	AccordionIcon,
+	AccordionItem,
+	AccordionPanel,
+	Box,
+	Checkbox,
+	Flex,
+	Grid,
+	GridItem,
+	Skeleton,
+	Text,
+} from '@chakra-ui/react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import StateCircle from '../StateCircle'
+import NotificationCircle from '../NotificationCircle'
+import OptionsPopover from '../modals/OptionsPopover'
+import { PRODUCT_STATE_CONFIG } from './shared/constants'
+import { useUser } from '../../shared/hooks/useUser'
+import useAllowedActions from '../../shared/hooks/useAllowedActions'
+import { buildRoutePath } from '../../shared/routes'
+import {
+	compareLanguage,
+	formatNumber,
+	withNoValueFallback,
+} from '../../shared/utils'
+
+const styles = {
+	listItemGridItem: {
+		display: 'flex',
+		flexDirection: 'column',
+		justifyContent: 'start',
+		alignItems: 'start',
+	},
+	valueText: {
+		fontSize: 'sm',
+		fontWeight: 'bold',
+		textAlign: 'left',
+		whiteSpace: 'normal',
+		wordBreak: 'break-word',
+		overflowWrap: 'break-word',
+	},
+	titleText: {
+		fontSize: 'xs',
+		color: '#929494',
+	},
+	accordionButton: {
+		flexGrow: 1,
+		width: '100%',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
+	accordionItem: {
+		borderColor: '#EAEAEA',
+		borderTop: 'none',
+		_notLast: {
+			borderBottom: '1px solid',
+			borderBottomColor: '#EAEAEA',
+		},
+	},
+	actionsContainer: {
+		mt: '2rem',
+		alignItems: 'center',
+		gap: '1.25rem',
+		flexWrap: 'wrap',
+	},
+} satisfies StylesObject
+
+interface ListItemMobilProps {
+	product: Product
+	isLoading: boolean
+	onSelect: (id: string) => void
+	selectedProducts: string[]
+	isOpen: boolean
+	onToggle: () => void
+}
+
+const ListItemMobil = ({
+	product,
+	isLoading,
+	onSelect,
+	selectedProducts,
+	isOpen,
+	onToggle,
+}: ListItemMobilProps) => {
+	const navigate = useNavigate()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
+	const { isOwnerOrAdmin } = useUser()
+	const {
+		seeSupplier,
+		seeStockQuantity,
+		seeMinStockQuantity,
+		seeBuyCost,
+		seeWholesalePrice,
+		seeDiscount,
+		seeLocationShelf,
+		seeLocationWarehouse,
+	} = useAllowedActions()
+	const productState = PRODUCT_STATE_CONFIG[product.state]
+
+	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
+		event.stopPropagation()
+		if (isLoading) return
+		navigate(buildRoutePath.productById(product.productId))
+	}
+
+	return (
+		<Accordion allowToggle index={isOpen ? [0] : []} onChange={onToggle}>
+			<AccordionItem sx={styles.accordionItem}>
+				<Box display="flex" flexDirection="row">
+					<AccordionButton sx={styles.accordionButton}>
+						<Flex alignItems="center" gap="6" flexGrow={1}>
+							<Box
+								sx={{
+									...styles.listItemGridItem,
+									width: '1.5rem',
+									flex: '0 0 auto',
+								}}
+							>
+								<Skeleton isLoaded={!isLoading}>
+									<Checkbox
+										onChange={event => {
+											onSelect(product.productId)
+											event.stopPropagation()
+										}}
+										isChecked={selectedProducts.includes(product.productId)}
+										zIndex={2}
+									/>
+								</Skeleton>
+							</Box>
+
+							<Box
+								sx={{ ...styles.listItemGridItem, flex: 1 }}
+								onClick={onNavigate}
+							>
+								<Text sx={styles.titleText}>{t('common.productName')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(product.name)}
+									</Text>
+								</Skeleton>
+							</Box>
+
+							<Box
+								sx={{ ...styles.listItemGridItem, flex: 1 }}
+								onClick={onNavigate}
+							>
+								<Text sx={styles.titleText}>{t('common.barcode')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(product.barcode)}
+									</Text>
+								</Skeleton>
+							</Box>
+						</Flex>
+						<AccordionIcon minWidth="3rem" />
+					</AccordionButton>
+				</Box>
+
+				<AccordionPanel
+					overflow="hidden"
+					paddingLeft={isArabic ? 0 : 16}
+					paddingRight={isArabic ? 16 : 0}
+				>
+					<Grid templateColumns="repeat(2, 1fr)" gap="6">
+						<GridItem sx={styles.listItemGridItem}>
+							<Text sx={styles.titleText}>{t('common.brand')}</Text>
+							<Skeleton isLoaded={!isLoading}>
+								<Text sx={styles.valueText}>
+									{withNoValueFallback(product.brandName ?? product.brandId)}
+								</Text>
+							</Skeleton>
+						</GridItem>
+
+						<GridItem sx={styles.listItemGridItem}>
+							<Text sx={styles.titleText}>{t('common.category')}</Text>
+							<Skeleton isLoaded={!isLoading}>
+								<Text sx={styles.valueText}>
+									{withNoValueFallback(
+										product.categoryName ?? product.categoryId,
+									)}
+								</Text>
+							</Skeleton>
+						</GridItem>
+
+						{isOwnerOrAdmin && seeSupplier && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.supplierName')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(
+											product.supplierName ?? product.supplierId,
+										)}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{seeStockQuantity && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.stockQuantity')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(
+											formatNumber(product.stock?.quantity, {
+												minimumDecimals: 0,
+												maximumDecimals: 0,
+											}),
+										)}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{seeMinStockQuantity && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>
+									{t('common.stockMinQuantity')}
+								</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(
+											formatNumber(product.stock?.minQuantity, {
+												minimumDecimals: 0,
+												maximumDecimals: 0,
+											}),
+										)}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{isOwnerOrAdmin && seeBuyCost && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.buyCost')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(formatNumber(product.price?.buyCost))}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{isOwnerOrAdmin && seeWholesalePrice && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.priceSell')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(
+											formatNumber(product.price?.wholesale),
+										)}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{seeDiscount && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.discount')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(formatNumber(product.price?.discount))}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{seeLocationShelf && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.locationShelf')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(product.location?.shelf)}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						{seeLocationWarehouse && (
+							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>
+									{t('common.locationWarehouse')}
+								</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(product.location?.warehouse)}
+									</Text>
+								</Skeleton>
+							</GridItem>
+						)}
+
+						<GridItem sx={styles.listItemGridItem}>
+							<Text sx={styles.titleText}>{t('common.color')}</Text>
+							<Skeleton isLoaded={!isLoading}>
+								<Text sx={styles.valueText}>
+									{withNoValueFallback(product.attributes?.color)}
+								</Text>
+							</Skeleton>
+						</GridItem>
+					</Grid>
+
+					<Flex
+						sx={{
+							...styles.actionsContainer,
+							justifyContent: isArabic ? 'flex-start' : 'flex-end',
+						}}
+					>
+						<Skeleton isLoaded={!isLoading}>
+							<NotificationCircle
+								productId={product.productId}
+								showIfNoChanges={true}
+								customStyles={{
+									animationCircle: { width: '1.5rem', height: '1.5rem' },
+								}}
+							>
+								<StateCircle
+									stateColor={productState?.color}
+									stateTitle={productState?.translationKey}
+									customStyles={{
+										colorCircle: { width: '0.875rem', height: '0.875rem' },
+									}}
+								/>
+							</NotificationCircle>
+						</Skeleton>
+						<Skeleton isLoaded={!isLoading}>
+							<OptionsPopover offer="offer" />
+						</Skeleton>
+					</Flex>
+				</AccordionPanel>
+			</AccordionItem>
+		</Accordion>
+	)
+}
+
+export default ListItemMobil

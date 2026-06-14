@@ -7,6 +7,7 @@ import { compareBreakpoint } from '../../shared/utils'
 import ListDesktop from './ListDesktop'
 import useCustomToast from '../common/CustomToast'
 import EmptyState from '../common/EmptyState'
+import ListMobil from './ListMobil'
 
 interface ListWithActionBarProps {
 	products?: Product[]
@@ -116,16 +117,15 @@ const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 				/>
 			)}
 			{isMobile ? (
-				<></>
+				<ListMobil
+					products={productElements ?? []}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedProducts={selectedProductsIds}
+					areAllItemsSelected={areAllItemsSelected}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
 			) : (
-				// <ListMobile
-				// 	activities={productElements ?? []}
-				// 	isLoading={isLoading}
-				// 	onSelect={onSelect}
-				// 	selectedActivities={selectedProductsIds}
-				// 	areAllItemsSelected={areAllItemsSelected}
-				// 	onAllItemsSelectedChange={onAllItemsSelectedChange}
-				// />
 				<ListDesktop
 					products={productElements ?? []}
 					isLoading={isLoading}

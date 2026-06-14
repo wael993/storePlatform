@@ -1,10 +1,13 @@
 import { VStack } from '@chakra-ui/react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import SupplierListActionBar from './SupplierListActionBar'
 import SupplierListDesktop from './SupplierListDesktop'
 import { TargetType } from '../../../shared/globalEnums'
 import EmptyState from '../../common/EmptyState'
+import { compareBreakpoint } from '../../../shared/utils'
+import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
+import SupplierListMobil from './SupplierListMobil'
 
 interface SupplierListWithActionBarProps {
 	suppliers?: Supplier[]
@@ -17,6 +20,7 @@ const SupplierListWithActionBar = ({
 	isLoading,
 }: SupplierListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([])
 	const supplierElements: Supplier[] = useMemo(() => {
 		return (
@@ -45,6 +49,14 @@ const SupplierListWithActionBar = ({
 		)
 	}, [supplierElements])
 
+	useEffect(() => {
+		setSelectedSupplierIds(prevSelectedIds =>
+			prevSelectedIds.filter(id =>
+				supplierElements.some(supplier => supplier.supplierId === id),
+			),
+		)
+	}, [supplierElements])
+
 	if ((!supplierElements || supplierElements.length === 0) && !isLoading) {
 		return (
 			<EmptyState
@@ -70,16 +82,29 @@ const SupplierListWithActionBar = ({
 					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
-			<SupplierListDesktop
-				suppliers={supplierElements}
-				isLoading={isLoading}
-				onSelect={onSelect}
-				selectedSuppliers={selectedSupplierIds}
-				areAllItemsSelected={
-					selectedSupplierIds.length === supplierElements.length
-				}
-				onAllItemsSelectedChange={onAllItemsSelectedChange}
-			/>
+			{isMobile ? (
+				<SupplierListMobil
+					suppliers={supplierElements}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedSuppliers={selectedSupplierIds}
+					areAllItemsSelected={
+						selectedSupplierIds.length === supplierElements.length
+					}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
+			) : (
+				<SupplierListDesktop
+					suppliers={supplierElements}
+					isLoading={isLoading}
+					onSelect={onSelect}
+					selectedSuppliers={selectedSupplierIds}
+					areAllItemsSelected={
+						selectedSupplierIds.length === supplierElements.length
+					}
+					onAllItemsSelectedChange={onAllItemsSelectedChange}
+				/>
+			)}
 		</VStack>
 	)
 }
