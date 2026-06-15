@@ -120,11 +120,17 @@ const AddDailyActionModal = ({
 		isAllDataLoaded,
 		suppliers,
 		customers,
+		expenses,
 		currency,
 	} = useDailyActionHandlers({ shouldLoadOptions: isOpen })
 
-	const { isSellingEntry, isBuyingEntry, isReceiptEntry, isPaymentEntry } =
-		compareEntryType(entryType?.[0]?.value as EntryType)
+	const {
+		isSellingEntry,
+		isBuyingEntry,
+		isReceiptEntry,
+		isPaymentEntry,
+		isExpenseEntry,
+	} = compareEntryType(entryType?.[0]?.value as EntryType)
 
 	const [shouldLeavingBeQuestioned, setShouldLeavingBeQuestioned] =
 		useState<boolean>(false)
@@ -151,10 +157,9 @@ const AddDailyActionModal = ({
 
 	const handleEntryTypeChange = (values: DropdownOption[]) => {
 		setEntryType(values)
-		setFormData(prev => ({
-			...prev,
+		setFormData({
 			entryType: values[0]?.value as DailyAction['entryType'] | undefined,
-		}))
+		})
 	}
 
 	const getActionEntryTypesOptions = () => {
@@ -194,6 +199,10 @@ const AddDailyActionModal = ({
 					value: DailyActionType.PAYMENT_ENTRY,
 					label: t('common.paymentEntry'),
 				},
+				{
+					value: DailyActionType.EXPENSE_ENTRY,
+					label: t('common.expenseEntry'),
+				},
 			]
 		}
 		return []
@@ -231,6 +240,13 @@ const AddDailyActionModal = ({
 					!formData?.singleUnitPrice
 				)
 			}
+			if (isExpenseEntry) {
+				return (
+					!formData?.expenseId ||
+					!formData?.currencyId ||
+					!formData?.singleUnitPrice
+				)
+			}
 
 			if (!formData?.productId) return true
 			if (isBuyingEntry && !formData?.supplierId) return true
@@ -249,12 +265,14 @@ const AddDailyActionModal = ({
 		isPaymentEntry,
 		formData?.supplierId,
 		formData?.customerId,
+		formData?.expenseId,
 		formData?.productId,
 		formData?.currencyId,
 		formData?.unitId,
 		formData?.weight,
 		formData?.singleUnitPrice,
 		isReceiptEntry,
+		isExpenseEntry,
 		isBuyingEntry,
 		isSellingEntry,
 		totalPrice,
@@ -273,8 +291,14 @@ const AddDailyActionModal = ({
 
 	const isSubmitButtonDisabled = useMemo(() => {
 		if (isSavingDailyAction || !formData?.invoiceDate) return true
-		if (!isPaymentEntry && !isReceiptEntry && !formData?.invoiceNumber)
+		if (
+			!isPaymentEntry &&
+			!isReceiptEntry &&
+			!isExpenseEntry &&
+			!formData?.invoiceNumber
+		) {
 			return true
+		}
 
 		return false
 	}, [
@@ -283,6 +307,7 @@ const AddDailyActionModal = ({
 		formData?.invoiceNumber,
 		isPaymentEntry,
 		isReceiptEntry,
+		isExpenseEntry,
 	])
 
 	return (
@@ -337,10 +362,12 @@ const AddDailyActionModal = ({
 										isSellingEntry={isSellingEntry}
 										isReceiptEntry={isReceiptEntry}
 										isPaymentEntry={isPaymentEntry}
+										isExpenseEntry={isExpenseEntry}
 										formData={formData}
 										products={products}
 										suppliers={suppliers}
 										customers={customers}
+										expenses={expenses}
 										currency={currency}
 										unit={unit}
 										totalPrice={totalPrice ?? ''}

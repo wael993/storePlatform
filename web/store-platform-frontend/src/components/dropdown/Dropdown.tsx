@@ -318,65 +318,67 @@ export const Dropdown = ({
 	)
 
 	return (
-		<Menu
-			isOpen={isOpen}
-			autoSelect={false}
-			onClose={() => {
-				onClose()
-				// onPopoverClose?.()
-			}}
-			offset={[0, 10]}
-			matchWidth={true}
-			isLazy={true}
-			// Let menu stay open on item selection for multi-select scenarios
-			closeOnSelect={false}
-		>
-			<Tooltip label={tooltip} isDisabled={!tooltip} placement="bottom">
-				<MenuButton
-					onClick={e => {
-						if (isDropdownOpenDisabled) return
-						e.stopPropagation()
-						onOpen()
-					}}
-					as={Button}
-					isDisabled={disabled}
-					sx={{
-						...styles.menuButton,
-						'& > span': {
-							pointerEvents: 'auto',
-						},
-						...customStyles?.menuButton,
-					}}
-					rightIcon={showChevron ? <Icon as={ChevronDownIcon} /> : undefined}
-				>
-					{customTrigger ? (
-						customTrigger
-					) : (
-						<Flex sx={styles.selectedOptionsWrapper}>
-							{isLoading ? (
-								<Spinner />
-							) : (
-								<>
-									{displaySelected()}
-									{selectedOptions.length > 0 && showClearOptions && (
-										<Icon
-											onClick={e => {
-												e.stopPropagation()
-												e.preventDefault()
-												onClearOptions()
-											}}
-											boxSize={4}
-											as={AsCloseIcon}
-											sx={styles.clearIcon}
-										/>
-									)}
-								</>
-							)}
-						</Flex>
-					)}
-				</MenuButton>
-			</Tooltip>
-			{usePortal ? <Portal>{renderDropdownList}</Portal> : renderDropdownList}
-		</Menu>
+		<Box position="relative" zIndex={isOpen ? 20 : 'auto'}>
+			<Menu
+				isOpen={isOpen}
+				autoSelect={false}
+				onClose={() => {
+					onClose()
+					// onPopoverClose?.()
+				}}
+				offset={[0, 10]}
+				matchWidth={true}
+				isLazy={true}
+				// Let menu stay open on item selection for multi-select scenarios
+				closeOnSelect={false}
+			>
+				<Tooltip label={tooltip} isDisabled={!tooltip} placement="bottom">
+					<MenuButton
+						onClick={e => {
+							if (isDropdownOpenDisabled) return
+							e.stopPropagation()
+							onOpen()
+						}}
+						as={Button}
+						isDisabled={disabled}
+						sx={{
+							...styles.menuButton,
+							'& > span': {
+								pointerEvents: 'auto',
+							},
+							...customStyles?.menuButton,
+						}}
+						rightIcon={showChevron ? <Icon as={ChevronDownIcon} /> : undefined}
+					>
+						{customTrigger ? (
+							customTrigger
+						) : (
+							<Flex sx={styles.selectedOptionsWrapper}>
+								{isLoading ? (
+									<Spinner />
+								) : (
+									<>
+										{displaySelected()}
+										{selectedOptions.length > 0 && showClearOptions && (
+											<Icon
+												onClick={e => {
+													e.stopPropagation()
+													e.preventDefault()
+													onClearOptions()
+												}}
+												boxSize={4}
+												as={AsCloseIcon}
+												sx={styles.clearIcon}
+											/>
+										)}
+									</>
+								)}
+							</Flex>
+						)}
+					</MenuButton>
+				</Tooltip>
+				{usePortal ? <Portal>{renderDropdownList}</Portal> : renderDropdownList}
+			</Menu>
+		</Box>
 	)
 }

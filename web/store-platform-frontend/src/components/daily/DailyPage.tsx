@@ -14,6 +14,7 @@ import {
 	BreadCrumbItem,
 	AllowedActions,
 	TargetType,
+	DailyActionType,
 } from '../../shared/globalEnums'
 import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
 import { useResources } from '../../shared/hooks/useResources'
@@ -31,6 +32,9 @@ import {
 	useGetDailyActionsQuery,
 } from '../../api/apiStore'
 import { ExcelDownload } from '../ExcelDownload'
+import { BudgetOverview } from '../common/BudgetOverview'
+import { compareBreakpoint } from '../../shared/utils'
+import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 
 const fullWidth = '100%'
 
@@ -63,6 +67,19 @@ const getDefaultDailyFilters = (): ProductFilterValues => {
 		invoiceDateFrom: getDateInputValueFromDate(startOfCurrentMonth),
 		invoiceDateTo: getDateInputValueFromDate(endOfCurrentMonth),
 	}
+}
+
+const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
+	if (!entryType) return undefined
+	if (typeof entryType === 'string') return entryType
+	return entryType.value
+}
+
+const parseDailyActionAmount = (dailyAction: DailyAction) => {
+	const rawAmount = dailyAction.totalPrice ?? dailyAction.singleUnitPrice ?? '0'
+	const amount = parseFloat(rawAmount.replace(/,/g, ''))
+
+	return Number.isFinite(amount) ? amount : 0
 }
 
 const styles = {
@@ -118,10 +135,60 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 	const [dailyFilters, setDailyFilters] = useState<ProductFilterValues>(
 		getDefaultDailyFilters,
 	)
-
+	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const { data: dailyActions = [], isLoading: isDailyActionsLoading } =
 		useGetDailyActionsQuery(dailyFilters)
 	const { data: dailyFilterValues } = useGetDailyActionFilterValuesQuery()
+
+	const dailyBudgetOverview = useMemo(() => {
+		const totals = dailyActions.reduce(
+			(accumulator, dailyAction) => {
+				const amount = parseDailyActionAmount(dailyAction)
+				const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
+
+				if (entryTypeValue === DailyActionType.BUYING_ENTRY) {
+					accumulator.purchases += amount
+				}
+
+				if (entryTypeValue === DailyActionType.SELLING_ENTRY) {
+					accumulator.sales += amount
+				}
+
+				if (entryTypeValue === DailyActionType.EXPENSE_ENTRY) {
+					accumulator.expenses += amount
+				}
+
+				return accumulator
+			},
+			{ purchases: 0, sales: 0, expenses: 0 },
+		)
+
+		const currency =
+			dailyActions.find(dailyAction => dailyAction.currencyName)
+				?.currencyName ??
+			dailyActions.find(dailyAction => dailyAction.currencyId)?.currencyId ??
+			'N.SYP'
+
+		return {
+			purchases: totals.purchases.toFixed(2),
+			expenses: totals.expenses.toFixed(2),
+			costs: (totals.purchases + totals.expenses).toFixed(2),
+			sales: totals.sales.toFixed(2),
+			profit: (totals.sales - totals.purchases - totals.expenses).toFixed(2),
+			currency,
+		}
+	}, [dailyActions])
+
+	const dailyBudgetOverviewLabels = useMemo(
+		() => ({
+			tooltip: t('components.daily.budgetOverview.tooltip'),
+			title: t('components.daily.budgetOverview.title'),
+			purchase: t('components.daily.budgetOverview.costs'),
+			payments: t('components.daily.budgetOverview.sales'),
+			balance: t('components.daily.budgetOverview.profit'),
+		}),
+		[t],
+	)
 
 	const entryTypeOptions: FilterSelectOption[] = useMemo(() => {
 		return (dailyFilterValues?.entryType ?? []).map(option => {
@@ -157,6 +224,17 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
 					isOwnerOrAdmin && (
 						<HStack>
+							{!isMobile && (
+								<BudgetOverview
+									purchase={dailyBudgetOverview.costs}
+									payments={dailyBudgetOverview.sales}
+									balance={dailyBudgetOverview.profit}
+									currency={dailyBudgetOverview.currency}
+									isFetching={isDailyActionsLoading}
+									labels={dailyBudgetOverviewLabels}
+								/>
+							)}
+
 							<Button
 								leftIcon={<AddSquareIcon />}
 								onClick={onOpen}
@@ -174,6 +252,17 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 						</HStack>
 					)}
 			</HStack>
+
+			{isMobile && (
+				<BudgetOverview
+					purchase={dailyBudgetOverview.costs}
+					payments={dailyBudgetOverview.sales}
+					balance={dailyBudgetOverview.profit}
+					currency={dailyBudgetOverview.currency}
+					isFetching={isDailyActionsLoading}
+					labels={dailyBudgetOverviewLabels}
+				/>
+			)}
 
 			{isDailyActionsLoading && <Spinner />}
 			<Box sx={styles.divider} />

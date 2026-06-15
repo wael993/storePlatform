@@ -108,6 +108,12 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
 					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
 				]
+			case DailyActionType.EXPENSE_ENTRY:
+				return [
+					{ label: t('common.expense'), value: actionSummary?.expenseName },
+					{ label: t('common.currency'), value: actionSummary?.currencyName },
+					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
+				]
 			default:
 				return []
 		}

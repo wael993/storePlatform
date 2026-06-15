@@ -1,11 +1,11 @@
 {
-	"appTitle": "منصة المتجر",
+	"appTitle": " الزوباني للزيتون",
 	"settings": {
 		"updateSuccessMessage": "تم تحديث الإعدادات بنجاح.",
 		"updateFailedMessage": "فشل تحديث الإعدادات."
 	},
 	"navigation": {
-		"welcome": "مرحبًا",
+		"welcome": "الرئيسية",
 		"barcode": "الباركود",
 		"allProducts": "جميع المنتجات",
 		"addTenant": "إضافة مستأجر"
@@ -219,10 +219,21 @@
 		},
 		"daily": {
 			"dailyActions": "الإجراءات اليومية",
+			"budgetOverview": {
+				"tooltip": "نظرة عامة على أرباح الإجراءات اليومية بعد التصفية.",
+				"title": "نظرة عامة على الأرباح ",
+				"purchases": "المشتريات",
+				"expenses": "النفقات",
+				"costs": "التكاليف",
+				"sales": "المبيعات",
+				"profit": "الأرباح"
+			},
 			"buyingAction": "إجراء شراء",
 			"sellingAction": "إجراء بيع",
 			"receiptAction": "إجراء قبض",
 			"paymentAction": "إجراء دفع",
+			"expenseAction": "إجراء نفقات",
+
 			"confirmations": {
 				"deleteDailyAction": "حذف الإجراء اليومي",
 				"deleteDailyActionConfirmationBody": "هل أنت متأكد أنك تريد حذف هذا الإجراء اليومي؟",
@@ -234,7 +245,8 @@
 				"addSupplierFailed": "فشل إضافة المورد",
 				"addCustomerFailed": "فشل إضافة العميل",
 				"addCurrencyFailed": "فشل إضافة العملة",
-				"addUnitFailed": "فشل إضافة الوحدة"
+				"addUnitFailed": "فشل إضافة الوحدة",
+				"addExpenseFailed": "فشل إضافة النفقات"
 			},
 			"actionType": "نوع الإجراء",
 			"actionDate": "تاريخ الإجراء",
@@ -260,16 +272,20 @@
 			"customerName": "اسم العميل",
 			"addQuickUnit": "إضافة وحدة سريعة",
 			"unitName": "اسم الوحدة",
+			"expenseName": "اسم النفقات",
+			"addQuickExpense": "إضافة نفقات سريعة",
 			"addProduct": "إضافة منتج",
 			"addCurrency": "إضافة عملة",
 			"addSupplier": "إضافة مورد",
 			"addCustomer": "إضافة عميل",
 			"addUnit": "إضافة وحدة",
+			"addExpense": "إضافة نفقات",
 			"productCode": "رمز المنتج",
 			"currencyCode": "رمز العملة",
 			"supplierCode": "رمز المورد",
 			"customerCode": "رمز العميل",
-			"unitCode": "رمز الوحدة"
+			"unitCode": "رمز الوحدة",
+			"expenseCode": "رمز النفقات"
 		},
 		"pageHeaders": {
 			"settings": "الإعدادات",
@@ -382,6 +398,7 @@
 		"price": "السعر",
 		"stock": "المخزون",
 		"supplierOrCustomer": "المورد / العميل",
+		"supplierCustomerOrExpense": "المورد / العميل / النفقات",
 		"noOptions": "لا توجد خيارات",
 		"optionDoesNotExist": "هذا الخيار غير موجود",
 		"inputSearch": "بحث...",
@@ -397,11 +414,14 @@
 		"supplier": "المورد",
 		"customer": "العميل",
 		"dailyAction": "إجراء يومي",
+		"expense": "النفقات",
 		"currency": "العملة",
 		"unit": "الوحدة",
 		"productName": "اسم المنتج",
+		"productOrExpense": "المنتج / النفقات",
 		"supplierName": "اسم المورد",
 		"customerName": "اسم العميل",
+		"expenseName": "اسم النفقات",
 		"currencyName": "اسم العملة",
 		"unitName": "اسم الوحدة",
 		"barcode": "الباركود",
@@ -453,6 +473,7 @@
 		"sellingEntry": "حركة بيع",
 		"paymentEntry": "حركة دفع",
 		"receiptEntry": "حركة قبض",
+		"expenseEntry": "حركة نفقات",
 		"supplierFocus": "تركيز المورد",
 		"addFocus": "إضافة تركيز",
 		"shop": "المتجر",

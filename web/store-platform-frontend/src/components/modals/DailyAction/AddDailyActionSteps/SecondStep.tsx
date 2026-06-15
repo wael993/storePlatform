@@ -13,7 +13,9 @@ interface SecondStepProps {
 	isSellingEntry: boolean
 	isReceiptEntry: boolean
 	isPaymentEntry: boolean
+	isExpenseEntry: boolean
 	formData: Partial<DailyAction> | undefined
+	expenses: Expense[]
 	products: Product[]
 	suppliers: Supplier[]
 	customers: Customer[]
@@ -37,6 +39,8 @@ const SecondStep = ({
 	isSellingEntry,
 	isReceiptEntry,
 	isPaymentEntry,
+	isExpenseEntry,
+	expenses,
 	formData,
 	products,
 	suppliers,
@@ -240,12 +244,14 @@ const SecondStep = ({
 					<DailyActionsHelperButtons />
 				</>
 			)}
-			{(isReceiptEntry || isPaymentEntry) && (
+			{(isReceiptEntry || isPaymentEntry || isExpenseEntry) && (
 				<>
 					<Heading fontSize={'1rem'} marginBottom={'1rem'}>
 						{isReceiptEntry
 							? t('components.daily.receiptAction')
-							: t('components.daily.paymentAction')}
+							: isPaymentEntry
+								? t('components.daily.paymentAction')
+								: t('components.daily.expenseAction')}
 					</Heading>
 					<SimpleGrid columns={[1, 2, 3]} gap={6}>
 						{isPaymentEntry && (
@@ -302,6 +308,35 @@ const SecondStep = ({
 													value: customer.customerId ?? customer.internalCode,
 													label:
 														customer.name ?? customer.internalCode ?? 'TBD',
+												})),
+											)
+										}
+									/>
+								</Box>
+							</VStack>
+						)}
+						{isExpenseEntry && (
+							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+								<TextLabel label={t('common.expense')} />
+								<Box sx={dropdownStyles.dropDownContainer}>
+									<Dropdown
+										isSingle={true}
+										placeholder={t('common.expenseName')}
+										dropDownOptions={expenses.map(expense => ({
+											value: expense.expenseId ?? expense.internalCode,
+											label: expense.name ?? expense.internalCode ?? 'TBD',
+										}))}
+										selectedValues={
+											formData?.expenseId ? [formData.expenseId] : []
+										}
+										onSelect={(values: string[]) =>
+											handleDropdownChange(
+												'expenseId',
+												'expenseName',
+												values,
+												expenses.map(expense => ({
+													value: expense.expenseId ?? expense.internalCode,
+													label: expense.name ?? expense.internalCode ?? 'TBD',
 												})),
 											)
 										}

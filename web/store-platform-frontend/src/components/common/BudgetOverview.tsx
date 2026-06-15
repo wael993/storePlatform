@@ -60,6 +60,13 @@ interface BudgetOverviewProps {
 	currency?: string
 	balance?: string
 	isFetching?: boolean
+	labels?: {
+		tooltip?: string
+		title?: string
+		purchase?: string
+		payments?: string
+		balance?: string
+	}
 }
 
 export const BudgetOverview = ({
@@ -68,6 +75,7 @@ export const BudgetOverview = ({
 	currency,
 	balance,
 	isFetching,
+	labels,
 }: BudgetOverviewProps) => {
 	const { t } = useTranslation()
 
@@ -80,20 +88,20 @@ export const BudgetOverview = ({
 			closeOnScroll={true}
 			label={
 				<Text sx={styles.tooltip}>
-					{t('components.budgetOverview.tooltip')}
+					{labels?.tooltip ?? t('components.budgetOverview.tooltip')}
 				</Text>
 			}
 			aria-label={t('common.tooltip')}
 		>
 			<Flex sx={{ ...styles.budgetOverviewContainer, width: '100%' }}>
 				<Heading variant="h4" sx={styles.header}>
-					{t('components.budgetOverview.text')}
+					{labels?.title ?? t('components.budgetOverview.text')}
 				</Heading>
 				<Divider sx={styles.divider} />
 				<HStack sx={{ width: '100%' }}>
 					<Flex sx={{ ...styles.budgetInfo, width: '50%' }}>
 						<Text sx={styles.text}>
-							{t('components.budgetOverview.purchase')}
+							{labels?.purchase ?? t('components.budgetOverview.purchase')}
 						</Text>
 						<Heading variant="h4" sx={styles.budgetInfoText}>
 							{`${mapFee(purchase) ?? '0'} ${currency ?? 'N.SYP'}`}
@@ -101,7 +109,7 @@ export const BudgetOverview = ({
 					</Flex>
 					<Flex sx={{ ...styles.budgetInfo, width: '50%' }}>
 						<Text sx={styles.text}>
-							{t('components.budgetOverview.payments')}
+							{labels?.payments ?? t('components.budgetOverview.payments')}
 						</Text>
 						<Heading variant="h4" sx={styles.budgetInfoText}>
 							{`${mapFee(payments) ?? '0'} ${currency ?? 'N.SYP'}`}
@@ -111,7 +119,9 @@ export const BudgetOverview = ({
 				<Divider sx={{ ...styles.divider, width: '100%' }} />
 
 				<Flex sx={styles.budgetInfo}>
-					<Text sx={styles.text}>{t('components.budgetOverview.balance')}</Text>
+					<Text sx={styles.text}>
+						{labels?.balance ?? t('components.budgetOverview.balance')}
+					</Text>
 					<Heading
 						variant="h4"
 						sx={{
@@ -119,7 +129,7 @@ export const BudgetOverview = ({
 							color: isBalanceNegative ? 'red' : 'green',
 						}}
 					>
-						{`${isBalanceNegative ? '-' : ''}${mapFee(balance) ?? '0'} ${currency ?? 'N.SYP'}`}
+						{mapFee(balance) ?? '0'} {currency ?? 'N.SYP'}
 					</Heading>
 				</Flex>
 			</Flex>

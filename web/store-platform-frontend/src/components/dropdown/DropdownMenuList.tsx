@@ -347,7 +347,7 @@ const DropdownMenuList = memo(
 		)
 
 		return (
-			<MenuList>
+			<MenuList sx={listStyles.container}>
 				{isSearchable && (
 					<Flex sx={listStyles.searchWrapper}>
 						<MenuItem onFocus={() => inputRef.current?.focus()}>

@@ -24,6 +24,7 @@ type AddQuickModalType =
 	| 'supplier'
 	| 'customer'
 	| 'unit'
+	| 'expense'
 type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
 type InputType = 'number' | 'text' | 'email' | 'text-area' | 'date'
 type EntryActionType =
@@ -31,6 +32,7 @@ type EntryActionType =
 	| 'SELLING_ENTRY'
 	| 'PAYMENT_ENTRY'
 	| 'RECEIPT_ENTRY'
+	| 'EXPENSE_ENTRY'
 	| {
 			value: string
 			label?: string
@@ -46,6 +48,8 @@ interface DailyAction {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 	currencyId: string
 	currencyName: string
 	unitId?: string

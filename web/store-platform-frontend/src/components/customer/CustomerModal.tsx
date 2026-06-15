@@ -20,6 +20,7 @@ import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithAct
 const fullWidth = '100%'
 const pageContentPadding = '2rem'
 const pageContentPaddingMobile = '1.25rem'
+const modalContainerZIndex = 10
 
 const styles = {
 	grid: {
@@ -108,7 +109,10 @@ const CustomerModal = ({ targetType }: CustomerModalProps) => {
 			allowPinchZoom={true}
 			preserveScrollBarGap={false}
 		>
-			<ModalContent sx={styles.modalContent} containerProps={{ zIndex: 300 }}>
+			<ModalContent
+				sx={styles.modalContent}
+				containerProps={{ zIndex: modalContainerZIndex }}
+			>
 				<ModalBody sx={styles.modalBody} height={window.innerHeight}>
 					<Box sx={styles.closeButtonWrapper}></Box>
 					<Grid sx={styles.grid}>

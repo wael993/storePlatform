@@ -15,6 +15,7 @@ import { Supplier } from '../models/Supplier'
 import { Customer } from '../models/Customer'
 import { Currency } from '../models/Currency'
 import { Unit } from '../models/Unit'
+import { Expense } from '../models/Expense'
 import User, { IUser } from '../models/User'
 import RefreshToken, { IRefreshToken } from '../models/RefreshToken'
 import Tenant, { ITenant } from '../models/Tenant'
@@ -52,6 +53,9 @@ import {
 	CustomerRequestBody,
 	CreateCustomerResponse,
 	CustomerDocument,
+	ExpenseRequestBody,
+	CreateExpenseResponse,
+	ExpenseDocument,
 	CurrencyRequestBody,
 	CurrencyDocument,
 	CreateCurrencyResponse,
@@ -67,6 +71,7 @@ import {
 	DailyActionRequestBody,
 	DailyActionResponse,
 	EntryType,
+	ExpensesResponse,
 	LoginData,
 	SuppliersResponse,
 	UnitsResponse,
@@ -133,6 +138,7 @@ type DailyActionFilterValuesResponse = {
 	productName: ProductFilterValueOption[]
 	supplier: ProductFilterValueOption[]
 	customer: ProductFilterValueOption[]
+	expense: ProductFilterValueOption[]
 }
 
 type ProductFilterValueSource = {
@@ -153,6 +159,8 @@ type DailyActionFilterValueSource = {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 }
 
 const getInvoiceDateBoundary = (
@@ -1722,6 +1730,8 @@ export default class ProductController {
 					{ supplierName: searchRegex },
 					{ customerId: searchRegex },
 					{ customerName: searchRegex },
+					{ expenseId: searchRegex },
+					{ expenseName: searchRegex },
 					{ invoiceNumber: searchRegex },
 				],
 			})
@@ -1797,7 +1807,7 @@ export default class ProductController {
 		const dailyActions = await withTenantScope(
 			DailyAction.find({})
 				.select(
-					'entryType productId productName supplierId supplierName customerId customerName',
+					'entryType productId productName supplierId supplierName customerId customerName expenseId expenseName',
 				)
 				.lean<DailyActionFilterValueSource[]>(),
 			tenantId,
@@ -1807,6 +1817,7 @@ export default class ProductController {
 		const productNameMap = new Map<string, ProductFilterValueOption>()
 		const supplierMap = new Map<string, ProductFilterValueOption>()
 		const customerMap = new Map<string, ProductFilterValueOption>()
+		const expenseMap = new Map<string, ProductFilterValueOption>()
 
 		for (const dailyAction of dailyActions) {
 			this.addFilterOption(
@@ -1816,8 +1827,14 @@ export default class ProductController {
 			)
 			this.addFilterOption(
 				productNameMap,
-				dailyAction.productName || dailyAction.productId,
-				dailyAction.productName || dailyAction.productId,
+				dailyAction.productName ||
+					dailyAction.productId ||
+					dailyAction.expenseName ||
+					dailyAction.expenseId,
+				dailyAction.productName ||
+					dailyAction.productId ||
+					dailyAction.expenseName ||
+					dailyAction.expenseId,
 			)
 			this.addFilterOption(
 				supplierMap,
@@ -1829,6 +1846,11 @@ export default class ProductController {
 				dailyAction.customerId || dailyAction.customerName,
 				dailyAction.customerName || dailyAction.customerId,
 			)
+			this.addFilterOption(
+				expenseMap,
+				dailyAction.expenseId || dailyAction.expenseName,
+				dailyAction.expenseName || dailyAction.expenseId,
+			)
 		}
 
 		return {
@@ -1836,6 +1858,7 @@ export default class ProductController {
 			productName: this.buildSortedFilterOptions(productNameMap),
 			supplier: this.buildSortedFilterOptions(supplierMap),
 			customer: this.buildSortedFilterOptions(customerMap),
+			expense: this.buildSortedFilterOptions(expenseMap),
 		}
 	}
 
@@ -1933,6 +1956,8 @@ export default class ProductController {
 			supplierName: requestBody.supplierName,
 			customerId: requestBody.customerId,
 			customerName: requestBody.customerName,
+			expenseId: requestBody.expenseId,
+			expenseName: requestBody.expenseName,
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
 			unitId: requestBody.unitId,
@@ -2876,17 +2901,24 @@ export default class ProductController {
 		}
 
 		const dailyActions = await this.getDailyActions(requestContext)
-		const actions = dailyActions.data.filter(
+		const actions1 = dailyActions.data.filter(
 			action =>
 				action.entryType !== 'BUYING_ENTRY' &&
 				action.customerId === (customer.internalCode ?? customer.customerId),
 		)
 
+		const actions = dailyActions.data.filter(
+			action =>
+				action.customerId === customer.customerId ||
+				action.customerId === customer.internalCode,
+		)
+		console.log('🚀 ~ ProductController ~ getCustomer ~ actions:', actions)
+
 		const mappedCustomers = mapCustomers([
 			{
 				customerId: customer.customerId ?? customer.internalCode ?? customerId,
 				name: customer.name,
-				sold: 0,
+				sold: 0, //TO_DO : remove or calculate sold from actions
 				internalCode: customer.internalCode,
 				createdAt: customer.createdAt?.toISOString(),
 				updatedAt: customer.updatedAt?.toISOString(),
@@ -2980,6 +3012,241 @@ export default class ProductController {
 		return {
 			_id: createCustomerResponse._id,
 		}
+	}
+
+	public async getExpenses(
+		requestContext: RequestContext,
+	): Promise<ExpensesResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildExpenseListKey(tenantId)
+		const cachedExpenses = await redisCache.getJson<ExpensesResponse>(cacheKey)
+		if (cachedExpenses) {
+			return cachedExpenses
+		}
+
+		const expenses = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.EXPENSES,
+			model: Expense,
+			sort: { createdAt: 'desc' },
+		})
+
+		const dailyActions = await this.getDailyActions(requestContext)
+		const data = expenses.documents.map((expense: ExpenseDocument) => ({
+			expenseId: expense.expenseId,
+			name: expense.name,
+			internalCode: expense.internalCode,
+			createdAt: expense.createdAt?.toISOString(),
+			updatedAt: expense.updatedAt?.toISOString(),
+			createdBy: expense.createdBy as any,
+			updatedBy: expense.updatedBy
+				? {
+						...expense.updatedBy,
+						updatedAt: expense.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+			actions: dailyActions.data.filter(
+				action =>
+					action.expenseId === expense.expenseId ||
+					action.expenseId === expense.internalCode,
+			),
+		}))
+
+		const response: ExpensesResponse = {
+			data,
+			totalCount: data.length,
+		}
+		await redisCache.setJson(cacheKey, response)
+		return response
+	}
+
+	public async getExpense(
+		expenseId: string,
+		requestContext: RequestContext,
+	): Promise<ExpensesResponse['data'][number] | null> {
+		let expense = await this.mongoDbClient.getDocumentByField<ExpenseDocument>(
+			requestContext,
+			COLLECTION_NAMES.EXPENSES,
+			Expense,
+			{ fieldName: 'expenseId', fieldValue: expenseId },
+		)
+
+		if (!expense) {
+			expense = await this.mongoDbClient.getDocumentByField<ExpenseDocument>(
+				requestContext,
+				COLLECTION_NAMES.EXPENSES,
+				Expense,
+				{ fieldName: 'internalCode', fieldValue: expenseId },
+			)
+		}
+
+		if (!expense) {
+			expense = await this.mongoDbClient.getDocumentByField<ExpenseDocument>(
+				requestContext,
+				COLLECTION_NAMES.EXPENSES,
+				Expense,
+				{ fieldName: '_id', fieldValue: expenseId },
+			)
+		}
+
+		if (!expense) {
+			return null
+		}
+
+		const dailyActions = await this.getDailyActions(requestContext)
+		return {
+			expenseId: expense.expenseId,
+			name: expense.name,
+			internalCode: expense.internalCode,
+			createdAt: expense.createdAt?.toISOString(),
+			updatedAt: expense.updatedAt?.toISOString(),
+			createdBy: expense.createdBy as any,
+			updatedBy: expense.updatedBy
+				? {
+						...expense.updatedBy,
+						updatedAt: expense.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+			actions: dailyActions.data.filter(
+				action =>
+					action.expenseId === expense.expenseId ||
+					action.expenseId === expense.internalCode,
+			),
+		}
+	}
+
+	public async postExpense(
+		requestContext: RequestContext,
+		requestBody: ExpenseRequestBody,
+	): Promise<CreateExpenseResponse | null> {
+		const { name, internalCode } = requestBody
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!name || !name.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Expense name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Expense.findOne({
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			}),
+			tenantContext.tenantId,
+		).lean()
+
+		if (!!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Expense already exists in this tenant.',
+			)
+		}
+
+		const expenseData: ExpenseDocument = {
+			tenantId: tenantContext.tenantId,
+			_id: uuidv4(),
+			expenseId: uuidv4(),
+			name,
+			internalCode: internalCode?.trim() || undefined,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		}
+
+		logger.info('Saving expense to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			expenseId: expenseData.expenseId,
+			name,
+		})
+
+		const createExpenseResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.EXPENSES, data: expenseData },
+			Expense,
+			requestContext,
+		)
+
+		await redisCache.del(redisCache.buildExpenseListKey(tenantContext.tenantId))
+
+		return {
+			_id: createExpenseResponse._id,
+		}
+	}
+
+	public async patchExpense(
+		expenseId: string,
+		requestBody: Partial<Omit<ExpenseRequestBody, 'expenseId'>>,
+		requestContext: RequestContext,
+	) {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.EXPENSES,
+			'update',
+		)
+		const { tenantId } = getTenantContext(requestContext)
+		const updateData = {
+			...requestBody,
+			internalCode: requestBody.internalCode?.trim() || undefined,
+			updatedBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				updatedAt: new Date(),
+			},
+		}
+
+		const updated = await withTenantScope(
+			Expense.findOneAndUpdate(
+				{
+					$or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }],
+				},
+				{ $set: updateData },
+				{ new: true, runValidators: true },
+			),
+			tenantId,
+		).lean()
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Expense not found.',
+			)
+		}
+
+		await redisCache.del(redisCache.buildExpenseListKey(tenantId))
+		return updated
+	}
+
+	public async deleteExpense(
+		expenseId: string,
+		requestContext: RequestContext,
+	) {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.EXPENSES,
+			'delete',
+		)
+		const { tenantId } = getTenantContext(requestContext)
+		const deleted = await withTenantScope(
+			Expense.findOneAndDelete({
+				$or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }],
+			}).lean(),
+			tenantId,
+		)
+
+		if (!deleted) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				'Expense not found.',
+			)
+		}
+
+		await redisCache.del(redisCache.buildExpenseListKey(tenantId))
+		return deleted
 	}
 
 	public async getCurrencies(

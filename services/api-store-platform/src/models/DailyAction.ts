@@ -16,6 +16,7 @@ export interface IDailyAction extends Document {
 		| 'SELLING_ENTRY'
 		| 'PAYMENT_ENTRY'
 		| 'RECEIPT_ENTRY'
+		| 'EXPENSE_ENTRY'
 	productId?: string
 	invoiceNumber?: string
 	invoiceDate: Date
@@ -24,6 +25,8 @@ export interface IDailyAction extends Document {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 	currencyId: string
 	currencyName: string
 	unitId?: string
@@ -47,7 +50,13 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 		},
 		entryType: {
 			type: String,
-			enum: ['BUYING_ENTRY', 'SELLING_ENTRY', 'PAYMENT_ENTRY', 'RECEIPT_ENTRY'],
+			enum: [
+				'BUYING_ENTRY',
+				'SELLING_ENTRY',
+				'PAYMENT_ENTRY',
+				'RECEIPT_ENTRY',
+				'EXPENSE_ENTRY',
+			],
 			required: [true, 'entryType is required'],
 		},
 		productId: {
@@ -80,6 +89,14 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			trim: true,
 		},
 		customerName: {
+			type: String,
+			trim: true,
+		},
+		expenseId: {
+			type: String,
+			trim: true,
+		},
+		expenseName: {
 			type: String,
 			trim: true,
 		},

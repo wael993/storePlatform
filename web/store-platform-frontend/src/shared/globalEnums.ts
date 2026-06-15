@@ -11,6 +11,7 @@ export enum DailyActionType {
 	SELLING_ENTRY = 'SELLING_ENTRY',
 	PAYMENT_ENTRY = 'PAYMENT_ENTRY',
 	RECEIPT_ENTRY = 'RECEIPT_ENTRY',
+	EXPENSE_ENTRY = 'EXPENSE_ENTRY',
 }
 
 export enum AllowedActions {
@@ -165,4 +166,5 @@ export enum AddQuickStateEnum {
 	SUPPLIER = 'supplier',
 	CUSTOMER = 'customer',
 	UNIT = 'unit',
+	EXPENSE = 'expense',
 }

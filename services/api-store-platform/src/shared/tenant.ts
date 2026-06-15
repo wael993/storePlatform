@@ -66,6 +66,7 @@ const createEmptyPermissionMap = (): TenantPermissionMap => ({
 	dailyActions: [],
 	suppliers: [],
 	customers: [],
+	expenses: [],
 	currencies: [],
 	units: [],
 })

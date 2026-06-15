@@ -20,6 +20,7 @@ export class PlatformValidator {
 				productName,
 				supplierId,
 				customerId,
+				expenseId,
 				currencyId,
 				currencyName,
 				unitId,
@@ -76,6 +77,15 @@ export class PlatformValidator {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 						'CustomerId is Missing',
+					)
+				}
+			}
+
+			if (entryType === DailyActionType.EXPENSE_ENTRY) {
+				if (!expenseId || !String(expenseId).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'ExpenseId is Missing',
 					)
 				}
 			}

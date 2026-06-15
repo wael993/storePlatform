@@ -17,6 +17,12 @@
 			"PATCH": { "accessLevel": "NONE", "fields": [] },
 			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
+		"/expenses": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
 		"/orders": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },

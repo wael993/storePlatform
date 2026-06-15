@@ -22,6 +22,7 @@ type EntryType =
 	| 'SELLING_ENTRY'
 	| 'PAYMENT_ENTRY'
 	| 'RECEIPT_ENTRY'
+	| 'EXPENSE_ENTRY'
 
 interface CustomerDailyAction {
 	actionId: string
@@ -34,6 +35,8 @@ interface CustomerDailyAction {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 	currencyId: string
 	currencyName: string
 	unitId?: string
@@ -54,6 +57,8 @@ interface DailyAction {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 	currencyId: string
 	currencyName: string
 	unitId?: string
@@ -71,6 +76,8 @@ interface DailyActionRequestBody {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 	currencyId: string
 	currencyName: string
 	unitId?: string
@@ -96,10 +103,31 @@ interface CustomersResponse extends APIResponse<Customer> {}
 interface CurrenciesResponse extends APIResponse<Currency> {}
 interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
+interface ExpensesResponse extends APIResponse<Expense> {}
 interface DailyActionResponse extends APIResponse<DailyAction> {}
 
 interface Supplier {
 	supplierId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+	actions?: DailyAction[]
+	relatedActions?: DailyAction[]
+}
+
+interface Expense {
+	expenseId: string
 	name: string
 	internalCode?: string
 	createdAt?: string

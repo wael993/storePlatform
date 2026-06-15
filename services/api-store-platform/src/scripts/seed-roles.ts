@@ -19,6 +19,12 @@ const ROLE_MOCKS = [
 				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
 				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
 			},
+			'/expenses': {
+				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
+				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
+				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
+			},
 			'/orders': {
 				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
 				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
@@ -63,6 +69,12 @@ const ROLE_MOCKS = [
 				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
 				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
 			},
+			'/expenses': {
+				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
+				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
+				DELETE: { accessLevel: 'NONE', fields: [] },
+			},
 			'/orders': {
 				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
 				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
@@ -101,6 +113,12 @@ const ROLE_MOCKS = [
 				DELETE: { accessLevel: 'NONE', fields: [] },
 			},
 			'/products': {
+				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+				POST: { accessLevel: 'NONE', fields: [] },
+				PATCH: { accessLevel: 'NONE', fields: [] },
+				DELETE: { accessLevel: 'NONE', fields: [] },
+			},
+			'/expenses': {
 				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
 				POST: { accessLevel: 'NONE', fields: [] },
 				PATCH: { accessLevel: 'NONE', fields: [] },
@@ -149,6 +167,12 @@ const ROLE_MOCKS = [
 				DELETE: { accessLevel: 'NONE', fields: [] },
 			},
 			'/products': {
+				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+				POST: { accessLevel: 'NONE', fields: [] },
+				PATCH: { accessLevel: 'NONE', fields: [] },
+				DELETE: { accessLevel: 'NONE', fields: [] },
+			},
+			'/expenses': {
 				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
 				POST: { accessLevel: 'NONE', fields: [] },
 				PATCH: { accessLevel: 'NONE', fields: [] },

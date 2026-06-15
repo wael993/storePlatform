@@ -43,17 +43,22 @@ const DailyActionItem = memo(
 		}
 		const rowId = dailyAction._id ?? dailyAction.actionId ?? ''
 		const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
-		const isPaymentOrReceiptAction =
-			entryTypeValue === 'PAYMENT_ENTRY' || entryTypeValue === 'RECEIPT_ENTRY'
-		const totalPrice = isPaymentOrReceiptAction
+		const isAmountOnlyAction =
+			entryTypeValue === 'PAYMENT_ENTRY' ||
+			entryTypeValue === 'RECEIPT_ENTRY' ||
+			entryTypeValue === 'EXPENSE_ENTRY'
+		const productOrExpense = dailyAction.productName ?? dailyAction.expenseName
+		const totalPrice = isAmountOnlyAction
 			? dailyAction.singleUnitPrice
 			: dailyAction.totalPrice
 
 		const supplierOrCustomer =
 			dailyAction.supplierName ??
 			dailyAction.customerName ??
+			dailyAction.expenseName ??
 			dailyAction.supplierId ??
 			dailyAction.customerId ??
+			dailyAction.expenseId ??
 			'-'
 
 		const styles = {
@@ -133,9 +138,8 @@ const DailyActionItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{dailyAction.productName !== '' &&
-								dailyAction.productName !== undefined
-									? dailyAction.productName
+								{productOrExpense !== '' && productOrExpense !== undefined
+									? productOrExpense
 									: '-'}
 							</Text>
 						</Skeleton>
@@ -169,7 +173,7 @@ const DailyActionItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{dailyAction.singleUnitPrice && !isPaymentOrReceiptAction
+								{dailyAction.singleUnitPrice && !isAmountOnlyAction
 									? `${dailyAction.singleUnitPrice} ${dailyAction.currencyName ?? ''}`
 									: '-'}
 							</Text>

@@ -28,6 +28,7 @@ export const generateDailyActionsExcel = (dailyActions: DailyAction[]) => {
 	const headers: ExcelHeader[] = [
 		{ header: 'Entry Type', key: 'entryType', width: 20 },
 		{ header: 'Product Name', key: 'productName', width: 20 },
+		{ header: 'Expense Name', key: 'expenseName', width: 20 },
 		{ header: 'Invoice Number', key: 'invoiceNumber', width: 20 },
 		{ header: 'Invoice Date', key: 'invoiceDate', width: 20 },
 		{ header: 'Supplier Name', key: 'supplierName', width: 20 },
@@ -59,6 +60,7 @@ export const generateDailyActionsExcel = (dailyActions: DailyAction[]) => {
 		const row = {
 			entryType: dailyAction.entryType,
 			productName: dailyAction.productName,
+			expenseName: dailyAction.expenseName,
 			invoiceNumber: dailyAction.invoiceNumber,
 			invoiceDate: dailyAction.invoiceDate
 				? new Date(dailyAction.invoiceDate)

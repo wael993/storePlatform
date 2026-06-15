@@ -28,12 +28,15 @@ interface CreateAPIResponse {
 interface CreateProductAPIResponse extends CreateAPIResponse {}
 interface CreateSupplierAPIResponse extends CreateAPIResponse {}
 interface CreateCustomerAPIResponse extends CreateAPIResponse {}
+interface CreateExpenseAPIResponse extends CreateAPIResponse {}
 interface CreateCurrencyAPIResponse extends CreateAPIResponse {}
 interface CreateUnitAPIResponse extends CreateAPIResponse {}
+interface UpdateExpenseAPIResponse extends CreateAPIResponse {}
 
 interface ProductsAPIResponse extends APIResponse<Product> {}
 interface SuppliersAPIResponse extends APIResponse<Supplier> {}
 interface CustomersAPIResponse extends APIResponse<Customer> {}
+interface ExpensesAPIResponse extends APIResponse<Expense> {}
 interface CurrenciesAPIResponse extends APIResponse<Currency> {}
 interface UnitsAPIResponse extends APIResponse<Unit> {}
 interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
@@ -87,6 +90,25 @@ interface BearerTokenPayload {
 interface Supplier {
 	_id?: string
 	supplierId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+	relatedActions?: DailyAction[]
+}
+
+interface Expense {
+	expenseId: string
 	name: string
 	internalCode?: string
 	createdAt?: string

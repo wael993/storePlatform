@@ -25,6 +25,7 @@ export function compareEntryType(entryType: EntryType) {
 		isBuyingEntry: entryType === EntryType.BUYING_ENTRY,
 		isReceiptEntry: entryType === EntryType.RECEIPT_ENTRY,
 		isPaymentEntry: entryType === EntryType.PAYMENT_ENTRY,
+		isExpenseEntry: entryType === EntryType.EXPENSE_ENTRY,
 	}
 }
 

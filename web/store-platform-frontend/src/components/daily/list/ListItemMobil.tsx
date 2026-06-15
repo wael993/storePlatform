@@ -16,7 +16,11 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { buildRoutePath } from '../../../shared/routes'
 import { useTranslation } from 'react-i18next'
-import { compareLanguage, withNoValueFallback } from '../../../shared/utils'
+import {
+	compareEntryType,
+	compareLanguage,
+	withNoValueFallback,
+} from '../../../shared/utils'
 import { ENTRY_TYPE_LABELS_MAP } from '../../../shared/globalConstant'
 import { formatDate } from '../../../shared/dateUtils'
 
@@ -93,6 +97,7 @@ const ListItemMobil = ({
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
+
 	const targetPath = dailyAction.supplierId
 		? buildRoutePath.supplierById(dailyAction.supplierId)
 		: dailyAction.customerId
@@ -125,6 +130,25 @@ const ListItemMobil = ({
 			? entryTypeValue
 			: (entryType.label ?? entryType.value ?? '-')
 	}
+	const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
+
+	const isAmountOnlyAction =
+		entryTypeValue === 'PAYMENT_ENTRY' ||
+		entryTypeValue === 'RECEIPT_ENTRY' ||
+		entryTypeValue === 'EXPENSE_ENTRY'
+	const productOrExpense = dailyAction.productName ?? dailyAction.expenseName
+	const relatedEntityLabel = dailyAction.supplierId
+		? t('common.supplier')
+		: dailyAction.customerId
+			? t('common.customer')
+			: t('common.expense')
+	const relatedEntityName =
+		dailyAction.supplierName ??
+		dailyAction.customerName ??
+		dailyAction.expenseName
+	const totalPrice = isAmountOnlyAction
+		? dailyAction.singleUnitPrice
+		: dailyAction.totalPrice
 
 	return (
 		<>
@@ -177,16 +201,10 @@ const ListItemMobil = ({
 									sx={{ ...styles.listItemGridItem, flex: 1 }}
 									onClick={onClick}
 								>
-									<Text sx={styles.titleText}>
-										{dailyAction.supplierId
-											? t('common.supplier')
-											: t('common.customer')}
-									</Text>
+									<Text sx={styles.titleText}>{relatedEntityLabel}</Text>
 									<Skeleton isLoaded={!isLoading}>
 										<Text sx={styles.valueText}>
-											{dailyAction.supplierId
-												? withNoValueFallback(dailyAction.supplierName)
-												: withNoValueFallback(dailyAction.customerName)}
+											{withNoValueFallback(relatedEntityName)}
 										</Text>
 									</Skeleton>
 								</Box>
@@ -202,28 +220,37 @@ const ListItemMobil = ({
 					>
 						<Grid templateColumns="repeat(2, 1fr)" gap="6">
 							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>{t('common.productName')}</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>{dailyAction.productName}</Text>
-								</Skeleton>
-							</GridItem>
-
-							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>{t('common.weight')}</Text>
+								<Text sx={styles.titleText}>
+									{/* TO_DO :use isExpenseEntry from compareEntryType */}
+									{entryTypeValue === 'EXPENSE_ENTRY'
+										? t('common.expenseName')
+										: t('common.productName')}
+								</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{dailyAction.weight
-											? `${dailyAction.weight} ${dailyAction.unitName ?? ''}`
-											: '-'}
+										{withNoValueFallback(productOrExpense)}
 									</Text>
 								</Skeleton>
 							</GridItem>
+
+							{entryTypeValue !== 'EXPENSE_ENTRY' && (
+								<GridItem sx={styles.listItemGridItem}>
+									<Text sx={styles.titleText}>{t('common.weight')}</Text>
+									<Skeleton isLoaded={!isLoading}>
+										<Text sx={styles.valueText}>
+											{dailyAction.weight
+												? `${dailyAction.weight} ${dailyAction.unitName ?? ''}`
+												: '-'}
+										</Text>
+									</Skeleton>
+								</GridItem>
+							)}
 
 							<GridItem sx={styles.listItemGridItem}>
 								<Text sx={styles.titleText}>{t('common.totalPrice')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{dailyAction.totalPrice ?? ''}
+										{withNoValueFallback(totalPrice)}
 									</Text>
 								</Skeleton>
 							</GridItem>
@@ -232,7 +259,7 @@ const ListItemMobil = ({
 								<Text sx={styles.titleText}>{t('common.invoiceNumber')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{dailyAction.invoiceNumber ?? ''}
+										{withNoValueFallback(dailyAction.invoiceNumber ?? '')}
 									</Text>
 								</Skeleton>
 							</GridItem>

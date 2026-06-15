@@ -20,6 +20,7 @@ import {
 	SupplierRequestBody,
 	CustomerRequestBody,
 	CurrencyRequestBody,
+	ExpenseRequestBody,
 	UnitRequestBody,
 } from '../shared/types'
 import { DailyActionRequestBody, LoginData } from '../shared/types/api'
@@ -563,6 +564,42 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/expenses`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getExpenses.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postExpense.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/expenses/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getExpense.bind(this),
+			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchExpense.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteExpense.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/budget-overview/:entityType/:id`)
 			.get(
 				this.startCalc.bind(this),
@@ -600,7 +637,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.postUnit.bind(this),
 			)
-
 	}
 
 	private async getDailyActionsExcel(
@@ -959,8 +995,100 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
-			console.log('🚀 ~ StoreRoutes ~ getCustomer ~ resp:', resp)
 			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getExpenses(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		try {
+			const resp = await this.productController.getExpenses(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postExpense(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const requestBody: ExpenseRequestBody = request.body
+
+		try {
+			const resp = await this.productController.postExpense(
+				requestContext,
+				requestBody,
+			)
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getExpense(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getExpense(
+				request.params.id,
+				requestContext,
+			)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchExpense(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.patchExpense(
+				request.params.id,
+				request.body,
+				requestContext,
+			)
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteExpense(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.deleteExpense(
+				request.params.id,
+				requestContext,
+			)
+			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {
@@ -974,10 +1102,6 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
 		const entityType = request.params.entityType
-		console.log(
-			'🚀 ~ StoreRoutes ~ getBudgetOverview ~ entityType:',
-			entityType,
-		)
 
 		try {
 			if (entityType !== 'customer' && entityType !== 'supplier') {
@@ -990,7 +1114,6 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
-			console.log('🚀 ~ StoreRoutes ~ getBudgetOverview ~ resp:', resp)
 
 			response.status(200).json(resp)
 		} catch (error: any) {

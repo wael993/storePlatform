@@ -211,14 +211,14 @@ const DailyActionListDesktop = memo(
 						)
 					case DailyActionSortHeaderKey.PRODUCT_NAME:
 						return compareStringsForSorting(
-							a.productName,
-							b.productName,
+							a.productName ?? a.expenseName,
+							b.productName ?? b.expenseName,
 							sortOrder,
 						)
 					case DailyActionSortHeaderKey.SUPPLIER_CUSTOMER:
 						return compareStringsForSorting(
-							a.supplierName ?? a.customerName,
-							b.supplierName ?? b.customerName,
+							a.supplierName ?? a.customerName ?? a.expenseName,
+							b.supplierName ?? b.customerName ?? b.expenseName,
 							sortOrder,
 						)
 					case DailyActionSortHeaderKey.WEIGHT:

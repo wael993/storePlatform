@@ -36,6 +36,11 @@ type CustomerRequestBody = {
 	name: string
 	internalCode?: string
 }
+type ExpenseRequestBody = {
+	expenseId: string
+	name: string
+	internalCode?: string
+}
 type CurrencyRequestBody = {
 	currencyId: string
 	name: string
@@ -160,6 +165,9 @@ export type CreateSupplierResponse = {
 export type CreateCustomerResponse = {
 	_id: string
 }
+export type CreateExpenseResponse = {
+	_id: string
+}
 export type CreateCurrencyResponse = {
 	_id: string
 }
@@ -220,6 +228,18 @@ interface CurrencyDocument {
 	tenantId: string
 	_id?: string
 	currencyId: string
+	name: string
+	internalCode?: string
+	createdBy: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
+	updatedAt: Date
+}
+
+interface ExpenseDocument {
+	tenantId: string
+	_id?: string
+	expenseId: string
 	name: string
 	internalCode?: string
 	createdBy: UserAPIFormat

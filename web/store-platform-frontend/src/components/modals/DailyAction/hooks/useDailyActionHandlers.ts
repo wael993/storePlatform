@@ -8,6 +8,7 @@ import {
 	useGetProductsQuery,
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
+	useGetExpensesQuery,
 	AddDailyActionRequestBody,
 } from '../../../../api/apiStore'
 import { StepKeys } from '../../../../shared/globalEnums'
@@ -36,32 +37,27 @@ export const useDailyActionHandlers = ({
 		isLoading: isProductsLoading,
 	} = useGetProductsQuery({}, { skip: !shouldLoadOptions })
 
-	const {
-		data: suppliersResponse = [],
-		isLoading: isSuppliersLoading,
-	} = useGetSuppliersQuery({}, { skip: !shouldLoadOptions })
+	const { data: suppliersResponse = [], isLoading: isSuppliersLoading } =
+		useGetSuppliersQuery({}, { skip: !shouldLoadOptions })
 
-	const {
-		data: customersResponse = [],
-		isLoading: isCustomersLoading,
-	} = useGetCustomersQuery({}, { skip: !shouldLoadOptions })
+	const { data: customersResponse = [], isLoading: isCustomersLoading } =
+		useGetCustomersQuery({}, { skip: !shouldLoadOptions })
 
-	const {
-		data: currenciesResponse = [],
-		isLoading: isCurrenciesLoading,
-	} = useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
+	const { data: currenciesResponse = [], isLoading: isCurrenciesLoading } =
+		useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
 
-	const {
-		data: unitsResponse = [],
-		isLoading: isUnitsLoading,
-	} = useGetUnitsQuery({}, { skip: !shouldLoadOptions })
+	const { data: unitsResponse = [], isLoading: isUnitsLoading } =
+		useGetUnitsQuery({}, { skip: !shouldLoadOptions })
+	const { data: expensesResponse = [], isLoading: isExpensesLoading } =
+		useGetExpensesQuery(undefined, { skip: !shouldLoadOptions })
 
 	const isAllDataLoaded =
 		!isProductsLoading &&
 		!isSuppliersLoading &&
 		!isCustomersLoading &&
 		!isCurrenciesLoading &&
-		!isUnitsLoading
+		!isUnitsLoading &&
+		!isExpensesLoading
 
 	const products = useMemo(
 		() => productsResponse.products ?? [],
@@ -71,6 +67,7 @@ export const useDailyActionHandlers = ({
 	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
 	const currency = useMemo(() => currenciesResponse ?? [], [currenciesResponse])
 	const unit = useMemo(() => unitsResponse ?? [], [unitsResponse])
+	const expenses = useMemo(() => expensesResponse ?? [], [expensesResponse])
 
 	const totalPrice = useMemo(() => {
 		if (!formData?.singleUnitPrice || !formData?.weight) return ''
@@ -134,6 +131,8 @@ export const useDailyActionHandlers = ({
 				supplierName: formData.supplierName ?? undefined,
 				customerId: formData.customerId ?? undefined,
 				customerName: formData.customerName ?? undefined,
+				expenseId: formData.expenseId ?? undefined,
+				expenseName: formData.expenseName ?? undefined,
 				currencyId: formData.currencyId ?? '',
 				currencyName: formData.currencyName ?? '',
 				unitId: formData.unitId ?? undefined,
@@ -182,11 +181,13 @@ export const useDailyActionHandlers = ({
 		isAllDataLoaded,
 		suppliers,
 		customers,
+		expenses,
 		currency,
 		isProductsLoading,
 		isSuppliersLoading,
 		isCustomersLoading,
 		isCurrenciesLoading,
 		isUnitsLoading,
+		isExpensesLoading,
 	}
 }

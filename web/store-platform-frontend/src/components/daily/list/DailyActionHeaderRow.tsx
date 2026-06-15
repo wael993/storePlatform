@@ -101,12 +101,12 @@ const DailyActionHeaderRow = ({
 			sortKey: DailyActionSortHeaderKey.ENTRY_TYPE,
 		},
 		{
-			label: t('common.productName'),
+			label: t('common.productOrExpense'),
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.PRODUCT_NAME,
 			sortKey: DailyActionSortHeaderKey.PRODUCT_NAME,
 		},
 		{
-			label: t('common.supplierOrCustomer'),
+			label: t('common.supplierCustomerOrExpense'),
 			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_CUSTOMER,
 			sortKey: DailyActionSortHeaderKey.SUPPLIER_CUSTOMER,
 		},

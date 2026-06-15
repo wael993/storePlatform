@@ -198,6 +198,10 @@ class RedisCache {
 		return `cache:customers:list:${tenantId}`
 	}
 
+	public buildExpenseListKey(tenantId: string): string {
+		return `cache:expenses:list:${tenantId}`
+	}
+
 	public buildCurrencyListKey(tenantId: string): string {
 		return `cache:currencies:list:${tenantId}`
 	}

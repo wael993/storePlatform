@@ -82,6 +82,8 @@ export interface AddDailyActionRequestBody {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	expenseId?: string
+	expenseName?: string
 	currencyId: string
 	currencyName: string
 	unitId?: string
@@ -339,6 +341,55 @@ const getQuery = (
 				}
 			},
 			invalidatesTags: ['products'],
+		}),
+		getExpenses: builder.query<Expense[], void>({
+			query: () => ({
+				url: 'expenses',
+				method: 'GET',
+			}),
+			transformResponse: (response: ExpensesAPIResponse) => {
+				return response.data
+			},
+			providesTags: ['expenses'],
+		}),
+		getSingleExpense: builder.query<Expense, string>({
+			query: (expenseId: string) => ({
+				url: `expenses/${expenseId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Expense) => {
+				return response
+			},
+			providesTags: ['expenses'],
+		}),
+		createExpense: builder.mutation<
+			CreateExpenseAPIResponse,
+			Omit<Expense, 'expenseId'>
+		>({
+			query: (newExpense: Omit<Expense, 'expenseId'>) => ({
+				url: 'expenses',
+				method: 'POST',
+				body: newExpense,
+			}),
+			invalidatesTags: ['expenses'],
+		}),
+		updateExpense: builder.mutation<
+			UpdateExpenseAPIResponse,
+			{ id: string; body: Partial<Omit<Expense, 'expenseId'>> }
+		>({
+			query: ({ id, body }) => ({
+				url: `expenses/${id}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['expenses'],
+		}),
+		deleteExpense: builder.mutation<void, string>({
+			query: (expenseId: string) => ({
+				url: `expenses/${expenseId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['expenses'],
 		}),
 		createSupplier: builder.mutation<
 			CreateSupplierAPIResponse,
@@ -685,4 +736,9 @@ export const {
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
 	useDeleteDailyActionMutation,
+	useGetExpensesQuery,
+	useGetSingleExpenseQuery,
+	useCreateExpenseMutation,
+	useUpdateExpenseMutation,
+	useDeleteExpenseMutation,
 } = storeApi

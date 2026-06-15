@@ -6,6 +6,7 @@ import { hoverFocusActiveButtonStyles } from '../../../../theme/styles'
 import {
 	useCreateCurrencyMutation,
 	useCreateCustomerMutation,
+	useCreateExpenseMutation,
 	useCreateSupplierMutation,
 	useCreateUnitMutation,
 	usePostProductMutation,
@@ -38,6 +39,7 @@ const BUTTONS: {
 	{ type: 'product', labelKey: 'components.daily.addProduct' },
 	{ type: 'customer', labelKey: 'components.daily.addCustomer' },
 	{ type: 'supplier', labelKey: 'components.daily.addSupplier' },
+	{ type: 'expense', labelKey: 'components.daily.addExpense' },
 	{ type: 'currency', labelKey: 'components.daily.addCurrency' },
 	{ type: 'unit', labelKey: 'components.daily.addUnit' },
 ]
@@ -59,6 +61,8 @@ const DailyActionsHelperButtons = () => {
 		useCreateSupplierMutation()
 	const [createCustomer, { isLoading: isCustomerLoading }] =
 		useCreateCustomerMutation()
+	const [createExpense, { isLoading: isExpenseLoading }] =
+		useCreateExpenseMutation()
 	const [createCurrency, { isLoading: isCurrencyLoading }] =
 		useCreateCurrencyMutation()
 	const [createUnit, { isLoading: isUnitLoading }] = useCreateUnitMutation()
@@ -95,6 +99,7 @@ const DailyActionsHelperButtons = () => {
 		isProductLoading ||
 		isSupplierLoading ||
 		isCustomerLoading ||
+		isExpenseLoading ||
 		isCurrencyLoading ||
 		isUnitLoading
 
@@ -159,6 +164,19 @@ const DailyActionsHelperButtons = () => {
 							sold: 0,
 						}).unwrap(),
 					t('components.daily.errors.addCustomerFailed'),
+				)
+			},
+
+			expense: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createExpense({
+							name: value,
+							internalCode: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					t('components.daily.errors.addExpenseFailed'),
 				)
 			},
 

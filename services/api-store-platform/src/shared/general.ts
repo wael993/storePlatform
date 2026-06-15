@@ -10,6 +10,7 @@ export const COLLECTION_NAMES = {
 	TENANTS: 'tenants',
 	SUPPLIERS: 'suppliers',
 	CUSTOMERS: 'customers',
+	EXPENSES: 'expenses',
 	CURRENCIES: 'currencies',
 	UNITS: 'units',
 } as const

@@ -5,6 +5,7 @@ export const ENTRY_TYPE_LABELS_MAP: Record<string, string> = {
 	SELLING_ENTRY: 'common.sellingEntry',
 	PAYMENT_ENTRY: 'common.paymentEntry',
 	RECEIPT_ENTRY: 'common.receiptEntry',
+	EXPENSE_ENTRY: 'common.expenseEntry',
 }
 
 export const MODAL_CONFIG = {
@@ -47,5 +48,13 @@ export const MODAL_CONFIG = {
 		placeholder: 'components.daily.unitName',
 		inputType: 'text' as InputType,
 		buttonText: 'components.daily.addUnit',
+	},
+	[AddQuickStateEnum.EXPENSE]: {
+		title: 'components.daily.addQuickExpense',
+		label: 'components.daily.expenseName',
+		code: 'components.daily.expenseCode',
+		placeholder: 'components.daily.expenseName',
+		inputType: 'text' as InputType,
+		buttonText: 'components.daily.addExpense',
 	},
 }

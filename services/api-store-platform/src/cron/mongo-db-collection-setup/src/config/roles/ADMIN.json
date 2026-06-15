@@ -31,6 +31,12 @@
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/expenses": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		}
 	},
 	"include": ["EMPLOYEE"],
