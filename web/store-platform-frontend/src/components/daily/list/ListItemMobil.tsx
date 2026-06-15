@@ -17,8 +17,8 @@ import { useNavigate } from 'react-router-dom'
 import { buildRoutePath } from '../../../shared/routes'
 import { useTranslation } from 'react-i18next'
 import {
-	compareEntryType,
 	compareLanguage,
+	mapFee,
 	withNoValueFallback,
 } from '../../../shared/utils'
 import { ENTRY_TYPE_LABELS_MAP } from '../../../shared/globalConstant'
@@ -250,7 +250,7 @@ const ListItemMobil = ({
 								<Text sx={styles.titleText}>{t('common.totalPrice')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{withNoValueFallback(totalPrice)}
+										{withNoValueFallback(mapFee(totalPrice))}
 									</Text>
 								</Skeleton>
 							</GridItem>
@@ -288,7 +288,7 @@ const ListItemMobil = ({
 								<Text sx={styles.titleText}>{t('common.singleUnitPrice')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{dailyAction.singleUnitPrice ?? ''}
+										{mapFee(dailyAction.singleUnitPrice) ?? ''}
 									</Text>
 								</Skeleton>
 							</GridItem>

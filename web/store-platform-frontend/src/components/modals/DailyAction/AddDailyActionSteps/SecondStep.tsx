@@ -7,6 +7,7 @@ import TextLabel from '../../../common/TextLabel'
 import { Dropdown } from '../../../dropdown/Dropdown'
 import { dropdownStyles } from '../../../filters/dropdowns/styles'
 import DailyActionsHelperButtons from './DailyActionsHelperButtons'
+import { parseNumberValue } from '../../../../shared/utils'
 
 interface SecondStepProps {
 	isBuyingEntry: boolean
@@ -124,7 +125,8 @@ const SecondStep = ({
 	}, [currencyOptions, formData?.currencyId, handleDropdownChange])
 
 	useEffect(() => {
-		if (hasInitializedUnit.current || (!isBuyingEntry && !isSellingEntry)) return
+		if (hasInitializedUnit.current || (!isBuyingEntry && !isSellingEntry))
+			return
 
 		if (formData?.unitId) {
 			hasInitializedUnit.current = true
@@ -361,7 +363,10 @@ const SecondStep = ({
 								styles={documentNameStyles}
 								value={formData?.singleUnitPrice ?? ''}
 								onChange={(value: string) =>
-									handleInputChange('singleUnitPrice', value)
+									handleInputChange(
+										'singleUnitPrice',
+										parseNumberValue(value, 2),
+									)
 								}
 							/>
 						</VStack>
@@ -496,7 +501,10 @@ const SecondStep = ({
 								styles={documentNameStyles}
 								value={formData?.singleUnitPrice ?? ''}
 								onChange={(value: string) =>
-									handleInputChange('singleUnitPrice', value)
+									handleInputChange(
+										'singleUnitPrice',
+										parseNumberValue(value, 2),
+									)
 								}
 							/>
 						</VStack>

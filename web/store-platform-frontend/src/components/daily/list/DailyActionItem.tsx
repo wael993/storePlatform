@@ -5,6 +5,7 @@ import { formatDate } from '../../../shared/dateUtils'
 import { listStyles } from '../../../shared/styles'
 import { ENTRY_TYPE_LABELS_MAP } from '../../../shared/globalConstant'
 import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { mapFee } from '../../../shared/utils'
 
 const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
 	if (!entryType) return undefined
@@ -174,7 +175,7 @@ const DailyActionItem = memo(
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
 								{dailyAction.singleUnitPrice && !isAmountOnlyAction
-									? `${dailyAction.singleUnitPrice} ${dailyAction.currencyName ?? ''}`
+									? `${mapFee(dailyAction.singleUnitPrice)} ${dailyAction.currencyName ?? ''}`
 									: '-'}
 							</Text>
 						</Skeleton>
@@ -187,7 +188,7 @@ const DailyActionItem = memo(
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
 								{totalPrice
-									? `${totalPrice} ${dailyAction.currencyName ?? ''}`
+									? `${mapFee(totalPrice)} ${dailyAction.currencyName ?? ''}`
 									: '-'}
 							</Text>
 						</Skeleton>

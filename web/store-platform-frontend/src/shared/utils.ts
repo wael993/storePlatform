@@ -76,9 +76,10 @@ export const getTenantActions = () => {
 }
 
 export const mapFee = (fee?: string): string | undefined => {
-	if (!fee || isNaN(Number(fee))) return undefined
+	const normalizedFee = fee?.replaceAll(',', '')
+	if (!normalizedFee || isNaN(Number(normalizedFee))) return undefined
 
-	const feeAsNumber: number = parseFloat(fee)
+	const feeAsNumber: number = parseFloat(normalizedFee)
 	const roundedFee: number = parseFloat(feeAsNumber.toFixed(2))
 
 	const decimalPart: string =
@@ -119,3 +120,44 @@ export const formatNumber = (
 
 export const withNoValueFallback = (value: string | null | undefined) =>
 	value || 'N/A'
+
+export const parseNumberValue = (
+	value: string,
+	maximumDecimals: number = 2,
+): string => {
+	value = value.replace(/[^\d.]/g, '')
+
+	// Ensure there is only one dot
+	const dotIndex = value.indexOf('.')
+	if (dotIndex !== -1) {
+		value =
+			value.slice(0, dotIndex + 1) +
+			value.slice(dotIndex + 1).replace(/\./g, '')
+	}
+
+	// Limit to 2 decimal places
+	const parts = value.split('.')
+	if (parts.length > 1) {
+		parts[1] = parts[1].slice(0, maximumDecimals)
+		value = parts.join('.')
+	}
+
+	return value
+}
+
+export const formatNumberForDb = (
+	value: string | number | null | undefined,
+	decimals: number = 2,
+): string | undefined => {
+	if (value === undefined || value === null || value === '') return undefined
+
+	const normalizedValue =
+		typeof value === 'number'
+			? value.toString()
+			: parseNumberValue(value, decimals)
+	const numberValue = Number(normalizedValue)
+
+	if (!Number.isFinite(numberValue)) return undefined
+
+	return numberValue.toFixed(decimals)
+}

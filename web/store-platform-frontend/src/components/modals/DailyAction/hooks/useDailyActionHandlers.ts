@@ -12,7 +12,10 @@ import {
 	AddDailyActionRequestBody,
 } from '../../../../api/apiStore'
 import { StepKeys } from '../../../../shared/globalEnums'
-import { mapFee } from '../../../../shared/utils'
+import {
+	formatNumberForDb,
+	mapFee,
+} from '../../../../shared/utils'
 import useCustomToast from '../../../common/CustomToast'
 
 interface UseDailyActionHandlersOptions {
@@ -69,20 +72,25 @@ export const useDailyActionHandlers = ({
 	const unit = useMemo(() => unitsResponse ?? [], [unitsResponse])
 	const expenses = useMemo(() => expensesResponse ?? [], [expensesResponse])
 
-	const totalPrice = useMemo(() => {
+	const totalPriceForDb = useMemo(() => {
 		if (!formData?.singleUnitPrice || !formData?.weight) return ''
 
-		return mapFee(
-			(Number(formData.singleUnitPrice) * Number(formData.weight))?.toString(),
+		return (
+			formatNumberForDb(
+				Number(formData.singleUnitPrice) * Number(formData.weight),
+				2,
+			) ?? ''
 		)
 	}, [formData?.singleUnitPrice, formData?.weight])
+
+	const totalPrice = useMemo(() => mapFee(totalPriceForDb) ?? '', [totalPriceForDb])
 
 	useEffect(() => {
 		setFormData(prev => ({
 			...prev,
-			totalPrice: totalPrice || undefined,
+			totalPrice: totalPriceForDb || undefined,
 		}))
-	}, [totalPrice])
+	}, [totalPriceForDb])
 
 	const handleDropdownChange = (
 		valueField: keyof DailyAction,
@@ -143,8 +151,9 @@ export const useDailyActionHandlers = ({
 				unitId: formData.unitId ?? undefined,
 				unitName: formData.unitName ?? undefined,
 				weight: formData.weight ?? undefined,
-				singleUnitPrice: formData.singleUnitPrice ?? undefined,
-				totalPrice: formData.totalPrice ?? undefined,
+				singleUnitPrice:
+					formatNumberForDb(formData.singleUnitPrice ?? '', 2) ?? undefined,
+				totalPrice: formatNumberForDb(formData.totalPrice ?? '', 2) ?? undefined,
 				invoiceNumber: formData.invoiceNumber ?? undefined,
 				invoiceDate: formData.invoiceDate ?? '',
 				note: formData.note?.trim() || undefined,

@@ -12,6 +12,7 @@ import InputLabel from '../../../common/InputLabel'
 import { documentNameStyles } from '../../../../theme/styles'
 import DatePickerLabel from '../../../common/DatePickerLabel'
 import { useTranslation } from 'react-i18next'
+import { mapFee } from '../../../../shared/utils'
 
 interface ThirdStepProps {
 	formData: Partial<DailyAction> | undefined
@@ -77,9 +78,12 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 					{ label: t('common.weight'), value: actionSummary?.weight },
 					{
 						label: t('common.singleUnitPrice'),
-						value: actionSummary?.singleUnitPrice,
+						value: mapFee(actionSummary?.singleUnitPrice),
 					},
-					{ label: t('common.totalPrice'), value: actionSummary?.totalPrice },
+					{
+						label: t('common.totalPrice'),
+						value: mapFee(actionSummary?.totalPrice),
+					},
 				]
 			case DailyActionType.SELLING_ENTRY:
 				return [
@@ -90,7 +94,7 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 					{ label: t('common.weight'), value: actionSummary?.weight },
 					{
 						label: t('common.singleUnitPrice'),
-						value: actionSummary?.singleUnitPrice,
+						value: mapFee(actionSummary?.singleUnitPrice),
 					},
 				]
 			case DailyActionType.RECEIPT_ENTRY:
@@ -100,19 +104,28 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 						value: actionSummary?.customerName,
 					},
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
-					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
+					{
+						label: t('common.amount'),
+						value: mapFee(actionSummary?.singleUnitPrice),
+					},
 				]
 			case DailyActionType.PAYMENT_ENTRY:
 				return [
 					{ label: t('common.supplier'), value: actionSummary?.supplierName },
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
-					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
+					{
+						label: t('common.amount'),
+						value: mapFee(actionSummary?.singleUnitPrice),
+					},
 				]
 			case DailyActionType.EXPENSE_ENTRY:
 				return [
 					{ label: t('common.expense'), value: actionSummary?.expenseName },
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
-					{ label: t('common.amount'), value: actionSummary?.singleUnitPrice },
+					{
+						label: t('common.amount'),
+						value: mapFee(actionSummary?.singleUnitPrice),
+					},
 				]
 			default:
 				return []
