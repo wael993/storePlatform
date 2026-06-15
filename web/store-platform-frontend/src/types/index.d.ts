@@ -61,6 +61,7 @@ interface DailyAction {
 	totalPrice?: string
 	createdAt?: string
 	updatedAt?: string
+	note?: string
 }
 interface User {
 	_id: string

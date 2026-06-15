@@ -20,9 +20,14 @@ export const compareNumbersForSorting = (
 	secondNumber?: number,
 	order?: SortOrder | null,
 ) => {
-	if (!firstNumber && !secondNumber) return 0
-	if (typeof firstNumber !== 'number') return 1
-	if (typeof secondNumber !== 'number') return -1
+	const firstIsValidNumber =
+		typeof firstNumber === 'number' && !Number.isNaN(firstNumber)
+	const secondIsValidNumber =
+		typeof secondNumber === 'number' && !Number.isNaN(secondNumber)
+
+	if (!firstIsValidNumber && !secondIsValidNumber) return 0
+	if (!firstIsValidNumber) return 1
+	if (!secondIsValidNumber) return -1
 
 	return order === SortOrder.ASC
 		? firstNumber - secondNumber

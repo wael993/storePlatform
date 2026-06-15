@@ -44,6 +44,7 @@ interface CustomerDailyAction {
 	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
+	note?: string
 }
 
 interface DailyAction {
@@ -66,6 +67,7 @@ interface DailyAction {
 	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
+	note?: string
 }
 
 interface DailyActionRequestBody {
@@ -87,6 +89,7 @@ interface DailyActionRequestBody {
 	totalPrice?: string
 	invoiceNumber?: string
 	invoiceDate: Date
+	note?: string
 }
 
 interface BudgetOverviewResponse {

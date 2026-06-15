@@ -214,6 +214,17 @@ const DailyActionItem = memo(
 					</Flex>
 				</Td>
 
+				{/* Note */}
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text} noOfLines={2}>
+								{dailyAction.note?.trim() || '-'}
+							</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
+
 				{/* Sticky Right placeholder */}
 				<Td sx={{ ...styles.tableRow, ...styles.stickyRight }}>
 					<Flex sx={styles.cellContentWrapper} />

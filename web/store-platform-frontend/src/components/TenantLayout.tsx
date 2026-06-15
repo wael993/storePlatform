@@ -96,9 +96,6 @@ const TenantLayout = () => {
 		isBarcodeEnabled && isTenantBarcodeEnabled
 			? { label: 'Barcode', path: RoutePaths.BARCODE }
 			: null,
-		isOwner && isUsersEnabled && isTenantUsersEnabled
-			? { label: 'Users', path: RoutePaths.USERS }
-			: null,
 		isProductsEnabled && isTenantProductsEnabled
 			? { label: 'Products', path: RoutePaths.PRODUCTS }
 			: null,
@@ -113,6 +110,9 @@ const TenantLayout = () => {
 			: null,
 		isSuppliersEnabled && isTenantSuppliersEnabled
 			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }
+			: null,
+		isOwner && isUsersEnabled && isTenantUsersEnabled
+			? { label: 'Users', path: RoutePaths.USERS }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
 

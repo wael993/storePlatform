@@ -279,6 +279,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				productNameOptions={dailyFilterValues?.productName ?? []}
 				customerOptions={dailyFilterValues?.customer ?? []}
 				showSupplierFilter={true}
+				searchPlaceholder={t('components.filters.dailySearchPlaceholder')}
 				fieldVisibility={{
 					entryType: true,
 					productName: true,

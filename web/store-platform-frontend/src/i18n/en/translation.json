@@ -197,6 +197,7 @@
 		}
 	},
 	"supplier": {
+		"errorLoadingSupplier": "There was an error loading the supplier. Please try again!",
 		"list": {
 			"name": "Supplier Name",
 			"internalCode": "Supplier Code",
@@ -212,6 +213,7 @@
 			"balance": "Balance"
 		},
 		"customer": {
+			"errorLoadingCustomer": "There was an error loading the customer. Please try again!",
 			"name": "Customer Name",
 			"code": "Customer Code",
 			"sold": "Sold",
@@ -356,6 +358,7 @@
 			"filter": "Filters",
 			"search": "Search",
 			"searchPlaceholder": "Name, Product ID, Barcode",
+			"dailySearchPlaceholder": "Action ID, product, supplier, customer, invoice number",
 			"saveFilterPreset": "Save Filter preset",
 			"supplier": "Supplier",
 			"category": "Category",
@@ -375,6 +378,8 @@
 		}
 	},
 	"common": {
+		"note": "Note",
+		"notePlaceholder": "Enter note",
 		"delete": "Delete",
 		"lock": "Lock",
 		"superAdmin": "Super Admin",

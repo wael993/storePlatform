@@ -1640,7 +1640,10 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
 		const dailyActionFilterQuery: DailyActionFilterQuery = {
-			searchText: parseStringQueryParam(request.query.searchText),
+			searchText:
+				typeof request.query.searchText === 'string'
+					? request.query.searchText.trim() || undefined
+					: undefined,
 			entryType: parseArrayQueryParam(request.query.entryType),
 			productName: parseArrayQueryParam(request.query.productName),
 			supplier: parseArrayQueryParam(request.query.supplier),

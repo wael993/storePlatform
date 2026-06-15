@@ -1,5 +1,5 @@
 {
-	"appTitle": " الزوباني للزيتون",
+	"appTitle": "الزين",
 	"settings": {
 		"updateSuccessMessage": "تم تحديث الإعدادات بنجاح.",
 		"updateFailedMessage": "فشل تحديث الإعدادات."
@@ -29,25 +29,25 @@
 		}
 	},
 	"tenants": {
-		"title": "قائمة المستأجرين",
-		"description": "راجع المستأجرين، وغيّر حالتهم، وعدّل الأسماء، أو احذفهم.",
-		"tenant": "المستأجر",
-		"tenantName": "اسم المستأجر",
+		"title": "قائمة المؤسسات",
+		"description": "راجع المؤسسات وغيّر حالتهم، وعدّل الأسماء، أو احذفهم.",
+		"tenant": "المؤسسة",
+		"tenantName": "اسم المؤسسة",
 		"domain": "النطاق",
 		"created": "تاريخ الإنشاء",
 		"actions": "الإجراءات",
-		"empty": "لم يتم العثور على مستأجرين.",
-		"updateTenant": "تحديث المستأجر",
-		"deleteTenant": "حذف المستأجر",
-		"activateTenant": "تفعيل المستأجر",
-		"deactivateTenant": "إلغاء تفعيل المستأجر",
+		"empty": "لم يتم العثور على مؤسسات.",
+		"updateTenant": "تحديث المؤسسة",
+		"deleteTenant": "حذف المؤسسة",
+		"activateTenant": "تفعيل المؤسسة",
+		"deactivateTenant": "إلغاء تفعيل المؤسسة",
 		"noActionsAvailable": "لا توجد إجراءات متاحة",
-		"cannotUpdate": "لا يمكن تحديث المستأجر.",
+		"cannotUpdate": "لا يمكن تحديث المؤسسة.",
 		"cannotDelete": "لا يمكن حذف المستأجر.",
 		"statusCannotChange": "لا يمكن تغيير حالة المستأجر.",
-		"updateSuccess": "تم تحديث المستأجر بنجاح.",
-		"updateFailed": "فشل تحديث المستأجر.",
-		"deleteSuccess": "تم حذف المستأجر بنجاح.",
+		"updateSuccess": "تم تحديث المؤسسة بنجاح.",
+		"updateFailed": "فشل تحديث المؤسسة.",
+		"deleteSuccess": "تم حذف المؤسسة بنجاح.",
 		"deleteFailed": "فشل حذف المستأجر.",
 		"activated": "تم تفعيل المستأجر.",
 		"deactivated": "تم إلغاء تفعيل المستأجر.",
@@ -197,6 +197,7 @@
 		}
 	},
 	"supplier": {
+		"errorLoadingSupplier": "حدث خطأ أثناء تحميل المورد. يرجى المحاولة مرة أخرى!",
 		"list": {
 			"name": "اسم المورد",
 			"internalCode": "رمز المورد",
@@ -212,6 +213,7 @@
 			"balance": "الرصيد"
 		},
 		"customer": {
+			"errorLoadingCustomer": "حدث خطأ أثناء تحميل العميل. يرجى المحاولة مرة أخرى!",
 			"name": "اسم العميل",
 			"code": "رمز العميل",
 			"sold": "المبيعات",
@@ -358,6 +360,7 @@
 			"filter": "المرشحات",
 			"search": "بحث",
 			"searchPlaceholder": "الاسم، معرّف المنتج، الباركود",
+			"dailySearchPlaceholder": "رقم الفاتورة",
 			"saveFilterPreset": "حفظ إعدادات المرشحات",
 			"supplier": "المورد",
 			"category": "الفئة",
@@ -377,6 +380,8 @@
 		}
 	},
 	"common": {
+		"note": "الملاحظة",
+		"notePlaceholder": "أدخل الملاحظة",
 		"delete": "حذف",
 		"lock": "قفل",
 		"superAdmin": "المسؤول العام",

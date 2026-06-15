@@ -12,15 +12,17 @@ import { TableVirtuoso } from 'react-virtuoso'
 
 import DraggableScrollContainer from '../../common/DraggableScrollContainer'
 import DailyActionRow from './DailyActionRow'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import {
 	DailyActionSortHeaderKey,
 	SortOrder,
 } from '../../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
+	compareNumbersForSorting,
 	compareStringsForSorting,
 	getTableWidth,
+	parseNumberForSorting,
 } from '../../list/shared/utils'
 import DailyActionHeaderRow from './DailyActionHeaderRow'
 import { useUser } from '../../../shared/hooks/useUser'
@@ -50,6 +52,7 @@ const skeletonDailyAction: DailyAction = {
 	totalPrice: '0',
 	invoiceNumber: '0000503',
 	invoiceDate: '2024-01-01T00:00:00.000Z',
+	note: 'dummy',
 }
 
 const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
@@ -63,7 +66,8 @@ const getDailyActionTotalPrice = (dailyAction: DailyAction) => {
 
 	if (
 		entryTypeValue === 'PAYMENT_ENTRY' ||
-		entryTypeValue === 'RECEIPT_ENTRY'
+		entryTypeValue === 'RECEIPT_ENTRY' ||
+		entryTypeValue === 'EXPENSE_ENTRY'
 	) {
 		return dailyAction.singleUnitPrice
 	}
@@ -126,11 +130,10 @@ const TableComponent = ({
 	style?: CSSProperties
 	context?: VirtuosoContext
 }) => {
-	// const tableWidth = getTableWidth(DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM, true)
 	const { isOwnerOrAdmin } = context as VirtuosoContext
 
 	const tableWidth = getTableWidth(
-		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+		DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM,
 		isOwnerOrAdmin,
 		14,
 		4,
@@ -222,17 +225,21 @@ const DailyActionListDesktop = memo(
 							sortOrder,
 						)
 					case DailyActionSortHeaderKey.WEIGHT:
-						return compareStringsForSorting(a.weight, b.weight, sortOrder)
+						return compareNumbersForSorting(
+							parseNumberForSorting(a.weight),
+							parseNumberForSorting(b.weight),
+							sortOrder,
+						)
 					case DailyActionSortHeaderKey.UNIT_PRICE:
-						return compareStringsForSorting(
-							a.singleUnitPrice,
-							b.singleUnitPrice,
+						return compareNumbersForSorting(
+							parseNumberForSorting(a.singleUnitPrice),
+							parseNumberForSorting(b.singleUnitPrice),
 							sortOrder,
 						)
 					case DailyActionSortHeaderKey.TOTAL_PRICE:
-						return compareStringsForSorting(
-							getDailyActionTotalPrice(a),
-							getDailyActionTotalPrice(b),
+						return compareNumbersForSorting(
+							parseNumberForSorting(getDailyActionTotalPrice(a)),
+							parseNumberForSorting(getDailyActionTotalPrice(b)),
 							sortOrder,
 						)
 					case DailyActionSortHeaderKey.INVOICE_DATE:
@@ -247,6 +254,8 @@ const DailyActionListDesktop = memo(
 							b.invoiceNumber,
 							sortOrder,
 						)
+					case DailyActionSortHeaderKey.NOTE:
+						return compareStringsForSorting(a.note, b.note, sortOrder)
 					default:
 						return 0
 				}

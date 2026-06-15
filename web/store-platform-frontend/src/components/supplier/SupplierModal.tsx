@@ -135,9 +135,7 @@ const SupplierModal = ({ targetType }: SupplierModalProps) => {
 								<Flex sx={styles.errorSection}>
 									<Box sx={styles.errorTextBox}>
 										<CenteredText
-											text={t(
-												'components.modals.offerModal.errorLoadingActivity',
-											)}
+											text={t('components.supplier.errorLoadingSupplier')}
 											customStyles={styles.errorText}
 										/>
 									</Box>

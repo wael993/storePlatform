@@ -152,6 +152,7 @@ interface FilterModalProps {
 	customerOptions?: FilterSelectOption[]
 	fieldVisibility?: FilterFieldVisibility
 	showWarningBorder?: boolean
+	searchPlaceholder?: string
 }
 
 const FilterModal = ({
@@ -171,6 +172,7 @@ const FilterModal = ({
 	productNameOptions = [],
 	customerOptions = [],
 	fieldVisibility,
+	searchPlaceholder,
 }: FilterModalProps) => {
 	const { t } = useTranslation()
 	const {
@@ -247,7 +249,10 @@ const FilterModal = ({
 							<FormControl sx={styles.filterField}>
 								<FormLabel mb={1}>{t('components.filters.search')}</FormLabel>
 								<Input
-									placeholder={t('components.filters.searchPlaceholder')}
+									placeholder={
+										searchPlaceholder ??
+										t('components.filters.searchPlaceholder')
+									}
 									value={localFilters.searchText}
 									onChange={e =>
 										setLocalFilters(prev => ({
@@ -345,7 +350,9 @@ const FilterModal = ({
 													: '',
 											}))
 										}
-										defaultDate={getDateFromInputValue(localFilters.invoiceDateTo)}
+										defaultDate={getDateFromInputValue(
+											localFilters.invoiceDateTo,
+										)}
 										minDate={getDateFromInputValue(
 											localFilters.invoiceDateFrom,
 										)}

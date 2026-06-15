@@ -28,36 +28,38 @@ import { useTranslation } from 'react-i18next'
 
 const createTenantSchema = (t: (key: string) => string) =>
 	z
-	.object({
-		tenantName: z.string().min(1, t('addTenant.validation.tenantNameRequired')),
-		tenantDomain: z
-			.string()
-			.min(1, t('addTenant.validation.tenantDomainRequired')),
-		ownerFirstName: z
-			.string()
-			.min(1, t('addTenant.validation.firstNameRequired')),
-		ownerLastName: z
-			.string()
-			.min(1, t('addTenant.validation.lastNameRequired')),
-		ownerEmail: z.string().email(t('addTenant.validation.emailInvalid')),
-		ownerPassword: z
-			.string()
-			.min(8, t('addTenant.validation.passwordMinLength'))
-			.regex(/[a-z]/, t('addTenant.validation.passwordLowercase'))
-			.regex(/\d/, t('addTenant.validation.passwordNumber')),
-	})
-	.superRefine((data, ctx) => {
-		if (data.ownerEmail && data.tenantDomain) {
-			const emailDomain = data.ownerEmail.split('@')[1]?.toLowerCase()
-			if (emailDomain !== data.tenantDomain.toLowerCase()) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: t('addTenant.validation.emailDomainMismatch'),
-					path: ['ownerEmail'],
-				})
+		.object({
+			tenantName: z
+				.string()
+				.min(1, t('addTenant.validation.tenantNameRequired')),
+			tenantDomain: z
+				.string()
+				.min(1, t('addTenant.validation.tenantDomainRequired')),
+			ownerFirstName: z
+				.string()
+				.min(1, t('addTenant.validation.firstNameRequired')),
+			ownerLastName: z
+				.string()
+				.min(1, t('addTenant.validation.lastNameRequired')),
+			ownerEmail: z.string().email(t('addTenant.validation.emailInvalid')),
+			ownerPassword: z
+				.string()
+				.min(8, t('addTenant.validation.passwordMinLength'))
+				.regex(/[a-z]/, t('addTenant.validation.passwordLowercase'))
+				.regex(/\d/, t('addTenant.validation.passwordNumber')),
+		})
+		.superRefine((data, ctx) => {
+			if (data.ownerEmail && data.tenantDomain) {
+				const emailDomain = data.ownerEmail.split('@')[1]?.toLowerCase()
+				if (emailDomain !== data.tenantDomain.toLowerCase()) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: t('addTenant.validation.emailDomainMismatch'),
+						path: ['ownerEmail'],
+					})
+				}
 			}
-		}
-	})
+		})
 
 type TenantFormData = z.infer<ReturnType<typeof createTenantSchema>>
 
@@ -110,9 +112,7 @@ const AddNewTenant = () => {
 
 				<Box>
 					<Heading size="lg">{t('addTenant.title')}</Heading>
-					<Text color="gray.600">
-						{t('addTenant.description')}
-					</Text>
+					<Text color="gray.600">{t('addTenant.description')}</Text>
 				</Box>
 
 				{serverError && (

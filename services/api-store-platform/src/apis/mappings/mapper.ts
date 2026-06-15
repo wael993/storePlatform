@@ -37,6 +37,7 @@ export const mapCustomers = (customers: Customer[]) => {
 				weight: action.weight,
 				singleUnitPrice: action.singleUnitPrice,
 				totalPrice: action.totalPrice,
+				note: action.note,
 			})),
 		}
 	})
@@ -74,6 +75,7 @@ export const mapSuppliers = (suppliers: Supplier[]) => {
 				weight: action.weight,
 				singleUnitPrice: action.singleUnitPrice,
 				totalPrice: action.totalPrice,
+				note: action.note,
 			})),
 		}
 	})

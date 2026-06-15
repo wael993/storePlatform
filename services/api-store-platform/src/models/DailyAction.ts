@@ -34,6 +34,7 @@ export interface IDailyAction extends Document {
 	weight?: string
 	singleUnitPrice?: string
 	totalPrice?: string
+	note?: string
 	createdBy: string
 	updatedBy?: string
 	createdAt: Date
@@ -127,6 +128,10 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			trim: true,
 		},
 		totalPrice: {
+			type: String,
+			trim: true,
+		},
+		note: {
 			type: String,
 			trim: true,
 		},

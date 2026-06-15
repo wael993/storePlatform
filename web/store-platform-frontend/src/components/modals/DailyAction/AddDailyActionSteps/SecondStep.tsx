@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { Heading, SimpleGrid, VStack, Box } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { documentNameStyles } from '../../../../theme/styles'
@@ -32,9 +32,11 @@ interface SecondStepProps {
 		field: 'weight' | 'singleUnitPrice',
 		value: string,
 	) => void
+	entryTargetId?: string
 }
 
 const SecondStep = ({
+	entryTargetId,
 	isBuyingEntry,
 	isSellingEntry,
 	isReceiptEntry,
@@ -52,6 +54,165 @@ const SecondStep = ({
 	handleInputChange,
 }: SecondStepProps) => {
 	const { t } = useTranslation()
+	const hasInitializedCurrency = useRef(false)
+	const hasInitializedUnit = useRef(false)
+	const hasInitializedCustomer = useRef(false)
+	const hasInitializedSupplier = useRef(false)
+
+	const customerOptions = useMemo<DropdownOption[]>(
+		() =>
+			customers
+				.map(customer => ({
+					value: customer.customerId ?? customer.internalCode,
+					label: customer.name ?? customer.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[customers],
+	)
+
+	const supplierOptions = useMemo<DropdownOption[]>(
+		() =>
+			suppliers
+				.map(supplier => ({
+					value: supplier.supplierId ?? supplier.internalCode,
+					label: supplier.name ?? supplier.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[suppliers],
+	)
+
+	const currencyOptions = useMemo<DropdownOption[]>(
+		() =>
+			currency
+				.map((currency: Currency) => ({
+					value: currency.currencyId ?? currency.internalCode,
+					label: currency.name ?? currency.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[currency],
+	)
+
+	const unitOptions = useMemo<DropdownOption[]>(
+		() =>
+			unit
+				.map((unit: Unit) => ({
+					value: unit.unitId ?? unit.internalCode,
+					label: unit.name ?? unit.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[unit],
+	)
+
+	useEffect(() => {
+		if (hasInitializedCurrency.current) return
+
+		if (formData?.currencyId) {
+			hasInitializedCurrency.current = true
+			return
+		}
+
+		const defaultCurrency = currencyOptions[0]
+		if (!defaultCurrency) return
+
+		handleDropdownChange(
+			'currencyId',
+			'currencyName',
+			[defaultCurrency.value],
+			currencyOptions,
+		)
+		hasInitializedCurrency.current = true
+	}, [currencyOptions, formData?.currencyId, handleDropdownChange])
+
+	useEffect(() => {
+		if (hasInitializedUnit.current || (!isBuyingEntry && !isSellingEntry)) return
+
+		if (formData?.unitId) {
+			hasInitializedUnit.current = true
+			return
+		}
+
+		const defaultUnit = unitOptions[0]
+		if (!defaultUnit) return
+
+		handleDropdownChange('unitId', 'unitName', [defaultUnit.value], unitOptions)
+		hasInitializedUnit.current = true
+	}, [
+		formData?.unitId,
+		handleDropdownChange,
+		isBuyingEntry,
+		isSellingEntry,
+		unitOptions,
+	])
+
+	useEffect(() => {
+		if (
+			hasInitializedCustomer.current ||
+			!entryTargetId ||
+			(!isSellingEntry && !isReceiptEntry)
+		) {
+			return
+		}
+
+		if (formData?.customerId) {
+			hasInitializedCustomer.current = true
+			return
+		}
+
+		const defaultCustomer = customerOptions.find(
+			option => option.value === entryTargetId,
+		)
+		if (!defaultCustomer) return
+
+		handleDropdownChange(
+			'customerId',
+			'customerName',
+			[defaultCustomer.value],
+			customerOptions,
+		)
+		hasInitializedCustomer.current = true
+	}, [
+		customerOptions,
+		entryTargetId,
+		formData?.customerId,
+		handleDropdownChange,
+		isReceiptEntry,
+		isSellingEntry,
+	])
+
+	useEffect(() => {
+		if (
+			hasInitializedSupplier.current ||
+			!entryTargetId ||
+			(!isBuyingEntry && !isPaymentEntry)
+		) {
+			return
+		}
+
+		if (formData?.supplierId) {
+			hasInitializedSupplier.current = true
+			return
+		}
+
+		const defaultSupplier = supplierOptions.find(
+			option => option.value === entryTargetId,
+		)
+		if (!defaultSupplier) return
+
+		handleDropdownChange(
+			'supplierId',
+			'supplierName',
+			[defaultSupplier.value],
+			supplierOptions,
+		)
+		hasInitializedSupplier.current = true
+	}, [
+		entryTargetId,
+		formData?.supplierId,
+		handleDropdownChange,
+		isBuyingEntry,
+		isPaymentEntry,
+		supplierOptions,
+	])
 
 	return (
 		<>
@@ -99,10 +260,7 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.supplierName')}
-										dropDownOptions={suppliers.map(supplier => ({
-											value: supplier.supplierId ?? supplier.internalCode,
-											label: supplier.name ?? supplier.internalCode ?? 'TBD',
-										}))}
+										dropDownOptions={supplierOptions}
 										selectedValues={
 											formData?.supplierId ? [formData.supplierId] : []
 										}
@@ -111,11 +269,7 @@ const SecondStep = ({
 												'supplierId',
 												'supplierName',
 												values,
-												suppliers.map(supplier => ({
-													value: supplier.supplierId ?? supplier.internalCode,
-													label:
-														supplier.name ?? supplier.internalCode ?? 'TBD',
-												})),
+												supplierOptions,
 											)
 										}
 									/>
@@ -130,10 +284,7 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.customerName')}
-										dropDownOptions={customers.map(customer => ({
-											value: customer.customerId ?? customer.internalCode,
-											label: customer.name ?? customer.internalCode ?? 'TBD',
-										}))}
+										dropDownOptions={customerOptions}
 										selectedValues={
 											formData?.customerId ? [formData.customerId] : []
 										}
@@ -142,11 +293,7 @@ const SecondStep = ({
 												'customerId',
 												'customerName',
 												values,
-												customers.map(customer => ({
-													value: customer.customerId ?? customer.internalCode,
-													label:
-														customer.name ?? customer.internalCode ?? 'TBD',
-												})),
+												customerOptions,
 											)
 										}
 									/>
@@ -159,10 +306,7 @@ const SecondStep = ({
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									placeholder={t('common.currencyName')}
-									dropDownOptions={currency.map((currency: Currency) => ({
-										value: currency.currencyId ?? currency.internalCode,
-										label: currency.name ?? currency.internalCode ?? 'TBD',
-									}))}
+									dropDownOptions={currencyOptions}
 									isSingle
 									selectedValues={
 										formData?.currencyId ? [formData.currencyId] : []
@@ -172,10 +316,7 @@ const SecondStep = ({
 											'currencyId',
 											'currencyName',
 											values,
-											currency.map((currency: Currency) => ({
-												value: currency.currencyId ?? currency.internalCode,
-												label: currency.name ?? currency.internalCode ?? 'TBD',
-											})),
+											currencyOptions,
 										)
 									}
 								/>
@@ -186,10 +327,7 @@ const SecondStep = ({
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									placeholder={t('common.unitName')}
-									dropDownOptions={unit.map((unit: Unit) => ({
-										value: unit.unitId ?? unit.internalCode,
-										label: unit.name ?? unit.internalCode ?? 'TBD',
-									}))}
+									dropDownOptions={unitOptions}
 									selectedValues={formData?.unitId ? [formData.unitId] : []}
 									isSingle={true}
 									onSelect={(values: string[]) =>
@@ -197,10 +335,7 @@ const SecondStep = ({
 											'unitId',
 											'unitName',
 											values,
-											unit.map((unit: Unit) => ({
-												value: unit.unitId ?? unit.internalCode,
-												label: unit.name ?? unit.internalCode ?? 'TBD',
-											})),
+											unitOptions,
 										)
 									}
 								/>
@@ -261,10 +396,7 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.supplierName')}
-										dropDownOptions={suppliers.map(supplier => ({
-											value: supplier.supplierId ?? supplier.internalCode,
-											label: supplier.name ?? supplier.internalCode ?? 'TBD',
-										}))}
+										dropDownOptions={supplierOptions}
 										selectedValues={
 											formData?.supplierId ? [formData.supplierId] : []
 										}
@@ -273,11 +405,7 @@ const SecondStep = ({
 												'supplierId',
 												'supplierName',
 												values,
-												suppliers.map(supplier => ({
-													value: supplier.supplierId ?? supplier.internalCode,
-													label:
-														supplier.name ?? supplier.internalCode ?? 'TBD',
-												})),
+												supplierOptions,
 											)
 										}
 									/>
@@ -292,10 +420,7 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.customerName')}
-										dropDownOptions={customers.map(customer => ({
-											value: customer.customerId ?? customer.internalCode,
-											label: customer.name ?? customer.internalCode ?? 'TBD',
-										}))}
+										dropDownOptions={customerOptions}
 										selectedValues={
 											formData?.customerId ? [formData.customerId] : []
 										}
@@ -304,11 +429,7 @@ const SecondStep = ({
 												'customerId',
 												'customerName',
 												values,
-												customers.map(customer => ({
-													value: customer.customerId ?? customer.internalCode,
-													label:
-														customer.name ?? customer.internalCode ?? 'TBD',
-												})),
+												customerOptions,
 											)
 										}
 									/>
@@ -350,10 +471,7 @@ const SecondStep = ({
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
 									placeholder={t('common.currencyName')}
-									dropDownOptions={currency.map((currency: Currency) => ({
-										value: currency.currencyId ?? currency.internalCode,
-										label: currency.name ?? currency.internalCode ?? 'TBD',
-									}))}
+									dropDownOptions={currencyOptions}
 									isSingle
 									selectedValues={
 										formData?.currencyId ? [formData.currencyId] : []
@@ -363,10 +481,7 @@ const SecondStep = ({
 											'currencyId',
 											'currencyName',
 											values,
-											currency.map((currency: Currency) => ({
-												value: currency.currencyId ?? currency.internalCode,
-												label: currency.name ?? currency.internalCode ?? 'TBD',
-											})),
+											currencyOptions,
 										)
 									}
 								/>

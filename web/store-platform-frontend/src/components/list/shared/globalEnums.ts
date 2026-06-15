@@ -41,6 +41,7 @@ export enum DailyActionSortHeaderKey {
 	TOTAL_PRICE = 'totalPrice',
 	INVOICE_DATE = 'invoiceDate',
 	INVOICE_NUMBER = 'invoiceNumber',
+	NOTE = 'note',
 }
 
 export enum SimpleEntitySortHeaderKey {

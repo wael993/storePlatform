@@ -93,6 +93,7 @@ export interface AddDailyActionRequestBody {
 	totalPrice?: string
 	invoiceNumber?: string
 	invoiceDate: string
+	note?: string
 }
 
 const buildProductFilterQueryParams = (

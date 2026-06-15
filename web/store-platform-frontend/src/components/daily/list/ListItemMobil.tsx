@@ -276,6 +276,15 @@ const ListItemMobil = ({
 							</GridItem>
 
 							<GridItem sx={styles.listItemGridItem}>
+								<Text sx={styles.titleText}>{t('common.note')}</Text>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.valueText}>
+										{withNoValueFallback(dailyAction.note?.trim())}
+									</Text>
+								</Skeleton>
+							</GridItem>
+
+							<GridItem sx={styles.listItemGridItem}>
 								<Text sx={styles.titleText}>{t('common.singleUnitPrice')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>

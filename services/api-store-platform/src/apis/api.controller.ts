@@ -1720,20 +1720,9 @@ export default class ProductController {
 
 		if (searchText) {
 			const searchRegex = new RegExp(this.escapeRegex(searchText), 'i')
+
 			dailyActionQueryClauses.push({
-				$or: [
-					{ actionId: searchRegex },
-					{ entryType: searchRegex },
-					{ productId: searchRegex },
-					{ productName: searchRegex },
-					{ supplierId: searchRegex },
-					{ supplierName: searchRegex },
-					{ customerId: searchRegex },
-					{ customerName: searchRegex },
-					{ expenseId: searchRegex },
-					{ expenseName: searchRegex },
-					{ invoiceNumber: searchRegex },
-				],
+				$or: [{ invoiceNumber: searchRegex }],
 			})
 		}
 
@@ -1965,6 +1954,7 @@ export default class ProductController {
 			weight: requestBody.weight,
 			singleUnitPrice: requestBody.singleUnitPrice,
 			totalPrice: requestBody.totalPrice,
+			note: requestBody.note,
 			createdBy,
 			createdAt,
 		}

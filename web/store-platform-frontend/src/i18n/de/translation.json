@@ -356,6 +356,7 @@
 			"filter": "Filter",
 			"search": "Suchen",
 			"searchPlaceholder": "Name, Produkt-ID, Barcode",
+			"dailySearchPlaceholder": "Aktions-ID, Produkt, Lieferant, Kunde, Rechnungsnummer",
 			"saveFilterPreset": "Filter-Preset speichern",
 			"supplier": "Lieferant",
 			"category": "Kategorie",
@@ -375,6 +376,8 @@
 		}
 	},
 	"common": {
+		"note": "Notiz",
+		"notePlaceholder": "Notiz eingeben",
 		"delete": "Löschen",
 		"lock": "Sperren",
 		"superAdmin": "Super Admin",

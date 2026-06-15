@@ -92,12 +92,14 @@ interface AddDailyActionModalProps {
 	isOpen: boolean
 	onClose: () => void
 	targetType?: TargetType
+	entryTargetId?: string
 }
 
 const AddDailyActionModal = ({
 	isOpen,
 	onClose,
 	targetType,
+	entryTargetId,
 }: AddDailyActionModalProps) => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -358,6 +360,7 @@ const AddDailyActionModal = ({
 								{/* 2nd Step */}
 								{step === StepKeys.ACTION_DATA && (
 									<SecondStep
+										entryTargetId={entryTargetId}
 										isBuyingEntry={isBuyingEntry}
 										isSellingEntry={isSellingEntry}
 										isReceiptEntry={isReceiptEntry}

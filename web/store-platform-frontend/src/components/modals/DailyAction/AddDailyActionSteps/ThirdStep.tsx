@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 interface ThirdStepProps {
 	formData: Partial<DailyAction> | undefined
 	handleInputChange: (
-		field: 'invoiceNumber' | 'invoiceDate',
+		field: 'invoiceNumber' | 'invoiceDate' | 'note',
 		value: string,
 	) => void
 }
@@ -188,6 +188,17 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 									</VStack>
 								)}
 							</VStack>
+						</Box>
+
+						<Box border="1px solid #EAEAEA" padding="0.75rem">
+							<InputLabel
+								label={t('common.note')}
+								inputPlaceholder={t('common.notePlaceholder')}
+								inputType={'text'}
+								value={formData?.note ?? ''}
+								onChange={(value: string) => handleInputChange('note', value)}
+								styles={documentNameStyles}
+							/>
 						</Box>
 					</SimpleGrid>
 				)}

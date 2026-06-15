@@ -134,9 +134,7 @@ const CustomerModal = ({ targetType }: CustomerModalProps) => {
 								<Flex sx={styles.errorSection}>
 									<Box sx={styles.errorTextBox}>
 										<CenteredText
-											text={t(
-												'components.modals.offerModal.errorLoadingActivity',
-											)}
+											text={t('components.customer.errorLoadingCustomer')}
 											customStyles={styles.errorText}
 										/>
 									</Box>

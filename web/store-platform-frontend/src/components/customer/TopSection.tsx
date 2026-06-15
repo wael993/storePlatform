@@ -241,6 +241,8 @@ const TopSection = ({
 			{ skip: !budgetOverviewArgs },
 		)
 
+	const entryTargetId = customer?.customerId ?? supplier?.supplierId ?? ''
+
 	if (!entry) return null
 
 	const editableFieldProps = {
@@ -381,6 +383,7 @@ const TopSection = ({
 				isOpen={isAddDailyActionModalOpen}
 				onClose={onAddDailyActionModalClose}
 				targetType={targetType}
+				entryTargetId={entryTargetId}
 			/>
 		</Flex>
 	)

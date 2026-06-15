@@ -137,6 +137,11 @@ const DailyActionHeaderRow = ({
 			sortKey: DailyActionSortHeaderKey.INVOICE_DATE,
 			align: 'center' as const,
 		},
+		{
+			label: t('common.note'),
+			width: DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM.NOTE,
+			sortKey: DailyActionSortHeaderKey.NOTE,
+		},
 
 		{
 			label: null,

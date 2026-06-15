@@ -1,4 +1,4 @@
-import { Box, Button, Flex, HStack, Text } from '@chakra-ui/react'
+import { Box, Button, Flex, HStack } from '@chakra-ui/react'
 import { RemoveArrowIcon } from '../icons/RemoveArrow'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusButtonStyles } from '../../theme/styles'
@@ -61,6 +61,7 @@ interface FiltersProps {
 	customerOptions?: FilterSelectOption[]
 	showSupplierFilter: boolean
 	fieldVisibility?: FilterFieldVisibility
+	searchPlaceholder?: string
 }
 
 const Filters = ({
@@ -76,6 +77,7 @@ const Filters = ({
 	customerOptions = [],
 	showSupplierFilter,
 	fieldVisibility,
+	searchPlaceholder,
 }: FiltersProps) => {
 	const { t } = useTranslation()
 	const isFieldVisible = (
@@ -133,6 +135,7 @@ const Filters = ({
 					showSupplierFilter={showSupplierFilter}
 					fieldVisibility={fieldVisibility}
 					showSavedFilterOptions={false}
+					searchPlaceholder={searchPlaceholder}
 				/>
 			</HStack>
 		</Flex>
