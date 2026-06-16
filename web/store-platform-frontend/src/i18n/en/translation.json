@@ -221,6 +221,7 @@
 		},
 		"daily": {
 			"dailyActions": "Daily Actions",
+			"cashBalance": "Cash Balance",
 			"budgetOverview": {
 				"tooltip": "Profit overview for the filtered daily actions.",
 				"title": "Daily Profit Overview",

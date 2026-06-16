@@ -219,6 +219,7 @@
 		},
 		"daily": {
 			"dailyActions": "Tagesaktionen",
+			"cashBalance": "Kassenbestand",
 			"budgetOverview": {
 				"tooltip": "Gewinnübersicht für die gefilterten Tagesaktionen.",
 				"title": "Tägliche Gewinnübersicht",

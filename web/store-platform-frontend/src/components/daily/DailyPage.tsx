@@ -33,7 +33,7 @@ import {
 } from '../../api/apiStore'
 import { ExcelDownload } from '../ExcelDownload'
 import { BudgetOverview } from '../common/BudgetOverview'
-import { compareBreakpoint } from '../../shared/utils'
+import { compareBreakpoint, mapFee } from '../../shared/utils'
 import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 
 const fullWidth = '100%'
@@ -147,20 +147,28 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
 
 				if (entryTypeValue === DailyActionType.BUYING_ENTRY) {
-					accumulator.purchases += amount
+					accumulator.purchases += amount //مشتريات
 				}
 
 				if (entryTypeValue === DailyActionType.SELLING_ENTRY) {
-					accumulator.sales += amount
+					accumulator.sales += amount //مبيعات
 				}
 
 				if (entryTypeValue === DailyActionType.EXPENSE_ENTRY) {
-					accumulator.expenses += amount
+					accumulator.expenses += amount //مصاريف
+				}
+
+				if (entryTypeValue === DailyActionType.RECEIPT_ENTRY) {
+					accumulator.receipts += amount //قبض
+				}
+
+				if (entryTypeValue === DailyActionType.PAYMENT_ENTRY) {
+					accumulator.payments += amount //دفع
 				}
 
 				return accumulator
 			},
-			{ purchases: 0, sales: 0, expenses: 0 },
+			{ purchases: 0, sales: 0, expenses: 0, receipts: 0, payments: 0 },
 		)
 
 		const currency =
@@ -175,6 +183,11 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			costs: (totals.purchases + totals.expenses).toFixed(2),
 			sales: totals.sales.toFixed(2),
 			profit: (totals.sales - totals.purchases - totals.expenses).toFixed(2),
+			cashBalance: (
+				totals.receipts -
+				totals.payments -
+				totals.expenses
+			).toFixed(2),
 			currency,
 		}
 	}, [dailyActions])
@@ -265,6 +278,14 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			)}
 
 			{isDailyActionsLoading && <Spinner />}
+			<Box sx={styles.divider} />
+			<HStack>
+				<Text sx={styles.title}>{t('components.daily.cashBalance')}:</Text>
+				<Text sx={styles.title}>
+					{mapFee(dailyBudgetOverview.cashBalance) ?? '0'}{' '}
+					{dailyBudgetOverview.currency}
+				</Text>
+			</HStack>
 			<Box sx={styles.divider} />
 
 			<Filters
