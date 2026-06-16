@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -11,15 +11,38 @@ import {
 	useGetExpensesQuery,
 	AddDailyActionRequestBody,
 } from '../../../../api/apiStore'
-import { StepKeys } from '../../../../shared/globalEnums'
+import { DailyActionType, StepKeys } from '../../../../shared/globalEnums'
 import {
 	formatNumberForDb,
 	mapFee,
 } from '../../../../shared/utils'
 import useCustomToast from '../../../common/CustomToast'
 
+export interface DailyActionProductLine {
+	id: string
+	productId?: string
+	productName?: string
+	weight?: string
+	singleUnitPrice?: string
+	totalPrice?: string
+	note?: string
+}
+
 interface UseDailyActionHandlersOptions {
 	shouldLoadOptions?: boolean
+}
+
+const createDailyActionProductLine = (): DailyActionProductLine => ({
+	id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+})
+
+const getProductLineTotalForDb = (line: DailyActionProductLine) => {
+	if (!line.singleUnitPrice || !line.weight) return ''
+
+	return (
+		formatNumberForDb(Number(line.singleUnitPrice) * Number(line.weight), 2) ??
+		''
+	)
 }
 
 export const useDailyActionHandlers = ({
@@ -30,6 +53,9 @@ export const useDailyActionHandlers = ({
 
 	const [entryType, setEntryType] = useState<DropdownOption[]>([])
 	const [formData, setFormData] = useState<Partial<DailyAction>>()
+	const [productLines, setProductLines] = useState<DailyActionProductLine[]>([
+		createDailyActionProductLine(),
+	])
 	const [step, setStep] = useState<StepKeys>(StepKeys.ACTION_TYPE)
 
 	const [postDailyAction, { isLoading: isSavingDailyAction }] =
@@ -72,25 +98,32 @@ export const useDailyActionHandlers = ({
 	const unit = useMemo(() => unitsResponse ?? [], [unitsResponse])
 	const expenses = useMemo(() => expensesResponse ?? [], [expensesResponse])
 
+	const productLinesWithTotals = useMemo(
+		() =>
+			productLines.map(line => ({
+				...line,
+				totalPrice: getProductLineTotalForDb(line),
+			})),
+		[productLines],
+	)
+
 	const totalPriceForDb = useMemo(() => {
-		if (!formData?.singleUnitPrice || !formData?.weight) return ''
+		const totals = productLinesWithTotals
+			.filter(line => line.totalPrice)
+			.map(line => Number(line.totalPrice))
+			.filter(total => !Number.isNaN(total))
+
+		if (!totals.length) return ''
 
 		return (
 			formatNumberForDb(
-				Number(formData.singleUnitPrice) * Number(formData.weight),
+				totals.reduce((sum, total) => sum + total, 0),
 				2,
 			) ?? ''
 		)
-	}, [formData?.singleUnitPrice, formData?.weight])
+	}, [productLinesWithTotals])
 
 	const totalPrice = useMemo(() => mapFee(totalPriceForDb) ?? '', [totalPriceForDb])
-
-	useEffect(() => {
-		setFormData(prev => ({
-			...prev,
-			totalPrice: totalPriceForDb || undefined,
-		}))
-	}, [totalPriceForDb])
 
 	const handleDropdownChange = (
 		valueField: keyof DailyAction,
@@ -104,6 +137,28 @@ export const useDailyActionHandlers = ({
 			[valueField]: values[0],
 			[labelField]: label,
 		}))
+	}
+
+	const handleProductLineDropdownChange = (
+		lineId: string,
+		valueField: keyof DailyActionProductLine,
+		labelField: keyof DailyActionProductLine,
+		values: string[],
+		options: DropdownOption[],
+	) => {
+		const label = options.find(o => o.value === values[0])?.label ?? ''
+
+		setProductLines(prev =>
+			prev.map(line =>
+				line.id === lineId
+					? {
+							...line,
+							[valueField]: values[0],
+							[labelField]: label,
+						}
+					: line,
+			),
+		)
 	}
 
 	const handleInputChange = (
@@ -121,6 +176,37 @@ export const useDailyActionHandlers = ({
 		}))
 	}
 
+	const handleProductLineInputChange = (
+		lineId: string,
+		field: 'weight' | 'singleUnitPrice' | 'note',
+		value: string,
+	) => {
+		setProductLines(prev =>
+			prev.map(line =>
+				line.id === lineId
+					? {
+							...line,
+							[field]: value,
+						}
+					: line,
+			),
+		)
+	}
+
+	const addProductLine = () => {
+		setProductLines(prev => [...prev, createDailyActionProductLine()])
+	}
+
+	const removeProductLine = (lineId: string) => {
+		setProductLines(prev =>
+			prev.length === 1 ? prev : prev.filter(line => line.id !== lineId),
+		)
+	}
+
+	const resetProductLines = () => {
+		setProductLines([createDailyActionProductLine()])
+	}
+
 	const bodyHeading = useMemo(() => {
 		if (step === StepKeys.ACTION_TYPE) {
 			return t('components.daily.actionType')
@@ -136,10 +222,8 @@ export const useDailyActionHandlers = ({
 
 	const handleSaveDailyAction = async () => {
 		if (formData?.entryType) {
-			const payload: AddDailyActionRequestBody = {
+			const sharedPayload: AddDailyActionRequestBody = {
 				entryType: formData.entryType,
-				productId: formData.productId ?? undefined,
-				productName: formData.productName ?? undefined,
 				supplierId: formData.supplierId ?? undefined,
 				supplierName: formData.supplierName ?? undefined,
 				customerId: formData.customerId ?? undefined,
@@ -150,23 +234,42 @@ export const useDailyActionHandlers = ({
 				currencyName: formData.currencyName ?? '',
 				unitId: formData.unitId ?? undefined,
 				unitName: formData.unitName ?? undefined,
-				weight: formData.weight ?? undefined,
 				singleUnitPrice:
 					formatNumberForDb(formData.singleUnitPrice ?? '', 2) ?? undefined,
-				totalPrice: formatNumberForDb(formData.totalPrice ?? '', 2) ?? undefined,
 				invoiceNumber: formData.invoiceNumber ?? undefined,
 				invoiceDate: formData.invoiceDate ?? '',
-				note: formData.note?.trim() || undefined,
 			}
+
+			const isProductEntry =
+				formData.entryType === DailyActionType.BUYING_ENTRY ||
+				formData.entryType === DailyActionType.SELLING_ENTRY
+
+			const payloads: AddDailyActionRequestBody[] = isProductEntry
+				? productLinesWithTotals.map(line => ({
+						...sharedPayload,
+						productId: line.productId ?? undefined,
+						productName: line.productName ?? undefined,
+						weight: line.weight ?? undefined,
+						singleUnitPrice:
+							formatNumberForDb(line.singleUnitPrice ?? '', 2) ?? undefined,
+						totalPrice: line.totalPrice
+							? (formatNumberForDb(line.totalPrice, 2) ?? undefined)
+							: undefined,
+						note: line.note?.trim() || undefined,
+					}))
+				: [
+						{
+							...sharedPayload,
+							note: formData.note?.trim() || undefined,
+						},
+					]
+
 			try {
-				await postDailyAction(payload)
-					.unwrap()
-					.then(() => {
-						showToastMessage({
-							status: 'success',
-							description: t('components.daily.actionSavedSuccessfully'),
-						})
-					})
+				await Promise.all(payloads.map(payload => postDailyAction(payload).unwrap()))
+				showToastMessage({
+					status: 'success',
+					description: t('components.daily.actionSavedSuccessfully'),
+				})
 			} catch (error) {
 				console.error('Error saving daily action:', error)
 				return
@@ -174,6 +277,7 @@ export const useDailyActionHandlers = ({
 
 			setFormData(undefined)
 			setEntryType([])
+			resetProductLines()
 			setStep(StepKeys.ACTION_TYPE)
 		}
 	}
@@ -183,11 +287,17 @@ export const useDailyActionHandlers = ({
 		setStep,
 		setFormData,
 		setEntryType,
+		resetProductLines,
 		handleInputChange,
+		handleProductLineDropdownChange,
+		handleProductLineInputChange,
+		addProductLine,
+		removeProductLine,
 		handleSaveDailyAction,
 		isSavingDailyAction,
 		step,
 		formData,
+		productLines: productLinesWithTotals,
 		entryType,
 		totalPrice,
 		bodyHeading,

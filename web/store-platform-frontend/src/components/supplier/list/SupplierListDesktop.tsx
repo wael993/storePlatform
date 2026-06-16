@@ -119,6 +119,7 @@ const TableComponent = ({
 }) => {
 	const { isInternalUser } = context as VirtuosoContext
 	const tableWidth = getTableWidth(
+		// TODO: change to SUPPLIER_LIST_WIDTHS_MAP_IN_REM
 		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
 		isInternalUser,
 		14,

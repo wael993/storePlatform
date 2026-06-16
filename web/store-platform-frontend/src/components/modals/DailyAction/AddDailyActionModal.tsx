@@ -108,12 +108,18 @@ const AddDailyActionModal = ({
 		setStep,
 		setFormData,
 		setEntryType,
+		resetProductLines,
 		handleInputChange,
 		handleDropdownChange,
+		handleProductLineDropdownChange,
+		handleProductLineInputChange,
+		addProductLine,
+		removeProductLine,
 		handleSaveDailyAction,
 		isSavingDailyAction,
 		step,
 		formData,
+		productLines,
 		entryType,
 		totalPrice,
 		bodyHeading,
@@ -149,9 +155,10 @@ const AddDailyActionModal = ({
 			setEntryType([])
 			setFormData(undefined)
 			setNewDailyAction(undefined)
+			resetProductLines()
 			setStep(StepKeys.ACTION_TYPE)
 		}
-	}, [isOpen, setEntryType, setFormData, setStep])
+	}, [isOpen, resetProductLines, setEntryType, setFormData, setStep])
 
 	useEffect(() => {
 		setShouldLeavingBeQuestioned(!isEqual(formData, undefined))
@@ -159,6 +166,7 @@ const AddDailyActionModal = ({
 
 	const handleEntryTypeChange = (values: DropdownOption[]) => {
 		setEntryType(values)
+		resetProductLines()
 		setFormData({
 			entryType: values[0]?.value as DailyAction['entryType'] | undefined,
 		})
@@ -250,14 +258,23 @@ const AddDailyActionModal = ({
 				)
 			}
 
-			if (!formData?.productId) return true
 			if (isBuyingEntry && !formData?.supplierId) return true
 			if (isSellingEntry && !formData?.customerId) return true
+			if (
+				!productLines.length ||
+				productLines.some(
+					productLine =>
+						!productLine.productId ||
+						!productLine.weight ||
+						!productLine.singleUnitPrice ||
+						!productLine.totalPrice,
+				)
+			) {
+				return true
+			}
 			return (
 				!formData?.currencyId ||
 				!formData?.unitId ||
-				!formData?.weight ||
-				!formData?.singleUnitPrice ||
 				!totalPrice
 			)
 		}
@@ -268,15 +285,14 @@ const AddDailyActionModal = ({
 		formData?.supplierId,
 		formData?.customerId,
 		formData?.expenseId,
-		formData?.productId,
 		formData?.currencyId,
 		formData?.unitId,
-		formData?.weight,
 		formData?.singleUnitPrice,
 		isReceiptEntry,
 		isExpenseEntry,
 		isBuyingEntry,
 		isSellingEntry,
+		productLines,
 		totalPrice,
 	])
 
@@ -367,6 +383,7 @@ const AddDailyActionModal = ({
 										isPaymentEntry={isPaymentEntry}
 										isExpenseEntry={isExpenseEntry}
 										formData={formData}
+										productLines={productLines}
 										products={products}
 										suppliers={suppliers}
 										customers={customers}
@@ -376,6 +393,12 @@ const AddDailyActionModal = ({
 										totalPrice={totalPrice ?? ''}
 										handleDropdownChange={handleDropdownChange}
 										handleInputChange={handleInputChange}
+										handleProductLineDropdownChange={
+											handleProductLineDropdownChange
+										}
+										handleProductLineInputChange={handleProductLineInputChange}
+										addProductLine={addProductLine}
+										removeProductLine={removeProductLine}
 									/>
 								)}
 
@@ -383,6 +406,7 @@ const AddDailyActionModal = ({
 								{step === StepKeys.ACTION_SUMMARY && (
 									<ThirdStep
 										formData={formData}
+										productLines={productLines}
 										handleInputChange={handleInputChange}
 									/>
 								)}

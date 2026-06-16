@@ -220,6 +220,7 @@
 			"createdAt": "تاريخ الإنشاء"
 		},
 		"daily": {
+			"productLine": "المنتج {{number}}",
 			"dailyActions": "الإجراءات اليومية",
 			"cashBalance": "الصندوق اليومي",
 			"budgetOverview": {

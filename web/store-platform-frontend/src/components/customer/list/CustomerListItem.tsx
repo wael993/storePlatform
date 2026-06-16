@@ -2,7 +2,7 @@ import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '../../../shared/hooks/useUser'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { CUSTOMER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
@@ -51,11 +51,11 @@ const styles = {
 		...listStyles.tableCellText,
 	},
 	rightStickyContainer: {
-		width: `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
+		width: `${CUSTOMER_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
 		position: 'sticky',
 		right: '0',
 		zIndex: '1',
-		background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem)`,
+		background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${CUSTOMER_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem)`,
 	},
 	topSectionMenu: {
 		boxSize: 7,

@@ -13,11 +13,13 @@ import { documentNameStyles } from '../../../../theme/styles'
 import DatePickerLabel from '../../../common/DatePickerLabel'
 import { useTranslation } from 'react-i18next'
 import { mapFee } from '../../../../shared/utils'
+import type { DailyActionProductLine } from '../hooks/useDailyActionHandlers'
 
 interface ThirdStepProps {
 	formData: Partial<DailyAction> | undefined
+	productLines: DailyActionProductLine[]
 	handleInputChange: (
-		field: 'invoiceNumber' | 'invoiceDate' | 'note',
+		field: 'invoiceNumber' | 'invoiceDate',
 		value: string,
 	) => void
 }
@@ -43,7 +45,11 @@ const getDateFromInputValue = (date?: string) => {
 	return new Date(year, month - 1, day)
 }
 
-const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
+const ThirdStep = ({
+	formData,
+	productLines,
+	handleInputChange,
+}: ThirdStepProps) => {
 	const { t } = useTranslation()
 
 	const todayDateInputValue = useMemo(() => getTodayDateInputValue(), [])
@@ -71,31 +77,15 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 		switch (actionSummary?.entryType) {
 			case DailyActionType.BUYING_ENTRY:
 				return [
-					{ label: t('common.product'), value: actionSummary?.productName },
 					{ label: t('common.supplier'), value: actionSummary?.supplierName },
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
 					{ label: t('common.unit'), value: actionSummary?.unitName },
-					{ label: t('common.weight'), value: actionSummary?.weight },
-					{
-						label: t('common.singleUnitPrice'),
-						value: mapFee(actionSummary?.singleUnitPrice),
-					},
-					{
-						label: t('common.totalPrice'),
-						value: mapFee(actionSummary?.totalPrice),
-					},
 				]
 			case DailyActionType.SELLING_ENTRY:
 				return [
-					{ label: t('common.product'), value: actionSummary?.productName },
 					{ label: t('common.customer'), value: actionSummary?.customerName },
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
 					{ label: t('common.unit'), value: actionSummary?.unitName },
-					{ label: t('common.weight'), value: actionSummary?.weight },
-					{
-						label: t('common.singleUnitPrice'),
-						value: mapFee(actionSummary?.singleUnitPrice),
-					},
 				]
 			case DailyActionType.RECEIPT_ENTRY:
 				return [
@@ -132,6 +122,11 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 		}
 	}
 	const actionSummaryRows = getActionSummaryRows(formData)
+	const actionProductLines =
+		formData?.entryType === DailyActionType.BUYING_ENTRY ||
+		formData?.entryType === DailyActionType.SELLING_ENTRY
+			? productLines
+			: []
 	const requiresInvoiceNumber =
 		formData?.entryType === DailyActionType.BUYING_ENTRY ||
 		formData?.entryType === DailyActionType.SELLING_ENTRY
@@ -141,7 +136,7 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 			<VStack alignItems="flex-start" spacing={4}>
 				<Heading fontSize="1rem">{t('components.daily.actionSummary')}</Heading>
 
-				{actionSummaryRows.length === 0 ? (
+				{actionSummaryRows.length === 0 && actionProductLines.length === 0 ? (
 					<Text color="#747474">{t('components.daily.noActionSummary')}</Text>
 				) : (
 					<SimpleGrid columns={[1, 2]} spacing={4} width="100%">
@@ -153,6 +148,38 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 								<Text fontWeight={700} color="#1E1E1E">
 									{row.value || '-'}
 								</Text>
+							</Box>
+						))}
+						{actionProductLines.map((productLine, index) => (
+							<Box
+								key={productLine.id}
+								border="1px solid #EAEAEA"
+								padding="0.75rem"
+							>
+								<Text fontSize="0.75rem" color="#747474">
+									{t('components.daily.productLine', {
+										defaultValue: 'Product {{number}}',
+										number: index + 1,
+									})}
+								</Text>
+								<Text fontWeight={700} color="#1E1E1E">
+									{productLine.productName || '-'}
+								</Text>
+								<Text fontSize="0.875rem" color="#747474">
+									{t('common.weight')}: {productLine.weight || '-'}
+								</Text>
+								<Text fontSize="0.875rem" color="#747474">
+									{t('common.singleUnitPrice')}:{' '}
+									{mapFee(productLine.singleUnitPrice)}
+								</Text>
+								<Text fontSize="0.875rem" color="#747474">
+									{t('common.totalPrice')}: {mapFee(productLine.totalPrice)}
+								</Text>
+								{productLine.note && (
+									<Text fontSize="0.875rem" color="#747474">
+										{t('common.note')}: {productLine.note}
+									</Text>
+								)}
 							</Box>
 						))}
 						{requiresInvoiceNumber && (
@@ -201,17 +228,6 @@ const ThirdStep = ({ formData, handleInputChange }: ThirdStepProps) => {
 									</VStack>
 								)}
 							</VStack>
-						</Box>
-
-						<Box border="1px solid #EAEAEA" padding="0.75rem">
-							<InputLabel
-								label={t('common.note')}
-								inputPlaceholder={t('common.notePlaceholder')}
-								inputType={'text'}
-								value={formData?.note ?? ''}
-								onChange={(value: string) => handleInputChange('note', value)}
-								styles={documentNameStyles}
-							/>
 						</Box>
 					</SimpleGrid>
 				)}

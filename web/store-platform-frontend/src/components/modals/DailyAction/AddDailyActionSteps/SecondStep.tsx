@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useRef } from 'react'
-import { Heading, SimpleGrid, VStack, Box } from '@chakra-ui/react'
+import {
+	Button,
+	Heading,
+	SimpleGrid,
+	VStack,
+	Box,
+	Text,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { documentNameStyles } from '../../../../theme/styles'
 import InputLabel from '../../../common/InputLabel'
@@ -7,7 +14,8 @@ import TextLabel from '../../../common/TextLabel'
 import { Dropdown } from '../../../dropdown/Dropdown'
 import { dropdownStyles } from '../../../filters/dropdowns/styles'
 import DailyActionsHelperButtons from './DailyActionsHelperButtons'
-import { parseNumberValue } from '../../../../shared/utils'
+import { mapFee, parseNumberValue } from '../../../../shared/utils'
+import type { DailyActionProductLine } from '../hooks/useDailyActionHandlers'
 
 interface SecondStepProps {
 	isBuyingEntry: boolean
@@ -16,6 +24,7 @@ interface SecondStepProps {
 	isPaymentEntry: boolean
 	isExpenseEntry: boolean
 	formData: Partial<DailyAction> | undefined
+	productLines: DailyActionProductLine[]
 	expenses: Expense[]
 	products: Product[]
 	suppliers: Supplier[]
@@ -29,10 +38,21 @@ interface SecondStepProps {
 		values: string[],
 		options: DropdownOption[],
 	) => void
-	handleInputChange: (
-		field: 'weight' | 'singleUnitPrice',
+	handleInputChange: (field: 'singleUnitPrice' | 'note', value: string) => void
+	handleProductLineDropdownChange: (
+		lineId: string,
+		valueField: keyof DailyActionProductLine,
+		labelField: keyof DailyActionProductLine,
+		values: string[],
+		options: DropdownOption[],
+	) => void
+	handleProductLineInputChange: (
+		lineId: string,
+		field: 'weight' | 'singleUnitPrice' | 'note',
 		value: string,
 	) => void
+	addProductLine: () => void
+	removeProductLine: (lineId: string) => void
 	entryTargetId?: string
 }
 
@@ -45,6 +65,7 @@ const SecondStep = ({
 	isExpenseEntry,
 	expenses,
 	formData,
+	productLines,
 	products,
 	suppliers,
 	customers,
@@ -53,6 +74,10 @@ const SecondStep = ({
 	totalPrice,
 	handleDropdownChange,
 	handleInputChange,
+	handleProductLineDropdownChange,
+	handleProductLineInputChange,
+	addProductLine,
+	removeProductLine,
 }: SecondStepProps) => {
 	const { t } = useTranslation()
 	const hasInitializedCurrency = useRef(false)
@@ -102,6 +127,17 @@ const SecondStep = ({
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
 		[unit],
+	)
+
+	const productOptions = useMemo<DropdownOption[]>(
+		() =>
+			products
+				.map((product: Product) => ({
+					value: product.productId ?? product.internalCode,
+					label: product.name ?? product.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[products],
 	)
 
 	useEffect(() => {
@@ -227,34 +263,6 @@ const SecondStep = ({
 					</Heading>
 
 					<SimpleGrid columns={[1, 2, 3]} gap={6}>
-						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<TextLabel label={t('common.product')} />
-							<Box sx={dropdownStyles.dropDownContainer}>
-								<Dropdown
-									isSingle={true}
-									placeholder={t('common.productName')}
-									dropDownOptions={products.map((product: Product) => ({
-										value: product.productId ?? product.internalCode,
-										label: product.name ?? product.internalCode ?? 'TBD',
-									}))}
-									selectedValues={
-										formData?.productId ? [formData.productId] : []
-									}
-									onSelect={(values: string[]) =>
-										handleDropdownChange(
-											'productId',
-											'productName',
-											values,
-											products.map((product: Product) => ({
-												value: product.productId ?? product.internalCode,
-												label: product.name ?? product.internalCode ?? 'TBD',
-											})),
-										)
-									}
-								/>
-							</Box>
-						</VStack>
-
 						{isBuyingEntry && (
 							<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 								<TextLabel label={t('common.supplier')} />
@@ -304,6 +312,26 @@ const SecondStep = ({
 						)}
 
 						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+							<TextLabel label={t('common.unit')} />
+							<Box sx={dropdownStyles.dropDownContainer}>
+								<Dropdown
+									placeholder={t('common.unitName')}
+									dropDownOptions={unitOptions}
+									selectedValues={formData?.unitId ? [formData.unitId] : []}
+									isSingle={true}
+									onSelect={(values: string[]) =>
+										handleDropdownChange(
+											'unitId',
+											'unitName',
+											values,
+											unitOptions,
+										)
+									}
+								/>
+							</Box>
+						</VStack>
+
+						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
 							<TextLabel label={t('common.currency')} />
 							<Box sx={dropdownStyles.dropDownContainer}>
 								<Dropdown
@@ -324,53 +352,142 @@ const SecondStep = ({
 								/>
 							</Box>
 						</VStack>
-						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<TextLabel label={t('common.unit')} />
-							<Box sx={dropdownStyles.dropDownContainer}>
-								<Dropdown
-									placeholder={t('common.unitName')}
-									dropDownOptions={unitOptions}
-									selectedValues={formData?.unitId ? [formData.unitId] : []}
-									isSingle={true}
-									onSelect={(values: string[]) =>
-										handleDropdownChange(
-											'unitId',
-											'unitName',
-											values,
-											unitOptions,
-										)
-									}
-								/>
-							</Box>
-						</VStack>
-						<VStack sx={{ gap: '1.25rem', alignItems: 'left' }}>
-							<InputLabel
-								withGap={true}
-								label={t('common.weight')}
-								inputPlaceholder={t('common.weight')}
-								inputType={'number'}
-								styles={documentNameStyles}
-								value={formData?.weight ?? ''}
-								onChange={(value: string) => handleInputChange('weight', value)}
-							/>
-						</VStack>
-						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
-							<InputLabel
-								withGap={true}
-								label={t('common.singleUnitPrice')}
-								inputPlaceholder={t('common.singleUnitPrice')}
-								inputType={'number'}
-								styles={documentNameStyles}
-								value={formData?.singleUnitPrice ?? ''}
-								onChange={(value: string) =>
-									handleInputChange(
-										'singleUnitPrice',
-										parseNumberValue(value, 2),
-									)
-								}
-							/>
-						</VStack>
 					</SimpleGrid>
+
+					<VStack alignItems="stretch" spacing={4} marginTop="1.5rem">
+						{productLines.map((productLine, index) => {
+							return (
+								<Box
+									key={productLine.id}
+									border="1px solid #EAEAEA"
+									padding="1rem"
+								>
+									<Box
+										display="flex"
+										alignItems="center"
+										justifyContent="space-between"
+										gap="1rem"
+										marginBottom="1rem"
+									>
+										<Text fontWeight={700}>
+											{t('components.daily.productLines', {
+												defaultValue: productLines.find(
+													pl => pl.id === productLine.id,
+												)?.productName,
+												number: index + 1,
+											})}
+										</Text>
+										{productLines.length > 1 && (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => removeProductLine(productLine.id)}
+											>
+												{t('common.delete')}
+											</Button>
+										)}
+									</Box>
+									<SimpleGrid columns={[1, 2, 4]} gap={6}>
+										<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+											<TextLabel label={t('common.product')} />
+											<Box sx={dropdownStyles.dropDownContainer}>
+												<Dropdown
+													isSingle={true}
+													placeholder={t('common.productName')}
+													dropDownOptions={productOptions}
+													selectedValues={
+														productLine.productId ? [productLine.productId] : []
+													}
+													onSelect={(values: string[]) =>
+														handleProductLineDropdownChange(
+															productLine.id,
+															'productId',
+															'productName',
+															values,
+															productOptions,
+														)
+													}
+												/>
+											</Box>
+										</VStack>
+										<VStack sx={{ gap: '1.25rem', alignItems: 'left' }}>
+											<InputLabel
+												withGap={true}
+												label={t('common.weight')}
+												inputPlaceholder={t('common.weight')}
+												inputType={'number'}
+												styles={documentNameStyles}
+												value={productLine.weight ?? ''}
+												onChange={(value: string) =>
+													handleProductLineInputChange(
+														productLine.id,
+														'weight',
+														value,
+													)
+												}
+											/>
+										</VStack>
+										<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+											<InputLabel
+												withGap={true}
+												label={t('common.singleUnitPrice')}
+												inputPlaceholder={t('common.singleUnitPrice')}
+												inputType={'number'}
+												styles={documentNameStyles}
+												value={productLine.singleUnitPrice ?? ''}
+												onChange={(value: string) =>
+													handleProductLineInputChange(
+														productLine.id,
+														'singleUnitPrice',
+														parseNumberValue(value, 2),
+													)
+												}
+											/>
+										</VStack>
+										<Box
+											sx={{
+												border: '3px solid #376288 ',
+												padding: '0.5rem',
+											}}
+										>
+											<TextLabel
+												label={t('common.totalPrice')}
+												value={mapFee(productLine.totalPrice)}
+											/>
+										</Box>
+									</SimpleGrid>
+									<VStack
+										sx={{ gap: '1rem', alignItems: 'left', marginTop: '1rem' }}
+									>
+										<InputLabel
+											withGap={true}
+											label={t('common.note')}
+											inputPlaceholder={t('common.notePlaceholder')}
+											inputType={'text'}
+											styles={documentNameStyles}
+											value={productLine.note ?? ''}
+											onChange={(value: string) =>
+												handleProductLineInputChange(
+													productLine.id,
+													'note',
+													value,
+												)
+											}
+										/>
+									</VStack>
+								</Box>
+							)
+						})}
+
+						<Button
+							alignSelf="flex-start"
+							variant="primary"
+							sx={{ borderRadius: '0' }}
+							onClick={addProductLine}
+						>
+							+ {t('components.daily.addProduct')}
+						</Button>
+					</VStack>
 
 					<Box
 						sx={{
@@ -506,6 +623,17 @@ const SecondStep = ({
 										parseNumberValue(value, 2),
 									)
 								}
+							/>
+						</VStack>
+						<VStack sx={{ gap: '1rem', alignItems: 'left' }}>
+							<InputLabel
+								withGap={true}
+								label={t('common.note')}
+								inputPlaceholder={t('common.notePlaceholder')}
+								inputType={'text'}
+								styles={documentNameStyles}
+								value={formData?.note ?? ''}
+								onChange={(value: string) => handleInputChange('note', value)}
 							/>
 						</VStack>
 					</SimpleGrid>

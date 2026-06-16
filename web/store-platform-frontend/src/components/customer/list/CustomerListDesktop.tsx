@@ -120,6 +120,7 @@ const TableComponent = ({
 }) => {
 	const { isOwnerOrAdmin } = context as VirtuosoContext
 	const tableWidth = getTableWidth(
+		// TODO: change to CUSTOMER_LIST_WIDTHS_MAP_IN_REM
 		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
 		isOwnerOrAdmin,
 		14,

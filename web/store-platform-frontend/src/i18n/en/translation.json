@@ -220,6 +220,7 @@
 			"createdAt": "Created At"
 		},
 		"daily": {
+			"productLine": "Product {{number}}",
 			"dailyActions": "Daily Actions",
 			"cashBalance": "Cash Balance",
 			"budgetOverview": {

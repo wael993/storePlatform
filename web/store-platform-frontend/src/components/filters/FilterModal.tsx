@@ -223,7 +223,7 @@ const FilterModal = ({
 			<Modal
 				isOpen={isFilterModalOpen}
 				onClose={onFilterModalClose}
-				size={isMobile ? 'full' : '2xl'}
+				size={isMobile ? 'full' : '3xl'}
 				isCentered={!isMobile}
 				blockScrollOnMount={true}
 				scrollBehavior="inside"
@@ -232,7 +232,7 @@ const FilterModal = ({
 				preserveScrollBarGap={false}
 			>
 				<ModalOverlay />
-				<ModalContent>
+				<ModalContent h={'50%'}>
 					<ModalHeader>
 						<HStack>
 							<AsFilterIcon />

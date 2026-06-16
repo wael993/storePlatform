@@ -6,10 +6,7 @@ import { useResources } from '../../../shared/hooks/useResources'
 import { useUser } from '../../../shared/hooks/useUser'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import TableSort from '../../common/CustomTableSort'
-import {
-	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
-	SUPPLIER_LIST_WIDTHS_MAP_IN_REM,
-} from '../../list/shared/constants'
+import { SUPPLIER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { isTruthy } from '../../list/shared/utils'
 import { AllowedActions } from '../../../shared/globalEnums'
 
@@ -132,7 +129,7 @@ const SupplierListHeaderRow = ({
 
 		{
 			label: null,
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT,
+			width: SUPPLIER_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT,
 			sortKey: null,
 			isStickyRight: true,
 		},
@@ -143,12 +140,12 @@ const SupplierListHeaderRow = ({
 		const isAcceptingAllowed = isActionAllowed(AllowedActions.ADD_PRODUCT)
 		const isRejectingAllowed = isActionAllowed(AllowedActions.ADD_PRODUCT)
 		if (isAcceptingAllowed && isRejectingAllowed) {
-			return `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`
+			return `${SUPPLIER_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`
 		}
 		if (isAcceptingAllowed || isRejectingAllowed) {
-			return `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 4}rem`
+			return `${SUPPLIER_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 4}rem`
 		}
-		return `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 7}rem`
+		return `${SUPPLIER_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 7}rem`
 	}
 
 	return (
