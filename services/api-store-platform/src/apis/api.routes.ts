@@ -22,6 +22,7 @@ import {
 	CurrencyRequestBody,
 	ExpenseRequestBody,
 	UnitRequestBody,
+	PartnerRequestBody,
 } from '../shared/types'
 import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
@@ -564,6 +565,30 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/partners`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getPartners.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postPartner.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/partners/:id`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getPartner.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/expenses`)
 			.get(
 				this.startCalc.bind(this),
@@ -886,6 +911,59 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const resp =
 				await this.productController.getProductFilterValues(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getPartners(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		try {
+			const resp = await this.productController.getPartners(requestContext)
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postPartner(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const requestBody: PartnerRequestBody = request.body
+
+		try {
+			const resp = await this.productController.postPartner(
+				requestContext,
+				requestBody,
+			)
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+	private async getPartner(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getPartner(
+				request.params.id,
+				requestContext,
+			)
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)

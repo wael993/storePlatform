@@ -57,4 +57,12 @@ export const MODAL_CONFIG = {
 		inputType: 'text' as InputType,
 		buttonText: 'components.daily.addExpense',
 	},
+	[AddQuickStateEnum.PARTNER]: {
+		title: 'components.partner.addPartner',
+		label: 'components.partner.partnerName',
+		code: 'components.partner.partnerCode',
+		placeholder: 'components.partner.partnerName',
+		inputType: 'text' as InputType,
+		buttonText: 'components.partner.addPartner',
+	},
 }

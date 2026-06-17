@@ -73,6 +73,7 @@ const TenantLayout = () => {
 		isChangePasswordEnabled,
 		isCustomersEnabled,
 		isSuppliersEnabled,
+		isPartnersEnabled,
 	} = getEnabledActions()
 	const {
 		isTenantBarcodeEnabled,
@@ -84,6 +85,7 @@ const TenantLayout = () => {
 		isTenantChangePasswordEnabled,
 		isTenantCustomersEnabled,
 		isTenantSuppliersEnabled,
+		isTenantPartnersEnabled,
 	} = getTenantActions()
 
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
@@ -110,6 +112,9 @@ const TenantLayout = () => {
 			: null,
 		isSuppliersEnabled && isTenantSuppliersEnabled
 			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }
+			: null,
+		isPartnersEnabled && isTenantPartnersEnabled
+			? { label: 'Partners', path: RoutePaths.PARTNERS }
 			: null,
 		isOwner && isUsersEnabled && isTenantUsersEnabled
 			? { label: 'Users', path: RoutePaths.USERS }

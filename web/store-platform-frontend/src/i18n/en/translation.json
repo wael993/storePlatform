@@ -204,6 +204,14 @@
 			"createdAt": "Created At"
 		}
 	},
+	"partner": {
+		"errorLoadingPartner": "There was an error loading the partner. Please try again!",
+		"list": {
+			"name": "Partner Name",
+			"internalCode": "Partner Code",
+			"createdAt": "Created At"
+		}
+	},
 	"components": {
 		"budgetOverview": {
 			"tooltip": "The budget overview is a summary of the budget for the customer.",
@@ -289,6 +297,11 @@
 			"unitCode": "Unit Code",
 			"expenseCode": "Expense Code"
 		},
+		"partner": {
+			"addPartner": "Add Partner",
+			"partnerName": "Partner Name",
+			"partnerCode": "Partner Code"
+		},
 		"pageHeaders": {
 			"settings": "Settings",
 			"daily": "Daily",
@@ -300,7 +313,9 @@
 			"users": "Users",
 			"tenants": "Tenants",
 			"customers": "Customers",
-			"suppliers": "Suppliers"
+			"suppliers": "Suppliers",
+			"partners": "Partners",
+			"partner": "Partner"
 		},
 		"activitySettingsSection": {
 			"title": "Products Per Page"
@@ -415,9 +430,11 @@
 		"addProduct": "Add Product",
 		"addCustomer": "Add Customer",
 		"addSupplier": "Add Supplier",
+		"addPartner": "Add Partner",
 		"product": "Product",
 		"supplier": "Supplier",
 		"customer": "Customer",
+		"partner": "Partner",
 		"dailyAction": "Daily Action",
 		"expense": "Expense",
 		"currency": "Currency",

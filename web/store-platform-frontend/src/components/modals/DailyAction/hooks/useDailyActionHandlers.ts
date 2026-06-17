@@ -9,6 +9,7 @@ import {
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
 	useGetExpensesQuery,
+	useGetPartnersQuery,
 	AddDailyActionRequestBody,
 } from '../../../../api/apiStore'
 import { DailyActionType, StepKeys } from '../../../../shared/globalEnums'
@@ -80,13 +81,17 @@ export const useDailyActionHandlers = ({
 	const { data: expensesResponse = [], isLoading: isExpensesLoading } =
 		useGetExpensesQuery(undefined, { skip: !shouldLoadOptions })
 
+	const { data: partnersResponse = [], isLoading: isPartnersLoading } =
+		useGetPartnersQuery({}, { skip: !shouldLoadOptions })
+
 	const isAllDataLoaded =
 		!isProductsLoading &&
 		!isSuppliersLoading &&
 		!isCustomersLoading &&
 		!isCurrenciesLoading &&
 		!isUnitsLoading &&
-		!isExpensesLoading
+		!isExpensesLoading &&
+		!isPartnersLoading
 
 	const products = useMemo(
 		() => productsResponse.products ?? [],
@@ -97,6 +102,7 @@ export const useDailyActionHandlers = ({
 	const currency = useMemo(() => currenciesResponse ?? [], [currenciesResponse])
 	const unit = useMemo(() => unitsResponse ?? [], [unitsResponse])
 	const expenses = useMemo(() => expensesResponse ?? [], [expensesResponse])
+	const partners = useMemo(() => partnersResponse ?? [], [partnersResponse])
 
 	const productLinesWithTotals = useMemo(
 		() =>
@@ -307,6 +313,7 @@ export const useDailyActionHandlers = ({
 		suppliers,
 		customers,
 		expenses,
+		partners,
 		currency,
 		isProductsLoading,
 		isSuppliersLoading,
@@ -314,5 +321,6 @@ export const useDailyActionHandlers = ({
 		isCurrenciesLoading,
 		isUnitsLoading,
 		isExpensesLoading,
+		isPartnersLoading,
 	}
 }

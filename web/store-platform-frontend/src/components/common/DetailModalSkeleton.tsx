@@ -50,7 +50,8 @@ const DetailModalSkeleton = ({
 	onClose,
 	targetType,
 }: DetailModalSkeletonProps) => {
-	const { isCustomerTarget, isSupplierTarget } = compareTargetType(targetType)
+	const { isCustomerTarget, isSupplierTarget, isPartnerTarget } =
+		compareTargetType(targetType)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 
 	return (
@@ -92,7 +93,9 @@ const DetailModalSkeleton = ({
 						))}
 					</Flex>
 				)}
-				{isSupplierTarget && <Skeleton width="30%" height="10rem" />}
+				{(isSupplierTarget || isPartnerTarget) && (
+					<Skeleton width="30%" height="10rem" />
+				)}
 
 				<Flex sx={skeletonStyles.bottomSectionWrapper}>
 					<Flex sx={skeletonStyles.leftSideSectionWrapper}>

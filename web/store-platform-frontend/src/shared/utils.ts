@@ -14,6 +14,7 @@ export function compareTargetType(entryType: TargetType) {
 	return {
 		isCustomerTarget: entryType === TargetType.CUSTOMER,
 		isSupplierTarget: entryType === TargetType.SUPPLIER,
+		isPartnerTarget: entryType === TargetType.PARTNER,
 		isProductTarget: entryType === TargetType.PRODUCT,
 		isDailyActionTarget: entryType === TargetType.DAILY_ACTION,
 	}
@@ -50,6 +51,7 @@ export const getEnabledActions = () => {
 		isInvoicesEnabled: enabledActions.has('INVOICE'),
 		isCustomersEnabled: enabledActions.has('CUSTOMERS'),
 		isSuppliersEnabled: enabledActions.has('SUPPLIERS'),
+		isPartnersEnabled: enabledActions.has('PARTNERS'),
 		isUsersEnabled: enabledActions.has('USERS'),
 		isSettingsEnabled: enabledActions.has('SETTINGS'),
 		isChangePasswordEnabled: enabledActions.has('CHANGE_PASSWORD'),
@@ -71,6 +73,7 @@ export const getTenantActions = () => {
 		isTenantSettingsEnabled: enabledTenantActions.has('SETTINGS'),
 		isTenantCustomersEnabled: enabledTenantActions.has('CUSTOMERS'),
 		isTenantSuppliersEnabled: enabledTenantActions.has('SUPPLIERS'),
+		isTenantPartnersEnabled: enabledTenantActions.has('PARTNERS'),
 		isTenantChangePasswordEnabled: enabledTenantActions.has('CHANGE_PASSWORD'),
 	}
 }

@@ -25,6 +25,11 @@ interface RequestError {
 	hint?: string
 }
 
+type PartnerRequestBody = {
+	partnerId: string
+	name: string
+	internalCode?: string
+}
 type SupplierRequestBody = {
 	supplierId: string
 	name: string
@@ -162,6 +167,9 @@ export type CreateProductResponse = {
 export type CreateSupplierResponse = {
 	_id: string
 }
+export type CreatePartnerResponse = {
+	_id: string
+}
 export type CreateCustomerResponse = {
 	_id: string
 }
@@ -260,6 +268,17 @@ interface UnitDocument {
 	updatedAt: Date
 }
 
+interface PartnerDocument {
+	tenantId: string
+	_id?: string
+	name: string
+	partnerId: string
+	internalCode?: string
+	createdBy: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt: Date
+	updatedAt: Date
+}
 interface SupplierDocument {
 	tenantId: string
 	_id?: string

@@ -13,4 +13,5 @@ export const COLLECTION_NAMES = {
 	EXPENSES: 'expenses',
 	CURRENCIES: 'currencies',
 	UNITS: 'units',
+	PARTNERS: 'partners',
 } as const

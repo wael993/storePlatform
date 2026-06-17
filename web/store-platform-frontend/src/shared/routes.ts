@@ -19,6 +19,8 @@ export const RoutePaths = {
 	SINGLE_CUSTOMER: withBasePath('/customers/:customerId'),
 	SUPPLIERS: withBasePath('/suppliers'),
 	SINGLE_SUPPLIER: withBasePath('/suppliers/:supplierId'),
+	PARTNERS: withBasePath('/partners'),
+	SINGLE_PARTNER: withBasePath('/partners/:partnerId'),
 	USERS: withBasePath('/users'),
 	SETTINGS: withBasePath('/settings'),
 	ADD_NEW_TENANT: withBasePath('/add-new-tenant'),
@@ -33,6 +35,7 @@ export const buildRoutePath = {
 		withBasePath(`/customers/${customerId}`),
 	supplierById: (supplierId: string) =>
 		withBasePath(`/suppliers/${supplierId}`),
+	partnerById: (partnerId: string) => withBasePath(`/partners/${partnerId}`),
 }
 
 export const fullPaths = {
@@ -45,6 +48,7 @@ export const fullPaths = {
 	INVOICES: RoutePaths.INVOICES,
 	CUSTOMERS: RoutePaths.CUSTOMERS,
 	SUPPLIERS: RoutePaths.SUPPLIERS,
+	PARTNERS: RoutePaths.PARTNERS,
 	USERS: RoutePaths.USERS,
 	ADD_NEW_TENANT: RoutePaths.ADD_NEW_TENANT,
 	TENANTS_LIST: RoutePaths.TENANTS_LIST,
@@ -64,6 +68,8 @@ export const routeLabelKeys = {
 	CUSTOMER: 'components.pageHeaders.customer',
 	SUPPLIERS: 'components.pageHeaders.suppliers',
 	SUPPLIER: 'components.pageHeaders.supplier',
+	PARTNERS: 'components.pageHeaders.partners',
+	PARTNER: 'components.pageHeaders.partner',
 	USERS: 'components.pageHeaders.users',
 	SETTINGS: 'components.pageHeaders.settings',
 	ADD_NEW_TENANT: 'navigation.addTenant',
@@ -81,6 +87,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.INVOICES]: routeLabelKeys.INVOICES,
 		[RoutePaths.CUSTOMERS]: routeLabelKeys.CUSTOMERS,
 		[RoutePaths.SUPPLIERS]: routeLabelKeys.SUPPLIERS,
+		[RoutePaths.PARTNERS]: routeLabelKeys.PARTNERS,
 		[RoutePaths.USERS]: routeLabelKeys.USERS,
 		[RoutePaths.SETTINGS]: routeLabelKeys.SETTINGS,
 		[RoutePaths.ADD_NEW_TENANT]: routeLabelKeys.ADD_NEW_TENANT,
@@ -238,6 +245,34 @@ export const generateBreadcrumbs = ({
 			isCurrentPage: true,
 		},
 	]
+	const partners: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'partners',
+			name: t(routeLabelKeys.PARTNERS),
+			href: fullPaths.PARTNERS,
+			isCurrentPage: true,
+		},
+	]
+	const partner: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'partner',
+			name: t(routeLabelKeys.PARTNER),
+			href: fullPaths.PARTNERS,
+			isCurrentPage: true,
+		},
+	]
 	const invoices: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -308,6 +343,8 @@ export const generateBreadcrumbs = ({
 		customer,
 		suppliers,
 		supplier,
+		partners,
+		partner,
 		users,
 		addNewTenant,
 		tenantsList,

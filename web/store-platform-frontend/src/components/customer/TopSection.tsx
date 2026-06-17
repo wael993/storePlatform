@@ -204,6 +204,7 @@ interface TopSectionProps {
 	targetType: TargetType
 	customer?: Customer
 	supplier?: Supplier
+	partner?: Partner
 	onClose: () => void
 }
 
@@ -211,10 +212,11 @@ const TopSection = ({
 	targetType,
 	customer,
 	supplier,
+	partner,
 	onClose,
 }: TopSectionProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
-	const { isCustomerTarget } = compareTargetType(targetType)
+	const { isCustomerTarget, isPartnerTarget } = compareTargetType(targetType)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const {
 		isOpen: isAddDailyActionModalOpen,
@@ -222,7 +224,7 @@ const TopSection = ({
 		onClose: onAddDailyActionModalClose,
 	} = useDisclosure()
 	const { t } = useTranslation()
-	const entry = customer ?? supplier
+	const entry = customer ?? supplier ?? partner
 	const budgetOverviewArgs = customer?.customerId
 		? ({
 				entityType: 'customer',
@@ -233,15 +235,25 @@ const TopSection = ({
 					entityType: 'supplier',
 					id: supplier.supplierId,
 				} satisfies BudgetOverviewQueryArgument)
-			: undefined
+			: partner?.partnerId
+				? ({
+						entityType: 'partner' as const,
+						id: partner.partnerId,
+					} satisfies BudgetOverviewQueryArgument)
+				: undefined
 
 	const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
 		useGetBudgetOverviewQuery(
-			budgetOverviewArgs ?? { entityType: 'customer', id: '' },
+			budgetOverviewArgs ??
+				({
+					entityType: 'customer' as const,
+					id: '',
+				} satisfies BudgetOverviewQueryArgument),
 			{ skip: !budgetOverviewArgs },
 		)
 
-	const entryTargetId = customer?.customerId ?? supplier?.supplierId ?? ''
+	const entryTargetId =
+		customer?.customerId ?? supplier?.supplierId ?? partner?.partnerId ?? ''
 
 	if (!entry) return null
 
@@ -272,7 +284,9 @@ const TopSection = ({
 					items={
 						isCustomerTarget
 							? breadCrumbItems[BreadCrumbItem.CUSTOMER]
-							: breadCrumbItems[BreadCrumbItem.SUPPLIER]
+							: isPartnerTarget
+								? breadCrumbItems[BreadCrumbItem.PARTNER]
+								: breadCrumbItems[BreadCrumbItem.SUPPLIER]
 					}
 				/>
 				<HStack alignSelf={'flex-end'}>

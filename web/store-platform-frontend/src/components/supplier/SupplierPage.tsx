@@ -8,9 +8,10 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/react'
-import React from 'react'
+import React, { useState } from 'react'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import {
+	AddQuickStateEnum,
 	AllowedActions,
 	BreadCrumbItem,
 	TargetType,
@@ -21,9 +22,12 @@ import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
-import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 import SupplierListWithActionBar from './list/SupplierListWithActionBar'
-import { useGetSuppliersQuery } from '../../api/apiStore'
+import {
+	useCreateSupplierMutation,
+	useGetSuppliersQuery,
+} from '../../api/apiStore'
+import AddQuickModal from '../modals/AddQuickModal'
 
 const fullWidth = '100%'
 
@@ -71,8 +75,15 @@ const styles = {
 interface SupplierPageProps {
 	targetType: TargetType
 }
-
+type FormData = {
+	code: string
+	value: string
+}
 const SupplierPage = ({ targetType }: SupplierPageProps) => {
+	const [formData, setFormData] = useState<FormData>({
+		code: '',
+		value: '',
+	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
@@ -80,7 +91,24 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const { data: suppliers = [], isLoading: isSuppliersLoading } =
 		useGetSuppliersQuery({})
+	const [createSupplier, { isLoading: isSupplierLoading }] =
+		useCreateSupplierMutation()
 
+	const handleInputChange = (field: 'value' | 'code', value: string) => {
+		setFormData(prev => ({
+			...prev,
+			[field]: value,
+		}))
+	}
+
+	const handlePostNewSupplier = async (data: FormData) => {
+		await createSupplier({
+			name: data.value,
+			internalCode: data.code,
+		}).unwrap()
+		setFormData({ code: '', value: '' })
+		onClose()
+	}
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
@@ -117,10 +145,16 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				targetType={targetType}
 			/>
 
-			<AddDailyActionModal
+			<AddQuickModal
+				handleInputChange={handleInputChange}
 				isOpen={isOpen}
+				modalType={AddQuickStateEnum.SUPPLIER}
 				onClose={onClose}
-				targetType={targetType}
+				isLoading={isSupplierLoading}
+				setFormData={setFormData}
+				inputValue={formData}
+				handleQuickAdd={handlePostNewSupplier}
+				userHasAdminRole={isOwnerOrAdmin}
 			/>
 		</Flex>
 	)

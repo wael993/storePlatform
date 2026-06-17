@@ -263,6 +263,30 @@ const getQuery = (
 			providesTags: ['customer'],
 		}),
 
+		getPartners: builder.query({
+			query: () => {
+				return {
+					url: 'partners',
+					method: 'GET',
+				}
+			},
+			transformResponse: (response: PartnersAPIResponse) => {
+				return response.data
+			},
+			providesTags: ['partners'],
+		}),
+
+		getSinglePartner: builder.query<Partner, string>({
+			query: (partnerId: string) => ({
+				url: `partners/${partnerId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Partner) => {
+				return response
+			},
+			providesTags: ['partner'],
+		}),
+
 		getBudgetOverview: builder.query<
 			BudgetOverviewAPIResponse | null,
 			BudgetOverviewQueryArgument
@@ -414,6 +438,18 @@ const getQuery = (
 				body: newCustomer,
 			}),
 			invalidatesTags: ['customers'],
+		}),
+
+		createPartner: builder.mutation<
+			CreatePartnerAPIResponse,
+			Omit<Partner, 'partnerId'>
+		>({
+			query: (newPartner: Omit<Partner, 'partnerId'>) => ({
+				url: 'partners',
+				method: 'POST',
+				body: newPartner,
+			}),
+			invalidatesTags: ['partners'],
 		}),
 
 		createCurrency: builder.mutation<
@@ -704,6 +740,8 @@ export const {
 	useGetSingleSupplierQuery,
 	useGetCustomersQuery,
 	useGetSingleCustomerQuery,
+	useGetPartnersQuery,
+	useGetSinglePartnerQuery,
 	useGetBudgetOverviewQuery,
 	useGetCurrenciesQuery,
 	useGetUnitsQuery,
@@ -713,6 +751,7 @@ export const {
 	usePostProductMutation,
 	useCreateSupplierMutation,
 	useCreateCustomerMutation,
+	useCreatePartnerMutation,
 	useCreateCurrencyMutation,
 	useCreateUnitMutation,
 	useLoginMutation,

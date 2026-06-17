@@ -29,7 +29,7 @@ import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
-import { mapCustomers, mapSuppliers } from './mappings/mapper'
+import { mapCustomers, mapPartners, mapSuppliers } from './mappings/mapper'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -62,6 +62,9 @@ import {
 	UnitRequestBody,
 	UnitDocument,
 	CreateUnitResponse,
+	PartnerRequestBody,
+	PartnerDocument,
+	CreatePartnerResponse,
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
@@ -73,6 +76,7 @@ import {
 	EntryType,
 	ExpensesResponse,
 	LoginData,
+	PartnersResponse,
 	SuppliersResponse,
 	UnitsResponse,
 } from '../shared/types/api'
@@ -94,6 +98,7 @@ import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
 import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
+import { Partner } from '../models/Partner'
 
 type TokenPayload = {
 	userId: string
@@ -2649,6 +2654,155 @@ export default class ProductController {
 		} catch (error: any) {
 			logger.error('Error updating user settings', error)
 			throw error
+		}
+	}
+	public async getPartners(
+		requestContext: RequestContext,
+	): Promise<PartnersResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildPartnerListKey(tenantId)
+		const cachedPartners = await redisCache.getJson<PartnersResponse>(cacheKey)
+		if (cachedPartners) {
+			return cachedPartners
+		}
+		const partners = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.PARTNERS,
+			model: Partner,
+			sort: { createdAt: 'desc' },
+		})
+
+		const data = partners.documents.map((partner: PartnerDocument) => ({
+			partnerId: partner.partnerId,
+			name: partner.name,
+			internalCode: partner.internalCode,
+			createdAt: partner.createdAt?.toISOString(),
+			updatedAt: partner.updatedAt?.toISOString(),
+			createdBy: partner.createdBy as any,
+			updatedBy: partner.updatedBy
+				? {
+						...partner.updatedBy,
+						updatedAt: partner.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+			actions: [],
+		}))
+
+		const mappedPartners = mapPartners(data)
+		const response: PartnersResponse = {
+			data: mappedPartners,
+			totalCount: mappedPartners.length,
+		}
+		await redisCache.setJson(cacheKey, response)
+		return response
+	}
+
+	public async getPartner(
+		partnerId: string,
+		requestContext: RequestContext,
+	): Promise<PartnersResponse['data'][number] | null> {
+		const partner =
+			await this.mongoDbClient.getDocumentByField<PartnerDocument>(
+				requestContext,
+				COLLECTION_NAMES.PARTNERS,
+				Partner,
+				{ fieldName: 'partnerId', fieldValue: partnerId },
+			)
+
+		if (!partner) {
+			return null
+		}
+
+		const mappedPartners = mapPartners([
+			{
+				partnerId: partner.partnerId,
+				name: partner.name,
+				internalCode: partner.internalCode,
+				createdAt: partner.createdAt?.toISOString(),
+				updatedAt: partner.updatedAt?.toISOString(),
+				createdBy: partner.createdBy as any,
+				updatedBy: partner.updatedBy
+					? {
+							...partner.updatedBy,
+							updatedAt: partner.updatedBy.updatedAt.toISOString(),
+						}
+					: undefined,
+				actions: [],
+			},
+		])
+
+		return mappedPartners[0]
+	}
+
+	public async postPartner(
+		requestContext: RequestContext,
+		requestBody: PartnerRequestBody,
+	): Promise<CreatePartnerResponse | null> {
+		const { name, internalCode } = requestBody
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!name || !name.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Partner name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Partner.findOne({
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			}),
+			tenantContext.tenantId,
+		).lean()
+
+		if (!!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'partner already exists in this tenant.',
+			)
+		}
+
+		const partnerData: PartnerDocument = {
+			tenantId: tenantContext.tenantId,
+			_id: uuidv4(),
+			partnerId: uuidv4(),
+			name: name,
+			internalCode: internalCode?.trim() || undefined,
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+				role: requestContext.user?.role as TenantRole,
+			},
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		}
+
+		logger.info('Saving partner to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			partnerId: partnerData._id,
+			name,
+		})
+
+		const createPartnerResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.PARTNERS, data: partnerData },
+			Partner,
+			requestContext,
+		)
+
+		logger.info('Partner created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			partnerId: partnerData._id,
+			name,
+		})
+
+		await redisCache.del(
+			redisCache.buildPartnerListKey(tenantContext.tenantId),
+		)
+
+		return {
+			_id: createPartnerResponse._id,
 		}
 	}
 

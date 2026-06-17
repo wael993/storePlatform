@@ -189,6 +189,9 @@ class RedisCache {
 	public buildInvoiceListKey(tenantId: string): string {
 		return `cache:invoices:list:${tenantId}`
 	}
+	public buildPartnerListKey(tenantId: string): string {
+		return `cache:partners:list:${tenantId}`
+	}
 
 	public buildSupplierListKey(tenantId: string): string {
 		return `cache:suppliers:list:${tenantId}`

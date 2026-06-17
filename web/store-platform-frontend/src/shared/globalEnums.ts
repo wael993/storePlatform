@@ -68,6 +68,12 @@ export enum AllowedActions {
 	CAN_ADD_CUSTOMER = 'canAddCustomer',
 	CAN_EDIT_CUSTOMER = 'canEditCustomer',
 	CAN_DELETE_CUSTOMER = 'canDeleteCustomer',
+
+	// PARTNER
+	SEE_PARTNER = 'seePartner',
+	CAN_ADD_PARTNER = 'canAddPartner',
+	CAN_EDIT_PARTNER = 'canEditPartner',
+	CAN_DELETE_PARTNER = 'canDeletePartner',
 }
 export enum Breakpoints {
 	MOBILE = 'mobile',
@@ -79,6 +85,7 @@ export enum Breakpoints {
 export enum TargetType {
 	CUSTOMER = 'CUSTOMER', //عميل
 	SUPPLIER = 'SUPPLIER', //مورد
+	PARTNER = 'PARTNER', //شريك
 	PRODUCT = 'PRODUCT', //منتج
 	DAILY_ACTION = 'DAILY_ACTION', //إجراء يومي
 	// PAYMENT = 'PAYMENT',//دفع
@@ -108,6 +115,8 @@ export enum BreadCrumbItem {
 	CUSTOMER = 'customer',
 	SUPPLIERS = 'suppliers',
 	SUPPLIER = 'supplier',
+	PARTNERS = 'partners',
+	PARTNER = 'partner',
 }
 
 export enum FilterAttribute {
@@ -165,6 +174,7 @@ export enum AddQuickStateEnum {
 	CURRENCY = 'currency',
 	SUPPLIER = 'supplier',
 	CUSTOMER = 'customer',
+	PARTNER = 'partner',
 	UNIT = 'unit',
 	EXPENSE = 'expense',
 }

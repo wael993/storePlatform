@@ -106,8 +106,30 @@ interface CustomersResponse extends APIResponse<Customer> {}
 interface CurrenciesResponse extends APIResponse<Currency> {}
 interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
+
+interface PartnersResponse extends APIResponse<Partner> {}
 interface ExpensesResponse extends APIResponse<Expense> {}
 interface DailyActionResponse extends APIResponse<DailyAction> {}
+
+interface Partner {
+	partnerId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+	actions?: DailyAction[]
+	relatedActions?: DailyAction[]
+}
 
 interface Supplier {
 	supplierId: string

@@ -27,6 +27,7 @@ interface CreateAPIResponse {
 
 interface CreateProductAPIResponse extends CreateAPIResponse {}
 interface CreateSupplierAPIResponse extends CreateAPIResponse {}
+interface CreatePartnerAPIResponse extends CreateAPIResponse {}
 interface CreateCustomerAPIResponse extends CreateAPIResponse {}
 interface CreateExpenseAPIResponse extends CreateAPIResponse {}
 interface CreateCurrencyAPIResponse extends CreateAPIResponse {}
@@ -35,6 +36,7 @@ interface UpdateExpenseAPIResponse extends CreateAPIResponse {}
 
 interface ProductsAPIResponse extends APIResponse<Product> {}
 interface SuppliersAPIResponse extends APIResponse<Supplier> {}
+interface PartnersAPIResponse extends APIResponse<Partner> {}
 interface CustomersAPIResponse extends APIResponse<Customer> {}
 interface ExpensesAPIResponse extends APIResponse<Expense> {}
 interface CurrenciesAPIResponse extends APIResponse<Currency> {}
@@ -48,7 +50,7 @@ interface BudgetOverviewAPIResponse {
 	balance: string
 }
 interface BudgetOverviewQueryArgument {
-	entityType: 'customer' | 'supplier'
+	entityType: 'customer' | 'supplier' | 'partner'
 	id: string
 }
 interface UserSettings {
@@ -126,6 +128,24 @@ interface Expense {
 	relatedActions?: DailyAction[]
 }
 
+interface Partner {
+	partnerId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+	relatedActions?: DailyAction[]
+}
 interface Customer {
 	customerId: string
 	name: string

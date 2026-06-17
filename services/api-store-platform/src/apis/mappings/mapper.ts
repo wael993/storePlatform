@@ -1,4 +1,41 @@
-import { Customer, Supplier } from '../../shared/types/api'
+import { Customer, Partner, Supplier } from '../../shared/types/api'
+
+export const mapPartners = (partners: Partner[]) => {
+	const mappedPartners = partners.map(partner => {
+		const actions = partner.actions ?? []
+
+		return {
+			partnerId: partner.partnerId,
+			name: partner.name,
+			internalCode: partner.internalCode,
+			createdAt: partner.createdAt,
+			updatedAt: partner.updatedAt,
+			createdBy: partner.createdBy,
+			updatedBy: partner.updatedBy,
+			relatedActions: actions.map(action => ({
+				actionId: action.actionId,
+				entryType: action.entryType,
+				productId: action.productId,
+				invoiceNumber: action.invoiceNumber,
+				invoiceDate: action.invoiceDate,
+				productName: action.productName,
+				supplierId: action.supplierId,
+				supplierName: action.supplierName,
+				customerId: action.customerId,
+				customerName: action.customerName,
+				currencyId: action.currencyId,
+				currencyName: action.currencyName,
+				unitId: action.unitId,
+				unitName: action.unitName,
+				weight: action.weight,
+				singleUnitPrice: action.singleUnitPrice,
+				totalPrice: action.totalPrice,
+				note: action.note,
+			})),
+		}
+	})
+	return mappedPartners
+}
 
 export const mapCustomers = (customers: Customer[]) => {
 	const mappedCustomers = customers.map(customer => {

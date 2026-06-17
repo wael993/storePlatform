@@ -44,6 +44,10 @@ export const TicketStatus = ({
 			translationKey: 'common.supplier',
 			color: '#E7CB3A',
 		},
+		[TargetType.PARTNER]: {
+			translationKey: 'common.partner',
+			color: '#9B59B6',
+		},
 		[TargetType.PRODUCT]: {
 			translationKey: 'common.product',
 			color: '#36CE4E',

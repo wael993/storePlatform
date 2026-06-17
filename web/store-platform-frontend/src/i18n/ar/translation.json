@@ -204,7 +204,20 @@
 			"createdAt": "تاريخ الإنشاء"
 		}
 	},
+	"partner": {
+		"errorLoadingPartner": "حدث خطأ أثناء تحميل الشريك. يرجى المحاولة مرة أخرى!",
+		"list": {
+			"name": "اسم الشريك",
+			"internalCode": "رمز الشريك",
+			"createdAt": "تاريخ الإنشاء"
+		}
+	},
 	"components": {
+		"partner": {
+			"addPartner": "إضافة شريك",
+			"partnerName": "اسم الشريك",
+			"partnerCode": "رمز الشريك"
+		},
 		"budgetOverview": {
 			"tooltip": "نظرة عامة مختصرة على ميزانية العميل.",
 			"text": "نظرة عامة على الميزانية",
@@ -302,7 +315,9 @@
 			"users": "المستخدمون",
 			"tenants": "المستأجرون",
 			"customers": "العملاء",
-			"suppliers": "الموردون"
+			"suppliers": "الموردون",
+			"partners": "الشركاء",
+			"partner": "الشريك"
 		},
 		"activitySettingsSection": {
 			"title": "المنتجات لكل صفحة"
@@ -417,9 +432,11 @@
 		"addProduct": "إضافة منتج",
 		"addCustomer": "إضافة عميل",
 		"addSupplier": "إضافة مورد",
+		"addPartner": "إضافة شريك",
 		"product": "المنتج",
 		"supplier": "المورد",
 		"customer": "العميل",
+		"partner": "الشريك",
 		"dailyAction": "إجراء يومي",
 		"expense": "النفقات",
 		"currency": "العملة",

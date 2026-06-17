@@ -50,6 +50,12 @@
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
+		"/partners": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
 		"/expenses": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
@@ -130,6 +136,15 @@
 				"canAddSupplier",
 				"canEditSupplier",
 				"canDeleteSupplier"
+			]
+		},
+		"/services/store_platform/partners": {
+			"access": true,
+			"allowedActions": [
+				"seePartner",
+				"canAddPartner",
+				"canEditPartner",
+				"canDeletePartner"
 			]
 		}
 	}

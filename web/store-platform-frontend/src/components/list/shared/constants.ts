@@ -20,6 +20,13 @@ export const PROMOTION_LIST_WIDTHS_MAP_IN_REM = {
 	COLOR: 6,
 } as const
 
+export const PARTNER_LIST_WIDTHS_MAP_IN_REM = {
+	CHECKBOX: 2,
+	NAME: 12,
+	INTERNAL_CODE: 12,
+	CREATED_AT: 10,
+	STICKY_RIGHT: 15,
+} as const
 export const SUPPLIER_LIST_WIDTHS_MAP_IN_REM = {
 	CHECKBOX: 2,
 	NAME: 12,

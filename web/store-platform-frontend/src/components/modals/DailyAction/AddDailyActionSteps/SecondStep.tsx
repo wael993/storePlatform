@@ -26,6 +26,7 @@ interface SecondStepProps {
 	formData: Partial<DailyAction> | undefined
 	productLines: DailyActionProductLine[]
 	expenses: Expense[]
+	partners: Partner[]
 	products: Product[]
 	suppliers: Supplier[]
 	customers: Customer[]
@@ -64,6 +65,7 @@ const SecondStep = ({
 	isPaymentEntry,
 	isExpenseEntry,
 	expenses,
+	partners,
 	formData,
 	productLines,
 	products,
@@ -138,6 +140,27 @@ const SecondStep = ({
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
 		[products],
+	)
+
+	const partnerOptions = useMemo<DropdownOption[]>(
+		() =>
+			partners
+				.map(partner => ({
+					value: partner.partnerId ?? partner.internalCode,
+					label: partner.name ?? partner.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[partners],
+	)
+	const expenseOptions = useMemo<DropdownOption[]>(
+		() =>
+			expenses
+				.map(expense => ({
+					value: expense.expenseId ?? expense.internalCode,
+					label: expense.name ?? expense.internalCode ?? 'TBD',
+				}))
+				.filter((option): option is DropdownOption => Boolean(option.value)),
+		[expenses],
 	)
 
 	useEffect(() => {
@@ -371,9 +394,10 @@ const SecondStep = ({
 									>
 										<Text fontWeight={700}>
 											{t('components.daily.productLines', {
-												defaultValue: productLines.find(
-													pl => pl.id === productLine.id,
-												)?.productName,
+												defaultValue:
+													productLines.find(pl => pl.id === productLine.id)
+														?.productName ?? t('common.productName'),
+
 												number: index + 1,
 											})}
 										</Text>
@@ -518,7 +542,7 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.supplierName')}
-										dropDownOptions={supplierOptions}
+										dropDownOptions={[...partnerOptions, ...supplierOptions]}
 										selectedValues={
 											formData?.supplierId ? [formData.supplierId] : []
 										}
@@ -527,7 +551,7 @@ const SecondStep = ({
 												'supplierId',
 												'supplierName',
 												values,
-												supplierOptions,
+												[...partnerOptions, ...supplierOptions],
 											)
 										}
 									/>
@@ -542,7 +566,7 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.customerName')}
-										dropDownOptions={customerOptions}
+										dropDownOptions={[...partnerOptions, ...customerOptions]}
 										selectedValues={
 											formData?.customerId ? [formData.customerId] : []
 										}
@@ -551,7 +575,7 @@ const SecondStep = ({
 												'customerId',
 												'customerName',
 												values,
-												customerOptions,
+												[...partnerOptions, ...customerOptions],
 											)
 										}
 									/>
@@ -565,23 +589,15 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.expenseName')}
-										dropDownOptions={expenses.map(expense => ({
-											value: expense.expenseId ?? expense.internalCode,
-											label: expense.name ?? expense.internalCode ?? 'TBD',
-										}))}
+										dropDownOptions={[...partnerOptions, ...expenseOptions]}
 										selectedValues={
 											formData?.expenseId ? [formData.expenseId] : []
 										}
 										onSelect={(values: string[]) =>
-											handleDropdownChange(
-												'expenseId',
-												'expenseName',
-												values,
-												expenses.map(expense => ({
-													value: expense.expenseId ?? expense.internalCode,
-													label: expense.name ?? expense.internalCode ?? 'TBD',
-												})),
-											)
+											handleDropdownChange('expenseId', 'expenseName', values, [
+												...partnerOptions,
+												...expenseOptions,
+											])
 										}
 									/>
 								</Box>

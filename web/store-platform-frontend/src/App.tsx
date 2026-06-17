@@ -26,9 +26,11 @@ import { RoutePaths } from './shared/routes'
 
 import SupplierPage from './components/supplier/SupplierPage'
 import CustomerPage from './components/customer/CustomerPage'
+import PartnerPage from './components/partner/PartnerPage'
 import DailyPage from './components/daily/DailyPage'
 import CustomerModal from './components/customer/CustomerModal'
 import SupplierModal from './components/supplier/SupplierModal'
+import PartnerModal from './components/partner/PartnerModal'
 // import { useGetUserFrontendResourcesQuery } from './api/apiStore'
 // import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
 // import { skipToken } from '@reduxjs/toolkit/dist/query/react'
@@ -68,6 +70,7 @@ const App = () => {
 		isSettingsEnabled,
 		isCustomersEnabled,
 		isSuppliersEnabled,
+		isPartnersEnabled,
 	} = getEnabledActions()
 
 	const {
@@ -82,6 +85,7 @@ const App = () => {
 		isTenantSettingsEnabled,
 		isTenantCustomersEnabled,
 		isTenantSuppliersEnabled,
+		isTenantPartnersEnabled,
 	} = getTenantActions()
 
 	return (
@@ -156,6 +160,18 @@ const App = () => {
 								<Route
 									path={RoutePaths.SINGLE_SUPPLIER}
 									element={<SupplierModal targetType={TargetType.SUPPLIER} />}
+								/>
+							</>
+						)}
+						{isPartnersEnabled && isTenantPartnersEnabled && (
+							<>
+								<Route
+									path={RoutePaths.PARTNERS}
+									element={<PartnerPage targetType={TargetType.PARTNER} />}
+								/>
+								<Route
+									path={RoutePaths.SINGLE_PARTNER}
+									element={<PartnerModal targetType={TargetType.PARTNER} />}
 								/>
 							</>
 						)}

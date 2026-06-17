@@ -8,8 +8,6 @@ import {
 	ModalBody,
 	Button,
 	ModalFooter,
-	Spinner,
-	Box,
 	useDisclosure,
 	Tooltip,
 	ModalCloseButton,
@@ -129,6 +127,7 @@ const AddDailyActionModal = ({
 		suppliers,
 		customers,
 		expenses,
+		partners,
 		currency,
 	} = useDailyActionHandlers({ shouldLoadOptions: isOpen })
 
@@ -158,7 +157,17 @@ const AddDailyActionModal = ({
 			resetProductLines()
 			setStep(StepKeys.ACTION_TYPE)
 		}
-	}, [isOpen, resetProductLines, setEntryType, setFormData, setStep])
+	}, [isOpen, setEntryType, setFormData, setStep])
+
+	// useEffect(() => {
+	// 	if (!isOpen) {
+	// 		setEntryType([])
+	// 		setFormData(undefined)
+	// 		setNewDailyAction(undefined)
+	// 		resetProductLines()
+	// 		setStep(StepKeys.ACTION_TYPE)
+	// 	}
+	// }, [isOpen, resetProductLines, setEntryType, setFormData, setStep])
 
 	useEffect(() => {
 		setShouldLeavingBeQuestioned(!isEqual(formData, undefined))
@@ -188,6 +197,18 @@ const AddDailyActionModal = ({
 		if (targetType === TargetType.SUPPLIER) {
 			return [
 				{ value: DailyActionType.BUYING_ENTRY, label: t('common.buyingEntry') },
+				{
+					value: DailyActionType.PAYMENT_ENTRY,
+					label: t('common.paymentEntry'),
+				},
+			]
+		}
+		if (targetType === TargetType.PARTNER) {
+			return [
+				{
+					value: DailyActionType.RECEIPT_ENTRY,
+					label: t('common.receiptEntry'),
+				},
 				{
 					value: DailyActionType.PAYMENT_ENTRY,
 					label: t('common.paymentEntry'),
@@ -232,6 +253,7 @@ const AddDailyActionModal = ({
 	}
 
 	const isNextButtonDisabled = useMemo(() => {
+		if (!isAllDataLoaded) return true
 		if (step === StepKeys.ACTION_TYPE) {
 			return !entryType.length
 		}
@@ -272,11 +294,7 @@ const AddDailyActionModal = ({
 			) {
 				return true
 			}
-			return (
-				!formData?.currencyId ||
-				!formData?.unitId ||
-				!totalPrice
-			)
+			return !formData?.currencyId || !formData?.unitId || !totalPrice
 		}
 	}, [
 		step,
@@ -288,6 +306,7 @@ const AddDailyActionModal = ({
 		formData?.currencyId,
 		formData?.unitId,
 		formData?.singleUnitPrice,
+		isAllDataLoaded,
 		isReceiptEntry,
 		isExpenseEntry,
 		isBuyingEntry,
@@ -358,60 +377,55 @@ const AddDailyActionModal = ({
 						/>
 					</ModalHeader>
 					<ModalBody sx={styles.body}>
-						{!isAllDataLoaded ? (
-							<Box sx={styles.spinnerContainer}>
-								<Spinner />
-							</Box>
-						) : (
-							<>
-								<Text sx={styles.bodyHeading}>{bodyHeading}</Text>
-								{/* 1st Step */}
-								{step === StepKeys.ACTION_TYPE && (
-									<FirstStep
-										actionEntryTypesOptions={actionEntryTypesOptions}
-										entryType={entryType}
-										setEntryType={handleEntryTypeChange}
-									/>
-								)}
-								{/* 2nd Step */}
-								{step === StepKeys.ACTION_DATA && (
-									<SecondStep
-										entryTargetId={entryTargetId}
-										isBuyingEntry={isBuyingEntry}
-										isSellingEntry={isSellingEntry}
-										isReceiptEntry={isReceiptEntry}
-										isPaymentEntry={isPaymentEntry}
-										isExpenseEntry={isExpenseEntry}
-										formData={formData}
-										productLines={productLines}
-										products={products}
-										suppliers={suppliers}
-										customers={customers}
-										expenses={expenses}
-										currency={currency}
-										unit={unit}
-										totalPrice={totalPrice ?? ''}
-										handleDropdownChange={handleDropdownChange}
-										handleInputChange={handleInputChange}
-										handleProductLineDropdownChange={
-											handleProductLineDropdownChange
-										}
-										handleProductLineInputChange={handleProductLineInputChange}
-										addProductLine={addProductLine}
-										removeProductLine={removeProductLine}
-									/>
-								)}
+						<>
+							<Text sx={styles.bodyHeading}>{bodyHeading}</Text>
+							{/* 1st Step */}
+							{step === StepKeys.ACTION_TYPE && (
+								<FirstStep
+									actionEntryTypesOptions={actionEntryTypesOptions}
+									entryType={entryType}
+									setEntryType={handleEntryTypeChange}
+								/>
+							)}
+							{/* 2nd Step */}
+							{step === StepKeys.ACTION_DATA && (
+								<SecondStep
+									entryTargetId={entryTargetId}
+									isBuyingEntry={isBuyingEntry}
+									isSellingEntry={isSellingEntry}
+									isReceiptEntry={isReceiptEntry}
+									isPaymentEntry={isPaymentEntry}
+									isExpenseEntry={isExpenseEntry}
+									formData={formData}
+									productLines={productLines}
+									products={products}
+									suppliers={suppliers}
+									customers={customers}
+									expenses={expenses}
+									partners={partners}
+									currency={currency}
+									unit={unit}
+									totalPrice={totalPrice ?? ''}
+									handleDropdownChange={handleDropdownChange}
+									handleInputChange={handleInputChange}
+									handleProductLineDropdownChange={
+										handleProductLineDropdownChange
+									}
+									handleProductLineInputChange={handleProductLineInputChange}
+									addProductLine={addProductLine}
+									removeProductLine={removeProductLine}
+								/>
+							)}
 
-								{/* 3rd Step */}
-								{step === StepKeys.ACTION_SUMMARY && (
-									<ThirdStep
-										formData={formData}
-										productLines={productLines}
-										handleInputChange={handleInputChange}
-									/>
-								)}
-							</>
-						)}
+							{/* 3rd Step */}
+							{step === StepKeys.ACTION_SUMMARY && (
+								<ThirdStep
+									formData={formData}
+									productLines={productLines}
+									handleInputChange={handleInputChange}
+								/>
+							)}
+						</>
 					</ModalBody>
 					<ModalFooter sx={styles.footer}>
 						{step === StepKeys.ACTION_TYPE ? (

@@ -203,6 +203,14 @@
 			"createdAt": "Erstellt am"
 		}
 	},
+	"partner": {
+		"errorLoadingPartner": "Beim Laden des Partners ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut!",
+		"list": {
+			"name": "Partnername",
+			"internalCode": "Partnercode",
+			"createdAt": "Erstellt am"
+		}
+	},
 	"components": {
 		"budgetOverview": {
 			"tooltip": "Die Budgetübersicht ist eine Zusammenfassung des Budgets für den Kunden.",
@@ -297,7 +305,9 @@
 			"users": "Benutzer",
 			"tenants": "Mandanten",
 			"customers": "Kunden",
-			"suppliers": "Lieferanten"
+			"suppliers": "Lieferanten",
+			"partners": "Partner",
+			"partner": "Partner"
 		},
 		"activitySettingsSection": {
 			"title": "Produkte pro Seite"
@@ -412,9 +422,11 @@
 		"addProduct": "Produkt hinzufügen",
 		"addCustomer": "Kunde hinzufügen",
 		"addSupplier": "Lieferant hinzufügen",
+		"addPartner": "Partner hinzufügen",
 		"product": "Produkt",
 		"supplier": "Lieferant",
 		"customer": "Kunde",
+		"partner": "Partner",
 		"dailyAction": "Tagesaktion",
 		"expense": "Ausgabe",
 		"currency": "Währung",

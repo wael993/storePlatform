@@ -7,6 +7,7 @@ import {
 	useCreateCurrencyMutation,
 	useCreateCustomerMutation,
 	useCreateExpenseMutation,
+	useCreatePartnerMutation,
 	useCreateSupplierMutation,
 	useCreateUnitMutation,
 	usePostProductMutation,
@@ -66,6 +67,8 @@ const DailyActionsHelperButtons = () => {
 	const [createCurrency, { isLoading: isCurrencyLoading }] =
 		useCreateCurrencyMutation()
 	const [createUnit, { isLoading: isUnitLoading }] = useCreateUnitMutation()
+	const [createPartner, { isLoading: isPartnerLoading }] =
+		useCreatePartnerMutation()
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
 		setFormData(prev => ({
@@ -101,7 +104,8 @@ const DailyActionsHelperButtons = () => {
 		isCustomerLoading ||
 		isExpenseLoading ||
 		isCurrencyLoading ||
-		isUnitLoading
+		isUnitLoading ||
+		isPartnerLoading
 
 	const actions: Record<AddQuickModalType, (data: FormData) => Promise<void>> =
 		{
@@ -205,6 +209,19 @@ const DailyActionsHelperButtons = () => {
 							internalCode: (code.trim() || value).toUpperCase(),
 						}).unwrap(),
 					t('components.daily.errors.addUnitFailed'),
+				)
+			},
+
+			partner: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createPartner({
+							name: value,
+							internalCode: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					t('components.daily.errors.addPartnerFailed'),
 				)
 			},
 		}

@@ -25,6 +25,7 @@ type AddQuickModalType =
 	| 'customer'
 	| 'unit'
 	| 'expense'
+	| 'partner'
 type UserRoles = 'owner' | 'admin' | 'cashier' | 'employee' | 'super_admin'
 type InputType = 'number' | 'text' | 'email' | 'text-area' | 'date'
 type EntryActionType =

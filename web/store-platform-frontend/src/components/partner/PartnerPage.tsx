@@ -7,7 +7,7 @@ import {
 	Spinner,
 	Text,
 	useDisclosure,
-} from '@chakra-ui/icons'
+} from '@chakra-ui/react'
 import React, { useMemo, useState } from 'react'
 
 import { AddSquareIcon } from '../icons/AddSquare'
@@ -24,10 +24,10 @@ import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import CustomerListWithActionBar from './list/CustomerListWithActionBar'
+import PartnerListWithActionBar from './list/PartnerListWithActionBar'
 import {
-	useCreateCustomerMutation,
-	useGetCustomersQuery,
+	useCreatePartnerMutation,
+	useGetPartnersQuery,
 } from '../../api/apiStore'
 import AddQuickModal from '../modals/AddQuickModal'
 
@@ -73,14 +73,15 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
-interface CustomerPageProps {
+interface PartnerPageProps {
 	targetType: TargetType
 }
 type FormData = {
 	code: string
 	value: string
 }
-const CustomerPage = ({ targetType }: CustomerPageProps) => {
+
+const PartnerPage = ({ targetType }: PartnerPageProps) => {
 	const [formData, setFormData] = useState<FormData>({
 		code: '',
 		value: '',
@@ -91,11 +92,11 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
-	const { data: customersResponse = [], isLoading: isCustomersLoading } =
-		useGetCustomersQuery({})
-	const [createCustomer, { isLoading: isCustomerLoading }] =
-		useCreateCustomerMutation()
-	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
+	const { data: partnersResponse = [], isLoading: isPartnersLoading } =
+		useGetPartnersQuery({})
+	const [createPartner, { isLoading: isPartnerLoading }] =
+		useCreatePartnerMutation()
+	const partners = useMemo(() => partnersResponse ?? [], [partnersResponse])
 
 	const handleInputChange = (field: 'value' | 'code', value: string) => {
 		setFormData(prev => ({
@@ -103,12 +104,10 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 			[field]: value,
 		}))
 	}
-
-	const handlePostNewCustomer = async (data: FormData) => {
-		await createCustomer({
+	const handlePostNewPartner = async (data: FormData) => {
+		await createPartner({
 			name: data.value,
 			internalCode: data.code,
-			sold: 0,
 		}).unwrap()
 		setFormData({ code: '', value: '' })
 		onClose()
@@ -119,15 +118,15 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 			<Flex sx={styles.header}>
 				<CustomBreadcrumb
 					marginTop="2rem"
-					items={breadCrumbItems[BreadCrumbItem.CUSTOMERS]}
+					items={breadCrumbItems[BreadCrumbItem.PARTNERS]}
 				/>
 			</Flex>
 
 			<HStack justify="space-between" mb={'4rem'}>
 				<Heading sx={styles.title} variant={'h5'}>
-					{t('components.pageHeaders.customers')}
+					{t('components.pageHeaders.partners')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_CUSTOMER) && isOwnerOrAdmin && (
+				{isActionAllowed(AllowedActions.CAN_ADD_PARTNER) && isOwnerOrAdmin && (
 					<Button
 						leftIcon={<AddSquareIcon />}
 						onClick={onOpen}
@@ -135,32 +134,33 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 						variant="ghost"
 					>
 						<Text sx={styles.addProductButtonText}>
-							{t('common.addCustomer')}
+							{t('common.addPartner')}
 						</Text>
 					</Button>
 				)}
 			</HStack>
 
-			{isCustomersLoading && <Spinner />}
+			{isPartnersLoading && <Spinner />}
 			<Box sx={styles.divider} />
 
-			<CustomerListWithActionBar
-				customers={customers as Customer[]}
-				isLoading={isCustomersLoading}
+			<PartnerListWithActionBar
+				partners={partners as Partner[]}
+				isLoading={isPartnersLoading}
 			/>
+
 			<AddQuickModal
 				handleInputChange={handleInputChange}
 				isOpen={isOpen}
-				modalType={AddQuickStateEnum.CUSTOMER}
+				modalType={AddQuickStateEnum.PARTNER}
 				onClose={onClose}
-				isLoading={isCustomerLoading}
+				isLoading={isPartnerLoading}
 				setFormData={setFormData}
 				inputValue={formData}
-				handleQuickAdd={handlePostNewCustomer}
+				handleQuickAdd={handlePostNewPartner}
 				userHasAdminRole={isOwnerOrAdmin}
 			/>
 		</Flex>
 	)
 }
 
-export default CustomerPage
+export default PartnerPage
