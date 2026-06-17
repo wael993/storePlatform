@@ -24,6 +24,19 @@ type EntryType =
 	| 'RECEIPT_ENTRY'
 	| 'EXPENSE_ENTRY'
 
+interface PartnerDailyAction {
+	actionId: string
+	entryType: Partial<EntryType | 'PAYMENT_ENTRY' | 'RECEIPT_ENTRY'>
+	invoiceNumber?: string
+	invoiceDate: Date
+	partnerId?: string
+	partnerName?: string
+	currencyId: string
+	currencyName: string
+	singleUnitPrice?: string
+	totalPrice?: string
+	note?: string
+}
 interface CustomerDailyAction {
 	actionId: string
 	entryType: EntryType
@@ -48,6 +61,8 @@ interface CustomerDailyAction {
 }
 
 interface DailyAction {
+	partnerId?: string
+	partnerName?: string
 	actionId: string
 	entryType: EntryType
 	productId?: string
@@ -76,6 +91,8 @@ interface DailyActionRequestBody {
 	productName?: string
 	supplierId?: string
 	supplierName?: string
+	partnerId?: string
+	partnerName?: string
 	customerId?: string
 	customerName?: string
 	expenseId?: string
@@ -102,7 +119,7 @@ interface BudgetOverviewResponse {
 type CreateDailyActionResponse = {
 	_id: string
 }
-interface CustomersResponse extends APIResponse<Customer> {}
+interface CustomersResponse extends APIResponse<CustomerResponse> {}
 interface CurrenciesResponse extends APIResponse<Currency> {}
 interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
@@ -127,8 +144,30 @@ interface Partner {
 		displayName: string
 		updatedAt: string
 	}
-	actions?: DailyAction[]
-	relatedActions?: DailyAction[]
+	relatedActions?: PartnerDailyAction[]
+}
+
+export interface CustomerResponse {
+	customerId: string
+	name: string
+	internalCode?: string
+
+	createdAt?: string
+	updatedAt?: string
+
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+
+	relatedActions?: CustomerDailyAction[]
 }
 
 interface Supplier {
@@ -209,7 +248,6 @@ interface Currency {
 
 interface Customer {
 	customerId: string
-	sold: number
 	name: string
 	internalCode?: string
 	createdAt?: string
@@ -224,5 +262,5 @@ interface Customer {
 		displayName: string
 		updatedAt: string
 	}
-	actions?: CustomerDailyAction[]
+	relatedActions?: CustomerDailyAction[]
 }

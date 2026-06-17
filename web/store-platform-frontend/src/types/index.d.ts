@@ -47,6 +47,8 @@ interface DailyAction {
 	productName?: string
 	supplierId?: string
 	supplierName?: string
+	partnerId?: string
+	partnerName?: string
 	customerId?: string
 	customerName?: string
 	expenseId?: string

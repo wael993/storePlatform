@@ -165,7 +165,6 @@ const DailyActionsHelperButtons = () => {
 						createCustomer({
 							name: value,
 							internalCode: (code.trim() || value).toUpperCase(),
-							sold: 0,
 						}).unwrap(),
 					t('components.daily.errors.addCustomerFailed'),
 				)

@@ -149,7 +149,6 @@ interface Partner {
 interface Customer {
 	customerId: string
 	name: string
-	sold: number
 	internalCode?: string
 	createdAt?: string
 	updatedAt?: string

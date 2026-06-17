@@ -13,10 +13,7 @@ import {
 	AddDailyActionRequestBody,
 } from '../../../../api/apiStore'
 import { DailyActionType, StepKeys } from '../../../../shared/globalEnums'
-import {
-	formatNumberForDb,
-	mapFee,
-} from '../../../../shared/utils'
+import { formatNumberForDb, mapFee } from '../../../../shared/utils'
 import useCustomToast from '../../../common/CustomToast'
 
 export interface DailyActionProductLine {
@@ -71,7 +68,7 @@ export const useDailyActionHandlers = ({
 		useGetSuppliersQuery({}, { skip: !shouldLoadOptions })
 
 	const { data: customersResponse = [], isLoading: isCustomersLoading } =
-		useGetCustomersQuery({}, { skip: !shouldLoadOptions })
+		useGetCustomersQuery(undefined, { skip: !shouldLoadOptions })
 
 	const { data: currenciesResponse = [], isLoading: isCurrenciesLoading } =
 		useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
@@ -129,7 +126,10 @@ export const useDailyActionHandlers = ({
 		)
 	}, [productLinesWithTotals])
 
-	const totalPrice = useMemo(() => mapFee(totalPriceForDb) ?? '', [totalPriceForDb])
+	const totalPrice = useMemo(
+		() => mapFee(totalPriceForDb) ?? '',
+		[totalPriceForDb],
+	)
 
 	const handleDropdownChange = (
 		valueField: keyof DailyAction,
@@ -143,6 +143,65 @@ export const useDailyActionHandlers = ({
 			[valueField]: values[0],
 			[labelField]: label,
 		}))
+	}
+
+	const handlePartnerOrEntityDropdownChange = (
+		values: string[],
+		partnerOptions: DropdownOption[],
+		entityOptions: DropdownOption[],
+		entityIdField: 'supplierId' | 'customerId' | 'expenseId',
+		entityNameField: 'supplierName' | 'customerName' | 'expenseName',
+	) => {
+		const selectedValue = values[0]?.trim() ?? ''
+
+		if (!selectedValue) {
+			setFormData(prev => {
+				const {
+					partnerId: _partnerId,
+					partnerName: _partnerName,
+					[entityIdField]: _entityId,
+					[entityNameField]: _entityName,
+					...rest
+				} = prev ?? {}
+				return rest
+			})
+			return
+		}
+
+		const partner = partnerOptions.find(
+			option => option.value === selectedValue,
+		)
+		if (partner) {
+			setFormData(prev => {
+				const {
+					[entityIdField]: _entityId,
+					[entityNameField]: _entityName,
+					...rest
+				} = prev ?? {}
+				return {
+					...rest,
+					partnerId: partner.value,
+					partnerName: partner.label,
+				}
+			})
+			return
+		}
+
+		const entity = entityOptions.find(option => option.value === selectedValue)
+		if (entity) {
+			setFormData(prev => {
+				const {
+					partnerId: _partnerId,
+					partnerName: _partnerName,
+					...rest
+				} = prev ?? {}
+				return {
+					...rest,
+					[entityIdField]: entity.value,
+					[entityNameField]: entity.label,
+				}
+			})
+		}
 	}
 
 	const handleProductLineDropdownChange = (
@@ -228,18 +287,22 @@ export const useDailyActionHandlers = ({
 
 	const handleSaveDailyAction = async () => {
 		if (formData?.entryType) {
+			const optionalString = (value?: string) => value?.trim() || undefined
+
 			const sharedPayload: AddDailyActionRequestBody = {
 				entryType: formData.entryType,
-				supplierId: formData.supplierId ?? undefined,
-				supplierName: formData.supplierName ?? undefined,
-				customerId: formData.customerId ?? undefined,
-				customerName: formData.customerName ?? undefined,
-				expenseId: formData.expenseId ?? undefined,
-				expenseName: formData.expenseName ?? undefined,
+				supplierId: optionalString(formData.supplierId),
+				supplierName: optionalString(formData.supplierName),
+				partnerId: optionalString(formData.partnerId),
+				partnerName: optionalString(formData.partnerName),
+				customerId: optionalString(formData.customerId),
+				customerName: optionalString(formData.customerName),
+				expenseId: optionalString(formData.expenseId),
+				expenseName: optionalString(formData.expenseName),
 				currencyId: formData.currencyId ?? '',
 				currencyName: formData.currencyName ?? '',
-				unitId: formData.unitId ?? undefined,
-				unitName: formData.unitName ?? undefined,
+				unitId: optionalString(formData.unitId),
+				unitName: optionalString(formData.unitName),
 				singleUnitPrice:
 					formatNumberForDb(formData.singleUnitPrice ?? '', 2) ?? undefined,
 				invoiceNumber: formData.invoiceNumber ?? undefined,
@@ -271,7 +334,9 @@ export const useDailyActionHandlers = ({
 					]
 
 			try {
-				await Promise.all(payloads.map(payload => postDailyAction(payload).unwrap()))
+				await Promise.all(
+					payloads.map(payload => postDailyAction(payload).unwrap()),
+				)
 				showToastMessage({
 					status: 'success',
 					description: t('components.daily.actionSavedSuccessfully'),
@@ -290,6 +355,7 @@ export const useDailyActionHandlers = ({
 
 	return {
 		handleDropdownChange,
+		handlePartnerOrEntityDropdownChange,
 		setStep,
 		setFormData,
 		setEntryType,

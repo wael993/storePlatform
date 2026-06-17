@@ -244,12 +244,10 @@ const TopSection = ({
 
 	const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
 		useGetBudgetOverviewQuery(
-			budgetOverviewArgs ??
-				({
-					entityType: 'customer' as const,
-					id: '',
-				} satisfies BudgetOverviewQueryArgument),
-			{ skip: !budgetOverviewArgs },
+			budgetOverviewArgs ?? ({} as BudgetOverviewQueryArgument),
+			{
+				skip: !budgetOverviewArgs,
+			},
 		)
 
 	const entryTargetId =

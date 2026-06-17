@@ -92,7 +92,7 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: customersResponse = [], isLoading: isCustomersLoading } =
-		useGetCustomersQuery({})
+		useGetCustomersQuery()
 	const [createCustomer, { isLoading: isCustomerLoading }] =
 		useCreateCustomerMutation()
 	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
@@ -108,7 +108,6 @@ const CustomerPage = ({ targetType }: CustomerPageProps) => {
 		await createCustomer({
 			name: data.value,
 			internalCode: data.code,
-			sold: 0,
 		}).unwrap()
 		setFormData({ code: '', value: '' })
 		onClose()

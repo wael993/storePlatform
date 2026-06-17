@@ -19,6 +19,7 @@ export class PlatformValidator {
 				productId,
 				productName,
 				supplierId,
+				partnerId,
 				customerId,
 				expenseId,
 				currencyId,
@@ -58,25 +59,31 @@ export class PlatformValidator {
 				if (!supplierId || !String(supplierId).trim()) {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-						'SupplierId is Missing',
+						'SupplierId  is Missing',
 					)
 				}
 			}
 
 			if (entryType === DailyActionType.PAYMENT_ENTRY) {
-				if (!supplierId || !String(supplierId).trim()) {
+				if (
+					(!supplierId || !String(supplierId).trim()) &&
+					(!partnerId || !String(partnerId).trim())
+				) {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-						'SupplierId is Missing',
+						'SupplierId or PartnerId is Missing',
 					)
 				}
 			}
 
 			if (entryType === DailyActionType.RECEIPT_ENTRY) {
-				if (!customerId || !String(customerId).trim()) {
+				if (
+					(!customerId || !String(customerId).trim()) &&
+					(!partnerId || !String(partnerId).trim())
+				) {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-						'CustomerId is Missing',
+						'CustomerId or PartnerId is Missing',
 					)
 				}
 			}
@@ -111,6 +118,49 @@ export class PlatformValidator {
 				throw new RequiredParameterMissingError(
 					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 					'One or more required fields are missing.',
+				)
+			}
+
+			next()
+		} catch (err: any) {
+			handleError(err, 400, res)
+		}
+	}
+
+	protected validateBudgetOverview(
+		req: express.Request,
+		res: express.Response,
+		next: express.NextFunction,
+	): void {
+		const { entityType, id } = req.params
+		try {
+			if (!entityType) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Entity type is required.',
+				)
+			}
+
+			if (!id) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Id is required.',
+				)
+			}
+
+			if (
+				!Object.values(['customer', 'supplier', 'partner']).includes(entityType)
+			) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Invalid entity type.',
+				)
+			}
+
+			if (!id || !String(id).trim()) {
+				throw new RequiredParameterMissingError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Id is required.',
 				)
 			}
 

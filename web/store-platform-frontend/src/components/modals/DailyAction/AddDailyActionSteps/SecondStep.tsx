@@ -39,6 +39,13 @@ interface SecondStepProps {
 		values: string[],
 		options: DropdownOption[],
 	) => void
+	handlePartnerOrEntityDropdownChange: (
+		values: string[],
+		partnerOptions: DropdownOption[],
+		entityOptions: DropdownOption[],
+		entityIdField: 'supplierId' | 'customerId' | 'expenseId',
+		entityNameField: 'supplierName' | 'customerName' | 'expenseName',
+	) => void
 	handleInputChange: (field: 'singleUnitPrice' | 'note', value: string) => void
 	handleProductLineDropdownChange: (
 		lineId: string,
@@ -75,6 +82,7 @@ const SecondStep = ({
 	unit,
 	totalPrice,
 	handleDropdownChange,
+	handlePartnerOrEntityDropdownChange,
 	handleInputChange,
 	handleProductLineDropdownChange,
 	handleProductLineInputChange,
@@ -214,7 +222,22 @@ const SecondStep = ({
 			return
 		}
 
-		if (formData?.customerId) {
+		if (formData?.customerId || formData?.partnerId) {
+			hasInitializedCustomer.current = true
+			return
+		}
+
+		const defaultPartner = partnerOptions.find(
+			option => option.value === entryTargetId,
+		)
+		if (defaultPartner) {
+			handlePartnerOrEntityDropdownChange(
+				[defaultPartner.value],
+				partnerOptions,
+				customerOptions,
+				'customerId',
+				'customerName',
+			)
 			hasInitializedCustomer.current = true
 			return
 		}
@@ -235,9 +258,12 @@ const SecondStep = ({
 		customerOptions,
 		entryTargetId,
 		formData?.customerId,
+		formData?.partnerId,
 		handleDropdownChange,
+		handlePartnerOrEntityDropdownChange,
 		isReceiptEntry,
 		isSellingEntry,
+		partnerOptions,
 	])
 
 	useEffect(() => {
@@ -249,7 +275,22 @@ const SecondStep = ({
 			return
 		}
 
-		if (formData?.supplierId) {
+		if (formData?.supplierId || formData?.partnerId) {
+			hasInitializedSupplier.current = true
+			return
+		}
+
+		const defaultPartner = partnerOptions.find(
+			option => option.value === entryTargetId,
+		)
+		if (defaultPartner) {
+			handlePartnerOrEntityDropdownChange(
+				[defaultPartner.value],
+				partnerOptions,
+				supplierOptions,
+				'supplierId',
+				'supplierName',
+			)
 			hasInitializedSupplier.current = true
 			return
 		}
@@ -269,9 +310,12 @@ const SecondStep = ({
 	}, [
 		entryTargetId,
 		formData?.supplierId,
+		formData?.partnerId,
 		handleDropdownChange,
+		handlePartnerOrEntityDropdownChange,
 		isBuyingEntry,
 		isPaymentEntry,
+		partnerOptions,
 		supplierOptions,
 	])
 
@@ -544,14 +588,19 @@ const SecondStep = ({
 										placeholder={t('common.supplierName')}
 										dropDownOptions={[...partnerOptions, ...supplierOptions]}
 										selectedValues={
-											formData?.supplierId ? [formData.supplierId] : []
+											formData?.partnerId
+												? [formData.partnerId]
+												: formData?.supplierId
+													? [formData.supplierId]
+													: []
 										}
 										onSelect={(values: string[]) =>
-											handleDropdownChange(
+											handlePartnerOrEntityDropdownChange(
+												values,
+												partnerOptions,
+												supplierOptions,
 												'supplierId',
 												'supplierName',
-												values,
-												[...partnerOptions, ...supplierOptions],
 											)
 										}
 									/>
@@ -568,14 +617,19 @@ const SecondStep = ({
 										placeholder={t('common.customerName')}
 										dropDownOptions={[...partnerOptions, ...customerOptions]}
 										selectedValues={
-											formData?.customerId ? [formData.customerId] : []
+											formData?.partnerId
+												? [formData.partnerId]
+												: formData?.customerId
+													? [formData.customerId]
+													: []
 										}
 										onSelect={(values: string[]) =>
-											handleDropdownChange(
+											handlePartnerOrEntityDropdownChange(
+												values,
+												partnerOptions,
+												customerOptions,
 												'customerId',
 												'customerName',
-												values,
-												[...partnerOptions, ...customerOptions],
 											)
 										}
 									/>
@@ -589,15 +643,17 @@ const SecondStep = ({
 									<Dropdown
 										isSingle={true}
 										placeholder={t('common.expenseName')}
-										dropDownOptions={[...partnerOptions, ...expenseOptions]}
+										dropDownOptions={expenseOptions}
 										selectedValues={
 											formData?.expenseId ? [formData.expenseId] : []
 										}
 										onSelect={(values: string[]) =>
-											handleDropdownChange('expenseId', 'expenseName', values, [
-												...partnerOptions,
-												...expenseOptions,
-											])
+											handleDropdownChange(
+												'expenseId',
+												'expenseName',
+												values,
+												expenseOptions,
+											)
 										}
 									/>
 								</Box>

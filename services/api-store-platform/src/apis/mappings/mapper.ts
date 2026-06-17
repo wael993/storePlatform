@@ -1,8 +1,45 @@
-import { Customer, Partner, Supplier } from '../../shared/types/api'
+import { CustomerDocument, PartnerDocument } from '../../shared/types'
+import { DailyActionType } from '../../shared/globalEnums'
+import {
+	Customer,
+	CustomerDailyAction,
+	CustomerResponse,
+	DailyAction,
+	EntryType,
+	Partner,
+	PartnerDailyAction,
+	Supplier,
+} from '../../shared/types/api'
+
+export const filterCustomerRelatedActions = (
+	actions: CustomerDailyAction[],
+	customer: Pick<CustomerDocument, 'customerId' | 'internalCode' | 'name'>,
+): CustomerDailyAction[] =>
+	actions.filter(
+		action =>
+			action.entryType !== DailyActionType.BUYING_ENTRY &&
+			(action.customerId === customer.customerId ||
+				action.customerId === customer.internalCode ||
+				action.customerName === customer.name),
+	)
+
+export const filterPartnerRelatedActions = (
+	actions: PartnerDailyAction[],
+	partner: Pick<PartnerDocument, 'partnerId' | 'internalCode' | 'name'>,
+): PartnerDailyAction[] =>
+	actions.filter(
+		action =>
+			action.entryType !== DailyActionType.BUYING_ENTRY &&
+			action.entryType !== DailyActionType.SELLING_ENTRY &&
+			action.entryType !== DailyActionType.EXPENSE_ENTRY &&
+			(action.partnerId === partner.partnerId ||
+				action.partnerId === partner.internalCode ||
+				action.partnerName === partner.name),
+	)
 
 export const mapPartners = (partners: Partner[]) => {
 	const mappedPartners = partners.map(partner => {
-		const actions = partner.actions ?? []
+		const actions = partner.relatedActions ?? []
 
 		return {
 			partnerId: partner.partnerId,
@@ -14,20 +51,15 @@ export const mapPartners = (partners: Partner[]) => {
 			updatedBy: partner.updatedBy,
 			relatedActions: actions.map(action => ({
 				actionId: action.actionId,
-				entryType: action.entryType,
-				productId: action.productId,
+				entryType: action.entryType as Partial<
+					EntryType | 'PAYMENT_ENTRY' | 'RECEIPT_ENTRY'
+				>,
 				invoiceNumber: action.invoiceNumber,
 				invoiceDate: action.invoiceDate,
-				productName: action.productName,
-				supplierId: action.supplierId,
-				supplierName: action.supplierName,
-				customerId: action.customerId,
-				customerName: action.customerName,
+				partnerId: action.partnerId,
+				partnerName: action.partnerName,
 				currencyId: action.currencyId,
 				currencyName: action.currencyName,
-				unitId: action.unitId,
-				unitName: action.unitName,
-				weight: action.weight,
 				singleUnitPrice: action.singleUnitPrice,
 				totalPrice: action.totalPrice,
 				note: action.note,
@@ -37,50 +69,66 @@ export const mapPartners = (partners: Partner[]) => {
 	return mappedPartners
 }
 
-export const mapCustomers = (customers: Customer[]) => {
-	const mappedCustomers = customers.map(customer => {
-		const actions = customer.actions ?? []
+export const mapCustomerAction = (
+	action: CustomerDailyAction,
+): CustomerDailyAction => ({
+	actionId: action.actionId,
+	entryType: action.entryType,
+	productId: action.productId,
+	invoiceNumber: action.invoiceNumber,
+	invoiceDate: action.invoiceDate,
+	productName: action.productName,
+	supplierId: action.supplierId,
+	supplierName: action.supplierName,
+	customerId: action.customerId,
+	customerName: action.customerName,
+	currencyId: action.currencyId,
+	currencyName: action.currencyName,
+	unitId: action.unitId,
+	unitName: action.unitName,
+	weight: action.weight,
+	singleUnitPrice: action.singleUnitPrice,
+	totalPrice: action.totalPrice,
+	note: action.note,
+})
 
-		const sold = actions.reduce((sum, action) => {
-			const raw = action.totalPrice ?? '0'
-			const price = parseFloat(raw.replace(/,/g, '')) || 0
+export const mapCustomers = (customers: Customer[]): CustomerResponse[] =>
+	customers.map(customer => ({
+		customerId: customer.customerId ?? customer.internalCode ?? '',
+		name: customer.name,
+		internalCode: customer.internalCode,
+		createdAt: customer.createdAt,
+		updatedAt: customer.updatedAt,
+		createdBy: customer.createdBy,
+		updatedBy: customer.updatedBy,
+		relatedActions: (customer.relatedActions ?? []).map(mapCustomerAction),
+	}))
 
-			return sum + price
-		}, 0)
-		return {
-			customerId: customer.customerId ?? customer.internalCode,
-			name: customer.name,
-			sold,
-			internalCode: customer.internalCode,
-			createdAt: customer.createdAt,
-			updatedAt: customer.updatedAt,
-			createdBy: customer.createdBy,
-			updatedBy: customer.updatedBy,
-			relatedActions: actions.map(action => ({
-				actionId: action.actionId,
-				entryType: action.entryType,
-				productId: action.productId,
-				invoiceNumber: action.invoiceNumber,
-				invoiceDate: action.invoiceDate,
-				productName: action.productName,
-				supplierId: action.supplierId,
-				supplierName: action.supplierName,
-				customerId: action.customerId,
-				customerName: action.customerName,
-				currencyId: action.currencyId,
-				currencyName: action.currencyName,
-				unitId: action.unitId,
-				unitName: action.unitName,
-				weight: action.weight,
-				singleUnitPrice: action.singleUnitPrice,
-				totalPrice: action.totalPrice,
-				note: action.note,
-			})),
-		}
-	})
-
-	return mappedCustomers
-}
+export const mapCustomer = (
+	customer: CustomerDocument,
+	relatedActions: CustomerDailyAction[] = [],
+): CustomerResponse => ({
+	customerId: customer.customerId ?? customer.internalCode ?? '',
+	name: customer.name,
+	internalCode: customer.internalCode,
+	createdAt: customer.createdAt?.toISOString(),
+	updatedAt: customer.updatedAt?.toISOString(),
+	createdBy: customer.createdBy
+		? {
+				_id: customer.createdBy._id,
+				displayName: customer.createdBy.displayName,
+				createdAt: customer.createdAt?.toISOString() ?? '',
+			}
+		: undefined,
+	updatedBy: customer.updatedBy
+		? {
+				_id: customer.updatedBy._id,
+				displayName: customer.updatedBy.displayName,
+				updatedAt: customer.updatedBy.updatedAt?.toISOString(),
+			}
+		: undefined,
+	relatedActions: relatedActions.map(mapCustomerAction),
+})
 
 export const mapSuppliers = (suppliers: Supplier[]) => {
 	const mappedSuppliers = suppliers.map(supplier => {
@@ -118,4 +166,31 @@ export const mapSuppliers = (suppliers: Supplier[]) => {
 	})
 
 	return mappedSuppliers
+}
+
+export const mapDailyAction = (dailyAction: DailyAction) => {
+	return {
+		actionId: dailyAction.actionId,
+		entryType: dailyAction.entryType,
+		productId: dailyAction.productId,
+		invoiceNumber: dailyAction.invoiceNumber,
+		invoiceDate: dailyAction.invoiceDate,
+		productName: dailyAction.productName,
+		supplierId: dailyAction.supplierId,
+		supplierName: dailyAction.supplierName,
+		partnerId: dailyAction.partnerId,
+		partnerName: dailyAction.partnerName,
+		customerId: dailyAction.customerId,
+		customerName: dailyAction.customerName,
+		expenseId: dailyAction.expenseId,
+		expenseName: dailyAction.expenseName,
+		currencyId: dailyAction.currencyId,
+		currencyName: dailyAction.currencyName,
+		unitId: dailyAction.unitId,
+		unitName: dailyAction.unitName,
+		weight: dailyAction.weight,
+		singleUnitPrice: dailyAction.singleUnitPrice,
+		totalPrice: dailyAction.totalPrice,
+		note: dailyAction.note,
+	}
 }

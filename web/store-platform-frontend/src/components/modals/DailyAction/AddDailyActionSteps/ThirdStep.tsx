@@ -91,7 +91,7 @@ const ThirdStep = ({
 				return [
 					{
 						label: t('common.customer'),
-						value: actionSummary?.customerName,
+						value: actionSummary?.partnerName ?? actionSummary?.customerName,
 					},
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
 					{
@@ -101,7 +101,10 @@ const ThirdStep = ({
 				]
 			case DailyActionType.PAYMENT_ENTRY:
 				return [
-					{ label: t('common.supplier'), value: actionSummary?.supplierName },
+					{
+						label: t('common.supplier'),
+						value: actionSummary?.partnerName ?? actionSummary?.supplierName,
+					},
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
 					{
 						label: t('common.amount'),
@@ -110,7 +113,10 @@ const ThirdStep = ({
 				]
 			case DailyActionType.EXPENSE_ENTRY:
 				return [
-					{ label: t('common.expense'), value: actionSummary?.expenseName },
+					{
+						label: t('common.expense'),
+						value: actionSummary?.partnerName ?? actionSummary?.expenseName,
+					},
 					{ label: t('common.currency'), value: actionSummary?.currencyName },
 					{
 						label: t('common.amount'),

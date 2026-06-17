@@ -30,37 +30,12 @@ interface VirtuosoContext {
 }
 
 const skeletonCustomer: Customer = {
-	sold: 0,
 	customerId: 'skeleton-id',
 	name: 'dummy',
-	barcode: 'dummy',
-	categoryName: 'dummy',
-	brandName: 'dummy',
-	customerName: 'dummy',
-	stock: {
-		quantity: 0,
-		minQuantity: 0,
-	},
-	price: {
-		buyCost: 0,
-		wholesale: 0,
-		retail: 0,
-		discount: 0,
-		currency: 'USD',
-		retailSale: 0,
-		wholesaleSale: 0,
-		semiWholesaleSales: 0,
-	},
-	location: {
-		warehouse: 'dummy',
-		shelf: 'dummy',
-	},
-	attributes: {
-		color: 'dummy',
-	},
+	internalCode: 'dummy',
+	createdAt: '2024-01-01T00:00:00.000Z',
 	updatedAt: '2024-01-01T00:00:00.000Z',
-	state: 'draft',
-} as Customer
+}
 
 const styles: StylesObject = {
 	mainBoxWrapper: {

@@ -179,15 +179,6 @@ const CustomerListItem = ({
 					</Skeleton>
 				</Flex>
 			</Td>
-			<Td sx={styles.tableRow}>
-				<Flex sx={styles.cellContentWrapper}>
-					<Skeleton isLoaded={!isLoading}>
-						<Text sx={{ ...styles.text, fontWeight: 500 }}>
-							{mapFee(customer.sold.toString())}
-						</Text>
-					</Skeleton>
-				</Flex>
-			</Td>
 
 			<Td sx={styles.tableRow}>
 				<Flex

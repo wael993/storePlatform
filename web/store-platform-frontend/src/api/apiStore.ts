@@ -80,6 +80,8 @@ export interface AddDailyActionRequestBody {
 	productName?: string
 	supplierId?: string
 	supplierName?: string
+	partnerId?: string
+	partnerName?: string
 	customerId?: string
 	customerName?: string
 	expenseId?: string
@@ -239,16 +241,14 @@ const getQuery = (
 			providesTags: ['supplier'],
 		}),
 
-		getCustomers: builder.query({
+		getCustomers: builder.query<Customer[], void>({
 			query: () => {
 				return {
 					url: 'customers',
 					method: 'GET',
 				}
 			},
-			transformResponse: (response: CustomersAPIResponse) => {
-				return response.data
-			},
+			transformResponse: (response: CustomersAPIResponse) => response.data,
 			providesTags: ['customers'],
 		}),
 
@@ -430,9 +430,9 @@ const getQuery = (
 
 		createCustomer: builder.mutation<
 			CreateCustomerAPIResponse,
-			Omit<Customer, 'customerId'>
+			Pick<Customer, 'name' | 'internalCode'>
 		>({
-			query: (newCustomer: Omit<Customer, 'customerId'>) => ({
+			query: (newCustomer: Pick<Customer, 'name' | 'internalCode'>) => ({
 				url: 'customers',
 				method: 'POST',
 				body: newCustomer,
@@ -675,11 +675,13 @@ const getQuery = (
 		}),
 
 		postDailyAction: builder.mutation<void, AddDailyActionRequestBody>({
-			query: (body: AddDailyActionRequestBody) => ({
-				url: 'daily-actions',
-				method: 'POST',
-				body,
-			}),
+			query: (body: AddDailyActionRequestBody) => {
+				return {
+					url: 'daily-actions',
+					method: 'POST',
+					body,
+				}
+			},
 			invalidatesTags: [
 				'daily-actions',
 				'budget-overview',
@@ -687,6 +689,8 @@ const getQuery = (
 				'customer',
 				'suppliers',
 				'supplier',
+				'partners',
+				'partner',
 			],
 		}),
 

@@ -1,6 +1,7 @@
 import { ca } from 'date-fns/locale'
 import { AuthorizedUser } from './authorization'
 import { TenantRole } from '../tenant'
+import { CustomerDailyAction } from './api'
 
 interface RequestContext {
 	authorization?: string
@@ -40,6 +41,11 @@ type CustomerRequestBody = {
 	customerId: string
 	name: string
 	internalCode?: string
+	relatedActions?: CustomerDailyAction[]
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
 }
 type ExpenseRequestBody = {
 	expenseId: string
@@ -344,6 +350,7 @@ interface UserAPIFormat {
 	displayName: string
 	avatarColorId?: number
 	role: TenantRole
+	createdAt?: Date
 }
 
 type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'

@@ -54,12 +54,10 @@ const DailyActionItem = memo(
 			: dailyAction.totalPrice
 
 		const supplierOrCustomer =
+			dailyAction.partnerName ??
 			dailyAction.supplierName ??
 			dailyAction.customerName ??
 			dailyAction.expenseName ??
-			dailyAction.supplierId ??
-			dailyAction.customerId ??
-			dailyAction.expenseId ??
 			'-'
 
 		const styles = {

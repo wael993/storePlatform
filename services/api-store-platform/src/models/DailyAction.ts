@@ -23,6 +23,8 @@ export interface IDailyAction extends Document {
 	productName?: string
 	supplierId?: string
 	supplierName?: string
+	partnerId?: string
+	partnerName?: string
 	customerId?: string
 	customerName?: string
 	expenseId?: string
@@ -90,6 +92,14 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			trim: true,
 		},
 		customerName: {
+			type: String,
+			trim: true,
+		},
+		partnerId: {
+			type: String,
+			trim: true,
+		},
+		partnerName: {
 			type: String,
 			trim: true,
 		},

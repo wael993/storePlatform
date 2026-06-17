@@ -163,15 +163,6 @@ const CustomerListItemMobil = ({
 				>
 					<Grid templateColumns="repeat(2, 1fr)" gap="6">
 						<GridItem sx={styles.listItemGridItem}>
-							<Text sx={styles.titleText}>{t('components.customer.sold')}</Text>
-							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.valueText}>
-									{withNoValueFallback(mapFee(customer.sold?.toString()))}
-								</Text>
-							</Skeleton>
-						</GridItem>
-
-						<GridItem sx={styles.listItemGridItem}>
 							<Text sx={styles.titleText}>
 								{t('components.customer.createdAt')}
 							</Text>

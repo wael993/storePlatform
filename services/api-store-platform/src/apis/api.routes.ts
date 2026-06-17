@@ -27,6 +27,7 @@ import {
 import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
 import { format } from 'date-fns'
+import { TargetType } from '../shared/globalEnums'
 // import { loginRateLimiter, refreshRateLimiter } from '../middleware/rateLimiter'
 
 type ProductFilterQuery = {
@@ -630,6 +631,7 @@ export default class StoreRoutes extends PlatformValidator {
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
+				this.validateBudgetOverview.bind(this),
 				this.getBudgetOverview.bind(this),
 			)
 
@@ -1034,6 +1036,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getCustomers(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1179,17 +1182,13 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
-		const entityType = request.params.entityType
+		const targetType = request.params.entityType
+		const targetId = request.params.id
 
 		try {
-			if (entityType !== 'customer' && entityType !== 'supplier') {
-				response.status(400).json({ message: 'Invalid budget overview type' })
-				return
-			}
-
 			const resp = await this.productController.getBudgetOverview(
-				entityType,
-				request.params.id,
+				targetType as TargetType,
+				targetId,
 				requestContext,
 			)
 
@@ -1298,7 +1297,6 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const productId = request.params._id
-		console.log('🚀 ~ StoreRoutes ~ patchProduct ~ productId:', productId)
 		const requestBody = request.body
 		const requestContext = this.getRequestContext(request)
 

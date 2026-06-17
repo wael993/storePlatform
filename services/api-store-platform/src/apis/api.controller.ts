@@ -29,7 +29,15 @@ import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
-import { mapCustomers, mapPartners, mapSuppliers } from './mappings/mapper'
+import {
+	filterCustomerRelatedActions,
+	filterPartnerRelatedActions,
+	mapCustomer,
+	mapCustomers,
+	mapPartners,
+	mapSuppliers,
+	mapDailyAction,
+} from './mappings/mapper'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -70,12 +78,14 @@ import {
 	CreateDailyActionResponse,
 	CurrenciesResponse,
 	CustomerDailyAction,
+	CustomerResponse,
 	CustomersResponse,
 	DailyActionRequestBody,
 	DailyActionResponse,
 	EntryType,
 	ExpensesResponse,
 	LoginData,
+	PartnerDailyAction,
 	PartnersResponse,
 	SuppliersResponse,
 	UnitsResponse,
@@ -99,6 +109,7 @@ import { redisCache } from '../shared/cache/redisCache'
 import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
 import { Partner } from '../models/Partner'
+import { DailyActionType, TargetType } from '../shared/globalEnums'
 
 type TokenPayload = {
 	userId: string
@@ -121,29 +132,31 @@ type DailyActionFilterQuery = {
 	entryType?: string[]
 	productName?: string[]
 	supplier?: string[]
+	partner?: string[]
 	customer?: string[]
 	invoiceDateFrom?: string
 	invoiceDateTo?: string
 }
 
-type ProductFilterValueOption = {
+type FilterValueOption = {
 	value: string
 	label: string
 }
 
 type ProductFilterValuesResponse = {
-	supplier: ProductFilterValueOption[]
-	brand: ProductFilterValueOption[]
-	state: ProductFilterValueOption[]
-	category: ProductFilterValueOption[]
+	supplier: FilterValueOption[]
+	brand: FilterValueOption[]
+	state: FilterValueOption[]
+	category: FilterValueOption[]
 }
 
 type DailyActionFilterValuesResponse = {
-	entryType: ProductFilterValueOption[]
-	productName: ProductFilterValueOption[]
-	supplier: ProductFilterValueOption[]
-	customer: ProductFilterValueOption[]
-	expense: ProductFilterValueOption[]
+	entryType: FilterValueOption[]
+	productName: FilterValueOption[]
+	supplier: FilterValueOption[]
+	partner: FilterValueOption[]
+	customer: FilterValueOption[]
+	expense: FilterValueOption[]
 }
 
 type ProductFilterValueSource = {
@@ -162,6 +175,8 @@ type DailyActionFilterValueSource = {
 	productName?: string
 	supplierId?: string
 	supplierName?: string
+	partnerId?: string
+	partnerName?: string
 	customerId?: string
 	customerName?: string
 	expenseId?: string
@@ -192,8 +207,7 @@ type BudgetOverviewResponse = {
 	balance: string
 }
 
-type BudgetOverviewEntityType = 'customer' | 'supplier'
-
+type BudgetOverviewEntityType = 'customer' | 'supplier' | 'partner'
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -300,7 +314,7 @@ export default class ProductController {
 	}
 
 	private addFilterOption(
-		optionsMap: Map<string, ProductFilterValueOption>,
+		optionsMap: Map<string, FilterValueOption>,
 		value?: string,
 		label?: string,
 	): void {
@@ -322,8 +336,8 @@ export default class ProductController {
 	}
 
 	private buildSortedFilterOptions(
-		optionsMap: Map<string, ProductFilterValueOption>,
-	): ProductFilterValueOption[] {
+		optionsMap: Map<string, FilterValueOption>,
+	): FilterValueOption[] {
 		return Array.from(optionsMap.values()).sort((a, b) =>
 			a.label.localeCompare(b.label),
 		)
@@ -1049,10 +1063,10 @@ export default class ProductController {
 			tenantId,
 		)
 
-		const supplierMap = new Map<string, ProductFilterValueOption>()
-		const brandMap = new Map<string, ProductFilterValueOption>()
-		const categoryMap = new Map<string, ProductFilterValueOption>()
-		const stateMap = new Map<string, ProductFilterValueOption>()
+		const supplierMap = new Map<string, FilterValueOption>()
+		const brandMap = new Map<string, FilterValueOption>()
+		const categoryMap = new Map<string, FilterValueOption>()
+		const stateMap = new Map<string, FilterValueOption>()
 
 		for (const product of products) {
 			if (canAccessSupplierFilter) {
@@ -1710,6 +1724,7 @@ export default class ProductController {
 		const productNameRegexList = this.buildCaseInsensitiveRegexList(
 			filters.productName,
 		)
+		const partnerRegexList = this.buildCaseInsensitiveRegexList(filters.partner)
 		const supplierRegexList = this.buildCaseInsensitiveRegexList(
 			filters.supplier,
 		)
@@ -1754,6 +1769,14 @@ export default class ProductController {
 				],
 			})
 		}
+		if (partnerRegexList.length > 0) {
+			dailyActionQueryClauses.push({
+				$or: [
+					{ partnerId: { $in: partnerRegexList } },
+					{ partnerName: { $in: partnerRegexList } },
+				],
+			})
+		}
 
 		if (customerRegexList.length > 0) {
 			dailyActionQueryClauses.push({
@@ -1788,6 +1811,9 @@ export default class ProductController {
 				totalCount: dailyActions.length,
 			})
 		}
+		//TO_DO : map daily action
+
+		// const mappedDailyAction = mapDailyAction([dailyAction])
 		return {
 			data: dailyActions,
 			totalCount: dailyActions.length,
@@ -1807,11 +1833,12 @@ export default class ProductController {
 			tenantId,
 		)
 
-		const entryTypeMap = new Map<string, ProductFilterValueOption>()
-		const productNameMap = new Map<string, ProductFilterValueOption>()
-		const supplierMap = new Map<string, ProductFilterValueOption>()
-		const customerMap = new Map<string, ProductFilterValueOption>()
-		const expenseMap = new Map<string, ProductFilterValueOption>()
+		const entryTypeMap = new Map<string, FilterValueOption>()
+		const productNameMap = new Map<string, FilterValueOption>()
+		const supplierMap = new Map<string, FilterValueOption>()
+		const customerMap = new Map<string, FilterValueOption>()
+		const expenseMap = new Map<string, FilterValueOption>()
+		const partnerMap = new Map<string, FilterValueOption>()
 
 		for (const dailyAction of dailyActions) {
 			this.addFilterOption(
@@ -1845,6 +1872,11 @@ export default class ProductController {
 				dailyAction.expenseId || dailyAction.expenseName,
 				dailyAction.expenseName || dailyAction.expenseId,
 			)
+			this.addFilterOption(
+				partnerMap,
+				dailyAction.partnerId || dailyAction.partnerName,
+				dailyAction.partnerName || dailyAction.partnerId,
+			)
 		}
 
 		return {
@@ -1853,6 +1885,7 @@ export default class ProductController {
 			supplier: this.buildSortedFilterOptions(supplierMap),
 			customer: this.buildSortedFilterOptions(customerMap),
 			expense: this.buildSortedFilterOptions(expenseMap),
+			partner: this.buildSortedFilterOptions(partnerMap),
 		}
 	}
 
@@ -1883,33 +1916,43 @@ export default class ProductController {
 	}
 
 	public async getBudgetOverview(
-		entityType: BudgetOverviewEntityType,
-		entityId: string,
+		targetType: TargetType,
+		targetId: string,
 		requestContext: RequestContext,
 	): Promise<BudgetOverviewResponse | null> {
-		const identifiers = await this.getBudgetOverviewIdentifiers(
-			entityType,
-			entityId,
-			requestContext,
-		)
-
-		if (!identifiers) {
-			return null
-		}
-
 		const dailyActions = await this.getDailyActions(requestContext)
-		const relevantActions = dailyActions.data.filter(action => {
-			if (entityType === 'customer') {
-				return action.customerId && identifiers.has(action.customerId)
-			}
 
-			return action.supplierId && identifiers.has(action.supplierId)
+		const relevantActions = dailyActions.data.filter(action => {
+			switch (targetType) {
+				case TargetType.CUSTOMER:
+					return action.customerId && targetId === action.customerId
+				case TargetType.SUPPLIER:
+					return action.supplierId && targetId === action.supplierId
+				case TargetType.PARTNER:
+					return action.partnerId && targetId === action.partnerId
+				default:
+					throw new Error('Invalid target type')
+			}
 		})
 
-		const purchaseEntryType =
-			entityType === 'customer' ? 'SELLING_ENTRY' : 'BUYING_ENTRY'
-		const paymentEntryType =
-			entityType === 'customer' ? 'RECEIPT_ENTRY' : 'PAYMENT_ENTRY'
+		let purchaseEntryType: EntryType
+		let paymentEntryType: EntryType
+		switch (targetType) {
+			case TargetType.CUSTOMER:
+				purchaseEntryType = DailyActionType.SELLING_ENTRY
+				paymentEntryType = DailyActionType.RECEIPT_ENTRY
+				break
+			case TargetType.SUPPLIER:
+				purchaseEntryType = DailyActionType.BUYING_ENTRY
+				paymentEntryType = DailyActionType.PAYMENT_ENTRY
+				break
+			case TargetType.PARTNER:
+				purchaseEntryType = DailyActionType.RECEIPT_ENTRY
+				paymentEntryType = DailyActionType.PAYMENT_ENTRY
+				break
+			default:
+				throw new Error('Invalid target type')
+		}
 
 		const purchase = this.sumActionAmounts(relevantActions, purchaseEntryType)
 		const payments = this.sumActionAmounts(relevantActions, paymentEntryType)
@@ -1937,29 +1980,32 @@ export default class ProductController {
 				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
 			role: requestContext.user?.role,
 		}
+		const optionalString = (value?: string) => value?.trim() || undefined
 		const dailyActionData = {
 			actionId: uuidv4(),
 			entryType: requestBody.entryType,
-			productId: requestBody.productId,
-			invoiceNumber: requestBody.invoiceNumber,
+			productId: optionalString(requestBody.productId),
+			invoiceNumber: optionalString(requestBody.invoiceNumber),
 			invoiceDate: requestBody.invoiceDate
 				? new Date(requestBody.invoiceDate)
 				: createdAt,
-			productName: requestBody.productName,
-			supplierId: requestBody.supplierId,
-			supplierName: requestBody.supplierName,
-			customerId: requestBody.customerId,
-			customerName: requestBody.customerName,
-			expenseId: requestBody.expenseId,
-			expenseName: requestBody.expenseName,
+			productName: optionalString(requestBody.productName),
+			supplierId: optionalString(requestBody.supplierId),
+			supplierName: optionalString(requestBody.supplierName),
+			partnerId: optionalString(requestBody.partnerId),
+			partnerName: optionalString(requestBody.partnerName),
+			customerId: optionalString(requestBody.customerId),
+			customerName: optionalString(requestBody.customerName),
+			expenseId: optionalString(requestBody.expenseId),
+			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
-			unitId: requestBody.unitId,
-			unitName: requestBody.unitName,
-			weight: requestBody.weight,
-			singleUnitPrice: requestBody.singleUnitPrice,
-			totalPrice: requestBody.totalPrice,
-			note: requestBody.note,
+			unitId: optionalString(requestBody.unitId),
+			unitName: optionalString(requestBody.unitName),
+			weight: optionalString(requestBody.weight),
+			singleUnitPrice: optionalString(requestBody.singleUnitPrice),
+			totalPrice: optionalString(requestBody.totalPrice),
+			note: optionalString(requestBody.note),
 			createdBy,
 			createdAt,
 		}
@@ -2053,69 +2099,6 @@ export default class ProductController {
 				logger.debug(`Daily action ${actionId} deleted from cache`)
 			}
 		}
-	}
-
-	private async getBudgetOverviewIdentifiers(
-		entityType: BudgetOverviewEntityType,
-		entityId: string,
-		requestContext: RequestContext,
-	): Promise<Set<string> | null> {
-		if (entityType === 'customer') {
-			let customer =
-				await this.mongoDbClient.getDocumentByField<CustomerDocument>(
-					requestContext,
-					COLLECTION_NAMES.CUSTOMERS,
-					Customer,
-					{ fieldName: 'customerId', fieldValue: entityId },
-				)
-
-			if (!customer) {
-				customer =
-					await this.mongoDbClient.getDocumentByField<CustomerDocument>(
-						requestContext,
-						COLLECTION_NAMES.CUSTOMERS,
-						Customer,
-						{ fieldName: 'internalCode', fieldValue: entityId },
-					)
-			}
-
-			if (!customer) {
-				return null
-			}
-
-			return new Set(
-				[customer.customerId, customer.internalCode].filter(
-					(value): value is string => Boolean(value),
-				),
-			)
-		}
-
-		let supplier =
-			await this.mongoDbClient.getDocumentByField<SupplierDocument>(
-				requestContext,
-				COLLECTION_NAMES.SUPPLIERS,
-				Supplier,
-				{ fieldName: 'supplierId', fieldValue: entityId },
-			)
-
-		if (!supplier) {
-			supplier = await this.mongoDbClient.getDocumentByField<SupplierDocument>(
-				requestContext,
-				COLLECTION_NAMES.SUPPLIERS,
-				Supplier,
-				{ fieldName: 'internalCode', fieldValue: entityId },
-			)
-		}
-
-		if (!supplier) {
-			return null
-		}
-
-		return new Set(
-			[supplier.supplierId, supplier.internalCode].filter(
-				(value): value is string => Boolean(value),
-			),
-		)
 	}
 
 	private parseActionAmount(
@@ -2671,6 +2654,7 @@ export default class ProductController {
 			model: Partner,
 			sort: { createdAt: 'desc' },
 		})
+		const dailyActions = await this.getDailyActions(requestContext)
 
 		const data = partners.documents.map((partner: PartnerDocument) => ({
 			partnerId: partner.partnerId,
@@ -2685,7 +2669,7 @@ export default class ProductController {
 						updatedAt: partner.updatedBy.updatedAt.toISOString(),
 					}
 				: undefined,
-			actions: [],
+			relatedActions: filterPartnerRelatedActions(dailyActions.data, partner),
 		}))
 
 		const mappedPartners = mapPartners(data)
@@ -2713,6 +2697,8 @@ export default class ProductController {
 			return null
 		}
 
+		const dailyActions = await this.getDailyActions(requestContext)
+
 		const mappedPartners = mapPartners([
 			{
 				partnerId: partner.partnerId,
@@ -2727,7 +2713,7 @@ export default class ProductController {
 							updatedAt: partner.updatedBy.updatedAt.toISOString(),
 						}
 					: undefined,
-				actions: [],
+				relatedActions: filterPartnerRelatedActions(dailyActions.data, partner),
 			},
 		])
 
@@ -2797,9 +2783,7 @@ export default class ProductController {
 			name,
 		})
 
-		await redisCache.del(
-			redisCache.buildPartnerListKey(tenantContext.tenantId),
-		)
+		await redisCache.del(redisCache.buildPartnerListKey(tenantContext.tenantId))
 
 		return {
 			_id: createPartnerResponse._id,
@@ -2986,35 +2970,30 @@ export default class ProductController {
 			model: Customer,
 			sort: { createdAt: 'desc' },
 		})
+
 		const dailyActions = await this.getDailyActions(requestContext)
 
-		// Group actions by customerId
-		const actionsByCustomer = new Map<string, CustomerDailyAction[]>()
-
-		for (const action of dailyActions.data) {
-			if (action.entryType === 'BUYING_ENTRY') continue
-			const customerActions =
-				actionsByCustomer.get(action.customerId ?? '') ?? []
-
-			customerActions.push(action)
-
-			actionsByCustomer.set(action.customerId ?? '', customerActions)
-		}
-
-		const data = customers.documents.map(customer => {
-			return {
-				...customer,
-				actions: actionsByCustomer.get(customer.internalCode) ?? [],
-			}
-		})
+		const data = customers.documents.map((customer: CustomerDocument) => ({
+			customerId: customer.customerId,
+			name: customer.name,
+			internalCode: customer.internalCode,
+			createdAt: customer.createdAt?.toISOString(),
+			updatedAt: customer.updatedAt?.toISOString(),
+			createdBy: customer.createdBy as any,
+			updatedBy: customer.updatedBy
+				? {
+						...customer.updatedBy,
+						updatedAt: customer.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+			relatedActions: filterCustomerRelatedActions(dailyActions.data, customer),
+		}))
 
 		const mappedCustomers = mapCustomers(data)
-
 		const response: CustomersResponse = {
 			data: mappedCustomers,
 			totalCount: mappedCustomers.length,
 		}
-
 		await redisCache.setJson(cacheKey, response)
 		return response
 	}
@@ -3022,8 +3001,8 @@ export default class ProductController {
 	public async getCustomer(
 		customerId: string,
 		requestContext: RequestContext,
-	): Promise<CustomersResponse['data'][number] | null> {
-		let customer =
+	): Promise<CustomerResponse | null> {
+		const customer =
 			await this.mongoDbClient.getDocumentByField<CustomerDocument>(
 				requestContext,
 				COLLECTION_NAMES.CUSTOMERS,
@@ -3032,52 +3011,15 @@ export default class ProductController {
 			)
 
 		if (!customer) {
-			customer = await this.mongoDbClient.getDocumentByField<CustomerDocument>(
-				requestContext,
-				COLLECTION_NAMES.CUSTOMERS,
-				Customer,
-				{ fieldName: 'internalCode', fieldValue: customerId },
-			)
-		}
-
-		if (!customer) {
 			return null
 		}
 
 		const dailyActions = await this.getDailyActions(requestContext)
-		const actions1 = dailyActions.data.filter(
-			action =>
-				action.entryType !== 'BUYING_ENTRY' &&
-				action.customerId === (customer.internalCode ?? customer.customerId),
+
+		return mapCustomer(
+			customer,
+			filterCustomerRelatedActions(dailyActions.data, customer),
 		)
-
-		const actions = dailyActions.data.filter(
-			action =>
-				action.customerId === customer.customerId ||
-				action.customerId === customer.internalCode,
-		)
-		console.log('🚀 ~ ProductController ~ getCustomer ~ actions:', actions)
-
-		const mappedCustomers = mapCustomers([
-			{
-				customerId: customer.customerId ?? customer.internalCode ?? customerId,
-				name: customer.name,
-				sold: 0, //TO_DO : remove or calculate sold from actions
-				internalCode: customer.internalCode,
-				createdAt: customer.createdAt?.toISOString(),
-				updatedAt: customer.updatedAt?.toISOString(),
-				createdBy: customer.createdBy as any,
-				updatedBy: customer.updatedBy
-					? {
-							...customer.updatedBy,
-							updatedAt: customer.updatedBy.updatedAt.toISOString(),
-						}
-					: undefined,
-				actions,
-			},
-		])
-
-		return mappedCustomers[0]
 	}
 
 	public async postCustomer(

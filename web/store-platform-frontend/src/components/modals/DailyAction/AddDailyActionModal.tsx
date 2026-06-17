@@ -109,6 +109,7 @@ const AddDailyActionModal = ({
 		resetProductLines,
 		handleInputChange,
 		handleDropdownChange,
+		handlePartnerOrEntityDropdownChange,
 		handleProductLineDropdownChange,
 		handleProductLineInputChange,
 		addProductLine,
@@ -260,21 +261,21 @@ const AddDailyActionModal = ({
 		if (step === StepKeys.ACTION_DATA) {
 			if (isPaymentEntry) {
 				return (
-					!formData?.supplierId ||
+					(!formData?.supplierId && !formData?.partnerId) ||
 					!formData?.currencyId ||
 					!formData?.singleUnitPrice
 				)
 			}
 			if (isReceiptEntry) {
 				return (
-					!formData?.customerId ||
+					(!formData?.customerId && !formData?.partnerId) ||
 					!formData?.currencyId ||
 					!formData?.singleUnitPrice
 				)
 			}
 			if (isExpenseEntry) {
 				return (
-					!formData?.expenseId ||
+					(!formData?.expenseId && !formData?.partnerId) ||
 					!formData?.currencyId ||
 					!formData?.singleUnitPrice
 				)
@@ -301,6 +302,7 @@ const AddDailyActionModal = ({
 		entryType.length,
 		isPaymentEntry,
 		formData?.supplierId,
+		formData?.partnerId,
 		formData?.customerId,
 		formData?.expenseId,
 		formData?.currencyId,
@@ -407,6 +409,9 @@ const AddDailyActionModal = ({
 									unit={unit}
 									totalPrice={totalPrice ?? ''}
 									handleDropdownChange={handleDropdownChange}
+									handlePartnerOrEntityDropdownChange={
+										handlePartnerOrEntityDropdownChange
+									}
 									handleInputChange={handleInputChange}
 									handleProductLineDropdownChange={
 										handleProductLineDropdownChange

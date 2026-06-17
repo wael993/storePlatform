@@ -111,11 +111,6 @@ const CustomerListHeaderRow = ({
 		},
 
 		{
-			label: t('components.customer.sold'),
-			width: CUSTOMER_LIST_WIDTHS_MAP_IN_REM.SOLD,
-			sortKey: CustomerSortHeaderKey.SOLD,
-		},
-		{
 			label: t('components.customer.createdAt'),
 			width: CUSTOMER_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
 			sortKey: CustomerSortHeaderKey.CREATED_AT,
