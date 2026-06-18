@@ -5,6 +5,28 @@ const splitByComma = (value: string): string[] => {
 	return value.split(',')
 }
 
+const resolveApiEndpoint = (): string => {
+	const fromEnv =
+		process.env.REACT_APP_BUSINESS_PLATFORM_ENDPOINT ??
+		process.env.BUSINESS_PLATFORM_ENDPOINT
+
+	if (process.env.NODE_ENV === 'production') {
+		// Same-origin path proxied to Render via vercel.json (first-party cookies on mobile)
+		if (!fromEnv || fromEnv.includes('onrender.com')) {
+			return '/api/data'
+		}
+		return fromEnv
+	}
+
+	if (fromEnv) {
+		return fromEnv
+	}
+
+	return 'http://localhost:3001/api/data'
+}
+
+const apiEndpoint = resolveApiEndpoint()
+
 export const config = {
 	serviceId:
 		process.env.REACT_APP_SERVICE_ID ||
@@ -12,16 +34,11 @@ export const config = {
 		'store-platform-frontend',
 
 	endpoints: {
-		storePlatformEndpoint:
-			process.env.REACT_APP_BUSINESS_PLATFORM_ENDPOINT ??
-			process.env.BUSINESS_PLATFORM_ENDPOINT ??
-			'http://localhost:3001/api/data',
+		storePlatformEndpoint: apiEndpoint,
 		persistenceServiceEndpoint:
 			process.env.REACT_APP_PERSISTENCE_SERVICE_ENDPOINT ??
 			process.env.VITE_PERSISTENCE_SERVICE_ENDPOINT ??
-			process.env.REACT_APP_BUSINESS_PLATFORM_ENDPOINT ??
-			process.env.BUSINESS_PLATFORM_ENDPOINT ??
-			'http://localhost:3001/api/data',
+			apiEndpoint,
 	},
 	actionsEnabled: splitByComma(
 		process.env.VITE_ACTIONS_ENABLED ??

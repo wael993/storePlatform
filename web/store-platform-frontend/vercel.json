@@ -1,3 +1,9 @@
 {
-	"rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+	"rewrites": [
+		{
+			"source": "/api/data/:path*",
+			"destination": "https://storeplatform.onrender.com/api/data/:path*"
+		},
+		{ "source": "/(.*)", "destination": "/index.html" }
+	]
 }

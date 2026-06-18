@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useAuth } from './useAuth'
 import { config } from '../../config'
 import { logout, setAccessToken } from '../../store/user/reducer'
+import { RootState } from '../../store/store'
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000 // 14 minutes (token expires at 15)
 
 export function useSilentRefresh() {
 	const dispatch = useDispatch()
 	const { isAuthenticated } = useAuth()
+	const accessToken = useSelector((state: RootState) => state.user.accessToken)
 
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -18,7 +20,7 @@ export function useSilentRefresh() {
 			return
 		}
 
-		const refreshToken = async () => {
+		const refreshToken = async (options?: { forceLogoutOnFailure?: boolean }) => {
 			try {
 				const res = await fetch(
 					`${config.endpoints.storePlatformEndpoint}/refresh`,
@@ -31,21 +33,28 @@ export function useSilentRefresh() {
 				if (res.ok) {
 					const data = await res.json()
 					dispatch(setAccessToken(data.accessToken))
-				} else {
+				} else if (options?.forceLogoutOnFailure ?? !accessToken) {
 					dispatch(logout())
 				}
 			} catch {
-				dispatch(logout())
+				if (options?.forceLogoutOnFailure ?? !accessToken) {
+					dispatch(logout())
+				}
 			}
 		}
 
-		// Refresh immediately on mount (e.g. page reload while authenticated)
-		refreshToken()
+		// Skip immediate refresh after login when access token is already in memory
+		if (!accessToken) {
+			refreshToken()
+		}
 
-		intervalRef.current = setInterval(refreshToken, REFRESH_INTERVAL_MS)
+		intervalRef.current = setInterval(
+			() => refreshToken({ forceLogoutOnFailure: true }),
+			REFRESH_INTERVAL_MS,
+		)
 
 		return () => {
 			if (intervalRef.current) clearInterval(intervalRef.current)
 		}
-	}, [isAuthenticated, dispatch])
+	}, [isAuthenticated, accessToken, dispatch])
 }
