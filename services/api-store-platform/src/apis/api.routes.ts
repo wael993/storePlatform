@@ -711,7 +711,7 @@ export default class StoreRoutes extends PlatformValidator {
 		response.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
 			secure: config.nodeEnv === 'production',
-			// sameSite: 'strict',
+			sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
 			path: this.baseRoute,
 			maxAge: config.refreshTokenTTLDays * 24 * 60 * 60 * 1000,
 		})
@@ -721,7 +721,7 @@ export default class StoreRoutes extends PlatformValidator {
 		response.clearCookie('refreshToken', {
 			httpOnly: true,
 			secure: config.nodeEnv === 'production',
-			// sameSite: 'strict',
+			sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
 			path: this.baseRoute,
 		})
 	}
