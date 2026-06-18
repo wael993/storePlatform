@@ -1,13 +1,11 @@
 import {
 	ArrowForwardIcon,
-	AtSignIcon,
 	CalendarIcon,
 	CheckIcon,
 	ChevronDownIcon,
 	CloseIcon,
 	HamburgerIcon,
 	LockIcon,
-	QuestionIcon,
 	SettingsIcon,
 	StarIcon,
 	ViewIcon,
