@@ -3,149 +3,117 @@
 	"name": "Owner",
 	"resources": {
 		"/users": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"GET": { "accessLevel": "NONE", "fields": [] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/products": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/orders": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/invoices": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/inventory": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/reports": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
-		"/settings": {
+		"/dailyActions": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/suppliers": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/customers": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/partners": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/expenses": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/currencies": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
 		"/units": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		}
 	},
-	"include": ["ADMIN", "EMPLOYEE"],
+	"include": [],
 	"frontendResources": {
 		"/services/store_platform/settings": { "access": true },
 		"/services/store_platform/products": {
 			"access": true,
 			"allowedActions": [
-				"addProduct",
-				"deleteProduct",
-
 				"seeSupplier",
-				"canAddSupplier",
-				"canEditSupplier",
-				"canDeleteSupplier",
 				"seeCustomer",
-				"canAddCustomer",
-				"canEditCustomer",
-				"canDeleteCustomer",
-
 				"seeBuyCost",
-				"canEditBuyCost",
-
 				"seeWholesalePrice",
-				"canEditWholesalePrice",
-
 				"seeDiscount",
-				"canEditDiscount",
-
 				"seeStockQuantity",
-				"canEditStockQuantity",
-
 				"seeMinStockQuantity",
-				"canEditMinStockQuantity",
-
 				"seeReport",
-				"canAddReport",
-				"canEditReport",
-				"canDeleteReport",
-
 				"seeLocationShelf",
-				"canEditLocationShelf",
-
-				"seeLocationWarehouse",
-				"canEditLocationWarehouse"
+				"seeLocationWarehouse"
 			]
 		},
 		"/services/store_platform/customers": {
 			"access": true,
-			"allowedActions": [
-				"seeCustomer",
-				"canAddCustomer",
-				"canEditCustomer",
-				"canDeleteCustomer"
-			]
+			"allowedActions": ["seeCustomer"]
 		},
 		"/services/store_platform/suppliers": {
 			"access": true,
-			"allowedActions": [
-				"seeSupplier",
-				"canAddSupplier",
-				"canEditSupplier",
-				"canDeleteSupplier"
-			]
+			"allowedActions": ["seeSupplier"]
 		},
 		"/services/store_platform/partners": {
 			"access": true,
-			"allowedActions": [
-				"seePartner",
-				"canAddPartner",
-				"canEditPartner",
-				"canDeletePartner"
-			]
+			"allowedActions": ["seePartner"]
+		},
+		"/services/store_platform/daily": {
+			"access": true,
+			"allowedActions": ["seeDailyAction"]
 		}
 	}
 }

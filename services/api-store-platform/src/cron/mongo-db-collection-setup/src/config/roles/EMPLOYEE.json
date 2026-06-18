@@ -1,67 +1,7 @@
 {
 	"_id": "EMPLOYEE",
 	"name": "Employee",
-	"resources": {
-		"/users": {
-			"GET": {
-				"accessLevel": "GLOBAL",
-				"fields": ["userId", "displayName", "role"]
-			},
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/products": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/expenses": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/orders": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/invoices": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		}
-	},
+	"resources": {},
 	"include": [],
-	"frontendResources": {
-		"/services/store_platform/settings": { "access": false },
-		"/services/store_platform": {
-			"access": true,
-			"allowedActions": [
-				"seeProduct",
-				"seeSupplier",
-
-				"seeBuyCost",
-
-				"seeWholesalePrice",
-
-				"seeDiscount",
-
-				"seeStockQuantity",
-
-				"seeMinStockQuantity",
-
-				"seeReport",
-				"addReport"
-			]
-		},
-		"/services/store_platform/daily": {
-			"access": true,
-			"allowedActions": ["seeDailyAction", "addDailyAction", "editDailyAction"]
-		}
-	}
+	"frontendResources": {}
 }

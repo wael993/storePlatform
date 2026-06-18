@@ -18,15 +18,45 @@
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
 		"/invoices": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/inventory": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/reports": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
 		"/dailyActions": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/suppliers": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/customers": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/partners": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
@@ -36,19 +66,97 @@
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/currencies": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
+		"/units": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		}
 	},
-	"include": ["EMPLOYEE"],
+	"include": [],
 	"frontendResources": {
 		"/services/store_platform/settings": { "access": true },
+		"/services/store_platform/users": { "access": true },
 		"/services/store_platform": {
 			"access": true,
 			"allowedActions": ["selectActivityWatcher", "addComment"]
 		},
+		"/services/store_platform/products": {
+			"access": true,
+			"allowedActions": [
+				"addProduct",
+				"deleteProduct",
+				"seeSupplier",
+				"canAddSupplier",
+				"canEditSupplier",
+				"canDeleteSupplier",
+				"seeCustomer",
+				"canAddCustomer",
+				"canEditCustomer",
+				"canDeleteCustomer",
+				"seeBuyCost",
+				"canEditBuyCost",
+				"seeWholesalePrice",
+				"canEditWholesalePrice",
+				"seeDiscount",
+				"canEditDiscount",
+				"seeStockQuantity",
+				"canEditStockQuantity",
+				"seeMinStockQuantity",
+				"canEditMinStockQuantity",
+				"seeReport",
+				"canAddReport",
+				"canEditReport",
+				"canDeleteReport",
+				"seeLocationShelf",
+				"canEditLocationShelf",
+				"seeLocationWarehouse",
+				"canEditLocationWarehouse"
+			]
+		},
+		"/services/store_platform/customers": {
+			"access": true,
+			"allowedActions": [
+				"seeCustomer",
+				"canAddCustomer",
+				"canEditCustomer",
+				"canDeleteCustomer"
+			]
+		},
+		"/services/store_platform/suppliers": {
+			"access": true,
+			"allowedActions": [
+				"seeSupplier",
+				"canAddSupplier",
+				"canEditSupplier",
+				"canDeleteSupplier"
+			]
+		},
+		"/services/store_platform/partners": {
+			"access": true,
+			"allowedActions": [
+				"seePartner",
+				"canAddPartner",
+				"canEditPartner",
+				"canDeletePartner"
+			]
+		},
 		"/services/store_platform/daily": {
 			"access": true,
-			"allowedActions": ["deleteDailyAction"]
+			"allowedActions": [
+				"seeDailyAction",
+				"addDailyAction",
+				"editDailyAction",
+				"deleteDailyAction"
+			]
 		}
 	}
 }

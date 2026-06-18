@@ -69,7 +69,7 @@ const DailyListActionBar = ({
 }: DailyListActionBarProps) => {
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin: isInternalUser } = useUser()
+	const { isAdmin, user } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const showToastMessage = useCustomToast()
 	const [deleteDailyAction, { isLoading: isDeletingDailyAction }] =
@@ -111,7 +111,7 @@ const DailyListActionBar = ({
 				{`${selectedDailies.length} 	${t('common.selected')}`}
 			</Text>
 			<Flex sx={styles.iconWrapper}>
-				{isRequiredDocumentCreationAllowed && isInternalUser && (
+				{isRequiredDocumentCreationAllowed && isAdmin && (
 					<AddRequiredDocumentButton
 						onAddDocument={handleAddRequiredDocument}
 						isLoading={isAddRequiredDocumentInProgress}
@@ -129,7 +129,7 @@ const DailyListActionBar = ({
 					/>
 				)}
 
-				{isInternalUser && (
+				{isActionAllowed(AllowedActions.CAN_DELETE_DAILY_ACTION) && isAdmin && (
 					<Button
 						sx={styles.iconButton}
 						isDisabled={false}

@@ -21,8 +21,8 @@ import { useTranslation } from 'react-i18next'
 
 const Login = () => {
 	const { t } = useTranslation()
-	const [email, setEmail] = useState('admin@example.com')
-	const [password, setPassword] = useState('admin123')
+	const [email, setEmail] = useState('')
+	const [password, setPassword] = useState('')
 	const [error, setError] = useState('')
 	const [resetMessage, setResetMessage] = useState('')
 	const [login, { isLoading: isLoggingLoading }] = useLoginMutation()

@@ -69,7 +69,10 @@ const baseQueryWithReauth: BaseQueryFn<
 > = async (args, api, extraOptions) => {
 	let result = await baseQuery(args, api, extraOptions)
 
-	if (result.error?.status === 401) {
+	const requestUrl = typeof args === 'string' ? args : args.url
+	const isAuthRequest = requestUrl === 'login' || requestUrl === 'refresh'
+
+	if (result.error?.status === 401 && !isAuthRequest) {
 		// Attempt silent refresh
 		const refreshResult = await baseQuery(
 			{ url: 'refresh', method: 'POST', credentials: 'include' },

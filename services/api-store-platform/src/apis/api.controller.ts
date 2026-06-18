@@ -549,7 +549,10 @@ export default class ProductController {
 	}
 
 	private createTemporaryPassword(): string {
-		return crypto.randomBytes(12).toString('base64url')
+		const randomPart = crypto.randomBytes(10).toString('base64url')
+		const digit = String(crypto.randomInt(0, 10))
+		const lower = String.fromCharCode(97 + crypto.randomInt(0, 26))
+		return `${lower}${randomPart}${digit}`
 	}
 
 	private createTenantIdFromDomain(domain: string): string {
@@ -693,15 +696,6 @@ export default class ProductController {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
 				emailError,
-			)
-		}
-
-		const passwordError = validatePasswordStrength(loginPassword)
-		if (passwordError) {
-			logger.warn('Login attempt with weak password', { ip })
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.WEAK_PASSWORD,
-				passwordError,
 			)
 		}
 

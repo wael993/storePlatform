@@ -15,7 +15,11 @@ import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { compareTargetType } from '../../shared/utils'
-import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
+import {
+	AllowedActions,
+	BreadCrumbItem,
+	TargetType,
+} from '../../shared/globalEnums'
 import { CustomTooltip } from '../common/CustomTooltip'
 import { AsStarIcon } from '../icons/Star'
 import { AsTruckIcon } from '../icons/Truck'
@@ -31,6 +35,8 @@ import { CloseButton } from '../common/CloseButton'
 import { AddSquareIcon } from '../icons/AddSquare'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
+import { useResources } from '../../shared/hooks/useResources'
+import { useUser } from '../../shared/hooks/useUser'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -221,6 +227,8 @@ const TopSection = ({
 		onOpen: onAddDailyActionModalOpen,
 		onClose: onAddDailyActionModalClose,
 	} = useDisclosure()
+	const { isActionAllowed } = useResources()
+	const { isAdmin } = useUser()
 	const { t } = useTranslation()
 	const entry = customer ?? supplier ?? partner
 	const budgetOverviewArgs = customer?.customerId
@@ -285,17 +293,19 @@ const TopSection = ({
 								: breadCrumbItems[BreadCrumbItem.SUPPLIER]
 					}
 				/>
-				<HStack alignSelf={'flex-end'}>
-					<Button
-						leftIcon={<AddSquareIcon />}
-						onClick={onAddDailyActionModalOpen}
-						sx={styles.addButton}
-						variant="ghost"
-					>
-						<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
-					</Button>
-					<CloseButton onClose={onClose} />
-				</HStack>
+				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) && isAdmin && (
+					<HStack alignSelf={'flex-end'}>
+						<Button
+							leftIcon={<AddSquareIcon />}
+							onClick={onAddDailyActionModalOpen}
+							sx={styles.addButton}
+							variant="ghost"
+						>
+							<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
+						</Button>
+						<CloseButton onClose={onClose} />
+					</HStack>
+				)}
 				<Flex sx={styles.titleWrapper}>
 					<Text sx={styles.titleDrawer}>{entry.name}</Text>
 				</Flex>

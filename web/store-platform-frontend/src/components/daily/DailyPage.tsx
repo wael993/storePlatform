@@ -130,7 +130,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin } = useUser()
+	const { isOwnerOrAdmin, isAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const [dailyFilters, setDailyFilters] = useState<ProductFilterValues>(
 		getDefaultDailyFilters,
@@ -248,16 +248,19 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 								/>
 							)}
 
-							<Button
-								leftIcon={<AddSquareIcon />}
-								onClick={onOpen}
-								sx={styles.addProductButton}
-								variant="ghost"
-							>
-								<Text sx={styles.addProductButtonText}>
-									{t('common.addDailyAction')}
-								</Text>
-							</Button>
+							{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
+								isAdmin && (
+									<Button
+										leftIcon={<AddSquareIcon />}
+										onClick={onOpen}
+										sx={styles.addProductButton}
+										variant="ghost"
+									>
+										<Text sx={styles.addProductButtonText}>
+											{t('common.addDailyAction')}
+										</Text>
+									</Button>
+								)}
 							<ExcelDownload
 								targetType={TargetType.DAILY_ACTION}
 								queryParams={dailyFilters}

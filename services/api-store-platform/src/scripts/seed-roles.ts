@@ -2,204 +2,194 @@ import mongoose from 'mongoose'
 import { config } from '../config/config'
 import Role from '../models/Role'
 
+const readOnlyResource = {
+	GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+	POST: { accessLevel: 'NONE', fields: [] },
+	PATCH: { accessLevel: 'NONE', fields: [] },
+	DELETE: { accessLevel: 'NONE', fields: [] },
+} as const
+
+const fullAccessResource = {
+	GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+	POST: { accessLevel: 'GLOBAL', fields: ['*'] },
+	PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
+	DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
+} as const
+
+const noAccessResource = {
+	GET: { accessLevel: 'NONE', fields: [] },
+	POST: { accessLevel: 'NONE', fields: [] },
+	PATCH: { accessLevel: 'NONE', fields: [] },
+	DELETE: { accessLevel: 'NONE', fields: [] },
+} as const
+
+const OWNER_READ_ONLY_RESOURCES = [
+	'/products',
+	'/orders',
+	'/invoices',
+	'/inventory',
+	'/reports',
+	'/dailyActions',
+	'/suppliers',
+	'/customers',
+	'/partners',
+	'/expenses',
+	'/currencies',
+	'/units',
+] as const
+
+const ADMIN_FULL_ACCESS_RESOURCES = [
+	'/users',
+	...OWNER_READ_ONLY_RESOURCES,
+] as const
+
 const ROLE_MOCKS = [
 	{
 		_id: 'OWNER',
 		name: 'Owner',
 		resources: {
-			'/users': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
-			'/products': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
-			'/expenses': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
-			'/orders': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
-			'/invoices': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
+			'/users': noAccessResource,
+			...Object.fromEntries(
+				OWNER_READ_ONLY_RESOURCES.map(resource => [resource, readOnlyResource]),
+			),
 		},
-		include: ['ADMIN', 'EMPLOYEE'],
+		include: [],
 		frontendResources: {
-			'/services/store_platform/settings': {
-				access: true,
-			},
-			'/services/store_platform': {
+			'/services/store_platform/settings': { access: true },
+			'/services/store_platform/products': {
 				access: true,
 				allowedActions: [
-					'selectUserOnActivity',
-					'selectActivityWatcher',
-					'addComment',
+					'seeSupplier',
+					'seeCustomer',
+					'seeBuyCost',
+					'seeWholesalePrice',
+					'seeDiscount',
+					'seeStockQuantity',
+					'seeMinStockQuantity',
+					'seeReport',
+					'seeLocationShelf',
+					'seeLocationWarehouse',
 				],
+			},
+			'/services/store_platform/customers': {
+				access: true,
+				allowedActions: ['seeCustomer'],
+			},
+			'/services/store_platform/suppliers': {
+				access: true,
+				allowedActions: ['seeSupplier'],
+			},
+			'/services/store_platform/partners': {
+				access: true,
+				allowedActions: ['seePartner'],
+			},
+			'/services/store_platform/daily': {
+				access: true,
+				allowedActions: ['seeDailyAction'],
 			},
 		},
 	},
 	{
 		_id: 'ADMIN',
 		name: 'Admin',
-		resources: {
-			'/users': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
-			'/products': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'GLOBAL', fields: ['*'] },
-			},
-			'/expenses': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/orders': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/invoices': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: { accessLevel: 'GLOBAL', fields: ['*'] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-		},
-		include: ['EMPLOYEE'],
+		resources: Object.fromEntries(
+			ADMIN_FULL_ACCESS_RESOURCES.map(resource => [
+				resource,
+				fullAccessResource,
+			]),
+		),
+		include: [],
 		frontendResources: {
-			'/services/store_platform/settings': {
-				access: true,
-			},
+			'/services/store_platform/settings': { access: true },
+			'/services/store_platform/users': { access: true },
 			'/services/store_platform': {
 				access: true,
 				allowedActions: ['selectActivityWatcher', 'addComment'],
+			},
+			'/services/store_platform/products': {
+				access: true,
+				allowedActions: [
+					'addProduct',
+					'deleteProduct',
+					'seeSupplier',
+					'canAddSupplier',
+					'canEditSupplier',
+					'canDeleteSupplier',
+					'seeCustomer',
+					'canAddCustomer',
+					'canEditCustomer',
+					'canDeleteCustomer',
+					'seeBuyCost',
+					'canEditBuyCost',
+					'seeWholesalePrice',
+					'canEditWholesalePrice',
+					'seeDiscount',
+					'canEditDiscount',
+					'seeStockQuantity',
+					'canEditStockQuantity',
+					'seeMinStockQuantity',
+					'canEditMinStockQuantity',
+					'seeReport',
+					'canAddReport',
+					'canEditReport',
+					'canDeleteReport',
+					'seeLocationShelf',
+					'canEditLocationShelf',
+					'seeLocationWarehouse',
+					'canEditLocationWarehouse',
+				],
+			},
+			'/services/store_platform/customers': {
+				access: true,
+				allowedActions: [
+					'seeCustomer',
+					'canAddCustomer',
+					'canEditCustomer',
+					'canDeleteCustomer',
+				],
+			},
+			'/services/store_platform/suppliers': {
+				access: true,
+				allowedActions: [
+					'seeSupplier',
+					'canAddSupplier',
+					'canEditSupplier',
+					'canDeleteSupplier',
+				],
+			},
+			'/services/store_platform/partners': {
+				access: true,
+				allowedActions: [
+					'seePartner',
+					'canAddPartner',
+					'canEditPartner',
+					'canDeletePartner',
+				],
+			},
+			'/services/store_platform/daily': {
+				access: true,
+				allowedActions: [
+					'seeDailyAction',
+					'addDailyAction',
+					'editDailyAction',
+					'deleteDailyAction',
+				],
 			},
 		},
 	},
 	{
 		_id: 'CASHIER',
 		name: 'Cashier',
-		resources: {
-			'/users': {
-				GET: {
-					accessLevel: 'GLOBAL',
-					fields: ['userId', 'displayName', 'role'],
-				},
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/products': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/expenses': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/orders': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'GLOBAL', fields: ['*'] },
-				PATCH: {
-					accessLevel: 'GLOBAL',
-					fields: ['status', 'items', 'totalAmount'],
-				},
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/invoices': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: {
-					accessLevel: 'GLOBAL',
-					fields: ['invoiceNumber', 'orderId', 'amount'],
-				},
-				PATCH: { accessLevel: 'GLOBAL', fields: ['status'] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-		},
-		include: ['EMPLOYEE'],
-		frontendResources: {
-			'/services/store_platform/settings': {
-				access: false,
-			},
-			'/services/store_platform': {
-				access: false,
-			},
-		},
+		resources: {},
+		include: [],
+		frontendResources: {},
 	},
 	{
 		_id: 'EMPLOYEE',
 		name: 'Employee',
-		resources: {
-			'/users': {
-				GET: {
-					accessLevel: 'GLOBAL',
-					fields: ['userId', 'displayName', 'role'],
-				},
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/products': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/expenses': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/orders': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-			'/invoices': {
-				GET: { accessLevel: 'GLOBAL', fields: ['*'] },
-				POST: { accessLevel: 'NONE', fields: [] },
-				PATCH: { accessLevel: 'NONE', fields: [] },
-				DELETE: { accessLevel: 'NONE', fields: [] },
-			},
-		},
+		resources: {},
 		include: [],
-		frontendResources: {
-			'/services/store_platform/settings': {
-				access: false,
-			},
-			'/services/store_platform': {
-				access: false,
-			},
-		},
+		frontendResources: {},
 	},
 	{
 		_id: 'SUPER_ADMIN',

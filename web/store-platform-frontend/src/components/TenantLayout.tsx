@@ -45,7 +45,7 @@ const TenantLayout = () => {
 		onClose: onPwClose,
 	} = useDisclosure()
 
-	const { userRole, isOwner, isOwnerOrAdmin, user } = useUser()
+	const { isAdmin, isOwnerOrAdmin, user } = useUser()
 	const { tenantName } = useTenant()
 	const userId = user?.userId
 	const {
@@ -117,7 +117,7 @@ const TenantLayout = () => {
 		isPartnersEnabled && isTenantPartnersEnabled
 			? { label: 'Partners', path: RoutePaths.PARTNERS }
 			: null,
-		isOwner && isUsersEnabled && isTenantUsersEnabled
+		isAdmin && isUsersEnabled && isTenantUsersEnabled
 			? { label: 'Users', path: RoutePaths.USERS }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]

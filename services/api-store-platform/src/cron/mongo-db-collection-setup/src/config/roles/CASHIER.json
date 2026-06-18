@@ -1,50 +1,7 @@
 {
 	"_id": "CASHIER",
 	"name": "Cashier",
-	"resources": {
-		"/users": {
-			"GET": {
-				"accessLevel": "GLOBAL",
-				"fields": ["userId", "displayName", "role"]
-			},
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/products": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/expenses": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/orders": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"PATCH": {
-				"accessLevel": "GLOBAL",
-				"fields": ["status", "items", "totalAmount"]
-			},
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		},
-		"/invoices": {
-			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": {
-				"accessLevel": "GLOBAL",
-				"fields": ["invoiceNumber", "orderId", "amount"]
-			},
-			"PATCH": { "accessLevel": "GLOBAL", "fields": ["status"] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
-		}
-	},
-	"include": ["EMPLOYEE"],
-	"frontendResources": {
-		"/services/store_platform/settings": { "access": false },
-		"/services/store_platform": { "access": false }
-	}
+	"resources": {},
+	"include": [],
+	"frontendResources": {}
 }

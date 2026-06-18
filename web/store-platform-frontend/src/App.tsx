@@ -178,13 +178,13 @@ const App = () => {
 					</Route>
 				</Route>
 
-				{/* Owner-only routes */}
+				{/* Admin-only routes */}
 				<Route
 					element={
 						<ProtectedRoute
 							isAuthenticated={isAuthenticated}
 							userRole={userRole}
-							allowedRoles={[UserRole.OWNER]}
+							allowedRoles={[UserRole.ADMIN]}
 							redirectTo={RoutePaths.BARCODE}
 						/>
 					}
