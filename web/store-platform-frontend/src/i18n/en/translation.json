@@ -383,6 +383,7 @@
 			"brand": "Brand"
 		},
 		"topBar": {
+			"changePassword": "Change Password",
 			"logoAlt": "Store Platform Logo",
 			"welcome": "Welcome",
 			"notifications": "Notifications",

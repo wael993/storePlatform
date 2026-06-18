@@ -18,6 +18,7 @@ import {
 	MenuList,
 	Select,
 	Text,
+	useDisclosure,
 } from '@chakra-ui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +28,7 @@ import { AsBellIcon } from '../icons/Bell'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import { useBreakpoints } from '../shared/hooks/useBreakpoints'
 import ServiceMenu from './ServiceMenu'
+import ChangePasswordModal from './ChangePasswordModal'
 
 interface TopBarProps {
 	navItems: {
@@ -70,6 +72,11 @@ const TopBar = ({
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
+	const {
+		isOpen: isPwOpen,
+		onOpen: onPwOpen,
+		onClose: onPwClose,
+	} = useDisclosure()
 
 	const activePath =
 		navItems.find(
@@ -231,6 +238,9 @@ const TopBar = ({
 									<ArrowForwardIcon boxSize={7} color="#6F7173" />
 									<Text>{t('components.topBar.logout')}</Text>
 								</MenuItem>
+								<MenuItem sx={styles.menuItem} onClick={onPwOpen}>
+									<Text>{t('components.topBar.changePassword')}</Text>
+								</MenuItem>
 							</MenuList>
 						</Menu>
 					)}
@@ -241,6 +251,8 @@ const TopBar = ({
 					{t('components.topBar.noNavigationItems')}
 				</Text>
 			)}
+
+			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
 		</Box>
 	)
 }

@@ -385,6 +385,7 @@
 			"brand": "العلامة التجارية"
 		},
 		"topBar": {
+			"changePassword": "تغيير كلمة المرور",
 			"logoAlt": "شعار منصة المتجر",
 			"welcome": "مرحبًا",
 			"notifications": "الإشعارات",

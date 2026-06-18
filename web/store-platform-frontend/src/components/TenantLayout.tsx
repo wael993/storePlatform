@@ -39,11 +39,6 @@ const TenantLayout = () => {
 	const [error, setError] = useState('')
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
-	const {
-		isOpen: isPwOpen,
-		onOpen: onPwOpen,
-		onClose: onPwClose,
-	} = useDisclosure()
 
 	const { isAdmin, isOwnerOrAdmin, user } = useUser()
 	const { tenantName } = useTenant()
@@ -55,14 +50,6 @@ const TenantLayout = () => {
 		isError: isFrontendResourcesError,
 		error: frontendResourcesError,
 	} = useGetUserFrontendResourcesQuery(userId ?? skipToken)
-	// console.log('🚀 ~ TenantLayout ~ frontendResources:', {
-	// 	userId,
-	// 	frontendResources,
-	// 	isFrontendResourcesLoading,
-	// 	isFrontendResourcesFetching,
-	// 	isFrontendResourcesError,
-	// 	frontendResourcesError,
-	// })
 
 	const {
 		isBarcodeEnabled,
@@ -147,8 +134,6 @@ const TenantLayout = () => {
 					<Outlet />
 				</Box>
 			</Box>
-
-			{/* <ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} /> */}
 		</Flex>
 	)
 }
