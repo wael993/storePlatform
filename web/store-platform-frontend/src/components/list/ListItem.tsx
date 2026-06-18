@@ -15,7 +15,6 @@ import {
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useListItem } from './hooks/useListItem'
 import OptionsPopover from '../modals/OptionsPopover'
-import { TargetType } from '../../shared/globalEnums'
 interface ListItemProps {
 	product: Product
 	onSelect: (id: string) => void
@@ -45,7 +44,6 @@ const ListItem = memo(
 		const productState = PRODUCT_STATE_CONFIG[productData.state]
 
 		const showCheckbox = true
-		const eventType = 'dummyEventType'
 		const isReadyForExecution = false
 
 		const { t } = useTranslation()
@@ -67,24 +65,6 @@ const ListItem = memo(
 			seeLocationShelf,
 			seeLocationWarehouse,
 		} = useAllowedActions()
-
-		const getMapTargetTypeLabel = (targetType: TargetType) => {
-			switch (targetType) {
-				case TargetType.PRODUCT:
-					return t('components.pageHeaders.products')
-				case TargetType.DAILY_ACTION:
-					return t('components.pageHeaders.daily')
-				case TargetType.SUPPLIER:
-					return t('components.pageHeaders.suppliers')
-				case TargetType.CUSTOMER:
-					return t('components.pageHeaders.customers')
-				default:
-					return t('appTitle')
-			}
-		}
-
-		// const targetTypeLabel = getMapTargetTypeLabel(targetType)
-		// void targetTypeLabel
 
 		const styles = {
 			tableRow: {

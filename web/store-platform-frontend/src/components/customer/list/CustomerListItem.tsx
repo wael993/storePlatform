@@ -1,16 +1,11 @@
 import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
-import { memo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useUser } from '../../../shared/hooks/useUser'
 import { CUSTOMER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
-import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import { formatDate } from '../../../shared/dateUtils'
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
-import { mapFee } from '../../../shared/utils'
 
 const styles = {
 	tableRow: {
@@ -95,28 +90,7 @@ const CustomerListItem = ({
 	isLoading,
 }: CustomerListItemProps) => {
 	const showCheckbox = true
-	const eventType = 'dummyEventType'
 	const isReadyForExecution = false
-
-	const { t } = useTranslation()
-	const { isOwnerOrAdmin } = useUser()
-	const {
-		// seeCustomer,
-		canEditStockQuantity,
-		canEditMinStockQuantity,
-		canEditWholesalePrice,
-		canEditDiscount,
-		canEditLocationShelf,
-		canEditLocationWarehouse,
-		canEditBuyCost,
-		seeStockQuantity,
-		seeMinStockQuantity,
-		seeWholesalePrice,
-		seeDiscount,
-		seeBuyCost,
-		seeLocationShelf,
-		seeLocationWarehouse,
-	} = useAllowedActions()
 
 	return (
 		<>

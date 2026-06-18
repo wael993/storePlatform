@@ -23,7 +23,6 @@ import {
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
-import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 import CustomerListWithActionBar from './list/CustomerListWithActionBar'
 import {
 	useCreateCustomerMutation,

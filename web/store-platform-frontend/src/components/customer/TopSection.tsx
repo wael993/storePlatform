@@ -14,7 +14,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import { generateBreadcrumbs } from '../../shared/routes'
-import { compareBreakpoint, compareTargetType } from '../../shared/utils'
+import { compareTargetType } from '../../shared/utils'
 import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
 import { CustomTooltip } from '../common/CustomTooltip'
 import { AsStarIcon } from '../icons/Star'
@@ -27,7 +27,6 @@ import { formatDateFromAndDateTo } from '../../shared/dateUtils'
 import { TicketStatus } from '../common/TicketStatus'
 import { BudgetOverview } from '../common/BudgetOverview'
 import { useGetBudgetOverviewQuery } from '../../api/apiStore'
-import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 import { CloseButton } from '../common/CloseButton'
 import { AddSquareIcon } from '../icons/AddSquare'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
@@ -217,7 +216,6 @@ const TopSection = ({
 }: TopSectionProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { isCustomerTarget, isPartnerTarget } = compareTargetType(targetType)
-	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const {
 		isOpen: isAddDailyActionModalOpen,
 		onOpen: onAddDailyActionModalOpen,

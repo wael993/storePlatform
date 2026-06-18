@@ -43,6 +43,7 @@ const NotificationCircle = ({
 	children,
 	alwaysShowAnimation = false,
 }: NotificationCircleProps) => {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [activityHasChanges, setActivityHasChanges] = useState(true)
 
 	// useEffect(() => {

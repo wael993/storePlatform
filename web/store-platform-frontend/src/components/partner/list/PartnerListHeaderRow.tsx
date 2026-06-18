@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { SortOrder, PartnerSortHeaderKey } from '../../list/shared/globalEnums'
 import { useResources } from '../../../shared/hooks/useResources'
-import { useUser } from '../../../shared/hooks/useUser'
-import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import TableSort from '../../common/CustomTableSort'
 import { PARTNER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { isTruthy } from '../../list/shared/utils'
@@ -59,7 +57,6 @@ const PartnerListHeaderRow = ({
 }: PartnerListHeaderRowProps) => {
 	const { t } = useTranslation()
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-	const { isOwnerOrAdmin } = useUser()
 
 	const { isActionAllowed } = useResources()
 	const showCheckbox = true
@@ -67,14 +64,6 @@ const PartnerListHeaderRow = ({
 	const handleSort = (sortingCell: PartnerSortHeaderKey, order: SortOrder) => {
 		onSort(sortingCell, order)
 	}
-	const {
-		seeStockQuantity,
-		seeMinStockQuantity,
-		seeDiscount,
-		seeBuyCost,
-		seeLocationShelf,
-		seeLocationWarehouse,
-	} = useAllowedActions()
 
 	const getSortingButton = (sortKey: PartnerSortHeaderKey) => {
 		return (

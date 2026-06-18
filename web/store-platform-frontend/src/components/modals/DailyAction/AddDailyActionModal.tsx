@@ -158,6 +158,7 @@ const AddDailyActionModal = ({
 			resetProductLines()
 			setStep(StepKeys.ACTION_TYPE)
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen, setEntryType, setFormData, setStep])
 
 	// useEffect(() => {

@@ -1,11 +1,4 @@
-import {
-	Accordion,
-	AccordionButton,
-	AccordionIcon,
-	AccordionItem,
-	Checkbox,
-	Flex,
-} from '@chakra-ui/react'
+import { Checkbox, Flex } from '@chakra-ui/react'
 import React, { useState } from 'react'
 import { Virtuoso } from 'react-virtuoso'
 import ListItemMobil from './ListItemMobil'

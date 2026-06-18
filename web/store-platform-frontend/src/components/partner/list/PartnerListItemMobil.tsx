@@ -17,11 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { formatDate } from '../../../shared/dateUtils'
 import { buildRoutePath } from '../../../shared/routes'
-import {
-	compareLanguage,
-	mapFee,
-	withNoValueFallback,
-} from '../../../shared/utils'
+import { compareLanguage, withNoValueFallback } from '../../../shared/utils'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
@@ -128,9 +124,7 @@ const PartnerListItemMobil = ({
 								sx={{ ...styles.listItemGridItem, flex: 1 }}
 								onClick={onNavigate}
 							>
-								<Text sx={styles.titleText}>
-									{t('partner.list.name')}
-								</Text>
+								<Text sx={styles.titleText}>{t('partner.list.name')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
 										{withNoValueFallback(partner.name)}
@@ -163,9 +157,7 @@ const PartnerListItemMobil = ({
 				>
 					<Grid templateColumns="repeat(2, 1fr)" gap="6">
 						<GridItem sx={styles.listItemGridItem}>
-							<Text sx={styles.titleText}>
-								{t('partner.list.createdAt')}
-							</Text>
+							<Text sx={styles.titleText}>{t('partner.list.createdAt')}</Text>
 							<Skeleton isLoaded={!isLoading}>
 								<Text sx={styles.valueText}>
 									{partner.createdAt

@@ -1,12 +1,9 @@
 import {
 	Box,
 	Button,
-	Checkbox,
 	Flex,
 	HStack,
 	Icon,
-	IconButton,
-	Input,
 	Menu,
 	MenuButton,
 	Portal,
@@ -16,9 +13,8 @@ import {
 	Tooltip,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons'
+import { ChevronDownIcon } from '@chakra-ui/icons'
 import { useCallback, useMemo, useState } from 'react'
-import StateCircle from '../StateCircle'
 import type { FilterSelectOption } from '../filters/FilterModal'
 import { AsCloseIcon } from '../icons/Close'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
@@ -84,6 +80,7 @@ export const Dropdown = ({
 	disabled = false,
 }: DropdownProps) => {
 	// const [isOpen, setIsOpen] = useState(false)
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [search, setSearch] = useState('')
 
 	const selectedOptions = useMemo(() => {

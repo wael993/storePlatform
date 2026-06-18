@@ -5,7 +5,6 @@ import ListActionBar from './ListActionBar'
 import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 import { compareBreakpoint } from '../../shared/utils'
 import ListDesktop from './ListDesktop'
-import useCustomToast from '../common/CustomToast'
 import EmptyState from '../common/EmptyState'
 import ListMobil from './ListMobil'
 
@@ -16,7 +15,6 @@ interface ListWithActionBarProps {
 
 const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 	const { t } = useTranslation()
-	const showToastMessage = useCustomToast()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedProductsIds, setSelectedProductsIds] = useState<string[]>([])
 	const productElements: Product[] = useMemo(() => {
@@ -59,34 +57,33 @@ const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 		selectedActivities: Product[],
 		data: {},
 	) => {
-		const succeededActivities: string[] = []
-		for (const activity of selectedActivities) {
-			const eventType = 'PROMO'
-			try {
-				// await addRequiredDocument({
-				// 	activityId: activity.id,
-				// 	data,
-				// 	eventType,
-				// }).unwrap()
-				// succeededActivities.push(activity.id)
-				// if (succeededActivities.length === selectedActivities.length) {
-				// 	showToastMessage({
-				// 		status: 'success',
-				// 		description: t('components.list.multiAddRequiredDocumentSuccess'),
-				// 	})
-				// }
-			} catch (error) {
-				showToastMessage({
-					status: 'error',
-					description: t('components.list.multiAddRequiredDocumentError', {
-						count: selectedActivities.length - succeededActivities.length,
-						total: selectedActivities.length,
-					}),
-				})
-				break
-			}
-		}
-
+		// const succeededActivities: string[] = []
+		// for (const activity of selectedActivities) {
+		// 	const eventType = 'PROMO'
+		// 	try {
+		// 		// await addRequiredDocument({
+		// 		// 	activityId: activity.id,
+		// 		// 	data,
+		// 		// 	eventType,
+		// 		// }).unwrap()
+		// 		// succeededActivities.push(activity.id)
+		// 		// if (succeededActivities.length === selectedActivities.length) {
+		// 		// 	showToastMessage({
+		// 		// 		status: 'success',
+		// 		// 		description: t('components.list.multiAddRequiredDocumentSuccess'),
+		// 		// 	})
+		// 		// }
+		// 	} catch (error) {
+		// 		showToastMessage({
+		// 			status: 'error',
+		// 			description: t('components.list.multiAddRequiredDocumentError', {
+		// 				count: selectedActivities.length - succeededActivities.length,
+		// 				total: selectedActivities.length,
+		// 			}),
+		// 		})
+		// 		break
+		// 	}
+		// }
 		// await invalidateTags({ tags: ['Activities'] })
 	}
 

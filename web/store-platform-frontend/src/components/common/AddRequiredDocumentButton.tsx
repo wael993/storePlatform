@@ -14,7 +14,7 @@ import {
 	VStack,
 } from '@chakra-ui/react'
 import { format } from 'date-fns'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import InputLabel from './InputLabel'
 import { AsAddSquareIcon } from '../icons/AddSquare'
@@ -81,7 +81,6 @@ const AddRequiredDocumentButton = ({
 	const { t } = useTranslation()
 	const [documentName, setDocumentName] = useState<string>('')
 	const [deadline, setDeadline] = useState<string>('')
-	const documentNameRef = useRef<HTMLInputElement>(null)
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const handleAddDocument = async () => {

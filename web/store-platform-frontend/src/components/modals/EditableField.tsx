@@ -5,7 +5,6 @@ import {
 	IconButton,
 	IconProps,
 	Input,
-	InputProps,
 	NumberInput,
 	NumberInputField,
 	ResponsiveValue,
@@ -25,7 +24,6 @@ import {
 } from 'react'
 
 import LoadingSpinner from '../../icons/LoadingSpinner'
-import DatePicker from '../common/DatePicker'
 import { formatDate } from '../../shared/dateUtils'
 import { formatNumber } from '../../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
@@ -223,7 +221,7 @@ const EditableField = ({
 
 	useEffect(() => {
 		setFieldValue(originalValue)
-	}, [value])
+	}, [originalValue, value])
 
 	return isEditionEnabled ? (
 		<HStack
