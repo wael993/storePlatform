@@ -16,7 +16,8 @@ export const layoutCssVars = {
 
 /** Height for mobile virtualized lists below page chrome (top bar + padding + headers). */
 export const mobileVirtuosoStyle = {
-	height: 'calc(100dvh - var(--layout-topbar-height, 4rem) - 2 * var(--layout-content-py, 1rem) - 14rem)',
+	height:
+		'calc(100dvh - var(--layout-topbar-height, 4rem) - 2 * var(--layout-content-py, 1rem) - 14rem)',
 	width: '100%',
 	minHeight: '12rem',
 } as const

@@ -21,7 +21,7 @@ const getStyles = (
 			}),
 			borderRadius: '50%',
 			...(isCurrent && {
-				backgroundColor:'#366085',
+				backgroundColor: '#366085',
 			}),
 			...(isStepClickable && {
 				cursor: 'pointer',
@@ -30,9 +30,7 @@ const getStyles = (
 		connector: {
 			width: customConnectorWidth || '1.25rem',
 			height: '2px',
-			backgroundColor: isStepCompleted
-				? '#85B5DF'
-				: '#EAEAEA',
+			backgroundColor: isStepCompleted ? '#85B5DF' : '#EAEAEA',
 		},
 	}) satisfies StylesObject
 

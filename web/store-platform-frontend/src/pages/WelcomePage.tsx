@@ -1,4 +1,12 @@
-import { Box, Flex, Heading, Image, SimpleGrid, Stack, Text } from '@chakra-ui/react'
+import {
+	Box,
+	Flex,
+	Heading,
+	Image,
+	SimpleGrid,
+	Stack,
+	Text,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { pageContentMinHeight } from '../theme/layout'
 
@@ -98,7 +106,11 @@ const WelcomePage = () => {
 						>
 							{t('welcome.title')}
 						</Heading>
-						<Text color="gray.600" fontSize={{ base: 'md', md: 'lg' }} maxW="34rem">
+						<Text
+							color="gray.600"
+							fontSize={{ base: 'md', md: 'lg' }}
+							maxW="34rem"
+						>
 							{t('welcome.subtitle')}
 						</Text>
 					</Stack>
