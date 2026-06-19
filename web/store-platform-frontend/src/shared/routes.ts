@@ -1,4 +1,3 @@
-/* eslint-disable unused-imports/no-unused-vars */
 import { t } from 'i18next'
 
 const ROUTE_PREFIX = '/services/store_platform'
@@ -99,10 +98,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 	return labelKey ? t(labelKey) : fallback
 }
 
-export const generateBreadcrumbs = ({
-	locationId,
-	locationName,
-}: BreadcrumbParams = {}) => {
+export const generateBreadcrumbs = () => {
 	const settings: BreadcrumbItem[] = [
 		{
 			id: 'settings',

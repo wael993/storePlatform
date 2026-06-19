@@ -1,24 +1,9 @@
-import { useSelector } from 'react-redux'
-import { RootState } from '../../store/store'
+import { skipToken } from '@reduxjs/toolkit/query/react'
 import { useLocation } from 'react-router-dom'
+import { useGetUserFrontendResourcesQuery } from '../../api/apiStore'
 import { AllowedActions } from '../globalEnums'
+import { useUser } from './useUser'
 
-// import { useUser } from '../useUser'
-
-// import { config } from '../../config'
-
-// const allActivitiesPath =
-// 	'/services/marketing_platform/activities/all-activities'
-// const promotionPath = '/services/marketing_platform/activities/promotion'
-// const pricePath = '/services/marketing_platform/activities/price'
-// const SLPath = '/services/marketing_platform/space-and-location'
-// const SLTicketBoardPath =
-// 	'/services/marketing_platform/space-and-location/board'
-// const SLTicketListPath = '/services/marketing_platform/space-and-location/list'
-// const SLLocationsPath =
-// 	'/services/marketing_platform/space-and-location/locations'
-// const SLSpacesPath = '/services/marketing_platform/space-and-location/spaces'
-// const complaintsPathBoard = '/services/marketing_platform/complaints/board'
 export const SLAcquisitionTicketPath =
 	'/services/marketing_platform/space-and-location/*/acquisition/*'
 export const mediaExchangePath =
@@ -41,15 +26,13 @@ const matchesResourcePath = (
 
 export function useResources(overriddenPath?: string) {
 	const { pathname } = useLocation()
+	const { user } = useUser()
 
 	const currentPath = overriddenPath ?? pathname
 
-	const frontendResourcesState = useSelector((state: RootState) => {
-		return state.frontendResources
-	})
-
-	const frontendResources: FrontendResources[] =
-		frontendResourcesState.frontendResources
+	const { data: frontendResources = [] } = useGetUserFrontendResourcesQuery(
+		user?.userId ?? skipToken,
+	)
 
 	const allowedActionsForPath = (pathInput: string = currentPath): string[] => {
 		if (!pathInput) return []

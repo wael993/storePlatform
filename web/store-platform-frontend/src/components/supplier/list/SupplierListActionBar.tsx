@@ -1,4 +1,3 @@
-/* eslint-disable unused-imports/no-unused-vars */
 import { Button, Flex, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
@@ -75,10 +74,7 @@ const SupplierListActionBar = ({
 
 	const requiredDocumentCreatableOffers = true
 
-	const handleAddRequiredDocument = async (
-		documentName: string,
-		deadline: string,
-	) => {
+	const handleAddRequiredDocument = async () => {
 		await onAddRequiredDocument([], {})
 	}
 

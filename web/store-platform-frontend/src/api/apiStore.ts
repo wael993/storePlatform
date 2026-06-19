@@ -607,9 +607,7 @@ const getQuery = (
 			}),
 			transformResponse: (response: {
 				frontendResources: FrontendResources[]
-			}) => {
-				return response.frontendResources
-			},
+			}) => response.frontendResources,
 		}),
 		changePassword: builder.mutation<
 			void,

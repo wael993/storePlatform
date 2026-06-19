@@ -82,7 +82,7 @@ const SupplierModal = ({ targetType }: SupplierModalProps) => {
 								<Flex sx={entityDetailModalStyles.errorSection}>
 									<Box sx={entityDetailModalStyles.errorTextBox}>
 										<CenteredText
-											text={t('components.supplier.errorLoadingSupplier')}
+											text={t('supplier.errorLoadingSupplier')}
 											customStyles={entityDetailModalStyles.errorText}
 										/>
 									</Box>

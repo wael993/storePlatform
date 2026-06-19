@@ -84,8 +84,7 @@ interface ProductsPageProps {
 	targetType: TargetType
 }
 
-// eslint-disable-next-line unused-imports/no-unused-vars
-const ProductsPage = ({ targetType }: ProductsPageProps) => {
+const ProductsPage = (_targetType: ProductsPageProps) => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isActionAllowed } = useResources()
 	const { productsPerPage } = useSettings()
