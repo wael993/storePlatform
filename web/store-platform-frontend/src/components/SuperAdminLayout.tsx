@@ -44,7 +44,10 @@ const SuperAdminLayout = () => {
 
 	const topBarItems = [
 		isAddNewTenantEnabled && isTenantAddNewTenantEnabled
-			? { label: t(routeLabelKeys.ADD_NEW_TENANT), path: RoutePaths.ADD_NEW_TENANT }
+			? {
+					label: t(routeLabelKeys.ADD_NEW_TENANT),
+					path: RoutePaths.ADD_NEW_TENANT,
+				}
 			: null,
 		isTenantsListEnabled && isTenantTenantsListEnabled
 			? { label: t(routeLabelKeys.TENANTS_LIST), path: RoutePaths.TENANTS_LIST }
@@ -57,8 +60,9 @@ const SuperAdminLayout = () => {
 
 		try {
 			await logoutCurrent().unwrap()
-		} catch (submitError: any) {
-			setError(submitError?.data?.message || t('common.logoutFailed'))
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setError(err?.data?.message || t('common.logoutFailed'))
 		} finally {
 			dispatch(logout())
 			navigate(RoutePaths.LOGIN, { replace: true })

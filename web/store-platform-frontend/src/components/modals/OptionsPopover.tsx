@@ -45,7 +45,7 @@ const styles: StylesObject = {
 	},
 }
 interface OptionsPopoverProps {
-	offer: any
+	offer: string | undefined
 }
 // eslint-disable-next-line unused-imports/no-unused-vars
 const OptionsPopover = ({ offer }: OptionsPopoverProps) => {

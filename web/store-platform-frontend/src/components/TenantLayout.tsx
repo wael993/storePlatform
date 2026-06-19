@@ -81,8 +81,9 @@ const TenantLayout = () => {
 		setError('')
 		try {
 			await logoutCurrent().unwrap()
-		} catch (submitError: any) {
-			setError(submitError?.data?.message || 'Logout failed.')
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setError(err?.data?.message || 'Logout failed.')
 		} finally {
 			dispatch(logout())
 			navigate(RoutePaths.LOGIN, { replace: true })

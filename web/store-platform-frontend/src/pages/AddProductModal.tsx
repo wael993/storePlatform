@@ -144,7 +144,8 @@ const AddProductModal = ({
 				status: form.status,
 				description: form.description.trim() || undefined,
 			}).unwrap()
-		} catch (err: any) {
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
 			setError(err?.data?.message || t('productModal.createFailed'))
 			return
 		}
@@ -176,7 +177,11 @@ const AddProductModal = ({
 							value={form.productFactoryCode}
 							onChange={e => handleChange('productFactoryCode', e.target.value)}
 						/>
-						<Input placeholder={t('common.barcode')} value={form.barcode} isReadOnly />
+						<Input
+							placeholder={t('common.barcode')}
+							value={form.barcode}
+							isReadOnly
+						/>
 						<Input
 							placeholder={t('productModal.categoryId')}
 							value={form.categoryId}
