@@ -14,7 +14,7 @@ import { fullPaths } from '../../shared/routes'
 import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
-import TopSection from '../customer/TopSection'
+import TopSection from '../TopSection'
 import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
 import {
 	entityDetailModalContainerZIndex,

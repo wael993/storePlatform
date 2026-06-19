@@ -26,7 +26,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { compareLanguage } from '../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
-import { layout } from '../theme/layout'
 import ChangePasswordModal from './ChangePasswordModal'
 
 interface ServiceMenuProps {
