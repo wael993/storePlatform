@@ -79,8 +79,7 @@ type FormData = {
 	code: string
 	value: string
 }
-// eslint-disable-next-line unused-imports/no-unused-vars
-const CustomerPage = ({ targetType }: CustomerPageProps) => {
+const CustomerPage = (_targetType: CustomerPageProps) => {
 	const [formData, setFormData] = useState<FormData>({
 		code: '',
 		value: '',

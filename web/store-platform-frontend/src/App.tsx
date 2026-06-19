@@ -31,9 +31,6 @@ import DailyPage from './components/daily/DailyPage'
 import CustomerModal from './components/customer/CustomerModal'
 import SupplierModal from './components/supplier/SupplierModal'
 import PartnerModal from './components/partner/PartnerModal'
-// import { useGetUserFrontendResourcesQuery } from './api/apiStore'
-// import FullSizeLoadingSpinner from './icons/FullSizeLoadingSpinner'
-// import { skipToken } from '@reduxjs/toolkit/dist/query/react'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -47,16 +44,6 @@ const App = () => {
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()
-	// if (!userId) return <FullSizeLoadingSpinner />
-
-	// const {
-	// 	data: frontendResources,
-	// 	isLoading: isFrontendResourcesLoading,
-	// 	isFetching: isFrontendResourcesFetching,
-	// 	isError: isFrontendResourcesError,
-	// 	error: frontendResourcesError,
-	// 	// eslint-disable-next-line react-hooks/rules-of-hooks
-	// } = useGetUserFrontendResourcesQuery(userId, { skip: !userId })
 
 	const {
 		isAddNewTenantEnabled,
