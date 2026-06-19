@@ -48,6 +48,7 @@ export const getSupplierById = (
 	supplierId: string | undefined,
 ): SupplierMock | undefined => {
 	if (!supplierId) return undefined
+
 	return SUPPLIERS_MOCK.find(s => s._id === supplierId)
 }
 

@@ -38,6 +38,7 @@ async function migrateMultiTenant() {
 		for (const collectionName of COLLECTIONS) {
 			const collection = mongoose.connection.collection(collectionName)
 			const exists = await collection.countDocuments().catch(() => 0)
+
 			if (exists === 0) {
 				continue
 			}

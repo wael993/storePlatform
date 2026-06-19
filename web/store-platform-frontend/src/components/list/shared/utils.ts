@@ -62,8 +62,8 @@ export const compareStringsForSorting = (
 export const getTableWidth = (
 	widthMap: Record<string, number>,
 	isInternalUser: boolean,
-	stickyRightWidth: number = 0,
-	additionalPadding: number = 0,
+	stickyRightWidth = 0,
+	additionalPadding = 0,
 ): string => {
 	const width = Object.entries(widthMap)
 		.filter(

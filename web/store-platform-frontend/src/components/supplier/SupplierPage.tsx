@@ -53,7 +53,7 @@ const styles = {
 		paddingX: '1rem',
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',

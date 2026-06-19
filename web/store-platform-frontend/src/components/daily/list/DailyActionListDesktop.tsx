@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { Box, Table, Thead, Tbody } from '@chakra-ui/react'
 import React, {
 	CSSProperties,

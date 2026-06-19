@@ -37,14 +37,14 @@ const pulseAnimation = keyframes`
 `
 
 const NotificationCircle = ({
-	productId,
+	// productId,
 	showIfNoChanges = false,
 	customStyles,
 	children,
 	alwaysShowAnimation = false,
 }: NotificationCircleProps) => {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [activityHasChanges, setActivityHasChanges] = useState(true)
+	const [activityHasChanges, _setActivityHasChanges] = useState(true)
 
 	// useEffect(() => {
 	// 	setActivityHasChanges(true)

@@ -140,6 +140,7 @@ async function createInitialProducts() {
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
 		})
+
 		console.log('Connected to MongoDB')
 
 		await Tenant.updateOne(
@@ -186,6 +187,7 @@ async function createInitialProducts() {
 			tenantId: DEFAULT_TENANT_ID,
 			_id: { $in: initialProducts.map(p => p._id) },
 		} as any)
+
 		console.log('Deleted existing matching products')
 
 		const now = new Date()

@@ -133,6 +133,7 @@ export class PlatformValidator {
 		next: express.NextFunction,
 	): void {
 		const { entityType, id } = req.params
+
 		try {
 			if (!entityType) {
 				throw new RequiredParameterMissingError(

@@ -7,13 +7,13 @@ export interface IUnit extends Document {
 	name: string
 	internalCode: string
 	createdBy: {
-		_id: String
-		displayName: String
+		_id: string
+		displayName: string
 		createdAt: Date
 	}
 	updatedBy: {
-		_id: String
-		displayName: String
+		_id: string
+		displayName: string
 		updatedAt: Date
 	}
 }

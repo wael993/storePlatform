@@ -39,7 +39,7 @@ const styles = {
 		alignItems: 'center',
 		justifyContent: 'space-between',
 		gap: '0.625rem',
-		borderBottom: `1px solid #EAEAEA`,
+		borderBottom: '1px solid #EAEAEA',
 	},
 	headerTitleStepperContainer: {
 		alignItems: 'flex-start',
@@ -75,7 +75,7 @@ const styles = {
 	},
 	footer: {
 		gap: '0.5rem',
-		borderTop: `1px solid #EAEAEA`,
+		borderTop: '1px solid #EAEAEA',
 	},
 	spinnerContainer: {
 		height: '100%',
@@ -158,18 +158,7 @@ const AddDailyActionModal = ({
 			resetProductLines()
 			setStep(StepKeys.ACTION_TYPE)
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen, setEntryType, setFormData, setStep])
-
-	// useEffect(() => {
-	// 	if (!isOpen) {
-	// 		setEntryType([])
-	// 		setFormData(undefined)
-	// 		setNewDailyAction(undefined)
-	// 		resetProductLines()
-	// 		setStep(StepKeys.ACTION_TYPE)
-	// 	}
-	// }, [isOpen, resetProductLines, setEntryType, setFormData, setStep])
 
 	useEffect(() => {
 		setShouldLeavingBeQuestioned(!isEqual(formData, undefined))

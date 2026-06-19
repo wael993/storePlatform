@@ -111,6 +111,7 @@ export default class MongodbController {
 	private async initChangeStream() {
 		// This check allows developers to work with a local database instead of port-forwarding the current deployed one.
 		if (!this.db) return
+
 		if (
 			(config.environment === 'dev' || config.environment === 'local') &&
 			process.env.USING_LOCAL_DB === 'true'
@@ -196,6 +197,7 @@ export default class MongodbController {
 			if (config.enableChangeStream) {
 				this.initChangeStream()
 			}
+
 			logger.info('Connected successfully to DB', {
 				entity: EntityType.MONGODB,
 			})

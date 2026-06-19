@@ -54,7 +54,7 @@ const styles = {
 		paddingX: '1rem',
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',
@@ -80,6 +80,7 @@ type FormData = {
 	value: string
 }
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 const PartnerPage = ({ targetType }: PartnerPageProps) => {
 	const [formData, setFormData] = useState<FormData>({
 		code: '',

@@ -29,4 +29,5 @@ const validateInternalId = (id: string, nameHint: string): void => {
 
 	validateType(id, 'string', nameHint)
 }
+
 export { validateType, validateInternalId }

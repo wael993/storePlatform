@@ -70,7 +70,9 @@ const parseNumberQueryParam = (value: unknown): number | undefined => {
 	if (typeof value !== 'string') {
 		return undefined
 	}
+
 	const num = parseInt(value, 10)
+
 	return isNaN(num) ? undefined : num
 }
 
@@ -688,6 +690,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				dailyActionFilterQuery,
 			)
+
 			const today = new Date()
 			const filename = `${format(today, 'yyyy.MM.dd')}_daily_actions.xlsx`
 
@@ -696,6 +699,7 @@ export default class StoreRoutes extends PlatformValidator {
 				useSharedStrings: true,
 				filename: filename,
 			})
+
 			response.attachment(filename).send(workbookBuffer)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -783,6 +787,7 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		try {
 			const result = await this.productController.logoutAll(request)
+
 			this.clearRefreshTokenCookie(response)
 			response.status(200).json(result)
 		} catch (error: any) {
@@ -800,6 +805,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getTenants(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 403, response)
@@ -822,6 +828,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 400, response)
@@ -913,6 +920,7 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const resp =
 				await this.productController.getProductFilterValues(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -926,8 +934,10 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+
 		try {
 			const resp = await this.productController.getPartners(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -948,6 +958,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				requestBody,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -966,6 +977,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -979,8 +991,10 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+
 		try {
 			const resp = await this.productController.getSuppliers(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1001,6 +1015,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				requestBody,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1020,6 +1035,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1057,6 +1073,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				requestBody,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1076,6 +1093,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1089,8 +1107,10 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+
 		try {
 			const resp = await this.productController.getExpenses(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1111,6 +1131,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				requestBody,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1130,6 +1151,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1150,6 +1172,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.body,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1169,6 +1192,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1205,8 +1229,10 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+
 		try {
 			const resp = await this.productController.getCurrencies(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1227,6 +1253,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				requestBody,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1240,8 +1267,10 @@ export default class StoreRoutes extends PlatformValidator {
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
+
 		try {
 			const resp = await this.productController.getUnits(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1262,6 +1291,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				requestBody,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1326,6 +1356,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params._id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1342,6 +1373,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getOrders(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1361,6 +1393,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1381,6 +1414,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1401,6 +1435,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.body,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1420,6 +1455,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1436,6 +1472,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getInvoices(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1455,6 +1492,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1475,6 +1513,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1495,6 +1534,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.body,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1514,6 +1554,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1530,6 +1571,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getInventory(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1549,6 +1591,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1569,6 +1612,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1589,6 +1633,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.body,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1608,6 +1653,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1624,6 +1670,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getReports(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1643,6 +1690,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1663,6 +1711,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1683,6 +1732,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.body,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1702,6 +1752,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1733,6 +1784,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				dailyActionFilterQuery,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1750,6 +1802,7 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const resp =
 				await this.productController.getDailyActionFilterValues(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1769,6 +1822,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1789,6 +1843,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1809,6 +1864,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.body,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -1844,6 +1900,7 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getTenantUsers(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
@@ -1863,6 +1920,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
@@ -1883,6 +1941,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
@@ -1904,6 +1963,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
@@ -1923,6 +1983,7 @@ export default class StoreRoutes extends PlatformValidator {
 				request.params.id,
 				requestContext,
 			)
+
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
@@ -1960,6 +2021,7 @@ export default class StoreRoutes extends PlatformValidator {
 				requestBody,
 				requestContext,
 			)
+
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)

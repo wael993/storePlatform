@@ -19,14 +19,18 @@ export default class ProductsMapper {
 
 		const productState = () => {
 			if (product.status === 'inactive') return 'inactive'
+
 			if (product?.stock?.quantity === 0) return 'outOfStock'
+
 			if (
 				product?.stock?.minQuantity &&
 				product?.stock?.quantity &&
 				product.stock.quantity <= product.stock.minQuantity
 			)
 				return 'readyForRestock'
+
 			if (product.status === 'discontinued') return 'discontinued'
+
 			if (product.status === 'active') return 'active'
 
 			return 'draft'

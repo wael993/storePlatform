@@ -47,6 +47,7 @@ async function createInitialUsers() {
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
 		})
+
 		console.log('✅ Connected to MongoDB')
 
 		// Ensure stale unique indexes from previous schemas (e.g. username_1)
@@ -95,6 +96,7 @@ async function createInitialUsers() {
 			console.log(
 				`✅ ${userData.role.toUpperCase()} user created successfully!`,
 			)
+
 			console.log('👤 _id:', user.userId)
 			console.log('👤 displayName:', user.displayName)
 			console.log('📧 Email:', user.email)
@@ -113,6 +115,7 @@ async function createInitialUsers() {
 					userData.password +
 					'"}',
 			)
+
 			console.log('─'.repeat(50))
 		}
 	} catch (error) {

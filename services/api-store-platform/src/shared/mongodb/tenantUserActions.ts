@@ -15,12 +15,15 @@ export const updateTenantUser = async (
 	const tenantContext = getTenantContext(requestContext)
 
 	const updates: Record<string, unknown> = {}
+
 	if (requestBody.firstName) {
 		updates['user.firstName'] = requestBody.firstName
 	}
+
 	if (requestBody.lastName) {
 		updates['user.lastName'] = requestBody.lastName
 	}
+
 	// if (typeof requestBody.isInternal === 'boolean') {
 	// 	updates['user.isInternal'] = requestBody.isInternal
 	// }
@@ -31,6 +34,7 @@ export const updateTenantUser = async (
 	if (requestBody.firstName || requestBody.lastName) {
 		const firstName = requestBody.firstName || ''
 		const lastName = requestBody.lastName || ''
+
 		updates.displayName = `${firstName} ${lastName}`.trim()
 	}
 

@@ -61,7 +61,7 @@ const styles = {
 		paddingX: '1rem',
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',
@@ -84,6 +84,7 @@ interface ProductsPageProps {
 	targetType: TargetType
 }
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 const ProductsPage = ({ targetType }: ProductsPageProps) => {
 	const { isOwnerOrAdmin } = useUser()
 	const { isActionAllowed } = useResources()
@@ -144,7 +145,9 @@ const ProductsPage = ({ targetType }: ProductsPageProps) => {
 		})
 	}, [filterValuesResponse?.state])
 
-	const openAdd = () => {}
+	const openAdd = () => {
+		console.log('openAdd')
+	}
 
 	const { t } = useTranslation()
 

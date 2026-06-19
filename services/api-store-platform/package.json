@@ -5,6 +5,9 @@
 	"scripts": {
 		"start": "node dist/server.js",
 		"build": "tsc",
+		"format": "prettier --log-level warn --config ../../.prettierrc --write src",
+		"lint": "eslint src --fix",
+		"format-and-lint": "npm run lint && npm run format",
 		"dev": "nodemon src/server.ts",
 		"init-collections": "ts-node src/scripts/init-collections.ts",
 		"seed:users": "ts-node src/scripts/create-admin-user.ts",
@@ -51,7 +54,15 @@
 		"winston": "^3.17.0"
 	},
 	"devDependencies": {
+		"@stylistic/eslint-plugin-js": "^2.13.0",
+		"@typescript-eslint/eslint-plugin": "^8.35.0",
+		"@typescript-eslint/parser": "^8.35.0",
+		"eslint": "^8.57.1",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-jest": "^28.11.0",
+		"eslint-plugin-unused-imports": "^4.1.4",
 		"nodemon": "^3.1.9",
+		"prettier": "^3.6.2",
 		"ts-node": "^10.9.2"
 	}
 }

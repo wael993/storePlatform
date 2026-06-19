@@ -47,6 +47,7 @@ const styles: StylesObject = {
 interface OptionsPopoverProps {
 	offer: any
 }
+// eslint-disable-next-line unused-imports/no-unused-vars
 const OptionsPopover = ({ offer }: OptionsPopoverProps) => {
 	const { t } = useTranslation()
 	const {

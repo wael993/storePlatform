@@ -233,4 +233,5 @@ const DailyActionItem = memo(
 	},
 )
 
+DailyActionItem.displayName = 'DailyActionItem'
 export default DailyActionItem

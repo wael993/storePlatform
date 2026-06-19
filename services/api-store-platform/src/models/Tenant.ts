@@ -54,6 +54,7 @@ const tenantSchema = new Schema<ITenant>(
 		toJSON: {
 			transform: (_, ret) => {
 				delete ret._id
+
 				return ret
 			},
 		},

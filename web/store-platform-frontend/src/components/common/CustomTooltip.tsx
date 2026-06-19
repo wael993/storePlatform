@@ -69,7 +69,6 @@ export const CustomTooltip = ({
 		return () => {
 			resizeObserver.disconnect()
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [label])
 
 	return (

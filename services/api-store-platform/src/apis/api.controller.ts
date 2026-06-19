@@ -188,6 +188,7 @@ const getInvoiceDateBoundary = (
 	boundary: 'start' | 'end',
 ): Date | undefined => {
 	const trimmedDateValue = dateValue?.trim()
+
 	if (!trimmedDateValue) return undefined
 
 	const isDateOnlyValue = /^\d{4}-\d{2}-\d{2}$/.test(trimmedDateValue)
@@ -226,6 +227,7 @@ export default class ProductController {
 		const listKeyDeleted = await redisCache.del(
 			redisCache.buildProductListKey(tenantId),
 		)
+
 		if (listKeyDeleted) {
 			logger.debug('Product list cache invalidated')
 		}
@@ -234,6 +236,7 @@ export default class ProductController {
 			const detailKeyDeleted = await redisCache.del(
 				redisCache.buildProductDetailKey(tenantId, productId),
 			)
+
 			if (detailKeyDeleted) {
 				logger.debug(`Product ${productId} deleted from cache`)
 			}
@@ -242,6 +245,7 @@ export default class ProductController {
 		const patternDeleted = await redisCache.delByPattern(
 			redisCache.buildEntityDetailPatternKey('products', tenantId),
 		)
+
 		if (patternDeleted > 0) {
 			logger.debug(
 				`Product cache pattern invalidated: deleted=${patternDeleted}`,
@@ -262,6 +266,7 @@ export default class ProductController {
 					? redisCache.buildInvoiceListKey(tenantId)
 					: redisCache.buildInventoryListKey(tenantId)
 		const listKeyDeleted = await redisCache.del(listKey)
+
 		if (listKeyDeleted) {
 			logger.debug(`${entity} list cache invalidated`)
 		}
@@ -274,6 +279,7 @@ export default class ProductController {
 						? redisCache.buildInvoiceDetailKey(tenantId, id)
 						: redisCache.buildInventoryDetailKey(tenantId, id)
 			const detailKeyDeleted = await redisCache.del(detailKey)
+
 			if (detailKeyDeleted) {
 				logger.debug(`${entity} ${id} deleted from cache`)
 			}
@@ -282,6 +288,7 @@ export default class ProductController {
 		const patternDeleted = await redisCache.delByPattern(
 			redisCache.buildEntityDetailPatternKey(entity, tenantId),
 		)
+
 		if (patternDeleted > 0) {
 			logger.debug(
 				`${entity} cache pattern invalidated: deleted=${patternDeleted}`,
@@ -310,6 +317,7 @@ export default class ProductController {
 
 	private normalizeFilterOptionValue(value?: string): string | undefined {
 		const normalizedValue = value?.trim()
+
 		return normalizedValue ? normalizedValue : undefined
 	}
 
@@ -319,6 +327,7 @@ export default class ProductController {
 		label?: string,
 	): void {
 		const normalizedValue = this.normalizeFilterOptionValue(value)
+
 		if (!normalizedValue) {
 			return
 		}
@@ -463,6 +472,7 @@ export default class ProductController {
 			req.socket.remoteAddress ||
 			'unknown'
 		const userAgent = req.headers['user-agent'] || 'unknown'
+
 		return { ip, userAgent }
 	}
 
@@ -552,6 +562,7 @@ export default class ProductController {
 		const randomPart = crypto.randomBytes(10).toString('base64url')
 		const digit = String(crypto.randomInt(0, 10))
 		const lower = String.fromCharCode(97 + crypto.randomInt(0, 26))
+
 		return `${lower}${randomPart}${digit}`
 	}
 
@@ -564,6 +575,7 @@ export default class ProductController {
 			tenantId,
 			status: 'active',
 		}).lean()) as ITenant | null
+
 		if (!tenant) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -610,6 +622,7 @@ export default class ProductController {
 				fieldValue: orderId,
 			},
 		)
+
 		if (!order) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -628,6 +641,7 @@ export default class ProductController {
 			Product,
 			{ fieldName: 'productId', fieldValue: productId },
 		)
+
 		if (!product) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -681,6 +695,7 @@ export default class ProductController {
 
 		if (!loginEmail || !loginPassword) {
 			logger.warn('Login attempt with missing fields', { ip })
+
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 				'Email and password are required.',
@@ -688,11 +703,13 @@ export default class ProductController {
 		}
 
 		const emailError = validateEmail(loginEmail)
+
 		if (emailError) {
 			logger.warn('Login attempt with invalid email format', {
 				ip,
 				email: loginEmail,
 			})
+
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
 				emailError,
@@ -711,6 +728,7 @@ export default class ProductController {
 				email: loginEmail,
 				tenantId: tenant.tenantId,
 			})
+
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
 				'Invalid email or password.',
@@ -718,12 +736,14 @@ export default class ProductController {
 		}
 
 		const isValid = await bcrypt.compare(loginPassword, user.password)
+
 		if (!isValid) {
 			logger.warn('Failed login: wrong password', {
 				ip,
 				userId: user._id,
 				tenantId: tenant.tenantId,
 			})
+
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
 				'Invalid email or password.',
@@ -785,6 +805,7 @@ export default class ProductController {
 			logger.warn('Refresh token reuse detected — revoking all sessions', {
 				ip,
 			})
+
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
 				'Invalid refresh token. Please log in again.',
@@ -797,6 +818,7 @@ export default class ProductController {
 				tenantId: storedToken.tenantId,
 				ip,
 			})
+
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.TOKEN_EXPIRED,
 				'Refresh token has expired. Please log in again.',
@@ -818,6 +840,7 @@ export default class ProductController {
 		const tenant = (await Tenant.findOne({
 			tenantId: storedToken.tenantId,
 		}).lean()) as ITenant | null
+
 		if (!tenant) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
@@ -866,6 +889,7 @@ export default class ProductController {
 
 	public async logout(req: express.Request) {
 		const rawToken = req.cookies?.refreshToken
+
 		if (!rawToken) {
 			return
 		}
@@ -883,6 +907,7 @@ export default class ProductController {
 
 	public async logoutAll(req: express.Request) {
 		const rawToken = req.cookies?.refreshToken
+
 		if (!rawToken) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_REFRESH_TOKEN,
@@ -934,8 +959,10 @@ export default class ProductController {
 		if (!hasFilters) {
 			const cachedProducts =
 				await redisCache.getJson<ProductRequestBody[]>(cacheKey)
+
 			if (cachedProducts) {
 				const paginatedCached = cachedProducts.slice(offset, offset + limit)
+
 				return {
 					products: paginatedCached,
 					totalCount: cachedProducts.length,
@@ -959,6 +986,7 @@ export default class ProductController {
 
 		if (searchText) {
 			const searchRegex = new RegExp(this.escapeRegex(searchText), 'i')
+
 			productQueryClauses.push({
 				$or: [
 					{ name: searchRegex },
@@ -1070,16 +1098,19 @@ export default class ProductController {
 					product.supplierName || product.supplierId,
 				)
 			}
+
 			this.addFilterOption(
 				brandMap,
 				product.brandId || product.brandName,
 				product.brandName || product.brandId,
 			)
+
 			this.addFilterOption(
 				categoryMap,
 				product.categoryId || product.categoryName,
 				product.categoryName || product.categoryId,
 			)
+
 			this.addFilterOption(stateMap, product.status, product.status)
 		}
 
@@ -1098,6 +1129,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildProductDetailKey(tenantId, productId)
 		const cachedProduct = await redisCache.getJson<ProductRequestBody>(cacheKey)
+
 		if (cachedProduct) {
 			return cachedProduct
 		}
@@ -1117,7 +1149,9 @@ export default class ProductController {
 			product,
 			requestContext,
 		)
+
 		await redisCache.setJson(cacheKey, mappedProduct)
+
 		return mappedProduct
 	}
 
@@ -1151,12 +1185,14 @@ export default class ProductController {
 				'Product name is required',
 			)
 		}
+
 		if (!barcode) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Product barcode is required',
 			)
 		}
+
 		if (
 			price.wholesale === undefined ||
 			price.wholesale === null ||
@@ -1181,7 +1217,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Product already exists in this tenant.',
@@ -1256,6 +1292,7 @@ export default class ProductController {
 			createdBy,
 			...allowedUpdates
 		} = normalizedRequestBody as any
+
 		void tenantId
 		void nextProductId
 		void createdAt
@@ -1285,6 +1322,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateProductsCache(requestContext, productId)
+
 		return updateResponse
 	}
 
@@ -1299,6 +1337,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateProductsCache(requestContext, productId)
+
 		return deleteResponse
 	}
 
@@ -1318,6 +1357,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildOrderListKey(tenantId)
 		const cachedOrders = await redisCache.getJson<any[]>(cacheKey)
+
 		if (cachedOrders) {
 			return cachedOrders
 		}
@@ -1330,6 +1370,7 @@ export default class ProductController {
 		})
 
 		await redisCache.setJson(cacheKey, orders.documents)
+
 		return orders.documents
 	}
 
@@ -1337,6 +1378,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildOrderDetailKey(tenantId, orderId)
 		const cachedOrder = await redisCache.getJson<any>(cacheKey)
+
 		if (cachedOrder) {
 			return cachedOrder
 		}
@@ -1353,6 +1395,7 @@ export default class ProductController {
 		}
 
 		await redisCache.setJson(cacheKey, order)
+
 		return order
 	}
 
@@ -1391,6 +1434,7 @@ export default class ProductController {
 		if (requestBody.items) {
 			await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
 		}
+
 		const updateResponse = await this.mongoDbClient.updateDocument(
 			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
 			requestContext,
@@ -1399,6 +1443,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('orders', requestContext, orderId)
+
 		return updateResponse
 	}
 
@@ -1410,6 +1455,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('orders', requestContext, orderId)
+
 		return deleteResponse
 	}
 
@@ -1417,6 +1463,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildInvoiceListKey(tenantId)
 		const cachedInvoices = await redisCache.getJson<any[]>(cacheKey)
+
 		if (cachedInvoices) {
 			return cachedInvoices
 		}
@@ -1429,6 +1476,7 @@ export default class ProductController {
 		})
 
 		await redisCache.setJson(cacheKey, invoices.documents)
+
 		return invoices.documents
 	}
 
@@ -1436,6 +1484,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildInvoiceDetailKey(tenantId, invoiceId)
 		const cachedInvoice = await redisCache.getJson<any>(cacheKey)
+
 		if (cachedInvoice) {
 			return cachedInvoice
 		}
@@ -1452,6 +1501,7 @@ export default class ProductController {
 		}
 
 		await redisCache.setJson(cacheKey, invoice)
+
 		return invoice
 	}
 
@@ -1498,6 +1548,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
+
 		return updateResponse
 	}
 
@@ -1512,6 +1563,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
+
 		return deleteResponse
 	}
 
@@ -1519,6 +1571,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildInventoryListKey(tenantId)
 		const cachedInventory = await redisCache.getJson<any[]>(cacheKey)
+
 		if (cachedInventory) {
 			return cachedInventory
 		}
@@ -1531,6 +1584,7 @@ export default class ProductController {
 		})
 
 		await redisCache.setJson(cacheKey, inventory)
+
 		return inventory.documents
 	}
 
@@ -1541,6 +1595,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildInventoryDetailKey(tenantId, inventoryId)
 		const cachedInventoryItem = await redisCache.getJson<any>(cacheKey)
+
 		if (cachedInventoryItem) {
 			return cachedInventoryItem
 		}
@@ -1557,6 +1612,7 @@ export default class ProductController {
 		}
 
 		await redisCache.setJson(cacheKey, inventoryItem)
+
 		return inventoryItem
 	}
 
@@ -1568,6 +1624,7 @@ export default class ProductController {
 			requestContext,
 			requestBody.productId,
 		)
+
 		const inventoryData = {
 			inventoryId: uuidv4(),
 			productId: requestBody.productId,
@@ -1601,6 +1658,7 @@ export default class ProductController {
 				requestBody.productId,
 			)
 		}
+
 		const updateResponse = await this.mongoDbClient.updateDocument(
 			{ collectionName: COLLECTION_NAMES.INVENTORY, id: inventoryId },
 			requestContext,
@@ -1609,6 +1667,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+
 		return updateResponse
 	}
 
@@ -1623,6 +1682,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+
 		return deleteResponse
 	}
 
@@ -1706,6 +1766,7 @@ export default class ProductController {
 		if (!hasFilters) {
 			const cachedDailyActions =
 				await redisCache.getJson<DailyActionResponse>(cacheKey)
+
 			if (cachedDailyActions) {
 				return cachedDailyActions
 			}
@@ -1763,6 +1824,7 @@ export default class ProductController {
 				],
 			})
 		}
+
 		if (partnerRegexList.length > 0) {
 			dailyActionQueryClauses.push({
 				$or: [
@@ -1840,6 +1902,7 @@ export default class ProductController {
 				dailyAction.entryType,
 				dailyAction.entryType,
 			)
+
 			this.addFilterOption(
 				productNameMap,
 				dailyAction.productName ||
@@ -1851,21 +1914,25 @@ export default class ProductController {
 					dailyAction.expenseName ||
 					dailyAction.expenseId,
 			)
+
 			this.addFilterOption(
 				supplierMap,
 				dailyAction.supplierId || dailyAction.supplierName,
 				dailyAction.supplierName || dailyAction.supplierId,
 			)
+
 			this.addFilterOption(
 				customerMap,
 				dailyAction.customerId || dailyAction.customerName,
 				dailyAction.customerName || dailyAction.customerId,
 			)
+
 			this.addFilterOption(
 				expenseMap,
 				dailyAction.expenseId || dailyAction.expenseName,
 				dailyAction.expenseName || dailyAction.expenseId,
 			)
+
 			this.addFilterOption(
 				partnerMap,
 				dailyAction.partnerId || dailyAction.partnerName,
@@ -1890,6 +1957,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = `dailyAction:${tenantId}:${actionId}`
 		const cachedAction = await redisCache.getJson<DailyActionResponse>(cacheKey)
+
 		if (cachedAction) {
 			return cachedAction
 		}
@@ -1906,6 +1974,7 @@ export default class ProductController {
 		}
 
 		await redisCache.setJson(cacheKey, { data: [dailyAction], totalCount: 1 })
+
 		return { data: [dailyAction], totalCount: 1 }
 	}
 
@@ -1924,6 +1993,7 @@ export default class ProductController {
 					return action.supplierId && targetId === action.supplierId
 				case TargetType.PARTNER:
 					return action.partnerId && targetId === action.partnerId
+
 				default:
 					throw new Error('Invalid target type')
 			}
@@ -1931,6 +2001,7 @@ export default class ProductController {
 
 		let purchaseEntryType: EntryType
 		let paymentEntryType: EntryType
+
 		switch (targetType) {
 			case TargetType.CUSTOMER:
 				purchaseEntryType = DailyActionType.SELLING_ENTRY
@@ -1944,6 +2015,7 @@ export default class ProductController {
 				purchaseEntryType = DailyActionType.RECEIPT_ENTRY
 				paymentEntryType = DailyActionType.PAYMENT_ENTRY
 				break
+
 			default:
 				throw new Error('Invalid target type')
 		}
@@ -2044,6 +2116,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateDailyActionsCache(requestContext, actionId)
+
 		return updateResponse
 	}
 
@@ -2077,6 +2150,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const listKey = `dailyActions:${tenantId}`
 		const listKeyDeleted = await redisCache.del(listKey)
+
 		if (listKeyDeleted) {
 			logger.debug('Daily actions list cache invalidated')
 		}
@@ -2089,6 +2163,7 @@ export default class ProductController {
 		if (actionId) {
 			const detailKey = `dailyAction:${tenantId}:${actionId}`
 			const detailKeyDeleted = await redisCache.del(detailKey)
+
 			if (detailKeyDeleted) {
 				logger.debug(`Daily action ${actionId} deleted from cache`)
 			}
@@ -2099,6 +2174,7 @@ export default class ProductController {
 		action: DailyActionResponse['data'][number],
 	): number {
 		const rawAmount = action.totalPrice ?? action.singleUnitPrice ?? '0'
+
 		return parseFloat(rawAmount.replace(/,/g, '')) || 0
 	}
 
@@ -2193,6 +2269,7 @@ export default class ProductController {
 		}
 
 		const emailError = validateEmail(email)
+
 		if (emailError) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
@@ -2208,6 +2285,7 @@ export default class ProductController {
 		}
 
 		const tenant = await this.requireTenantById(tenantContext.tenantId)
+
 		if (getEmailDomain(email) !== tenant.domain) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -2288,6 +2366,7 @@ export default class ProductController {
 		}
 
 		const passwordError = validatePasswordStrength(newPassword)
+
 		if (passwordError) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.WEAK_PASSWORD,
@@ -2310,6 +2389,7 @@ export default class ProductController {
 		}
 
 		const isValid = await bcrypt.compare(currentPassword, user.password)
+
 		if (!isValid) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -2361,6 +2441,7 @@ export default class ProductController {
 		ensureSuperAdmin(requestContext)
 
 		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+
 		if (!tenant) {
 			throw new BusinessLogicError(
 				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
@@ -2369,6 +2450,7 @@ export default class ProductController {
 		}
 
 		const permissions = getTenantPermissions(tenant)
+
 		if (!permissions.canUpdate) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -2377,6 +2459,7 @@ export default class ProductController {
 		}
 
 		const updates: Record<string, unknown> = {}
+
 		if (requestBody.tenantName?.trim()) {
 			const nextTenantName = requestBody.tenantName.trim()
 			const conflictingTenant = await Tenant.findOne({
@@ -2428,6 +2511,7 @@ export default class ProductController {
 		ensureSuperAdmin(requestContext)
 
 		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+
 		if (!tenant) {
 			throw new BusinessLogicError(
 				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
@@ -2436,6 +2520,7 @@ export default class ProductController {
 		}
 
 		const permissions = getTenantPermissions(tenant)
+
 		if (!permissions.canDelete) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -2485,6 +2570,7 @@ export default class ProductController {
 		}
 
 		const ownerEmailError = validateEmail(ownerEmail)
+
 		if (ownerEmailError) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.INVALID_EMAIL_FORMAT,
@@ -2494,6 +2580,7 @@ export default class ProductController {
 
 		const normalizedDomain = tenantDomain.trim().toLowerCase()
 		const normalizedOwnerEmail = ownerEmail.trim().toLowerCase()
+
 		if (getEmailDomain(normalizedOwnerEmail) !== normalizedDomain) {
 			throw new BusinessLogicError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -2514,6 +2601,7 @@ export default class ProductController {
 
 		const tenantId = this.createTenantIdFromDomain(normalizedDomain)
 		const tenantIdConflict = await Tenant.findOne({ tenantId }).lean()
+
 		if (tenantIdConflict) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
@@ -2522,6 +2610,7 @@ export default class ProductController {
 		}
 
 		const ownerPasswordError = validatePasswordStrength(ownerPassword)
+
 		if (ownerPasswordError) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.WEAK_PASSWORD,
@@ -2592,6 +2681,7 @@ export default class ProductController {
 			response.status(200).json(userSettings)
 		} catch (error: any) {
 			logger.error('Error fetching user settings', error)
+
 			throw error
 		}
 	}
@@ -2630,6 +2720,7 @@ export default class ProductController {
 			response.status(200).json(userSettings)
 		} catch (error: any) {
 			logger.error('Error updating user settings', error)
+
 			throw error
 		}
 	}
@@ -2639,9 +2730,11 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildPartnerListKey(tenantId)
 		const cachedPartners = await redisCache.getJson<PartnersResponse>(cacheKey)
+
 		if (cachedPartners) {
 			return cachedPartners
 		}
+
 		const partners = await this.mongoDbClient.getDocuments({
 			requestContext,
 			collectionName: COLLECTION_NAMES.PARTNERS,
@@ -2671,7 +2764,9 @@ export default class ProductController {
 			data: mappedPartners,
 			totalCount: mappedPartners.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
+
 		return response
 	}
 
@@ -2735,7 +2830,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'partner already exists in this tenant.',
@@ -2791,9 +2886,11 @@ export default class ProductController {
 		const cacheKey = redisCache.buildSupplierListKey(tenantId)
 		const cachedSuppliers =
 			await redisCache.getJson<SuppliersResponse>(cacheKey)
+
 		if (cachedSuppliers) {
 			return cachedSuppliers
 		}
+
 		const suppliers = await this.mongoDbClient.getDocuments({
 			requestContext,
 			collectionName: COLLECTION_NAMES.SUPPLIERS,
@@ -2828,7 +2925,9 @@ export default class ProductController {
 			data: mappedSuppliers,
 			totalCount: mappedSuppliers.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
+
 		return response
 	}
 
@@ -2897,7 +2996,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'supplier already exists in this tenant.',
@@ -2955,9 +3054,11 @@ export default class ProductController {
 		const cacheKey = redisCache.buildCustomerListKey(tenantId)
 		const cachedCustomers =
 			await redisCache.getJson<CustomersResponse>(cacheKey)
+
 		if (cachedCustomers) {
 			return cachedCustomers
 		}
+
 		const customers = await this.mongoDbClient.getDocuments({
 			requestContext,
 			collectionName: COLLECTION_NAMES.CUSTOMERS,
@@ -2988,7 +3089,9 @@ export default class ProductController {
 			data: mappedCustomers,
 			totalCount: mappedCustomers.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
+
 		return response
 	}
 
@@ -3037,7 +3140,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Customer already exists in this tenant.',
@@ -3100,6 +3203,7 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildExpenseListKey(tenantId)
 		const cachedExpenses = await redisCache.getJson<ExpensesResponse>(cacheKey)
+
 		if (cachedExpenses) {
 			return cachedExpenses
 		}
@@ -3136,7 +3240,9 @@ export default class ProductController {
 			data,
 			totalCount: data.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
+
 		return response
 	}
 
@@ -3174,6 +3280,7 @@ export default class ProductController {
 		}
 
 		const dailyActions = await this.getDailyActions(requestContext)
+
 		return {
 			expenseId: expense.expenseId,
 			name: expense.name,
@@ -3216,7 +3323,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Expense already exists in this tenant.',
@@ -3268,6 +3375,7 @@ export default class ProductController {
 			COLLECTION_NAMES.EXPENSES,
 			'update',
 		)
+
 		const { tenantId } = getTenantContext(requestContext)
 		const updateData = {
 			...requestBody,
@@ -3298,6 +3406,7 @@ export default class ProductController {
 		}
 
 		await redisCache.del(redisCache.buildExpenseListKey(tenantId))
+
 		return updated
 	}
 
@@ -3310,6 +3419,7 @@ export default class ProductController {
 			COLLECTION_NAMES.EXPENSES,
 			'delete',
 		)
+
 		const { tenantId } = getTenantContext(requestContext)
 		const deleted = await withTenantScope(
 			Expense.findOneAndDelete({
@@ -3326,6 +3436,7 @@ export default class ProductController {
 		}
 
 		await redisCache.del(redisCache.buildExpenseListKey(tenantId))
+
 		return deleted
 	}
 
@@ -3336,9 +3447,11 @@ export default class ProductController {
 		const cacheKey = redisCache.buildCurrencyListKey(tenantId)
 		const cachedCurrencies =
 			await redisCache.getJson<CurrenciesResponse>(cacheKey)
+
 		if (cachedCurrencies) {
 			return cachedCurrencies
 		}
+
 		const currencies = await this.mongoDbClient.getDocuments({
 			requestContext,
 			collectionName: COLLECTION_NAMES.CURRENCIES,
@@ -3350,7 +3463,9 @@ export default class ProductController {
 			data: currencies.documents,
 			totalCount: currencies.documents.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
+
 		return response
 	}
 
@@ -3375,7 +3490,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Currency already exists in this tenant.',
@@ -3432,9 +3547,11 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildUnitListKey(tenantId)
 		const cachedUnits = await redisCache.getJson<UnitsResponse>(cacheKey)
+
 		if (cachedUnits) {
 			return cachedUnits
 		}
+
 		const units = await this.mongoDbClient.getDocuments({
 			requestContext,
 			collectionName: COLLECTION_NAMES.UNITS,
@@ -3446,7 +3563,9 @@ export default class ProductController {
 			data: units.documents,
 			totalCount: units.documents.length,
 		}
+
 		await redisCache.setJson(cacheKey, response)
+
 		return response
 	}
 
@@ -3471,7 +3590,7 @@ export default class ProductController {
 			tenantContext.tenantId,
 		).lean()
 
-		if (!!existing) {
+		if (existing) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Unit already exists in this tenant.',

@@ -582,7 +582,7 @@ const getQuery = (
 		}),
 
 		getUser: builder.query<User, void>({
-			async queryFn(_arg, api, extraOptions, baseQuery) {
+			async queryFn(_arg, api, extraOptions, _baseQuery) {
 				const result = await persistenceBaseQuery(
 					{
 						url: '/user',

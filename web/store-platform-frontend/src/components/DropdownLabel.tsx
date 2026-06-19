@@ -48,7 +48,7 @@ const DropdownLabel = ({
 		dropdownMenu: {
 			backgroundColor: '#F4F4F4',
 			padding: '0.5rem',
-			border: `1px solid #EAEAEA`,
+			border: '1px solid #EAEAEA',
 			...customStyles?.dropdownMenu,
 		},
 		labelText: {

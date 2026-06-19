@@ -5,6 +5,7 @@ type ExcelHeader = Partial<Column>
 
 const parseNumber = (value?: string) => {
 	if (!value) return ''
+
 	const numberValue = Number(value)
 
 	return Number.isNaN(numberValue) ? value : numberValue
@@ -53,9 +54,11 @@ export const generateDailyActionsExcel = (dailyActions: DailyAction[]) => {
 			},
 		},
 	]
+
 	worksheet.columns = headers
 
 	const rows: Record<string, unknown>[] = []
+
 	dailyActions.forEach(dailyAction => {
 		const row = {
 			entryType: dailyAction.entryType,
@@ -73,8 +76,10 @@ export const generateDailyActionsExcel = (dailyActions: DailyAction[]) => {
 			singleUnitPrice: parseNumber(dailyAction.singleUnitPrice),
 			totalPrice: parseNumber(dailyAction.totalPrice),
 		}
+
 		rows.push(formatExcelRow(row))
 	})
+
 	rows.forEach(row => {
 		const excelRow = worksheet.addRow(row)
 

@@ -75,15 +75,15 @@ interface SettingsSectionProps {
 	isDocumentSection?: boolean
 }
 const SettingsSection = ({
-	isEditable,
+	// isEditable,
 	title,
 	note = 'note',
 	items = [
 		{ labelKey: 'productsPerPage', value: 'Products per page', unit: '' },
 	],
-	user,
+	// user,
 	// onChange,
-	isDocumentSection = false,
+	// isDocumentSection = false,
 }: SettingsSectionProps) => {
 	return (
 		<>

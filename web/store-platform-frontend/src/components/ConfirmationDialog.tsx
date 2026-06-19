@@ -32,11 +32,11 @@ const styles = {
 	AlertDialogHeaderSection: {
 		fontSize: 'lg',
 		fontWeight: 700,
-		borderBottom: `1px solid #EAEAEA`,
+		borderBottom: '1px solid #EAEAEA',
 	},
 	body: {
 		paddingBlock: '1rem 2rem',
-		borderBottom: `1px solid #EAEAEA`,
+		borderBottom: '1px solid #EAEAEA',
 	},
 	bodyText: {
 		fontWeight: 700,

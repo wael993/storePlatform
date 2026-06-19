@@ -42,7 +42,7 @@ const styles = {
 		color: '#929494',
 	},
 	modalBody: {
-		borderY: `1px solid #EAEAEA`,
+		borderY: '1px solid #EAEAEA',
 		paddingTop: '1.25rem',
 		paddingBottom: '2.5rem',
 		paddingX: '1.25rem',

@@ -20,6 +20,7 @@ async function dropStaleIndexes() {
 				console.log(
 					`Index "${indexName}" not found on "${collectionName}" — skipping.`,
 				)
+
 				continue
 			}
 

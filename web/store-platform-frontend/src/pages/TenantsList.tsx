@@ -97,8 +97,9 @@ const TenantsList = () => {
 			}).unwrap()
 			setFeedback(t('tenants.updateSuccess'))
 			closeEditModal()
-		} catch (error: any) {
-			setFeedback(error?.data?.message || t('tenants.updateFailed'))
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setFeedback(err?.data?.message || t('tenants.updateFailed'))
 		}
 	}
 
@@ -118,8 +119,9 @@ const TenantsList = () => {
 					? t('tenants.deactivated')
 					: t('tenants.activated'),
 			)
-		} catch (error: any) {
-			setFeedback(error?.data?.message || t('tenants.statusChangeFailed'))
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setFeedback(err?.data?.message || t('tenants.statusChangeFailed'))
 		}
 	}
 
@@ -139,8 +141,9 @@ const TenantsList = () => {
 		try {
 			await deleteTenant(tenant.tenantId).unwrap()
 			setFeedback(t('tenants.deleteSuccess'))
-		} catch (error: any) {
-			setFeedback(error?.data?.message || t('tenants.deleteFailed'))
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setFeedback(err?.data?.message || t('tenants.deleteFailed'))
 		}
 	}
 
@@ -152,9 +155,7 @@ const TenantsList = () => {
 				/>
 				<Box>
 					<Heading size="lg">{t('tenants.title')}</Heading>
-					<Text color="gray.600">
-						{t('tenants.description')}
-					</Text>
+					<Text color="gray.600">{t('tenants.description')}</Text>
 				</Box>
 
 				{feedback ? (
@@ -206,7 +207,8 @@ const TenantsList = () => {
 											!permissions.canToggleStatus &&
 											!permissions.canDelete ? (
 												<Text fontSize="sm" color="gray.500" textAlign="right">
-													{permissions.reason || t('tenants.noActionsAvailable')}
+													{permissions.reason ||
+														t('tenants.noActionsAvailable')}
 												</Text>
 											) : (
 												<ButtonGroup

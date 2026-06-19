@@ -98,10 +98,7 @@ const DailyListActionBar = ({
 
 	const requiredDocumentCreatableOffers = true
 
-	const handleAddRequiredDocument = async (
-		documentName: string,
-		deadline: string,
-	) => {
+	const handleAddRequiredDocument = async () => {
 		await onAddRequiredDocument([], {})
 	}
 

@@ -129,7 +129,7 @@ const styles = {
 		gap: 2,
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',

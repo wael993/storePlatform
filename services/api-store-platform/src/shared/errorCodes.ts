@@ -31,6 +31,7 @@ const ERROR_CODES = {
 		DOCUMENT_DELETE_ERROR: 'DOCUMENT_DELETE_ERROR' as const,
 	},
 }
+
 type AuthorizationErrors = keyof typeof ERROR_CODES.AUTHORIZATION
 type ValidationErrors = keyof typeof ERROR_CODES.VALIDATION
 type BusinessLogicErrors = keyof typeof ERROR_CODES.BUSINESS_LOGIC

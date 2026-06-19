@@ -17,7 +17,7 @@ const getStyles = (
 			height: customStepSize || '0.625rem',
 			backgroundColor: 'transparent',
 			...(!isCurrent && {
-				border: `2px solid #EAEAEA`,
+				border: '2px solid #EAEAEA',
 			}),
 			borderRadius: '50%',
 			...(isCurrent && {

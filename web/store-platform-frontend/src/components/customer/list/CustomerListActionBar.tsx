@@ -74,12 +74,12 @@ const CustomerListActionBar = ({
 
 	const requiredDocumentCreatableOffers = true
 
-	const handleAddRequiredDocument = async (
-		documentName: string,
-		deadline: string,
-	) => {
-		await onAddRequiredDocument([], {})
-	}
+	const handleAddRequiredDocument = async () =>
+		// documentName: string,
+		// deadline: string,
+		{
+			await onAddRequiredDocument([], {})
+		}
 
 	return (
 		<Flex sx={styles.mainFlexWrapper}>

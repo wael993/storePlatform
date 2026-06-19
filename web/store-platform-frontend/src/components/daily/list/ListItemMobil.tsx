@@ -106,8 +106,8 @@ const ListItemMobil = ({
 	isLoading,
 	onSelect,
 	selectedDailyActionIds,
-	areAllItemsSelected,
-	onAllItemsSelectedChange,
+	// areAllItemsSelected,
+	// onAllItemsSelectedChange,
 	isOpen,
 	onToggle,
 }: ListItemMobilProps) => {
@@ -220,7 +220,10 @@ const ListItemMobil = ({
 									</Skeleton>
 								</Box>
 							</Flex>
-							<AccordionIcon minWidth={{ base: '1.5rem', md: '3rem' }} flexShrink={0} />
+							<AccordionIcon
+								minWidth={{ base: '1.5rem', md: '3rem' }}
+								flexShrink={0}
+							/>
 						</AccordionButton>
 					</Box>
 
@@ -231,7 +234,10 @@ const ListItemMobil = ({
 						pl={isArabic ? { base: 3, md: 4 } : { base: 10, md: 12 }}
 						pr={isArabic ? { base: 10, md: 12 } : { base: 3, md: 4 }}
 					>
-						<Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={{ base: 4, md: 6 }}>
+						<Grid
+							templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }}
+							gap={{ base: 4, md: 6 }}
+						>
 							<GridItem sx={styles.listItemGridItem}>
 								<Text sx={styles.titleText}>
 									{/* TO_DO :use isExpenseEntry from compareEntryType */}

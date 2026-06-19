@@ -14,6 +14,7 @@ const connectDB = async (): Promise<void> => {
 		logger.info('Connected successfully to DB', {
 			entity: EntityType.MONGODB,
 		})
+
 		console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`)
 	} catch (error) {
 		try {
@@ -27,6 +28,7 @@ const connectDB = async (): Promise<void> => {
 				method: 'HEAD',
 				signal: controller.signal,
 			})
+
 			clearTimeout(timeoutId)
 
 			if (!response.ok) {
@@ -39,6 +41,7 @@ const connectDB = async (): Promise<void> => {
 		} catch {
 			console.error('❌ MongoDB Connection Error: No internet connection.')
 		}
+
 		process.exit(1)
 	}
 }
