@@ -2,6 +2,8 @@ import { Box, Button, Flex, HStack } from '@chakra-ui/react'
 import { RemoveArrowIcon } from '../icons/RemoveArrow'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusButtonStyles } from '../../theme/styles'
+import { compareBreakpoint } from '../../shared/utils'
+import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 import FilterModal, {
 	FilterFieldVisibility,
 	FilterSelectOption,
@@ -9,26 +11,28 @@ import FilterModal, {
 } from './FilterModal'
 const styles = {
 	desktopFiltersRow: {
-		alignItems: 'flex-start',
+		alignItems: 'center',
 		paddingTop: '0.2rem',
 		paddingBottom: '0.5rem',
 		justifyContent: 'space-between',
 		position: 'relative',
 		zIndex: 2,
-		width: 'calc(100% - 0.5rem)',
+		width: '100%',
 		borderBottom: '1px solid #EAEAEA',
+		mb: { base: 3, md: 0 },
 	},
 	desktopFiltersRowLeft: {
 		gap: 0,
-		maxWidth: '80%',
+		maxWidth: { base: '100%', md: '80%' },
 		flexWrap: 'wrap',
 		alignItems: 'center',
 	},
 	desktopFiltersRowRight: {
-		gap: '1rem',
+		gap: { base: '0.75rem', md: '1rem' },
 		paddingTop: '0.2rem',
-		marginRight: '1rem',
+		marginRight: { base: 0, md: '1rem' },
 		alignItems: 'center',
+		flexShrink: 0,
 	},
 	resetFilterButton: {
 		...hoverFocusButtonStyles,
@@ -80,6 +84,7 @@ const Filters = ({
 	searchPlaceholder,
 }: FiltersProps) => {
 	const { t } = useTranslation()
+	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const isFieldVisible = (
 		field: keyof FilterFieldVisibility,
 		defaultValue = true,
@@ -121,6 +126,7 @@ const Filters = ({
 					</Button>
 				</Box>
 				<FilterModal
+					isMobile={isMobile}
 					selectedFiltersCount={selectedFiltersCount}
 					filterValues={filters}
 					onApplyFilters={onApplyFilters}

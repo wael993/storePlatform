@@ -16,8 +16,8 @@ import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
 import { useGetUserFrontendResourcesQuery } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
-import ChangePasswordModal from './ChangePasswordModal'
 import TopBar from './TopBar'
+import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
 import { useTenant } from '../shared/hooks/useTenant'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
@@ -122,15 +122,20 @@ const TenantLayout = () => {
 	}
 
 	return (
-		<Flex minH="100vh" bg="gray.50">
-			<Box flex="1" p={0}>
+		<Flex minH="100dvh" bg="gray.50" overflowX="hidden">
+			<Box flex="1" p={0} minW={0} sx={layoutCssVars}>
 				<TopBar
 					navItems={topBarItems}
 					userName={userName || user?.email || 'User'}
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
 				/>
-				<Box px={{ base: 4, md: 8 }} py={8}>
+				<Box
+					px={layout.contentPaddingX}
+					py={layout.contentPaddingY}
+					minW={0}
+					maxW="100%"
+				>
 					<Outlet />
 				</Box>
 			</Box>

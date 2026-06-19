@@ -15,6 +15,7 @@ import { logout } from '../store/user/reducer'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths, routeLabelKeys } from '../shared/routes'
 import TopBar from './TopBar'
+import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
 import { useTranslation } from 'react-i18next'
 
@@ -65,7 +66,7 @@ const SuperAdminLayout = () => {
 	}
 
 	return (
-		<Flex minH="100vh" bg="gray.50">
+		<Flex minH="100dvh" bg="gray.50" overflowX="hidden">
 			<Box
 				w={{ base: 'full', md: '280px' }}
 				bg="white"
@@ -117,14 +118,19 @@ const SuperAdminLayout = () => {
 				</Box>
 			</Box>
 
-			<Box flex="1" p={0}>
+			<Box flex="1" p={0} minW={0} sx={layoutCssVars}>
 				<TopBar
 					navItems={topBarItems}
 					userName={userName || user?.email || 'User'}
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
 				/>
-				<Box px={{ base: 4, md: 8 }} py={8}>
+				<Box
+					px={layout.contentPaddingX}
+					py={layout.contentPaddingY}
+					minW={0}
+					maxW="100%"
+				>
 					<Outlet />
 				</Box>
 			</Box>

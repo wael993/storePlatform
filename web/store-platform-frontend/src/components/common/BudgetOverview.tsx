@@ -12,13 +12,13 @@ import { mapFee } from '../../shared/utils'
 
 const styles: StylesObject = {
 	budgetOverviewContainer: {
-		// backgroundColor: '#F3F3F3',
 		flexDirection: 'column',
 		alignItems: 'flex-start',
 		gap: '0.5rem',
-		px: '1rem',
-		py: '0.5rem',
+		px: { base: 0, md: '1rem' },
+		py: { base: 0, md: '0.5rem' },
 		fontSize: '0.9rem',
+		width: '100%',
 	},
 
 	budgetInfo: {
@@ -30,7 +30,7 @@ const styles: StylesObject = {
 		paddingBottom: 0,
 	},
 	divider: {
-		width: '30%',
+		width: { base: '100%', md: '30%' },
 		height: '0.2rem',
 		border: 'none',
 		backgroundColor: '#376288',
@@ -82,7 +82,7 @@ export const BudgetOverview = ({
 	const isBalanceNegative = parseFloat(balance ?? '0') < 0
 
 	return isFetching ? (
-		<Skeleton height="8rem" width="11rem" />
+		<Skeleton height="8rem" width="100%" borderRadius="lg" />
 	) : (
 		<Tooltip
 			closeOnScroll={true}

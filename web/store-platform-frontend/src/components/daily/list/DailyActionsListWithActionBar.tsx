@@ -11,11 +11,13 @@ import DailyActionListMobil from './DailyActionListMobil'
 interface DailyActionsListWithActionBarProps {
 	dailyActions: DailyAction[]
 	isLoading: boolean
+	embedded?: boolean
 }
 
 const DailyActionsListWithActionBar = ({
 	dailyActions,
 	isLoading,
+	embedded = false,
 }: DailyActionsListWithActionBarProps) => {
 	const { t } = useTranslation()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
@@ -102,6 +104,7 @@ const DailyActionsListWithActionBar = ({
 						selectedDailyActionIds.length === dailyActionElements.length
 					}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
+					embedded={embedded}
 				/>
 			) : (
 				<DailyActionListDesktop
@@ -113,6 +116,7 @@ const DailyActionsListWithActionBar = ({
 						selectedDailyActionIds.length === dailyActionElements.length
 					}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
+					embedded={embedded}
 				/>
 			)}
 		</VStack>

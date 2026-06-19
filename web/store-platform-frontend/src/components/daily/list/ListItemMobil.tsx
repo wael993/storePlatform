@@ -36,7 +36,7 @@ const styles = {
 	valueText: {
 		fontSize: 'sm',
 		fontWeight: 'bold',
-		textAlign: 'left',
+		textAlign: 'start',
 		whiteSpace: 'normal',
 		wordBreak: 'break-word',
 		overflowWrap: 'break-word',
@@ -63,14 +63,31 @@ const styles = {
 		width: '100%',
 		justifyContent: 'space-between',
 		alignItems: 'center',
+		px: { base: 2, md: 4 },
+		py: { base: 3, md: 4 },
 	},
 	accordionItem: {
 		borderColor: '#EAEAEA',
 		borderTop: 'none',
+		bg: 'white',
 		_notLast: {
 			borderBottom: '1px solid',
 			borderBottomColor: '#EAEAEA',
 		},
+	},
+	summaryColumns: {
+		alignItems: 'center',
+		gap: { base: 2, md: 6 },
+		flexGrow: 1,
+		minW: 0,
+	},
+	summaryField: {
+		display: 'flex',
+		flexDirection: 'column',
+		justifyContent: 'start',
+		alignItems: 'start',
+		flex: 1,
+		minW: 0,
 	},
 } satisfies StylesObject
 interface ListItemMobilProps {
@@ -161,7 +178,7 @@ const ListItemMobil = ({
 						}}
 					>
 						<AccordionButton sx={styles.accordionButton}>
-							<Flex alignItems="center" gap="6" flexGrow={1}>
+							<Flex sx={styles.summaryColumns}>
 								<Box
 									sx={{
 										...styles.listItemGridItem,
@@ -183,13 +200,10 @@ const ListItemMobil = ({
 									</Skeleton>
 								</Box>
 
-								<Box
-									sx={{ ...styles.listItemGridItem, flex: 1 }}
-									onClick={onClick}
-								>
+								<Box sx={styles.summaryField} onClick={onClick}>
 									<Text sx={styles.titleText}>{t('common.entryType')}</Text>
 									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
+										<Text sx={styles.valueText} noOfLines={2}>
 											{withNoValueFallback(
 												getEntryTypeLabel(dailyAction.entryType),
 											)}
@@ -197,28 +211,27 @@ const ListItemMobil = ({
 									</Skeleton>
 								</Box>
 
-								<Box
-									sx={{ ...styles.listItemGridItem, flex: 1 }}
-									onClick={onClick}
-								>
+								<Box sx={styles.summaryField} onClick={onClick}>
 									<Text sx={styles.titleText}>{relatedEntityLabel}</Text>
 									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
+										<Text sx={styles.valueText} noOfLines={2}>
 											{withNoValueFallback(relatedEntityName)}
 										</Text>
 									</Skeleton>
 								</Box>
 							</Flex>
-							<AccordionIcon minWidth={'3rem'} />
+							<AccordionIcon minWidth={{ base: '1.5rem', md: '3rem' }} flexShrink={0} />
 						</AccordionButton>
 					</Box>
 
 					<AccordionPanel
 						overflow="hidden"
-						paddingLeft={isArabic ? 0 : 16}
-						paddingRight={isArabic ? 16 : 0}
+						px={{ base: 3, md: 4 }}
+						py={3}
+						pl={isArabic ? { base: 3, md: 4 } : { base: 10, md: 12 }}
+						pr={isArabic ? { base: 10, md: 12 } : { base: 3, md: 4 }}
 					>
-						<Grid templateColumns="repeat(2, 1fr)" gap="6">
+						<Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={{ base: 4, md: 6 }}>
 							<GridItem sx={styles.listItemGridItem}>
 								<Text sx={styles.titleText}>
 									{/* TO_DO :use isExpenseEntry from compareEntryType */}

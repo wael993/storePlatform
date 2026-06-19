@@ -223,7 +223,12 @@ const ProductsPage = ({ targetType }: ProductsPageProps) => {
 				)}
 			</Flex>
 
-			<HStack justify="space-between" mb={'4rem'}>
+			<HStack
+				justify="space-between"
+				mb={{ base: '1.5rem', md: '4rem' }}
+				flexWrap={{ base: 'wrap', md: 'nowrap' }}
+				gap={{ base: 3, md: 0 }}
+			>
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.products')}
 				</Heading>

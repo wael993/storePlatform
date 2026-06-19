@@ -37,6 +37,7 @@ import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
+import { AsCloseIcon } from '../icons/Close'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -303,17 +304,13 @@ const TopSection = ({
 						>
 							<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
 						</Button>
-						<CloseButton onClose={onClose} />
 					</HStack>
 				)}
-				<Flex sx={styles.titleWrapper}>
+				<Flex sx={{ ...styles.titleWrapper, justifyContent: 'space-between' }}>
 					<Text sx={styles.titleDrawer}>{entry.name}</Text>
+					<CloseButton onClose={onClose} />
 				</Flex>
-
-				<Flex sx={styles.subHeaderText}>
-					<Text marginRight="1rem">{entry.name}</Text>
-					<Text>{entry.internalCode ?? ''}</Text>
-				</Flex>
+				<Text sx={styles.subHeaderText}>{entry.internalCode ?? ''}</Text>
 
 				<Spacer />
 

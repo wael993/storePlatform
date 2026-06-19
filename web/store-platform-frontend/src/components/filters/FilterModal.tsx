@@ -232,7 +232,7 @@ const FilterModal = ({
 				preserveScrollBarGap={false}
 			>
 				<ModalOverlay />
-				<ModalContent h={'50%'}>
+				<ModalContent h={isMobile ? '100dvh' : '50%'} maxH={isMobile ? '100dvh' : undefined} m={isMobile ? 0 : undefined} borderRadius={isMobile ? 0 : undefined}>
 					<ModalHeader>
 						<HStack>
 							<AsFilterIcon />
