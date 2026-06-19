@@ -8,27 +8,27 @@ import {
 	HStack,
 	Flex,
 } from '@chakra-ui/react'
-import { useGetProductsQuery, useGetFilterValuesQuery } from '../api/apiStore'
-import { useSettings } from '../shared/context/SettingsContext'
+import {
+	useGetProductsQuery,
+	useGetFilterValuesQuery,
+} from '../../api/apiStore'
+import { useSettings } from '../../shared/context/SettingsContext'
 import {
 	AllowedActions,
 	BreadCrumbItem,
 	TargetType,
-} from '../shared/globalEnums'
-import { useResources } from '../shared/hooks/useResources'
-import { useUser } from '../shared/hooks/useUser'
-import ListWithActionBar from '../components/list/ListWithActionBar'
-import { hoverFocusActiveButtonStyles } from '../theme/styles'
+} from '../../shared/globalEnums'
+import { useResources } from '../../shared/hooks/useResources'
+import { useUser } from '../../shared/hooks/useUser'
+import TableWithActionBar from './table/ProductTableWithActionBar'
+import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useTranslation } from 'react-i18next'
 import { AddSquareIcon } from '../icons/AddSquare'
-import CustomBreadcrumb from '../components/CustomBreadcrumb'
-import { generateBreadcrumbs } from '../shared/routes'
-import Filters from '../components/filters/Filters'
-import {
-	FilterSelectOption,
-	ProductFilterValues,
-} from '../components/filters/FilterModal'
-import { PRODUCT_STATE_CONFIG } from '../components/list/shared/constants'
+import CustomBreadcrumb from '../CustomBreadcrumb'
+import { generateBreadcrumbs } from '../../shared/routes'
+import Filters from '../filters/Filters'
+import { FilterSelectOption, ProductFilterValues } from '../filters/FilterModal'
+import { PRODUCT_STATE_CONFIG } from '../list/shared/constants'
 
 const EMPTY_PRODUCT_FILTERS: ProductFilterValues = {
 	searchText: '',
@@ -267,7 +267,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 				<Text color="gray.500">{t('components.product.noProducts')}</Text>
 			)}
 
-			<ListWithActionBar
+			<TableWithActionBar
 				products={products as Product[]}
 				isLoading={isLoading || isFetching}
 			/>

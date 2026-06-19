@@ -1,35 +1,36 @@
 import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import StateCircle from '../StateCircle'
-import { formatDate } from '../../shared/dateUtils'
-import NotificationCircle from '../NotificationCircle'
-import { useUser } from '../../shared/hooks/useUser'
-import useAllowedActions from '../../shared/hooks/useAllowedActions'
-import EditableCellField from './EditableCellField'
-import { cellFieldStyles, listStyles } from '../../shared/styles'
+import { useListItem } from '../../list/hooks/useListItem'
+import { formatDate } from '../../../shared/dateUtils'
+import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { useUser } from '../../../shared/hooks/useUser'
+import { listStyles, cellFieldStyles } from '../../../shared/styles'
+import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
+import EditableCellField from '../../list/EditableCellField'
 import {
 	PRODUCT_STATE_CONFIG,
 	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
-} from './shared/constants'
-import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import { useListItem } from './hooks/useListItem'
-import OptionsPopover from '../modals/OptionsPopover'
-interface ListItemProps {
+} from '../../list/shared/constants'
+import OptionsPopover from '../../modals/OptionsPopover'
+import NotificationCircle from '../../NotificationCircle'
+import StateCircle from '../../StateCircle'
+
+interface ProductTableItemProps {
 	product: Product
 	onSelect: (id: string) => void
 	isSelected: boolean
 	isHovered: boolean
 	isLoading: boolean
 }
-const ListItem = memo(
+const ProductTableItem = memo(
 	({
 		product: productData,
 		onSelect,
 		isSelected,
 		isHovered,
 		isLoading,
-	}: ListItemProps) => {
+	}: ProductTableItemProps) => {
 		const {
 			handleEditBuyCost,
 			handleEditSellPrice,
@@ -515,6 +516,6 @@ const ListItem = memo(
 	},
 )
 
-ListItem.displayName = 'ListItem'
+ProductTableItem.displayName = 'ProductTableItem'
 
-export default ListItem
+export default ProductTableItem

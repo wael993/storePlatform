@@ -233,6 +233,9 @@ const TopBar = ({
 
 								<Divider my={2} />
 
+								<MenuItem sx={styles.menuItem} onClick={onPwOpen}>
+									<Text>{t('components.topBar.changePassword')}</Text>
+								</MenuItem>
 								<MenuItem
 									sx={styles.menuItem}
 									onClick={onLogout}
@@ -240,9 +243,6 @@ const TopBar = ({
 								>
 									<ArrowForwardIcon boxSize={7} color="#6F7173" />
 									<Text>{t('components.topBar.logout')}</Text>
-								</MenuItem>
-								<MenuItem sx={styles.menuItem} onClick={onPwOpen}>
-									<Text>{t('components.topBar.changePassword')}</Text>
 								</MenuItem>
 							</MenuList>
 						</Menu>

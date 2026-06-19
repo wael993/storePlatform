@@ -208,6 +208,7 @@ const styles = {
 interface TopSectionProps {
 	targetType: TargetType
 	customer?: Customer
+	product?: Product
 	supplier?: Supplier
 	partner?: Partner
 	onClose: () => void
@@ -216,12 +217,13 @@ interface TopSectionProps {
 const TopSection = ({
 	targetType,
 	customer,
+	product,
 	supplier,
 	partner,
 	onClose,
 }: TopSectionProps) => {
-	const breadCrumbItems = generateBreadcrumbs()
-	const { isCustomerTarget, isPartnerTarget } = compareTargetType(targetType)
+	const { isCustomerTarget, isPartnerTarget, isProductTarget } =
+		compareTargetType(targetType)
 	const {
 		isOpen: isAddDailyActionModalOpen,
 		onOpen: onAddDailyActionModalOpen,
@@ -230,7 +232,23 @@ const TopSection = ({
 	const { isActionAllowed } = useResources()
 	const { isAdmin } = useUser()
 	const { t } = useTranslation()
-	const entry = customer ?? supplier ?? partner
+	const entry = customer ?? supplier ?? partner ?? product
+
+	if (!entry) return null
+
+	const entryTargetId =
+		customer?.customerId ??
+		supplier?.supplierId ??
+		partner?.partnerId ??
+		product?.productId ??
+		''
+
+	const breadCrumbItems = generateBreadcrumbs({
+		targetType,
+		id: entryTargetId,
+		name: entry.name,
+	})
+
 	const budgetOverviewArgs = customer?.customerId
 		? ({
 				entityType: 'customer',
@@ -246,7 +264,12 @@ const TopSection = ({
 						entityType: 'partner' as const,
 						id: partner.partnerId,
 					} satisfies BudgetOverviewQueryArgument)
-				: undefined
+				: product?.productId
+					? ({
+							entityType: 'product',
+							id: product.productId,
+						} satisfies BudgetOverviewQueryArgument)
+					: undefined
 
 	const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
 		useGetBudgetOverviewQuery(
@@ -255,11 +278,6 @@ const TopSection = ({
 				skip: !budgetOverviewArgs,
 			},
 		)
-
-	const entryTargetId =
-		customer?.customerId ?? supplier?.supplierId ?? partner?.partnerId ?? ''
-
-	if (!entry) return null
 
 	const editableFieldProps = {
 		ariaLabelName: t('common.supplierFocus'),
@@ -290,7 +308,9 @@ const TopSection = ({
 							? breadCrumbItems[BreadCrumbItem.CUSTOMER]
 							: isPartnerTarget
 								? breadCrumbItems[BreadCrumbItem.PARTNER]
-								: breadCrumbItems[BreadCrumbItem.SUPPLIER]
+								: isProductTarget
+									? breadCrumbItems[BreadCrumbItem.PRODUCT]
+									: breadCrumbItems[BreadCrumbItem.SUPPLIER]
 					}
 				/>
 				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) && isAdmin && (

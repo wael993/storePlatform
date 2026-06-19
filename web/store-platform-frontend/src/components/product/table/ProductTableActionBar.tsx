@@ -1,12 +1,12 @@
 import { Button, Flex, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
-import { AsCloseCircleIcon } from '../../icons/CloseIconCircle'
-import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
-import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import { useResources } from '../../shared/hooks/useResources'
-import { AllowedActions } from '../../shared/globalEnums'
-import { useUser } from '../../shared/hooks/useUser'
-import AddRequiredDocumentButton from '../common/AddRequiredDocumentButton'
+import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
+import { AsCloseCircleIcon } from '../../../icons/CloseIconCircle'
+import { AllowedActions } from '../../../shared/globalEnums'
+import { useResources } from '../../../shared/hooks/useResources'
+import { useUser } from '../../../shared/hooks/useUser'
+import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
+import AddRequiredDocumentButton from '../../common/AddRequiredDocumentButton'
 
 const styles = {
 	mainFlexWrapper: {
@@ -48,7 +48,7 @@ const styles = {
 	},
 } satisfies StylesObject
 
-interface ListActionBarProps {
+interface ProductTableActionBarProps {
 	selectedActivities: Product[]
 	isRejectActivityInProgress: boolean
 	onAddRequiredDocument: (
@@ -57,12 +57,12 @@ interface ListActionBarProps {
 	) => Promise<void>
 	isAddRequiredDocumentInProgress: boolean
 }
-const ListActionBar = ({
+const ProductTableActionBar = ({
 	selectedActivities,
 	isRejectActivityInProgress,
 	onAddRequiredDocument,
 	isAddRequiredDocumentInProgress,
-}: ListActionBarProps) => {
+}: ProductTableActionBarProps) => {
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin: isInternalUser } = useUser()
 
@@ -134,4 +134,4 @@ const ListActionBar = ({
 		</Flex>
 	)
 }
-export default ListActionBar
+export default ProductTableActionBar

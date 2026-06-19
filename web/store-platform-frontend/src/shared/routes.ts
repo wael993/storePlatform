@@ -60,6 +60,7 @@ export const routeLabelKeys = {
 	ROOT: 'navigation.welcome',
 	BARCODE: 'navigation.barcode',
 	PRODUCTS: 'components.pageHeaders.products',
+	PRODUCT: 'components.pageHeaders.product',
 	ALL_PRODUCTS: 'navigation.allProducts',
 	DAILY: 'components.pageHeaders.daily',
 	ORDERS: 'components.pageHeaders.orders',
@@ -98,7 +99,9 @@ export const getRouteLabel = (path: string, fallback = '') => {
 	return labelKey ? t(labelKey) : fallback
 }
 
-export const generateBreadcrumbs = () => {
+export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
+	const { id, name } = params ?? {}
+
 	const settings: BreadcrumbItem[] = [
 		{
 			id: 'settings',
@@ -157,6 +160,12 @@ export const generateBreadcrumbs = () => {
 			href: fullPaths.BARCODE,
 			isCurrentPage: true,
 		},
+		{
+			id: 'product',
+			name: t(routeLabelKeys.PRODUCT),
+			href: fullPaths.PRODUCTS,
+			isCurrentPage: true,
+		},
 	]
 	const orders: BreadcrumbItem[] = [
 		{
@@ -208,9 +217,15 @@ export const generateBreadcrumbs = () => {
 			isCurrentPage: false,
 		},
 		{
-			id: 'customer',
-			name: t(routeLabelKeys.CUSTOMER),
+			id: 'customers',
+			name: t(routeLabelKeys.CUSTOMERS),
 			href: fullPaths.CUSTOMERS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'customer',
+			name: name ?? '',
+			href: id ? buildRoutePath.customerById(id) : '',
 			isCurrentPage: true,
 		},
 	]
@@ -236,9 +251,15 @@ export const generateBreadcrumbs = () => {
 			isCurrentPage: false,
 		},
 		{
-			id: 'supplier',
-			name: t(routeLabelKeys.SUPPLIER),
+			id: 'suppliers',
+			name: t(routeLabelKeys.SUPPLIERS),
 			href: fullPaths.SUPPLIERS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'supplier',
+			name: name ?? '',
+			href: id ? buildRoutePath.supplierById(id) : '',
 			isCurrentPage: true,
 		},
 	]
@@ -264,9 +285,15 @@ export const generateBreadcrumbs = () => {
 			isCurrentPage: false,
 		},
 		{
-			id: 'partner',
-			name: t(routeLabelKeys.PARTNER),
+			id: 'partners',
+			name: t(routeLabelKeys.PARTNERS),
 			href: fullPaths.PARTNERS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'partner',
+			name: name ?? '',
+			href: id ? buildRoutePath.partnerById(id) : '',
 			isCurrentPage: true,
 		},
 	]
@@ -326,6 +353,26 @@ export const generateBreadcrumbs = () => {
 			isCurrentPage: true,
 		},
 	]
+	const product: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'products',
+			name: t(routeLabelKeys.PRODUCTS),
+			href: fullPaths.PRODUCTS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'product',
+			name: name ?? '',
+			href: id ? buildRoutePath.productById(id) : '',
+			isCurrentPage: true,
+		},
+	]
 
 	return {
 		StorePlatform,
@@ -345,5 +392,6 @@ export const generateBreadcrumbs = () => {
 		users,
 		addNewTenant,
 		tenantsList,
+		product,
 	}
 }

@@ -13,7 +13,7 @@ import AddNewTenant from './pages/AddNewTenant'
 import SuperAdminLayout from './components/SuperAdminLayout'
 import TenantLayout from './components/TenantLayout'
 import TenantsList from './pages/TenantsList'
-import ProductsPage from './pages/ProductsPage'
+import ProductsPage from './components/product/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
 import InvoicesPage from './pages/InvoicesPage'
 import SettingsPage from './pages/SettingsPage'
@@ -31,6 +31,7 @@ import DailyPage from './components/daily/DailyPage'
 import CustomerModal from './components/customer/CustomerModal'
 import SupplierModal from './components/supplier/SupplierModal'
 import PartnerModal from './components/partner/PartnerModal'
+import ProductModal from './components/product/ProductModal'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -105,7 +106,7 @@ const App = () => {
 								/>
 								<Route
 									path={RoutePaths.SINGLE_PRODUCT}
-									element={<ProductsPage targetType={TargetType.PRODUCT} />}
+									element={<ProductModal targetType={TargetType.PRODUCT} />}
 								/>
 							</>
 						)}

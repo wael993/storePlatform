@@ -317,7 +317,8 @@
 			"customers": "العملاء",
 			"suppliers": "الموردون",
 			"partners": "الشركاء",
-			"partner": "الشريك"
+			"partner": "الشريك",
+			"product": "المنتج"
 		},
 		"activitySettingsSection": {
 			"title": "المنتجات لكل صفحة"

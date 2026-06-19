@@ -30,7 +30,7 @@ interface VirtuosoContext {
 }
 
 const skeletonSupplier: Supplier = {
-	supplierId: 'skeleton-id',
+	supplierId: 'skeleton-id-4',
 	name: 'dummy',
 	barcode: 'dummy',
 	categoryName: 'dummy',

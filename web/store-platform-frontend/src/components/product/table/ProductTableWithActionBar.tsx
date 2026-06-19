@@ -1,19 +1,22 @@
 import { VStack } from '@chakra-ui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import ListActionBar from './ListActionBar'
-import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
-import { compareBreakpoint } from '../../shared/utils'
-import ListDesktop from './ListDesktop'
-import EmptyState from '../common/EmptyState'
-import ListMobil from './ListMobil'
+import ListActionBar from './ProductTableActionBar'
+import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
+import { compareBreakpoint } from '../../../shared/utils'
+import ListDesktop from './ProductTableDesktop'
+import EmptyState from '../../common/EmptyState'
+import ListMobil from './ProductTableMobil'
 
-interface ListWithActionBarProps {
+interface ProductTableWithActionBarProps {
 	products?: Product[]
 	isLoading: boolean
 }
 
-const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
+const ProductTableWithActionBar = ({
+	products,
+	isLoading,
+}: ProductTableWithActionBarProps) => {
 	const { t } = useTranslation()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedProductsIds, setSelectedProductsIds] = useState<string[]>([])
@@ -135,4 +138,4 @@ const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 		</VStack>
 	)
 }
-export default ListWithActionBar
+export default ProductTableWithActionBar

@@ -50,7 +50,7 @@ interface BudgetOverviewAPIResponse {
 	balance: string
 }
 interface BudgetOverviewQueryArgument {
-	entityType: 'customer' | 'supplier' | 'partner'
+	entityType: 'customer' | 'supplier' | 'partner' | 'product'
 	id: string
 }
 interface UserSettings {

@@ -104,6 +104,7 @@ export enum BreadCrumbItem {
 	SETTINGS = 'settings',
 	BARCODE = 'barcode',
 	PRODUCTS = 'products',
+	PRODUCT = 'product',
 	ORDERS = 'orders',
 	INVOICES = 'invoices',
 	DAILY = 'daily',
