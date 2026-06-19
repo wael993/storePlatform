@@ -9,9 +9,7 @@ const NotFound = () => {
 		<div>
 			<h1>{t('notFound.status')}</h1>
 			<h3>{t('notFound.title')}</h3>
-			<div>
-				{t('notFound.description')}
-			</div>
+			<div>{t('notFound.description')}</div>
 
 			<button onClick={() => navigate('/')}>{t('notFound.goHome')}</button>
 		</div>

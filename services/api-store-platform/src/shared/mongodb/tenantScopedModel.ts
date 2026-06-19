@@ -42,6 +42,7 @@ const attachTenantFilter = function <ResultType, DocType>(
 	if (!tenantIdFromFilter) {
 		this.where({ tenantId })
 	}
+
 	next()
 }
 

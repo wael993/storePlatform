@@ -137,11 +137,14 @@ const SettingsPage = () => {
 				status: 'success',
 				description: t('settings.updateSuccessMessage'),
 			})
-		} catch (error: any) {
-			console.error('Error saving settings:', error)
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
 			showToastMessage({
 				status: 'error',
-				description: t('settings.updateFailedMessage'),
+				description:
+					err?.data?.message ||
+					t('settings.updateFailedMessage') ||
+					'Error saving settings',
 			})
 		}
 	}

@@ -54,7 +54,7 @@ const styles = {
 		paddingX: '1rem',
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',
@@ -80,6 +80,7 @@ type FormData = {
 	value: string
 }
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 const PartnerPage = ({ targetType }: PartnerPageProps) => {
 	const [formData, setFormData] = useState<FormData>({
 		code: '',
@@ -88,7 +89,7 @@ const PartnerPage = ({ targetType }: PartnerPageProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin } = useUser()
+	const { isAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: partnersResponse = [], isLoading: isPartnersLoading } =
@@ -121,11 +122,16 @@ const PartnerPage = ({ targetType }: PartnerPageProps) => {
 				/>
 			</Flex>
 
-			<HStack justify="space-between" mb={'4rem'}>
+			<HStack
+				justify="space-between"
+				mb={{ base: '1.5rem', md: '4rem' }}
+				flexWrap={{ base: 'wrap', md: 'nowrap' }}
+				gap={{ base: 3, md: 0 }}
+			>
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.partners')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_PARTNER) && isOwnerOrAdmin && (
+				{isActionAllowed(AllowedActions.CAN_ADD_PARTNER) && isAdmin && (
 					<Button
 						leftIcon={<AddSquareIcon />}
 						onClick={onOpen}
@@ -156,7 +162,7 @@ const PartnerPage = ({ targetType }: PartnerPageProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handlePostNewPartner}
-				userHasAdminRole={isOwnerOrAdmin}
+				userHasAdminRole={isAdmin}
 			/>
 		</Flex>
 	)

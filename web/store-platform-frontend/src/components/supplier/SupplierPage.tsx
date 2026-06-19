@@ -53,7 +53,7 @@ const styles = {
 		paddingX: '1rem',
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',
@@ -87,7 +87,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin } = useUser()
+	const { isAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const { data: suppliers = [], isLoading: isSuppliersLoading } =
 		useGetSuppliersQuery({})
@@ -118,11 +118,16 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				/>
 			</Flex>
 
-			<HStack justify="space-between" mb={'4rem'}>
+			<HStack
+				justify="space-between"
+				mb={{ base: '1.5rem', md: '4rem' }}
+				flexWrap={{ base: 'wrap', md: 'nowrap' }}
+				gap={{ base: 3, md: 0 }}
+			>
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.suppliers')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_SUPPLIER) && isOwnerOrAdmin && (
+				{isActionAllowed(AllowedActions.CAN_ADD_SUPPLIER) && isAdmin && (
 					<Button
 						leftIcon={<AddSquareIcon />}
 						onClick={onOpen}
@@ -154,7 +159,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handlePostNewSupplier}
-				userHasAdminRole={isOwnerOrAdmin}
+				userHasAdminRole={isAdmin}
 			/>
 		</Flex>
 	)

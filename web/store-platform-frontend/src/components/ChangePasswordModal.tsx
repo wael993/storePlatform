@@ -80,7 +80,8 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 			}
 			dispatch(logout())
 			navigate(RoutePaths.LOGIN, { replace: true })
-		} catch (err: any) {
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
 			setError(err?.data?.message || t('changePassword.failed'))
 		}
 	}

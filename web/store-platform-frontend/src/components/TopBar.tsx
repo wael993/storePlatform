@@ -26,6 +26,7 @@ import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { compareLanguage, compareBreakpoint } from '../shared/utils'
 import { AsBellIcon } from '../icons/Bell'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
+import { layout } from '../theme/layout'
 import { useBreakpoints } from '../shared/hooks/useBreakpoints'
 import ServiceMenu from './ServiceMenu'
 import ChangePasswordModal from './ChangePasswordModal'
@@ -92,15 +93,15 @@ const TopBar = ({
 			zIndex={20}
 			bg="white"
 			boxShadow="0 8px 20px rgba(15, 23, 42, 0.12)"
-			px={'2rem'}
+			px={layout.contentPaddingX}
 		>
 			<Flex
-				h="7rem"
+				h={layout.topBarHeight}
 				px={0}
 				py={0}
 				align="center"
 				justify="space-between"
-				gap={4}
+				gap={{ base: 2, md: 4 }}
 			>
 				<Flex align="center" gap={4} minW={0}>
 					<Flex
@@ -113,15 +114,17 @@ const TopBar = ({
 						<Image
 							src="/favicon.ico"
 							alt={t('components.topBar.logoAlt')}
-							w="46px"
-							h="46px"
+							w={layout.logoSize}
+							h={layout.logoSize}
 							objectFit="contain"
+							flexShrink={0}
 						/>
 						<Text
-							fontSize="xl"
+							fontSize={{ base: 'md', md: 'xl' }}
 							fontWeight="semibold"
 							color="gray.800"
-							whiteSpace="nowrap"
+							noOfLines={1}
+							display={{ base: 'none', sm: 'block' }}
 						>
 							{t('appTitle')}
 						</Text>
@@ -208,7 +211,7 @@ const TopBar = ({
 								sx={styles.iconButton}
 							/>
 							<MenuList
-								w={{ base: 'calc(100vw - 2rem)', md: '25rem' }}
+								w={{ base: 'calc(100% - 1rem)', md: '25rem' }}
 								p={0}
 								borderRadius={0}
 								borderColor="gray.200"

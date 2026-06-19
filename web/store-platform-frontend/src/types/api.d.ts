@@ -25,24 +25,24 @@ interface CreateAPIResponse {
 	_id: string
 }
 
-interface CreateProductAPIResponse extends CreateAPIResponse {}
-interface CreateSupplierAPIResponse extends CreateAPIResponse {}
-interface CreatePartnerAPIResponse extends CreateAPIResponse {}
-interface CreateCustomerAPIResponse extends CreateAPIResponse {}
-interface CreateExpenseAPIResponse extends CreateAPIResponse {}
-interface CreateCurrencyAPIResponse extends CreateAPIResponse {}
-interface CreateUnitAPIResponse extends CreateAPIResponse {}
-interface UpdateExpenseAPIResponse extends CreateAPIResponse {}
+type CreateProductAPIResponse = CreateAPIResponse
+type CreateSupplierAPIResponse = CreateAPIResponse
+type CreatePartnerAPIResponse = CreateAPIResponse
+type CreateCustomerAPIResponse = CreateAPIResponse
+type CreateExpenseAPIResponse = CreateAPIResponse
+type CreateCurrencyAPIResponse = CreateAPIResponse
+type CreateUnitAPIResponse = CreateAPIResponse
+type UpdateExpenseAPIResponse = CreateAPIResponse
 
-interface ProductsAPIResponse extends APIResponse<Product> {}
-interface SuppliersAPIResponse extends APIResponse<Supplier> {}
-interface PartnersAPIResponse extends APIResponse<Partner> {}
-interface CustomersAPIResponse extends APIResponse<Customer> {}
-interface ExpensesAPIResponse extends APIResponse<Expense> {}
-interface CurrenciesAPIResponse extends APIResponse<Currency> {}
-interface UnitsAPIResponse extends APIResponse<Unit> {}
-interface DailyActionsAPIResponse extends APIResponse<DailyAction> {}
-interface SavedFiltersAPIResponse extends APIResponse<SavedFilters> {}
+type ProductsAPIResponse = APIResponse<Product>
+type SuppliersAPIResponse = APIResponse<Supplier>
+type PartnersAPIResponse = APIResponse<Partner>
+type CustomersAPIResponse = APIResponse<Customer>
+type ExpensesAPIResponse = APIResponse<Expense>
+type CurrenciesAPIResponse = APIResponse<Currency>
+type UnitsAPIResponse = APIResponse<Unit>
+type DailyActionsAPIResponse = APIResponse<DailyAction>
+type SavedFiltersAPIResponse = APIResponse<SavedFilters>
 interface BudgetOverviewAPIResponse {
 	payments: string
 	purchase: string

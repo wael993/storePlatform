@@ -2,6 +2,7 @@ import { Checkbox, Flex } from '@chakra-ui/react'
 import { useState } from 'react'
 import { Virtuoso } from 'react-virtuoso'
 import CustomerListItemMobil from './CustomerListItemMobil'
+import { mobileVirtuosoStyle } from '../../../theme/layout'
 
 const styles = {
 	checkboxWrapper: {
@@ -43,7 +44,7 @@ const CustomerListMobil = ({
 			</Flex>
 
 			<Virtuoso
-				style={{ height: '100vh', width: '100%' }}
+				style={mobileVirtuosoStyle}
 				data={customers}
 				totalCount={customers.length}
 				computeItemKey={(_, customer) =>

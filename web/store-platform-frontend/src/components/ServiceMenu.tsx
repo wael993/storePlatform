@@ -12,20 +12,17 @@ import {
 } from '@chakra-ui/icons'
 import {
 	Avatar,
+	Box,
 	Divider,
 	Flex,
 	IconButton,
-	Menu,
-	MenuButton,
-	MenuGroup,
-	MenuItem,
-	MenuList,
+	Portal,
 	Text,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { ReactElement } from 'react'
+import { ReactElement, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { compareLanguage } from '../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
@@ -58,8 +55,10 @@ const styles = {
 		fontWeight: 700,
 		color: '#353535',
 		bg: 'white',
+		cursor: 'pointer',
+		width: '100%',
 		_hover: { bg: '#F7FAFC' },
-		_focus: { bg: '#F7FAFC' },
+		_active: { bg: '#F7FAFC' },
 	},
 	activeMenuItem: {
 		bg: '#EBF8FF',
@@ -72,6 +71,30 @@ const styles = {
 	},
 	activeMenuIcon: {
 		color: '#1A365D',
+	},
+	menuPanel: {
+		position: 'fixed',
+		top: 'var(--layout-topbar-height, 4rem)',
+		left: 0,
+		right: 0,
+		insetInlineStart: 0,
+		insetInlineEnd: 0,
+		width: '100%',
+		maxW: '100vw',
+		height: 'calc(100dvh - var(--layout-topbar-height, 4rem))',
+		bg: 'white',
+		overflowY: 'auto',
+		zIndex: 1500,
+		p: 5,
+		boxShadow: '0 12px 28px rgba(15, 23, 42, 0.12)',
+	},
+	menuGroupTitle: {
+		px: 0,
+		mb: 4,
+		fontSize: '2xl',
+		fontWeight: 800,
+		lineHeight: 1.2,
+		color: '#1A202C',
 	},
 } satisfies StylesObject
 
@@ -103,165 +126,185 @@ const ServiceMenu = ({
 	isLogoutLoading = false,
 }: ServiceMenuProps) => {
 	const navigate = useNavigate()
+	const location = useLocation()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
+	const { isOpen, onToggle, onClose } = useDisclosure()
 	const {
 		isOpen: isPwOpen,
 		onOpen: onPwOpen,
 		onClose: onPwClose,
 	} = useDisclosure()
+
+	useEffect(() => {
+		onClose()
+	}, [location.pathname, onClose])
+
+	useEffect(() => {
+		if (!isOpen) return
+
+		const previousOverflow = document.body.style.overflow
+		document.body.style.overflow = 'hidden'
+
+		return () => {
+			document.body.style.overflow = previousOverflow
+		}
+	}, [isOpen])
+
+	const handleNavigate = (path: string) => {
+		onClose()
+		navigate(path)
+	}
+
+	const handleLogout = () => {
+		onClose()
+		void onLogout()
+	}
+
+	const handleChangePassword = () => {
+		onClose()
+		onPwOpen()
+	}
+
 	return (
 		<>
-			<Menu placement="bottom-end" closeOnSelect>
-				{({ isOpen, onClose }) => (
-					<>
-						<MenuButton
-							as={IconButton}
-							aria-label={t('components.topBar.menu')}
-							icon={
-								isOpen ? (
-									<CloseIcon boxSize={4} />
-								) : (
-									<HamburgerIcon boxSize={5} />
-								)
-							}
-							sx={styles.iconButton}
-							position="relative"
-							zIndex={1500}
-						/>
-						<MenuList
-							w="100vw"
-							h="100dvh"
-							mt={'4rem'}
-							p={5}
-							border={0}
-							borderRadius={0}
-							boxShadow="none"
-							overflowY="auto"
-							zIndex={1500}
-							dir={isArabic ? 'rtl' : 'ltr'}
-							sx={{
-								transform: 'none !important',
-								'.chakra-menu__group__title': {
-									px: 0,
-									mb: 4,
-									fontSize: '2xl',
-									fontWeight: 800,
-									lineHeight: 1.2,
-									color: '#1A202C',
-								},
-							}}
-						>
-							<MenuGroup title={t('appTitle')}>
-								{navItems.length === 0 ? (
-									<MenuItem sx={styles.menuItem} isDisabled>
-										{t('components.topBar.noNavigationItems')}
-									</MenuItem>
-								) : (
-									navItems.map(item => {
-										const isActive = item.path === activePath
+			<IconButton
+				aria-label={t('components.topBar.menu')}
+				aria-expanded={isOpen}
+				icon={
+					isOpen ? <CloseIcon boxSize={4} /> : <HamburgerIcon boxSize={5} />
+				}
+				onClick={onToggle}
+				sx={styles.iconButton}
+				position="relative"
+				zIndex={1501}
+			/>
 
-										return (
-											<MenuItem
-												key={item.path}
-												onClick={() => navigate(item.path)}
-												sx={{
-													...styles.menuItem,
-													...(isActive ? styles.activeMenuItem : {}),
-												}}
-												aria-current={isActive ? 'page' : undefined}
-											>
-												<Flex
-													align="center"
-													justify="space-between"
-													w="full"
-													gap={4}
-												>
-													<Flex align="center" gap={4} minW={0}>
-														{getNavigationIcon(item.path, isActive)}
-														<Text noOfLines={1}>
-															{getRouteLabel(item.path, item.label)}
-														</Text>
-													</Flex>
-													{isActive && (
-														<CheckIcon boxSize={4} sx={styles.activeMenuIcon} />
-													)}
-												</Flex>
-											</MenuItem>
-										)
-									})
-								)}
-							</MenuGroup>
+			{isOpen && (
+				<Portal>
+					<Box
+						sx={styles.menuPanel}
+						dir={isArabic ? 'rtl' : 'ltr'}
+						role="dialog"
+						aria-modal="true"
+						aria-label={t('components.topBar.menu')}
+					>
+						<Text sx={styles.menuGroupTitle}>{t('appTitle')}</Text>
 
-							<Divider my={5} />
+						{navItems.length === 0 ? (
+							<Box sx={styles.menuItem} opacity={0.6}>
+								{t('components.topBar.noNavigationItems')}
+							</Box>
+						) : (
+							navItems.map(item => {
+								const isActive = item.path === activePath
 
-							<Flex align="center" justify="space-between" mb={8}>
-								<Flex align="center" gap={3} minW={0}>
-									<Avatar
-										name={userName}
-										size="sm"
-										bg="#E071D4"
-										color="black"
-										fontWeight={800}
-									/>
-									<Text
-										fontSize="sm"
-										fontWeight={500}
-										color="#6F7173"
-										noOfLines={1}
+								return (
+									<Box
+										key={item.path}
+										as="button"
+										type="button"
+										onClick={() => handleNavigate(item.path)}
+										sx={{
+											...styles.menuItem,
+											...(isActive ? styles.activeMenuItem : {}),
+										}}
+										aria-current={isActive ? 'page' : undefined}
 									>
-										{t('components.topBar.greeting', { userName })}
-									</Text>
-								</Flex>
-							</Flex>
+										<Flex
+											align="center"
+											justify="space-between"
+											w="full"
+											gap={4}
+										>
+											<Flex align="center" gap={4} minW={0}>
+												{getNavigationIcon(item.path, isActive)}
+												<Text noOfLines={1}>
+													{getRouteLabel(item.path, item.label)}
+												</Text>
+											</Flex>
+											{isActive && (
+												<CheckIcon boxSize={4} sx={styles.activeMenuIcon} />
+											)}
+										</Flex>
+									</Box>
+								)
+							})
+						)}
 
-							<MenuItem
-								sx={styles.menuItem}
-								onClick={() => navigate(RoutePaths.SETTINGS)}
-							>
-								<Flex align="center" justify="space-between" w="full" gap={4}>
-									<Flex align="center" gap={4}>
-										<SettingsIcon sx={styles.menuIcon} />
-										<Text>{t('components.topBar.settings')}</Text>
-									</Flex>
-									<ChevronDownIcon sx={styles.menuIcon} />
+						<Divider my={5} />
+
+						<Flex align="center" justify="space-between" mb={8}>
+							<Flex align="center" gap={3} minW={0}>
+								<Avatar
+									name={userName}
+									size="sm"
+									bg="#E071D4"
+									color="black"
+									fontWeight={800}
+								/>
+								<Text
+									fontSize="sm"
+									fontWeight={500}
+									color="#6F7173"
+									noOfLines={1}
+								>
+									{t('components.topBar.greeting', { userName })}
+								</Text>
+							</Flex>
+						</Flex>
+
+						<Box
+							as="button"
+							type="button"
+							onClick={() => handleNavigate(RoutePaths.SETTINGS)}
+							sx={styles.menuItem}
+						>
+							<Flex align="center" justify="space-between" w="full" gap={4}>
+								<Flex align="center" gap={4}>
+									<SettingsIcon sx={styles.menuIcon} />
+									<Text>{t('components.topBar.settings')}</Text>
 								</Flex>
-							</MenuItem>
-							{/* <MenuItem sx={styles.menuItem} isDisabled>
+								<ChevronDownIcon sx={styles.menuIcon} />
+							</Flex>
+						</Box>
+
+						<Divider my={5} />
+
+						<Box
+							as="button"
+							type="button"
+							onClick={handleLogout}
+							sx={styles.menuItem}
+							opacity={isLogoutLoading ? 0.6 : 1}
+							pointerEvents={isLogoutLoading ? 'none' : 'auto'}
+						>
 							<Flex align="center" w="full" gap={4}>
-								<AtSignIcon sx={styles.menuIcon} />
-								<Text>Account</Text>
+								<ArrowForwardIcon
+									sx={{
+										...styles.menuIcon,
+										transform: isArabic ? 'scaleX(-1)' : undefined,
+									}}
+								/>
+								<Text>{t('components.topBar.logout')}</Text>
 							</Flex>
-						</MenuItem>
-						<MenuItem sx={styles.menuItem} isDisabled>
+						</Box>
+
+						<Box
+							as="button"
+							type="button"
+							onClick={handleChangePassword}
+							sx={styles.menuItem}
+						>
 							<Flex align="center" w="full" gap={4}>
-								<QuestionIcon sx={styles.menuIcon} />
-								<Text>Support</Text>
+								<LockIcon sx={styles.menuIcon} />
+								<Text>{t('components.topBar.changePassword')}</Text>
 							</Flex>
-						</MenuItem> */}
+						</Box>
+					</Box>
+				</Portal>
+			)}
 
-							<Divider my={5} />
-
-							<MenuItem
-								sx={styles.menuItem}
-								onClick={onLogout}
-								isDisabled={isLogoutLoading}
-							>
-								<Flex align="center" w="full" gap={4}>
-									<ArrowForwardIcon sx={styles.menuIcon} />
-									<Text>{t('components.topBar.logout')}</Text>
-								</Flex>
-							</MenuItem>
-							<MenuItem sx={styles.menuItem} onClick={onPwOpen}>
-								<Flex align="center" w="full" gap={4}>
-									<LockIcon sx={styles.menuIcon} />
-									<Text>{t('components.topBar.changePassword')}</Text>
-								</Flex>
-							</MenuItem>
-						</MenuList>
-					</>
-				)}
-			</Menu>
 			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
 		</>
 	)

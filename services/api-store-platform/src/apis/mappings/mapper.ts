@@ -66,6 +66,7 @@ export const mapPartners = (partners: Partner[]) => {
 			})),
 		}
 	})
+
 	return mappedPartners
 }
 

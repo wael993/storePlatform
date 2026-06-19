@@ -63,7 +63,7 @@ export const Dropdown = ({
 	showChevron = true,
 	isLoading = false,
 	placeholder,
-	initialOptions,
+	// initialOptions,
 	showClearOptions = true,
 	showClearIconOnOption = false,
 	noOptionsSelection,
@@ -76,12 +76,12 @@ export const Dropdown = ({
 	isSearchable = true,
 	allowMultipleEntriesAtOnce = false,
 
-	renderStateCircle = false,
+	// renderStateCircle = false,
 	disabled = false,
 }: DropdownProps) => {
 	// const [isOpen, setIsOpen] = useState(false)
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [search, setSearch] = useState('')
+	const [search, _setSearch] = useState('')
 
 	const selectedOptions = useMemo(() => {
 		const allOptions = [
@@ -271,7 +271,7 @@ export const Dropdown = ({
 	}
 
 	const handleSelectionChange = useCallback(
-		(value: string, isCleared?: boolean) => {
+		(value: string, _isCleared?: boolean) => {
 			const optionAlreadySelected = selectedValues.includes(value)
 
 			if (isSingle && optionAlreadySelected) {

@@ -1,4 +1,4 @@
-import { Box, Table } from '@chakra-ui/react'
+import { Box, Table, Thead, Tbody } from '@chakra-ui/react'
 import React, {
 	CSSProperties,
 	ForwardedRef,
@@ -84,12 +84,20 @@ const styles: StylesObject = {
 		height: '100%',
 		zIndex: '0',
 	},
+	embeddedListWrapper: {
+		width: '100%',
+		overflowX: 'auto',
+	},
+	embeddedTable: {
+		width: 'max-content',
+		minWidth: '100%',
+	},
 	virtuoso: {
 		width: '100%',
 		position: 'relative',
 		height: 'max(32rem,70vh)',
 	},
-}
+} satisfies StylesObject
 
 const ScrollerComponent = (
 	props: PropsWithChildren,
@@ -181,6 +189,7 @@ interface DailyActionListDesktopProps {
 	selectedDailyActionIds: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
+	embedded?: boolean
 }
 
 const DailyActionListDesktop = memo(
@@ -191,6 +200,7 @@ const DailyActionListDesktop = memo(
 		selectedDailyActionIds,
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
+		embedded = false,
 	}: DailyActionListDesktopProps) => {
 		const { isOwnerOrAdmin } = useUser()
 
@@ -284,6 +294,57 @@ const DailyActionListDesktop = memo(
 			isOwnerOrAdmin,
 		}
 
+		const headerRow = (
+			<DailyActionHeaderRow
+				sortField={sortField}
+				sortOrder={sortOrder}
+				onSort={onSort}
+				onAllItemsSelectedChange={onAllItemsSelectedChange}
+				areAllItemsSelected={areAllItemsSelected}
+			/>
+		)
+
+		const fixedHeaderContent = useCallback(
+			() => headerRow,
+			[sortOrder, sortField, onAllItemsSelectedChange, areAllItemsSelected],
+		)
+
+		if (embedded) {
+			const tableWidth = getTableWidth(
+				DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM,
+				isOwnerOrAdmin,
+				14,
+				4,
+			)
+
+			return (
+				<Box sx={styles.mainBoxWrapper}>
+					<DraggableScrollContainer styles={styles.embeddedListWrapper}>
+						<Table layout="fixed" width={tableWidth} sx={styles.embeddedTable}>
+							<Thead>{headerRow}</Thead>
+							<Tbody>
+								{listData.map((dailyAction, index) => {
+									const rowId =
+										dailyAction._id ?? dailyAction.actionId ?? String(index)
+
+									return (
+										<DailyActionRow
+											key={rowId}
+											dailyAction={dailyAction}
+											isSelected={selectedDailyActionIds.includes(rowId)}
+											tableRowProps={{}}
+											onSelect={onSelect}
+											isLoading={isLoading}
+										/>
+									)
+								})}
+							</Tbody>
+						</Table>
+					</DraggableScrollContainer>
+				</Box>
+			)
+		}
+
 		return (
 			<Box sx={styles.mainBoxWrapper}>
 				<TableVirtuoso
@@ -296,23 +357,7 @@ const DailyActionListDesktop = memo(
 						Table: TableComponent,
 						TableRow: TableRowComponent,
 					}}
-					fixedHeaderContent={useCallback(
-						() => (
-							<DailyActionHeaderRow
-								sortField={sortField}
-								sortOrder={sortOrder}
-								onSort={onSort}
-								onAllItemsSelectedChange={onAllItemsSelectedChange}
-								areAllItemsSelected={areAllItemsSelected}
-							/>
-						),
-						[
-							sortOrder,
-							sortField,
-							onAllItemsSelectedChange,
-							areAllItemsSelected,
-						],
-					)}
+					fixedHeaderContent={fixedHeaderContent}
 				/>
 			</Box>
 		)

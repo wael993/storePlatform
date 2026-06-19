@@ -28,19 +28,23 @@ app.use(
 		credentials: true,
 	}),
 )
+
 app.use(errorHandler)
 
 connectDB()
 if (config.redis.enabled) {
 	redisCache.connect().catch(() => undefined)
 }
+
 const cacheMetricsInterval = setInterval(() => {
 	const stats = redisCache.getStats()
+
 	logger.info(
 		`[cache-metrics] ready=${stats.ready} hits=${stats.hits} misses=${stats.misses} sets=${stats.sets} dels=${stats.dels} errors=${stats.errors}`,
 		{ entity: EntityType.STORAGE },
 	)
 }, 60_000)
+
 cacheMetricsInterval.unref()
 
 startTokenCleanupCron()

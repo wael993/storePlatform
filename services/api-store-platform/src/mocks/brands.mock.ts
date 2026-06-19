@@ -36,6 +36,7 @@ export const getBrandById = (
 	brandId: string | undefined,
 ): BrandMock | undefined => {
 	if (!brandId) return undefined
+
 	return BRANDS_MOCK.find(b => b._id === brandId)
 }
 

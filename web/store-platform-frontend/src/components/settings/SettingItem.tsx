@@ -6,12 +6,10 @@ import {
 	InputGroup,
 	VStack,
 	Text,
-	IconButton,
 	Select,
 	InputRightAddon,
 } from '@chakra-ui/icons'
 import { useTranslation } from 'react-i18next'
-import { TrashIcon } from '../../icons/Trash'
 
 const fullWidth = '100%'
 const styles: StylesObject = {
@@ -69,10 +67,10 @@ const SettingItem = ({
 	item = {
 		units: [{ id: '', labelKey: '' }],
 	},
-	isEditable,
-	isModificationEnabled,
-	onItemValueChange,
-	onItemUnitChange,
+	// isEditable,
+	// isModificationEnabled,
+	// onItemValueChange,
+	// onItemUnitChange,
 }: SettingItemProps) => {
 	const { t } = useTranslation()
 

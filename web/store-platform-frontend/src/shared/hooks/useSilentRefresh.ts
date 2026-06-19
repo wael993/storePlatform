@@ -20,7 +20,9 @@ export function useSilentRefresh() {
 			return
 		}
 
-		const refreshToken = async (options?: { forceLogoutOnFailure?: boolean }) => {
+		const refreshToken = async (options?: {
+			forceLogoutOnFailure?: boolean
+		}) => {
 			try {
 				const res = await fetch(
 					`${config.endpoints.storePlatformEndpoint}/refresh`,

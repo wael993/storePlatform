@@ -157,10 +157,12 @@ async function seedMasterData() {
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
 		})
+
 		console.log('Connected to MongoDB')
 
 		// Get or create default tenant
 		let tenant = await Tenant.findOne({ tenantId: DEFAULT_TENANT_ID })
+
 		if (!tenant) {
 			tenant = await Tenant.create({
 				tenantId: DEFAULT_TENANT_ID,
@@ -168,6 +170,7 @@ async function seedMasterData() {
 				domain: DEFAULT_TENANT_DOMAIN,
 				status: 'active',
 			})
+
 			console.log('Created default tenant')
 		}
 
@@ -187,6 +190,7 @@ async function seedMasterData() {
 			createdBy: systemUser,
 		}))
 		const createdBrands = await Brand.insertMany(brandDocs)
+
 		console.log(`✓ Created ${createdBrands.length} brands`)
 
 		// Seed Categories
@@ -198,6 +202,7 @@ async function seedMasterData() {
 			createdBy: systemUser,
 		}))
 		const createdCategories = await Category.insertMany(categoryDocs)
+
 		console.log(`✓ Created ${createdCategories.length} categories`)
 
 		// Seed Suppliers
@@ -209,6 +214,7 @@ async function seedMasterData() {
 			createdBy: systemUser,
 		}))
 		const createdSuppliers = await Supplier.insertMany(supplierDocs)
+
 		console.log(`✓ Created ${createdSuppliers.length} suppliers`)
 
 		console.log('\n✓ Master data seeding completed successfully!')

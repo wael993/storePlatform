@@ -12,31 +12,31 @@ import {
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import CustomBreadcrumb from '../CustomBreadcrumb'
-import { generateBreadcrumbs } from '../../shared/routes'
-import { compareTargetType } from '../../shared/utils'
+import CustomBreadcrumb from './CustomBreadcrumb'
+import { generateBreadcrumbs } from '../shared/routes'
+import { compareTargetType } from '../shared/utils'
 import {
 	AllowedActions,
 	BreadCrumbItem,
 	TargetType,
-} from '../../shared/globalEnums'
-import { CustomTooltip } from '../common/CustomTooltip'
-import { AsStarIcon } from '../icons/Star'
-import { AsTruckIcon } from '../icons/Truck'
-import EditableField from '../modals/EditableField'
-import { AsTargetIcon } from '../icons/Target'
-import { cellFieldStyles } from '../../shared/styles'
-import { AsClockIcon } from '../icons/Clock'
-import { formatDateFromAndDateTo } from '../../shared/dateUtils'
-import { TicketStatus } from '../common/TicketStatus'
-import { BudgetOverview } from '../common/BudgetOverview'
-import { useGetBudgetOverviewQuery } from '../../api/apiStore'
-import { CloseButton } from '../common/CloseButton'
-import { AddSquareIcon } from '../icons/AddSquare'
-import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import { useResources } from '../../shared/hooks/useResources'
-import { useUser } from '../../shared/hooks/useUser'
+} from '../shared/globalEnums'
+import { CustomTooltip } from './common/CustomTooltip'
+import { AsStarIcon } from './icons/Star'
+import { AsTruckIcon } from './icons/Truck'
+import EditableField from './modals/EditableField'
+import { AsTargetIcon } from './icons/Target'
+import { cellFieldStyles } from '../shared/styles'
+import { AsClockIcon } from './icons/Clock'
+import { formatDateFromAndDateTo } from '../shared/dateUtils'
+import { TicketStatus } from './common/TicketStatus'
+import { BudgetOverview } from './common/BudgetOverview'
+import { useGetBudgetOverviewQuery } from '../api/apiStore'
+import { CloseButton } from './common/CloseButton'
+import { AddSquareIcon } from './icons/AddSquare'
+import { hoverFocusActiveButtonStyles } from '../theme/styles'
+import AddDailyActionModal from './modals/DailyAction/AddDailyActionModal'
+import { useResources } from '../shared/hooks/useResources'
+import { useUser } from '../shared/hooks/useUser'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -303,17 +303,13 @@ const TopSection = ({
 						>
 							<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
 						</Button>
-						<CloseButton onClose={onClose} />
 					</HStack>
 				)}
-				<Flex sx={styles.titleWrapper}>
+				<Flex sx={{ ...styles.titleWrapper, justifyContent: 'space-between' }}>
 					<Text sx={styles.titleDrawer}>{entry.name}</Text>
+					<CloseButton onClose={onClose} />
 				</Flex>
-
-				<Flex sx={styles.subHeaderText}>
-					<Text marginRight="1rem">{entry.name}</Text>
-					<Text>{entry.internalCode ?? ''}</Text>
-				</Flex>
+				<Text sx={styles.subHeaderText}>{entry.internalCode ?? ''}</Text>
 
 				<Spacer />
 

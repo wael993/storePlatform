@@ -5,7 +5,7 @@ interface IContent extends Document {
 	supHeader: string
 	text: string
 	createdAt: Date
-	contentNumber: Number
+	contentNumber: number
 	isDefault: boolean
 }
 

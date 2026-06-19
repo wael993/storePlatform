@@ -74,7 +74,9 @@ const getExcelPath = (targetType: TargetType) => {
 	}
 }
 
-const getFileNameFromContentDisposition = (contentDisposition: string | null) => {
+const getFileNameFromContentDisposition = (
+	contentDisposition: string | null,
+) => {
 	const fileNameMatch = contentDisposition?.match(/filename="?([^"]+)"?/)
 
 	return fileNameMatch?.[1] ?? 'daily_actions.xlsx'
@@ -144,7 +146,10 @@ export const ExcelDownload = ({
 			})
 
 			if (response.status === 401) {
-				const baseUrl = config.endpoints.storePlatformEndpoint.replace(/\/$/, '')
+				const baseUrl = config.endpoints.storePlatformEndpoint.replace(
+					/\/$/,
+					'',
+				)
 				const refreshResponse = await fetch(`${baseUrl}/refresh`, {
 					method: 'POST',
 					credentials: 'include',
@@ -209,10 +214,7 @@ export const ExcelDownload = ({
 				</PopoverTrigger>
 				<PopoverContent sx={styles.popoverContent}>
 					<PopoverBody>
-						<Flex
-							sx={styles.actionItem}
-							onClick={handleDownload}
-						>
+						<Flex sx={styles.actionItem} onClick={handleDownload}>
 							<Icon sx={styles.icon} as={DownloadIcon} />
 							<Text variant="baseStyle" sx={styles.actionItemText}>
 								{t('common.downloadExcel')}

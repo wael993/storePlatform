@@ -9,6 +9,7 @@ export function startTokenCleanupCron(): void {
 			const result = await RefreshToken.deleteMany({
 				expiresAt: { $lt: new Date() },
 			})
+
 			if (result.deletedCount > 0) {
 				logger.info(`Cron: cleaned ${result.deletedCount} expired refresh tokens`)
 			}

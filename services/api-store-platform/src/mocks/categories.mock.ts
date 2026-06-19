@@ -41,6 +41,7 @@ export const getCategoryById = (
 	categoryId: string | undefined,
 ): CategoryMock | undefined => {
 	if (!categoryId) return undefined
+
 	return CATEGORIES_MOCK.find(c => c._id === categoryId)
 }
 

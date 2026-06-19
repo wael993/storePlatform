@@ -14,62 +14,12 @@ import { fullPaths } from '../../shared/routes'
 import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
-import TopSection from '../customer/TopSection'
+import TopSection from '../TopSection'
 import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
-
-const fullWidth = '100%'
-const pageContentPadding = '2rem'
-const pageContentPaddingMobile = '1.25rem'
-const modalContainerZIndex = 10
-
-const styles = {
-	grid: {
-		gridTemplateColumns: 'repeat(12, 1fr)',
-		paddingLeft: {
-			base: pageContentPaddingMobile,
-			md: pageContentPadding,
-		},
-		paddingRight: {
-			base: pageContentPaddingMobile,
-			md: pageContentPadding,
-		},
-		flexGrow: '1',
-	},
-	fullWidthSection: {
-		width: fullWidth,
-		gridColumn: '1 / span 12',
-		paddingBottom: { base: '2rem', md: '3rem', lg: '2rem' },
-	},
-	errorSection: {
-		width: fullWidth,
-		gridColumn: '1 / span 12',
-		paddingBottom: { base: '2rem', md: '3rem', lg: '2rem' },
-		justifyContent: 'space-between',
-		marginTop: '3rem',
-	},
-	errorTextBox: {
-		width: '90%',
-	},
-	errorText: {
-		marginTop: '7rem',
-	},
-	modalContent: {
-		marginTop: '10rem',
-		paddingBottom: 'clamp(5rem, 10vw, 9rem)',
-		alignItems: 'center',
-		zIndex: '1',
-	},
-	modalBody: {
-		width: fullWidth,
-		paddingX: 0,
-		overflowY: 'auto',
-	},
-	closeButtonWrapper: {
-		position: 'absolute',
-		top: '2rem',
-		right: '2rem',
-	},
-} satisfies StylesObject
+import {
+	entityDetailModalContainerZIndex,
+	entityDetailModalStyles,
+} from '../common/entityDetailModalStyles'
 
 interface PartnerModalProps {
 	targetType: TargetType
@@ -110,19 +60,18 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 			preserveScrollBarGap={false}
 		>
 			<ModalContent
-				sx={styles.modalContent}
-				containerProps={{ zIndex: modalContainerZIndex }}
+				sx={entityDetailModalStyles.modalContent}
+				containerProps={{ zIndex: entityDetailModalContainerZIndex }}
 			>
-				<ModalBody sx={styles.modalBody} height={window.innerHeight}>
-					<Box sx={styles.closeButtonWrapper}></Box>
-					<Grid sx={styles.grid}>
+				<ModalBody sx={entityDetailModalStyles.modalBody}>
+					<Grid sx={entityDetailModalStyles.grid}>
 						{isPartnerLoading ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
 								targetType={targetType}
 							/>
 						) : !isPartnerError && partner ? (
-							<Box sx={styles.fullWidthSection}>
+							<Box sx={entityDetailModalStyles.fullWidthSection}>
 								<TopSection
 									targetType={targetType}
 									partner={partner}
@@ -131,21 +80,24 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 							</Box>
 						) : (
 							isPartnerError && (
-								<Flex sx={styles.errorSection}>
-									<Box sx={styles.errorTextBox}>
+								<Flex sx={entityDetailModalStyles.errorSection}>
+									<Box sx={entityDetailModalStyles.errorTextBox}>
 										<CenteredText
 											text={t('partner.errorLoadingPartner')}
-											customStyles={styles.errorText}
+											customStyles={entityDetailModalStyles.errorText}
 										/>
 									</Box>
 								</Flex>
 							)
 						)}
 					</Grid>
-					<DailyActionsListWithActionBar
-						dailyActions={partner?.relatedActions ?? []}
-						isLoading={isPartnerLoading}
-					/>
+					<Box sx={entityDetailModalStyles.listSection}>
+						<DailyActionsListWithActionBar
+							dailyActions={partner?.relatedActions ?? []}
+							isLoading={isPartnerLoading}
+							embedded
+						/>
+					</Box>
 				</ModalBody>
 			</ModalContent>
 		</Modal>

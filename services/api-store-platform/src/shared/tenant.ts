@@ -89,8 +89,10 @@ const isMethodAllowed = (
 	}
 
 	const methods = ACTION_TO_HTTP_METHODS[action]
+
 	for (const method of methods) {
 		const methodPermission = resourceMethods[method]
+
 		if (methodPermission && methodPermission.accessLevel !== 'NONE') {
 			return true
 		}
@@ -127,6 +129,7 @@ const mergeFrontendResources = (
 			...(existing?.allowedActions || []),
 			...(permission.allowedActions || []),
 		].filter((action, index, array) => array.indexOf(action) === index)
+
 		merged[path] = {
 			access: permission.access,
 			allowedActions: combinedActions.length > 0 ? combinedActions : undefined,
@@ -146,6 +149,7 @@ const resolveRoleTree = (
 	}
 
 	const role = rolesById[roleId]
+
 	if (!role) {
 		return { resources: {}, frontendResources: {} }
 	}
@@ -158,6 +162,7 @@ const resolveRoleTree = (
 	for (const includedRole of role.include || []) {
 		const includedRoleId = includedRole.toUpperCase()
 		const resolved = resolveRoleTree(includedRoleId, rolesById, visited)
+
 		mergedResources = mergeResources(mergedResources, resolved.resources)
 		mergedFrontendResources = mergeFrontendResources(
 			mergedFrontendResources,
@@ -193,6 +198,7 @@ const buildDynamicMatrixFromRoles = (
 
 	for (const role of TENANT_ROLES) {
 		const resolved = resolveRoleTree(role.toUpperCase(), rolesById, new Set())
+
 		if (Object.keys(resolved.resources).length === 0) {
 			continue
 		}
@@ -234,12 +240,14 @@ const getDynamicRoleEngine = async (): Promise<{
 
 	try {
 		const roles = (await Role.find().lean()) as IRole[]
+
 		if (roles.length === 0) {
 			dynamicRoleCache = {
 				expiresAt: Date.now() + ROLE_CACHE_TTL_MS,
 				matrix: createEmptyRoleMatrix(),
 				frontendResources: {},
 			}
+
 			return {
 				matrix: createEmptyRoleMatrix(),
 				frontendResources: {},
@@ -247,11 +255,13 @@ const getDynamicRoleEngine = async (): Promise<{
 		}
 
 		const rolesById: Record<string, IRole> = {}
+
 		for (const role of roles) {
 			rolesById[String(role._id).toUpperCase()] = role
 		}
 
 		const built = buildDynamicMatrixFromRoles(rolesById)
+
 		dynamicRoleCache = {
 			expiresAt: Date.now() + ROLE_CACHE_TTL_MS,
 			matrix: built.matrix,
@@ -265,6 +275,7 @@ const getDynamicRoleEngine = async (): Promise<{
 			matrix: null,
 			frontendResources: {},
 		}
+
 		return null
 	}
 }
@@ -275,6 +286,7 @@ export const DEFAULT_TENANT_DOMAIN = 'example.com'
 
 export const getEmailDomain = (email: string): string => {
 	const [, domain = ''] = email.toLowerCase().split('@')
+
 	return domain
 }
 
@@ -315,6 +327,7 @@ export const ensureTenantAccess = async (
 ): Promise<void> => {
 	const tenantContext = getTenantContext(requestContext)
 	const dynamicEngine = await getDynamicRoleEngine()
+
 	if (!dynamicEngine) {
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -336,6 +349,7 @@ export const getFrontendResourcesForRole = async (
 	role: TenantRole,
 ): Promise<FrontendResources | null> => {
 	const dynamicEngine = await getDynamicRoleEngine()
+
 	if (!dynamicEngine) {
 		return null
 	}
@@ -345,6 +359,7 @@ export const getFrontendResourcesForRole = async (
 
 export const ensureSuperAdmin = (requestContext: RequestContext): void => {
 	const tenantContext = getTenantContext(requestContext)
+
 	if (tenantContext.role !== 'super_admin') {
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,

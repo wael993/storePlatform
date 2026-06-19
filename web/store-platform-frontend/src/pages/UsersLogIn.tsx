@@ -143,9 +143,7 @@ const UsersLogIn = () => {
 				<Flex justify="space-between" align="center">
 					<Box>
 						<Heading size="lg">{t('users.title')}</Heading>
-						<Text color="gray.600">
-							{t('users.description')}
-						</Text>
+						<Text color="gray.600">{t('users.description')}</Text>
 					</Box>
 					{isBusy ? <Spinner size="sm" /> : null}
 				</Flex>

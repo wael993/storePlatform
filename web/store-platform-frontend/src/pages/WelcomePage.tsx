@@ -1,5 +1,14 @@
-import { Box, Flex, Heading, Image, SimpleGrid, Stack, Text } from '@chakra-ui/react'
+import {
+	Box,
+	Flex,
+	Heading,
+	Image,
+	SimpleGrid,
+	Stack,
+	Text,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { pageContentMinHeight } from '../theme/layout'
 
 const infoItems = [
 	{
@@ -18,10 +27,10 @@ const infoItems = [
 
 const styles = {
 	wrapper: {
-		minH: 'calc(100vh - 11rem)',
+		minH: pageContentMinHeight,
 		alignItems: 'center',
 		justifyContent: 'center',
-		px: { base: 2, md: 6 },
+		px: { base: 0, md: 6 },
 	},
 	card: {
 		width: '100%',
@@ -97,7 +106,11 @@ const WelcomePage = () => {
 						>
 							{t('welcome.title')}
 						</Heading>
-						<Text color="gray.600" fontSize={{ base: 'md', md: 'lg' }} maxW="34rem">
+						<Text
+							color="gray.600"
+							fontSize={{ base: 'md', md: 'lg' }}
+							maxW="34rem"
+						>
 							{t('welcome.subtitle')}
 						</Text>
 					</Stack>

@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-vars */
 import { t } from 'i18next'
 
 const ROUTE_PREFIX = '/services/store_platform'

@@ -59,7 +59,7 @@ export const createDocument = async (
 
 	const tenantContext = getTenantContext(requestContext)
 
-	logger.debug(`Tenant context resolved for createDocument`, {
+	logger.debug('Tenant context resolved for createDocument', {
 		entity: EntityType.MONGODB,
 		tenantId: tenantContext.tenantId,
 		userId: requestContext.userId,

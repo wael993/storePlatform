@@ -91,20 +91,54 @@ const styles = {
 	header: {
 		flexDir: 'column',
 		width: fullWidth,
-		paddingX: '1rem',
+		paddingX: { base: 0, md: '1rem' },
 	},
 	title: {
-		fontSize: '1.5rem',
+		fontSize: { base: 'xl', md: '1.5rem' },
 		fontWeight: 700,
-		marginTop: '0.4rem',
+		marginTop: { base: 0, md: '0.4rem' },
 		overflow: 'hidden',
 		textOverflow: 'ellipsis',
 		display: 'block',
-		whiteSpace: 'nowrap',
-		paddingX: '1rem',
+		whiteSpace: { base: 'normal', md: 'nowrap' },
+		paddingX: { base: 0, md: '1rem' },
+	},
+	mobileSummaryCard: {
+		width: '100%',
+		bg: 'white',
+		borderRadius: 'xl',
+		border: '1px solid',
+		borderColor: 'gray.100',
+		p: 4,
+		mb: 4,
+		boxShadow: 'sm',
+	},
+	cashBalanceRow: {
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		pt: 3,
+		mt: 1,
+		borderTop: '1px solid',
+		borderColor: 'gray.100',
+	},
+	cashBalanceLabel: {
+		fontSize: 'sm',
+		fontWeight: 600,
+		color: 'gray.600',
+	},
+	cashBalanceValue: {
+		fontSize: 'md',
+		fontWeight: 700,
+		color: 'gray.900',
+	},
+	actionsRow: {
+		width: { base: '100%', md: 'auto' },
+		justifyContent: { base: 'flex-end', md: 'flex-end' },
+		flexWrap: 'wrap',
+		gap: 2,
 	},
 	divider: {
-		borderBottom: `1px solid #EAEAEA}`,
+		borderBottom: '1px solid #EAEAEA}',
 		marginTop: '1px',
 		marginRight: {
 			base: '0',
@@ -223,20 +257,28 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 
 	return (
 		<Flex sx={styles.wrapper}>
-			<Flex sx={styles.header}>
-				<CustomBreadcrumb
-					marginTop="2rem"
-					items={breadCrumbItems[BreadCrumbItem.DAILY]}
-				/>
-			</Flex>
+			{!isMobile && (
+				<Flex sx={styles.header}>
+					<CustomBreadcrumb
+						marginTop="2rem"
+						items={breadCrumbItems[BreadCrumbItem.DAILY]}
+					/>
+				</Flex>
+			)}
 
-			<HStack justify="space-between" mb={'4rem'}>
-				<Heading sx={styles.title} variant={'h5'}>
+			<Flex
+				direction={{ base: 'column', md: 'row' }}
+				justify="space-between"
+				align={{ base: 'stretch', md: 'center' }}
+				gap={{ base: 3, md: 0 }}
+				mb={{ base: 4, md: '4rem' }}
+			>
+				<Heading sx={styles.title} variant="h5">
 					{t('components.pageHeaders.daily')}
 				</Heading>
 				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
 					isOwnerOrAdmin && (
-						<HStack>
+						<HStack sx={styles.actionsRow}>
 							{!isMobile && (
 								<BudgetOverview
 									purchase={dailyBudgetOverview.costs}
@@ -255,6 +297,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 										onClick={onOpen}
 										sx={styles.addProductButton}
 										variant="ghost"
+										size={isMobile ? 'sm' : 'md'}
 									>
 										<Text sx={styles.addProductButtonText}>
 											{t('common.addDailyAction')}
@@ -267,29 +310,50 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 							/>
 						</HStack>
 					)}
-			</HStack>
+			</Flex>
 
 			{isMobile && (
-				<BudgetOverview
-					purchase={dailyBudgetOverview.costs}
-					payments={dailyBudgetOverview.sales}
-					balance={dailyBudgetOverview.profit}
-					currency={dailyBudgetOverview.currency}
-					isFetching={isDailyActionsLoading}
-					labels={dailyBudgetOverviewLabels}
-				/>
+				<Box sx={styles.mobileSummaryCard}>
+					<BudgetOverview
+						purchase={dailyBudgetOverview.costs}
+						payments={dailyBudgetOverview.sales}
+						balance={dailyBudgetOverview.profit}
+						currency={dailyBudgetOverview.currency}
+						isFetching={isDailyActionsLoading}
+						labels={dailyBudgetOverviewLabels}
+					/>
+					<Flex sx={styles.cashBalanceRow}>
+						<Text sx={styles.cashBalanceLabel}>
+							{t('components.daily.cashBalance')}
+						</Text>
+						<Text sx={styles.cashBalanceValue}>
+							{mapFee(dailyBudgetOverview.cashBalance) ?? '0'}{' '}
+							{dailyBudgetOverview.currency}
+						</Text>
+					</Flex>
+				</Box>
 			)}
 
-			{isDailyActionsLoading && <Spinner />}
-			<Box sx={styles.divider} />
-			<HStack>
-				<Text sx={styles.title}>{t('components.daily.cashBalance')}:</Text>
-				<Text sx={styles.title}>
-					{mapFee(dailyBudgetOverview.cashBalance) ?? '0'}{' '}
-					{dailyBudgetOverview.currency}
-				</Text>
-			</HStack>
-			<Box sx={styles.divider} />
+			{!isMobile && (
+				<>
+					{isDailyActionsLoading && <Spinner />}
+					<Box sx={styles.divider} />
+					<HStack>
+						<Text sx={styles.title}>{t('components.daily.cashBalance')}:</Text>
+						<Text sx={styles.title}>
+							{mapFee(dailyBudgetOverview.cashBalance) ?? '0'}{' '}
+							{dailyBudgetOverview.currency}
+						</Text>
+					</HStack>
+					<Box sx={styles.divider} />
+				</>
+			)}
+
+			{isMobile && isDailyActionsLoading && (
+				<Flex justify="center" py={2} mb={2}>
+					<Spinner size="sm" />
+				</Flex>
+			)}
 
 			<Filters
 				filters={dailyFilters}

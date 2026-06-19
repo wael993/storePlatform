@@ -66,6 +66,7 @@ const Login = () => {
 			navigate(nextRoute, {
 				state: { role: response.role, tenantId: response.tenantId },
 			})
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
 			const status = err?.status
 			const errorCode = err?.data?.errorCode
@@ -96,8 +97,9 @@ const Login = () => {
 
 		try {
 			setResetMessage(t('login.resetSent'))
-		} catch (err: any) {
-			setError(err.response?.data?.error || t('login.resetFailed'))
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setError(err?.data?.message || t('login.resetFailed'))
 		}
 	}
 

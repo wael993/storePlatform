@@ -135,7 +135,7 @@ const EditableCellField = ({
 					}}
 					customStyles={{
 						mainRow: {
-							border: `1px solid #D8D8D8`,
+							border: '1px solid #D8D8D8',
 							...(customStyles.mainRow ?? {}),
 						},
 						mainTextWrapper: {

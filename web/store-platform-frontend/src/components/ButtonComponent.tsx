@@ -1,4 +1,4 @@
-import { Box, Button, Icon, IconButton } from '@chakra-ui/react'
+import { Button } from '@chakra-ui/react'
 import { CSSProperties, JSX } from 'react'
 import { useTranslation } from 'react-i18next'
 

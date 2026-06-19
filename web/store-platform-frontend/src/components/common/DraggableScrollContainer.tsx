@@ -28,6 +28,7 @@ type DraggableScrollContainerProps = PropsWithChildren & {
 }
 
 const DraggableScrollContainer = (
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	{ onDrag = () => {}, ...props }: DraggableScrollContainerProps,
 	forwardedRef: ForwardedRef<HTMLDivElement>,
 ) => {

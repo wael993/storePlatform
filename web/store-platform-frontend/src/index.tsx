@@ -2,15 +2,26 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './i18n'
-import { ChakraProvider, theme } from '@chakra-ui/react'
+import { ChakraProvider, theme, extendTheme } from '@chakra-ui/react'
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import store, { persistor } from './store/store'
 import { SettingsProvider } from './shared/context/SettingsContext'
 
+const appTheme = extendTheme(theme, {
+	styles: {
+		global: {
+			'html, body, #root': {
+				maxW: '100%',
+				overflowX: 'hidden',
+			},
+		},
+	},
+})
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
-	<ChakraProvider theme={theme}>
+	<ChakraProvider theme={appTheme}>
 		<Provider store={store}>
 			<PersistGate loading={null} persistor={persistor}>
 				<SettingsProvider>

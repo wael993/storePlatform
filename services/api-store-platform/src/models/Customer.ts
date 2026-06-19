@@ -44,4 +44,5 @@ CustomerSchema.index(
 	{ tenantId: 1, internalCode: 1 },
 	{ unique: true, sparse: true },
 )
+
 export const Customer = mongoose.model<ICustomer>('Customer', CustomerSchema)

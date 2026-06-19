@@ -25,6 +25,7 @@ async function createSuperAdminUser() {
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
 		})
+
 		console.log('Connected to MongoDB')
 		await User.syncIndexes()
 

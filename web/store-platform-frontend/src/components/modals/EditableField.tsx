@@ -85,16 +85,16 @@ const EditableField = ({
 	numberInputFontSize,
 	iconsGap = '0.15rem',
 	customStyles,
-	usePortalForDate = true,
+	// usePortalForDate = true,
 	disableLineWrap = false,
-	disabledDates,
-	maxDate,
-	minDate,
+	// disabledDates,
+	// maxDate,
+	// minDate,
 	minWidth = '5rem',
 	maxWidth = '100%',
 	maximumDecimals = 2,
 	minimumDecimals = 2,
-	disableManualDateInput = false,
+	// disableManualDateInput = false,
 	propsSetIsEditionEnabled,
 }: EditableFieldsProps) => {
 	const [isEditionEnabled, setIsEditionEnabled] = useState<boolean>(false)
@@ -144,7 +144,7 @@ const EditableField = ({
 
 	const styles = {
 		mainRow: {
-			border: `1px solid #F4F4F4`,
+			border: '1px solid #F4F4F4',
 			borderRadius: '0',
 			width: '100%',
 			backgroundColor: isEditionEnabled ? '#D8D8D8' : undefined,

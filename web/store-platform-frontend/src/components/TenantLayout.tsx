@@ -1,55 +1,23 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { skipToken } from '@reduxjs/toolkit/query'
-import {
-	Box,
-	Button,
-	Divider,
-	Flex,
-	Heading,
-	Stack,
-	Text,
-	useDisclosure,
-} from '@chakra-ui/react'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { Box, Flex } from '@chakra-ui/react'
 import { useDispatch } from 'react-redux'
 import { useLogoutCurrentMutation } from '../api/apiStore'
-import { useGetUserFrontendResourcesQuery } from '../api/apiStore'
 import { logout } from '../store/user/reducer'
-import ChangePasswordModal from './ChangePasswordModal'
 import TopBar from './TopBar'
+import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
-import { useTenant } from '../shared/hooks/useTenant'
+
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths } from '../shared/routes'
 
-const navStyle = ({ isActive }: { isActive: boolean }) => ({
-	display: 'block',
-	padding: '0.9rem 1rem',
-	borderRadius: '0.9rem',
-	fontWeight: 600,
-	border: '1px solid',
-	borderColor: isActive ? 'rgba(144, 205, 244, 1)' : 'transparent',
-	background: isActive ? 'rgba(235, 248, 255, 1)' : 'transparent',
-	color: isActive ? '#1A365D' : '#2D3748',
-})
-
 const TenantLayout = () => {
 	const [logoutCurrent, { isLoading }] = useLogoutCurrentMutation()
-	const [error, setError] = useState('')
+	const [_error, setError] = useState('')
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
 
 	const { isAdmin, isOwnerOrAdmin, user } = useUser()
-	const { tenantName } = useTenant()
-	const userId = user?.userId
-	const {
-		data: frontendResources,
-		isLoading: isFrontendResourcesLoading,
-		isFetching: isFrontendResourcesFetching,
-		isError: isFrontendResourcesError,
-		error: frontendResourcesError,
-	} = useGetUserFrontendResourcesQuery(userId ?? skipToken)
 
 	const {
 		isBarcodeEnabled,
@@ -58,7 +26,7 @@ const TenantLayout = () => {
 		isInvoicesEnabled,
 		isUsersEnabled,
 		isDailyEnabled,
-		isChangePasswordEnabled,
+		// isChangePasswordEnabled,
 		isCustomersEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
@@ -70,7 +38,7 @@ const TenantLayout = () => {
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
-		isTenantChangePasswordEnabled,
+		// isTenantChangePasswordEnabled,
 		isTenantCustomersEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
@@ -113,8 +81,9 @@ const TenantLayout = () => {
 		setError('')
 		try {
 			await logoutCurrent().unwrap()
-		} catch (submitError: any) {
-			setError(submitError?.data?.message || 'Logout failed.')
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			setError(err?.data?.message || 'Logout failed.')
 		} finally {
 			dispatch(logout())
 			navigate(RoutePaths.LOGIN, { replace: true })
@@ -122,15 +91,20 @@ const TenantLayout = () => {
 	}
 
 	return (
-		<Flex minH="100vh" bg="gray.50">
-			<Box flex="1" p={0}>
+		<Flex minH="100dvh" bg="gray.50" overflowX="hidden">
+			<Box flex="1" p={0} minW={0} sx={layoutCssVars}>
 				<TopBar
 					navItems={topBarItems}
 					userName={userName || user?.email || 'User'}
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
 				/>
-				<Box px={{ base: 4, md: 8 }} py={8}>
+				<Box
+					px={layout.contentPaddingX}
+					py={layout.contentPaddingY}
+					minW={0}
+					maxW="100%"
+				>
 					<Outlet />
 				</Box>
 			</Box>

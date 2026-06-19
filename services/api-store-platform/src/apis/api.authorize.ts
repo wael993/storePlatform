@@ -13,8 +13,10 @@ export default class ActivityAuthorization {
 
 		try {
 			const token = request.headers['authorization']?.split(' ')[1]
+
 			if (!token) {
 				response.status(401).json({ message: 'Missing token' })
+
 				return
 			}
 
@@ -22,6 +24,7 @@ export default class ActivityAuthorization {
 
 			if (!user) {
 				response.status(403).json({ message: 'Invalid user' })
+
 				return
 			}
 
@@ -35,6 +38,7 @@ export default class ActivityAuthorization {
 			response.status(500).json({ message: 'Authorization error', error })
 		} finally {
 			const endTime = Date.now()
+
 			console.log(`Authorization took ${endTime - startTime}ms`)
 		}
 	}

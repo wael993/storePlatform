@@ -126,7 +126,7 @@ export const withNoValueFallback = (value: string | null | undefined) =>
 
 export const parseNumberValue = (
 	value: string,
-	maximumDecimals: number = 2,
+	maximumDecimals = 2,
 ): string => {
 	value = value.replace(/[^\d.]/g, '')
 
@@ -150,7 +150,7 @@ export const parseNumberValue = (
 
 export const formatNumberForDb = (
 	value: string | number | null | undefined,
-	decimals: number = 2,
+	decimals = 2,
 ): string | undefined => {
 	if (value === undefined || value === null || value === '') return undefined
 

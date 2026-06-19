@@ -14,8 +14,10 @@ type RoleDocumentInput = {
 
 const resolveRolesDirectory = (): string => {
 	const fromEnv = process.env.ROLES_CONFIG_DIR
+
 	if (fromEnv) {
 		const envPath = path.resolve(fromEnv)
+
 		if (fs.existsSync(envPath)) {
 			return envPath
 		}
@@ -97,6 +99,7 @@ const initCollections = async () => {
 		}
 
 		const ids = roleDocs.map(doc => doc._id)
+
 		await Role.deleteMany({ _id: { $nin: ids } })
 
 		console.log(

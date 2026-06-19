@@ -53,39 +53,39 @@ const ListWithActionBar = ({ products, isLoading }: ListWithActionBarProps) => {
 		)
 	}, [productElements])
 
-	const onAddRequiredDocument = async (
-		selectedActivities: Product[],
-		data: {},
-	) => {
-		// const succeededActivities: string[] = []
-		// for (const activity of selectedActivities) {
-		// 	const eventType = 'PROMO'
-		// 	try {
-		// 		// await addRequiredDocument({
-		// 		// 	activityId: activity.id,
-		// 		// 	data,
-		// 		// 	eventType,
-		// 		// }).unwrap()
-		// 		// succeededActivities.push(activity.id)
-		// 		// if (succeededActivities.length === selectedActivities.length) {
-		// 		// 	showToastMessage({
-		// 		// 		status: 'success',
-		// 		// 		description: t('components.list.multiAddRequiredDocumentSuccess'),
-		// 		// 	})
-		// 		// }
-		// 	} catch (error) {
-		// 		showToastMessage({
-		// 			status: 'error',
-		// 			description: t('components.list.multiAddRequiredDocumentError', {
-		// 				count: selectedActivities.length - succeededActivities.length,
-		// 				total: selectedActivities.length,
-		// 			}),
-		// 		})
-		// 		break
-		// 	}
-		// }
-		// await invalidateTags({ tags: ['Activities'] })
-	}
+	const onAddRequiredDocument = async () =>
+		// selectedActivities: Product[],
+		// data: {},
+		{
+			// const succeededActivities: string[] = []
+			// for (const activity of selectedActivities) {
+			// 	const eventType = 'PROMO'
+			// 	try {
+			// 		// await addRequiredDocument({
+			// 		// 	activityId: activity.id,
+			// 		// 	data,
+			// 		// 	eventType,
+			// 		// }).unwrap()
+			// 		// succeededActivities.push(activity.id)
+			// 		// if (succeededActivities.length === selectedActivities.length) {
+			// 		// 	showToastMessage({
+			// 		// 		status: 'success',
+			// 		// 		description: t('components.list.multiAddRequiredDocumentSuccess'),
+			// 		// 	})
+			// 		// }
+			// 	} catch (error) {
+			// 		showToastMessage({
+			// 			status: 'error',
+			// 			description: t('components.list.multiAddRequiredDocumentError', {
+			// 				count: selectedActivities.length - succeededActivities.length,
+			// 				total: selectedActivities.length,
+			// 			}),
+			// 		})
+			// 		break
+			// 	}
+			// }
+			// await invalidateTags({ tags: ['Activities'] })
+		}
 
 	if ((!productElements || productElements.length === 0) && !isLoading) {
 		return (

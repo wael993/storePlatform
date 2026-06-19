@@ -14,7 +14,7 @@ import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { CustomTooltip } from './CustomTooltip'
 
 let timeoutFn: ReturnType<typeof setTimeout> | null = null
-const debounceTime: number = 300
+const debounceTime = 300
 
 const defaultStyles = {
 	container: {
@@ -30,7 +30,7 @@ const defaultStyles = {
 		color: '#1E1E1E',
 		backgroundColor: '#F4F4F4',
 		borderRadius: '0px',
-		border: `1px solid #EAEAEA`,
+		border: '1px solid #EAEAEA',
 		_placeholder: {
 			color: '#929494',
 		},

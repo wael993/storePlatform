@@ -39,16 +39,21 @@ class RedisCache {
 		logger.info('Connecting to Redis cache...')
 		if (this.connecting) {
 			logger.info('Already connecting to Redis cache')
+
 			return
 		}
+
 		if (!config.redis.enabled) {
 			logger.info('Redis cache disabled')
+
 			return
 		}
 
 		const redisClient = this.ensureClient()
+
 		if (redisClient.isOpen) {
 			logger.info('Redis cache already connected')
+
 			return
 		}
 
@@ -82,18 +87,22 @@ class RedisCache {
 
 		try {
 			const value = await this.client.get(key)
+
 			if (!value) {
 				this.stats.misses += 1
 				logger.debug(`Cache MISS key=${key}`)
+
 				return null
 			}
 
 			this.stats.hits += 1
 			logger.debug(`Cache HIT key=${key}`)
+
 			return JSON.parse(value) as T
 		} catch (error: any) {
 			this.stats.errors += 1
 			logger.warn(`Redis get failed for key ${key}: ${error.message}`)
+
 			return null
 		}
 	}
@@ -124,15 +133,19 @@ class RedisCache {
 
 		try {
 			const deleted = await this.client.del(key)
+
 			if (deleted > 0) {
 				this.stats.dels += 1
 				logger.debug(`Cache key deleted: key=${key}`)
+
 				return true
 			}
+
 			return false
 		} catch (error: any) {
 			this.stats.errors += 1
 			logger.warn(`Redis delete failed for key ${key}: ${error.message}`)
+
 			return false
 		}
 	}
@@ -144,6 +157,7 @@ class RedisCache {
 
 		try {
 			const keys: string[] = []
+
 			for await (const key of this.client.scanIterator({
 				MATCH: pattern,
 				COUNT: 100,
@@ -153,18 +167,22 @@ class RedisCache {
 
 			if (keys.length > 0) {
 				const deleted = await this.client.del(keys)
+
 				this.stats.dels += deleted
 				logger.debug(
 					`Cache pattern deleted: pattern=${pattern} count=${deleted}`,
 				)
+
 				return deleted
 			}
+
 			return 0
 		} catch (error: any) {
 			this.stats.errors += 1
 			logger.warn(
 				`Redis pattern delete failed for ${pattern}: ${error.message}`,
 			)
+
 			return 0
 		}
 	}

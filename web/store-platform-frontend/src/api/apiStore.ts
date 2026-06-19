@@ -582,7 +582,7 @@ const getQuery = (
 		}),
 
 		getUser: builder.query<User, void>({
-			async queryFn(_arg, api, extraOptions, baseQuery) {
+			async queryFn(_arg, api, extraOptions, _baseQuery) {
 				const result = await persistenceBaseQuery(
 					{
 						url: '/user',
@@ -696,8 +696,10 @@ const getQuery = (
 
 		updateDailyAction: builder.mutation<
 			DailyActionsAPIResponse,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			{ id: string; body: any }
 		>({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			query: ({ id, body }: { id: string; body: any }) => ({
 				url: `daily-actions/${id}`,
 				method: 'PATCH',

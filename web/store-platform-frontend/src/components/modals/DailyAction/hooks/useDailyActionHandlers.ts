@@ -235,6 +235,7 @@ export const useDailyActionHandlers = ({
 			| 'note',
 		value: string,
 	) => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		setFormData((prev: any) => ({
 			...prev,
 			[field]: value,
