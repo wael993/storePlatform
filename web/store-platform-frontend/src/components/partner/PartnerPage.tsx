@@ -160,6 +160,7 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 			/>
 
 			<AddQuickModal
+				nextInternalCode={nextInternalCode}
 				handleInputChange={handleInputChange}
 				isOpen={isOpen}
 				modalType={AddQuickStateEnum.PARTNER}
