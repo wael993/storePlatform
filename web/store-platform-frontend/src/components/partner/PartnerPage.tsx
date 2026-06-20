@@ -111,6 +111,13 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 		setFormData({ code: '', value: '' })
 		onClose()
 	}
+	const nextInternalCode =
+		'CZ' +
+		String(
+			Math.max(
+				...partners.map(p => parseInt(p.internalCode?.slice(2) ?? '0', 10), 10),
+			) + 1,
+		).padStart(3, '0')
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -153,6 +160,7 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 			/>
 
 			<AddQuickModal
+				nextInternalCode={nextInternalCode}
 				handleInputChange={handleInputChange}
 				isOpen={isOpen}
 				modalType={AddQuickStateEnum.PARTNER}

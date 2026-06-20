@@ -116,8 +116,9 @@ interface BreadcrumbItem {
 }
 
 interface BreadcrumbParams {
-	locationId?: string
-	locationName?: string
+	id?: string
+	name?: string
+	targetType?: TargetType
 }
 
 type DropdownOption = {

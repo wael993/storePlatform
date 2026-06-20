@@ -9,7 +9,7 @@ import {
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useGetSinglePartnerQuery } from '../../api/apiStore'
+import { useGetSingleProductQuery } from '../../api/apiStore'
 import { fullPaths } from '../../shared/routes'
 import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
@@ -21,21 +21,22 @@ import {
 	entityDetailModalStyles,
 } from '../common/entityDetailModalStyles'
 
-interface PartnerModalProps {
+interface ProductModalProps {
 	targetType: TargetType
 }
 
-const PartnerModal = ({ targetType }: PartnerModalProps) => {
+const ProductModal = ({ targetType }: ProductModalProps) => {
 	const params = useParams()
 	const navigate = useNavigate()
 	const { t } = useTranslation()
 
-	const partnerId = params.partnerId as string
+	const productId = params.productId as string
+
 	const {
-		data: partner,
-		isLoading: isPartnerLoading,
-		isError: isPartnerError,
-	} = useGetSinglePartnerQuery(partnerId)
+		data: product,
+		isLoading: isProductLoading,
+		isError: isProductError,
+	} = useGetSingleProductQuery(productId)
 
 	const handleClose = () => {
 		if (window.history.state && window.history.length > 1) {
@@ -43,7 +44,7 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 			return
 		}
 
-		navigate(fullPaths.PARTNERS)
+		navigate(fullPaths.CUSTOMERS)
 	}
 
 	return (
@@ -65,25 +66,25 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 			>
 				<ModalBody sx={entityDetailModalStyles.modalBody}>
 					<Grid sx={entityDetailModalStyles.grid}>
-						{isPartnerLoading && !partner ? (
+						{isProductLoading && !product ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
 								targetType={targetType}
 							/>
-						) : !isPartnerError && partner ? (
+						) : !isProductError && product ? (
 							<Box sx={entityDetailModalStyles.fullWidthSection}>
 								<TopSection
 									targetType={targetType}
-									partner={partner}
+									product={product}
 									onClose={handleClose}
 								/>
 							</Box>
 						) : (
-							isPartnerError && (
+							isProductError && (
 								<Flex sx={entityDetailModalStyles.errorSection}>
 									<Box sx={entityDetailModalStyles.errorTextBox}>
 										<CenteredText
-											text={t('partner.errorLoadingPartner')}
+											text={t('components.product.errorLoadingProduct')}
 											customStyles={entityDetailModalStyles.errorText}
 										/>
 									</Box>
@@ -93,8 +94,8 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 					</Grid>
 					<Box sx={entityDetailModalStyles.listSection}>
 						<DailyActionsListWithActionBar
-							dailyActions={partner?.relatedActions ?? []}
-							isLoading={isPartnerLoading && !partner}
+							dailyActions={product?.relatedActions ?? []}
+							isLoading={isProductLoading && !product}
 							embedded
 						/>
 					</Box>
@@ -104,4 +105,4 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 	)
 }
 
-export default PartnerModal
+export default ProductModal

@@ -30,19 +30,19 @@ interface VirtuosoContext {
 }
 
 const skeletonPartner: Partner = {
-	partnerId: 'skeleton-id',
-	name: 'dummy',
-	internalCode: 'dummy',
+	partnerId: 'skeleton-id-2',
+	name: 'dummy-2',
+	internalCode: 'dummy-2',
 	createdAt: '2024-01-01T00:00:00.000Z',
 	updatedAt: '2024-01-01T00:00:00.000Z',
 	createdBy: {
-		_id: 'dummy',
-		displayName: 'dummy',
+		_id: 'dummy-2',
+		displayName: 'dummy-2',
 		createdAt: '2024-01-01T00:00:00.000Z',
 	},
 	updatedBy: {
-		_id: 'dummy',
-		displayName: 'dummy',
+		_id: 'dummy-2',
+		displayName: 'dummy-2',
 		updatedAt: '2024-01-01T00:00:00.000Z',
 	},
 } as Partner

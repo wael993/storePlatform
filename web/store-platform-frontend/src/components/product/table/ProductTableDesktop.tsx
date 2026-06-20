@@ -9,21 +9,19 @@ import React, {
 	useState,
 } from 'react'
 import { TableVirtuoso } from 'react-virtuoso'
-
-import { useUser } from '../../shared/hooks/useUser'
-
-import ListHeaderRow from './ListHeaderRow'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
-import { ProductSortHeaderKey, SortOrder } from './shared/globalEnums'
+import { useUser } from '../../../shared/hooks/useUser'
+import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { ProductSortHeaderKey, SortOrder } from '../../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
 	compareNumbersForSorting,
 	compareStringsForSorting,
 	getTableWidth,
 	parseNumberForSorting,
-} from './shared/utils'
-import DraggableScrollContainer from '../common/DraggableScrollContainer'
-import ListRow from './ListRow'
+} from '../../list/shared/utils'
+import DraggableScrollContainer from '../../common/DraggableScrollContainer'
+import TableRow from './ProductTableRow'
+import TableHeaderRow from './ProductTableHeaderRow'
 
 interface VirtuosoContext {
 	listData: Product[]
@@ -34,12 +32,12 @@ interface VirtuosoContext {
 }
 
 const skeletonProduct: Product = {
-	productId: 'skeleton-id',
+	productId: 'skeleton-id-3',
 	name: 'dummy',
 	barcode: 'dummy',
-	categoryName: 'dummy',
-	brandName: 'dummy',
-	supplierName: 'dummy',
+	categoryName: 'dummy-3',
+	brandName: 'dummy-3',
+	supplierName: 'dummy-3',
 	stock: {
 		quantity: 0,
 		minQuantity: 0,
@@ -155,7 +153,7 @@ const TableRowComponent = (props: {
 	const product = listData[index]
 
 	return (
-		<ListRow
+		<TableRow
 			key={product.productId}
 			product={product}
 			isSelected={selectedProducts.includes(product.productId)}
@@ -166,7 +164,7 @@ const TableRowComponent = (props: {
 	)
 }
 
-interface ListDesktopProps {
+interface ProductTableDesktopProps {
 	products?: Product[]
 	isLoading: boolean
 	onSelect: (productId: string) => void
@@ -175,7 +173,7 @@ interface ListDesktopProps {
 	onAllItemsSelectedChange: () => void
 }
 
-const ListDesktop = memo(
+const ProductTableDesktop = memo(
 	({
 		products,
 		isLoading,
@@ -183,7 +181,7 @@ const ListDesktop = memo(
 		selectedProducts,
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
-	}: ListDesktopProps) => {
+	}: ProductTableDesktopProps) => {
 		const { isOwnerOrAdmin } = useUser()
 		const [sortField, setSortField] = useState<ProductSortHeaderKey | null>(
 			null,
@@ -326,7 +324,7 @@ const ListDesktop = memo(
 					}}
 					fixedHeaderContent={useCallback(
 						() => (
-							<ListHeaderRow
+							<TableHeaderRow
 								sortField={sortField}
 								sortOrder={sortOrder}
 								onSort={onSort}
@@ -347,6 +345,6 @@ const ListDesktop = memo(
 	},
 )
 
-ListDesktop.displayName = 'List'
+ProductTableDesktop.displayName = 'Table'
 
-export default ListDesktop
+export default ProductTableDesktop

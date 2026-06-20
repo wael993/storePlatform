@@ -270,7 +270,17 @@ const ServiceMenu = ({
 						</Box>
 
 						<Divider my={5} />
-
+						<Box
+							as="button"
+							type="button"
+							onClick={handleChangePassword}
+							sx={styles.menuItem}
+						>
+							<Flex align="center" w="full" gap={4}>
+								<LockIcon sx={styles.menuIcon} />
+								<Text>{t('components.topBar.changePassword')}</Text>
+							</Flex>
+						</Box>
 						<Box
 							as="button"
 							type="button"
@@ -287,18 +297,6 @@ const ServiceMenu = ({
 									}}
 								/>
 								<Text>{t('components.topBar.logout')}</Text>
-							</Flex>
-						</Box>
-
-						<Box
-							as="button"
-							type="button"
-							onClick={handleChangePassword}
-							sx={styles.menuItem}
-						>
-							<Flex align="center" w="full" gap={4}>
-								<LockIcon sx={styles.menuIcon} />
-								<Text>{t('components.topBar.changePassword')}</Text>
 							</Flex>
 						</Box>
 					</Box>

@@ -21,6 +21,7 @@ import InputLabel from '../common/InputLabel'
 import { MODAL_CONFIG } from '../../shared/globalConstant'
 
 interface AddQuickModalProps {
+	nextInternalCode?: string
 	isOpen: boolean
 	onClose: () => void
 	handleQuickAdd: (value: { code: string; value: string }) => void
@@ -85,6 +86,7 @@ const styles: StylesObject = {
 }
 
 const AddQuickModal = ({
+	nextInternalCode,
 	isOpen,
 	onClose,
 	handleQuickAdd,
@@ -139,10 +141,14 @@ const AddQuickModal = ({
 						<InputLabel
 							withGap={true}
 							label={t(MODAL_CONFIG[modalType].code)}
-							inputPlaceholder={t(MODAL_CONFIG[modalType].code)}
+							inputPlaceholder={
+								nextInternalCode
+									? nextInternalCode
+									: t(MODAL_CONFIG[modalType].code)
+							}
 							inputType={MODAL_CONFIG[modalType].inputType}
 							styles={documentNameStyles}
-							value={inputValue.code ?? ''}
+							value={inputValue.code ?? nextInternalCode}
 							onChange={(value: string) => handleInputChange('code', value)}
 						/>
 					</VStack>

@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { Tr } from '@chakra-ui/react'
-import ListItem from './ListItem'
 import { useState } from 'react'
+import TableItem from './ProductTableItem'
 
-interface ListRowProps {
+interface ProductTableRowProps {
 	product: Product
 	onSelect: (id: string) => void
 	tableRowProps: Record<string, unknown>
@@ -11,13 +11,13 @@ interface ListRowProps {
 	isLoading: boolean
 }
 
-const ListRow = ({
+const ProductTableRow = ({
 	product,
 	onSelect,
 	isSelected,
 	tableRowProps,
 	isLoading,
-}: ListRowProps) => {
+}: ProductTableRowProps) => {
 	const [isHovered, setIsHovered] = useState(false)
 	const navigate = useNavigate()
 	const styles: StylesObject = {
@@ -35,7 +35,7 @@ const ListRow = ({
 			onMouseLeave={() => setIsHovered(false)}
 			onClick={() => navigate(`${product.productId}`)}
 		>
-			<ListItem
+			<TableItem
 				key={product.productId}
 				product={product}
 				onSelect={onSelect}
@@ -47,4 +47,4 @@ const ListRow = ({
 	)
 }
 
-export default ListRow
+export default ProductTableRow

@@ -1,8 +1,8 @@
 import { Checkbox, Flex } from '@chakra-ui/react'
 import { useState } from 'react'
 import { Virtuoso } from 'react-virtuoso'
-import ListItemMobil from './ListItemMobil'
-import { mobileVirtuosoStyle } from '../../theme/layout'
+import ListItemMobil from './ProductTableItemMobil'
+import { mobileVirtuosoStyle } from '../../../theme/layout'
 
 const styles = {
 	checkboxWrapper: {
@@ -13,7 +13,7 @@ const styles = {
 	},
 } satisfies StylesObject
 
-interface ListMobilProps {
+interface ProductTableMobilProps {
 	products: Product[]
 	isLoading: boolean
 	onSelect: (id: string) => void
@@ -22,14 +22,14 @@ interface ListMobilProps {
 	onAllItemsSelectedChange: () => void
 }
 
-const ListMobil = ({
+const ProductTableMobil = ({
 	products,
 	isLoading,
 	onSelect,
 	selectedProducts,
 	areAllItemsSelected,
 	onAllItemsSelectedChange,
-}: ListMobilProps) => {
+}: ProductTableMobilProps) => {
 	const [openId, setOpenId] = useState<string | null>(null)
 	const handleToggle = (id: string) =>
 		setOpenId(prev => (prev === id ? null : id))
@@ -65,4 +65,4 @@ const ListMobil = ({
 	)
 }
 
-export default ListMobil
+export default ProductTableMobil

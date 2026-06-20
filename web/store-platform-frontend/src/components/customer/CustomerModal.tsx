@@ -65,7 +65,7 @@ const CustomerModal = ({ targetType }: CustomerModalProps) => {
 			>
 				<ModalBody sx={entityDetailModalStyles.modalBody}>
 					<Grid sx={entityDetailModalStyles.grid}>
-						{isCustomerLoading ? (
+						{isCustomerLoading && !customer ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
 								targetType={targetType}
@@ -94,7 +94,7 @@ const CustomerModal = ({ targetType }: CustomerModalProps) => {
 					<Box sx={entityDetailModalStyles.listSection}>
 						<DailyActionsListWithActionBar
 							dailyActions={customer?.relatedActions ?? []}
-							isLoading={isCustomerLoading}
+							isLoading={isCustomerLoading && !customer}
 							embedded
 						/>
 					</Box>

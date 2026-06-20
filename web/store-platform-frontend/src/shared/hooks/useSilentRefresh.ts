@@ -6,6 +6,31 @@ import { logout, setAccessToken } from '../../store/user/reducer'
 import { RootState } from '../../store/store'
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000 // 14 minutes (token expires at 15)
+const REFRESH_BUFFER_MS = 2 * 60 * 1000 // refresh 2 minutes before expiry
+
+const getTokenExpiryMs = (token: string): number | null => {
+	try {
+		const payload = token.split('.')[1]
+		if (!payload) return null
+
+		const decoded = JSON.parse(
+			atob(payload.replace(/-/g, '+').replace(/_/g, '/')),
+		) as { exp?: number }
+
+		return typeof decoded.exp === 'number' ? decoded.exp * 1000 : null
+	} catch {
+		return null
+	}
+}
+
+const shouldRefreshToken = (token: string | null): boolean => {
+	if (!token) return true
+
+	const expiresAtMs = getTokenExpiryMs(token)
+	if (!expiresAtMs) return false
+
+	return Date.now() >= expiresAtMs - REFRESH_BUFFER_MS
+}
 
 export function useSilentRefresh() {
 	const dispatch = useDispatch()
@@ -45,8 +70,7 @@ export function useSilentRefresh() {
 			}
 		}
 
-		// Skip immediate refresh after login when access token is already in memory
-		if (!accessToken) {
+		if (shouldRefreshToken(accessToken)) {
 			refreshToken()
 		}
 

@@ -15,18 +15,18 @@ import {
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import StateCircle from '../StateCircle'
-import NotificationCircle from '../NotificationCircle'
-import OptionsPopover from '../modals/OptionsPopover'
-import { PRODUCT_STATE_CONFIG } from './shared/constants'
-import { useUser } from '../../shared/hooks/useUser'
-import useAllowedActions from '../../shared/hooks/useAllowedActions'
-import { buildRoutePath } from '../../shared/routes'
+import StateCircle from '../../StateCircle'
+import NotificationCircle from '../../NotificationCircle'
+import OptionsPopover from '../../modals/OptionsPopover'
+import { PRODUCT_STATE_CONFIG } from '../../list/shared/constants'
+import { useUser } from '../../../shared/hooks/useUser'
+import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { buildRoutePath } from '../../../shared/routes'
 import {
 	compareLanguage,
 	formatNumber,
 	withNoValueFallback,
-} from '../../shared/utils'
+} from '../../../shared/utils'
 
 const styles = {
 	listItemGridItem: {
@@ -69,7 +69,7 @@ const styles = {
 	},
 } satisfies StylesObject
 
-interface ListItemMobilProps {
+interface ProductTableMobilProps {
 	product: Product
 	isLoading: boolean
 	onSelect: (id: string) => void
@@ -78,14 +78,14 @@ interface ListItemMobilProps {
 	onToggle: () => void
 }
 
-const ListItemMobil = ({
+const ProductTableMobil = ({
 	product,
 	isLoading,
 	onSelect,
 	selectedProducts,
 	isOpen,
 	onToggle,
-}: ListItemMobilProps) => {
+}: ProductTableMobilProps) => {
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -336,4 +336,4 @@ const ListItemMobil = ({
 	)
 }
 
-export default ListItemMobil
+export default ProductTableMobil

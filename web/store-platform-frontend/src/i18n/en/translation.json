@@ -218,7 +218,9 @@
 			"text": "Budget Overview",
 			"purchase": "Purchase value",
 			"payments": "Value of payments",
-			"balance": "Balance"
+			"balance": "Balance",
+			"sumBuyingWeight": "Sum Buying Weight",
+			"sumSellingWeight": "Sum Selling Weight"
 		},
 		"customer": {
 			"errorLoadingCustomer": "There was an error loading the customer. Please try again!",

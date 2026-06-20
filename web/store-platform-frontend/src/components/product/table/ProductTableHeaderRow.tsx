@@ -1,16 +1,16 @@
 import { Tr, Th, Text, Flex, Checkbox, Box } from '@chakra-ui/react'
-import { useTranslation } from 'react-i18next'
-import { useResources } from '../../shared/hooks/useResources'
 import { useState } from 'react'
-import { ProductSortHeaderKey, SortOrder } from './shared/globalEnums'
-import { useUser } from '../../shared/hooks/useUser'
-import { AllowedActions } from '../../shared/globalEnums'
-import { isTruthy } from './shared/utils'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from './shared/constants'
-import TableSort from '../common/CustomTableSort'
-import useAllowedActions from '../../shared/hooks/useAllowedActions'
+import { useTranslation } from 'react-i18next'
+import { AllowedActions } from '../../../shared/globalEnums'
+import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { useResources } from '../../../shared/hooks/useResources'
+import { useUser } from '../../../shared/hooks/useUser'
+import TableSort from '../../common/CustomTableSort'
+import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { ProductSortHeaderKey, SortOrder } from '../../list/shared/globalEnums'
+import { isTruthy } from '../../list/shared/utils'
 
-interface ListHeaderRowProps {
+interface ProductTableHeaderRowProps {
 	sortField: ProductSortHeaderKey | null
 	sortOrder: SortOrder | null
 	onSort: (field: ProductSortHeaderKey | null, order: SortOrder | null) => void
@@ -61,13 +61,13 @@ const styles = {
 	},
 } satisfies StylesObject
 
-const ListHeaderRow = ({
+const ProductTableHeaderRow = ({
 	sortField,
 	onSort,
 	sortOrder,
 	areAllItemsSelected,
 	onAllItemsSelectedChange,
-}: ListHeaderRowProps) => {
+}: ProductTableHeaderRowProps) => {
 	const { t } = useTranslation()
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 	const { isOwnerOrAdmin } = useUser()
@@ -334,4 +334,4 @@ const ListHeaderRow = ({
 		</Tr>
 	)
 }
-export default ListHeaderRow
+export default ProductTableHeaderRow

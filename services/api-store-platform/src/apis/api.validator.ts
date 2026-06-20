@@ -150,7 +150,9 @@ export class PlatformValidator {
 			}
 
 			if (
-				!Object.values(['customer', 'supplier', 'partner']).includes(entityType)
+				!Object.values(['customer', 'supplier', 'partner', 'product']).includes(
+					entityType,
+				)
 			) {
 				throw new RequiredParameterMissingError(
 					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,

@@ -1,4 +1,3 @@
-import { ca } from 'date-fns/locale'
 import {
 	ProductAPI,
 	ProductAPIEnriched,
@@ -14,7 +13,6 @@ export default class ProductsMapper {
 		product: ProductAPI,
 		requestContext: RequestContext,
 	): ProductRequestBody {
-		const isAdminUser = requestContext.user?.role === 'admin'
 		const isOwnerUser = requestContext.user?.role === 'owner'
 
 		const productState = () => {

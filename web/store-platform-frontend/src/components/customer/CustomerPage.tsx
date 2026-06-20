@@ -112,6 +112,24 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 		onClose()
 	}
 
+	// const nextInternalCode = customers
+	// 	.map(c => c.internalCode)
+	// 	.sort(
+	// 		(a, b) =>
+	// 			parseInt(b?.slice(2) ?? '0', 10) - parseInt(a?.slice(2) ?? '0', 10),
+	// 	)[0]
+
+	const nextInternalCode =
+		'CZ' +
+		String(
+			Math.max(
+				...customers.map(
+					c => parseInt(c.internalCode?.slice(2) ?? '0', 10),
+					10,
+				),
+			) + 1,
+		).padStart(3, '0')
+
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
@@ -161,6 +179,7 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 				inputValue={formData}
 				handleQuickAdd={handlePostNewCustomer}
 				userHasAdminRole={isOwnerOrAdmin}
+				nextInternalCode={nextInternalCode}
 			/>
 		</Flex>
 	)

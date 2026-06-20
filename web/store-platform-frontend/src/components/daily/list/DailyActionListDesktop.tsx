@@ -36,17 +36,17 @@ interface VirtuosoContext {
 }
 
 const skeletonDailyAction: DailyAction = {
-	_id: 'skeleton-id',
-	actionId: 'skeleton-action-id',
+	_id: 'skeleton-id-1',
+	actionId: 'skeleton-action-id-1',
 	entryType: 'BUYING_ENTRY',
-	productId: 'dummy',
-	productName: 'dummy',
-	supplierId: 'dummy',
-	supplierName: 'dummy',
+	productId: 'dummy-1',
+	productName: 'dummy-1',
+	supplierId: 'dummy-1',
+	supplierName: 'dummySupplier-1',
 	currencyId: 'dummy',
-	currencyName: 'dummy',
-	unitId: 'dummy',
-	unitName: 'dummy',
+	currencyName: 'dummy-1',
+	unitId: 'dummy-1',
+	unitName: 'dummy-1',
 	weight: '0',
 	singleUnitPrice: '0',
 	totalPrice: '0',
@@ -329,7 +329,7 @@ const DailyActionListDesktop = memo(
 
 									return (
 										<DailyActionRow
-											key={rowId}
+											key={isLoading ? `skeleton-${index}` : rowId}
 											dailyAction={dailyAction}
 											isSelected={selectedDailyActionIds.includes(rowId)}
 											tableRowProps={{}}

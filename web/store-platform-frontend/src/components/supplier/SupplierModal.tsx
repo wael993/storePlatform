@@ -64,7 +64,7 @@ const SupplierModal = ({ targetType }: SupplierModalProps) => {
 			>
 				<ModalBody sx={entityDetailModalStyles.modalBody}>
 					<Grid sx={entityDetailModalStyles.grid}>
-						{isSupplierLoading ? (
+						{isSupplierLoading && !supplier ? (
 							<DetailModalSkeleton
 								onClose={handleClose}
 								targetType={targetType}
@@ -93,7 +93,7 @@ const SupplierModal = ({ targetType }: SupplierModalProps) => {
 					<Box sx={entityDetailModalStyles.listSection}>
 						<DailyActionsListWithActionBar
 							dailyActions={supplier?.relatedActions ?? []}
-							isLoading={isSupplierLoading}
+							isLoading={isSupplierLoading && !supplier}
 							embedded
 						/>
 					</Box>
