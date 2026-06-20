@@ -10,7 +10,7 @@ import {
 	useDisclosure,
 	VStack,
 } from '@chakra-ui/react'
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from './CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
@@ -279,6 +279,22 @@ const TopSection = ({
 			},
 		)
 
+	const budgetOverviewLabels = useMemo(
+		() =>
+			isProductTarget
+				? {
+						tooltip: t('components.daily.budgetOverview.tooltip'),
+						title: t('components.daily.budgetOverview.title'),
+						purchase: t('components.daily.budgetOverview.sales'),
+						payments: t('components.daily.budgetOverview.costs'),
+						balance: t('components.daily.budgetOverview.profit'),
+						sumBuyingWeight: t('components.budgetOverview.sumBuyingWeight'),
+						sumSellingWeight: t('components.budgetOverview.sumSellingWeight'),
+					}
+				: undefined,
+		[isProductTarget, t],
+	)
+
 	const editableFieldProps = {
 		ariaLabelName: t('common.supplierFocus'),
 		placeholder: t('common.addFocus'),
@@ -388,11 +404,15 @@ const TopSection = ({
 						>
 							<Flex sx={styles.itemWrapperWithMargin}>
 								<BudgetOverview
+									targetType={targetType}
+									sumBuyingWeight={budgetOverview?.sumBuyingWeight}
+									sumSellingWeight={budgetOverview?.sumSellingWeight}
 									payments={budgetOverview?.payments}
 									purchase={budgetOverview?.purchase}
 									currency={budgetOverview?.currency}
 									balance={budgetOverview?.balance}
 									isFetching={isBudgetOverviewFetching}
+									labels={budgetOverviewLabels}
 								/>
 							</Flex>
 						</Flex>

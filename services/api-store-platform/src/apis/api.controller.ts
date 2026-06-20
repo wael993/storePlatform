@@ -32,11 +32,12 @@ import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import {
 	filterCustomerRelatedActions,
 	filterPartnerRelatedActions,
+	filterProductRelatedActions,
 	mapCustomer,
 	mapCustomers,
 	mapPartners,
+	mapProductAction,
 	mapSuppliers,
-	mapDailyAction,
 } from './mappings/mapper'
 import {
 	AddTenantRequestBody,
@@ -77,7 +78,6 @@ import {
 import {
 	CreateDailyActionResponse,
 	CurrenciesResponse,
-	CustomerDailyAction,
 	CustomerResponse,
 	CustomersResponse,
 	DailyActionRequestBody,
@@ -85,7 +85,6 @@ import {
 	EntryType,
 	ExpensesResponse,
 	LoginData,
-	PartnerDailyAction,
 	PartnersResponse,
 	SuppliersResponse,
 	UnitsResponse,
@@ -202,13 +201,14 @@ const getInvoiceDateBoundary = (
 }
 
 type BudgetOverviewResponse = {
+	sumBuyingWeight?: string
+	sumSellingWeight?: string
 	payments: string
 	purchase: string
-	currency?: string
 	balance: string
+	currency?: string
 }
 
-type BudgetOverviewEntityType = 'customer' | 'supplier' | 'partner'
 export default class ProductController {
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -1138,17 +1138,23 @@ export default class ProductController {
 			requestContext,
 			COLLECTION_NAMES.PRODUCTS,
 			Product,
-			{ barcode: 'barcode', _id: productId },
+			{ fieldName: 'productId', fieldValue: productId },
 		)
 
 		if (!product) {
 			return null
 		}
 
-		const mappedProduct = this.productsMapper.mapProduct(
+		const dailyActions = await this.getDailyActions(requestContext)
+		const relatedActions = filterProductRelatedActions(
+			dailyActions.data,
 			product,
-			requestContext,
 		)
+
+		const mappedProduct: ProductRequestBody = {
+			...this.productsMapper.mapProduct(product, requestContext),
+			relatedActions: relatedActions.map(mapProductAction),
+		}
 
 		await redisCache.setJson(cacheKey, mappedProduct)
 
@@ -1987,6 +1993,8 @@ export default class ProductController {
 
 		const relevantActions = dailyActions.data.filter(action => {
 			switch (targetType) {
+				case TargetType.PRODUCT:
+					return action.productId && targetId === action.productId
 				case TargetType.CUSTOMER:
 					return action.customerId && targetId === action.customerId
 				case TargetType.SUPPLIER:
@@ -2015,10 +2023,16 @@ export default class ProductController {
 				purchaseEntryType = DailyActionType.RECEIPT_ENTRY
 				paymentEntryType = DailyActionType.PAYMENT_ENTRY
 				break
+			case TargetType.PRODUCT:
+				purchaseEntryType = DailyActionType.SELLING_ENTRY
+				paymentEntryType = DailyActionType.BUYING_ENTRY
+				break
 
 			default:
 				throw new Error('Invalid target type')
 		}
+
+		const sumWeights = this.calculateWeights(relevantActions)
 
 		const purchase = this.sumActionAmounts(relevantActions, purchaseEntryType)
 		const payments = this.sumActionAmounts(relevantActions, paymentEntryType)
@@ -2028,6 +2042,8 @@ export default class ProductController {
 			relevantActions.find(action => action.currencyId)?.currencyId
 
 		return {
+			sumBuyingWeight: sumWeights.buying.toFixed(2) ?? '',
+			sumSellingWeight: sumWeights.selling.toFixed(2) ?? '',
 			payments: payments.toFixed(2),
 			purchase: purchase.toFixed(2),
 			currency,
@@ -2191,6 +2207,29 @@ export default class ProductController {
 		}, 0)
 	}
 
+	private calculateWeights(relevantActions: DailyActionResponse['data']): {
+		buying: number
+		selling: number
+	} {
+		return relevantActions.reduce(
+			(acc, { entryType, weight }) => {
+				const value = weight ? parseFloat(weight.replace(/,/g, '')) || 0 : 0
+
+				switch (entryType) {
+					case DailyActionType.BUYING_ENTRY:
+						acc.buying += value
+						break
+					case DailyActionType.SELLING_ENTRY:
+						acc.selling += value
+						break
+				}
+
+				return acc
+			},
+			{ buying: 0, selling: 0 },
+		)
+	}
+
 	public async getTenantUsers(
 		requestContext: RequestContext,
 	): Promise<TenantUserSummary[]> {
@@ -2247,6 +2286,11 @@ export default class ProductController {
 				access: Boolean(permission?.access),
 				allowedActions: permission?.allowedActions || [],
 			}),
+		)
+
+		console.log(
+			'🚀 ~ ProductController ~ getUserFrontendResources ~ frontendResources:',
+			frontendResources,
 		)
 
 		return { frontendResources }

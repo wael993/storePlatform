@@ -1,5 +1,4 @@
-import express, { NextFunction } from 'express'
-import { Application } from 'express'
+import express from 'express'
 import ProductController from './api.controller'
 import { PlatformValidator } from './api.validator'
 import logger from '../shared/logger/logger'
@@ -684,9 +683,7 @@ export default class StoreRoutes extends PlatformValidator {
 		}
 
 		try {
-			let workbook
-
-			workbook = await this.productController.getDailyActionsExcel(
+			const workbook = await this.productController.getDailyActionsExcel(
 				requestContext,
 				dailyActionFilterQuery,
 			)
@@ -1304,7 +1301,7 @@ export default class StoreRoutes extends PlatformValidator {
 		request: any,
 		response: express.Response,
 	): Promise<void> {
-		const productId = request.params._id
+		const productId = request.params.id
 
 		const requestContext = this.getRequestContext(request)
 

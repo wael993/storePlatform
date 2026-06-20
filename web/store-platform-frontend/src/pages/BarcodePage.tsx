@@ -1,18 +1,23 @@
 import { Box, VStack } from '@chakra-ui/react'
 import { useState } from 'react'
-import ProductList from './ProductList'
+
 import BarcodeScanner from './BarcodeScanner'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
+import DailyActionsListWithActionBar from '../components/daily/list/DailyActionsListWithActionBar'
+import { useGetDailyActionsQuery } from '../api/apiStore'
 
 export type StoreCartItem = Product & {
 	cartQuantity: number
 }
 
 const BarcodePage = () => {
-	const [, setCart] = useState<StoreCartItem[]>([])
+	const [_card, setCart] = useState<StoreCartItem[]>([])
 	const breadCrumbItems = generateBreadcrumbs()
+
+	const { data: dailyActions = [], isLoading: isDailyActionsLoading } =
+		useGetDailyActionsQuery({})
 
 	const addToCart = (p: Product) => {
 		setCart(prev => {
@@ -47,7 +52,13 @@ const BarcodePage = () => {
 			<VStack gap={6} align="stretch">
 				<CustomBreadcrumb items={breadCrumbItems[BreadCrumbItem.BARCODE]} />
 				<BarcodeScanner addToCart={addToCart} />
-				<ProductList addToCart={addToCart} />
+
+				<DailyActionsListWithActionBar
+					dailyActions={dailyActions}
+					isLoading={isDailyActionsLoading}
+				/>
+
+				{/* <ProductList addToCart={addToCart} /> */}
 
 				{/* (optional) Cart Component later */}
 			</VStack>

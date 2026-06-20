@@ -9,6 +9,7 @@ import {
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { mapFee } from '../../shared/utils'
+import { TargetType } from '../../shared/globalEnums'
 
 const styles: StylesObject = {
 	budgetOverviewContainer: {
@@ -55,21 +56,29 @@ const styles: StylesObject = {
 }
 
 interface BudgetOverviewProps {
+	targetType?: TargetType
 	payments?: string
 	purchase?: string
 	currency?: string
 	balance?: string
 	isFetching?: boolean
+	sumBuyingWeight?: string
+	sumSellingWeight?: string
 	labels?: {
 		tooltip?: string
 		title?: string
 		purchase?: string
 		payments?: string
 		balance?: string
+		sumBuyingWeight?: string
+		sumSellingWeight?: string
 	}
 }
 
 export const BudgetOverview = ({
+	targetType,
+	sumBuyingWeight,
+	sumSellingWeight,
 	payments,
 	purchase,
 	currency,
@@ -97,6 +106,32 @@ export const BudgetOverview = ({
 				<Heading variant="h4" sx={styles.header}>
 					{labels?.title ?? t('components.budgetOverview.text')}
 				</Heading>
+
+				{targetType === TargetType.PRODUCT && (
+					<>
+						<Divider sx={styles.divider} />
+						<HStack sx={{ width: '100%' }}>
+							<Flex sx={{ ...styles.budgetInfo, width: '50%' }}>
+								<Text sx={styles.text}>
+									{labels?.sumBuyingWeight ??
+										t('components.budgetOverview.sumBuyingWeight')}
+								</Text>
+								<Heading variant="h4" sx={styles.budgetInfoText}>
+									{`${mapFee(sumBuyingWeight) ?? '0'} KG`}
+								</Heading>
+							</Flex>
+							<Flex sx={{ ...styles.budgetInfo, width: '50%' }}>
+								<Text sx={styles.text}>
+									{labels?.sumSellingWeight ??
+										t('components.budgetOverview.sumSellingWeight')}
+								</Text>
+								<Heading variant="h4" sx={styles.budgetInfoText}>
+									{`${mapFee(sumSellingWeight) ?? '0'} KG`}
+								</Heading>
+							</Flex>
+						</HStack>
+					</>
+				)}
 				<Divider sx={styles.divider} />
 				<HStack sx={{ width: '100%' }}>
 					<Flex sx={{ ...styles.budgetInfo, width: '50%' }}>

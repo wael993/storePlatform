@@ -48,6 +48,8 @@ interface BudgetOverviewAPIResponse {
 	purchase: string
 	currency?: string
 	balance: string
+	sumBuyingWeight: string
+	sumSellingWeight: string
 }
 interface BudgetOverviewQueryArgument {
 	entityType: 'customer' | 'supplier' | 'partner' | 'product'
@@ -263,6 +265,7 @@ interface Product {
 		displayName: string
 		updatedAt: string
 	}
+	relatedActions?: DailyAction[]
 }
 
 interface LoginAPI {

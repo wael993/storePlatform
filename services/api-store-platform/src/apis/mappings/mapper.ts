@@ -1,4 +1,8 @@
-import { CustomerDocument, PartnerDocument } from '../../shared/types'
+import {
+	CustomerDocument,
+	PartnerDocument,
+	ProductAPI,
+} from '../../shared/types'
 import { DailyActionType } from '../../shared/globalEnums'
 import {
 	Customer,
@@ -8,8 +12,24 @@ import {
 	EntryType,
 	Partner,
 	PartnerDailyAction,
+	ProductDailyAction,
 	Supplier,
 } from '../../shared/types/api'
+
+export const filterProductRelatedActions = (
+	actions: DailyAction[],
+	product: Pick<ProductAPI, '_id' | 'internalCode' | 'barcode' | 'name'>,
+): DailyAction[] =>
+	actions.filter(
+		action =>
+			action.entryType !== DailyActionType.EXPENSE_ENTRY &&
+			action.entryType !== DailyActionType.PAYMENT_ENTRY &&
+			action.entryType !== DailyActionType.RECEIPT_ENTRY &&
+			(action.productId === product._id ||
+				action.productId === product.internalCode ||
+				action.productId === product.barcode ||
+				action.productName === product.name),
+	)
 
 export const filterCustomerRelatedActions = (
 	actions: CustomerDailyAction[],
@@ -36,6 +56,29 @@ export const filterPartnerRelatedActions = (
 				action.partnerId === partner.internalCode ||
 				action.partnerName === partner.name),
 	)
+
+export const mapProductAction = (
+	action: DailyAction,
+): ProductDailyAction => ({
+	actionId: action.actionId,
+	entryType: action.entryType,
+	productId: action.productId,
+	invoiceNumber: action.invoiceNumber,
+	invoiceDate: action.invoiceDate,
+	productName: action.productName,
+	supplierId: action.supplierId,
+	supplierName: action.supplierName,
+	customerId: action.customerId,
+	customerName: action.customerName,
+	currencyId: action.currencyId,
+	currencyName: action.currencyName,
+	unitId: action.unitId,
+	unitName: action.unitName,
+	weight: action.weight,
+	singleUnitPrice: action.singleUnitPrice,
+	totalPrice: action.totalPrice,
+	note: action.note,
+})
 
 export const mapPartners = (partners: Partner[]) => {
 	const mappedPartners = partners.map(partner => {

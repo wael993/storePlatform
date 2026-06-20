@@ -24,6 +24,26 @@ type EntryType =
 	| 'RECEIPT_ENTRY'
 	| 'EXPENSE_ENTRY'
 
+interface ProductDailyAction {
+	actionId: string
+	entryType: EntryType
+	productId?: string
+	productName?: string
+	invoiceNumber?: string
+	invoiceDate: Date
+	supplierId?: string
+	supplierName?: string
+	customerId?: string
+	customerName?: string
+	currencyId: string
+	currencyName: string
+	unitId?: string
+	unitName?: string
+	weight?: string
+	singleUnitPrice?: string
+	totalPrice?: string
+	note?: string
+}
 interface PartnerDailyAction {
 	actionId: string
 	entryType: Partial<EntryType | 'PAYMENT_ENTRY' | 'RECEIPT_ENTRY'>

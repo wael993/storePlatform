@@ -1,7 +1,6 @@
-import { ca } from 'date-fns/locale'
 import { AuthorizedUser } from './authorization'
 import { TenantRole } from '../tenant'
-import { CustomerDailyAction } from './api'
+import { CustomerDailyAction, ProductDailyAction } from './api'
 
 interface RequestContext {
 	authorization?: string
@@ -110,6 +109,7 @@ export type ProductRequestBody = {
 	}
 	status?: 'active' | 'inactive' | 'discontinued'
 	description?: string
+	relatedActions?: ProductDailyAction[]
 }
 export type OrderRequestBody = {
 	orderNumber: string
