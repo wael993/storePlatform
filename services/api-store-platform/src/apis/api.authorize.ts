@@ -1,6 +1,7 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import ProductController from './api.controller'
-import { HttpMethods } from '../shared/types/authorization'
+import { AuthenticationError } from '../middleware/errorHandler'
 
 export default class ActivityAuthorization {
 	public constructor(private productController: ProductController) {}
@@ -35,6 +36,33 @@ export default class ActivityAuthorization {
 
 			next()
 		} catch (error) {
+			if (error instanceof AuthenticationError) {
+				response.status(error.httpStatus).json({
+					message: error.message,
+					errorCode: error.errorCode,
+				})
+
+				return
+			}
+
+			if (
+				error instanceof jwt.TokenExpiredError ||
+				error instanceof jwt.JsonWebTokenError
+			) {
+				response.status(401).json({
+					message: 'Authorization error',
+					error: {
+						name: error.name,
+						message: error.message,
+						...(error instanceof jwt.TokenExpiredError && {
+							expiredAt: error.expiredAt,
+						}),
+					},
+				})
+
+				return
+			}
+
 			response.status(500).json({ message: 'Authorization error', error })
 		} finally {
 			const endTime = Date.now()
