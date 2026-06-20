@@ -109,6 +109,16 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 		setFormData({ code: '', value: '' })
 		onClose()
 	}
+	const nextInternalCode =
+		'CZ' +
+		String(
+			Math.max(
+				...suppliers.map(
+					supplier => parseInt(supplier.internalCode?.slice(2) ?? '0', 10),
+					10,
+				),
+			) + 1,
+		).padStart(3, '0')
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
@@ -160,6 +170,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				inputValue={formData}
 				handleQuickAdd={handlePostNewSupplier}
 				userHasAdminRole={isAdmin}
+				nextInternalCode={nextInternalCode}
 			/>
 		</Flex>
 	)
