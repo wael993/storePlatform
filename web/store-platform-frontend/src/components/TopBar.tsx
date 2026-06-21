@@ -39,6 +39,7 @@ interface TopBarProps {
 	userName: string
 	onLogout: () => void | Promise<void>
 	isLogoutLoading?: boolean
+	isSettingsVisible?: boolean
 }
 
 const styles = {
@@ -67,6 +68,7 @@ const TopBar = ({
 	userName,
 	onLogout,
 	isLogoutLoading = false,
+	isSettingsVisible = false,
 }: TopBarProps) => {
 	const location = useLocation()
 	const navigate = useNavigate()
@@ -184,12 +186,14 @@ const TopBar = ({
 									e.stopPropagation()
 								}}
 							/>
-							<IconButton
-								aria-label={t('components.topBar.settings')}
-								icon={<SettingsIcon boxSize={4} />}
-								sx={styles.iconButton}
-								onClick={() => navigate(RoutePaths.SETTINGS)}
-							/>
+							{isSettingsVisible ? (
+								<IconButton
+									aria-label={t('components.topBar.settings')}
+									icon={<SettingsIcon boxSize={4} />}
+									sx={styles.iconButton}
+									onClick={() => navigate(RoutePaths.SETTINGS)}
+								/>
+							) : null}
 						</>
 					)}
 
@@ -200,6 +204,7 @@ const TopBar = ({
 							userName={userName}
 							onLogout={onLogout}
 							isLogoutLoading={isLogoutLoading}
+							isSettingsVisible={isSettingsVisible}
 						/>
 					)}
 					{!isMobile && (

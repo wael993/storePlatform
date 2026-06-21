@@ -37,6 +37,7 @@ interface ServiceMenuProps {
 	userName: string
 	onLogout: () => void | Promise<void>
 	isLogoutLoading?: boolean
+	isSettingsVisible?: boolean
 }
 
 const styles = {
@@ -124,6 +125,7 @@ const ServiceMenu = ({
 	userName,
 	onLogout,
 	isLogoutLoading = false,
+	isSettingsVisible = false,
 }: ServiceMenuProps) => {
 	const navigate = useNavigate()
 	const location = useLocation()
@@ -254,20 +256,22 @@ const ServiceMenu = ({
 							</Flex>
 						</Flex>
 
-						<Box
-							as="button"
-							type="button"
-							onClick={() => handleNavigate(RoutePaths.SETTINGS)}
-							sx={styles.menuItem}
-						>
-							<Flex align="center" justify="space-between" w="full" gap={4}>
-								<Flex align="center" gap={4}>
-									<SettingsIcon sx={styles.menuIcon} />
-									<Text>{t('components.topBar.settings')}</Text>
+						{isSettingsVisible ? (
+							<Box
+								as="button"
+								type="button"
+								onClick={() => handleNavigate(RoutePaths.SETTINGS)}
+								sx={styles.menuItem}
+							>
+								<Flex align="center" justify="space-between" w="full" gap={4}>
+									<Flex align="center" gap={4}>
+										<SettingsIcon sx={styles.menuIcon} />
+										<Text>{t('components.topBar.settings')}</Text>
+									</Flex>
+									<ChevronDownIcon sx={styles.menuIcon} />
 								</Flex>
-								<ChevronDownIcon sx={styles.menuIcon} />
-							</Flex>
-						</Box>
+							</Box>
+						) : null}
 
 						<Divider my={5} />
 						<Box

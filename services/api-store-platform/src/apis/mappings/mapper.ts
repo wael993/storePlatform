@@ -2,6 +2,7 @@ import {
 	CustomerDocument,
 	PartnerDocument,
 	ProductAPI,
+	TenantSummary,
 } from '../../shared/types'
 import { DailyActionType } from '../../shared/globalEnums'
 import {
@@ -15,6 +16,9 @@ import {
 	ProductDailyAction,
 	Supplier,
 } from '../../shared/types/api'
+import { ITenant } from '../../models/Tenant'
+import { resolveTenantAccessiblePages } from '../../shared/constants/tenantAccessiblePages'
+import { getTenantPermissions } from '../../shared/Permissions'
 
 export const filterProductRelatedActions = (
 	actions: DailyAction[],
@@ -57,9 +61,7 @@ export const filterPartnerRelatedActions = (
 				action.partnerName === partner.name),
 	)
 
-export const mapProductAction = (
-	action: DailyAction,
-): ProductDailyAction => ({
+export const mapProductAction = (action: DailyAction): ProductDailyAction => ({
 	actionId: action.actionId,
 	entryType: action.entryType,
 	productId: action.productId,
@@ -236,5 +238,18 @@ export const mapDailyAction = (dailyAction: DailyAction) => {
 		singleUnitPrice: dailyAction.singleUnitPrice,
 		totalPrice: dailyAction.totalPrice,
 		note: dailyAction.note,
+	}
+}
+
+export const mapTenantSummary = (tenant: ITenant): TenantSummary => {
+	return {
+		tenantId: tenant.tenantId,
+		name: tenant.name,
+		domain: tenant.domain,
+		status: tenant.status,
+		accessiblePages: resolveTenantAccessiblePages(tenant),
+		createdAt: tenant.createdAt,
+		updatedAt: tenant.updatedAt,
+		permissions: getTenantPermissions(tenant),
 	}
 }

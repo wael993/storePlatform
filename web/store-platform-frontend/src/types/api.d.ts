@@ -277,6 +277,7 @@ interface LoginAPI {
 	firstName: string
 	lastName: string
 	role: UserRole
+	accessiblePages?: string[]
 }
 
 interface TenantUser {

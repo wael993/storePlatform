@@ -17,6 +17,7 @@ import { RoutePaths, routeLabelKeys } from '../shared/routes'
 import TopBar from './TopBar'
 import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
+import { useTenantRouteGuard } from '../shared/hooks/useTenantRouteGuard'
 import { useTranslation } from 'react-i18next'
 
 const navStyle = ({ isActive }: { isActive: boolean }) => ({
@@ -37,10 +38,11 @@ const SuperAdminLayout = () => {
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
 	const { user } = useUser()
+	useTenantRouteGuard(user?.accessiblePages)
 
 	const { isAddNewTenantEnabled, isTenantsListEnabled } = getEnabledActions()
 	const { isTenantAddNewTenantEnabled, isTenantTenantsListEnabled } =
-		getTenantActions()
+		getTenantActions(user?.accessiblePages)
 
 	const topBarItems = [
 		isAddNewTenantEnabled && isTenantAddNewTenantEnabled
