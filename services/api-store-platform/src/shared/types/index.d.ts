@@ -166,6 +166,7 @@ export type AddTenantRequestBody = {
 export type UpdateTenantRequestBody = {
 	tenantName?: string
 	status?: 'active' | 'inactive'
+	accessiblePages?: string[]
 }
 export type CreateProductResponse = {
 	_id: string
@@ -217,9 +218,11 @@ export type TenantSummary = {
 	name: string
 	domain: string
 	status: 'active' | 'inactive'
+	accessiblePages: string[]
 	createdAt: Date
 	updatedAt: Date
 	permissions: {
+		canChangeTenantSettings: boolean
 		canUpdate: boolean
 		canDelete: boolean
 		canToggleStatus: boolean

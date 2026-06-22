@@ -1,5 +1,10 @@
 import { config } from '../config'
 import { Breakpoints, EntryType, TargetType } from './globalEnums'
+import { RoutePaths } from './routes'
+import {
+	CONFIGURABLE_TENANT_PAGES,
+	TenantAccessiblePage,
+} from './tenantAccessiblePages'
 
 export function compareBreakpoint(breakpoint: Breakpoints | undefined) {
 	return {
@@ -58,24 +63,88 @@ export const getEnabledActions = () => {
 	}
 }
 
-export const getTenantActions = () => {
-	const enabledTenantActions = new Set(config.tenantActions)
+export const getGloballyEnabledTenantPages = (
+	enabledActions: ReturnType<typeof getEnabledActions>,
+): TenantAccessiblePage[] => {
+	const pageFlags: Record<TenantAccessiblePage, boolean> = {
+		USERS: enabledActions.isUsersEnabled,
+		PRODUCTS: enabledActions.isProductsEnabled,
+		DAILY: enabledActions.isDailyEnabled,
+		SUPPLIERS: enabledActions.isSuppliersEnabled,
+		CUSTOMERS: enabledActions.isCustomersEnabled,
+		PARTNERS: enabledActions.isPartnersEnabled,
+		ORDERS: enabledActions.isOrdersEnabled,
+		INVOICE: enabledActions.isInvoicesEnabled,
+		INVENTORY: enabledActions.isProductsEnabled,
+		REPORTS: enabledActions.isProductsEnabled,
+		BARCODE: enabledActions.isBarcodeEnabled,
+		SETTINGS: enabledActions.isSettingsEnabled,
+	}
+
+	return CONFIGURABLE_TENANT_PAGES.filter(page => pageFlags[page])
+}
+
+export const getTenantActions = (accessiblePages?: string[] | null) => {
+	const globallyEnabled = new Set(config.tenantActions)
+	const tenantPages = accessiblePages?.length
+		? new Set(accessiblePages.filter(page => globallyEnabled.has(page)))
+		: globallyEnabled
 
 	return {
-		isTenantAddNewTenantEnabled: enabledTenantActions.has('ADD_NEW_TENANT'),
-		isTenantTenantsListEnabled: enabledTenantActions.has('TENANTS_LIST'),
-		isTenantBarcodeEnabled: enabledTenantActions.has('BARCODE'),
-		isTenantProductsEnabled: enabledTenantActions.has('PRODUCTS'),
-		isTenantDailyEnabled: enabledTenantActions.has('DAILY'),
-		isTenantOrdersEnabled: enabledTenantActions.has('ORDERS'),
-		isTenantInvoicesEnabled: enabledTenantActions.has('INVOICE'),
-		isTenantUsersEnabled: enabledTenantActions.has('USERS'),
-		isTenantSettingsEnabled: enabledTenantActions.has('SETTINGS'),
-		isTenantCustomersEnabled: enabledTenantActions.has('CUSTOMERS'),
-		isTenantSuppliersEnabled: enabledTenantActions.has('SUPPLIERS'),
-		isTenantPartnersEnabled: enabledTenantActions.has('PARTNERS'),
-		isTenantChangePasswordEnabled: enabledTenantActions.has('CHANGE_PASSWORD'),
+		isTenantAddNewTenantEnabled: tenantPages.has('ADD_NEW_TENANT'),
+		isTenantTenantsListEnabled: tenantPages.has('TENANTS_LIST'),
+		isTenantBarcodeEnabled: tenantPages.has('BARCODE'),
+		isTenantProductsEnabled: tenantPages.has('PRODUCTS'),
+		isTenantDailyEnabled: tenantPages.has('DAILY'),
+		isTenantOrdersEnabled: tenantPages.has('ORDERS'),
+		isTenantInvoicesEnabled: tenantPages.has('INVOICE'),
+		isTenantUsersEnabled: tenantPages.has('USERS'),
+		isTenantSettingsEnabled: tenantPages.has('SETTINGS'),
+		isTenantCustomersEnabled: tenantPages.has('CUSTOMERS'),
+		isTenantSuppliersEnabled: tenantPages.has('SUPPLIERS'),
+		isTenantPartnersEnabled: tenantPages.has('PARTNERS'),
+		isTenantChangePasswordEnabled: tenantPages.has('CHANGE_PASSWORD'),
 	}
+}
+
+type TenantActionFlags = ReturnType<typeof getTenantActions>
+type GlobalActionFlags = ReturnType<typeof getEnabledActions>
+
+export const isTenantRouteAllowed = (
+	pathname: string,
+	globalActions: GlobalActionFlags,
+	tenantActions: TenantActionFlags,
+): boolean => {
+	if (
+		pathname === RoutePaths.ROOT ||
+		pathname === RoutePaths.STORE_PLATFORM ||
+		pathname.startsWith(RoutePaths.LOGIN)
+	) {
+		return true
+	}
+
+	const routeChecks: Array<[string, boolean]> = [
+		[RoutePaths.BARCODE, globalActions.isBarcodeEnabled && tenantActions.isTenantBarcodeEnabled],
+		[RoutePaths.PRODUCTS, globalActions.isProductsEnabled && tenantActions.isTenantProductsEnabled],
+		[RoutePaths.DAILY, globalActions.isDailyEnabled && tenantActions.isTenantDailyEnabled],
+		[RoutePaths.ORDERS, globalActions.isOrdersEnabled && tenantActions.isTenantOrdersEnabled],
+		[RoutePaths.INVOICES, globalActions.isInvoicesEnabled && tenantActions.isTenantInvoicesEnabled],
+		[RoutePaths.CUSTOMERS, globalActions.isCustomersEnabled && tenantActions.isTenantCustomersEnabled],
+		[RoutePaths.SUPPLIERS, globalActions.isSuppliersEnabled && tenantActions.isTenantSuppliersEnabled],
+		[RoutePaths.PARTNERS, globalActions.isPartnersEnabled && tenantActions.isTenantPartnersEnabled],
+		[RoutePaths.USERS, globalActions.isUsersEnabled && tenantActions.isTenantUsersEnabled],
+		[RoutePaths.SETTINGS, globalActions.isSettingsEnabled && tenantActions.isTenantSettingsEnabled],
+		[RoutePaths.ADD_NEW_TENANT, globalActions.isAddNewTenantEnabled && tenantActions.isTenantAddNewTenantEnabled],
+		[RoutePaths.TENANTS_LIST, globalActions.isTenantsListEnabled && tenantActions.isTenantTenantsListEnabled],
+	]
+
+	for (const [routePath, isAllowed] of routeChecks) {
+		if (pathname === routePath || pathname.startsWith(`${routePath}/`)) {
+			return isAllowed
+		}
+	}
+
+	return true
 }
 
 export const mapFee = (fee?: string): string | undefined => {

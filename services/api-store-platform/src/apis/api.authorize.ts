@@ -2,6 +2,11 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import ProductController from './api.controller'
 import { AuthenticationError } from '../middleware/errorHandler'
+import { ERROR_CODES } from '../shared/errorCodes'
+import {
+	getRequiredAccessiblePages,
+	tenantHasRequiredPageAccess,
+} from '../shared/constants/tenantPageAccess'
 
 export default class ActivityAuthorization {
 	public constructor(private productController: ProductController) {}
@@ -33,6 +38,29 @@ export default class ActivityAuthorization {
 			request.tenantId = user.tenantId
 			request.tenantName = user.tenantName
 			request.role = user.role
+
+			const requiredPages = getRequiredAccessiblePages(
+				request.path,
+				request.method,
+			)
+
+			if (requiredPages) {
+				const accessiblePages =
+					await this.productController.getTenantAccessiblePagesForRequest(
+						user.tenantId,
+					)
+
+				if (!tenantHasRequiredPageAccess(accessiblePages, requiredPages)) {
+					response.status(403).json({
+						message: 'This tenant does not have access to the requested page.',
+						errorCode: ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					})
+
+					return
+				}
+
+				request.accessiblePages = accessiblePages
+			}
 
 			next()
 		} catch (error) {

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useAuth } from './useAuth'
 import { config } from '../../config'
-import { logout, setAccessToken } from '../../store/user/reducer'
+import { logout, setTenantSession } from '../../store/user/reducer'
 import { RootState } from '../../store/store'
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000 // 14 minutes (token expires at 15)
@@ -59,7 +59,13 @@ export function useSilentRefresh() {
 
 				if (res.ok) {
 					const data = await res.json()
-					dispatch(setAccessToken(data.accessToken))
+					dispatch(
+						setTenantSession({
+							accessToken: data.accessToken,
+							accessiblePages: data.accessiblePages,
+							tenantName: data.tenantName,
+						}),
+					)
 				} else if (options?.forceLogoutOnFailure ?? !accessToken) {
 					dispatch(logout())
 				}

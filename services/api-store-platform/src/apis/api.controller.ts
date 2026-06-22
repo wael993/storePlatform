@@ -38,6 +38,7 @@ import {
 	mapPartners,
 	mapProductAction,
 	mapSuppliers,
+	mapTenantSummary,
 } from './mappings/mapper'
 import {
 	AddTenantRequestBody,
@@ -91,6 +92,12 @@ import {
 } from '../shared/types/api'
 import ProductsMapper from './mappings/ProductsMapper'
 import { getTenantPermissions } from '../shared/Permissions'
+import {
+	DEFAULT_TENANT_ACCESSIBLE_PAGES,
+	sanitizeAccessiblePages,
+	TenantAccessiblePage,
+} from '../shared/constants/tenantAccessiblePages'
+import { resolveAccessiblePagesForTenant } from '../shared/constants/tenantPageAccess'
 import {
 	validateEmail,
 	validatePasswordStrength,
@@ -558,6 +565,28 @@ export default class ProductController {
 		}
 	}
 
+	private resolveAccessiblePagesForAuth(tenant: ITenant): string[] {
+		return resolveAccessiblePagesForTenant(tenant)
+	}
+
+	public async getTenantAccessiblePagesForRequest(
+		tenantId: string,
+	): Promise<TenantAccessiblePage[]> {
+		const tenant = (await Tenant.findOne({
+			tenantId,
+			status: 'active',
+		}).lean()) as ITenant | null
+
+		if (!tenant) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Tenant is not active.',
+			)
+		}
+
+		return resolveAccessiblePagesForTenant(tenant)
+	}
+
 	private createTemporaryPassword(): string {
 		const randomPart = crypto.randomBytes(10).toString('base64url')
 		const digit = String(crypto.randomInt(0, 10))
@@ -782,6 +811,7 @@ export default class ProductController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
+			accessiblePages: this.resolveAccessiblePagesForAuth(tenant),
 		}
 	}
 
@@ -884,6 +914,7 @@ export default class ProductController {
 			tenantId: user.tenantId,
 			tenantName: tenant.name,
 			role: user.role,
+			accessiblePages: this.resolveAccessiblePagesForAuth(tenant),
 		}
 	}
 
@@ -2466,22 +2497,18 @@ export default class ProductController {
 			.sort({ createdAt: -1 })
 			.lean()) as ITenant[]
 
-		return tenants.map(tenant => ({
-			tenantId: tenant.tenantId,
-			name: tenant.name,
-			domain: tenant.domain,
-			status: tenant.status,
-			createdAt: tenant.createdAt,
-			updatedAt: tenant.updatedAt,
-			permissions: getTenantPermissions(tenant),
-		}))
+		return tenants.map(tenant => mapTenantSummary(tenant))
 	}
 
 	public async patchTenant(
 		tenantId: string,
-		requestBody: { tenantName?: string; status?: 'active' | 'inactive' },
+		requestBody: {
+			tenantName?: string
+			status?: 'active' | 'inactive'
+			accessiblePages?: string[]
+		},
 		requestContext: RequestContext,
-	): Promise<ITenant> {
+	): Promise<TenantSummary> {
 		ensureSuperAdmin(requestContext)
 
 		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
@@ -2494,15 +2521,48 @@ export default class ProductController {
 		}
 
 		const permissions = getTenantPermissions(tenant)
+		const updates: Record<string, unknown> = {}
 
-		if (!permissions.canUpdate) {
-			throw new BusinessLogicError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				permissions.reason || 'Tenant cannot be modified.',
-			)
+		if (
+			requestBody.tenantName !== undefined ||
+			requestBody.status !== undefined
+		) {
+			if (!permissions.canUpdate) {
+				throw new BusinessLogicError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					permissions.reason || 'Tenant cannot be modified.',
+				)
+			}
 		}
 
-		const updates: Record<string, unknown> = {}
+		if (requestBody.accessiblePages !== undefined) {
+			if (!permissions.canChangeTenantSettings) {
+				throw new BusinessLogicError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					permissions.reason || 'Tenant settings cannot be modified.',
+				)
+			}
+
+			const sanitizedPages = sanitizeAccessiblePages(
+				requestBody.accessiblePages,
+			)
+
+			if (sanitizedPages.length === 0) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'At least one accessible page is required.',
+				)
+			}
+
+			if (sanitizedPages.length !== requestBody.accessiblePages.length) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+					'One or more accessible pages are invalid.',
+				)
+			}
+
+			updates.accessiblePages = sanitizedPages
+		}
 
 		if (requestBody.tenantName?.trim()) {
 			const nextTenantName = requestBody.tenantName.trim()
@@ -2545,7 +2605,7 @@ export default class ProductController {
 			)
 		}
 
-		return updated
+		return mapTenantSummary(updated)
 	}
 
 	public async deleteTenant(
@@ -2669,6 +2729,7 @@ export default class ProductController {
 			name: tenantName.trim(),
 			domain: normalizedDomain,
 			status: 'active',
+			accessiblePages: [...DEFAULT_TENANT_ACCESSIBLE_PAGES],
 		})
 
 		const owner = await User.create({

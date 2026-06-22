@@ -3,12 +3,17 @@ import {
 	TENANT_STATUS,
 	TenantStatus,
 } from '../shared/constants/tenant.constants'
+import {
+	DEFAULT_TENANT_ACCESSIBLE_PAGES,
+	TenantAccessiblePage,
+} from '../shared/constants/tenantAccessiblePages'
 
 export interface ITenant {
 	tenantId: string
 	name: string
 	domain: string
 	status: TenantStatus
+	accessiblePages: TenantAccessiblePage[]
 	createdAt: Date
 	updatedAt: Date
 }
@@ -46,6 +51,10 @@ const tenantSchema = new Schema<ITenant>(
 			type: String,
 			enum: Object.values(TENANT_STATUS),
 			default: TENANT_STATUS.ACTIVE,
+		},
+		accessiblePages: {
+			type: [String],
+			default: () => [...DEFAULT_TENANT_ACCESSIBLE_PAGES],
 		},
 	},
 	{

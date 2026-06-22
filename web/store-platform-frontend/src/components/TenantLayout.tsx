@@ -7,6 +7,7 @@ import { logout } from '../store/user/reducer'
 import TopBar from './TopBar'
 import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
+import { useTenantRouteGuard } from '../shared/hooks/useTenantRouteGuard'
 
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths } from '../shared/routes'
@@ -18,6 +19,12 @@ const TenantLayout = () => {
 	const navigate = useNavigate()
 
 	const { isAdmin, isOwnerOrAdmin, user } = useUser()
+	useTenantRouteGuard(user?.accessiblePages)
+
+	const enabledActions = getEnabledActions()
+	const tenantActions = getTenantActions(user?.accessiblePages)
+	const isSettingsVisible =
+		enabledActions.isSettingsEnabled && tenantActions.isTenantSettingsEnabled
 
 	const {
 		isBarcodeEnabled,
@@ -26,11 +33,10 @@ const TenantLayout = () => {
 		isInvoicesEnabled,
 		isUsersEnabled,
 		isDailyEnabled,
-		// isChangePasswordEnabled,
 		isCustomersEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
-	} = getEnabledActions()
+	} = enabledActions
 	const {
 		isTenantBarcodeEnabled,
 		isTenantProductsEnabled,
@@ -38,11 +44,10 @@ const TenantLayout = () => {
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
-		// isTenantChangePasswordEnabled,
 		isTenantCustomersEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
-	} = getTenantActions()
+	} = tenantActions
 
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
@@ -98,6 +103,7 @@ const TenantLayout = () => {
 					userName={userName || user?.email || 'User'}
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
+					isSettingsVisible={isSettingsVisible}
 				/>
 				<Box
 					px={layout.contentPaddingX}

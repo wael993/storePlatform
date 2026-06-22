@@ -41,10 +41,13 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const { userRole } = useUser()
+	const { userRole, user } = useUser()
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()
+
+	const enabledActions = getEnabledActions()
+	const tenantActions = getTenantActions(user?.accessiblePages)
 
 	const {
 		isAddNewTenantEnabled,
@@ -59,7 +62,7 @@ const App = () => {
 		isCustomersEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
-	} = getEnabledActions()
+	} = enabledActions
 
 	const {
 		isTenantAddNewTenantEnabled,
@@ -74,7 +77,7 @@ const App = () => {
 		isTenantCustomersEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
-	} = getTenantActions()
+	} = tenantActions
 
 	return (
 		<Router>
