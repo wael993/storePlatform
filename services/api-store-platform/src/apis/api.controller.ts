@@ -524,7 +524,7 @@ export default class ProductController {
 
 	private generateAccessToken(
 		user: {
-			_id: any
+			userId: string
 			role: RequestContext['role']
 			tokenVersion: number
 			tenantId: string
@@ -533,7 +533,7 @@ export default class ProductController {
 	): string {
 		return jwt.sign(
 			{
-				userId: user._id.toString(),
+				userId: user.userId,
 				role: user.role,
 				tokenVersion: user.tokenVersion,
 				tenantId: user.tenantId,
@@ -722,7 +722,7 @@ export default class ProductController {
 		) as TokenPayload
 
 		const user = (await withTenantScope(
-			User.findOne({ _id: decoded.userId }),
+			User.findOne({ userId: decoded.userId }),
 			decoded.tenantId,
 		).lean()) as IUser | null
 
@@ -741,7 +741,7 @@ export default class ProductController {
 		}
 
 		request.user = {
-			userId: String(user._id),
+			userId: user.userId,
 			tenantId: user.tenantId,
 			tenantName: decoded.tenantName,
 			firstName: user.user.firstName,
@@ -840,7 +840,7 @@ export default class ProductController {
 		return {
 			accessToken,
 			refreshToken,
-			userId: user._id,
+			userId: user.userId,
 			tenantId: user.tenantId,
 			tenantName: tenant.name,
 			email: user.email,
@@ -2484,7 +2484,7 @@ export default class ProductController {
 		}
 
 		const user = (await withTenantScope(
-			User.findOne({ _id: userId }, { role: 1 }),
+			User.findOne({ userId }, { role: 1 }),
 			tenantContext.tenantId,
 		).lean()) as Pick<IUser, 'role'> | null
 

@@ -26,12 +26,12 @@ const matchesResourcePath = (
 
 export function useResources(overriddenPath?: string) {
 	const { pathname } = useLocation()
-	const { user } = useUser()
+	const { userId } = useUser()
 
 	const currentPath = overriddenPath ?? pathname
 
 	const { data: frontendResources = [] } = useGetUserFrontendResourcesQuery(
-		user?.userId ?? skipToken,
+		userId ?? skipToken,
 	)
 
 	const allowedActionsForPath = (pathInput: string = currentPath): string[] => {

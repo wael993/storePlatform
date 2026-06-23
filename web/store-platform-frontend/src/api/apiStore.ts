@@ -593,9 +593,10 @@ const getQuery = (
 			}),
 
 			transformResponse: (response: LoginAPI) => {
-				if (!response) {
-					throw new Error('No user returned from API')
+				if (!response?.userId) {
+					throw new Error('No userId returned from API')
 				}
+
 				return response
 			},
 		}),

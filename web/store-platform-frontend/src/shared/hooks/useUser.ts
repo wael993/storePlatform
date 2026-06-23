@@ -13,6 +13,7 @@ export function useUser() {
 	return {
 		userRole,
 		user,
+		userId: user?.userId ?? null,
 		isOwner,
 		isAdmin,
 		isUser,
