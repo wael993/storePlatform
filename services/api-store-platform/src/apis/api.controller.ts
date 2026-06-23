@@ -75,6 +75,19 @@ import {
 	PartnerRequestBody,
 	PartnerDocument,
 	CreatePartnerResponse,
+	InventoryDocument,
+	CategoryRequestBody,
+	CategoryDocument,
+	CategoriesResponse,
+	BrandRequestBody,
+	ShelfRequestBody,
+	WarehouseRequestBody,
+	BrandDocument,
+	ShelfDocument,
+	WarehouseDocument,
+	CreateBrandResponse,
+	CreateShelfResponse,
+	CreateWarehouseResponse,
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
@@ -89,8 +102,13 @@ import {
 	PartnersResponse,
 	SuppliersResponse,
 	UnitsResponse,
+	BrandsResponse,
+	ShelvesResponse,
+	WarehousesResponse,
 } from '../shared/types/api'
-import ProductsMapper from './mappings/ProductsMapper'
+import ProductsMapper, {
+	ProductRelationLookups,
+} from './mappings/ProductsMapper'
 import { getTenantPermissions } from '../shared/Permissions'
 import {
 	DEFAULT_TENANT_ACCESSIBLE_PAGES,
@@ -116,6 +134,10 @@ import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
 import { Partner } from '../models/Partner'
 import { DailyActionType, TargetType } from '../shared/globalEnums'
+import { Category } from '../models/Category'
+import { Brand } from '../models/Brand'
+import { Shelf } from '../models/Shelf'
+import { Warehouse } from '../models/Warehaus'
 
 type TokenPayload = {
 	userId: string
@@ -167,11 +189,8 @@ type DailyActionFilterValuesResponse = {
 
 type ProductFilterValueSource = {
 	supplierId?: string
-	supplierName?: string
 	brandId?: string
-	brandName?: string
 	categoryId?: string
-	categoryName?: string
 	status?: string
 }
 
@@ -226,52 +245,69 @@ export default class ProductController {
 		return requestContext.tenantId || 'global'
 	}
 
-	private async invalidateProductsCache(
+	private async getProductRelationLookups(
 		requestContext: RequestContext,
-		productId?: string,
-	): Promise<void> {
-		const tenantId = this.getTenantId(requestContext)
-		const listKeyDeleted = await redisCache.del(
-			redisCache.buildProductListKey(tenantId),
-		)
+	): Promise<ProductRelationLookups> {
+		const [
+			categoriesResponse,
+			suppliersResponse,
+			brandsResponse,
+			shelvesResponse,
+			warehousesResponse,
+		] = await Promise.all([
+			this.getCategories(requestContext),
+			this.getSuppliers(requestContext),
+			this.getBrands(requestContext),
+			this.getShelves(requestContext),
+			this.getWarehouses(requestContext),
+		])
 
-		if (listKeyDeleted) {
-			logger.debug('Product list cache invalidated')
-		}
-
-		if (productId) {
-			const detailKeyDeleted = await redisCache.del(
-				redisCache.buildProductDetailKey(tenantId, productId),
-			)
-
-			if (detailKeyDeleted) {
-				logger.debug(`Product ${productId} deleted from cache`)
-			}
-		}
-
-		const patternDeleted = await redisCache.delByPattern(
-			redisCache.buildEntityDetailPatternKey('products', tenantId),
-		)
-
-		if (patternDeleted > 0) {
-			logger.debug(
-				`Product cache pattern invalidated: deleted=${patternDeleted}`,
-			)
+		return {
+			categoryNameById: new Map(
+				categoriesResponse.data.map(category => [
+					category.categoryId,
+					category.name,
+				]),
+			),
+			supplierNameById: new Map(
+				suppliersResponse.data.map(supplier => [
+					supplier.supplierId,
+					supplier.name,
+				]),
+			),
+			brandNameById: new Map(
+				brandsResponse.data.map(brand => [brand.brandId, brand.name]),
+			),
+			shelfNameById: new Map(
+				shelvesResponse.data.map(shelf => [shelf.shelfId, shelf.name]),
+			),
+			warehouseNameById: new Map(
+				warehousesResponse.data.map(warehouse => [
+					warehouse.warehouseId,
+					warehouse.name,
+				]),
+			),
 		}
 	}
 
 	private async invalidateEntityCache(
-		entity: 'orders' | 'invoices' | 'inventory',
+		entity: 'orders' | 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
 		id?: string,
 	): Promise<void> {
 		const tenantId = this.getTenantId(requestContext)
+
 		const listKey =
 			entity === 'orders'
 				? redisCache.buildOrderListKey(tenantId)
 				: entity === 'invoices'
 					? redisCache.buildInvoiceListKey(tenantId)
-					: redisCache.buildInventoryListKey(tenantId)
+					: entity === 'inventory'
+						? redisCache.buildInventoryListKey(tenantId)
+						: entity === 'categories'
+							? redisCache.buildCategoryListKey(tenantId)
+							: redisCache.buildProductListKey(tenantId)
+
 		const listKeyDeleted = await redisCache.del(listKey)
 
 		if (listKeyDeleted) {
@@ -284,7 +320,10 @@ export default class ProductController {
 					? redisCache.buildOrderDetailKey(tenantId, id)
 					: entity === 'invoices'
 						? redisCache.buildInvoiceDetailKey(tenantId, id)
-						: redisCache.buildInventoryDetailKey(tenantId, id)
+						: entity === 'inventory'
+							? redisCache.buildInventoryDetailKey(tenantId, id)
+							: redisCache.buildProductDetailKey(tenantId, id)
+
 			const detailKeyDeleted = await redisCache.del(detailKey)
 
 			if (detailKeyDeleted) {
@@ -559,7 +598,6 @@ export default class ProductController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
-			// isInternal: user.user.isInternal,
 			createdAt: user.createdAt,
 			updatedAt: user.updatedAt,
 		}
@@ -1030,28 +1068,19 @@ export default class ProductController {
 
 		if (supplierRegexList.length > 0) {
 			productQueryClauses.push({
-				$or: [
-					{ supplierId: { $in: supplierRegexList } },
-					{ supplierName: { $in: supplierRegexList } },
-				],
+				supplierId: { $in: supplierRegexList },
 			})
 		}
 
 		if (brandRegexList.length > 0) {
 			productQueryClauses.push({
-				$or: [
-					{ brandId: { $in: brandRegexList } },
-					{ brandName: { $in: brandRegexList } },
-				],
+				brandId: { $in: brandRegexList },
 			})
 		}
 
 		if (categoryRegexList.length > 0) {
 			productQueryClauses.push({
-				$or: [
-					{ categoryId: { $in: categoryRegexList } },
-					{ categoryName: { $in: categoryRegexList } },
-				],
+				categoryId: { $in: categoryRegexList },
 			})
 		}
 
@@ -1063,13 +1092,26 @@ export default class ProductController {
 			tenantId,
 		).lean<ProductAPI[]>()
 
+		const inventory = await this.getInventory(requestContext)
+		const inventoryByProductId = new Map(
+			inventory.map(inventoryItem => [inventoryItem.productId, inventoryItem]),
+		)
+		const relationLookups = await this.getProductRelationLookups(requestContext)
+
 		const mappedProducts = products
-			?.map(product => this.productsMapper.mapProduct(product, requestContext))
+			?.map(product =>
+				this.productsMapper.mapProduct(
+					product,
+					inventoryByProductId.get(product.productId),
+					requestContext,
+					relationLookups,
+				),
+			)
 			.filter(Boolean) as ProductRequestBody[]
 
 		const filteredProductsByState =
 			stateFilterSet.size > 0
-				? mappedProducts.filter(product => stateFilterSet.has(product.state))
+				? mappedProducts.filter(product => stateFilterSet.has(product.status))
 				: mappedProducts
 
 		const totalCount = filteredProductsByState.length
@@ -1091,7 +1133,8 @@ export default class ProductController {
 				tenantId,
 				cacheKey,
 			})
-			// await redisCache.setJson(cacheKey, mappedProducts)
+
+			await redisCache.setJson(cacheKey, mappedProducts)
 		}
 
 		return {
@@ -1109,9 +1152,7 @@ export default class ProductController {
 
 		const products = await withTenantScope(
 			Product.find({})
-				.select(
-					'supplierId supplierName brandId brandName categoryId categoryName status',
-				)
+				.select('supplierId brandId categoryId status')
 				.lean<ProductFilterValueSource[]>(),
 			tenantId,
 		)
@@ -1125,22 +1166,14 @@ export default class ProductController {
 			if (canAccessSupplierFilter) {
 				this.addFilterOption(
 					supplierMap,
-					product.supplierId || product.supplierName,
-					product.supplierName || product.supplierId,
+					product.supplierId,
+					product.supplierId,
 				)
 			}
 
-			this.addFilterOption(
-				brandMap,
-				product.brandId || product.brandName,
-				product.brandName || product.brandId,
-			)
+			this.addFilterOption(brandMap, product.brandId, product.brandId)
 
-			this.addFilterOption(
-				categoryMap,
-				product.categoryId || product.categoryName,
-				product.categoryName || product.categoryId,
-			)
+			this.addFilterOption(categoryMap, product.categoryId, product.categoryId)
 
 			this.addFilterOption(stateMap, product.status, product.status)
 		}
@@ -1177,13 +1210,22 @@ export default class ProductController {
 		}
 
 		const dailyActions = await this.getDailyActions(requestContext)
+		const inventory = await this.getInventory(requestContext)
+		const inventoryItem = inventory.find(item => item.productId === productId)
+
+		const relationLookups = await this.getProductRelationLookups(requestContext)
 		const relatedActions = filterProductRelatedActions(
 			dailyActions.data,
 			product,
 		)
 
 		const mappedProduct: ProductRequestBody = {
-			...this.productsMapper.mapProduct(product, requestContext),
+			...this.productsMapper.mapProduct(
+				product,
+				inventoryItem,
+				requestContext,
+				relationLookups,
+			),
 			relatedActions: relatedActions.map(mapProductAction),
 		}
 
@@ -1197,107 +1239,101 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<CreateProductResponse | null> {
 		const tenantContext = getTenantContext(requestContext)
+
 		const {
+			name,
+			latinName,
 			barcode,
 			internalCode,
-			name,
-			price,
-			stock,
-			description,
 			productFactoryCode,
 			categoryId,
-			brandId,
-			images,
-			unit,
-			tax,
 			supplierId,
-			location,
-			attributes,
+			brandId,
+			taxRate,
+			unitId,
+			price,
 			status,
+			attributes,
+			images,
+			description,
+			quantity,
+			minQuantity,
 		} = requestBody
 
-		if (!name) {
+		if (!name?.trim() && !latinName?.trim()) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Product name is required',
+				'Product name or latin name is required',
 			)
 		}
 
-		if (!barcode) {
+		if (!price?.retailPrice && price?.retailPrice !== 0) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Product barcode is required',
+				'Product retail price is required',
 			)
 		}
 
-		if (
-			price.wholesale === undefined ||
-			price.wholesale === null ||
-			price.retailSale === undefined ||
-			price.retailSale === null
-		) {
+		if (quantity === undefined || quantity === null || quantity < 0) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Product price is required',
+				'Product quantity is required',
 			)
 		}
 
-		if (stock.quantity === undefined || stock.quantity === null) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Product stock is required',
-			)
-		}
+		const normalizedBarcode = barcode?.trim()
 
-		const existing = await withTenantScope(
-			Product.findOne({ $or: [{ name }, { barcode }] }),
-			tenantContext.tenantId,
-		).lean()
+		if (normalizedBarcode) {
+			const existing = await withTenantScope(
+				Product.findOne({ barcode: normalizedBarcode }),
+				tenantContext.tenantId,
+			).lean()
 
-		if (existing) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Product already exists in this tenant.',
-			)
+			if (existing) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Product barcode already exists in this tenant.',
+				)
+			}
 		}
 
 		const productId = uuidv4()
+
 		const productData: ProductDocument = {
-			tenantId: tenantContext.tenantId,
-			_id: productId,
 			productId,
-			internalCode,
-			productFactoryCode,
 			name,
-			barcode,
+			latinName,
+			barcode: normalizedBarcode === '' ? productId : normalizedBarcode,
+			internalCode: internalCode?.trim(),
+			productFactoryCode: productFactoryCode?.trim(),
 			categoryId,
-			brandId,
-			images,
-			unit,
-			price,
-			stock,
-			tax,
 			supplierId,
-			location,
-			attributes,
-			status: status ?? 'active',
-			createdBy: {
-				_id: requestContext.userId as string,
-				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-				role: requestContext.user?.role as TenantRole,
+			brandId,
+			taxRate:
+				taxRate !== undefined && taxRate !== null ? String(taxRate) : undefined,
+			unitId,
+			price: {
+				purchasePrice: price.purchasePrice,
+				retailPrice: price.retailPrice,
+				wholesalePrice: price.wholesalePrice,
+				semiWholesalePrice: price.semiWholesalePrice,
+				discount: price.discount,
+				currency: price.currency.trim(),
 			},
-			createdAt: new Date(),
-			description,
+			status: status ?? 'active',
+			attributes,
+			images,
+			description: description?.trim(),
 		}
 
-		logger.info('Saving product to database.', {
+		logger.info('Saving product to database....', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			productId: productData._id,
-			name,
+			productId: productData.productId,
+			name: productData.name,
 		})
 
-		const createProductResponse = await this.mongoDbClient.createDocument(
+		await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.PRODUCTS, data: productData },
 			Product,
 			requestContext,
@@ -1306,18 +1342,49 @@ export default class ProductController {
 		logger.info('Product created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			productId: productData._id,
-			name,
+			productId: productData.productId,
+			name: productData.name,
 		})
 
-		await this.invalidateProductsCache(requestContext, productData._id)
+		const inventoryData: InventoryDocument = {
+			inventoryId: uuidv4(),
+			productId: productData.productId,
+			quantity,
+			minQuantity,
+		}
 
-		return { _id: createProductResponse._id }
+		await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.INVENTORY, data: inventoryData },
+			Inventory,
+			requestContext,
+		)
+
+		logger.info('Inventory created for new product.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			productId: productData.productId,
+			inventoryId: inventoryData.inventoryId,
+			quantity,
+		})
+
+		await this.invalidateEntityCache(
+			'products',
+			requestContext,
+			productData.productId,
+		)
+
+		await this.invalidateEntityCache(
+			'inventory',
+			requestContext,
+			inventoryData.inventoryId,
+		)
+
+		return { _id: productData.productId }
 	}
 
 	public async patchProduct(
 		productId: string,
-		requestBody: Partial<Omit<ProductDocument, '_id'>>,
+		requestBody: ProductDocument,
 		requestContext: RequestContext,
 	) {
 		const normalizedRequestBody = this.normalizeProductPatchRequest(requestBody)
@@ -1342,12 +1409,6 @@ export default class ProductController {
 			)
 		}
 
-		allowedUpdates.updatedBy = {
-			_id: requestContext.userId as string,
-			displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-			updatedAt: new Date(),
-		}
-
 		const updateResponse = await this.mongoDbClient.updateDocument(
 			{
 				collectionName: COLLECTION_NAMES.PRODUCTS,
@@ -1358,7 +1419,7 @@ export default class ProductController {
 			allowedUpdates,
 		)
 
-		await this.invalidateProductsCache(requestContext, productId)
+		await this.invalidateEntityCache('products', requestContext, productId)
 
 		return updateResponse
 	}
@@ -1373,7 +1434,7 @@ export default class ProductController {
 			Product,
 		)
 
-		await this.invalidateProductsCache(requestContext, productId)
+		await this.invalidateEntityCache('products', requestContext, productId)
 
 		return deleteResponse
 	}
@@ -1604,10 +1665,13 @@ export default class ProductController {
 		return deleteResponse
 	}
 
-	public async getInventory(requestContext: RequestContext) {
+	public async getInventory(
+		requestContext: RequestContext,
+	): Promise<InventoryDocument[]> {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildInventoryListKey(tenantId)
-		const cachedInventory = await redisCache.getJson<any[]>(cacheKey)
+		const cachedInventory =
+			await redisCache.getJson<InventoryDocument[]>(cacheKey)
 
 		if (cachedInventory) {
 			return cachedInventory
@@ -1631,7 +1695,8 @@ export default class ProductController {
 	) {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildInventoryDetailKey(tenantId, inventoryId)
-		const cachedInventoryItem = await redisCache.getJson<any>(cacheKey)
+		const cachedInventoryItem =
+			await redisCache.getJson<InventoryDocument>(cacheKey)
 
 		if (cachedInventoryItem) {
 			return cachedInventoryItem
@@ -1652,6 +1717,123 @@ export default class ProductController {
 
 		return inventoryItem
 	}
+	public async postCategory(
+		requestBody: CategoryRequestBody,
+		requestContext: RequestContext,
+	) {
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!requestBody.name?.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Category name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Category.findOne({
+				name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
+			}),
+			tenantContext.tenantId,
+		).lean()
+
+		if (existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Category already exists in this tenant.',
+			)
+		}
+
+		const categoryData: CategoryDocument = {
+			categoryId: uuidv4(),
+			name: requestBody.name.trim(),
+			description: requestBody.description?.trim(),
+			parentCategoryId: requestBody.parentCategoryId,
+		}
+
+		logger.info('saving category to database.....', {
+			entity: EntityType.MONGODB,
+			categoryId: categoryData.categoryId,
+			name: categoryData.name,
+		})
+
+		await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.CATEGORIES, data: categoryData },
+			Category,
+			requestContext,
+		)
+
+		logger.info('category created successfully.....', {
+			entity: EntityType.MONGODB,
+			categoryId: categoryData.categoryId,
+			name: categoryData.name,
+		})
+
+		await this.invalidateEntityCache(
+			'categories',
+			requestContext,
+			categoryData.categoryId,
+		)
+
+		return { _id: categoryData.categoryId }
+	}
+
+	public async getCategories(
+		requestContext: RequestContext,
+	): Promise<CategoriesResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildCategoryListKey(tenantId)
+		const cachedCategories =
+			await redisCache.getJson<CategoriesResponse>(cacheKey)
+
+		if (cachedCategories) {
+			return cachedCategories
+		}
+
+		const categories = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.CATEGORIES,
+			model: Category,
+			sort: { name: 1 },
+		})
+
+		console.log(
+			'🚀 ~ ProductController ~ getCategories ~ categories:',
+			categories,
+		)
+
+		const data = categories.documents.map((category: CategoryDocument) => ({
+			categoryId: category.categoryId,
+			name: category.name,
+			description: category.description,
+			parentCategoryId: category.parentCategoryId,
+			createdAt: category.createdAt?.toISOString?.(),
+			updatedAt: category.updatedAt?.toISOString?.(),
+			createdBy: category.createdBy,
+			updatedBy: category.updatedBy,
+		}))
+
+		const response = {
+			data,
+			totalCount: data.length,
+		}
+
+		await redisCache.setJson(cacheKey, response)
+
+		return response
+	}
+
+	public async getCategory(
+		categoryId: string,
+		requestContext: RequestContext,
+	): Promise<CategoryDocument | null> {
+		return this.mongoDbClient.getDocumentByField<CategoryDocument>(
+			requestContext,
+			COLLECTION_NAMES.CATEGORIES,
+			Category,
+			{ fieldName: 'categoryId', fieldValue: categoryId },
+		)
+	}
 
 	public async postInventory(
 		requestBody: InventoryRequestBody,
@@ -1662,18 +1844,30 @@ export default class ProductController {
 			requestBody.productId,
 		)
 
-		const inventoryData = {
+		const inventoryData: InventoryDocument = {
 			inventoryId: uuidv4(),
 			productId: requestBody.productId,
-			onHand: requestBody.onHand,
-			reserved: requestBody.reserved ?? 0,
-			reorderLevel: requestBody.reorderLevel ?? 0,
+			warehouseId: requestBody.warehouseId,
+			shelfId: requestBody.shelfId,
+			quantity: requestBody.quantity,
 		}
+
+		logger.info('saving inventory to database.....', {
+			entity: EntityType.MONGODB,
+			inventoryId: inventoryData.inventoryId,
+			productId: inventoryData.productId,
+		})
+
 		const createInventoryResponse = await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.INVENTORY, data: inventoryData },
 			Inventory,
 			requestContext,
 		)
+
+		logger.info('inventory created successfully.....', {
+			entity: EntityType.MONGODB,
+			inventoryId: createInventoryResponse._id,
+		})
 
 		await this.invalidateEntityCache(
 			'inventory',
@@ -2087,12 +2281,6 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<CreateDailyActionResponse> {
 		const createdAt = new Date()
-		const createdBy = {
-			_id: requestContext.userId ?? '',
-			displayName:
-				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-			role: requestContext.user?.role,
-		}
 		const optionalString = (value?: string) => value?.trim() || undefined
 		const dailyActionData = {
 			actionId: uuidv4(),
@@ -2119,7 +2307,6 @@ export default class ProductController {
 			singleUnitPrice: optionalString(requestBody.singleUnitPrice),
 			totalPrice: optionalString(requestBody.totalPrice),
 			note: optionalString(requestBody.note),
-			createdBy,
 			createdAt,
 		}
 
@@ -2317,11 +2504,6 @@ export default class ProductController {
 				access: Boolean(permission?.access),
 				allowedActions: permission?.allowedActions || [],
 			}),
-		)
-
-		console.log(
-			'🚀 ~ ProductController ~ getUserFrontendResources ~ frontendResources:',
-			frontendResources,
 		)
 
 		return { frontendResources }
@@ -3109,24 +3291,15 @@ export default class ProductController {
 		}
 
 		const supplierData: SupplierDocument = {
-			tenantId: tenantContext.tenantId,
-			_id: uuidv4(),
 			supplierId: uuidv4(),
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
-			createdBy: {
-				_id: requestContext.userId as string,
-				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-				role: requestContext.user?.role as TenantRole,
-			},
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		}
+		} as SupplierDocument
 
 		logger.info('Saving supplier to database.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			supplierId: supplierData._id,
+			supplierId: supplierData.supplierId,
 			name,
 		})
 
@@ -3139,7 +3312,7 @@ export default class ProductController {
 		logger.info('Supplier created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			supplierId: supplierData._id,
+			supplierId: supplierData.supplierId,
 			name,
 		})
 
@@ -3253,25 +3426,10 @@ export default class ProductController {
 		}
 
 		const customerData: CustomerDocument = {
-			tenantId: tenantContext.tenantId,
-			_id: uuidv4(),
 			customerId: uuidv4(),
 			internalCode: internalCode?.trim() || undefined,
 			name,
-			createdBy: {
-				_id: requestContext.userId as string,
-				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-				role: requestContext.user?.role as TenantRole,
-			},
-			updatedBy: {
-				_id: requestContext.userId as string,
-				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-				role: requestContext.user?.role as TenantRole,
-				updatedAt: new Date(),
-			},
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		}
+		} as CustomerDocument
 
 		logger.info('Saving customer to database.', {
 			entity: EntityType.MONGODB,
@@ -3703,18 +3861,9 @@ export default class ProductController {
 		}
 
 		const unitData: UnitDocument = {
-			tenantId: tenantContext.tenantId,
-			_id: uuidv4(),
 			unitId: uuidv4(),
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
-			createdBy: {
-				_id: requestContext.userId as string,
-				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-				role: requestContext.user?.role as TenantRole,
-			},
-			createdAt: new Date(),
-			updatedAt: new Date(),
 		}
 
 		logger.info('Saving unit to database.', {
@@ -3733,7 +3882,7 @@ export default class ProductController {
 		logger.info('Unit created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			unitId: unitData._id,
+			unitId: unitData.unitId,
 			name,
 		})
 
@@ -3742,5 +3891,413 @@ export default class ProductController {
 		return {
 			_id: createUnitResponse._id,
 		}
+	}
+
+	public async getBrands(
+		requestContext: RequestContext,
+	): Promise<BrandsResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildBrandListKey(tenantId)
+		const cachedBrands = await redisCache.getJson<BrandsResponse>(cacheKey)
+
+		if (cachedBrands) {
+			return cachedBrands
+		}
+
+		const brands = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.BRANDS,
+			model: Brand,
+			sort: { name: 1 },
+		})
+
+		const data = brands.documents.map((brand: BrandDocument) => ({
+			brandId: String(brand._id),
+			name: brand.name,
+			description: brand.description,
+			createdAt: brand.createdAt?.toISOString?.(),
+			updatedAt: brand.updatedAt?.toISOString?.(),
+			createdBy: brand.createdBy as BrandsResponse['data'][number]['createdBy'],
+			updatedBy: brand.updatedBy
+				? {
+						...brand.updatedBy,
+						updatedAt: brand.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}))
+
+		const response: BrandsResponse = {
+			data,
+			totalCount: data.length,
+		}
+
+		await redisCache.setJson(cacheKey, response)
+
+		return response
+	}
+
+	public async getBrand(
+		brandId: string,
+		requestContext: RequestContext,
+	): Promise<BrandsResponse['data'][number] | null> {
+		const brand = await this.mongoDbClient.getDocumentByField<BrandDocument>(
+			requestContext,
+			COLLECTION_NAMES.BRANDS,
+			Brand,
+			{ fieldName: '_id', fieldValue: brandId },
+		)
+
+		if (!brand) {
+			return null
+		}
+
+		return {
+			brandId: String(brand._id),
+			name: brand.name,
+			description: brand.description,
+			createdAt: brand.createdAt?.toISOString?.(),
+			updatedAt: brand.updatedAt?.toISOString?.(),
+			createdBy: brand.createdBy as BrandsResponse['data'][number]['createdBy'],
+			updatedBy: brand.updatedBy
+				? {
+						...brand.updatedBy,
+						updatedAt: brand.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}
+	}
+
+	public async postBrand(
+		requestBody: BrandRequestBody,
+		requestContext: RequestContext,
+	): Promise<CreateBrandResponse | null> {
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!requestBody.name?.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Brand name is required',
+			)
+		}
+
+		const existing = await withTenantScope(
+			Brand.findOne({
+				name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
+			}),
+			tenantContext.tenantId,
+		).lean()
+
+		if (existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Brand already exists in this tenant.',
+			)
+		}
+
+		const brandData = {
+			name: requestBody.name.trim(),
+			description: requestBody.description?.trim(),
+		}
+
+		logger.info('Saving brand to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			name: brandData.name,
+		})
+
+		const createBrandResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.BRANDS, data: brandData },
+			Brand,
+			requestContext,
+		)
+
+		logger.info('Brand created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			brandId: createBrandResponse._id,
+			name: brandData.name,
+		})
+
+		await redisCache.del(redisCache.buildBrandListKey(tenantContext.tenantId))
+
+		return { _id: createBrandResponse._id }
+	}
+
+	public async getShelves(
+		requestContext: RequestContext,
+	): Promise<ShelvesResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildShelfListKey(tenantId)
+		const cachedShelves = await redisCache.getJson<ShelvesResponse>(cacheKey)
+
+		if (cachedShelves) {
+			return cachedShelves
+		}
+
+		const shelves = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.SHELVES,
+			model: Shelf,
+			sort: { name: 1 },
+		})
+
+		const data = shelves.documents.map((shelf: ShelfDocument) => ({
+			shelfId: shelf.shelfId,
+			name: shelf.name,
+			description: shelf.description,
+			createdAt: shelf.createdAt?.toISOString?.(),
+			updatedAt: shelf.updatedAt?.toISOString?.(),
+			createdBy:
+				shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
+			updatedBy: shelf.updatedBy
+				? {
+						...shelf.updatedBy,
+						updatedAt: shelf.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}))
+
+		const response: ShelvesResponse = {
+			data,
+			totalCount: data.length,
+		}
+
+		await redisCache.setJson(cacheKey, response)
+
+		return response
+	}
+
+	public async getShelf(
+		shelfId: string,
+		requestContext: RequestContext,
+	): Promise<ShelvesResponse['data'][number] | null> {
+		const shelf = await this.mongoDbClient.getDocumentByField<ShelfDocument>(
+			requestContext,
+			COLLECTION_NAMES.SHELVES,
+			Shelf,
+			{ fieldName: 'shelfId', fieldValue: shelfId },
+		)
+
+		if (!shelf) {
+			return null
+		}
+
+		return {
+			shelfId: shelf.shelfId,
+			name: shelf.name,
+			description: shelf.description,
+			createdAt: shelf.createdAt?.toISOString?.(),
+			updatedAt: shelf.updatedAt?.toISOString?.(),
+			createdBy:
+				shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
+			updatedBy: shelf.updatedBy
+				? {
+						...shelf.updatedBy,
+						updatedAt: shelf.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}
+	}
+
+	public async postShelf(
+		requestBody: ShelfRequestBody,
+		requestContext: RequestContext,
+	): Promise<CreateShelfResponse | null> {
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!requestBody.name?.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Shelf name is required',
+			)
+		}
+
+		const shelfId = requestBody.shelfId?.trim() || uuidv4()
+
+		const existing = await withTenantScope(
+			Shelf.findOne({ shelfId }),
+			tenantContext.tenantId,
+		).lean()
+
+		if (existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Shelf already exists in this tenant.',
+			)
+		}
+
+		const shelfData = {
+			shelfId,
+			name: requestBody.name.trim(),
+			description: requestBody.description?.trim(),
+		}
+
+		logger.info('Saving shelf to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			shelfId: shelfData.shelfId,
+			name: shelfData.name,
+		})
+
+		const createShelfResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.SHELVES, data: shelfData },
+			Shelf,
+			requestContext,
+		)
+
+		logger.info('Shelf created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			shelfId: shelfData.shelfId,
+			name: shelfData.name,
+		})
+
+		await redisCache.del(redisCache.buildShelfListKey(tenantContext.tenantId))
+
+		return { _id: createShelfResponse._id }
+	}
+
+	public async getWarehouses(
+		requestContext: RequestContext,
+	): Promise<WarehousesResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildWarehouseListKey(tenantId)
+		const cachedWarehouses =
+			await redisCache.getJson<WarehousesResponse>(cacheKey)
+
+		if (cachedWarehouses) {
+			return cachedWarehouses
+		}
+
+		const warehouses = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.WAREHOUSES,
+			model: Warehouse,
+			sort: { name: 1 },
+		})
+
+		const data = warehouses.documents.map((warehouse: WarehouseDocument) => ({
+			warehouseId: warehouse.warehouseId,
+			name: warehouse.name,
+			code: warehouse.code,
+			address: warehouse.address,
+			status: warehouse.status,
+			description: warehouse.description,
+			createdAt: warehouse.createdAt?.toISOString?.(),
+			updatedAt: warehouse.updatedAt?.toISOString?.(),
+			createdBy:
+				warehouse.createdBy as WarehousesResponse['data'][number]['createdBy'],
+			updatedBy: warehouse.updatedBy
+				? {
+						...warehouse.updatedBy,
+						updatedAt: warehouse.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}))
+
+		const response: WarehousesResponse = {
+			data,
+			totalCount: data.length,
+		}
+
+		await redisCache.setJson(cacheKey, response)
+
+		return response
+	}
+
+	public async getWarehouse(
+		warehouseId: string,
+		requestContext: RequestContext,
+	): Promise<WarehousesResponse['data'][number] | null> {
+		const warehouse =
+			await this.mongoDbClient.getDocumentByField<WarehouseDocument>(
+				requestContext,
+				COLLECTION_NAMES.WAREHOUSES,
+				Warehouse,
+				{ fieldName: 'warehouseId', fieldValue: warehouseId },
+			)
+
+		if (!warehouse) {
+			return null
+		}
+
+		return {
+			warehouseId: warehouse.warehouseId,
+			name: warehouse.name,
+			code: warehouse.code,
+			address: warehouse.address,
+			status: warehouse.status,
+			description: warehouse.description,
+			createdAt: warehouse.createdAt?.toISOString?.(),
+			updatedAt: warehouse.updatedAt?.toISOString?.(),
+			createdBy:
+				warehouse.createdBy as WarehousesResponse['data'][number]['createdBy'],
+			updatedBy: warehouse.updatedBy
+				? {
+						...warehouse.updatedBy,
+						updatedAt: warehouse.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}
+	}
+
+	public async postWarehouse(
+		requestBody: WarehouseRequestBody,
+		requestContext: RequestContext,
+	): Promise<CreateWarehouseResponse | null> {
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!requestBody.name?.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Warehouse name is required',
+			)
+		}
+
+		const warehouseId = requestBody.warehouseId?.trim() || uuidv4()
+
+		const existing = await withTenantScope(
+			Warehouse.findOne({ warehouseId }),
+			tenantContext.tenantId,
+		).lean()
+
+		if (existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Warehouse already exists in this tenant.',
+			)
+		}
+
+		const warehouseData = {
+			warehouseId,
+			name: requestBody.name.trim(),
+			code: requestBody.code?.trim(),
+		}
+
+		logger.info('Saving warehouse to database.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			warehouseId: warehouseData.warehouseId,
+			name: warehouseData.name,
+		})
+
+		const createWarehouseResponse = await this.mongoDbClient.createDocument(
+			{ collectionName: COLLECTION_NAMES.WAREHOUSES, data: warehouseData },
+			Warehouse,
+			requestContext,
+		)
+
+		logger.info('Warehouse created successfully.', {
+			entity: EntityType.MONGODB,
+			tenantId: tenantContext.tenantId,
+			warehouseId: warehouseData.warehouseId,
+			name: warehouseData.name,
+		})
+
+		await redisCache.del(
+			redisCache.buildWarehouseListKey(tenantContext.tenantId),
+		)
+
+		return { _id: createWarehouseResponse._id }
 	}
 }

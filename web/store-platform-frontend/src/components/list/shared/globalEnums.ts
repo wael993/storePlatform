@@ -36,6 +36,11 @@ export enum PartnerSortHeaderKey {
 	INTERNAL_CODE = 'internalCode',
 	CREATED_AT = 'createdAt',
 }
+export enum CategorySortHeaderKey {
+	NAME = 'name',
+	DESCRIPTION = 'description',
+	CREATED_AT = 'createdAt',
+}
 
 export enum DailyActionSortHeaderKey {
 	ENTRY_TYPE = 'entryType',

@@ -191,6 +191,9 @@ class RedisCache {
 	public buildProductListKey(tenantId: string): string {
 		return `cache:products:list:${tenantId}`
 	}
+	public buildCategoryListKey(tenantId: string): string {
+		return `cache:categories:list:${tenantId}`
+	}
 
 	public buildProductDetailKey(tenantId: string, productId: string): string {
 		return `cache:products:detail:${tenantId}:${productId}`
@@ -231,6 +234,18 @@ class RedisCache {
 		return `cache:units:list:${tenantId}`
 	}
 
+	public buildBrandListKey(tenantId: string): string {
+		return `cache:brands:list:${tenantId}`
+	}
+
+	public buildShelfListKey(tenantId: string): string {
+		return `cache:shelves:list:${tenantId}`
+	}
+
+	public buildWarehouseListKey(tenantId: string): string {
+		return `cache:warehouses:list:${tenantId}`
+	}
+
 	public buildInvoiceDetailKey(tenantId: string, invoiceId: string): string {
 		return `cache:invoices:detail:${tenantId}:${invoiceId}`
 	}
@@ -247,7 +262,7 @@ class RedisCache {
 	}
 
 	public buildEntityDetailPatternKey(
-		entity: 'products' | 'orders' | 'invoices' | 'inventory',
+		entity: 'products' | 'orders' | 'invoices' | 'inventory' | 'categories',
 		tenantId: string,
 	): string {
 		return `cache:${entity}:detail:${tenantId}:*`

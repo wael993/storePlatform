@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response } from 'express'
 import express from 'express'
 import { ERROR_CODES, ErrorCodes } from '../shared/errorCodes'
 import { HttpError, RequestError } from '../shared/types'
@@ -53,7 +53,7 @@ export const errorHandler = (
 	err: Error,
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	// next: NextFunction,
 ): void => {
 	console.error('Unhandled error:', err)
 

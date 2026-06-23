@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
 import { Brand } from '../models/Brand'
 import { Category } from '../models/Category'
@@ -198,6 +199,7 @@ async function seedMasterData() {
 		await Category.deleteMany({ tenantId })
 		const categoryDocs = CATEGORIES_DATA.map(category => ({
 			...category,
+			categoryId: uuidv4(),
 			tenantId,
 			createdBy: systemUser,
 		}))

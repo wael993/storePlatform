@@ -75,54 +75,36 @@ const UNITS: Array<'piece' | 'set' | 'kg' | 'meter' | 'mm'> = [
 
 function buildProducts(
 	brandIds: string[],
-	brandNames: string[],
 	categoryIds: string[],
-	categoryNames: string[],
 	supplierIds: string[],
-	supplierNames: string[],
 ) {
 	return PRODUCT_NAMES.map((name, index) => {
 		const idx = index + 1
 		const wholesale = 8 + idx * 1.4
-		const retailSale = Number((wholesale * 1.85).toFixed(2))
-		const semiWholesaleSales = Number((wholesale * 1.45).toFixed(2))
-		const buyCost = Number((wholesale * 1.15).toFixed(2))
+		const retailPrice = Number((wholesale * 1.85).toFixed(2))
+		const semiWholesalePrice = Number((wholesale * 1.45).toFixed(2))
+		const purchasePrice = Number((wholesale * 1.15).toFixed(2))
 
 		return {
-			_id: uuidv4(),
 			productFactoryCode: `FC-${idx.toString().padStart(3, '0')}`,
 			internalCode: `IC-${idx.toString().padStart(3, '0')}`,
-			productId: `PID-${idx.toString().padStart(3, '0')}`,
+			productId: uuidv4(),
 			name,
 			barcode: `900000000${idx.toString().padStart(4, '0')}`,
 			categoryId: categoryIds[index % categoryIds.length],
-			categoryName: categoryNames[index % categoryNames.length],
 			brandId: brandIds[index % brandIds.length],
-			brandName: brandNames[index % brandNames.length],
 			supplierId: supplierIds[index % supplierIds.length],
-			supplierName: supplierNames[index % supplierNames.length],
 			images: [],
 			price: {
-				wholesale: Number(wholesale.toFixed(2)),
-				retailSale,
-				semiWholesaleSales,
-				buyCost,
-				discount: Number((retailSale - 1.5).toFixed(2)),
+				wholesalePrice: Number(wholesale.toFixed(2)),
+				retailPrice,
+				semiWholesalePrice,
+				purchasePrice,
+				discount: Number((retailPrice - 1.5).toFixed(2)),
 				currency: 'EUR',
 			},
-			stock: {
-				quantity: 40 + idx * 3,
-				minQuantity: 8 + (idx % 6),
-			},
-			unit: UNITS[index % UNITS.length],
-			tax: {
-				type: 'VAT',
-				value: 19,
-			},
-			location: {
-				warehouse: `Warehouse ${((idx - 1) % 3) + 1}`,
-				shelf: `${String.fromCharCode(65 + ((idx - 1) % 5))}-${10 + idx}`,
-			},
+			unitId: UNITS[index % UNITS.length],
+			taxRate: '19',
 			attributes: {
 				color: ['Black', 'White', 'Gray', 'Blue'][index % 4],
 				weight: `${80 + idx * 5}g`,
@@ -168,52 +150,25 @@ async function createInitialProducts() {
 		}
 
 		const brandIds = brands.map(item => String(item._id))
-		const brandNames = brands.map(item => item.name)
-		const categoryIds = categories.map(item => String(item._id))
-		const categoryNames = categories.map(item => item.name)
-		const supplierIds = suppliers.map(item => String(item._id))
-		const supplierNames = suppliers.map(item => item.name)
-		const initialProducts = buildProducts(
-			brandIds,
-			brandNames,
-			categoryIds,
-			categoryNames,
-			supplierIds,
-			supplierNames,
+		const categoryIds = categories.map(item =>
+			String(item.categoryId ?? item._id),
 		)
+		const supplierIds = suppliers.map(item =>
+			String(item.supplierId ?? item._id),
+		)
+		const initialProducts = buildProducts(brandIds, categoryIds, supplierIds)
 
-		// Delete existing products (targeted by productId)
 		await Product.deleteMany({
 			tenantId: DEFAULT_TENANT_ID,
-			_id: { $in: initialProducts.map(p => p._id) },
+			productId: { $in: initialProducts.map(p => p.productId) },
 		} as any)
 
 		console.log('Deleted existing matching products')
 
 		const now = new Date()
 		const documents = initialProducts.map(productData => ({
-			_id: productData._id,
 			tenantId: DEFAULT_TENANT_ID,
-			productId: productData.productId,
-			internalCode: productData.internalCode,
-			productFactoryCode: productData.productFactoryCode,
-			name: productData.name,
-			barcode: productData.barcode,
-			categoryId: productData.categoryId,
-			categoryName: productData.categoryName,
-			brandId: productData.brandId,
-			brandName: productData.brandName,
-			images: productData.images,
-			price: productData.price,
-			stock: productData.stock,
-			unit: productData.unit,
-			tax: productData.tax,
-			supplierId: productData.supplierId,
-			supplierName: productData.supplierName,
-			location: productData.location,
-			attributes: productData.attributes,
-			status: productData.status,
-			description: productData.description,
+			...productData,
 			createdBy: {
 				_id: 'seed-script',
 				displayName: 'Seed Script',
@@ -226,25 +181,22 @@ async function createInitialProducts() {
 
 		const seededProducts = await Product.find({
 			tenantId: DEFAULT_TENANT_ID,
-			_id: { $in: initialProducts.map(p => p._id) },
+			productId: { $in: initialProducts.map(p => p.productId) },
 		})
 			.select({
 				name: 1,
-				_id: 1,
-				brandName: 1,
-				categoryName: 1,
-				supplierName: 1,
+				productId: 1,
 				brandId: 1,
 				categoryId: 1,
 				supplierId: 1,
 			})
-			.sort({ _id: 1 })
+			.sort({ name: 1 })
 			.lean()
 
 		console.log('Seeded products:')
 		for (const product of seededProducts) {
 			console.log(
-				`${product._id} | ${product.name} | brand=${product.brandName} | category=${product.categoryName} | supplier=${product.supplierName}`,
+				`${product.productId} | ${product.name} | brand=${product.brandId} | category=${product.categoryId} | supplier=${product.supplierId}`,
 			)
 		}
 

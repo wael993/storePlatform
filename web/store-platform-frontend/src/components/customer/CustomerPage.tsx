@@ -7,7 +7,7 @@ import {
 	Spinner,
 	Text,
 	useDisclosure,
-} from '@chakra-ui/icons'
+} from '@chakra-ui/react'
 import React, { useMemo, useState } from 'react'
 
 import { AddSquareIcon } from '../icons/AddSquare'

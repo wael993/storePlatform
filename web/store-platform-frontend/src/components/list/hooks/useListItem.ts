@@ -4,14 +4,9 @@ import { useState } from 'react'
 import { useEditProductMutation } from '../../../api/apiStore'
 
 interface PatchProductProgressState {
-	isStockQuantityInProgress: boolean
-	isStockMinQuantityInProgress: boolean
 	isBuyCostInProgress: boolean
 	isWholesalePriceInProgress: boolean
-	isSupplierFocusInProgress: boolean
 	isDiscountInProgress: boolean
-	isLocationShelfInProgress: boolean
-	isLocationWarehouseInProgress: boolean
 }
 
 export const useListItem = <T extends Product>(productData: T) => {
@@ -21,14 +16,9 @@ export const useListItem = <T extends Product>(productData: T) => {
 
 	const [patchProductProgressState, setPatchProductProgressState] =
 		useState<PatchProductProgressState>({
-			isStockQuantityInProgress: false,
-			isStockMinQuantityInProgress: false,
 			isBuyCostInProgress: false,
 			isWholesalePriceInProgress: false,
-			isSupplierFocusInProgress: false,
 			isDiscountInProgress: false,
-			isLocationShelfInProgress: false,
-			isLocationWarehouseInProgress: false,
 		})
 
 	const parseNumberInput = (value?: string): number => {
@@ -93,7 +83,7 @@ export const useListItem = <T extends Product>(productData: T) => {
 		await handleProductUpdate({
 			price: {
 				...productData.price,
-				buyCost: formattedBuyCost,
+				purchasePrice: formattedBuyCost,
 			},
 		})
 
@@ -124,7 +114,7 @@ export const useListItem = <T extends Product>(productData: T) => {
 		await handleProductUpdate({
 			price: {
 				...productData.price,
-				wholesale: formattedSellPrice,
+				retailPrice: formattedSellPrice,
 			},
 		})
 
@@ -165,142 +155,10 @@ export const useListItem = <T extends Product>(productData: T) => {
 		})
 	}
 
-	const handleEditStockQuantity = async (
-		stockQuantity?: string,
-	): Promise<void> => {
-		let formattedStockQuantity: number
-
-		try {
-			formattedStockQuantity = parseNumberInput(stockQuantity)
-		} catch {
-			showToastMessage({
-				status: 'error',
-				description: t('common.stockQuantity'),
-			})
-			return
-		}
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isStockQuantityInProgress: true,
-		})
-
-		await handleProductUpdate({
-			stock: {
-				...productData.stock,
-				quantity: formattedStockQuantity,
-			},
-		})
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isStockQuantityInProgress: false,
-		})
-	}
-
-	const handleEditStockMinQuantity = async (
-		stockMinQuantity?: string,
-	): Promise<void> => {
-		let formattedStockMinQuantity: number
-
-		try {
-			formattedStockMinQuantity = parseNumberInput(stockMinQuantity)
-		} catch {
-			showToastMessage({
-				status: 'error',
-				description: t('common.stockMinQuantity'),
-			})
-			return
-		}
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isStockMinQuantityInProgress: true,
-		})
-
-		await handleProductUpdate({
-			stock: {
-				...productData.stock,
-				minQuantity: formattedStockMinQuantity,
-			},
-		})
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isStockMinQuantityInProgress: false,
-		})
-	}
-
-	const handleEditLocationShelf = async (
-		locationShelf?: string,
-	): Promise<void> => {
-		const formattedLocationShelf = locationShelf?.trim() ?? ''
-
-		if (!formattedLocationShelf) {
-			showToastMessage({
-				status: 'error',
-				description: t('common.locationShelf'),
-			})
-			return
-		}
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isLocationShelfInProgress: true,
-		})
-
-		await handleProductUpdate({
-			location: {
-				...productData.location,
-				shelf: formattedLocationShelf,
-			},
-		})
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isLocationShelfInProgress: false,
-		})
-	}
-
-	const handleEditLocationWarehouse = async (
-		locationWarehouse?: string,
-	): Promise<void> => {
-		const formattedLocationWarehouse = locationWarehouse?.trim() ?? ''
-
-		if (!formattedLocationWarehouse) {
-			showToastMessage({
-				status: 'error',
-				description: t('common.locationWarehouse'),
-			})
-			return
-		}
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isLocationWarehouseInProgress: true,
-		})
-
-		await handleProductUpdate({
-			location: {
-				...productData.location,
-				warehouse: formattedLocationWarehouse,
-			},
-		})
-
-		setPatchProductProgressState({
-			...patchProductProgressState,
-			isLocationWarehouseInProgress: false,
-		})
-	}
-
 	return {
 		handleEditBuyCost,
 		handleEditSellPrice,
 		handleEditDiscount,
-		handleEditStockQuantity,
-		handleEditStockMinQuantity,
-		handleEditLocationShelf,
-		handleEditLocationWarehouse,
 		patchProductProgressState,
 	}
 }

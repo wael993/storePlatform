@@ -1,6 +1,7 @@
 export const BASE_ENDPOINT = '/api'
 export const COLLECTION_NAMES = {
 	PRODUCTS: 'products',
+	CATEGORIES: 'categories',
 	ORDERS: 'orders',
 	INVOICES: 'invoices',
 	USERS: 'users',
@@ -14,4 +15,7 @@ export const COLLECTION_NAMES = {
 	CURRENCIES: 'currencies',
 	UNITS: 'units',
 	PARTNERS: 'partners',
+	BRANDS: 'brands',
+	SHELVES: 'shelves',
+	WAREHOUSES: 'warehouses',
 } as const

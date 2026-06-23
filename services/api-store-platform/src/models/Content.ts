@@ -36,7 +36,7 @@ const UserSchema: Schema<IContent> = new mongoose.Schema(
 			default: false, // Default is false
 		},
 	},
-	{ timestamps: true }
+	{ timestamps: true },
 )
 
 const User = mongoose.model<IContent>('Content', UserSchema)

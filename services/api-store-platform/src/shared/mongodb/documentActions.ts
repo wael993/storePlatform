@@ -6,10 +6,78 @@ import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import logger, { EntityType } from '../logger/logger'
 import { SortOrder } from 'mongoose'
+import { COLLECTION_NAMES } from '../general'
 
 type Sort = Record<string, SortOrder>
 
 export type EntityModel = Model<any>
+
+const STRING_AUDIT_RESOURCES = new Set<TenantResource>([
+	COLLECTION_NAMES.ORDERS,
+	COLLECTION_NAMES.INVOICES,
+	COLLECTION_NAMES.REPORTS,
+	COLLECTION_NAMES.DAILY_ACTIONS,
+])
+
+const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
+	[COLLECTION_NAMES.PRODUCTS]: 'productId',
+	[COLLECTION_NAMES.CATEGORIES]: 'categoryId',
+	[COLLECTION_NAMES.ORDERS]: 'orderId',
+	[COLLECTION_NAMES.INVOICES]: 'invoiceId',
+	[COLLECTION_NAMES.INVENTORY]: 'inventoryId',
+	[COLLECTION_NAMES.REPORTS]: 'reportId',
+	[COLLECTION_NAMES.DAILY_ACTIONS]: 'actionId',
+	[COLLECTION_NAMES.SUPPLIERS]: 'supplierId',
+	[COLLECTION_NAMES.CUSTOMERS]: 'customerId',
+	[COLLECTION_NAMES.EXPENSES]: 'expenseId',
+	[COLLECTION_NAMES.CURRENCIES]: 'currencyId',
+	[COLLECTION_NAMES.UNITS]: 'unitId',
+	[COLLECTION_NAMES.PARTNERS]: 'partnerId',
+	[COLLECTION_NAMES.BRANDS]: '_id',
+	[COLLECTION_NAMES.SHELVES]: 'shelfId',
+	[COLLECTION_NAMES.WAREHOUSES]: 'warehouseId',
+	[COLLECTION_NAMES.USERS]: '_id',
+	[COLLECTION_NAMES.TENANTS]: '_id',
+}
+
+const getUserDisplayName = (requestContext: RequestContext) =>
+	`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim()
+
+const buildCreatedBy = (
+	requestContext: RequestContext,
+	resource: TenantResource,
+) => {
+	const userId = requestContext.userId ?? ''
+
+	if (STRING_AUDIT_RESOURCES.has(resource)) {
+		return userId
+	}
+
+	return {
+		_id: userId,
+		displayName: getUserDisplayName(requestContext),
+		role: requestContext.user?.role ?? requestContext.role,
+		createdAt: new Date(),
+	}
+}
+
+const buildUpdatedBy = (
+	requestContext: RequestContext,
+	resource: TenantResource,
+) => {
+	const userId = requestContext.userId ?? ''
+
+	if (STRING_AUDIT_RESOURCES.has(resource)) {
+		return userId
+	}
+
+	return {
+		_id: userId,
+		displayName: getUserDisplayName(requestContext),
+		role: requestContext.user?.role ?? requestContext.role,
+		updatedAt: new Date(),
+	}
+}
 
 export const getDocuments = async <T>(
 	requestContext: RequestContext,
@@ -68,8 +136,7 @@ export const createDocument = async (
 	const documentToCreate = {
 		...payload,
 		tenantId: tenantContext.tenantId,
-		createdBy: requestContext.userId,
-		updatedBy: requestContext.userId,
+		createdBy: buildCreatedBy(requestContext, resource),
 	}
 
 	logger.debug(
@@ -102,10 +169,20 @@ export const updateDocument = async (
 	await ensureTenantAccess(requestContext, resource, 'update')
 	const tenantContext = getTenantContext(requestContext)
 
+	const idField = RESOURCE_ID_FIELD[resource]
+	const updatePayload = { ...payload }
+
+	delete updatePayload.updatedBy
+
 	const updated = await withTenantScope(
 		model.findOneAndUpdate(
-			{ id: id },
-			{ $set: { ...payload, updatedBy: requestContext.userId } },
+			{ [idField]: id },
+			{
+				$set: {
+					...updatePayload,
+					updatedBy: buildUpdatedBy(requestContext, resource),
+				},
+			},
 			{ new: true, runValidators: true },
 		),
 		tenantContext.tenantId,
@@ -130,8 +207,10 @@ export const deleteDocument = async (
 	await ensureTenantAccess(requestContext, resource, 'delete')
 	const { tenantId } = getTenantContext(requestContext)
 
+	const idField = RESOURCE_ID_FIELD[resource]
+
 	const deleted = await withTenantScope(
-		model.findOneAndDelete({ _id: id }).lean(),
+		model.findOneAndDelete({ [idField]: id }).lean(),
 		tenantId,
 	)
 

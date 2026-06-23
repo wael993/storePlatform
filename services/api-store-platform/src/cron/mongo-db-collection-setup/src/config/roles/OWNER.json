@@ -56,6 +56,12 @@
 			"PATCH": { "accessLevel": "NONE", "fields": [] },
 			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
+		"/categories": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
 		"/partners": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "NONE", "fields": [] },
@@ -77,6 +83,24 @@
 		"/units": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/brands": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/shelves": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
+		"/warehouses": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "NONE", "fields": [] },
 			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		}
@@ -114,6 +138,10 @@
 		"/services/store_platform/daily": {
 			"access": true,
 			"allowedActions": ["seeDailyAction"]
+		},
+		"/services/store_platform/categories": {
+			"access": true,
+			"allowedActions": ["seeCategory"]
 		}
 	}
 }

@@ -52,7 +52,10 @@ import {
 	TENANT_PAGE_LABEL_KEYS,
 	TenantAccessiblePage,
 } from '../shared/tenantAccessiblePages'
-import { getEnabledActions, getGloballyEnabledTenantPages } from '../shared/utils'
+import {
+	getEnabledActions,
+	getGloballyEnabledTenantPages,
+} from '../shared/utils'
 
 import { ChangeIcon } from '../icons/Change'
 

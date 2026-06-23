@@ -9,6 +9,13 @@ const readOnlyResource = {
 	DELETE: { accessLevel: 'NONE', fields: [] },
 } as const
 
+const createOnlyResource = {
+	GET: { accessLevel: 'GLOBAL', fields: ['*'] },
+	POST: { accessLevel: 'GLOBAL', fields: ['*'] },
+	PATCH: { accessLevel: 'NONE', fields: [] },
+	DELETE: { accessLevel: 'NONE', fields: [] },
+} as const
+
 const fullAccessResource = {
 	GET: { accessLevel: 'GLOBAL', fields: ['*'] },
 	POST: { accessLevel: 'GLOBAL', fields: ['*'] },
@@ -25,6 +32,7 @@ const noAccessResource = {
 
 const OWNER_READ_ONLY_RESOURCES = [
 	'/products',
+	'/categories',
 	'/orders',
 	'/invoices',
 	'/inventory',
@@ -36,7 +44,12 @@ const OWNER_READ_ONLY_RESOURCES = [
 	'/expenses',
 	'/currencies',
 	'/units',
+	'/brands',
+	'/shelves',
+	'/warehouses',
 ] as const
+
+const OWNER_CREATE_RESOURCES = ['/brands', '/shelves', '/warehouses'] as const
 
 const ADMIN_FULL_ACCESS_RESOURCES = [
 	'/users',
@@ -50,7 +63,12 @@ const ROLE_MOCKS = [
 		resources: {
 			'/users': noAccessResource,
 			...Object.fromEntries(
-				OWNER_READ_ONLY_RESOURCES.map(resource => [resource, readOnlyResource]),
+				OWNER_READ_ONLY_RESOURCES.map(resource => [
+					resource,
+					(OWNER_CREATE_RESOURCES as readonly string[]).includes(resource)
+						? createOnlyResource
+						: readOnlyResource,
+				]),
 			),
 		},
 		include: [],
@@ -86,6 +104,10 @@ const ROLE_MOCKS = [
 			'/services/store_platform/daily': {
 				access: true,
 				allowedActions: ['seeDailyAction'],
+			},
+			'/services/store_platform/categories': {
+				access: true,
+				allowedActions: ['seeCategory'],
 			},
 		},
 	},
@@ -173,6 +195,15 @@ const ROLE_MOCKS = [
 					'addDailyAction',
 					'editDailyAction',
 					'deleteDailyAction',
+				],
+			},
+			'/services/store_platform/categories': {
+				access: true,
+				allowedActions: [
+					'seeCategory',
+					'canAddCategory',
+					'canEditCategory',
+					'canDeleteCategory',
 				],
 			},
 		},

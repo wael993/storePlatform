@@ -84,6 +84,7 @@ export enum Breakpoints {
 
 export enum TargetType {
 	CUSTOMER = 'CUSTOMER', //عميل
+	CATEGORY = 'CATEGORY', //فئة
 	SUPPLIER = 'SUPPLIER', //مورد
 	PARTNER = 'PARTNER', //شريك
 	PRODUCT = 'PRODUCT', //منتج
@@ -114,6 +115,7 @@ export enum BreadCrumbItem {
 	ALL_PRODUCTS = 'allProducts',
 	CUSTOMERS = 'customers',
 	CUSTOMER = 'customer',
+	CATEGORIES = 'categories',
 	SUPPLIERS = 'suppliers',
 	SUPPLIER = 'supplier',
 	PARTNERS = 'partners',
@@ -178,4 +180,8 @@ export enum AddQuickStateEnum {
 	PARTNER = 'partner',
 	UNIT = 'unit',
 	EXPENSE = 'expense',
+	CATEGORY = 'category',
+	BRAND = 'brand',
+	SHELF = 'shelf',
+	WAREHOUSE = 'warehouse',
 }

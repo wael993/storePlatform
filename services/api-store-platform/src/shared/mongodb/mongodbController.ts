@@ -4,15 +4,12 @@ import {
 	Db,
 	Document,
 	MongoClient,
-	FindOptions,
-	Filter,
 } from 'mongodb'
 import { SortOrder } from 'mongoose'
 
 import logger, { EntityType } from '../logger/logger'
 import { config } from '../../config/config'
-import { DocumentError } from '../errors'
-import { ERROR_CODES } from '../errorCodes'
+
 import { COLLECTION_NAMES } from '../general'
 import { RequestContext } from '../types'
 import { TenantResource } from '../tenant'
@@ -49,7 +46,7 @@ interface AuthContext {
 	username: string
 	password: string
 }
-interface GetDocumentsContext<T> {
+interface GetDocumentsContext {
 	requestContext: RequestContext
 	collectionName: TenantResource
 	model: EntityModel
@@ -171,7 +168,7 @@ export default class MongodbController {
 					next = await this.changeWatcher.tryNext()
 				}
 			}
-		} catch (error) {
+		} catch {
 			logger.error('ChangeStream lost connection', {
 				entity: EntityType.MONGODB,
 			})
@@ -218,7 +215,7 @@ export default class MongodbController {
 		collectionName,
 		model,
 		sort,
-	}: GetDocumentsContext<T>): Promise<DocumentReadOperationResponse> {
+	}: GetDocumentsContext): Promise<DocumentReadOperationResponse> {
 		const startTime = new Date().getTime()
 
 		try {

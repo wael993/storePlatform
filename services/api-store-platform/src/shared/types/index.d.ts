@@ -62,40 +62,29 @@ type UnitRequestBody = {
 	name: string
 	internalCode?: string
 }
+
 export type ProductRequestBody = {
-	productId?: string
+	productId: string
 	internalCode?: string
 	productFactoryCode?: string
 	name: string
+	latinName?: string
 	barcode: string
-	state: string
 	categoryId?: string
 	categoryName?: string
 	brandId?: string
-	brandName?: string
-	images?: string[]
-	price: {
-		wholesale: number
-		retailSale: number
-		semiWholesaleSales: number
-		buyCost: number
-		discount?: number
-		currency: string
-	}
-	stock: {
-		quantity: number
-		minQuantity?: number
-	}
-	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
-	tax?: {
-		type: string
-		value: number
-	}
 	supplierId?: string
 	supplierName?: string
-	location?: {
-		warehouse?: string
-		shelf?: string
+	images?: string[]
+	unitId?: string
+	taxRate?: string
+	price: {
+		purchasePrice?: number
+		retailPrice: number
+		wholesalePrice?: number
+		semiWholesalePrice?: number
+		discount?: number
+		currency: string
 	}
 	attributes?: {
 		color?: string
@@ -107,10 +96,14 @@ export type ProductRequestBody = {
 		flavor?: string
 		expiryDate?: string
 	}
-	status?: 'active' | 'inactive' | 'discontinued'
+	status: 'active' | 'inactive' | 'discontinued'
 	description?: string
+	quantity?: number
+	minQuantity?: number
+	inventory?: InventoryDocument
 	relatedActions?: ProductDailyAction[]
 }
+
 export type OrderRequestBody = {
 	orderNumber: string
 	status?: 'draft' | 'open' | 'paid' | 'cancelled'
@@ -129,11 +122,32 @@ export type InvoiceRequestBody = {
 	amount: number
 	issuedAt: Date
 }
+
+export type CategoryRequestBody = {
+	categoryId: string
+	name: string
+	description?: string
+	parentCategoryId?: string
+}
+export type BrandRequestBody = {
+	name: string
+	description?: string
+}
+export type ShelfRequestBody = {
+	shelfId: string
+	name: string
+	description?: string
+}
+export type WarehouseRequestBody = {
+	warehouseId: string
+	name: string
+	code?: string
+}
 export type InventoryRequestBody = {
 	productId: string
-	onHand: number
-	reserved?: number
-	reorderLevel?: number
+	warehouseId?: string
+	shelfId?: string
+	quantity?: number
 }
 export type ReportRequestBody = {
 	name: string
@@ -188,6 +202,32 @@ export type CreateCurrencyResponse = {
 }
 export type CreateUnitResponse = {
 	_id: string
+}
+export type CreateCategoryResponse = {
+	_id: string
+}
+export type CreateBrandResponse = {
+	_id: string
+}
+export type CreateShelfResponse = {
+	_id: string
+}
+export type CreateWarehouseResponse = {
+	_id: string
+}
+export type CategoryAPI = {
+	categoryId: string
+	name: string
+	description?: string
+	parentCategoryId?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+}
+export type CategoriesResponse = {
+	data: CategoryAPI[]
+	totalCount: number
 }
 export type InviteTenantUserResponse = {
 	_id: string
@@ -266,15 +306,9 @@ interface ExpenseDocument {
 }
 
 interface UnitDocument {
-	tenantId: string
-	_id?: string
 	unitId: string
 	name: string
 	internalCode?: string
-	createdBy: UserAPIFormat
-	updatedBy?: UserAPIFormat & { updatedAt: Date }
-	createdAt: Date
-	updatedAt: Date
 }
 
 interface PartnerDocument {
@@ -299,39 +333,89 @@ interface SupplierDocument {
 	createdAt: Date
 	updatedAt: Date
 }
-interface ProductDocument {
+
+interface BrandDocument {
 	tenantId: string
 	_id?: string
+	name: string
+	description?: string
+	createdBy?: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt?: Date
+	updatedAt?: Date
+}
+
+interface ShelfDocument {
+	tenantId: string
+	_id?: string
+	shelfId: string
+	name: string
+	description?: string
+	createdBy?: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt?: Date
+	updatedAt?: Date
+}
+
+interface WarehouseDocument {
+	tenantId: string
+	_id?: string
+	warehouseId: string
+	name: string
+	code?: string
+	address?: string
+	status?: 'active' | 'inactive'
+	description?: string
+	createdBy?: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt?: Date
+	updatedAt?: Date
+}
+
+export interface InventoryDocument {
+	inventoryId: string
+	productId: string
+	warehouseId?: string
+	shelfId?: string
+	quantity?: number
+	minQuantity?: number // low stock alert
+	maxQuantity?: number // overstock alert
+	reservedQuantity?: number // reserved for pending orders
+	availableQuantity?: number // quantity - reserved
+	lastCountDate?: Date
+}
+interface CategoryDocument {
+	categoryId: string
+	name: string
+	description?: string
+	parentCategoryId?: string
+	createdBy?: UserAPIFormat
+	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	createdAt?: Date
+	updatedAt?: Date
+}
+interface ProductDocument {
+	productId: string
 	internalCode?: string
-	productId?: string
 	productFactoryCode?: string
 	name: string
-	barcode: string
+	latinName?: string
 	categoryId?: string
+	supplierId?: string
 	brandId?: string
-	images?: string[]
+	barcode?: string
+	taxRate?: string
+	unitId?: string
 	price: {
-		wholesale: number
-		retailSale: number
-		semiWholesaleSales: number
-		buyCost: number
+		purchasePrice?: number
+		retailPrice: number
+		wholesalePrice?: number
+		semiWholesalePrice?: number
 		discount?: number
 		currency: string
 	}
-	stock: {
-		quantity: number
-		minQuantity?: number
-	}
-	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
-	tax?: {
-		type: string
-		value: number
-	}
-	supplierId?: string
-	location?: {
-		warehouse?: string
-		shelf?: string
-	}
+	status: 'active' | 'inactive' | 'discontinued'
+	description?: string
 	attributes?: {
 		color?: string
 		size?: string
@@ -342,11 +426,7 @@ interface ProductDocument {
 		flavor?: string
 		expiryDate?: string
 	}
-	status?: 'active' | 'inactive' | 'discontinued'
-	description?: string
-	createdBy: UserAPIFormat
-	updatedBy?: UserAPIFormat & { updatedAt: Date }
-	createdAt: Date
+	images?: string[]
 }
 interface UserAPIFormat {
 	_id: string
@@ -358,31 +438,29 @@ interface UserAPIFormat {
 
 type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
 interface ProductAPI {
-	_id?: string
-	productFactoryCode?: string
+	tenantId: string
+	// _id: string
+	productId: string
 	internalCode?: string
+	productFactoryCode?: string
 	name: string
-	barcode: string
-	supplierId?: string
-	supplierName?: string
+	latinName?: string
 	categoryId?: string
-	categoryName?: string
+	supplierId?: string
 	brandId?: string
-	brandName?: string
-	images?: string[]
+	barcode?: string
+	taxRate?: string
+	unitId?: string
 	price: {
-		wholesale: number
-		retailSale: number
-		semiWholesaleSales: number
-		buyCost: number
+		purchasePrice?: number
+		retailPrice: number
+		wholesalePrice?: number
+		semiWholesalePrice?: number
 		discount?: number
 		currency: string
 	}
-	stock: { quantity: number; minQuantity?: number }
-	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
-	tax?: { type: string; value: number }
-
-	location?: { warehouse?: string; shelf?: string }
+	status: 'active' | 'inactive' | 'discontinued'
+	description?: string
 	attributes?: {
 		color?: string
 		size?: string
@@ -393,15 +471,28 @@ interface ProductAPI {
 		flavor?: string
 		expiryDate?: string
 	}
-	status?: ProductAPIStatus
-	description?: string
+	images?: string[]
+	createdBy: {
+		_id: string
+		displayName: string
+		role?: TenantRole
+		createdAt: Date
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		role?: TenantRole
+		updatedAt: Date
+	}
+	createdAt: Date
+	updatedAt: Date
+	relatedActions?: ProductDailyAction[]
 }
 
 export type ProductAPIEnriched = Omit<
 	ProductAPI,
 	'categoryId' | 'brandId' | 'supplierId'
 > & {
-	category?: { _id: string; name: string }
 	brand?: { _id: string; name: string }
-	supplier?: { _id: string; name: string }
+	supplier?: { supplierId: string; name: string }
 }

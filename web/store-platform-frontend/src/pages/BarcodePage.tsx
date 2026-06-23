@@ -22,7 +22,7 @@ const BarcodePage = () => {
 	const addToCart = (p: Product) => {
 		setCart(prev => {
 			const existing = prev.find(item => item.productId === p.productId)
-			const maxStock = p.stock?.quantity ?? 0
+			const maxStock = p.price?.purchasePrice ?? 0
 
 			if (existing) {
 				if (existing.cartQuantity >= maxStock) {

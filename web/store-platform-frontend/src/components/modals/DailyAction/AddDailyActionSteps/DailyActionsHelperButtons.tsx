@@ -4,12 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { AsCheckmarkCircleIcon } from '../../../../icons/CheckmarkCircle'
 import { hoverFocusActiveButtonStyles } from '../../../../theme/styles'
 import {
+	useCreateBrandMutation,
+	useCreateCategoryMutation,
 	useCreateCurrencyMutation,
 	useCreateCustomerMutation,
 	useCreateExpenseMutation,
 	useCreatePartnerMutation,
+	useCreateShelfMutation,
 	useCreateSupplierMutation,
 	useCreateUnitMutation,
+	useCreateWarehouseMutation,
 	usePostProductMutation,
 } from '../../../../api/apiStore'
 import { useUser } from '../../../../shared/hooks/useUser'
@@ -69,6 +73,12 @@ const DailyActionsHelperButtons = () => {
 	const [createUnit, { isLoading: isUnitLoading }] = useCreateUnitMutation()
 	const [createPartner, { isLoading: isPartnerLoading }] =
 		useCreatePartnerMutation()
+	const [createCategory, { isLoading: isCategoryLoading }] =
+		useCreateCategoryMutation()
+	const [createBrand, { isLoading: isBrandLoading }] = useCreateBrandMutation()
+	const [createShelf, { isLoading: isShelfLoading }] = useCreateShelfMutation()
+	const [createWarehouse, { isLoading: isWarehouseLoading }] =
+		useCreateWarehouseMutation()
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
 		setFormData(prev => ({
@@ -105,7 +115,11 @@ const DailyActionsHelperButtons = () => {
 		isExpenseLoading ||
 		isCurrencyLoading ||
 		isUnitLoading ||
-		isPartnerLoading
+		isPartnerLoading ||
+		isCategoryLoading ||
+		isBrandLoading ||
+		isShelfLoading ||
+		isWarehouseLoading
 
 	const actions: Record<AddQuickModalType, (data: FormData) => Promise<void>> =
 		{
@@ -123,20 +137,17 @@ const DailyActionsHelperButtons = () => {
 							name: value,
 							internalCode: (code.trim() || value).toUpperCase(),
 							barcode: generateRandomBarcode(),
-							unit: 'kg',
+							unitId: 'kg',
 							supplierId: '',
-							state: '',
-							stock: {
-								quantity: 0,
-								minQuantity: undefined,
-							},
+							status: 'active',
+							quantity: 0,
 							price: {
-								wholesale: 0,
-								retailSale: 0,
-								semiWholesaleSales: 0,
-								buyCost: 0,
+								purchasePrice: 0,
+								retailPrice: 0,
+								wholesalePrice: 0,
+								semiWholesalePrice: 0,
 								discount: undefined,
-								currency: 'EUR',
+								currency: 'SYP',
 							},
 						}).unwrap(),
 					t('components.daily.errors.addProductFailed'),
@@ -221,6 +232,49 @@ const DailyActionsHelperButtons = () => {
 							internalCode: (code.trim() || value).toUpperCase(),
 						}).unwrap(),
 					t('components.daily.errors.addPartnerFailed'),
+				)
+			},
+			category: async ({ value }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() => createCategory({ name: value.trim() }).unwrap(),
+					t('components.quickAdd.errors.addCategoryFailed'),
+				)
+			},
+
+			brand: async ({ value }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() => createBrand({ name: value.trim() }).unwrap(),
+					t('components.quickAdd.errors.addBrandFailed'),
+				)
+			},
+
+			shelf: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createShelf({
+							name: value.trim(),
+							shelfId: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					t('components.quickAdd.errors.addShelfFailed'),
+				)
+			},
+
+			warehouse: async ({ value, code }) => {
+				if (!value.trim()) return
+
+				await executeAction(
+					() =>
+						createWarehouse({
+							name: value.trim(),
+							warehouseId: (code.trim() || value).toUpperCase(),
+						}).unwrap(),
+					t('components.quickAdd.errors.addWarehouseFailed'),
 				)
 			},
 		}

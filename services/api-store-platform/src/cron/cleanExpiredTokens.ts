@@ -11,7 +11,9 @@ export function startTokenCleanupCron(): void {
 			})
 
 			if (result.deletedCount > 0) {
-				logger.info(`Cron: cleaned ${result.deletedCount} expired refresh tokens`)
+				logger.info(
+					`Cron: cleaned ${result.deletedCount} expired refresh tokens`,
+				)
 			}
 		} catch (error) {
 			logger.error('Cron: failed to clean expired refresh tokens', error)

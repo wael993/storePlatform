@@ -15,6 +15,8 @@ import {
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
+import { slice } from 'lodash'
+import { withNoValueFallback } from '../../../shared/utils'
 
 interface ProductTableItemProps {
 	product: Product
@@ -35,14 +37,10 @@ const ProductTableItem = memo(
 			handleEditBuyCost,
 			handleEditSellPrice,
 			handleEditDiscount,
-			handleEditStockQuantity,
-			handleEditStockMinQuantity,
-			handleEditLocationShelf,
-			handleEditLocationWarehouse,
 			patchProductProgressState,
 		} = useListItem(productData)
 
-		const productState = PRODUCT_STATE_CONFIG[productData.state]
+		const productState = PRODUCT_STATE_CONFIG[productData.status]
 
 		const showCheckbox = true
 		const isReadyForExecution = false
@@ -51,20 +49,14 @@ const ProductTableItem = memo(
 		const { isOwnerOrAdmin } = useUser()
 		const {
 			seeSupplier,
-			canEditStockQuantity,
-			canEditMinStockQuantity,
 			canEditWholesalePrice,
 			canEditDiscount,
-			canEditLocationShelf,
-			canEditLocationWarehouse,
 			canEditBuyCost,
 			seeStockQuantity,
 			seeMinStockQuantity,
 			seeWholesalePrice,
 			seeDiscount,
 			seeBuyCost,
-			seeLocationShelf,
-			seeLocationWarehouse,
 		} = useAllowedActions()
 
 		const styles = {
@@ -178,7 +170,7 @@ const ProductTableItem = memo(
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={{ ...styles.text, fontWeight: 500 }}>
-								{productData.barcode}
+								{slice(productData.barcode, 0, 10)}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -188,9 +180,7 @@ const ProductTableItem = memo(
 				<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{productData.brandName ?? productData.brandId ?? '-'}
-							</Text>
+							<Text sx={styles.text}>{productData.brandId ?? '-'}</Text>
 						</Skeleton>
 					</Flex>
 				</Td>
@@ -207,7 +197,7 @@ const ProductTableItem = memo(
 					>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>
-								{productData.categoryName ?? productData.categoryId ?? '-'}
+								{withNoValueFallback(productData.categoryName)}
 							</Text>
 						</Skeleton>
 					</Flex>
@@ -219,7 +209,7 @@ const ProductTableItem = memo(
 						<Flex sx={{ ...styles.cellContentWrapper }}>
 							<Skeleton isLoaded={!isLoading}>
 								<Text sx={styles.text}>
-									{productData.supplierName ?? productData.supplierId ?? ''}
+									{withNoValueFallback(productData.supplierName)}
 								</Text>
 							</Skeleton>
 						</Flex>
@@ -230,68 +220,27 @@ const ProductTableItem = memo(
 
 				{seeStockQuantity && (
 					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
+						<Flex sx={styles.cellContentWrapper}>
 							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={productData.stock?.quantity?.toLocaleString() ?? ''}
-									minimumDecimals={0}
-									maximumDecimals={0}
-									isNumberField={true}
-									ariaLabel={t('common.stockQuantity')}
-									onEdit={handleEditStockQuantity}
-									isEditable={canEditStockQuantity}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={
-										patchProductProgressState.isStockQuantityInProgress
-									}
-								/>
+								<Text sx={styles.text}>
+									{withNoValueFallback(
+										productData.inventory?.quantity?.toLocaleString(),
+									)}
+								</Text>
 							</Skeleton>
 						</Flex>
 					</Td>
 				)}
 
-				{/* Stock Min Quantity */}
 				{seeMinStockQuantity && (
 					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
+						<Flex sx={styles.cellContentWrapper}>
 							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={productData.stock?.minQuantity?.toLocaleString() ?? ''}
-									minimumDecimals={0}
-									maximumDecimals={0}
-									isNumberField={true}
-									ariaLabel={t('common.stockMinQuantity')}
-									onEdit={handleEditStockMinQuantity}
-									isEditable={canEditMinStockQuantity}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={
-										patchProductProgressState.isStockMinQuantityInProgress
-									}
-								/>
+								<Text sx={styles.text}>
+									{withNoValueFallback(
+										productData.inventory?.minQuantity?.toLocaleString(),
+									)}
+								</Text>
 							</Skeleton>
 						</Flex>
 					</Td>
@@ -307,7 +256,9 @@ const ProductTableItem = memo(
 						>
 							<Skeleton isLoaded={!isLoading}>
 								<EditableCellField
-									value={productData.price.buyCost?.toLocaleString() ?? ''}
+									value={
+										productData.price.purchasePrice?.toLocaleString() ?? ''
+									}
 									isNumberField={false}
 									ariaLabel={t('common.buyCost')}
 									placeholder={t('common.addBuyCost')}
@@ -338,7 +289,7 @@ const ProductTableItem = memo(
 						>
 							<Skeleton isLoaded={!isLoading}>
 								<EditableCellField
-									value={productData.price.wholesale?.toLocaleString() ?? ''}
+									value={productData.price.retailPrice?.toLocaleString() ?? ''}
 									isNumberField={true}
 									ariaLabel={t('common.sellPrice')}
 									onEdit={handleEditSellPrice}
@@ -394,72 +345,25 @@ const ProductTableItem = memo(
 					</Td>
 				)}
 
-				{/* Location Shelf (editable) */}
-				{seeLocationShelf && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-								justifyContent: 'flex-start',
-								paddingRight: '1.5rem',
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={productData.location?.shelf ?? ''}
-									minimumDecimals={0}
-									isNumberField={false}
-									ariaLabel={t('common.locationShelf')}
-									onEdit={handleEditLocationShelf}
-									isEditable={canEditLocationShelf}
-									customStyles={cellFieldStyles}
-									fontColor={'#1E1E1E'}
-									isLoading={
-										patchProductProgressState.isLocationShelfInProgress
-									}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-				{/* Location Warehouse (editable) */}
-				{seeLocationWarehouse && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-								justifyContent: 'flex-start',
-								paddingRight: '1.5rem',
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={productData.location?.warehouse ?? ''}
-									minimumDecimals={0}
-									isNumberField={false}
-									ariaLabel={t('common.locationWarehouse')}
-									onEdit={handleEditLocationWarehouse}
-									isEditable={canEditLocationWarehouse}
-									customStyles={cellFieldStyles}
-									fontColor={'#1E1E1E'}
-									isLoading={
-										patchProductProgressState.isLocationWarehouseInProgress
-									}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
-				<Td sx={styles.tableRow}>
+				{/* <Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{productData.attributes?.color}</Text>
+							<Text sx={styles.text}>
+								{withNoValueFallback(productData.inventory?.shelfId)}
+								shelf
+							</Text>
 						</Skeleton>
 					</Flex>
-				</Td>
+				</Td> */}
+
+				{/* Warehouse */}
+				{/* <Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text sx={styles.text}>warehouseId</Text>
+						</Skeleton>
+					</Flex>
+				</Td> */}
 				<Td sx={styles.tableRow}>
 					<Flex
 						sx={{
