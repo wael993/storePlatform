@@ -29,8 +29,6 @@ app.use(
 	}),
 )
 
-app.use(errorHandler)
-
 connectDB()
 if (config.redis.enabled) {
 	redisCache.connect().catch(() => undefined)
@@ -50,6 +48,8 @@ cacheMetricsInterval.unref()
 startTokenCleanupCron()
 
 storeRoutes.setRoutes(app)
+
+app.use(errorHandler)
 
 const gracefulShutdown = async () => {
 	logger.info('Shutting down server...')

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'
+import { NextFunction, Request, Response } from 'express'
 import express from 'express'
 import { ERROR_CODES, ErrorCodes } from '../shared/errorCodes'
 import { HttpError, RequestError } from '../shared/types'
@@ -53,11 +53,16 @@ export const errorHandler = (
 	err: Error,
 	req: Request,
 	res: Response,
-	// next: NextFunction,
+	next: NextFunction,
 ): void => {
 	console.error('Unhandled error:', err)
 
-	// You can customize these error codes and messages depending on your needs
+	if (res.headersSent) {
+		next(err)
+
+		return
+	}
+
 	res.status(500).json({
 		success: false,
 		message: 'Something went wrong. Please try again later.',

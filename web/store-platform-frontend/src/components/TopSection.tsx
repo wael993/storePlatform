@@ -234,21 +234,6 @@ const TopSection = ({
 	const { t } = useTranslation()
 	const entry = customer ?? supplier ?? partner ?? product
 
-	if (!entry) return null
-
-	const entryTargetId =
-		customer?.customerId ??
-		supplier?.supplierId ??
-		partner?.partnerId ??
-		product?.productId ??
-		''
-
-	const breadCrumbItems = generateBreadcrumbs({
-		targetType,
-		id: entryTargetId,
-		name: entry.name,
-	})
-
 	const budgetOverviewArgs = customer?.customerId
 		? ({
 				entityType: 'customer',
@@ -294,6 +279,21 @@ const TopSection = ({
 				: undefined,
 		[isProductTarget, t],
 	)
+
+	if (!entry) return null
+
+	const entryTargetId =
+		customer?.customerId ??
+		supplier?.supplierId ??
+		partner?.partnerId ??
+		product?.productId ??
+		''
+
+	const breadCrumbItems = generateBreadcrumbs({
+		targetType,
+		id: entryTargetId,
+		name: entry.name,
+	})
 
 	const editableFieldProps = {
 		ariaLabelName: t('common.supplierFocus'),
