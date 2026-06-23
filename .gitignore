@@ -106,4 +106,5 @@ styled-system-studio
 
 # Next.js
 .next
-web/store-platform-frontend/src/shared/icons
+# web/store-platform-frontend/src/shared/icons
+after add icons
