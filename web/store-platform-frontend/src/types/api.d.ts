@@ -29,6 +29,13 @@ type CreateProductAPIResponse = CreateAPIResponse
 type CreateSupplierAPIResponse = CreateAPIResponse
 type CreatePartnerAPIResponse = CreateAPIResponse
 type CreateCustomerAPIResponse = CreateAPIResponse
+type CreateCategoryAPIResponse = CreateAPIResponse
+type CreateBrandAPIResponse = CreateAPIResponse
+type CreateShelfAPIResponse = CreateAPIResponse
+type CreateWarehouseAPIResponse = CreateAPIResponse
+type BrandsAPIResponse = APIResponse<Brand>
+type ShelvesAPIResponse = APIResponse<Shelf>
+type WarehousesAPIResponse = APIResponse<Warehouse>
 type CreateExpenseAPIResponse = CreateAPIResponse
 type CreateCurrencyAPIResponse = CreateAPIResponse
 type CreateUnitAPIResponse = CreateAPIResponse
@@ -38,6 +45,7 @@ type ProductsAPIResponse = APIResponse<Product>
 type SuppliersAPIResponse = APIResponse<Supplier>
 type PartnersAPIResponse = APIResponse<Partner>
 type CustomersAPIResponse = APIResponse<Customer>
+type CategoriesAPIResponse = APIResponse<Category>
 type ExpensesAPIResponse = APIResponse<Expense>
 type CurrenciesAPIResponse = APIResponse<Currency>
 type UnitsAPIResponse = APIResponse<Unit>
@@ -167,6 +175,82 @@ interface Customer {
 	relatedActions?: DailyAction[]
 }
 
+interface Category {
+	categoryId: string
+	name: string
+	description?: string
+	parentCategoryId?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Brand {
+	brandId: string
+	name: string
+	description?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Shelf {
+	shelfId: string
+	name: string
+	description?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Warehouse {
+	warehouseId: string
+	name: string
+	code?: string
+	address?: string
+	status?: 'active' | 'inactive'
+	description?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
 interface Currency {
 	currencyId: string
 	name: string
@@ -206,42 +290,26 @@ interface Unit {
 interface Product {
 	productId: string
 	name: string
+	latinName?: string
+	barcode?: string
 	internalCode?: string
 	productFactoryCode?: string
-	state: string
 	categoryId?: string
 	categoryName?: string
-	category?: { _id: string; name: string }
-	brandId?: string
-	brandName?: string
-	brand?: { _id: string; name: string }
-	barcode: string
-	stock: {
-		quantity: number
-		minQuantity?: number
-	}
-	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
-	tax?: {
-		type: string
-		value: number
-	}
 	supplierId?: string
 	supplierName?: string
-	supplier?: { _id: string; name: string }
+	brandId?: string
+	taxRate?: string
+	unitId?: string
 	price: {
-		wholesale: number
-		retailSale: number
-		semiWholesaleSales: number
-		buyCost: number
+		purchasePrice?: number
+		retailPrice: number
+		wholesalePrice?: number
+		semiWholesalePrice?: number
 		discount?: number
 		currency: string
 	}
-	location?: {
-		warehouse?: string
-		shelf?: string
-	}
-	status?: 'active' | 'inactive' | 'discontinued'
-	description?: string
+	status: 'active' | 'inactive' | 'discontinued'
 	attributes?: {
 		color?: string
 		size?: string
@@ -253,19 +321,26 @@ interface Product {
 		expiryDate?: string
 	}
 	images?: string[]
-	createdAt?: string
-	updatedAt?: string
-	createdBy?: {
-		_id: string
-		displayName: string
-		createdAt: string
+	description?: string
+	inventory?: {
+		inventoryId: string
+		productId: string
+		warehouseId?: string
+		shelfId?: string
+		quantity?: number
+		minQuantity?: number
+		maxQuantity?: number
+		reservedQuantity?: number
+		availableQuantity?: number
+		lastCountDate?: string
 	}
-	updatedBy?: {
-		_id: string
-		displayName: string
-		updatedAt: string
-	}
+
 	relatedActions?: DailyAction[]
+}
+
+type CreateProductInput = Omit<Product, 'productId'> & {
+	quantity: number
+	minQuantity?: number
 }
 
 interface LoginAPI {

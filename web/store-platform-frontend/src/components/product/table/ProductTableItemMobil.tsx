@@ -100,7 +100,7 @@ const ProductTableMobil = ({
 		seeLocationShelf,
 		seeLocationWarehouse,
 	} = useAllowedActions()
-	const productState = PRODUCT_STATE_CONFIG[product.state]
+	const productState = PRODUCT_STATE_CONFIG[product.status]
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
 		event.stopPropagation()
@@ -171,7 +171,7 @@ const ProductTableMobil = ({
 							<Text sx={styles.titleText}>{t('common.brand')}</Text>
 							<Skeleton isLoaded={!isLoading}>
 								<Text sx={styles.valueText}>
-									{withNoValueFallback(product.brandName ?? product.brandId)}
+									{withNoValueFallback(product.brandId)}
 								</Text>
 							</Skeleton>
 						</GridItem>
@@ -180,9 +180,7 @@ const ProductTableMobil = ({
 							<Text sx={styles.titleText}>{t('common.category')}</Text>
 							<Skeleton isLoaded={!isLoading}>
 								<Text sx={styles.valueText}>
-									{withNoValueFallback(
-										product.categoryName ?? product.categoryId,
-									)}
+									{withNoValueFallback(product.categoryName)}
 								</Text>
 							</Skeleton>
 						</GridItem>
@@ -192,9 +190,7 @@ const ProductTableMobil = ({
 								<Text sx={styles.titleText}>{t('common.supplierName')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{withNoValueFallback(
-											product.supplierName ?? product.supplierId,
-										)}
+										{withNoValueFallback(product.supplierName)}
 									</Text>
 								</Skeleton>
 							</GridItem>
@@ -206,7 +202,7 @@ const ProductTableMobil = ({
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
 										{withNoValueFallback(
-											formatNumber(product.stock?.quantity, {
+											formatNumber(product.inventory?.quantity, {
 												minimumDecimals: 0,
 												maximumDecimals: 0,
 											}),
@@ -224,7 +220,7 @@ const ProductTableMobil = ({
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
 										{withNoValueFallback(
-											formatNumber(product.stock?.minQuantity, {
+											formatNumber(product.inventory?.minQuantity, {
 												minimumDecimals: 0,
 												maximumDecimals: 0,
 											}),
@@ -239,7 +235,9 @@ const ProductTableMobil = ({
 								<Text sx={styles.titleText}>{t('common.buyCost')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{withNoValueFallback(formatNumber(product.price?.buyCost))}
+										{withNoValueFallback(
+											formatNumber(product.price?.purchasePrice),
+										)}
 									</Text>
 								</Skeleton>
 							</GridItem>
@@ -251,7 +249,7 @@ const ProductTableMobil = ({
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
 										{withNoValueFallback(
-											formatNumber(product.price?.wholesale),
+											formatNumber(product.price?.retailPrice),
 										)}
 									</Text>
 								</Skeleton>
@@ -268,13 +266,13 @@ const ProductTableMobil = ({
 								</Skeleton>
 							</GridItem>
 						)}
-
+						{/* 
 						{seeLocationShelf && (
 							<GridItem sx={styles.listItemGridItem}>
 								<Text sx={styles.titleText}>{t('common.locationShelf')}</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.location?.shelf)}
+										{withNoValueFallback(product.attributes?.color)}
 									</Text>
 								</Skeleton>
 							</GridItem>
@@ -287,11 +285,11 @@ const ProductTableMobil = ({
 								</Text>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.location?.warehouse)}
+										{withNoValueFallback(product.attributes?.color)}
 									</Text>
 								</Skeleton>
 							</GridItem>
-						)}
+						)} */}
 
 						<GridItem sx={styles.listItemGridItem}>
 							<Text sx={styles.titleText}>{t('common.color')}</Text>

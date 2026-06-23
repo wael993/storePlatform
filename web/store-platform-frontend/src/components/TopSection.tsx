@@ -27,7 +27,7 @@ import EditableField from './modals/EditableField'
 import { AsTargetIcon } from './icons/Target'
 import { cellFieldStyles } from '../shared/styles'
 import { AsClockIcon } from './icons/Clock'
-import { formatDateFromAndDateTo } from '../shared/dateUtils'
+// import { formatDateFromAndDateTo } from '../shared/dateUtils'
 import { TicketStatus } from './common/TicketStatus'
 import { BudgetOverview } from './common/BudgetOverview'
 import { useGetBudgetOverviewQuery } from '../api/apiStore'
@@ -381,7 +381,11 @@ const TopSection = ({
 								variant="baseStyle"
 								sx={{ ...styles.itemText, textAlign: 'left' }}
 							>
-								{formatDateFromAndDateTo(entry?.createdAt, entry?.updatedAt)}
+								2022-12-12
+								{/* {formatDateFromAndDateTo(
+									entry?.attributes?.expiryDate?.toString(),
+									entry?.attributes?.expiryDate?.toString(),
+								)} */}
 							</Text>
 						</Flex>
 					</GridItem>

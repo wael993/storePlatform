@@ -21,6 +21,13 @@ export type TagType =
 	| 'supplier'
 	| 'customers'
 	| 'customer'
+	| 'categories'
+	| 'brands'
+	| 'brand'
+	| 'shelves'
+	| 'shelf'
+	| 'warehouses'
+	| 'warehouse'
 	| 'partners'
 	| 'partner'
 	| 'budget-overview'
@@ -40,6 +47,13 @@ const tagTypes: TagType[] = [
 	'supplier',
 	'customers',
 	'customer',
+	'categories',
+	'brands',
+	'brand',
+	'shelves',
+	'shelf',
+	'warehouses',
+	'warehouse',
 	'partners',
 	'partner',
 	'budget-overview',

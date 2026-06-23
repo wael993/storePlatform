@@ -33,15 +33,22 @@ const attachTenantFilter = function <ResultType, DocType>(
 	const filter = this.getFilter() as Record<string, unknown>
 	const tenantIdFromFilter =
 		typeof filter?.tenantId === 'string' ? filter.tenantId : undefined
-	const tenantId = tenantIdFromContext || tenantIdFromFilter
 
-	if (!tenantId) {
+	if (!tenantIdFromContext && !tenantIdFromFilter) {
 		throw new Error('Tenant-scoped query is missing tenant context.')
 	}
 
-	if (!tenantIdFromFilter) {
-		this.where({ tenantId })
+	if (
+		tenantIdFromContext &&
+		tenantIdFromFilter &&
+		tenantIdFromContext !== tenantIdFromFilter
+	) {
+		throw new Error('Tenant filter does not match tenant context.')
 	}
+
+	const tenantId = tenantIdFromContext || tenantIdFromFilter
+
+	this.where({ tenantId })
 
 	next()
 }
@@ -55,6 +62,24 @@ export const tenantScopedSchema = <T extends mongoose.Document>(
 			required: [true, 'tenantId is required'],
 			index: true,
 			trim: true,
+		},
+		createdBy: {
+			type: new Schema(
+				{
+					_id: { type: String, required: true },
+					displayName: { type: String, required: true },
+					role: { type: String },
+					createdAt: { type: Date, required: true },
+				},
+				{ _id: false },
+			),
+			required: true,
+		},
+		updatedBy: {
+			_id: { type: String },
+			displayName: { type: String },
+			role: { type: String },
+			updatedAt: { type: Date },
 		},
 	} as any)
 

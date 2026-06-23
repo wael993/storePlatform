@@ -252,6 +252,117 @@ const getQuery = (
 			providesTags: ['customers'],
 		}),
 
+		getCategories: builder.query<Category[], void>({
+			query: () => ({
+				url: 'categories',
+				method: 'GET',
+			}),
+			transformResponse: (response: CategoriesAPIResponse) => response.data,
+			providesTags: ['categories'],
+		}),
+
+		createCategory: builder.mutation<
+			CreateCategoryAPIResponse,
+			Pick<Category, 'name' | 'description' | 'parentCategoryId'>
+		>({
+			query: (newCategory) => ({
+				url: 'categories',
+				method: 'POST',
+				body: newCategory,
+			}),
+			invalidatesTags: ['categories'],
+		}),
+
+		createBrand: builder.mutation<
+			CreateBrandAPIResponse,
+			Pick<Brand, 'name' | 'description'>
+		>({
+			query: (newBrand) => ({
+				url: 'brands',
+				method: 'POST',
+				body: newBrand,
+			}),
+			invalidatesTags: ['brands'],
+		}),
+
+		createShelf: builder.mutation<
+			CreateShelfAPIResponse,
+			Pick<Shelf, 'shelfId' | 'name' | 'description'>
+		>({
+			query: (newShelf) => ({
+				url: 'shelves',
+				method: 'POST',
+				body: newShelf,
+			}),
+			invalidatesTags: ['shelves'],
+		}),
+
+		createWarehouse: builder.mutation<
+			CreateWarehouseAPIResponse,
+			Pick<Warehouse, 'warehouseId' | 'name' | 'code'>
+		>({
+			query: (newWarehouse) => ({
+				url: 'warehouses',
+				method: 'POST',
+				body: newWarehouse,
+			}),
+			invalidatesTags: ['warehouses'],
+		}),
+
+		getBrands: builder.query<Brand[], void>({
+			query: () => ({
+				url: 'brands',
+				method: 'GET',
+			}),
+			transformResponse: (response: BrandsAPIResponse) => response.data,
+			providesTags: ['brands'],
+		}),
+
+		getSingleBrand: builder.query<Brand, string>({
+			query: (brandId: string) => ({
+				url: `brands/${brandId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Brand) => response,
+			providesTags: ['brand'],
+		}),
+
+		getShelves: builder.query<Shelf[], void>({
+			query: () => ({
+				url: 'shelves',
+				method: 'GET',
+			}),
+			transformResponse: (response: ShelvesAPIResponse) => response.data,
+			providesTags: ['shelves'],
+		}),
+
+		getSingleShelf: builder.query<Shelf, string>({
+			query: (shelfId: string) => ({
+				url: `shelves/${shelfId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Shelf) => response,
+			providesTags: ['shelf'],
+		}),
+
+		getWarehouses: builder.query<Warehouse[], void>({
+			query: () => ({
+				url: 'warehouses',
+				method: 'GET',
+			}),
+			transformResponse: (response: WarehousesAPIResponse) => response.data,
+			providesTags: ['warehouses'],
+		}),
+
+		getSingleWarehouse: builder.query<Warehouse, string>({
+			query: (warehouseId: string) => ({
+				url: `warehouses/${warehouseId}`,
+				method: 'GET',
+			}),
+			transformResponse: (response: Warehouse) => response,
+			providesTags: ['warehouse'],
+		}),
+
 		getSingleCustomer: builder.query<Customer, string>({
 			query: (customerId: string) => ({
 				url: `customers/${customerId}`,
@@ -356,9 +467,9 @@ const getQuery = (
 		}),
 		postProduct: builder.mutation<
 			CreateProductAPIResponse,
-			Omit<Product, 'productId'>
+			CreateProductInput
 		>({
-			query: (newProduct: Omit<Product, 'productId'>) => {
+			query: (newProduct: CreateProductInput) => {
 				return {
 					url: 'product',
 					method: 'POST',
@@ -743,6 +854,17 @@ export const {
 	useGetSuppliersQuery,
 	useGetSingleSupplierQuery,
 	useGetCustomersQuery,
+	useGetCategoriesQuery,
+	useCreateCategoryMutation,
+	useCreateBrandMutation,
+	useCreateShelfMutation,
+	useCreateWarehouseMutation,
+	useGetBrandsQuery,
+	useGetSingleBrandQuery,
+	useGetShelvesQuery,
+	useGetSingleShelfQuery,
+	useGetWarehousesQuery,
+	useGetSingleWarehouseQuery,
 	useGetSingleCustomerQuery,
 	useGetPartnersQuery,
 	useGetSinglePartnerQuery,

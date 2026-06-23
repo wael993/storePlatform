@@ -34,33 +34,25 @@ interface VirtuosoContext {
 const skeletonProduct: Product = {
 	productId: 'skeleton-id-3',
 	name: 'dummy',
+	latinName: 'dummy',
+	categoryId: 'dummy',
+	status: 'active',
+	supplierId: 'dummy',
+	brandId: 'dummy',
 	barcode: 'dummy',
-	categoryName: 'dummy-3',
-	brandName: 'dummy-3',
-	supplierName: 'dummy-3',
-	stock: {
-		quantity: 0,
-		minQuantity: 0,
-	},
 	price: {
-		buyCost: 0,
-		wholesale: 0,
-		retail: 0,
+		purchasePrice: 0,
+		retailPrice: 0,
+		wholesalePrice: 0,
+		semiWholesalePrice: 0,
 		discount: 0,
 		currency: 'USD',
-		retailSale: 0,
-		wholesaleSale: 0,
-		semiWholesaleSales: 0,
-	},
-	location: {
-		warehouse: 'dummy',
-		shelf: 'dummy',
 	},
 	attributes: {
 		color: 'dummy',
 	},
-	updatedAt: '2024-01-01T00:00:00.000Z',
-	state: 'draft',
+	updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+	createdAt: new Date('2024-01-01T00:00:00.000Z'),
 } as Product
 
 const styles: StylesObject = {
@@ -205,7 +197,7 @@ const ProductTableDesktop = memo(
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
 					}
 					case ProductSortHeaderKey.BRAND_NAME: {
-						return compareStringsForSorting(a.brandName, b.brandName, sortOrder)
+						return compareStringsForSorting(a.brandId, b.brandId, sortOrder)
 					}
 					case ProductSortHeaderKey.CATEGORY_NAME: {
 						return compareStringsForSorting(
@@ -223,29 +215,29 @@ const ProductTableDesktop = memo(
 					}
 					case ProductSortHeaderKey.STOCK_QUANTITY: {
 						return compareNumbersForSorting(
-							a.stock?.quantity,
-							b.stock?.quantity,
+							a.price?.purchasePrice,
+							b.price?.purchasePrice,
 							sortOrder,
 						)
 					}
 					case ProductSortHeaderKey.STOCK_MIN_QUANTITY: {
 						return compareNumbersForSorting(
-							a.stock?.minQuantity,
-							b.stock?.minQuantity,
+							a.price?.semiWholesalePrice,
+							b.price?.semiWholesalePrice,
 							sortOrder,
 						)
 					}
 					case ProductSortHeaderKey.PRICE_BUY_COST: {
 						return compareNumbersForSorting(
-							parseNumberForSorting(a.price?.buyCost),
-							parseNumberForSorting(b.price?.buyCost),
+							parseNumberForSorting(a.price?.purchasePrice),
+							parseNumberForSorting(b.price?.purchasePrice),
 							sortOrder,
 						)
 					}
 					case ProductSortHeaderKey.PRICE_SELL: {
 						return compareNumbersForSorting(
-							parseNumberForSorting(a.price?.wholesale),
-							parseNumberForSorting(b.price?.wholesale),
+							parseNumberForSorting(a.price?.retailPrice),
+							parseNumberForSorting(b.price?.retailPrice),
 							sortOrder,
 						)
 					}
@@ -256,20 +248,20 @@ const ProductTableDesktop = memo(
 							sortOrder,
 						)
 					}
-					case ProductSortHeaderKey.LOCATION_SHELF: {
-						return compareStringsForSorting(
-							a.location?.shelf,
-							b.location?.shelf,
-							sortOrder,
-						)
-					}
-					case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
-						return compareStringsForSorting(
-							a.location?.warehouse,
-							b.location?.warehouse,
-							sortOrder,
-						)
-					}
+					// case ProductSortHeaderKey.LOCATION_SHELF: {
+					// 	return compareStringsForSorting(
+					// 		a.attributes?.color,
+					// 		b.attributes?.color,
+					// 		sortOrder,
+					// 	)
+					// }
+					// case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
+					// 	return compareStringsForSorting(
+					// 		a.attributes?.color,
+					// 		b.attributes?.color,
+					// 		sortOrder,
+					// 	)
+					// }
 					case ProductSortHeaderKey.COLOR: {
 						return compareStringsForSorting(
 							a.attributes?.color,
@@ -278,7 +270,11 @@ const ProductTableDesktop = memo(
 						)
 					}
 					case ProductSortHeaderKey.START_DATE: {
-						return compareDatesForSorting(a.updatedAt, b.updatedAt, sortOrder)
+						return compareDatesForSorting(
+							a.attributes?.expiryDate?.toString(),
+							b.attributes?.expiryDate?.toString(),
+							sortOrder,
+						)
 					}
 
 					default: {

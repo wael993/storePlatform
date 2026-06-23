@@ -22,14 +22,14 @@ import { getTenantPermissions } from '../../shared/Permissions'
 
 export const filterProductRelatedActions = (
 	actions: DailyAction[],
-	product: Pick<ProductAPI, '_id' | 'internalCode' | 'barcode' | 'name'>,
+	product: Pick<ProductAPI, 'productId' | 'internalCode' | 'barcode' | 'name'>,
 ): DailyAction[] =>
 	actions.filter(
 		action =>
 			action.entryType !== DailyActionType.EXPENSE_ENTRY &&
 			action.entryType !== DailyActionType.PAYMENT_ENTRY &&
 			action.entryType !== DailyActionType.RECEIPT_ENTRY &&
-			(action.productId === product._id ||
+			(action.productId === product.productId ||
 				action.productId === product.internalCode ||
 				action.productId === product.barcode ||
 				action.productName === product.name),

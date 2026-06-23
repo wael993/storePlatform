@@ -3,41 +3,26 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface IProduct extends Document {
 	tenantId: string
-	_id: string
-	productId?: string
+	productId: string
+	name: string
+	latinName?: string
+	barcode?: string
 	internalCode?: string
 	productFactoryCode?: string
-	name: string
 	categoryId?: string
-	categoryName?: string
-	brandId?: string
-	brandName?: string
-	barcode: string
-	stock: {
-		quantity: number
-		minQuantity?: number
-	}
-	unit?: 'kg' | 'piece' | 'meter' | 'set' | 'mm'
-	tax?: {
-		type: string
-		value: number
-	}
 	supplierId?: string
-	supplierName?: string
+	brandId?: string
+	taxRate?: string
+	unitId?: string
 	price: {
-		wholesale: number
-		retailSale: number
-		semiWholesaleSales: number
-		buyCost: number
+		purchasePrice?: number
+		retailPrice: number
+		wholesalePrice?: number
+		semiWholesalePrice?: number
 		discount?: number
 		currency: string
 	}
-	location?: {
-		warehouse?: string
-		shelf?: string
-	}
 	status: 'active' | 'inactive' | 'discontinued'
-	description?: string
 	attributes?: {
 		color?: string
 		size?: string
@@ -49,24 +34,28 @@ export interface IProduct extends Document {
 		expiryDate?: string
 	}
 	images?: string[]
+	description?: string
 	createdBy: {
 		_id: string
 		displayName: string
+		role?: string
 		createdAt: Date
 	}
 	updatedBy?: {
 		_id: string
 		displayName: string
+		role?: string
 		updatedAt: Date
 	}
-	createdAt: Date
-	updatedAt: Date
 }
 
 const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 	{
-		_id: { type: String, required: [true, 'ID is required'], trim: true },
-		productId: { type: String, trim: true },
+		productId: {
+			type: String,
+			required: true,
+			trim: true,
+		},
 		internalCode: {
 			type: String,
 			trim: true,
@@ -83,45 +72,37 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			trim: true,
 			maxlength: [100, 'Name cannot exceed 100 characters'],
 		},
+		latinName: {
+			type: String,
+			trim: true,
+			maxlength: [100, 'Latin name cannot exceed 100 characters'],
+		},
 		categoryId: { type: String },
-		categoryName: { type: String },
 		brandId: { type: String },
-		brandName: { type: String },
 		supplierId: { type: String },
-		supplierName: { type: String },
 		barcode: {
 			type: String,
-			required: [true, 'Barcode is required'],
 		},
-		stock: {
-			quantity: { type: Number, required: true, min: 0 },
-			minQuantity: { type: Number, min: 0 },
-		},
-		unit: {
+		unitId: {
 			type: String,
-			enum: ['kg', 'piece', 'meter', 'set', 'mm'],
-			default: 'piece',
 		},
-		tax: {
-			type: { type: String },
-			value: { type: Number, min: 0 },
-		},
+		taxRate: { type: String },
 		price: {
-			wholesale: { type: Number, required: true, min: 0 },
-			retailSale: { type: Number, required: true, min: 0 },
-			semiWholesaleSales: { type: Number, min: 0 },
-			buyCost: { type: Number, required: true, min: 0 },
-			discount: { type: Number, min: 0 },
-			currency: { type: String, required: true, default: 'EUR' },
-		},
-		location: {
-			warehouse: { type: String },
-			shelf: { type: String },
+			type: {
+				purchasePrice: { type: Number, min: 0 },
+				wholesalePrice: { type: Number, min: 0 },
+				retailPrice: { type: Number, required: true, min: 0 },
+				semiWholesalePrice: { type: Number, min: 0 },
+				discount: { type: Number, min: 0 },
+				currency: { type: String, required: true, default: 'SYP' },
+			},
+			required: true,
 		},
 		status: {
 			type: String,
 			enum: ['active', 'inactive', 'discontinued'],
 			default: 'active',
+			required: true,
 		},
 		description: {
 			type: String,
@@ -139,16 +120,6 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			expiryDate: { type: String },
 		},
 		images: [{ type: String }],
-		createdBy: {
-			_id: { type: String },
-			displayName: { type: String },
-			createdAt: { type: Date },
-		},
-		updatedBy: {
-			_id: { type: String },
-			displayName: { type: String },
-			updatedAt: { type: Date },
-		},
 	},
 	{ timestamps: true },
 )
@@ -156,6 +127,14 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 tenantScopedSchema(ProductSchema)
 
 ProductSchema.index({ tenantId: 1, productId: 1 }, { unique: true })
-ProductSchema.index({ tenantId: 1, barcode: 1 }, { unique: true })
+ProductSchema.index(
+	{ tenantId: 1, barcode: 1 },
+	{
+		unique: true,
+		partialFilterExpression: {
+			barcode: { $exists: true, $type: 'string', $gt: '' },
+		},
+	},
+)
 
 export const Product = mongoose.model<IProduct>('Products', ProductSchema)

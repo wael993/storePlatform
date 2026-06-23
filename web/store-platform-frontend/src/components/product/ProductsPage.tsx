@@ -7,6 +7,7 @@ import {
 	Text,
 	HStack,
 	Flex,
+	useDisclosure,
 } from '@chakra-ui/react'
 import {
 	useGetProductsQuery,
@@ -29,6 +30,7 @@ import { generateBreadcrumbs } from '../../shared/routes'
 import Filters from '../filters/Filters'
 import { FilterSelectOption, ProductFilterValues } from '../filters/FilterModal'
 import { PRODUCT_STATE_CONFIG } from '../list/shared/constants'
+import AddProductModal from '../../pages/AddProductModal'
 
 const EMPTY_PRODUCT_FILTERS: ProductFilterValues = {
 	searchText: '',
@@ -111,6 +113,12 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	const totalPages = Math.ceil(totalCount / productsPerPage)
 	const breadCrumbItems = generateBreadcrumbs()
 
+	const {
+		isOpen: isAddProductModalOpen,
+		onOpen: onAddProductModalOpen,
+		onClose: onAddProductModalClose,
+	} = useDisclosure()
+
 	const handleApplyFilters = (filters: ProductFilterValues) => {
 		setProductFilters(filters)
 		setCurrentPage(0)
@@ -145,7 +153,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	}, [filterValuesResponse?.state])
 
 	const openAdd = () => {
-		console.log('openAdd')
+		onAddProductModalOpen()
 	}
 
 	const { t } = useTranslation()
@@ -636,6 +644,12 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 					</ModalFooter>
 				</ModalContent>
 			</Modal> */}
+			<AddProductModal
+				isOpen={isAddProductModalOpen}
+				onClose={onAddProductModalClose}
+				barcode={''}
+				onSuccess={onAddProductModalClose}
+			/>
 		</Flex>
 	)
 }

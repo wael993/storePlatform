@@ -55,6 +55,7 @@ export const getEnabledActions = () => {
 		isOrdersEnabled: enabledActions.has('ORDERS'),
 		isInvoicesEnabled: enabledActions.has('INVOICE'),
 		isCustomersEnabled: enabledActions.has('CUSTOMERS'),
+		isCategoriesEnabled: enabledActions.has('CATEGORIES'),
 		isSuppliersEnabled: enabledActions.has('SUPPLIERS'),
 		isPartnersEnabled: enabledActions.has('PARTNERS'),
 		isUsersEnabled: enabledActions.has('USERS'),
@@ -72,6 +73,7 @@ export const getGloballyEnabledTenantPages = (
 		DAILY: enabledActions.isDailyEnabled,
 		SUPPLIERS: enabledActions.isSuppliersEnabled,
 		CUSTOMERS: enabledActions.isCustomersEnabled,
+		CATEGORIES: enabledActions.isCategoriesEnabled,
 		PARTNERS: enabledActions.isPartnersEnabled,
 		ORDERS: enabledActions.isOrdersEnabled,
 		INVOICE: enabledActions.isInvoicesEnabled,
@@ -101,6 +103,7 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantUsersEnabled: tenantPages.has('USERS'),
 		isTenantSettingsEnabled: tenantPages.has('SETTINGS'),
 		isTenantCustomersEnabled: tenantPages.has('CUSTOMERS'),
+		isTenantCategoriesEnabled: tenantPages.has('CATEGORIES'),
 		isTenantSuppliersEnabled: tenantPages.has('SUPPLIERS'),
 		isTenantPartnersEnabled: tenantPages.has('PARTNERS'),
 		isTenantChangePasswordEnabled: tenantPages.has('CHANGE_PASSWORD'),
@@ -124,18 +127,63 @@ export const isTenantRouteAllowed = (
 	}
 
 	const routeChecks: Array<[string, boolean]> = [
-		[RoutePaths.BARCODE, globalActions.isBarcodeEnabled && tenantActions.isTenantBarcodeEnabled],
-		[RoutePaths.PRODUCTS, globalActions.isProductsEnabled && tenantActions.isTenantProductsEnabled],
-		[RoutePaths.DAILY, globalActions.isDailyEnabled && tenantActions.isTenantDailyEnabled],
-		[RoutePaths.ORDERS, globalActions.isOrdersEnabled && tenantActions.isTenantOrdersEnabled],
-		[RoutePaths.INVOICES, globalActions.isInvoicesEnabled && tenantActions.isTenantInvoicesEnabled],
-		[RoutePaths.CUSTOMERS, globalActions.isCustomersEnabled && tenantActions.isTenantCustomersEnabled],
-		[RoutePaths.SUPPLIERS, globalActions.isSuppliersEnabled && tenantActions.isTenantSuppliersEnabled],
-		[RoutePaths.PARTNERS, globalActions.isPartnersEnabled && tenantActions.isTenantPartnersEnabled],
-		[RoutePaths.USERS, globalActions.isUsersEnabled && tenantActions.isTenantUsersEnabled],
-		[RoutePaths.SETTINGS, globalActions.isSettingsEnabled && tenantActions.isTenantSettingsEnabled],
-		[RoutePaths.ADD_NEW_TENANT, globalActions.isAddNewTenantEnabled && tenantActions.isTenantAddNewTenantEnabled],
-		[RoutePaths.TENANTS_LIST, globalActions.isTenantsListEnabled && tenantActions.isTenantTenantsListEnabled],
+		[
+			RoutePaths.BARCODE,
+			globalActions.isBarcodeEnabled && tenantActions.isTenantBarcodeEnabled,
+		],
+		[
+			RoutePaths.PRODUCTS,
+			globalActions.isProductsEnabled && tenantActions.isTenantProductsEnabled,
+		],
+		[
+			RoutePaths.DAILY,
+			globalActions.isDailyEnabled && tenantActions.isTenantDailyEnabled,
+		],
+		[
+			RoutePaths.ORDERS,
+			globalActions.isOrdersEnabled && tenantActions.isTenantOrdersEnabled,
+		],
+		[
+			RoutePaths.INVOICES,
+			globalActions.isInvoicesEnabled && tenantActions.isTenantInvoicesEnabled,
+		],
+		[
+			RoutePaths.CUSTOMERS,
+			globalActions.isCustomersEnabled &&
+				tenantActions.isTenantCustomersEnabled,
+		],
+		[
+			RoutePaths.CATEGORIES,
+			globalActions.isCategoriesEnabled &&
+				tenantActions.isTenantCategoriesEnabled,
+		],
+		[
+			RoutePaths.SUPPLIERS,
+			globalActions.isSuppliersEnabled &&
+				tenantActions.isTenantSuppliersEnabled,
+		],
+		[
+			RoutePaths.PARTNERS,
+			globalActions.isPartnersEnabled && tenantActions.isTenantPartnersEnabled,
+		],
+		[
+			RoutePaths.USERS,
+			globalActions.isUsersEnabled && tenantActions.isTenantUsersEnabled,
+		],
+		[
+			RoutePaths.SETTINGS,
+			globalActions.isSettingsEnabled && tenantActions.isTenantSettingsEnabled,
+		],
+		[
+			RoutePaths.ADD_NEW_TENANT,
+			globalActions.isAddNewTenantEnabled &&
+				tenantActions.isTenantAddNewTenantEnabled,
+		],
+		[
+			RoutePaths.TENANTS_LIST,
+			globalActions.isTenantsListEnabled &&
+				tenantActions.isTenantTenantsListEnabled,
+		],
 	]
 
 	for (const [routePath, isAllowed] of routeChecks) {
@@ -191,7 +239,7 @@ export const formatNumber = (
 }
 
 export const withNoValueFallback = (value: string | null | undefined) =>
-	value || 'N/A'
+	value || '-'
 
 export const parseNumberValue = (
 	value: string,

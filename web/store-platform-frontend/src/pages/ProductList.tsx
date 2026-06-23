@@ -21,16 +21,16 @@ const ProductList = ({ addToCart }: { addToCart: (p: Product) => void }) => {
 					<HStack key={p.productId} p={2} border="1px solid" borderRadius="md">
 						<Text flex={2}>{p.name}</Text>
 						<Text flex={1}>
-							{(p.price?.retailSale ?? 0).toFixed(2)}{' '}
+							{(p.price?.retailPrice ?? 0).toFixed(2)}{' '}
 							{p.price?.currency ?? 'EUR'}
 						</Text>
 						<Text flex={1}>
-							{t('products.stockValue', { stock: p.stock?.quantity ?? 0 })}
+							{t('products.stockValue', { stock: p.price?.purchasePrice ?? 0 })}
 						</Text>
 						<Button
 							size="xs"
 							onClick={() => addToCart(p)}
-							isDisabled={(p.stock?.quantity ?? 0) <= 0}
+							isDisabled={(p.price?.purchasePrice ?? 0) <= 0}
 						>
 							{t('common.add')}
 						</Button>

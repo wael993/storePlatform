@@ -4,6 +4,7 @@ export const TENANT_ACCESSIBLE_PAGE = {
 	DAILY: 'DAILY',
 	SUPPLIERS: 'SUPPLIERS',
 	CUSTOMERS: 'CUSTOMERS',
+	CATEGORIES: 'CATEGORIES',
 	PARTNERS: 'PARTNERS',
 	ORDERS: 'ORDERS',
 	INVOICE: 'INVOICE',
@@ -22,6 +23,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 	TENANT_ACCESSIBLE_PAGE.DAILY,
 	TENANT_ACCESSIBLE_PAGE.SUPPLIERS,
 	TENANT_ACCESSIBLE_PAGE.CUSTOMERS,
+	TENANT_ACCESSIBLE_PAGE.CATEGORIES,
 	TENANT_ACCESSIBLE_PAGE.PARTNERS,
 	TENANT_ACCESSIBLE_PAGE.ORDERS,
 	TENANT_ACCESSIBLE_PAGE.INVOICE,
@@ -35,6 +37,7 @@ export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
 	[TENANT_ACCESSIBLE_PAGE.DAILY]: 'components.pageHeaders.daily',
 	[TENANT_ACCESSIBLE_PAGE.SUPPLIERS]: 'components.pageHeaders.suppliers',
 	[TENANT_ACCESSIBLE_PAGE.CUSTOMERS]: 'components.pageHeaders.customers',
+	[TENANT_ACCESSIBLE_PAGE.CATEGORIES]: 'components.pageHeaders.categories',
 	[TENANT_ACCESSIBLE_PAGE.PARTNERS]: 'components.pageHeaders.partners',
 	[TENANT_ACCESSIBLE_PAGE.ORDERS]: 'components.pageHeaders.orders',
 	[TENANT_ACCESSIBLE_PAGE.INVOICE]: 'components.pageHeaders.invoices',
@@ -54,6 +57,8 @@ export const TENANT_PAGE_DESCRIPTION_KEYS: Record<TenantAccessiblePage, string> 
 			'tenants.accessiblePages.suppliersDescription',
 		[TENANT_ACCESSIBLE_PAGE.CUSTOMERS]:
 			'tenants.accessiblePages.customersDescription',
+		[TENANT_ACCESSIBLE_PAGE.CATEGORIES]:
+			'tenants.accessiblePages.categoriesDescription',
 		[TENANT_ACCESSIBLE_PAGE.PARTNERS]:
 			'tenants.accessiblePages.partnersDescription',
 		[TENANT_ACCESSIBLE_PAGE.ORDERS]: 'tenants.accessiblePages.ordersDescription',

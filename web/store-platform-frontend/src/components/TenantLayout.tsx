@@ -19,6 +19,7 @@ const TenantLayout = () => {
 	const navigate = useNavigate()
 
 	const { isAdmin, isOwnerOrAdmin, user } = useUser()
+	console.log('🚀 ~ TenantLayout ~ user:', user)
 	useTenantRouteGuard(user?.accessiblePages)
 
 	const enabledActions = getEnabledActions()
@@ -34,9 +35,11 @@ const TenantLayout = () => {
 		isUsersEnabled,
 		isDailyEnabled,
 		isCustomersEnabled,
+		isCategoriesEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
 	} = enabledActions
+
 	const {
 		isTenantBarcodeEnabled,
 		isTenantProductsEnabled,
@@ -45,6 +48,7 @@ const TenantLayout = () => {
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
+		isTenantCategoriesEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
 	} = tenantActions
@@ -70,6 +74,9 @@ const TenantLayout = () => {
 			: null,
 		isCustomersEnabled && isTenantCustomersEnabled
 			? { label: 'Customers', path: RoutePaths.CUSTOMERS }
+			: null,
+		isCategoriesEnabled && isTenantCategoriesEnabled
+			? { label: 'Categories', path: RoutePaths.CATEGORIES }
 			: null,
 		isSuppliersEnabled && isTenantSuppliersEnabled
 			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }

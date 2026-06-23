@@ -177,7 +177,6 @@ const ProductTableHeaderRow = ({
 						label: t('common.buyCost'),
 						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_BUY,
 						sortKey: ProductSortHeaderKey.PRICE_BUY_COST,
-						// align: 'right' as const,
 					},
 				]
 			: []),
@@ -196,29 +195,31 @@ const ProductTableHeaderRow = ({
 					},
 				]
 			: []),
-		...(seeLocationShelf
-			? [
-					{
-						label: t('common.locationShelf'),
-						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_SHELF,
-						sortKey: ProductSortHeaderKey.LOCATION_SHELF,
-					},
-				]
-			: []),
-		...(seeLocationWarehouse
-			? [
-					{
-						label: t('common.locationWarehouse'),
-						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
-						sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
-					},
-				]
-			: []),
-		{
-			label: t('common.color'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.COLOR,
-			sortKey: ProductSortHeaderKey.COLOR,
-		},
+		// ...(seeLocationShelf
+		// 	? [
+		// 			{
+		// 				label: t('common.locationShelf'),
+		// 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_SHELF,
+		// 				sortKey: ProductSortHeaderKey.LOCATION_SHELF,
+		// 			},
+		// 		]
+		// 	: []),
+		// ...(seeLocationWarehouse
+		// 	? [
+		// 			{
+		// 				label: t('common.locationWarehouse'),
+		// 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.LOCATION_WAREHOUSE,
+		// 				sortKey: ProductSortHeaderKey.LOCATION_WAREHOUSE,
+		// 			},
+		// 		]
+		// 	: []),
+		// {
+		// 	label: t('common.color'),
+		// 	width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.COLOR,
+		// 	sortKey: ProductSortHeaderKey.COLOR,
+		// 	isShop: false,
+		// 	align: 'right' as const,
+		// },
 
 		{
 			label: t('common.createdAt'),

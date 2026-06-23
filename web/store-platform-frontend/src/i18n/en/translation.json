@@ -71,6 +71,7 @@
 			"dailyDescription": "Daily buying, selling, and expense actions.",
 			"suppliersDescription": "Supplier directory and details.",
 			"customersDescription": "Customer directory and details.",
+			"categoriesDescription": "Product category directory.",
 			"partnersDescription": "Partner directory and details.",
 			"ordersDescription": "Order management.",
 			"invoicesDescription": "Invoice management.",
@@ -194,25 +195,43 @@
 		"addToCart": "Add to Cart",
 		"saveProduct": "Save Product",
 		"nameBarcodeRequired": "Name and barcode are required.",
+		"nameOrLatinNameRequired": "Product name or latin name is required.",
+		"retailPriceRequired": "Retail price is required.",
+		"quantityRequired": "Stock quantity is required.",
+		"minQuantityInvalid": "Minimum stock quantity must be a valid number greater than or equal to 0.",
 		"requiredProductValues": "Wholesale price, retail sale price, buy cost and stock quantity are required.",
 		"createFailed": "Failed to create product.",
+		"tabBasicInfo": "Basic Info",
+		"tabClassification": "Classification",
+		"tabDetails": "Details",
+		"pricingSection": "Pricing & Stock",
+		"latinName": "Latin Name",
+		"internalCode": "Internal Code",
 		"productFactoryCode": "Product Factory Code",
 		"categoryId": "Category ID",
 		"brandId": "Brand ID",
+		"purchasePrice": "Purchase Price",
+		"retailPrice": "Retail Price",
 		"wholesalePrice": "Wholesale Price",
 		"retailSalePrice": "Retail Sale Price",
+		"semiWholesalePrice": "Semi-Wholesale Price",
 		"semiWholesaleSalesPrice": "Semi-Wholesale Sales Price",
 		"discountPrice": "Discount Price",
+		"currency": "Currency",
 		"currencyPlaceholder": "Currency (e.g. EUR)",
+		"taxRate": "Tax Rate",
 		"taxType": "Tax Type",
 		"taxValue": "Tax Value",
 		"supplierId": "Supplier ID",
+		"unitId": "Unit",
 		"warehouse": "Warehouse",
 		"shelf": "Shelf",
 		"size": "Size",
 		"length": "Length",
 		"width": "Width",
 		"height": "Height",
+		"flavor": "Flavor",
+		"expiryDate": "Expiry Date",
 		"description": "Description",
 		"units": {
 			"piece": "Piece",
@@ -235,6 +254,13 @@
 		"list": {
 			"name": "Partner Name",
 			"internalCode": "Partner Code",
+			"createdAt": "Created At"
+		}
+	},
+	"category": {
+		"list": {
+			"name": "Category Name",
+			"description": "Description",
 			"createdAt": "Created At"
 		}
 	},
@@ -285,7 +311,8 @@
 				"addCustomerFailed": "Failed to add customer",
 				"addCurrencyFailed": "Failed to add currency",
 				"addUnitFailed": "Failed to add unit",
-				"addExpenseFailed": "Failed to add expense"
+				"addExpenseFailed": "Failed to add expense",
+				"addPartnerFailed": "Failed to add partner"
 			},
 			"actionType": "Action Type",
 			"actionDate": "Action Date",
@@ -330,6 +357,25 @@
 			"partnerName": "Partner Name",
 			"partnerCode": "Partner Code"
 		},
+		"quickAdd": {
+			"title": "Quick Add",
+			"subtitle": "Select what you want to add",
+			"addQuickCategory": "Add Quick Category",
+			"addQuickBrand": "Add Quick Brand",
+			"addQuickShelf": "Add Quick Shelf",
+			"addQuickWarehouse": "Add Quick Warehouse",
+			"addBrand": "Add Brand",
+			"addShelf": "Add Shelf",
+			"addWarehouse": "Add Warehouse",
+			"shelfCode": "Shelf Code",
+			"warehouseCode": "Warehouse Code",
+			"errors": {
+				"addCategoryFailed": "Failed to add category",
+				"addBrandFailed": "Failed to add brand",
+				"addShelfFailed": "Failed to add shelf",
+				"addWarehouseFailed": "Failed to add warehouse"
+			}
+		},
 		"pageHeaders": {
 			"settings": "Settings",
 			"daily": "Daily",
@@ -341,6 +387,7 @@
 			"users": "Users",
 			"tenants": "Tenants",
 			"customers": "Customers",
+			"categories": "Categories",
 			"suppliers": "Suppliers",
 			"partners": "Partners",
 			"partner": "Partner"
@@ -420,6 +467,7 @@
 			"menu": "Menu",
 			"greeting": "Hello, {{userName}}",
 			"logout": "Logout",
+			"icons": "Quick Add",
 			"noNavigationItems": "No navigation items available."
 		}
 	},
@@ -458,6 +506,7 @@
 		"addEntry": "Add Entry",
 		"addProduct": "Add Product",
 		"addCustomer": "Add Customer",
+		"addCategory": "Add Category",
 		"addSupplier": "Add Supplier",
 		"addPartner": "Add Partner",
 		"product": "Product",
@@ -518,6 +567,7 @@
 		"listOptions": "List options",
 		"warning": "Warning",
 		"nextStep": "Next Step",
+		"previousStep": "Previous Step",
 		"back": "Back",
 		"submit": "Submit",
 		"buyingEntry": "Buying Entry",

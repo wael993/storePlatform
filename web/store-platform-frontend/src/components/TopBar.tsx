@@ -30,6 +30,9 @@ import { layout } from '../theme/layout'
 import { useBreakpoints } from '../shared/hooks/useBreakpoints'
 import ServiceMenu from './ServiceMenu'
 import ChangePasswordModal from './ChangePasswordModal'
+import IconsViewer from './IconsViewer'
+import { GridIcon } from '../shared/icons/Grid'
+import AddQuickNewEntryModal from './AddQuickNewEntryModal.tsx'
 
 interface TopBarProps {
 	navItems: {
@@ -79,6 +82,16 @@ const TopBar = ({
 		isOpen: isPwOpen,
 		onOpen: onPwOpen,
 		onClose: onPwClose,
+	} = useDisclosure()
+	const {
+		isOpen: isIconsViewerOpen,
+		onOpen: onOpenIconsViewer,
+		onClose: onCloseIconsViewer,
+	} = useDisclosure()
+	const {
+		isOpen: isAddQuickModalOpen,
+		onOpen: onOpenAddQuickModal,
+		onClose: onCloseAddQuickModal,
 	} = useDisclosure()
 
 	const activePath =
@@ -179,10 +192,20 @@ const TopBar = ({
 					{!isMobile && (
 						<>
 							<IconButton
+								aria-label={t('components.topBar.icons')}
+								icon={<GridIcon boxSize={4} />}
+								sx={styles.iconButton}
+								onClick={e => {
+									onOpenAddQuickModal()
+									e.stopPropagation()
+								}}
+							/>
+							<IconButton
 								aria-label={t('components.topBar.releaseNotes')}
 								icon={<RepeatIcon boxSize={4} />}
 								sx={styles.iconButton}
 								onClick={e => {
+									onOpenIconsViewer()
 									e.stopPropagation()
 								}}
 							/>
@@ -261,6 +284,11 @@ const TopBar = ({
 			)}
 
 			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
+			<IconsViewer isOpen={isIconsViewerOpen} onClose={onCloseIconsViewer} />
+			<AddQuickNewEntryModal
+				isOpen={isAddQuickModalOpen}
+				onClose={onCloseAddQuickModal}
+			/>
 		</Box>
 	)
 }

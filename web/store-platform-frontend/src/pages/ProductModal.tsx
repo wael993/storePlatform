@@ -48,7 +48,7 @@ const ProductModal = ({
 		}).format(price)
 	}
 
-	const stockQuantity = product?.stock?.quantity ?? 0
+	const stockQuantity = product?.price?.purchasePrice ?? 0
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size="md">
@@ -86,7 +86,7 @@ const ProductModal = ({
 								</Text>
 								<Text fontWeight="semibold">
 									{formatPrice(
-										product.price?.retailSale,
+										product.price?.retailPrice,
 										product.price?.currency,
 									)}
 								</Text>

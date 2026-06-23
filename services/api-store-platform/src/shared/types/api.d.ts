@@ -143,6 +143,9 @@ interface CustomersResponse extends APIResponse<CustomerResponse> {}
 interface CurrenciesResponse extends APIResponse<Currency> {}
 interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
+interface BrandsResponse extends APIResponse<Brand> {}
+interface ShelvesResponse extends APIResponse<Shelf> {}
+interface WarehousesResponse extends APIResponse<Warehouse> {}
 
 interface PartnersResponse extends APIResponse<Partner> {}
 interface ExpensesResponse extends APIResponse<Expense> {}
@@ -208,6 +211,63 @@ interface Supplier {
 	}
 	actions?: DailyAction[]
 	relatedActions?: DailyAction[]
+}
+
+interface Brand {
+	brandId: string
+	name: string
+	description?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Shelf {
+	shelfId: string
+	name: string
+	description?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+}
+
+interface Warehouse {
+	warehouseId: string
+	name: string
+	code?: string
+	address?: string
+	status?: 'active' | 'inactive'
+	description?: string
+	createdAt?: string
+	updatedAt?: string
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
 }
 
 interface Expense {

@@ -29,6 +29,7 @@ import CustomerPage from './components/customer/CustomerPage'
 import PartnerPage from './components/partner/PartnerPage'
 import DailyPage from './components/daily/DailyPage'
 import CustomerModal from './components/customer/CustomerModal'
+import CategoryPage from './components/category/CategoryPage'
 import SupplierModal from './components/supplier/SupplierModal'
 import PartnerModal from './components/partner/PartnerModal'
 import ProductModal from './components/product/ProductModal'
@@ -60,6 +61,7 @@ const App = () => {
 		isUsersEnabled,
 		isSettingsEnabled,
 		isCustomersEnabled,
+		isCategoriesEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
 	} = enabledActions
@@ -75,6 +77,7 @@ const App = () => {
 		isTenantUsersEnabled,
 		isTenantSettingsEnabled,
 		isTenantCustomersEnabled,
+		isTenantCategoriesEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
 	} = tenantActions
@@ -141,6 +144,12 @@ const App = () => {
 									element={<CustomerModal targetType={TargetType.CUSTOMER} />}
 								/>
 							</>
+						)}
+						{isCategoriesEnabled && isTenantCategoriesEnabled && (
+							<Route
+								path={RoutePaths.CATEGORIES}
+								element={<CategoryPage targetType={TargetType.CATEGORY} />}
+							/>
 						)}
 						{isSuppliersEnabled && isTenantSuppliersEnabled && (
 							<>

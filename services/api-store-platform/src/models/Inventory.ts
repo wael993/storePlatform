@@ -5,13 +5,26 @@ export interface IInventory extends Document {
 	tenantId: string
 	inventoryId: string
 	productId: string
-	onHand: number
-	reserved: number
-	reorderLevel: number
-	createdBy: string
-	updatedBy?: string
-	createdAt: Date
-	updatedAt: Date
+	warehouseId?: string
+	shelfId?: string
+	quantity?: number
+	minQuantity?: number // low stock alert
+	maxQuantity?: number // overstock alert
+	reservedQuantity?: number // reserved for pending orders
+	availableQuantity?: number // quantity - reserved
+	lastCountDate?: Date
+	createdBy: {
+		_id: string
+		displayName: string
+		role?: string
+		createdAt: Date
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		role?: string
+		updatedAt: Date
+	}
 }
 
 const InventorySchema: Schema<IInventory> = new mongoose.Schema(
@@ -21,43 +34,47 @@ const InventorySchema: Schema<IInventory> = new mongoose.Schema(
 			required: [true, 'inventoryId is required'],
 			unique: true,
 			trim: true,
+			index: true,
 		},
 		productId: {
 			type: String,
 			required: [true, 'productId is required'],
 			trim: true,
 		},
-		onHand: {
-			type: Number,
-			required: true,
-			min: 0,
-		},
-		reserved: {
-			type: Number,
-			required: true,
-			min: 0,
-			default: 0,
-		},
-		reorderLevel: {
-			type: Number,
-			required: true,
-			min: 0,
-			default: 0,
-		},
-		createdBy: {
+		warehouseId: {
 			type: String,
-			required: true,
-			trim: true,
 		},
-		updatedBy: {
+		shelfId: {
 			type: String,
-			trim: true,
+		},
+		quantity: {
+			type: Number,
+		},
+		minQuantity: {
+			type: Number,
+		},
+		maxQuantity: {
+			type: Number,
+		},
+		reservedQuantity: {
+			type: Number,
+		},
+		availableQuantity: {
+			type: Number,
+		},
+		lastCountDate: {
+			type: Date,
 		},
 	},
 	{ timestamps: true },
 )
 
 tenantScopedSchema(InventorySchema)
+
+InventorySchema.index(
+	{ tenantId: 1, productId: 1 },
+	{ unique: true, sparse: true },
+)
 
 export const Inventory = mongoose.model<IInventory>(
 	'Inventory',
