@@ -244,8 +244,6 @@ export type TenantUserSummary = {
 	role: TenantRole
 	firstName: string
 	lastName: string
-	createdAt: Date
-	updatedAt: Date
 }
 export type AddTenantResponse = {
 	tenantId: string

@@ -12,13 +12,20 @@ export interface IUser extends Document {
 	role: TenantRole
 	tokenVersion: number
 	avatarColorId: number
-	createdAt: Date
-	updatedAt: Date
+	createdBy: {
+		_id: string
+		displayName: string
+		createdAt: Date
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: Date
+	}
 }
 interface UserData {
 	firstName: string
 	lastName: string
-	// isInternal: boolean
 }
 
 const UserSchema: Schema<IUser> = new mongoose.Schema(
@@ -52,10 +59,6 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
 				minlength: [3, 'lastName must be at least 3 characters long'],
 				maxlength: [30, 'lastName must be less than 30 characters long'],
 			},
-			// isInternal: {
-			// 	type: Boolean,
-			// 	required: [true, 'isInternal is required'],
-			// },
 		},
 		email: {
 			type: String,

@@ -598,8 +598,6 @@ export default class ProductController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
-			createdAt: user.createdAt,
-			updatedAt: user.updatedAt,
 		}
 	}
 
@@ -2921,12 +2919,17 @@ export default class ProductController {
 			user: {
 				firstName: ownerFirstName.trim(),
 				lastName: ownerLastName.trim(),
-				// isInternal: true,
 			},
 			email: normalizedOwnerEmail,
 			password: hashedPassword,
 			role: 'owner',
 			avatarColorId: Math.floor(Math.random() * 1000000),
+			createdBy: {
+				_id: requestContext.userId as string,
+				displayName: `${ownerFirstName.trim()} ${ownerLastName.trim()}`,
+				role: 'owner',
+				createdAt: new Date(),
+			},
 		})
 
 		return {
