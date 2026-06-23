@@ -33,6 +33,7 @@ import ChangePasswordModal from './ChangePasswordModal'
 import IconsViewer from './IconsViewer'
 import { GridIcon } from '../shared/icons/Grid'
 import AddQuickNewEntryModal from './AddQuickNewEntryModal.tsx'
+import { config } from '../config'
 
 interface TopBarProps {
 	navItems: {
@@ -200,15 +201,17 @@ const TopBar = ({
 									e.stopPropagation()
 								}}
 							/>
-							<IconButton
-								aria-label={t('components.topBar.releaseNotes')}
-								icon={<RepeatIcon boxSize={4} />}
-								sx={styles.iconButton}
-								onClick={e => {
-									onOpenIconsViewer()
-									e.stopPropagation()
-								}}
-							/>
+							{config.environment === 'local' ? (
+								<IconButton
+									aria-label={t('components.topBar.releaseNotes')}
+									icon={<RepeatIcon boxSize={4} />}
+									sx={styles.iconButton}
+									onClick={e => {
+										onOpenIconsViewer()
+										e.stopPropagation()
+									}}
+								/>
+							) : null}
 							{isSettingsVisible ? (
 								<IconButton
 									aria-label={t('components.topBar.settings')}

@@ -28,6 +28,9 @@ const resolveApiEndpoint = (): string => {
 const apiEndpoint = resolveApiEndpoint()
 
 export const config = {
+	environment:
+		process.env.REACT_APP_ENVIRONMENT ??
+		(process.env.NODE_ENV === 'development' ? 'local' : undefined),
 	serviceId:
 		process.env.REACT_APP_SERVICE_ID ||
 		process.env.VITE_SERVICE_ID ||
