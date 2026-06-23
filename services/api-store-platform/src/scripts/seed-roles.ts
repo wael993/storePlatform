@@ -49,11 +49,7 @@ const OWNER_READ_ONLY_RESOURCES = [
 	'/warehouses',
 ] as const
 
-const OWNER_CREATE_RESOURCES = [
-	'/brands',
-	'/shelves',
-	'/warehouses',
-] as const
+const OWNER_CREATE_RESOURCES = ['/brands', '/shelves', '/warehouses'] as const
 
 const ADMIN_FULL_ACCESS_RESOURCES = [
 	'/users',

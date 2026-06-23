@@ -136,9 +136,7 @@ const CategoryPage = (_props: CategoryPageProps) => {
 						sx={styles.addButton}
 						variant="ghost"
 					>
-						<Text sx={styles.addButtonText}>
-							{t('common.addCategory')}
-						</Text>
+						<Text sx={styles.addButtonText}>{t('common.addCategory')}</Text>
 					</Button>
 				)}
 			</HStack>

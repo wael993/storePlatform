@@ -97,8 +97,8 @@ const ProductTableMobil = ({
 		seeBuyCost,
 		seeWholesalePrice,
 		seeDiscount,
-		seeLocationShelf,
-		seeLocationWarehouse,
+		// seeLocationShelf,
+		// seeLocationWarehouse,
 	} = useAllowedActions()
 	const productState = PRODUCT_STATE_CONFIG[product.status]
 

@@ -61,6 +61,7 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
 			type: String,
 			required: [true, 'Email is required'],
 			lowercase: true, // Ensure email is stored in lowercase
+			// eslint-disable-next-line no-useless-escape
 			match: [/.+\@.+\..+/, 'Please provide a valid email address'], // Email format validation
 		},
 		password: {

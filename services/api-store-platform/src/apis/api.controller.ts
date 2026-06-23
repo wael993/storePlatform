@@ -4047,7 +4047,8 @@ export default class ProductController {
 			description: shelf.description,
 			createdAt: shelf.createdAt?.toISOString?.(),
 			updatedAt: shelf.updatedAt?.toISOString?.(),
-			createdBy: shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
+			createdBy:
+				shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
 			updatedBy: shelf.updatedBy
 				? {
 						...shelf.updatedBy,
@@ -4087,7 +4088,8 @@ export default class ProductController {
 			description: shelf.description,
 			createdAt: shelf.createdAt?.toISOString?.(),
 			updatedAt: shelf.updatedAt?.toISOString?.(),
-			createdBy: shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
+			createdBy:
+				shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
 			updatedBy: shelf.updatedBy
 				? {
 						...shelf.updatedBy,

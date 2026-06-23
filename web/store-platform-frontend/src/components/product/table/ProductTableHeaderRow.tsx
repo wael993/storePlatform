@@ -91,8 +91,8 @@ const ProductTableHeaderRow = ({
 		seeMinStockQuantity,
 		seeDiscount,
 		seeBuyCost,
-		seeLocationShelf,
-		seeLocationWarehouse,
+		// seeLocationShelf,
+		// seeLocationWarehouse,
 	} = useAllowedActions()
 
 	const getSortingButton = (sortKey: ProductSortHeaderKey) => {

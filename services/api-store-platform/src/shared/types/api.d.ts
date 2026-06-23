@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 interface APIResponse<T> {
 	totalCount: number
 	data: T[]

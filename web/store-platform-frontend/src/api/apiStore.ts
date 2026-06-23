@@ -265,7 +265,7 @@ const getQuery = (
 			CreateCategoryAPIResponse,
 			Pick<Category, 'name' | 'description' | 'parentCategoryId'>
 		>({
-			query: (newCategory) => ({
+			query: newCategory => ({
 				url: 'categories',
 				method: 'POST',
 				body: newCategory,
@@ -277,7 +277,7 @@ const getQuery = (
 			CreateBrandAPIResponse,
 			Pick<Brand, 'name' | 'description'>
 		>({
-			query: (newBrand) => ({
+			query: newBrand => ({
 				url: 'brands',
 				method: 'POST',
 				body: newBrand,
@@ -289,7 +289,7 @@ const getQuery = (
 			CreateShelfAPIResponse,
 			Pick<Shelf, 'shelfId' | 'name' | 'description'>
 		>({
-			query: (newShelf) => ({
+			query: newShelf => ({
 				url: 'shelves',
 				method: 'POST',
 				body: newShelf,
@@ -301,7 +301,7 @@ const getQuery = (
 			CreateWarehouseAPIResponse,
 			Pick<Warehouse, 'warehouseId' | 'name' | 'code'>
 		>({
-			query: (newWarehouse) => ({
+			query: newWarehouse => ({
 				url: 'warehouses',
 				method: 'POST',
 				body: newWarehouse,
@@ -465,19 +465,18 @@ const getQuery = (
 			},
 			invalidatesTags: ['products', 'product'],
 		}),
-		postProduct: builder.mutation<
-			CreateProductAPIResponse,
-			CreateProductInput
-		>({
-			query: (newProduct: CreateProductInput) => {
-				return {
-					url: 'product',
-					method: 'POST',
-					body: newProduct,
-				}
+		postProduct: builder.mutation<CreateProductAPIResponse, CreateProductInput>(
+			{
+				query: (newProduct: CreateProductInput) => {
+					return {
+						url: 'product',
+						method: 'POST',
+						body: newProduct,
+					}
+				},
+				invalidatesTags: ['products'],
 			},
-			invalidatesTags: ['products'],
-		}),
+		),
 		getExpenses: builder.query<Expense[], void>({
 			query: () => ({
 				url: 'expenses',

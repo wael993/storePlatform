@@ -47,28 +47,31 @@ export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
 	[TENANT_ACCESSIBLE_PAGE.SETTINGS]: 'components.pageHeaders.settings',
 }
 
-export const TENANT_PAGE_DESCRIPTION_KEYS: Record<TenantAccessiblePage, string> =
-	{
-		[TENANT_ACCESSIBLE_PAGE.USERS]: 'tenants.accessiblePages.usersDescription',
-		[TENANT_ACCESSIBLE_PAGE.PRODUCTS]:
-			'tenants.accessiblePages.productsDescription',
-		[TENANT_ACCESSIBLE_PAGE.DAILY]: 'tenants.accessiblePages.dailyDescription',
-		[TENANT_ACCESSIBLE_PAGE.SUPPLIERS]:
-			'tenants.accessiblePages.suppliersDescription',
-		[TENANT_ACCESSIBLE_PAGE.CUSTOMERS]:
-			'tenants.accessiblePages.customersDescription',
-		[TENANT_ACCESSIBLE_PAGE.CATEGORIES]:
-			'tenants.accessiblePages.categoriesDescription',
-		[TENANT_ACCESSIBLE_PAGE.PARTNERS]:
-			'tenants.accessiblePages.partnersDescription',
-		[TENANT_ACCESSIBLE_PAGE.ORDERS]: 'tenants.accessiblePages.ordersDescription',
-		[TENANT_ACCESSIBLE_PAGE.INVOICE]:
-			'tenants.accessiblePages.invoicesDescription',
-		[TENANT_ACCESSIBLE_PAGE.INVENTORY]:
-			'tenants.accessiblePages.inventoryDescription',
-		[TENANT_ACCESSIBLE_PAGE.REPORTS]:
-			'tenants.accessiblePages.reportsDescription',
-		[TENANT_ACCESSIBLE_PAGE.BARCODE]: 'tenants.accessiblePages.barcodeDescription',
-		[TENANT_ACCESSIBLE_PAGE.SETTINGS]:
-			'tenants.accessiblePages.settingsDescription',
-	}
+export const TENANT_PAGE_DESCRIPTION_KEYS: Record<
+	TenantAccessiblePage,
+	string
+> = {
+	[TENANT_ACCESSIBLE_PAGE.USERS]: 'tenants.accessiblePages.usersDescription',
+	[TENANT_ACCESSIBLE_PAGE.PRODUCTS]:
+		'tenants.accessiblePages.productsDescription',
+	[TENANT_ACCESSIBLE_PAGE.DAILY]: 'tenants.accessiblePages.dailyDescription',
+	[TENANT_ACCESSIBLE_PAGE.SUPPLIERS]:
+		'tenants.accessiblePages.suppliersDescription',
+	[TENANT_ACCESSIBLE_PAGE.CUSTOMERS]:
+		'tenants.accessiblePages.customersDescription',
+	[TENANT_ACCESSIBLE_PAGE.CATEGORIES]:
+		'tenants.accessiblePages.categoriesDescription',
+	[TENANT_ACCESSIBLE_PAGE.PARTNERS]:
+		'tenants.accessiblePages.partnersDescription',
+	[TENANT_ACCESSIBLE_PAGE.ORDERS]: 'tenants.accessiblePages.ordersDescription',
+	[TENANT_ACCESSIBLE_PAGE.INVOICE]:
+		'tenants.accessiblePages.invoicesDescription',
+	[TENANT_ACCESSIBLE_PAGE.INVENTORY]:
+		'tenants.accessiblePages.inventoryDescription',
+	[TENANT_ACCESSIBLE_PAGE.REPORTS]:
+		'tenants.accessiblePages.reportsDescription',
+	[TENANT_ACCESSIBLE_PAGE.BARCODE]:
+		'tenants.accessiblePages.barcodeDescription',
+	[TENANT_ACCESSIBLE_PAGE.SETTINGS]:
+		'tenants.accessiblePages.settingsDescription',
+}

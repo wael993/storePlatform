@@ -153,7 +153,9 @@ async function createInitialProducts() {
 		const categoryIds = categories.map(item =>
 			String(item.categoryId ?? item._id),
 		)
-		const supplierIds = suppliers.map(item => String(item.supplierId ?? item._id))
+		const supplierIds = suppliers.map(item =>
+			String(item.supplierId ?? item._id),
+		)
 		const initialProducts = buildProducts(brandIds, categoryIds, supplierIds)
 
 		await Product.deleteMany({

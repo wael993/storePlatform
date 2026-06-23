@@ -165,10 +165,14 @@ const CategoryListItem = ({
 				>
 					<Skeleton isLoaded={!isLoading}>
 						<Text sx={styles.text}>
-							{category.createdAt ? formatDate(new Date(category.createdAt)) : ''}
+							{category.createdAt
+								? formatDate(new Date(category.createdAt))
+								: ''}
 						</Text>
 						<Text sx={styles.text}>
-							{category.createdAt ? formatDate(new Date(category.createdAt)) : ''}
+							{category.createdAt
+								? formatDate(new Date(category.createdAt))
+								: ''}
 						</Text>
 					</Skeleton>
 				</Flex>
