@@ -16,8 +16,8 @@ export interface IStockMoving extends Document {
 		| 'adjustment'
 	quantity: number
 	unitCost: number
-	referenceType: string
-	referenceId: string
+	referenceType: string //buying_invoice//selling_invoice
+	referenceId: string //BI-1001//SI-1001
 	note?: string
 	createdBy: {
 		_id: string

@@ -8,6 +8,7 @@ export interface IInventory extends Document {
 	warehouseId?: string
 	shelfId?: string
 	quantity?: number
+	averageCost?: number
 	minQuantity?: number // low stock alert
 	maxQuantity?: number // overstock alert
 	reservedQuantity?: number // reserved for pending orders
@@ -48,6 +49,9 @@ const InventorySchema: Schema<IInventory> = new mongoose.Schema(
 			type: String,
 		},
 		quantity: {
+			type: Number,
+		},
+		averageCost: {
 			type: Number,
 		},
 		minQuantity: {

@@ -8,7 +8,6 @@ export interface IBuyingInvoiceItem extends Document {
 	invoiceNumber: string
 	items: Array<{
 		productId: string
-		name: string
 		quantity: number
 		unitPrice: number
 	}>
@@ -40,7 +39,6 @@ const BuyingInvoiceItemSchema = new Schema<IBuyingInvoiceItem>({
 	items: [
 		{
 			productId: { type: String },
-			name: { type: String },
 			quantity: { type: Number, min: 1 },
 			unitPrice: { type: Number, min: 0 },
 		},

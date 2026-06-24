@@ -19,7 +19,7 @@ const TenantLayout = () => {
 	const navigate = useNavigate()
 
 	const { isAdmin, isOwnerOrAdmin, user } = useUser()
-	console.log('🚀 ~ TenantLayout ~ user:', user)
+
 	useTenantRouteGuard(user?.accessiblePages)
 
 	const enabledActions = getEnabledActions()
