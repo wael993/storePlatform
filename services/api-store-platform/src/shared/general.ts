@@ -18,4 +18,5 @@ export const COLLECTION_NAMES = {
 	BRANDS: 'brands',
 	SHELVES: 'shelves',
 	WAREHOUSES: 'warehouses',
+	STOCK_MOVINGS: 'stockMovings',
 } as const
