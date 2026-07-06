@@ -45,6 +45,12 @@ const ACTION_TO_HTTP_METHODS: Record<TenantAction, string[]> = {
 	delete: ['DELETE'],
 }
 
+// Side-effect resources created by other operations (e.g. stock movements on invoice save).
+const IMPLICIT_CREATE_SOURCES: Partial<Record<TenantResource, TenantResource[]>> =
+	{
+		[COLLECTION_NAMES.STOCK_MOVINGS]: [COLLECTION_NAMES.INVOICES],
+	}
+
 let dynamicRoleCache: {
 	expiresAt: number
 	matrix: Record<TenantRole, TenantPermissionMap> | null
@@ -69,6 +75,7 @@ const createEmptyPermissionMap = (): TenantPermissionMap => ({
 	partners: [],
 	expenses: [],
 	currencies: [],
+	stockMovings: [],
 	units: [],
 	categories: [],
 	shelves: [],
@@ -342,6 +349,19 @@ export const ensureTenantAccess = async (
 	const permissions = dynamicEngine.matrix[tenantContext.role][resource] || []
 
 	if (!permissions.includes(action)) {
+		if (action === 'create') {
+			const sourceResources = IMPLICIT_CREATE_SOURCES[resource] || []
+
+			for (const sourceResource of sourceResources) {
+				const sourcePermissions =
+					dynamicEngine.matrix[tenantContext.role][sourceResource] || []
+
+				if (sourcePermissions.includes('create')) {
+					return
+				}
+			}
+		}
+
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 			`Role ${tenantContext.role} cannot ${action} ${resource}.`,
