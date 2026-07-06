@@ -37,8 +37,18 @@ export interface IDailyAction extends Document {
 	singleUnitPrice?: string
 	totalPrice?: string
 	note?: string
-	createdBy: string
-	updatedBy?: string
+	createdBy: {
+		_id: string
+		displayName: string
+		role?: string
+		createdAt: Date
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		role?: string
+		updatedAt: Date
+	}
 	createdAt: Date
 	updatedAt: Date
 }
@@ -144,13 +154,6 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 		note: {
 			type: String,
 			trim: true,
-		},
-		createdBy: {
-			type: String,
-			required: [true, 'createdBy is required'],
-		},
-		updatedBy: {
-			type: String,
 		},
 	},
 	{

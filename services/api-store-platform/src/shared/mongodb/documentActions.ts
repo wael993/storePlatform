@@ -14,9 +14,7 @@ export type EntityModel = Model<any>
 
 const STRING_AUDIT_RESOURCES = new Set<TenantResource>([
 	COLLECTION_NAMES.ORDERS,
-	COLLECTION_NAMES.INVOICES,
 	COLLECTION_NAMES.REPORTS,
-	COLLECTION_NAMES.DAILY_ACTIONS,
 ])
 
 const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
@@ -36,6 +34,7 @@ const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.BRANDS]: '_id',
 	[COLLECTION_NAMES.SHELVES]: 'shelfId',
 	[COLLECTION_NAMES.WAREHOUSES]: 'warehouseId',
+	[COLLECTION_NAMES.STOCK_MOVINGS]: 'stockMovingId',
 	[COLLECTION_NAMES.USERS]: '_id',
 	[COLLECTION_NAMES.TENANTS]: '_id',
 }
