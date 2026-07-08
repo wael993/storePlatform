@@ -1742,7 +1742,11 @@ export default class StoreRoutes extends PlatformValidator {
 		const requestContext = this.getRequestContext(request)
 
 		try {
-			const resp = await this.productController.getInvoices(requestContext)
+			const resp = await this.productController.getInvoices(requestContext, {
+				searchText: request.query.searchText,
+				status: request.query.status,
+				issuedDate: request.query.issuedDate,
+			})
 
 			response.status(200).json(resp)
 		} catch (error: any) {

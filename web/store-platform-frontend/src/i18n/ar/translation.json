@@ -78,7 +78,8 @@
 			"inventoryDescription": "تتبع المخزون والمستودعات.",
 			"reportsDescription": "تقارير وتحليلات الأعمال.",
 			"barcodeDescription": "سير عمل مسح الباركود.",
-			"settingsDescription": "إعدادات وتفضيلات المستأجر."
+			"settingsDescription": "إعدادات وتفضيلات المستأجر.",
+			"sellingInvoicesDescription": "إدارة الفواتير المباعة."
 		}
 	},
 	"login": {
@@ -378,7 +379,105 @@
 			"unitCode": "رمز الوحدة",
 			"expenseCode": "رمز النفقات"
 		},
+		"sellingInvoices": {
+			"title": "فواتير المبيعات",
+			"newInvoice": "فاتورة جديدة",
+			"newCreditInvoice": "فاتورة آجلة جديدة",
+			"newInvoiceOptions": "خيارات الفاتورة الجديدة",
+			"barcodeSearchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
+			"barcodeSearchHint": "اضغط Enter لبدء فاتورة جديدة",
+			"todaysInvoices": "فواتير اليوم",
+			"todayDate": "اليوم، {{date}}",
+			"searchPlaceholder": "ابحث عن فاتورة أو عميل...",
+			"filters": "تصفية",
+			"settings": "الإعدادات",
+			"empty": "لا توجد فواتير.",
+			"summary": {
+				"todaySales": "مبيعات اليوم",
+				"paidInvoices": "الفواتير المدفوعة",
+				"creditInvoices": "الفواتير الآجلة",
+				"totalReceivable": "إجمالي المستحقات",
+				"averageOrder": "متوسط الطلب"
+			},
+			"status": {
+				"all": "الكل",
+				"paid": "مدفوعة",
+				"credit": "آجلة",
+				"partial": "جزئية",
+				"draft": "مسودة",
+				"cancelled": "ملغاة"
+			},
+			"paymentType": {
+				"cash": "نقداً",
+				"credit": "آجل (ادفع لاحقاً)",
+				"card": "بطاقة"
+			},
+			"columns": {
+				"time": "الوقت",
+				"customer": "العميل",
+				"status": "الحالة",
+				"paymentType": "نوع الدفع",
+				"items": "العناصر",
+				"total": "الإجمالي",
+				"paid": "المدفوع",
+				"due": "المتبقي",
+				"actions": "إجراءات"
+			},
+			"actions": {
+				"view": "عرض",
+				"print": "طباعة",
+				"more": "المزيد"
+			},
+			"pagination": {
+				"showing": "عرض {{start}} إلى {{end}} من {{total}} فاتورة"
+			},
+			"drawer": {
+				"title": "فاتورة مبيعات جديدة",
+				"close": "إغلاق",
+				"invoiceDate": "تاريخ الفاتورة",
+				"invoiceTime": "الوقت",
+				"salesPerson": "مندوب المبيعات",
+				"customer": "العميل",
+				"walkInCustomer": "عميل عابر",
+				"paymentType": "نوع الدفع",
+				"searchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
+				"addProduct": "إضافة منتج",
+				"scan": "مسح",
+				"searching": "جاري البحث عن المنتجات...",
+				"productNotFound": "المنتج غير موجود",
+				"enterBarcodeOrName": "أدخل باركود أو اسم منتج",
+				"noItems": "لم تتم إضافة منتجات بعد. امسح باركود أو ابحث بالاسم.",
+				"addNote": "+ إضافة ملاحظة",
+				"additionalInfo": "معلومات إضافية",
+				"notePlaceholder": "أدخل الملاحظة هنا...",
+				"printAfterPayment": "طباعة الفاتورة بعد الدفع",
+				"subtotal": "المجموع الفرعي",
+				"discount": "الخصم",
+				"tax": "الضريبة",
+				"grandTotal": "الإجمالي",
+				"paidAmount": "المبلغ المدفوع",
+				"change": "الباقي",
+				"saveDraft": "حفظ كمسودة",
+				"holdInvoice": "تعليق الفاتورة",
+				"payCashAndSave": "دفع نقداً وحفظ",
+				"payCardAndSave": "دفع بالبطاقة وحفظ",
+				"saveCreditInvoice": "حفظ فاتورة آجلة",
+				"removeItem": "حذف العنصر",
+				"saveFailed": "فشل حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
+				"columns": {
+					"product": "المنتج",
+					"barcode": "الباركود",
+					"qty": "الكمية",
+					"unit": "الوحدة",
+					"price": "السعر",
+					"discount": "الخصم",
+					"tax": "الضريبة",
+					"total": "الإجمالي"
+				}
+			}
+		},
 		"pageHeaders": {
+			"sellingInvoices": "فواتير المبيعات",
 			"settings": "الإعدادات",
 			"daily": "اليومية",
 			"products": "المنتجات",

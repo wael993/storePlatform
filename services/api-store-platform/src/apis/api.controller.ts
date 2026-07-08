@@ -78,6 +78,8 @@ import {
 	InventoryDocument,
 	CategoryRequestBody,
 	CategoryDocument,
+	SellingInvoicesListResponse,
+	SellingInvoicesQueryParams,
 	CategoriesResponse,
 	BrandRequestBody,
 	ShelfRequestBody,
@@ -88,6 +90,7 @@ import {
 	CreateBrandResponse,
 	CreateShelfResponse,
 	CreateWarehouseResponse,
+	SellingInvoicesSummary,
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
@@ -138,6 +141,7 @@ import { Category } from '../models/Category'
 import { Brand } from '../models/Brand'
 import { Shelf } from '../models/Shelf'
 import { Warehouse } from '../models/Warehaus'
+import { StockMoving } from '../models/StockMovings'
 
 type TokenPayload = {
 	userId: string
@@ -1555,25 +1559,329 @@ export default class ProductController {
 		return deleteResponse
 	}
 
-	public async getInvoices(requestContext: RequestContext) {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildInvoiceListKey(tenantId)
-		const cachedInvoices = await redisCache.getJson<any[]>(cacheKey)
+	private async ensureInvoiceProductsBelongToTenant(
+		requestContext: RequestContext,
+		items: NonNullable<InvoiceRequestBody['items']>,
+	) {
+		const tenantContext = getTenantContext(requestContext)
+		const requestedProductIds = items.map(item => item.productId)
+		const products = await withTenantScope(
+			Product.find({ productId: { $in: requestedProductIds } }),
+			tenantContext.tenantId,
+		).lean()
 
-		if (cachedInvoices) {
-			return cachedInvoices
+		if (products.length !== requestedProductIds.length) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Invoice items must reference products from the same tenant.',
+			)
+		}
+	}
+
+	private async getInventoryByProductId(
+		requestContext: RequestContext,
+		productId: string,
+	): Promise<InventoryDocument | null> {
+		return this.mongoDbClient.getDocumentByField<InventoryDocument>(
+			requestContext,
+			COLLECTION_NAMES.INVENTORY,
+			Inventory,
+			{ fieldName: 'productId', fieldValue: productId },
+		)
+	}
+
+	private async resolveNextInvoiceNumber(
+		requestContext: RequestContext,
+	): Promise<number> {
+		const tenantContext = getTenantContext(requestContext)
+		const latestInvoice = await withTenantScope(
+			Invoice.findOne({}, { invoiceNumber: 1 }).sort({ createdAt: -1 }).lean(),
+			tenantContext.tenantId,
+		)
+
+		const latestNumber = Number.parseInt(
+			String(latestInvoice?.invoiceNumber ?? '0'),
+			10,
+		)
+
+		return Number.isNaN(latestNumber) ? 1 : latestNumber + 1
+	}
+
+	private deriveInvoicePaymentStatus(
+		grandTotal: number,
+		paidAmount: number,
+	): 'unpaid' | 'partial' | 'paid' {
+		if (paidAmount <= 0) return 'unpaid'
+
+		if (paidAmount + 0.009 >= grandTotal) return 'paid'
+
+		return 'partial'
+	}
+
+	private deriveInvoiceStatus(
+		requestStatus: InvoiceRequestBody['status'],
+		paymentStatus: 'unpaid' | 'partial' | 'paid',
+		paymentType?: InvoiceRequestBody['paymentType'],
+	): NonNullable<InvoiceRequestBody['status']> {
+		if (requestStatus === 'draft' || requestStatus === 'cancelled') {
+			return requestStatus
 		}
 
-		const invoices = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.INVOICES,
-			model: Invoice,
-			sort: { createdAt: 'desc' },
+		if (paymentStatus === 'paid') return 'paid'
+
+		if (paymentStatus === 'partial') return 'partial'
+
+		if (paymentType === 'credit') return 'confirmed'
+
+		return requestStatus ?? 'confirmed'
+	}
+
+	private shouldAdjustInventoryForInvoice(
+		status: NonNullable<InvoiceRequestBody['status']>,
+	): boolean {
+		return !['draft', 'cancelled', 'void', 'pending'].includes(status)
+	}
+
+	private buildSellingInvoicesSummary(
+		invoices: Array<Record<string, any>>,
+	): SellingInvoicesSummary {
+		const todayStart = new Date()
+
+		todayStart.setHours(0, 0, 0, 0)
+
+		const todayEnd = new Date()
+
+		todayEnd.setHours(23, 59, 59, 999)
+
+		const todaysInvoices = invoices.filter(invoice => {
+			const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+
+			return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
 		})
 
-		await redisCache.setJson(cacheKey, invoices.documents)
+		const todaySales = todaysInvoices.reduce(
+			(total, invoice) => total + (Number(invoice.amount) || 0),
+			0,
+		)
 
-		return invoices.documents
+		const paidInvoices = invoices.filter(
+			invoice => invoice.status === 'paid',
+		).length
+
+		const creditInvoices = invoices.filter(
+			invoice =>
+				invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid',
+		).length
+
+		const totalReceivable = invoices.reduce((total, invoice) => {
+			const remaining = Number(invoice.remainingAmount) || 0
+
+			return remaining > 0 ? total + remaining : total
+		}, 0)
+
+		const averageOrder =
+			todaysInvoices.length > 0 ? todaySales / todaysInvoices.length : 0
+
+		return {
+			todaySales,
+			paidInvoices,
+			creditInvoices,
+			totalReceivable,
+			averageOrder,
+		}
+	}
+
+	private mapInvoiceFiltersToUiStatus(invoice: Record<string, any>): string {
+		if (invoice.status === 'draft') return 'draft'
+
+		if (invoice.status === 'cancelled') return 'cancelled'
+
+		if (invoice.status === 'paid') return 'paid'
+
+		if (invoice.status === 'partial') return 'partial'
+
+		if (invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid') {
+			return 'credit'
+		}
+
+		if (invoice.paymentStatus === 'partial') return 'partial'
+
+		return invoice.status ?? 'confirmed'
+	}
+
+	private async validateSaleInventory(
+		requestContext: RequestContext,
+		items: NonNullable<InvoiceRequestBody['items']>,
+	) {
+		for (const item of items) {
+			const inventory = await this.getInventoryByProductId(
+				requestContext,
+				item.productId,
+			)
+
+			if (!inventory) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					`No inventory record found for product ${item.name}.`,
+				)
+			}
+
+			const currentQuantity = Number(inventory.quantity ?? 0)
+
+			if (currentQuantity < item.quantity) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					`Insufficient stock for ${item.name}. Available: ${currentQuantity}, requested: ${item.quantity}.`,
+				)
+			}
+		}
+	}
+
+	private async applySaleInventoryAdjustments(
+		requestContext: RequestContext,
+		invoiceId: string,
+		invoiceNumber: string,
+		items: NonNullable<InvoiceRequestBody['items']>,
+	) {
+		for (const item of items) {
+			const inventory = await this.getInventoryByProductId(
+				requestContext,
+				item.productId,
+			)
+
+			if (!inventory) continue
+
+			const currentQuantity = Number(inventory.quantity ?? 0)
+			const nextQuantity = currentQuantity - item.quantity
+			const reservedQuantity = Number(inventory.reservedQuantity ?? 0)
+			const nextAvailableQuantity = Math.max(0, nextQuantity - reservedQuantity)
+
+			await this.mongoDbClient.updateDocument(
+				{
+					collectionName: COLLECTION_NAMES.INVENTORY,
+					id: inventory.inventoryId,
+				},
+				requestContext,
+				Inventory,
+				{
+					quantity: nextQuantity,
+					availableQuantity: nextAvailableQuantity,
+				},
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.STOCK_MOVINGS,
+					data: {
+						stockMovingId: uuidv4(),
+						productId: item.productId,
+						warehouseId: inventory.warehouseId,
+						type: 'sale',
+						quantity: item.quantity,
+						unitCost: item.unitPrice,
+						referenceType: 'selling_invoice',
+						referenceId: invoiceId,
+						note: `Invoice #${invoiceNumber}`,
+					},
+				},
+				StockMoving,
+				requestContext,
+			)
+
+			await this.invalidateEntityCache(
+				'inventory',
+				requestContext,
+				inventory.inventoryId,
+			)
+		}
+	}
+
+	public async getInvoices(
+		requestContext: RequestContext,
+		filters: SellingInvoicesQueryParams = {},
+	): Promise<SellingInvoicesListResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildInvoiceListKey(tenantId)
+		const cachedInvoices = await redisCache.getJson<
+			SellingInvoicesListResponse | any[]
+		>(cacheKey)
+
+		let invoices: Array<Record<string, any>>
+
+		if (Array.isArray(cachedInvoices)) {
+			invoices = cachedInvoices
+		} else if (cachedInvoices?.invoices) {
+			invoices = cachedInvoices.invoices
+		} else {
+			const invoiceResponse = await this.mongoDbClient.getDocuments({
+				requestContext,
+				collectionName: COLLECTION_NAMES.INVOICES,
+				model: Invoice,
+				sort: { createdAt: 'desc' },
+			})
+
+			invoices = invoiceResponse.documents
+		}
+
+		const normalizedSearch = filters.searchText?.trim().toLowerCase()
+
+		const filteredInvoices = invoices.filter((invoice: Record<string, any>) => {
+			const uiStatus = this.mapInvoiceFiltersToUiStatus(invoice)
+
+			if (
+				filters.status &&
+				filters.status !== 'all' &&
+				uiStatus !== filters.status
+			) {
+				return false
+			}
+
+			if (filters.issuedDate) {
+				const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+				const filterDate = new Date(filters.issuedDate)
+
+				if (!issuedAt) return false
+
+				const sameDay =
+					issuedAt.getFullYear() === filterDate.getFullYear() &&
+					issuedAt.getMonth() === filterDate.getMonth() &&
+					issuedAt.getDate() === filterDate.getDate()
+
+				if (!sameDay) return false
+			}
+
+			if (!normalizedSearch) return true
+
+			const invoiceNumber = String(invoice.invoiceNumber ?? '').toLowerCase()
+			const customerName = String(invoice.customerName ?? '').toLowerCase()
+
+			return (
+				invoiceNumber.includes(normalizedSearch) ||
+				customerName.includes(normalizedSearch)
+			)
+		})
+
+		const summary = this.buildSellingInvoicesSummary(invoices)
+		const nextInvoiceNumber =
+			await this.resolveNextInvoiceNumber(requestContext)
+
+		const response: SellingInvoicesListResponse = {
+			invoices: filteredInvoices,
+			summary,
+			nextInvoiceNumber,
+			totalCount: filteredInvoices.length,
+		}
+
+		if (!Array.isArray(cachedInvoices) && !cachedInvoices?.invoices) {
+			await redisCache.setJson(cacheKey, {
+				invoices,
+				summary,
+				nextInvoiceNumber,
+				totalCount: invoices.length,
+			})
+		}
+
+		return response
 	}
 
 	public async getInvoice(invoiceId: string, requestContext: RequestContext) {
@@ -1605,15 +1913,74 @@ export default class ProductController {
 		requestBody: InvoiceRequestBody,
 		requestContext: RequestContext,
 	) {
-		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
-		const invoiceData = {
-			invoiceId: uuidv4(),
-			invoiceNumber: requestBody.invoiceNumber,
-			orderId: requestBody.orderId,
-			status: requestBody.status ?? 'pending',
-			amount: requestBody.amount,
-			issuedAt: requestBody.issuedAt,
+		if (!requestBody.items?.length) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Invoice must contain at least one item.',
+			)
 		}
+
+		await this.ensureInvoiceProductsBelongToTenant(
+			requestContext,
+			requestBody.items,
+		)
+
+		const grandTotal =
+			requestBody.amount ??
+			requestBody.totalAmount ??
+			requestBody.items.reduce(
+				(total, item) =>
+					total + (item.lineTotal ?? item.quantity * item.unitPrice),
+				0,
+			)
+
+		const paidAmount = requestBody.paidAmount ?? 0
+		const paymentStatus =
+			requestBody.paymentStatus ??
+			this.deriveInvoicePaymentStatus(grandTotal, paidAmount)
+
+		const status = this.deriveInvoiceStatus(
+			requestBody.status,
+			paymentStatus,
+			requestBody.paymentType,
+		)
+
+		const remainingAmount =
+			requestBody.remainingAmount ?? Math.max(0, grandTotal - paidAmount)
+
+		const invoiceId = uuidv4()
+		const invoiceNumber =
+			requestBody.invoiceNumber ??
+			String(await this.resolveNextInvoiceNumber(requestContext))
+
+		const invoiceData = {
+			invoiceId,
+			invoiceNumber,
+			orderId: requestBody.orderId,
+			customerId: requestBody.customerId,
+			customerName: requestBody.customerName,
+			salesPerson: requestBody.salesPerson,
+			paymentType: requestBody.paymentType,
+			items: requestBody.items,
+			status,
+			paymentStatus,
+			paidAmount,
+			remainingAmount,
+			amount: grandTotal,
+			totalAmount: requestBody.totalAmount ?? grandTotal,
+			totalTax: requestBody.totalTax ?? 0,
+			totalDiscount: requestBody.totalDiscount ?? 0,
+			notes: requestBody.notes,
+			printAfterPayment: requestBody.printAfterPayment ?? false,
+			warehouseId: requestBody.warehouseId,
+			issuedAt: requestBody.issuedAt
+				? new Date(requestBody.issuedAt)
+				: new Date(),
+		}
+
+		// if (this.shouldAdjustInventoryForInvoice(status)) {
+		// 	await this.validateSaleInventory(requestContext, requestBody.items)
+		// }
 
 		const createInvoiceResponse = await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.INVOICES, data: invoiceData },
@@ -1621,13 +1988,26 @@ export default class ProductController {
 			requestContext,
 		)
 
+		if (this.shouldAdjustInventoryForInvoice(status)) {
+			await this.applySaleInventoryAdjustments(
+				requestContext,
+				invoiceId,
+				invoiceNumber,
+				requestBody.items,
+			)
+		}
+
 		await this.invalidateEntityCache(
 			'invoices',
 			requestContext,
 			invoiceData.invoiceId,
 		)
 
-		return { _id: createInvoiceResponse._id }
+		return {
+			_id: createInvoiceResponse._id,
+			invoiceId,
+			invoiceNumber,
+		}
 	}
 
 	public async patchInvoice(
@@ -1675,7 +2055,7 @@ export default class ProductController {
 			return cachedInventory
 		}
 
-		const inventory = await this.mongoDbClient.getDocuments({
+		const { documents: inventory } = await this.mongoDbClient.getDocuments({
 			requestContext,
 			collectionName: COLLECTION_NAMES.INVENTORY,
 			model: Inventory,
@@ -1684,7 +2064,7 @@ export default class ProductController {
 
 		await redisCache.setJson(cacheKey, inventory)
 
-		return inventory.documents
+		return inventory
 	}
 
 	public async getInventoryItem(
@@ -1794,11 +2174,6 @@ export default class ProductController {
 			model: Category,
 			sort: { name: 1 },
 		})
-
-		console.log(
-			'🚀 ~ ProductController ~ getCategories ~ categories:',
-			categories,
-		)
 
 		const data = categories.documents.map((category: CategoryDocument) => ({
 			categoryId: category.categoryId,
@@ -2734,10 +3109,20 @@ export default class ProductController {
 				)
 			}
 
+			console.log(
+				'🚀 ~ ProductController ~ patchTenant ~ sanitizedPages.length:',
+				sanitizedPages.length,
+			)
+
+			console.log(
+				'🚀 ~ ProductController ~ patchTenant ~ requestBody.accessiblePages.length:',
+				requestBody.accessiblePages.length,
+			)
+
 			if (sanitizedPages.length !== requestBody.accessiblePages.length) {
 				throw new BusinessLogicError(
 					ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
-					'One or more accessible pages are invalid.',
+					'One or more accessible pages are invalid.....',
 				)
 			}
 

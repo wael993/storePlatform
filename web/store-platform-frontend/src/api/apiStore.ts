@@ -4,6 +4,7 @@ import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
+import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 
 interface LoginData {
 	email: string
@@ -59,6 +60,65 @@ export interface ProductsResponse {
 export interface ProductFilterValueOption {
 	value: string
 	label: string
+}
+
+export interface SellingInvoicesQueryParams {
+	searchText?: string
+	status?: string
+	issuedDate?: string
+}
+
+export interface PostSellingInvoiceBody {
+	invoiceNumber?: string
+	customerId?: string
+	customerName?: string
+	salesPerson?: string
+	paymentType?: 'cash' | 'card' | 'credit'
+	items: Array<{
+		productId: string
+		name: string
+		barcode?: string
+		quantity: number
+		unit?: string
+		unitPrice: number
+		discount?: number
+		discountIsPercent?: boolean
+		taxRate?: number
+		lineTotal?: number
+	}>
+	status?: string
+	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	paidAmount?: number
+	remainingAmount?: number
+	amount?: number
+	totalAmount?: number
+	totalTax?: number
+	totalDiscount?: number
+	notes?: string
+	printAfterPayment?: boolean
+	issuedAt?: string
+}
+
+export interface SellingInvoicesApiResponse {
+	invoices: ApiSellingInvoice[]
+	summary: {
+		todaySales: number
+		paidInvoices: number
+		creditInvoices: number
+		totalReceivable: number
+		averageOrder: number
+	}
+	nextInvoiceNumber: number
+	totalCount: number
+}
+
+export interface InventoryItem {
+	inventoryId: string
+	productId: string
+	warehouseId?: string
+	shelfId?: string
+	quantity?: number
+	availableQuantity?: number
 }
 
 export interface ProductFilterValuesResponse {
@@ -840,6 +900,36 @@ const getQuery = (
 				'supplier',
 			],
 		}),
+
+		getSellingInvoices: builder.query<
+			SellingInvoicesApiResponse,
+			SellingInvoicesQueryParams | undefined
+		>({
+			query: (params = {}) => ({
+				url: 'invoices',
+				params,
+			}),
+			providesTags: ['invoices'],
+		}),
+
+		postSellingInvoice: builder.mutation<
+			{ _id: string; invoiceId: string; invoiceNumber: string },
+			PostSellingInvoiceBody
+		>({
+			query: body => ({
+				url: 'invoices',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['invoices', 'inventory', 'products'],
+		}),
+
+		getInventory: builder.query<InventoryItem[], void>({
+			query: () => ({
+				url: 'inventory',
+			}),
+			providesTags: ['inventory'],
+		}),
 	}
 }
 
@@ -907,4 +997,7 @@ export const {
 	useCreateExpenseMutation,
 	useUpdateExpenseMutation,
 	useDeleteExpenseMutation,
+	useGetSellingInvoicesQuery,
+	usePostSellingInvoiceMutation,
+	useGetInventoryQuery,
 } = storeApi

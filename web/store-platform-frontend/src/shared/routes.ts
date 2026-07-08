@@ -15,6 +15,7 @@ export const RoutePaths = {
 	DAILY: withBasePath('/daily'),
 	ORDERS: withBasePath('/orders'),
 	INVOICES: withBasePath('/invoices'),
+	SELLING_INVOICES: withBasePath('/selling-invoices'),
 	CUSTOMERS: withBasePath('/customers'),
 	SINGLE_CUSTOMER: withBasePath('/customers/:customerId'),
 	CATEGORIES: withBasePath('/categories'),
@@ -56,6 +57,7 @@ export const fullPaths = {
 	TENANTS_LIST: RoutePaths.TENANTS_LIST,
 	SETTINGS: RoutePaths.SETTINGS,
 	CUSTOMER_MODAL: RoutePaths.CUSTOMER_MODAL,
+	SELLING_INVOICES: RoutePaths.SELLING_INVOICES,
 }
 
 export const routeLabelKeys = {
@@ -79,6 +81,7 @@ export const routeLabelKeys = {
 	ADD_NEW_TENANT: 'navigation.addTenant',
 	TENANTS_LIST: 'tenants.title',
 	STORE_PLATFORM: 'appTitle',
+	SELLING_INVOICES: 'components.pageHeaders.sellingInvoices',
 } as const
 
 export const getRouteLabel = (path: string, fallback = '') => {
@@ -97,6 +100,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.SETTINGS]: routeLabelKeys.SETTINGS,
 		[RoutePaths.ADD_NEW_TENANT]: routeLabelKeys.ADD_NEW_TENANT,
 		[RoutePaths.TENANTS_LIST]: routeLabelKeys.TENANTS_LIST,
+		[RoutePaths.SELLING_INVOICES]: routeLabelKeys.SELLING_INVOICES,
 	}
 	const labelKey = routeLabelKeyByPath[path]
 
@@ -315,6 +319,20 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
+	const sellingInvoices: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'selling-invoices',
+			name: t(routeLabelKeys.SELLING_INVOICES),
+			href: fullPaths.SELLING_INVOICES,
+			isCurrentPage: true,
+		},
+	]
 	const invoices: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -412,5 +430,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		addNewTenant,
 		tenantsList,
 		product,
+		sellingInvoices,
 	}
 }

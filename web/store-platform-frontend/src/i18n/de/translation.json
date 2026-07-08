@@ -77,7 +77,8 @@
 			"inventoryDescription": "Bestands- und Inventarverfolgung.",
 			"reportsDescription": "Geschäftsberichte und Analysen.",
 			"barcodeDescription": "Barcode-Scan-Workflow.",
-			"settingsDescription": "Mandanteneinstellungen und Präferenzen."
+			"settingsDescription": "Mandanteneinstellungen und Präferenzen.",
+			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung."
 		}
 	},
 	"login": {
@@ -363,7 +364,105 @@
 				"addWarehouseFailed": "Lager konnte nicht hinzugefügt werden"
 			}
 		},
+		"sellingInvoices": {
+			"title": "Verkaufsrechnungen",
+			"newInvoice": "Neue Rechnung",
+			"newCreditInvoice": "Neue Kreditrechnung",
+			"newInvoiceOptions": "Optionen für neue Rechnung",
+			"barcodeSearchPlaceholder": "Barcode scannen oder Produkt suchen...",
+			"barcodeSearchHint": "Enter drücken, um eine neue Rechnung zu starten",
+			"todaysInvoices": "Heutige Rechnungen",
+			"todayDate": "Heute, {{date}}",
+			"searchPlaceholder": "Rechnung, Kunde suchen...",
+			"filters": "Filter",
+			"settings": "Einstellungen",
+			"empty": "Keine Rechnungen gefunden.",
+			"summary": {
+				"todaySales": "Heutiger Umsatz",
+				"paidInvoices": "Bezahlte Rechnungen",
+				"creditInvoices": "Kreditrechnungen",
+				"totalReceivable": "Gesamtforderungen",
+				"averageOrder": "Durchschnittliche Bestellung"
+			},
+			"status": {
+				"all": "Alle",
+				"paid": "Bezahlt",
+				"credit": "Kredit",
+				"partial": "Teilweise",
+				"draft": "Entwurf",
+				"cancelled": "Storniert"
+			},
+			"paymentType": {
+				"cash": "Bar",
+				"credit": "Kredit (Später zahlen)",
+				"card": "Karte"
+			},
+			"columns": {
+				"time": "Zeit",
+				"customer": "Kunde",
+				"status": "Status",
+				"paymentType": "Zahlungsart",
+				"items": "Artikel",
+				"total": "Gesamt",
+				"paid": "Bezahlt",
+				"due": "Offen",
+				"actions": "Aktionen"
+			},
+			"actions": {
+				"view": "Ansehen",
+				"print": "Drucken",
+				"more": "Weitere Optionen"
+			},
+			"pagination": {
+				"showing": "{{start}} bis {{end}} von {{total}} Rechnungen"
+			},
+			"drawer": {
+				"title": "Neue Verkaufsrechnung",
+				"close": "Schließen",
+				"invoiceDate": "Rechnungsdatum",
+				"invoiceTime": "Uhrzeit",
+				"salesPerson": "Verkäufer",
+				"customer": "Kunde",
+				"walkInCustomer": "Laufkunde",
+				"paymentType": "Zahlungsart",
+				"searchPlaceholder": "Barcode scannen oder Produkt suchen...",
+				"addProduct": "Produkt hinzufügen",
+				"scan": "Scannen",
+				"searching": "Produkte werden gesucht...",
+				"productNotFound": "Produkt nicht gefunden",
+				"enterBarcodeOrName": "Barcode oder Produktname eingeben",
+				"noItems": "Noch keine Produkte hinzugefügt. Barcode scannen oder nach Name suchen.",
+				"addNote": "+ Notiz hinzufügen",
+				"additionalInfo": "Zusätzliche Informationen",
+				"notePlaceholder": "Notiz hier eingeben...",
+				"printAfterPayment": "Rechnung nach Zahlung drucken",
+				"subtotal": "Zwischensumme",
+				"discount": "Rabatt",
+				"tax": "Steuer (15%)",
+				"grandTotal": "Gesamtsumme",
+				"paidAmount": "Bezahlter Betrag",
+				"change": "Wechselgeld",
+				"saveDraft": "Entwurf speichern",
+				"holdInvoice": "Rechnung zurückstellen",
+				"payCashAndSave": "Bar bezahlen & speichern",
+				"payCardAndSave": "Mit Karte bezahlen & speichern",
+				"saveCreditInvoice": "Kreditrechnung speichern",
+				"removeItem": "Artikel entfernen",
+				"saveFailed": "Rechnung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+				"columns": {
+					"product": "Produkt",
+					"barcode": "Barcode",
+					"qty": "Menge",
+					"unit": "Einheit",
+					"price": "Preis",
+					"discount": "Rabatt",
+					"tax": "Steuer",
+					"total": "Gesamt"
+				}
+			}
+		},
 		"pageHeaders": {
+			"sellingInvoices": "Verkaufsrechnungen",
 			"settings": "Einstellungen",
 			"daily": "Täglich",
 			"products": "Produkte",

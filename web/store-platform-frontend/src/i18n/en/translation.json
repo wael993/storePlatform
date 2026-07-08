@@ -78,7 +78,8 @@
 			"inventoryDescription": "Stock and inventory tracking.",
 			"reportsDescription": "Business reports and analytics.",
 			"barcodeDescription": "Barcode scanning workflow.",
-			"settingsDescription": "Tenant settings and preferences."
+			"settingsDescription": "Tenant settings and preferences.",
+			"sellingInvoicesDescription": "Selling invoice management."
 		}
 	},
 	"login": {
@@ -376,7 +377,105 @@
 				"addWarehouseFailed": "Failed to add warehouse"
 			}
 		},
+		"sellingInvoices": {
+			"title": "Selling Invoices",
+			"newInvoice": "New Invoice",
+			"newCreditInvoice": "New Credit Invoice",
+			"newInvoiceOptions": "New invoice options",
+			"barcodeSearchPlaceholder": "Scan barcode or search product...",
+			"barcodeSearchHint": "Press Enter to start a new invoice",
+			"todaysInvoices": "Today's Invoices",
+			"todayDate": "Today, {{date}}",
+			"searchPlaceholder": "Search invoice, customer...",
+			"filters": "Filters",
+			"settings": "Settings",
+			"empty": "No invoices found.",
+			"summary": {
+				"todaySales": "Today's Sales",
+				"paidInvoices": "Paid Invoices",
+				"creditInvoices": "Credit Invoices",
+				"totalReceivable": "Total Receivable",
+				"averageOrder": "Average Order"
+			},
+			"status": {
+				"all": "All",
+				"paid": "Paid",
+				"credit": "Credit",
+				"partial": "Partial",
+				"draft": "Draft",
+				"cancelled": "Cancelled"
+			},
+			"paymentType": {
+				"cash": "Cash",
+				"credit": "Credit (Pay Later)",
+				"card": "Card"
+			},
+			"columns": {
+				"time": "Time",
+				"customer": "Customer",
+				"status": "Status",
+				"paymentType": "Payment Type",
+				"items": "Items",
+				"total": "Total",
+				"paid": "Paid",
+				"due": "Due",
+				"actions": "Actions"
+			},
+			"actions": {
+				"view": "View",
+				"print": "Print",
+				"more": "More options"
+			},
+			"pagination": {
+				"showing": "Showing {{start}} to {{end}} of {{total}} invoices"
+			},
+			"drawer": {
+				"title": "New Selling Invoice",
+				"close": "Close",
+				"invoiceDate": "Invoice Date",
+				"invoiceTime": "Time",
+				"salesPerson": "Sales Person",
+				"customer": "Customer",
+				"walkInCustomer": "Walk-in Customer",
+				"paymentType": "Payment Type",
+				"searchPlaceholder": "Scan barcode or search product...",
+				"addProduct": "Add Product",
+				"scan": "Scan",
+				"searching": "Searching products...",
+				"productNotFound": "Product not found",
+				"enterBarcodeOrName": "Enter a barcode or product name",
+				"noItems": "No products added yet. Scan a barcode or search by name.",
+				"addNote": "+ Add Note",
+				"additionalInfo": "Additional Info",
+				"notePlaceholder": "Enter note here...",
+				"printAfterPayment": "Print invoice after payment",
+				"subtotal": "Subtotal",
+				"discount": "Discount",
+				"tax": "Tax (15%)",
+				"grandTotal": "Grand Total",
+				"paidAmount": "Paid Amount",
+				"change": "Change",
+				"saveDraft": "Save Draft",
+				"holdInvoice": "Hold Invoice",
+				"payCashAndSave": "Pay Cash & Save",
+				"payCardAndSave": "Pay Card & Save",
+				"saveCreditInvoice": "Save Credit Invoice",
+				"removeItem": "Remove item",
+				"saveFailed": "Failed to save invoice. Please try again.",
+				"columns": {
+					"product": "Product",
+					"barcode": "Barcode",
+					"qty": "Qty",
+					"unit": "Unit",
+					"price": "Price",
+					"discount": "Discount",
+					"tax": "Tax",
+					"total": "Total"
+				}
+			}
+		},
 		"pageHeaders": {
+			"sellingInvoices": "Selling Invoices",
 			"settings": "Settings",
 			"daily": "Daily",
 			"products": "Products",

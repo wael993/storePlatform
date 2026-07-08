@@ -23,7 +23,10 @@ const API_SEGMENT_TO_PAGES: Record<string, TenantAccessiblePage[]> = {
 	product: [TENANT_ACCESSIBLE_PAGE.PRODUCTS],
 	'filter-values': [TENANT_ACCESSIBLE_PAGE.PRODUCTS],
 	orders: [TENANT_ACCESSIBLE_PAGE.ORDERS],
-	invoices: [TENANT_ACCESSIBLE_PAGE.INVOICE],
+	invoices: [
+		TENANT_ACCESSIBLE_PAGE.INVOICE,
+		TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES,
+	],
 	inventory: [TENANT_ACCESSIBLE_PAGE.INVENTORY],
 	reports: [TENANT_ACCESSIBLE_PAGE.REPORTS],
 	'daily-actions': [
@@ -70,6 +73,7 @@ export const getRequiredAccessiblePages = (
 	method: string,
 ): TenantAccessiblePage[] | null => {
 	const normalizedPath = requestPath.split('?')[0]
+
 	const relativePath = normalizedPath.startsWith(API_BASE_PATH)
 		? normalizedPath.slice(API_BASE_PATH.length)
 		: normalizedPath

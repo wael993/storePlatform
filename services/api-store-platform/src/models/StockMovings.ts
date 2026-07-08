@@ -89,7 +89,8 @@ const StockMovingSchema: Schema<IStockMoving> = new mongoose.Schema({
 
 tenantScopedSchema(StockMovingSchema)
 StockMovingSchema.index({ tenantId: 1, stockMovingId: 1 }, { unique: true })
-StockMovingSchema.index({ tenantId: 1, productId: 1 }, { unique: true })
+StockMovingSchema.index({ tenantId: 1, productId: 1 })
+StockMovingSchema.index({ tenantId: 1, referenceType: 1, referenceId: 1 })
 
 export const StockMoving = mongoose.model<IStockMoving>(
 	'StockMovings',

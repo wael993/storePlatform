@@ -315,7 +315,7 @@ export const Dropdown = ({
 	)
 
 	return (
-		<Box position="relative" zIndex={isOpen ? 20 : 'auto'}>
+		<Box w="100%" position="relative" zIndex={isOpen ? 20 : 'auto'}>
 			<Menu
 				isOpen={isOpen}
 				autoSelect={false}

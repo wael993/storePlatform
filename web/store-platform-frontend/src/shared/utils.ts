@@ -54,6 +54,7 @@ export const getEnabledActions = () => {
 		isProductsEnabled: enabledActions.has('PRODUCTS'),
 		isOrdersEnabled: enabledActions.has('ORDERS'),
 		isInvoicesEnabled: enabledActions.has('INVOICE'),
+		isSellingInvoicesEnabled: enabledActions.has('SELLING_INVOICES'),
 		isCustomersEnabled: enabledActions.has('CUSTOMERS'),
 		isCategoriesEnabled: enabledActions.has('CATEGORIES'),
 		isSuppliersEnabled: enabledActions.has('SUPPLIERS'),
@@ -77,6 +78,7 @@ export const getGloballyEnabledTenantPages = (
 		PARTNERS: enabledActions.isPartnersEnabled,
 		ORDERS: enabledActions.isOrdersEnabled,
 		INVOICE: enabledActions.isInvoicesEnabled,
+		SELLING_INVOICES: enabledActions.isSellingInvoicesEnabled,
 		INVENTORY: enabledActions.isProductsEnabled,
 		REPORTS: enabledActions.isProductsEnabled,
 		BARCODE: enabledActions.isBarcodeEnabled,
@@ -102,6 +104,7 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantInvoicesEnabled: tenantPages.has('INVOICE'),
 		isTenantUsersEnabled: tenantPages.has('USERS'),
 		isTenantSettingsEnabled: tenantPages.has('SETTINGS'),
+		isTenantSellingInvoicesEnabled: tenantPages.has('SELLING_INVOICES'),
 		isTenantCustomersEnabled: tenantPages.has('CUSTOMERS'),
 		isTenantCategoriesEnabled: tenantPages.has('CATEGORIES'),
 		isTenantSuppliersEnabled: tenantPages.has('SUPPLIERS'),
@@ -146,6 +149,11 @@ export const isTenantRouteAllowed = (
 		[
 			RoutePaths.INVOICES,
 			globalActions.isInvoicesEnabled && tenantActions.isTenantInvoicesEnabled,
+		],
+		[
+			RoutePaths.SELLING_INVOICES,
+			globalActions.isSellingInvoicesEnabled &&
+				tenantActions.isTenantSellingInvoicesEnabled,
 		],
 		[
 			RoutePaths.CUSTOMERS,

@@ -10,6 +10,7 @@ import {
 	ModalOverlay,
 	Text,
 	useDisclosure,
+	VStack,
 } from '@chakra-ui/react'
 import type { ComponentType } from 'react'
 import type { IconProps } from '@chakra-ui/react'
@@ -312,13 +313,15 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 				<ModalOverlay bg="blackAlpha.300" backdropFilter="blur(2px)" />
 				<ModalContent borderRadius={0} m={4}>
 					<ModalHeader sx={styles.header}>
-						<Heading sx={styles.title}>
-							{t('components.quickAdd.title')}
-						</Heading>
-						<Text sx={styles.subtitle}>
-							{t('components.quickAdd.subtitle')}
-						</Text>
-						<ModalCloseButton top={4} alignSelf={isArabic ? 'left' : 'right'} />
+						<VStack alignItems={isArabic ? 'end' : 'start'}>
+							<Heading sx={styles.title}>
+								{t('components.quickAdd.title')}
+							</Heading>
+							<Text sx={styles.subtitle}>
+								{t('components.quickAdd.subtitle')}
+							</Text>
+						</VStack>
+						<ModalCloseButton top={4} />
 					</ModalHeader>
 					<ModalBody py={6} px={{ base: 4, md: 8 }} bg="#FAFAFA">
 						<Grid

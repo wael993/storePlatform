@@ -8,6 +8,7 @@ export const TENANT_ACCESSIBLE_PAGE = {
 	PARTNERS: 'PARTNERS',
 	ORDERS: 'ORDERS',
 	INVOICE: 'INVOICE',
+	SELLING_INVOICES: 'SELLING_INVOICES',
 	INVENTORY: 'INVENTORY',
 	REPORTS: 'REPORTS',
 	BARCODE: 'BARCODE',
@@ -27,6 +28,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 	TENANT_ACCESSIBLE_PAGE.PARTNERS,
 	TENANT_ACCESSIBLE_PAGE.ORDERS,
 	TENANT_ACCESSIBLE_PAGE.INVOICE,
+	TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES,
 	TENANT_ACCESSIBLE_PAGE.BARCODE,
 	TENANT_ACCESSIBLE_PAGE.SETTINGS,
 ]
@@ -41,6 +43,8 @@ export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
 	[TENANT_ACCESSIBLE_PAGE.PARTNERS]: 'components.pageHeaders.partners',
 	[TENANT_ACCESSIBLE_PAGE.ORDERS]: 'components.pageHeaders.orders',
 	[TENANT_ACCESSIBLE_PAGE.INVOICE]: 'components.pageHeaders.invoices',
+	[TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES]:
+		'components.pageHeaders.sellingInvoices',
 	[TENANT_ACCESSIBLE_PAGE.INVENTORY]: 'tenants.accessiblePages.inventory',
 	[TENANT_ACCESSIBLE_PAGE.REPORTS]: 'tenants.accessiblePages.reports',
 	[TENANT_ACCESSIBLE_PAGE.BARCODE]: 'navigation.barcode',
@@ -66,6 +70,8 @@ export const TENANT_PAGE_DESCRIPTION_KEYS: Record<
 	[TENANT_ACCESSIBLE_PAGE.ORDERS]: 'tenants.accessiblePages.ordersDescription',
 	[TENANT_ACCESSIBLE_PAGE.INVOICE]:
 		'tenants.accessiblePages.invoicesDescription',
+	[TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES]:
+		'tenants.accessiblePages.sellingInvoicesDescription',
 	[TENANT_ACCESSIBLE_PAGE.INVENTORY]:
 		'tenants.accessiblePages.inventoryDescription',
 	[TENANT_ACCESSIBLE_PAGE.REPORTS]:

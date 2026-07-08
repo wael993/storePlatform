@@ -34,6 +34,8 @@ export type TagType =
 	| 'currencies'
 	| 'units'
 	| 'expenses'
+	| 'invoices'
+	| 'inventory'
 
 const tagTypes: TagType[] = [
 	'products',
@@ -60,6 +62,8 @@ const tagTypes: TagType[] = [
 	'currencies',
 	'units',
 	'expenses',
+	'invoices',
+	'inventory',
 ]
 
 const baseQuery = fetchBaseQuery({

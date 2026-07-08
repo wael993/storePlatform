@@ -15,7 +15,6 @@ import TenantLayout from './components/TenantLayout'
 import TenantsList from './pages/TenantsList'
 import ProductsPage from './components/product/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
-import InvoicesPage from './pages/InvoicesPage'
 import SettingsPage from './pages/SettingsPage'
 import WelcomePage from './pages/WelcomePage'
 import { useAuth } from './shared/hooks/useAuth'
@@ -23,7 +22,6 @@ import { useUser } from './shared/hooks/useUser'
 import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
 import { getEnabledActions, getTenantActions } from './shared/utils'
 import { RoutePaths } from './shared/routes'
-
 import SupplierPage from './components/supplier/SupplierPage'
 import CustomerPage from './components/customer/CustomerPage'
 import PartnerPage from './components/partner/PartnerPage'
@@ -33,6 +31,7 @@ import CategoryPage from './components/category/CategoryPage'
 import SupplierModal from './components/supplier/SupplierModal'
 import PartnerModal from './components/partner/PartnerModal'
 import ProductModal from './components/product/ProductModal'
+import SellingInvoicesPage from './components/SellingInvoice/SellingInvoicesPage'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -57,7 +56,7 @@ const App = () => {
 		isDailyEnabled,
 		isProductsEnabled,
 		isOrdersEnabled,
-		isInvoicesEnabled,
+		isSellingInvoicesEnabled,
 		isUsersEnabled,
 		isSettingsEnabled,
 		isCustomersEnabled,
@@ -73,7 +72,7 @@ const App = () => {
 		isTenantProductsEnabled,
 		isTenantDailyEnabled,
 		isTenantOrdersEnabled,
-		isTenantInvoicesEnabled,
+		isTenantSellingInvoicesEnabled,
 		isTenantUsersEnabled,
 		isTenantSettingsEnabled,
 		isTenantCustomersEnabled,
@@ -127,8 +126,11 @@ const App = () => {
 							/>
 						)}
 
-						{isInvoicesEnabled && isTenantInvoicesEnabled && (
-							<Route path={RoutePaths.INVOICES} element={<InvoicesPage />} />
+						{isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled && (
+							<Route
+								path={RoutePaths.SELLING_INVOICES}
+								element={<SellingInvoicesPage />}
+							/>
 						)}
 						{isSettingsEnabled && isTenantSettingsEnabled && (
 							<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />

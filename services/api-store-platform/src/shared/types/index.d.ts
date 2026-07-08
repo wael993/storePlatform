@@ -116,11 +116,57 @@ export type OrderRequestBody = {
 	totalAmount: number
 }
 export type InvoiceRequestBody = {
-	invoiceNumber: string
+	invoiceNumber?: string
 	orderId?: string
-	status?: 'pending' | 'paid' | 'void'
-	amount: number
-	issuedAt: Date
+	customerId?: string
+	customerName?: string
+	salesPerson?: string
+	paymentType?: 'cash' | 'card' | 'credit'
+	items?: Array<{
+		productId: string
+		name: string
+		barcode?: string
+		quantity: number
+		unit?: string
+		unitPrice: number
+		discount?: number
+		discountIsPercent?: boolean
+		taxRate?: number
+		lineTotal?: number
+	}>
+	status?: 'draft' | 'confirmed' | 'partial' | 'paid' | 'cancelled' | 'pending' | 'void'
+	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	paidAmount?: number
+	remainingAmount?: number
+	amount?: number
+	totalAmount?: number
+	totalTax?: number
+	totalDiscount?: number
+	notes?: string
+	printAfterPayment?: boolean
+	warehouseId?: string
+	issuedAt?: Date | string
+}
+
+export type SellingInvoicesQueryParams = {
+	searchText?: string
+	status?: string
+	issuedDate?: string
+}
+
+export type SellingInvoicesSummary = {
+	todaySales: number
+	paidInvoices: number
+	creditInvoices: number
+	totalReceivable: number
+	averageOrder: number
+}
+
+export type SellingInvoicesListResponse = {
+	invoices: Array<Record<string, unknown>>
+	summary: SellingInvoicesSummary
+	nextInvoiceNumber: number
+	totalCount: number
 }
 
 export type CategoryRequestBody = {
