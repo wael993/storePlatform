@@ -1,4 +1,5 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
+import { setupListeners } from '@reduxjs/toolkit/query'
 import { config } from '../config'
 import userReducer from './user/reducer'
 import { storeApi } from '../api/apiStore'
@@ -41,5 +42,6 @@ const store = configureStore({
 })
 
 export const persistor = persistStore(store)
+setupListeners(store.dispatch)
 export default store
 export type RootState = ReturnType<typeof store.getState>

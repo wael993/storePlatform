@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useAuth } from './useAuth'
 import { config } from '../../config'
+import { getIsOnline } from '../../offline/connectivity'
+import {
+	hasValidOfflineSession,
+	loadTenantOfflineConfig,
+	setTenantOfflineConfig,
+} from '../../offline/offlineTenantAccess'
+import { initOfflineState } from '../../offline/syncService'
 import { logout, setTenantSession } from '../../store/user/reducer'
 import { RootState } from '../../store/store'
 
@@ -36,6 +43,9 @@ export function useSilentRefresh() {
 	const dispatch = useDispatch()
 	const { isAuthenticated } = useAuth()
 	const accessToken = useSelector((state: RootState) => state.user.accessToken)
+	const tenantId = useSelector(
+		(state: RootState) => state.user.user?.tenantId,
+	)
 
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -43,6 +53,26 @@ export function useSilentRefresh() {
 		if (!isAuthenticated) {
 			if (intervalRef.current) clearInterval(intervalRef.current)
 			return
+		}
+
+		const shouldLogoutOnRefreshFailure = async (options?: {
+			forceLogoutOnFailure?: boolean
+		}): Promise<boolean> => {
+			if (!tenantId) {
+				return options?.forceLogoutOnFailure ?? !accessToken
+			}
+
+			const hasOfflineSession = await hasValidOfflineSession(tenantId)
+
+			if (!getIsOnline() && hasOfflineSession) {
+				return false
+			}
+
+			if (hasOfflineSession && !options?.forceLogoutOnFailure) {
+				return false
+			}
+
+			return options?.forceLogoutOnFailure ?? !accessToken
 		}
 
 		const refreshToken = async (options?: {
@@ -59,6 +89,7 @@ export function useSilentRefresh() {
 
 				if (res.ok) {
 					const data = await res.json()
+					await setTenantOfflineConfig(data.tenantId, data.offlineEnabled)
 					dispatch(
 						setTenantSession({
 							accessToken: data.accessToken,
@@ -66,19 +97,28 @@ export function useSilentRefresh() {
 							tenantName: data.tenantName,
 						}),
 					)
-				} else if (options?.forceLogoutOnFailure ?? !accessToken) {
+				} else if (await shouldLogoutOnRefreshFailure(options)) {
 					dispatch(logout())
 				}
 			} catch {
-				if (options?.forceLogoutOnFailure ?? !accessToken) {
+				if (await shouldLogoutOnRefreshFailure(options)) {
 					dispatch(logout())
 				}
 			}
 		}
 
-		if (shouldRefreshToken(accessToken)) {
-			refreshToken()
+		const initializeSession = async () => {
+			if (tenantId) {
+				await loadTenantOfflineConfig(tenantId)
+				await initOfflineState(tenantId)
+			}
+
+			if (shouldRefreshToken(accessToken)) {
+				await refreshToken()
+			}
 		}
+
+		void initializeSession()
 
 		intervalRef.current = setInterval(
 			() => refreshToken({ forceLogoutOnFailure: true }),
@@ -88,5 +128,5 @@ export function useSilentRefresh() {
 		return () => {
 			if (intervalRef.current) clearInterval(intervalRef.current)
 		}
-	}, [isAuthenticated, accessToken, dispatch])
+	}, [isAuthenticated, accessToken, tenantId, dispatch])
 }

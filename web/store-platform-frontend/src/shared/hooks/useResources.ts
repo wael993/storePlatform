@@ -1,6 +1,10 @@
 import { skipToken } from '@reduxjs/toolkit/query/react'
+import { useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { useGetUserFrontendResourcesQuery } from '../../api/apiStore'
+import { cacheFrontendResources } from '../../offline/localStore'
+import { RootState } from '../../store/store'
 import { AllowedActions } from '../globalEnums'
 import { useUser } from './useUser'
 
@@ -30,9 +34,23 @@ export function useResources(overriddenPath?: string) {
 
 	const currentPath = overriddenPath ?? pathname
 
-	const { data: frontendResources = [] } = useGetUserFrontendResourcesQuery(
-		userId ?? skipToken,
+	const { data: frontendResourcesFromQuery = [] } =
+		useGetUserFrontendResourcesQuery(userId ?? skipToken)
+
+	const frontendResourcesFromStore = useSelector(
+		(state: RootState) => state.frontendResources.frontendResources,
 	)
+
+	const frontendResources =
+		frontendResourcesFromQuery.length > 0
+			? frontendResourcesFromQuery
+			: frontendResourcesFromStore
+
+	useEffect(() => {
+		if (frontendResourcesFromQuery.length > 0) {
+			cacheFrontendResources(frontendResourcesFromQuery)
+		}
+	}, [frontendResourcesFromQuery])
 
 	const allowedActionsForPath = (pathInput: string = currentPath): string[] => {
 		if (!pathInput) return []
@@ -58,13 +76,6 @@ export function useResources(overriddenPath?: string) {
 	}
 
 	return {
-		// hasAccess,
-		// hasAccessOnPath,
-		// allowedActions,
-		// pathAccess,
 		isActionAllowed,
-		// areAnyActionsAllowed,
-		// isSLLightRole,
-		// isHasAccessReady,
 	}
 }

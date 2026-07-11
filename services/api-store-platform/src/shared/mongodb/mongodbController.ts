@@ -89,7 +89,32 @@ export default class MongodbController {
 	private defaultHint =
 		'Please make sure all of the data you are requesting do exist. If you are sure that they should exist, please consult one of the developers'
 
+	private connectionStringHasCredentials(): boolean {
+		return /mongodb(\+srv)?:\/\/[^/]+@/i.test(this.url)
+	}
+
+	private buildMongoClientOptions(): ConstructorParameters<typeof MongoClient>[1] {
+		const options: ConstructorParameters<typeof MongoClient>[1] = {
+			connectTimeoutMS: 300,
+			heartbeatFrequencyMS: 1000,
+		}
+
+		const hasUriCredentials = this.connectionStringHasCredentials()
+		const hasSeparateAuth =
+			Boolean(this.authContext.username) && Boolean(this.authContext.password)
+
+		if (!hasUriCredentials && hasSeparateAuth) {
+			options.auth = this.authContext
+		}
+
+		return options
+	}
+
 	private async checkConnection(): Promise<void> {
+		if (!config.enableChangeStream) {
+			return
+		}
+
 		if (!this.db) {
 			await this.initMongoDbController()
 		}
@@ -181,11 +206,7 @@ export default class MongodbController {
 				entity: EntityType.MONGODB,
 			})
 
-			this.client = new MongoClient(this.url, {
-				auth: this.authContext,
-				connectTimeoutMS: 300,
-				heartbeatFrequencyMS: 1000,
-			})
+			this.client = new MongoClient(this.url, this.buildMongoClientOptions())
 
 			await this.client.connect()
 			this.db = this.client.db(this.databaseName)

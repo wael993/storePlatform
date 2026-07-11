@@ -44,7 +44,13 @@ class RedisCache {
 		}
 
 		if (!config.redis.enabled) {
-			logger.info('Redis cache disabled')
+			logger.info('Redis cache disabled (set REDIS_ENABLED=true and REDIS_HOST/REDIS_PASSWORD)')
+
+			return
+		}
+
+		if (!config.redis.host) {
+			logger.warn('Redis cache disabled (REDIS_HOST is missing)')
 
 			return
 		}

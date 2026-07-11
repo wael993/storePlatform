@@ -518,6 +518,33 @@ export default class StoreRoutes extends PlatformValidator {
 				this.patchUserSettings.bind(this),
 			)
 
+		app
+			.route(`${baseRoute}/sync/bootstrap`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getSyncBootstrap.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/sync/changes`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getSyncChanges.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/sync/push`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.pushSyncChanges.bind(this),
+			)
+
 		app.get('/test', (req, res) => {
 			res.send('OK')
 		})
@@ -1884,8 +1911,6 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const resp = await this.productController.getCategories(requestContext)
 
-			console.log('🚀 ~ StoreRoutes ~ getCategories ~ resp:', resp)
-
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
@@ -2384,6 +2409,80 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		try {
 			await this.productController.patchUserSettings(request, response)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getSyncBootstrap(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getSyncBootstrap(requestContext)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getSyncChanges(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const sinceParam = parseStringQueryParam(request.query.since)
+
+		try {
+			if (!sinceParam) {
+				response
+					.status(400)
+					.json({ message: 'since query parameter is required' })
+
+				return
+			}
+
+			const since = new Date(sinceParam)
+
+			if (Number.isNaN(since.getTime())) {
+				response.status(400).json({ message: 'Invalid since date' })
+
+				return
+			}
+
+			const resp = await this.productController.getSyncChanges(
+				requestContext,
+				since,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async pushSyncChanges(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.pushSyncChanges(
+				requestContext,
+				request.body,
+			)
+
+			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {

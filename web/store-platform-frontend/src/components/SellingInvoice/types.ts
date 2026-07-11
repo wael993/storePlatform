@@ -53,6 +53,7 @@ export interface SellingInvoiceLineItem {
 }
 
 export interface SellingInvoiceDraft {
+	invoiceId: string
 	invoiceNumber: number
 	invoiceDate: string
 	invoiceTime: string

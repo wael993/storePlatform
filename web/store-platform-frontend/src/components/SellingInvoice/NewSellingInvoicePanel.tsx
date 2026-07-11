@@ -37,6 +37,7 @@ import type {
 	SellingInvoicePaymentType,
 } from './types'
 import { formatCurrency } from './utils'
+import { generateId } from '../../offline/utils'
 import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsPauseIcon } from '../../icons/Pause'
 import { AsSaveIcon } from '../icons/Save'
@@ -62,6 +63,7 @@ const createInitialDraft = (
 	paymentType: SellingInvoicePaymentType = 'cash',
 	invoiceNumber = 1,
 ): SellingInvoiceDraft => ({
+	invoiceId: generateId(),
 	invoiceNumber,
 	invoiceDate: dayjs().format('YYYY-MM-DD'),
 	invoiceTime: dayjs().format('HH:mm'),
@@ -280,7 +282,11 @@ const NewSellingInvoicePanel = ({
 			onSaved?.()
 			onClose()
 		} catch (error) {
-			const apiError = error as { data?: { message?: string } }
+			const apiError = error as {
+				data?: { message?: string; code?: string }
+			}
+			if (apiError.data?.code === 'INSUFFICIENT_STOCK_CANCELLED') return
+
 			setSaveError(
 				apiError.data?.message ??
 					t('components.sellingInvoices.drawer.saveFailed'),

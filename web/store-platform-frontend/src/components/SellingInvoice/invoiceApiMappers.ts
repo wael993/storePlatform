@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 
+import { generateId } from '../../offline/utils'
 import {
 	calculateInvoiceTotals,
 	calculateLineItemTotal,
@@ -128,6 +129,8 @@ export const buildInvoiceRequestBody = (
 	).toISOString()
 
 	return {
+		invoiceId: draft.invoiceId,
+		clientMutationId: generateId(),
 		invoiceNumber: String(draft.invoiceNumber),
 		customerId: draft.customerId === 'walk-in' ? undefined : draft.customerId,
 		customerName: draft.customerName,

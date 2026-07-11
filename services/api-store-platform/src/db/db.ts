@@ -10,12 +10,18 @@ if (!config.mongoDB.connectionString) {
 
 const connectDB = async (): Promise<void> => {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString)
-		logger.info('Connected successfully to DB', {
-			entity: EntityType.MONGODB,
+		await mongoose.connect(config.mongoDB.connectionString, {
+			dbName: config.mongoDB.databaseName,
 		})
 
-		console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`)
+		logger.info('Connected successfully to DB', {
+			entity: EntityType.MONGODB,
+			databaseName: config.mongoDB.databaseName,
+		})
+
+		console.log(
+			`✅ MongoDB Connected: ${mongoose.connection.host} (${mongoose.connection.name})`,
+		)
 	} catch (error) {
 		try {
 			const controller = new AbortController()

@@ -5,6 +5,15 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
+import {
+	getIsOnline,
+	markOnline,
+	setOnlineFromFetchResult,
+} from '../offline/connectivity'
+import { filterDailyActionsByParams } from '../offline/dailyActionFilters'
+import { offlineDb } from '../offline/db'
+import { isOfflineCapableForTenant } from '../offline/localStore'
+import { RootState } from '../store/store'
 
 interface LoginData {
 	email: string
@@ -69,6 +78,8 @@ export interface SellingInvoicesQueryParams {
 }
 
 export interface PostSellingInvoiceBody {
+	invoiceId?: string
+	clientMutationId?: string
 	invoiceNumber?: string
 	customerId?: string
 	customerName?: string
@@ -119,6 +130,7 @@ export interface InventoryItem {
 	shelfId?: string
 	quantity?: number
 	availableQuantity?: number
+	reservedQuantity?: number
 }
 
 export interface ProductFilterValuesResponse {
@@ -813,15 +825,39 @@ const getQuery = (
 			DailyAction[],
 			DailyActionFiltersQueryParams | void
 		>({
-			query: filters => ({
-				url: 'daily-actions',
-				method: 'GET',
-				params: buildDailyActionFilterQueryParams(filters ?? {}),
-			}),
-			transformResponse: (response: { data: DailyAction[] }) => {
-				return response.data
-			},
+			async queryFn(filters, api, _extraOptions, baseQuery) {
+				const filterParams = filters ?? {}
+				const tenantId = (api.getState() as RootState).user?.user?.tenantId
+				const capable = await isOfflineCapableForTenant(tenantId)
 
+				const loadFromLocal = async () => {
+					const actions = await offlineDb.dailyActions.toArray()
+					return filterDailyActionsByParams(actions, filterParams)
+				}
+
+				if (!getIsOnline() && capable) {
+					return { data: await loadFromLocal() }
+				}
+
+				const result = await baseQuery({
+					url: 'daily-actions',
+					method: 'GET',
+					params: buildDailyActionFilterQueryParams(filterParams),
+				})
+
+				if (!result.error) {
+					markOnline()
+					const response = result.data as { data: DailyAction[] }
+					return { data: response.data ?? [] }
+				}
+
+				if (result.error.status === 'FETCH_ERROR' && capable) {
+					setOnlineFromFetchResult(true)
+					return { data: await loadFromLocal() }
+				}
+
+				return { error: result.error as FetchBaseQueryError }
+			},
 			providesTags: ['daily-actions'],
 		}),
 

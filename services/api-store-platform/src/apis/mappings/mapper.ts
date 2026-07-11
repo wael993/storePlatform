@@ -248,6 +248,7 @@ export const mapTenantSummary = (tenant: ITenant): TenantSummary => {
 		domain: tenant.domain,
 		status: tenant.status,
 		accessiblePages: resolveTenantAccessiblePages(tenant),
+		offlineEnabled: tenant.offlineEnabled !== false,
 		createdAt: tenant.createdAt,
 		updatedAt: tenant.updatedAt,
 		permissions: getTenantPermissions(tenant),

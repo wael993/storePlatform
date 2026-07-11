@@ -4,6 +4,7 @@ interface TenantSummary {
 	domain: string
 	status: 'active' | 'inactive'
 	accessiblePages: string[]
+	offlineEnabled: boolean
 	createdAt: string
 	updatedAt: string
 	permissions: {

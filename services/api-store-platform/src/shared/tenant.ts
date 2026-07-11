@@ -81,6 +81,7 @@ const createEmptyPermissionMap = (): TenantPermissionMap => ({
 	shelves: [],
 	warehouses: [],
 	brands: [],
+	syncMutations: [],
 })
 
 const createEmptyRoleMatrix = (): Record<TenantRole, TenantPermissionMap> => ({

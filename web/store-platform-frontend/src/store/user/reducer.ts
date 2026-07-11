@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
+import { onAuthLogout } from '../../offline/offlineTenantAccess'
+
 interface AuthState {
 	user: Omit<LoginAPI, 'accessToken'> | null
 	accessToken: string | null
@@ -17,7 +19,8 @@ const authSlice = createSlice({
 	initialState,
 	reducers: {
 		setCredentials: (state, action: PayloadAction<LoginAPI>) => {
-			const { accessToken, ...userData } = action.payload
+			const { accessToken, offlineEnabled: _offlineEnabled, ...userData } =
+				action.payload
 			state.user = userData
 			state.accessToken = accessToken
 			state.isAuthenticated = true
@@ -48,6 +51,7 @@ const authSlice = createSlice({
 			}
 		},
 		logout: state => {
+			onAuthLogout()
 			state.user = null
 			state.accessToken = null
 			state.isAuthenticated = false

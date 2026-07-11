@@ -13,6 +13,7 @@ import {
 	Link,
 } from '@chakra-ui/react'
 import { useLoginMutation } from '../api/apiStore'
+import { setTenantOfflineConfig, ensureTenantOfflineDataIsolation } from '../offline/offlineTenantAccess'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
 import { UserRole } from '../shared/globalEnums'
@@ -57,6 +58,8 @@ const Login = () => {
 				throw new Error('No user returned')
 			}
 			dispatch(setCredentials(response))
+			await setTenantOfflineConfig(response.tenantId, response.offlineEnabled)
+			await ensureTenantOfflineDataIsolation(response.tenantId)
 
 			const nextRoute =
 				response.role === UserRole.SUPER_ADMIN

@@ -32,6 +32,11 @@ app.use(
 connectDB()
 if (config.redis.enabled) {
 	redisCache.connect().catch(() => undefined)
+} else {
+	logger.info(
+		'Redis cache not enabled (set REDIS_ENABLED=true with REDIS_HOST and REDIS_PASSWORD)',
+		{ entity: EntityType.STORAGE },
+	)
 }
 
 const cacheMetricsInterval = setInterval(() => {

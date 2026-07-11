@@ -14,6 +14,7 @@ export interface ITenant {
 	domain: string
 	status: TenantStatus
 	accessiblePages: TenantAccessiblePage[]
+	offlineEnabled: boolean
 	createdAt: Date
 	updatedAt: Date
 }
@@ -55,6 +56,10 @@ const tenantSchema = new Schema<ITenant>(
 		accessiblePages: {
 			type: [String],
 			default: () => [...DEFAULT_TENANT_ACCESSIBLE_PAGES],
+		},
+		offlineEnabled: {
+			type: Boolean,
+			default: true,
 		},
 	},
 	{

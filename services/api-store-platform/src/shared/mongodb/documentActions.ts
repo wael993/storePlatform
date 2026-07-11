@@ -35,6 +35,7 @@ const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.SHELVES]: 'shelfId',
 	[COLLECTION_NAMES.WAREHOUSES]: 'warehouseId',
 	[COLLECTION_NAMES.STOCK_MOVINGS]: 'stockMovingId',
+	[COLLECTION_NAMES.SYNC_MUTATIONS]: 'clientMutationId',
 	[COLLECTION_NAMES.USERS]: '_id',
 	[COLLECTION_NAMES.TENANTS]: '_id',
 }

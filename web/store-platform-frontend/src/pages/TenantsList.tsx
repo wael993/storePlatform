@@ -27,6 +27,7 @@ import {
 	Select,
 	Spinner,
 	Stack,
+	Switch,
 	Table,
 	Tbody,
 	Td,
@@ -182,7 +183,13 @@ const TenantsList = () => {
 		try {
 			await updateTenant({
 				tenantId: selectedTenant.tenantId,
-				body: { tenantName, status: selectedTenant.status },
+				body: {
+					tenantName,
+					status: selectedTenant.status,
+					...(selectedTenant.permissions.canChangeTenantSettings
+						? { offlineEnabled: selectedTenant.offlineEnabled }
+						: {}),
+				},
 			}).unwrap()
 			setFeedback(t('tenants.updateSuccess'))
 			closeEditModal()
@@ -261,6 +268,7 @@ const TenantsList = () => {
 								<Th>{t('tenants.tenant')}</Th>
 								<Th>{t('tenants.domain')}</Th>
 								<Th>{t('common.status')}</Th>
+								<Th>{t('tenants.offlineMode')}</Th>
 								<Th>{t('tenants.created')}</Th>
 								<Th textAlign="right">{t('tenants.actions')}</Th>
 							</Tr>
@@ -288,6 +296,15 @@ const TenantsList = () => {
 												{tenant.status === 'active'
 													? t('common.active')
 													: t('common.inactive')}
+											</Badge>
+										</Td>
+										<Td>
+											<Badge
+												colorScheme={tenant.offlineEnabled ? 'blue' : 'gray'}
+											>
+												{tenant.offlineEnabled
+													? t('tenants.offlineEnabled')
+													: t('tenants.onlineOnly')}
 											</Badge>
 										</Td>
 										<Td>{new Date(tenant.createdAt).toLocaleString()}</Td>
@@ -426,6 +443,35 @@ const TenantsList = () => {
 										<option value="inactive">{t('common.inactive')}</option>
 									</Select>
 								</FormControl>
+								{selectedTenant?.permissions.canChangeTenantSettings ? (
+									<FormControl
+										display="flex"
+										alignItems="center"
+										justifyContent="space-between"
+									>
+										<Box>
+											<FormLabel mb={0}>
+												{t('tenants.offlineMode')}
+											</FormLabel>
+											<Text fontSize="sm" color="gray.500">
+												{t('tenants.offlineModeDescription')}
+											</Text>
+										</Box>
+										<Switch
+											isChecked={selectedTenant.offlineEnabled}
+											onChange={event =>
+												setSelectedTenant(prev =>
+													prev
+														? {
+																...prev,
+																offlineEnabled: event.target.checked,
+															}
+														: prev,
+												)
+											}
+										/>
+									</FormControl>
+								) : null}
 							</Stack>
 						</ModalBody>
 						<ModalFooter>

@@ -139,6 +139,7 @@ interface BudgetOverviewResponse {
 
 type CreateDailyActionResponse = {
 	_id: string
+	actionId?: string
 }
 interface CustomersResponse extends APIResponse<CustomerResponse> {}
 interface CurrenciesResponse extends APIResponse<Currency> {}

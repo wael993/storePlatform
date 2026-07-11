@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import express from 'express'
 import { isAfter } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
+import mongoose from 'mongoose'
 
 import { config } from '../config/config'
 import {
@@ -91,6 +92,10 @@ import {
 	CreateShelfResponse,
 	CreateWarehouseResponse,
 	SellingInvoicesSummary,
+	SyncBootstrapResponse,
+	SyncPushRequestBody,
+	SyncPushResponse,
+	SyncPushResult,
 } from '../shared/types'
 import {
 	CreateDailyActionResponse,
@@ -142,6 +147,10 @@ import { Brand } from '../models/Brand'
 import { Shelf } from '../models/Shelf'
 import { Warehouse } from '../models/Warehaus'
 import { StockMoving } from '../models/StockMovings'
+import { SyncMutation } from '../models/SyncMutation'
+import { OfflineSyncState } from '../models/OfflineSyncState'
+
+const OFFLINE_INVOICE_NUMBER_BLOCK = 500
 
 type TokenPayload = {
 	userId: string
@@ -344,6 +353,25 @@ export default class ProductController {
 				`${entity} cache pattern invalidated: deleted=${patternDeleted}`,
 			)
 		}
+	}
+
+	private async invalidateAllTenantListCaches(tenantId: string): Promise<void> {
+		await Promise.all([
+			redisCache.del(redisCache.buildProductListKey(tenantId)),
+			redisCache.del(redisCache.buildInventoryListKey(tenantId)),
+			redisCache.del(redisCache.buildInvoiceListKey(tenantId)),
+			redisCache.del(redisCache.buildCustomerListKey(tenantId)),
+			redisCache.del(redisCache.buildSupplierListKey(tenantId)),
+			redisCache.del(redisCache.buildPartnerListKey(tenantId)),
+			redisCache.del(redisCache.buildCategoryListKey(tenantId)),
+			redisCache.del(redisCache.buildBrandListKey(tenantId)),
+			redisCache.del(redisCache.buildShelfListKey(tenantId)),
+			redisCache.del(redisCache.buildWarehouseListKey(tenantId)),
+			redisCache.del(redisCache.buildCurrencyListKey(tenantId)),
+			redisCache.del(redisCache.buildUnitListKey(tenantId)),
+			redisCache.del(redisCache.buildExpenseListKey(tenantId)),
+			redisCache.del(`dailyActions:${tenantId}`),
+		])
 	}
 
 	private hashToken(token: string): string {
@@ -609,6 +637,24 @@ export default class ProductController {
 		return resolveAccessiblePagesForTenant(tenant)
 	}
 
+	private resolveOfflineEnabledForAuth(tenant: ITenant): boolean {
+		return tenant.offlineEnabled !== false
+	}
+
+	private async ensureOfflineEnabledForSync(
+		requestContext: RequestContext,
+	): Promise<void> {
+		const tenantId = this.getTenantId(requestContext)
+		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+
+		if (!tenant || !this.resolveOfflineEnabledForAuth(tenant)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Offline mode is not enabled for this tenant.',
+			)
+		}
+	}
+
 	public async getTenantAccessiblePagesForRequest(
 		tenantId: string,
 	): Promise<TenantAccessiblePage[]> {
@@ -852,6 +898,7 @@ export default class ProductController {
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
 			accessiblePages: this.resolveAccessiblePagesForAuth(tenant),
+			offlineEnabled: this.resolveOfflineEnabledForAuth(tenant),
 		}
 	}
 
@@ -955,6 +1002,7 @@ export default class ProductController {
 			tenantName: tenant.name,
 			role: user.role,
 			accessiblePages: this.resolveAccessiblePagesForAuth(tenant),
+			offlineEnabled: this.resolveOfflineEnabledForAuth(tenant),
 		}
 	}
 
@@ -1129,13 +1177,7 @@ export default class ProductController {
 			},
 		)
 
-		if (config.redis.enabled && !hasFilters) {
-			logger.debug('Caching product list in Redis', {
-				entity: EntityType.CACHE,
-				tenantId,
-				cacheKey,
-			})
-
+		if (!hasFilters) {
 			await redisCache.setJson(cacheKey, mappedProducts)
 		}
 
@@ -1299,7 +1341,19 @@ export default class ProductController {
 			}
 		}
 
-		const productId = uuidv4()
+		const productId = this.resolveSyncClientId(requestBody.productId)
+
+		const existingById = await withTenantScope(
+			Product.findOne({ productId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				productId: existingById.productId,
+			}
+		}
 
 		const productData: ProductDocument = {
 			productId,
@@ -1422,6 +1476,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('products', requestContext, productId)
+		await this.invalidateEntityCache('inventory', requestContext)
 
 		return updateResponse
 	}
@@ -1437,6 +1492,7 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('products', requestContext, productId)
+		await this.invalidateEntityCache('inventory', requestContext)
 
 		return deleteResponse
 	}
@@ -1590,7 +1646,17 @@ export default class ProductController {
 		)
 	}
 
-	private async resolveNextInvoiceNumber(
+	private resolveSyncClientId(clientId?: string): string {
+		const trimmed = clientId?.trim()
+
+		if (trimmed && /^[0-9a-f-]{36}$/i.test(trimmed)) {
+			return trimmed
+		}
+
+		return uuidv4()
+	}
+
+	private async resolveLatestInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number> {
 		const tenantContext = getTenantContext(requestContext)
@@ -1605,6 +1671,65 @@ export default class ProductController {
 		)
 
 		return Number.isNaN(latestNumber) ? 1 : latestNumber + 1
+	}
+
+	public async resolveNextInvoiceNumber(
+		requestContext: RequestContext,
+	): Promise<number> {
+		const tenantId = this.getTenantId(requestContext)
+		const latestFromInvoices =
+			await this.resolveLatestInvoiceNumber(requestContext)
+		const offlineState = await withTenantScope(
+			OfflineSyncState.findOne({}).lean(),
+			tenantId,
+		)
+		const minOnlineInvoiceNumber = offlineState?.minOnlineInvoiceNumber ?? 1
+
+		return Math.max(latestFromInvoices, minOnlineInvoiceNumber)
+	}
+
+	private async allocateOfflineInvoiceBlock(
+		requestContext: RequestContext,
+	): Promise<{ nextInvoiceNumber: number; invoiceNumberBlockEnd: number }> {
+		const tenantId = this.getTenantId(requestContext)
+		const latestFromInvoices =
+			await this.resolveLatestInvoiceNumber(requestContext)
+		const session = await mongoose.startSession()
+
+		try {
+			let blockStart = latestFromInvoices
+			let blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
+
+			await session.withTransaction(async () => {
+				const existing = await withTenantScope(
+					OfflineSyncState.findOne({}).session(session),
+					tenantId,
+				)
+
+				blockStart = existing?.nextBlockStart ?? latestFromInvoices
+				blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
+				const nextBlockStart = blockEnd + 1
+
+				await withTenantScope(
+					OfflineSyncState.findOneAndUpdate(
+						{},
+						{
+							$set: { nextBlockStart },
+							$max: { minOnlineInvoiceNumber: nextBlockStart },
+						},
+						{ upsert: true, session, new: true },
+					),
+					tenantId,
+				)
+			})
+
+			return {
+				nextInvoiceNumber: blockStart,
+				invoiceNumberBlockEnd: blockEnd,
+			}
+		} finally {
+			await session.endSession()
+		}
 	}
 
 	private deriveInvoicePaymentStatus(
@@ -1729,8 +1854,11 @@ export default class ProductController {
 			const currentQuantity = Number(inventory.quantity ?? 0)
 
 			if (currentQuantity < item.quantity) {
-				throw new BusinessLogicError(
-					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				// throw new BusinessLogicError(
+				// 	ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				// 	`Insufficient stock for ${item.name}. Available: ${currentQuantity}, requested: ${item.quantity}.`,
+				// )
+				logger.error(
 					`Insufficient stock for ${item.name}. Available: ${currentQuantity}, requested: ${item.quantity}.`,
 				)
 			}
@@ -1913,6 +2041,24 @@ export default class ProductController {
 		requestBody: InvoiceRequestBody,
 		requestContext: RequestContext,
 	) {
+		if (requestBody.clientMutationId) {
+			const processed = await this.getProcessedSyncMutation(
+				requestContext,
+				requestBody.clientMutationId,
+			)
+
+			if (processed?.result) {
+				return processed.result
+			}
+
+			if (processed?.error) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					processed.error,
+				)
+			}
+		}
+
 		if (!requestBody.items?.length) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
@@ -1948,10 +2094,48 @@ export default class ProductController {
 		const remainingAmount =
 			requestBody.remainingAmount ?? Math.max(0, grandTotal - paidAmount)
 
-		const invoiceId = uuidv4()
+		const invoiceId = requestBody.invoiceId ?? uuidv4()
+
+		const existingInvoice = requestBody.invoiceId
+			? await this.getInvoice(requestBody.invoiceId, requestContext)
+			: null
+
+		if (existingInvoice) {
+			const result = {
+				_id: existingInvoice._id,
+				invoiceId: existingInvoice.invoiceId,
+				invoiceNumber: existingInvoice.invoiceNumber,
+			}
+
+			if (requestBody.clientMutationId) {
+				await this.recordSyncMutation(
+					requestContext,
+					requestBody.clientMutationId,
+					'invoice',
+					'create',
+					result,
+				)
+			}
+
+			return result
+		}
+
 		const invoiceNumber =
 			requestBody.invoiceNumber ??
 			String(await this.resolveNextInvoiceNumber(requestContext))
+
+		const tenantContext = getTenantContext(requestContext)
+		const existingByNumber = await withTenantScope(
+			Invoice.findOne({ invoiceNumber: String(invoiceNumber) }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingByNumber && existingByNumber.invoiceId !== invoiceId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				`Invoice number ${invoiceNumber} is already in use.`,
+			)
+		}
 
 		const invoiceData = {
 			invoiceId,
@@ -1978,9 +2162,9 @@ export default class ProductController {
 				: new Date(),
 		}
 
-		// if (this.shouldAdjustInventoryForInvoice(status)) {
-		// 	await this.validateSaleInventory(requestContext, requestBody.items)
-		// }
+		if (this.shouldAdjustInventoryForInvoice(status)) {
+			await this.validateSaleInventory(requestContext, requestBody.items)
+		}
 
 		const createInvoiceResponse = await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.INVOICES, data: invoiceData },
@@ -2003,11 +2187,23 @@ export default class ProductController {
 			invoiceData.invoiceId,
 		)
 
-		return {
+		const result = {
 			_id: createInvoiceResponse._id,
 			invoiceId,
 			invoiceNumber,
 		}
+
+		if (requestBody.clientMutationId) {
+			await this.recordSyncMutation(
+				requestContext,
+				requestBody.clientMutationId,
+				'invoice',
+				'create',
+				result,
+			)
+		}
+
+		return result
 	}
 
 	public async patchInvoice(
@@ -2122,8 +2318,22 @@ export default class ProductController {
 			)
 		}
 
+		const categoryId = this.resolveSyncClientId(requestBody.categoryId)
+
+		const existingById = await withTenantScope(
+			Category.findOne({ categoryId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				categoryId: existingById.categoryId,
+			}
+		}
+
 		const categoryData: CategoryDocument = {
-			categoryId: uuidv4(),
+			categoryId,
 			name: requestBody.name.trim(),
 			description: requestBody.description?.trim(),
 			parentCategoryId: requestBody.parentCategoryId,
@@ -2653,10 +2863,23 @@ export default class ProductController {
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
 	): Promise<CreateDailyActionResponse> {
+		const actionId = this.resolveSyncClientId(
+			(requestBody as DailyActionRequestBody & { actionId?: string }).actionId,
+		)
+
+		const existingById = await withTenantScope(
+			DailyAction.findOne({ actionId }).lean(),
+			getTenantContext(requestContext).tenantId,
+		)
+
+		if (existingById) {
+			return { _id: String(existingById._id), actionId: existingById.actionId }
+		}
+
 		const createdAt = new Date()
 		const optionalString = (value?: string) => value?.trim() || undefined
 		const dailyActionData = {
-			actionId: uuidv4(),
+			actionId,
 			entryType: requestBody.entryType,
 			productId: optionalString(requestBody.productId),
 			invoiceNumber: optionalString(requestBody.invoiceNumber),
@@ -2697,7 +2920,10 @@ export default class ProductController {
 			dailyActionData.actionId,
 		)
 
-		return { _id: createDailyActionResponse._id }
+		return {
+			_id: createDailyActionResponse._id,
+			actionId: dailyActionData.actionId,
+		}
 	}
 
 	public async patchDailyAction(
@@ -3061,6 +3287,7 @@ export default class ProductController {
 			tenantName?: string
 			status?: 'active' | 'inactive'
 			accessiblePages?: string[]
+			offlineEnabled?: boolean
 		},
 		requestContext: RequestContext,
 	): Promise<TenantSummary> {
@@ -3127,6 +3354,17 @@ export default class ProductController {
 			}
 
 			updates.accessiblePages = sanitizedPages
+		}
+
+		if (requestBody.offlineEnabled !== undefined) {
+			if (!permissions.canChangeTenantSettings) {
+				throw new BusinessLogicError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					permissions.reason || 'Tenant settings cannot be modified.',
+				)
+			}
+
+			updates.offlineEnabled = requestBody.offlineEnabled
 		}
 
 		if (requestBody.tenantName?.trim()) {
@@ -3512,10 +3750,24 @@ export default class ProductController {
 			)
 		}
 
+		const partnerId = this.resolveSyncClientId(requestBody.partnerId)
+
+		const existingById = await withTenantScope(
+			Partner.findOne({ partnerId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				partnerId: existingById.partnerId,
+			}
+		}
+
 		const partnerData: PartnerDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
-			partnerId: uuidv4(),
+			partnerId,
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {
@@ -3678,8 +3930,22 @@ export default class ProductController {
 			)
 		}
 
+		const supplierId = this.resolveSyncClientId(requestBody.supplierId)
+
+		const existingById = await withTenantScope(
+			Supplier.findOne({ supplierId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				supplierId: existingById.supplierId,
+			}
+		}
+
 		const supplierData: SupplierDocument = {
-			supplierId: uuidv4(),
+			supplierId,
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
 		} as SupplierDocument
@@ -3813,8 +4079,22 @@ export default class ProductController {
 			)
 		}
 
+		const customerId = this.resolveSyncClientId(requestBody.customerId)
+
+		const existingById = await withTenantScope(
+			Customer.findOne({ customerId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				customerId: existingById.customerId,
+			}
+		}
+
 		const customerData: CustomerDocument = {
-			customerId: uuidv4(),
+			customerId,
 			internalCode: internalCode?.trim() || undefined,
 			name,
 		} as CustomerDocument
@@ -3981,10 +4261,24 @@ export default class ProductController {
 			)
 		}
 
+		const expenseId = this.resolveSyncClientId(requestBody.expenseId)
+
+		const existingById = await withTenantScope(
+			Expense.findOne({ expenseId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				expenseId: existingById.expenseId,
+			}
+		}
+
 		const expenseData: ExpenseDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
-			expenseId: uuidv4(),
+			expenseId,
 			name,
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {
@@ -4148,11 +4442,25 @@ export default class ProductController {
 			)
 		}
 
+		const currencyId = this.resolveSyncClientId(requestBody.currencyId)
+
+		const existingById = await withTenantScope(
+			Currency.findOne({ currencyId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return {
+				_id: String(existingById._id),
+				currencyId: existingById.currencyId,
+			}
+		}
+
 		const currencyData: CurrencyDocument = {
 			tenantId: tenantContext.tenantId,
 			_id: uuidv4(),
 			name: name,
-			currencyId: uuidv4(),
+			currencyId,
 			internalCode: internalCode?.trim() || undefined,
 			createdBy: {
 				_id: requestContext.userId as string,
@@ -4248,8 +4556,19 @@ export default class ProductController {
 			)
 		}
 
+		const unitId = this.resolveSyncClientId(requestBody.unitId)
+
+		const existingById = await withTenantScope(
+			Unit.findOne({ unitId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return { _id: String(existingById._id), unitId: existingById.unitId }
+		}
+
 		const unitData: UnitDocument = {
-			unitId: uuidv4(),
+			unitId,
 			name: name,
 			internalCode: internalCode?.trim() || undefined,
 		}
@@ -4687,5 +5006,834 @@ export default class ProductController {
 		)
 
 		return { _id: createWarehouseResponse._id }
+	}
+
+	private async getProcessedSyncMutation(
+		requestContext: RequestContext,
+		clientMutationId: string,
+	): Promise<{
+		result?: Record<string, unknown>
+		error?: string
+	} | null> {
+		const tenantContext = getTenantContext(requestContext)
+
+		return withTenantScope(
+			SyncMutation.findOne({ clientMutationId }).lean(),
+			tenantContext.tenantId,
+		)
+	}
+
+	private async recordSyncMutation(
+		requestContext: RequestContext,
+		clientMutationId: string,
+		entity: string,
+		operation: string,
+		result?: Record<string, unknown>,
+		error?: string,
+	) {
+		const tenantContext = getTenantContext(requestContext)
+
+		await withTenantScope(
+			SyncMutation.findOneAndUpdate(
+				{ clientMutationId },
+				{
+					clientMutationId,
+					entity,
+					operation,
+					result,
+					error,
+					processedAt: new Date(),
+				},
+				{ upsert: true, new: true },
+			),
+			tenantContext.tenantId,
+		)
+	}
+
+	private async getDocumentsSince(
+		requestContext: RequestContext,
+		collectionName: (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES],
+		model: any,
+		since: Date,
+	) {
+		const tenantContext = getTenantContext(requestContext)
+
+		return withTenantScope(
+			model.find({ updatedAt: { $gte: since } }).lean(),
+			tenantContext.tenantId,
+		)
+	}
+
+	private getOfflineRetentionCutoff(): Date {
+		const cutoff = new Date()
+
+		cutoff.setDate(cutoff.getDate() - config.offlineSyncRetentionDays)
+		cutoff.setHours(0, 0, 0, 0)
+		
+		return cutoff
+	}
+
+	private async getInvoicesForOfflineBootstrap(
+		requestContext: RequestContext,
+	): Promise<Array<Record<string, unknown>>> {
+		const tenantContext = getTenantContext(requestContext)
+		const cutoff = this.getOfflineRetentionCutoff()
+
+		return withTenantScope(
+			Invoice.find({
+				$or: [
+					{ issuedAt: { $gte: cutoff } },
+					{
+						paymentType: 'credit',
+						paymentStatus: { $in: ['unpaid', 'partial'] },
+					},
+				],
+			})
+				.sort({ createdAt: -1 })
+				.lean(),
+			tenantContext.tenantId,
+		) as Promise<Array<Record<string, unknown>>>
+	}
+
+	private async getDailyActionsForOfflineBootstrap(
+		requestContext: RequestContext,
+	): Promise<DailyActionResponse['data']> {
+		const tenantContext = getTenantContext(requestContext)
+		const cutoff = this.getOfflineRetentionCutoff()
+
+		return withTenantScope(
+			DailyAction.find({ invoiceDate: { $gte: cutoff } })
+				.sort({ createdAt: -1 })
+				.lean(),
+			tenantContext.tenantId,
+		) as Promise<DailyActionResponse['data']>
+	}
+
+	public async getSyncBootstrap(
+		requestContext: RequestContext,
+	): Promise<SyncBootstrapResponse> {
+		await this.ensureOfflineEnabledForSync(requestContext)
+
+		const tenantId = this.getTenantId(requestContext)
+
+		await this.invalidateAllTenantListCaches(tenantId)
+
+		const productsResponse = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.PRODUCTS,
+			model: Product,
+			sort: { createdAt: 'desc' },
+		})
+
+		const [
+			inventory,
+			customersResponse,
+			suppliersResponse,
+			partnersResponse,
+			categoriesResponse,
+			brandsResponse,
+			shelvesResponse,
+			warehousesResponse,
+			currenciesResponse,
+			unitsResponse,
+			expensesResponse,
+			offlineDailyActions,
+			offlineInvoices,
+		] = await Promise.all([
+			this.getInventory(requestContext),
+			this.getCustomers(requestContext),
+			this.getSuppliers(requestContext),
+			this.getPartners(requestContext),
+			this.getCategories(requestContext),
+			this.getBrands(requestContext),
+			this.getShelves(requestContext),
+			this.getWarehouses(requestContext),
+			this.getCurrencies(requestContext),
+			this.getUnits(requestContext),
+			this.getExpenses(requestContext),
+			this.getDailyActionsForOfflineBootstrap(requestContext),
+			this.getInvoicesForOfflineBootstrap(requestContext),
+		])
+
+		const tenantContext = getTenantContext(requestContext)
+		const userSettings = await withTenantScope(
+			UserSettings.findOne({
+				userId: requestContext.userId,
+			}).lean(),
+			tenantContext.tenantId,
+		)
+
+		const nextInvoiceNumberBlock =
+			await this.allocateOfflineInvoiceBlock(requestContext)
+
+		const { frontendResources } = requestContext.userId
+			? await this.getUserFrontendResources(
+					requestContext.userId,
+					requestContext,
+				)
+			: { frontendResources: [] }
+
+		return {
+			products: productsResponse.documents as unknown as Array<
+				Record<string, unknown>
+			>,
+			inventory: inventory as unknown as Array<Record<string, unknown>>,
+			customers: customersResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			suppliers: suppliersResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			partners: partnersResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			categories: categoriesResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			brands: brandsResponse.data as unknown as Array<Record<string, unknown>>,
+			shelves: shelvesResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			warehouses: warehousesResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			currencies: currenciesResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			units: unitsResponse.data as unknown as Array<Record<string, unknown>>,
+			expenses: expensesResponse.data as unknown as Array<
+				Record<string, unknown>
+			>,
+			dailyActions: offlineDailyActions as unknown as Array<
+				Record<string, unknown>
+			>,
+			invoices: offlineInvoices,
+			userSettings: userSettings as Record<string, unknown> | undefined,
+			frontendResources,
+			nextInvoiceNumber: nextInvoiceNumberBlock.nextInvoiceNumber,
+			invoiceNumberBlockEnd: nextInvoiceNumberBlock.invoiceNumberBlockEnd,
+			serverTime: new Date().toISOString(),
+			offlineRetentionDays: config.offlineSyncRetentionDays,
+		}
+	}
+
+	private mapCategoryDocumentsForSync(
+		categories: CategoryDocument[],
+	): Array<Record<string, unknown>> {
+		return categories.map(category => ({
+			categoryId: category.categoryId,
+			name: category.name,
+			description: category.description,
+			parentCategoryId: category.parentCategoryId,
+			createdAt: category.createdAt?.toISOString?.(),
+			updatedAt: category.updatedAt?.toISOString?.(),
+			createdBy: category.createdBy,
+			updatedBy: category.updatedBy,
+		}))
+	}
+
+	private mapShelfDocumentsForSync(
+		shelves: ShelfDocument[],
+	): Array<Record<string, unknown>> {
+		return shelves.map(shelf => ({
+			shelfId: shelf.shelfId,
+			name: shelf.name,
+			description: shelf.description,
+			createdAt: shelf.createdAt?.toISOString?.(),
+			updatedAt: shelf.updatedAt?.toISOString?.(),
+			createdBy: shelf.createdBy,
+			updatedBy: shelf.updatedBy
+				? {
+						...shelf.updatedBy,
+						updatedAt: shelf.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}))
+	}
+
+	private mapWarehouseDocumentsForSync(
+		warehouses: WarehouseDocument[],
+	): Array<Record<string, unknown>> {
+		return warehouses.map(warehouse => ({
+			warehouseId: warehouse.warehouseId,
+			name: warehouse.name,
+			code: warehouse.code,
+			address: warehouse.address,
+			status: warehouse.status,
+			description: warehouse.description,
+			createdAt: warehouse.createdAt?.toISOString?.(),
+			updatedAt: warehouse.updatedAt?.toISOString?.(),
+			createdBy: warehouse.createdBy,
+			updatedBy: warehouse.updatedBy
+				? {
+						...warehouse.updatedBy,
+						updatedAt: warehouse.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}))
+	}
+
+	private mapBrandDocumentsForSync(
+		brands: BrandDocument[],
+	): Array<Record<string, unknown>> {
+		return brands.map(brand => ({
+			brandId: String(brand._id),
+			name: brand.name,
+			description: brand.description,
+			createdAt: brand.createdAt?.toISOString?.(),
+			updatedAt: brand.updatedAt?.toISOString?.(),
+			createdBy: brand.createdBy,
+			updatedBy: brand.updatedBy
+				? {
+						...brand.updatedBy,
+						updatedAt: brand.updatedBy.updatedAt.toISOString(),
+					}
+				: undefined,
+		}))
+	}
+
+	private extractSyncPathId(url: string): string {
+		const path = url.replace(/^\//, '').split('?')[0]
+		const segments = path.split('/')
+
+		return segments.length > 1 ? segments[segments.length - 1] : ''
+	}
+
+	private async updateUserSettingsFromSync(
+		requestContext: RequestContext,
+		payload: Partial<
+			Pick<IUserSettings, 'productsPerPage' | 'displayLanguage'>
+		>,
+	): Promise<Record<string, unknown>> {
+		const tenantContext = getTenantContext(requestContext)
+		const updateData: Partial<IUserSettings> = {}
+
+		if (payload.productsPerPage !== undefined) {
+			updateData.productsPerPage = payload.productsPerPage
+		}
+
+		if (payload.displayLanguage !== undefined) {
+			updateData.displayLanguage = payload.displayLanguage
+		}
+
+		const userSettings = await withTenantScope(
+			UserSettings.findOneAndUpdate(
+				{ userId: requestContext.userId },
+				updateData,
+				{ new: true, upsert: true },
+			).lean(),
+			tenantContext.tenantId,
+		)
+
+		return (userSettings ?? {}) as Record<string, unknown>
+	}
+
+	public async getSyncChanges(
+		requestContext: RequestContext,
+		since: Date,
+	): Promise<Partial<SyncBootstrapResponse>> {
+		await this.ensureOfflineEnabledForSync(requestContext)
+
+		const [
+			products,
+			inventory,
+			customers,
+			suppliers,
+			partners,
+			categories,
+			brands,
+			shelves,
+			warehouses,
+			currencies,
+			units,
+			expenses,
+			dailyActions,
+			invoices,
+		] = await Promise.all([
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.PRODUCTS,
+				Product,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.INVENTORY,
+				Inventory,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.CUSTOMERS,
+				Customer,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.SUPPLIERS,
+				Supplier,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.PARTNERS,
+				Partner,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.CATEGORIES,
+				Category,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.BRANDS,
+				Brand,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.SHELVES,
+				Shelf,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.WAREHOUSES,
+				Warehouse,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.CURRENCIES,
+				Currency,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.UNITS,
+				Unit,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.EXPENSES,
+				Expense,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.DAILY_ACTIONS,
+				DailyAction,
+				since,
+			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.INVOICES,
+				Invoice,
+				since,
+			),
+		])
+
+		return {
+			products: products as unknown as Array<Record<string, unknown>>,
+			inventory: inventory as unknown as Array<Record<string, unknown>>,
+			customers: customers as unknown as Array<Record<string, unknown>>,
+			suppliers: suppliers as unknown as Array<Record<string, unknown>>,
+			partners: partners as unknown as Array<Record<string, unknown>>,
+			categories: this.mapCategoryDocumentsForSync(
+				categories as unknown as CategoryDocument[],
+			),
+			brands: this.mapBrandDocumentsForSync(
+				brands as unknown as BrandDocument[],
+			),
+			shelves: this.mapShelfDocumentsForSync(
+				shelves as unknown as ShelfDocument[],
+			),
+			warehouses: this.mapWarehouseDocumentsForSync(
+				warehouses as unknown as WarehouseDocument[],
+			),
+			currencies: currencies as unknown as Array<Record<string, unknown>>,
+			units: units as unknown as Array<Record<string, unknown>>,
+			expenses: expenses as unknown as Array<Record<string, unknown>>,
+			dailyActions: dailyActions as unknown as Array<Record<string, unknown>>,
+			invoices: invoices as unknown as Array<Record<string, unknown>>,
+			serverTime: new Date().toISOString(),
+		}
+	}
+
+	private async processSyncPushEntry(
+		requestContext: RequestContext,
+		entry: SyncPushRequestBody['entries'][number],
+	): Promise<SyncPushResult> {
+		const processed = await this.getProcessedSyncMutation(
+			requestContext,
+			entry.clientMutationId,
+		)
+
+		if (processed?.result) {
+			return {
+				clientMutationId: entry.clientMutationId,
+				success: true,
+				data: processed.result as Record<string, unknown>,
+			}
+		}
+
+		try {
+			const payload = entry.payload ?? {}
+			let data: Record<string, unknown> | undefined
+
+			if (entry.entity === 'invoice' && entry.method === 'POST') {
+				data = (await this.postInvoice(
+					{
+						...(payload as InvoiceRequestBody),
+						clientMutationId: entry.clientMutationId,
+					},
+					requestContext,
+				)) as Record<string, unknown>
+			} else if (entry.entity === 'product' && entry.method === 'POST') {
+				data = (await this.postProduct(
+					payload as ProductRequestBody,
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'customer' && entry.method === 'POST') {
+				data = (await this.postCustomer(
+					requestContext,
+					payload as CustomerRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'supplier' && entry.method === 'POST') {
+				data = (await this.postSupplier(
+					requestContext,
+					payload as SupplierRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'partner' && entry.method === 'POST') {
+				data = (await this.postPartner(
+					requestContext,
+					payload as PartnerRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'expense' && entry.method === 'POST') {
+				data = (await this.postExpense(
+					requestContext,
+					payload as ExpenseRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'dailyAction' && entry.method === 'POST') {
+				data = (await this.postDailyAction(
+					payload as unknown as DailyActionRequestBody,
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'category' && entry.method === 'POST') {
+				data = (await this.postCategory(
+					payload as CategoryRequestBody,
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'brand' && entry.method === 'POST') {
+				data = (await this.postBrand(
+					payload as BrandRequestBody,
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'currency' && entry.method === 'POST') {
+				data = (await this.postCurrency(
+					requestContext,
+					payload as CurrencyRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'unit' && entry.method === 'POST') {
+				data = (await this.postUnit(
+					requestContext,
+					payload as UnitRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'shelf' && entry.method === 'POST') {
+				const shelfId = String(
+					(payload as ShelfRequestBody).shelfId ?? '',
+				).trim()
+
+				data = (await this.postShelf(
+					payload as ShelfRequestBody,
+					requestContext,
+				)) as Record<string, unknown>
+
+				data = {
+					...data,
+					shelfId: shelfId || (payload as ShelfRequestBody).shelfId,
+				}
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'warehouse' && entry.method === 'POST') {
+				const warehouseId = String(
+					(payload as WarehouseRequestBody).warehouseId ?? '',
+				).trim()
+
+				data = (await this.postWarehouse(
+					payload as WarehouseRequestBody,
+					requestContext,
+				)) as Record<string, unknown>
+
+				data = {
+					...data,
+					warehouseId:
+						warehouseId || (payload as WarehouseRequestBody).warehouseId,
+				}
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'product' && entry.method === 'PATCH') {
+				const productId = this.extractSyncPathId(entry.url)
+
+				await this.patchProduct(
+					productId,
+					payload as unknown as ProductDocument,
+					requestContext,
+				)
+
+				data = { success: true }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'product' && entry.method === 'DELETE') {
+				const productId = this.extractSyncPathId(entry.url)
+
+				await this.deleteProduct(productId, requestContext)
+				data = { success: true }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'dailyAction' && entry.method === 'PATCH') {
+				const actionId = this.extractSyncPathId(entry.url)
+
+				await this.patchDailyAction(
+					actionId,
+					payload as Record<string, unknown>,
+					requestContext,
+				)
+
+				data = { success: true }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'dailyAction' && entry.method === 'DELETE') {
+				const actionIds = Array.isArray(payload.actionIds)
+					? (payload.actionIds as string[])
+					: [this.extractSyncPathId(entry.url)].filter(Boolean)
+
+				await this.deleteDailyAction(actionIds, requestContext)
+				data = { success: true }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'userSettings' && entry.method === 'PATCH') {
+				data = await this.updateUserSettingsFromSync(
+					requestContext,
+					payload as Partial<
+						Pick<IUserSettings, 'productsPerPage' | 'displayLanguage'>
+					>,
+				)
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'expense' && entry.method === 'PATCH') {
+				const expenseId = this.extractSyncPathId(entry.url)
+
+				await this.patchExpense(
+					expenseId,
+					payload as Partial<Omit<ExpenseRequestBody, 'expenseId'>>,
+					requestContext,
+				)
+
+				data = { success: true, expenseId }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'expense' && entry.method === 'DELETE') {
+				const expenseId = this.extractSyncPathId(entry.url)
+
+				await this.deleteExpense(expenseId, requestContext)
+				data = { success: true, expenseId }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					`Unsupported sync entry: ${entry.entity} ${entry.method}`,
+				)
+			}
+
+			return {
+				clientMutationId: entry.clientMutationId,
+				success: true,
+				data,
+			}
+		} catch (error: any) {
+			const message = error?.message ?? 'Sync entry processing failed'
+
+			await this.recordSyncMutation(
+				requestContext,
+				entry.clientMutationId,
+				entry.entity,
+				entry.operation,
+				undefined,
+				message,
+			)
+
+			return {
+				clientMutationId: entry.clientMutationId,
+				success: false,
+				error: message,
+			}
+		}
+	}
+
+	public async pushSyncChanges(
+		requestContext: RequestContext,
+		requestBody: SyncPushRequestBody,
+	): Promise<SyncPushResponse> {
+		await this.ensureOfflineEnabledForSync(requestContext)
+
+		const tenantId = this.getTenantId(requestContext)
+		const retryClientMutationIds = requestBody.retryClientMutationIds ?? []
+
+		if (retryClientMutationIds.length > 0) {
+			await SyncMutation.deleteMany({
+				clientMutationId: { $in: retryClientMutationIds },
+				tenantId,
+			})
+		}
+
+		const results: SyncPushResult[] = []
+
+		for (const entry of requestBody.entries ?? []) {
+			results.push(await this.processSyncPushEntry(requestContext, entry))
+		}
+
+		return {
+			results,
+			serverTime: new Date().toISOString(),
+		}
 	}
 }

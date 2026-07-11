@@ -116,6 +116,8 @@ export type OrderRequestBody = {
 	totalAmount: number
 }
 export type InvoiceRequestBody = {
+	invoiceId?: string
+	clientMutationId?: string
 	invoiceNumber?: string
 	orderId?: string
 	customerId?: string
@@ -167,6 +169,59 @@ export type SellingInvoicesListResponse = {
 	summary: SellingInvoicesSummary
 	nextInvoiceNumber: number
 	totalCount: number
+}
+
+export type SyncPushEntry = {
+	clientMutationId: string
+	entity: string
+	operation: string
+	url: string
+	method: string
+	payload: Record<string, unknown>
+}
+
+export type SyncPushRequestBody = {
+	entries: SyncPushEntry[]
+	retryClientMutationIds?: string[]
+}
+
+export type SyncPushResult = {
+	clientMutationId: string
+	success: boolean
+	error?: string
+	data?: Record<string, unknown>
+}
+
+export type SyncPushResponse = {
+	results: SyncPushResult[]
+	serverTime: string
+}
+
+export type SyncBootstrapResponse = {
+	products: Array<Record<string, unknown>>
+	inventory: Array<Record<string, unknown>>
+	customers: Array<Record<string, unknown>>
+	suppliers: Array<Record<string, unknown>>
+	partners: Array<Record<string, unknown>>
+	categories: Array<Record<string, unknown>>
+	brands: Array<Record<string, unknown>>
+	shelves: Array<Record<string, unknown>>
+	warehouses: Array<Record<string, unknown>>
+	currencies: Array<Record<string, unknown>>
+	units: Array<Record<string, unknown>>
+	expenses: Array<Record<string, unknown>>
+	dailyActions: Array<Record<string, unknown>>
+	invoices: Array<Record<string, unknown>>
+	userSettings?: Record<string, unknown>
+	frontendResources?: Array<{
+		path: string
+		access: boolean
+		allowedActions: string[]
+	}>
+	nextInvoiceNumber: number
+	invoiceNumberBlockEnd: number
+	serverTime: string
+	offlineRetentionDays?: number
 }
 
 export type CategoryRequestBody = {
@@ -227,27 +282,35 @@ export type UpdateTenantRequestBody = {
 	tenantName?: string
 	status?: 'active' | 'inactive'
 	accessiblePages?: string[]
+	offlineEnabled?: boolean
 }
 export type CreateProductResponse = {
 	_id: string
+	productId?: string
 }
 export type CreateSupplierResponse = {
 	_id: string
+	supplierId?: string
 }
 export type CreatePartnerResponse = {
 	_id: string
+	partnerId?: string
 }
 export type CreateCustomerResponse = {
 	_id: string
+	customerId?: string
 }
 export type CreateExpenseResponse = {
 	_id: string
+	expenseId?: string
 }
 export type CreateCurrencyResponse = {
 	_id: string
+	currencyId?: string
 }
 export type CreateUnitResponse = {
 	_id: string
+	unitId?: string
 }
 export type CreateCategoryResponse = {
 	_id: string
@@ -303,6 +366,7 @@ export type TenantSummary = {
 	domain: string
 	status: 'active' | 'inactive'
 	accessiblePages: string[]
+	offlineEnabled: boolean
 	createdAt: Date
 	updatedAt: Date
 	permissions: {
