@@ -65,6 +65,7 @@ const OfflineSyncBanner = () => {
 	const pushFailed =
 		isOnline && syncState === 'error' && syncPushResult !== null
 
+	console.log('🚀 ~ OfflineSyncBanner ~ isOfflineCapable:', isOfflineCapable)
 	return (
 		<>
 			<Box px={{ base: 3, md: 4 }} pt={2}>

@@ -35,7 +35,6 @@ export const config = {
 		process.env.REACT_APP_SERVICE_ID ||
 		process.env.VITE_SERVICE_ID ||
 		'store-platform-frontend',
-
 	endpoints: {
 		storePlatformEndpoint: apiEndpoint,
 		persistenceServiceEndpoint:

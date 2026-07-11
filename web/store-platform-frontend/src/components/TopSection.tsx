@@ -100,13 +100,13 @@ const styles = {
 	},
 	gridItemFirst: {
 		paddingY: { base: '1rem', md: '1.75rem' },
-		borderRight: borderRightMd,
 		display: 'flex',
 		flexDirection: 'column',
 		justifyContent: 'center',
 		width: { lg: fullWidth, xl: '24%' },
 	},
 	itemWrapperWithTwoChildren: {
+		gap: '0.5rem',
 		alignItems: 'center',
 		paddingBottom: { base: '0.5rem', md: '0.5rem', xl: '1.25rem' },
 		height: { sm: 'unset', md: '2rem' },
@@ -138,6 +138,7 @@ const styles = {
 	},
 	itemWrapperLastChild: {
 		alignItems: 'center',
+		gap: '0.5rem',
 	},
 	itemTextHidden: {
 		color: mutedTextColor,
@@ -202,6 +203,7 @@ const styles = {
 	itemWrapperLastChildWithWidth: {
 		alignItems: 'center',
 		width: widthGridItem,
+		gap: '0.5rem',
 	},
 } satisfies StylesObject
 
@@ -424,7 +426,7 @@ const TopSection = ({
 
 					<GridItem
 						sx={{
-							...styles.feeSectionGridItemLast,
+							...styles.feeSectionGridItem,
 							width: widthGridItem,
 						}}
 					>

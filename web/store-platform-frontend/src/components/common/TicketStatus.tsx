@@ -90,6 +90,7 @@ export const TicketStatus = ({
 		itemWrapperWithOneChild: {
 			height: '100%',
 			alignItems: 'center',
+			gap: '0.5rem',
 		},
 		icon: {
 			fontSize: '1.25rem',
