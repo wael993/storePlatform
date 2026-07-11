@@ -21,6 +21,7 @@ import { AsCloseIcon } from '../components/icons/Close'
 import { useNavigate } from 'react-router-dom'
 import ProductsSettings from '../components/settings/ProductsSettings'
 import LanguagesSettings from '../components/settings/LanguagesSettings'
+import WorkModeSettings from '../components/settings/WorkModeSettings'
 import SettingActions from '../components/settings/SettingActions'
 import useCustomToast from '../components/common/CustomToast'
 import { useUpdateUserSettingsMutation } from '../api/apiStore'
@@ -28,7 +29,7 @@ import { useUpdateUserSettingsMutation } from '../api/apiStore'
 enum StepKeys {
 	product = 0,
 	Language = 1,
-	SpaceAndLocation = 2,
+	WorkMode = 2,
 }
 
 const styles = {
@@ -199,6 +200,11 @@ const SettingsPage = () => {
 							{t('components.settingsTabs.language')}
 						</Text>
 					</Tab>
+					<Tab sx={getTabStyle(StepKeys.WorkMode)}>
+						<Text sx={getTabTextStyle(StepKeys.WorkMode)}>
+							{t('components.settingsTabs.workMode')}
+						</Text>
+					</Tab>
 				</TabList>
 				<Divider sx={styles.divider} />
 
@@ -215,6 +221,10 @@ const SettingsPage = () => {
 							displayLanguage={displayLanguage}
 							handleLanguageChange={handleLanguageChange}
 						/>
+					</TabPanel>
+
+					<TabPanel sx={styles.contentWrapper}>
+						<WorkModeSettings />
 					</TabPanel>
 				</TabPanels>
 			</Tabs>

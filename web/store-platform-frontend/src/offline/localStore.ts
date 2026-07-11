@@ -3,6 +3,7 @@ import {
 	OFFLINE_SYNC_RETENTION_DAYS,
 	pruneExpiredOfflineRecords,
 } from './offlineRetention'
+import type { Table } from 'dexie'
 import type {
 	BootstrapPayload,
 	LocalInvoice,
@@ -18,9 +19,28 @@ import {
 	setSyncMeta,
 	SYNC_META_KEYS,
 } from './db'
-import { generateId, nowIso, withLocalMeta } from './utils'
+import { generateId, nowIso, withLocalMeta, normalizeBootstrapRecords } from './utils'
 
 const INVOICE_NUMBER_BLOCK_SIZE = 500
+
+const putBootstrapRecords = async <T>(
+	table: Table<T, string>,
+	entityLabel: string,
+	records: unknown[] | undefined,
+	idField: string,
+	fallbacks: string[] = ['_id'],
+): Promise<void> => {
+	const normalized = normalizeBootstrapRecords(records, idField, fallbacks).map(
+		record => withLocalMeta(record, 'synced') as T,
+	)
+
+	try {
+		await table.bulkPut(normalized)
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		throw new Error(`Failed to store ${entityLabel}: ${message}`)
+	}
+}
 
 export const getLocalNextInvoiceNumber = async (): Promise<number> => {
 	const current = Number(await getSyncMeta(SYNC_META_KEYS.nextInvoiceNumber))
@@ -156,49 +176,90 @@ export const applyBootstrapPayload = async (
 			await offlineDb.invoices.clear()
 			await offlineDb.outbox.clear()
 
-			await offlineDb.products.bulkPut(
-				payload.products.map(p => withLocalMeta(p, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.products,
+				'products',
+				payload.products,
+				'productId',
 			)
-			await offlineDb.inventory.bulkPut(
-				payload.inventory.map(i => withLocalMeta(i, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.inventory,
+				'inventory',
+				payload.inventory,
+				'inventoryId',
+				['productId'],
 			)
-			await offlineDb.customers.bulkPut(
-				payload.customers.map(c => withLocalMeta(c, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.customers,
+				'customers',
+				payload.customers,
+				'customerId',
 			)
-			await offlineDb.suppliers.bulkPut(
-				payload.suppliers.map(s => withLocalMeta(s, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.suppliers,
+				'suppliers',
+				payload.suppliers,
+				'supplierId',
 			)
-			await offlineDb.partners.bulkPut(
-				payload.partners.map(p => withLocalMeta(p, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.partners,
+				'partners',
+				payload.partners,
+				'partnerId',
 			)
-			await offlineDb.categories.bulkPut(
-				payload.categories.map(c => withLocalMeta(c, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.categories,
+				'categories',
+				payload.categories,
+				'categoryId',
 			)
-			await offlineDb.brands.bulkPut(
-				payload.brands.map(b => withLocalMeta(b, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.brands,
+				'brands',
+				payload.brands,
+				'brandId',
 			)
-			await offlineDb.shelves.bulkPut(
-				payload.shelves.map(s => withLocalMeta(s, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.shelves,
+				'shelves',
+				payload.shelves,
+				'shelfId',
 			)
-			await offlineDb.warehouses.bulkPut(
-				payload.warehouses.map(w => withLocalMeta(w, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.warehouses,
+				'warehouses',
+				payload.warehouses,
+				'warehouseId',
 			)
-			await offlineDb.currencies.bulkPut(
-				payload.currencies.map(c => withLocalMeta(c, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.currencies,
+				'currencies',
+				payload.currencies,
+				'currencyId',
 			)
-			await offlineDb.units.bulkPut(
-				payload.units.map(u => withLocalMeta(u, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.units,
+				'units',
+				payload.units,
+				'unitId',
 			)
-			await offlineDb.expenses.bulkPut(
-				payload.expenses.map(e => withLocalMeta(e, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.expenses,
+				'expenses',
+				payload.expenses,
+				'expenseId',
 			)
-			await offlineDb.dailyActions.bulkPut(
-				payload.dailyActions.map(d => withLocalMeta(d, 'synced')),
+			await putBootstrapRecords(
+				offlineDb.dailyActions,
+				'daily actions',
+				payload.dailyActions,
+				'actionId',
 			)
-			await offlineDb.invoices.bulkPut(
-				payload.invoices.map(inv =>
-					withLocalMeta({ ...inv, invoiceId: inv.invoiceId }, 'synced'),
-				),
+			await putBootstrapRecords(
+				offlineDb.invoices,
+				'invoices',
+				payload.invoices,
+				'invoiceId',
 			)
 
 			await setSyncMeta(SYNC_META_KEYS.lastSyncedAt, payload.serverTime)
@@ -448,10 +509,12 @@ export const saveLocalInvoice = async (
 export const hasOfflineBootstrapForTenant = async (
 	tenantId?: string,
 ): Promise<boolean> => {
-	if (!tenantId || !(await isOfflineCapable())) return false
+	if (!tenantId || !(await isOfflineCapableForTenant(tenantId))) return false
 
 	const storedTenantId = await getSyncMeta(SYNC_META_KEYS.tenantId)
-	return storedTenantId === tenantId
+	const lastSyncedAt = await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)
+
+	return storedTenantId === tenantId && lastSyncedAt !== null
 }
 
 export const isOfflineCapable = async (): Promise<boolean> => {
@@ -522,4 +585,7 @@ export const clearOfflineData = async (): Promise<void> => {
 			await offlineDb.outbox.clear()
 		},
 	)
+
+	const { resetWorkMode } = await import('./workMode')
+	await resetWorkMode()
 }

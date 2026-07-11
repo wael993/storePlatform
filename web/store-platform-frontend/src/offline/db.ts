@@ -92,6 +92,7 @@ export const SYNC_META_KEYS = {
 	tenantOfflineEnabled: 'tenantOfflineEnabled',
 	frontendResources: 'frontendResources',
 	offlineRetentionDays: 'offlineRetentionDays',
+	workMode: 'workMode',
 } as const
 
 export const getSyncMeta = async (key: string): Promise<string | null> => {

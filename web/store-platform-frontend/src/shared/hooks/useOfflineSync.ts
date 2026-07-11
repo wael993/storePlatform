@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
-import {
-	ensureTenantOfflineDataIsolation,
-	isOfflineEnabledForTenant,
-	isOfflineExplicitlyDisabled,
-	loadTenantOfflineConfig,
-	subscribeTenantOfflineConfig,
-} from '../../offline/offlineTenantAccess'
+import { subscribeConnectivity } from '../../offline/connectivity'
+import { getWorkMode } from '../../offline/workMode'
+
 import {
 	bootstrapOfflineData,
 	getOfflineState,
@@ -24,6 +19,15 @@ import {
 import { getSyncMeta, SYNC_META_KEYS } from '../../offline/db'
 import type { OfflineState } from '../../offline/types'
 import { useSyncPushNotifications } from './useSyncPushNotifications'
+import {
+	isOfflineEnabledForTenant,
+	loadTenantOfflineConfig,
+} from '../../offline'
+import {
+	ensureTenantOfflineDataIsolation,
+	isOfflineExplicitlyDisabled,
+	subscribeTenantOfflineConfig,
+} from '../../offline/offlineTenantAccess'
 
 export const useOfflineSync = (tenantId?: string) => {
 	const [offlineEnabled, setOfflineEnabled] = useState(() =>
@@ -126,27 +130,33 @@ export const useOfflineSync = (tenantId?: string) => {
 	}, [state.syncState])
 
 	useEffect(() => {
-		if (!tenantId || !configLoaded || !getIsOnline() || !offlineEnabled) return
+		if (!tenantId || !configLoaded || !offlineEnabled) return
+		if (getWorkMode() !== 'offline') return
 
-		const tryAutoBootstrap = async () => {
+		const restoreOfflineSession = async () => {
 			await ensureTenantOfflineDataIsolation(tenantId)
 
 			const hasBootstrap = await hasOfflineBootstrapForTenant(tenantId)
-			if (!hasBootstrap) {
-				try {
-					await bootstrapOfflineData(tenantId)
-				} catch {
-					// Banner shows manual bootstrap option
-				}
+			if (hasBootstrap) {
+				await initOfflineState(tenantId)
+				return
+			}
+
+			try {
+				await bootstrapOfflineData(tenantId)
+				await initOfflineState(tenantId)
+			} catch {
+				// User can retry from settings
 			}
 		}
 
-		void tryAutoBootstrap()
+		void restoreOfflineSession()
 	}, [tenantId, offlineEnabled, configLoaded])
 
 	const bootstrap = useCallback(async () => {
 		if (!tenantId || !offlineEnabled) return
 		await bootstrapOfflineData(tenantId)
+		await initOfflineState(tenantId)
 	}, [tenantId, offlineEnabled])
 
 	const sync = useCallback(async () => {

@@ -186,14 +186,26 @@ const baseQueryWithOffline: BaseQueryFn<
 		if (localResult) return localResult
 	}
 
-	if (!getIsOnline() && canServeOffline) {
-		const localResult = await tryServeOfflineQuery(args)
-		if (localResult) return localResult
+	if (!getIsOnline()) {
+		if (canServeOffline) {
+			const localResult = await tryServeOfflineQuery(args)
+			if (localResult) return localResult
+
+			return {
+				error: {
+					status: 503,
+					data: { message: 'Offline data unavailable' },
+				},
+			}
+		}
 
 		return {
 			error: {
 				status: 503,
-				data: { message: 'Offline data unavailable' },
+				data: {
+					message:
+						'Offline mode is not ready. Connect to the internet and sync once.',
+				},
 			},
 		}
 	}

@@ -12,6 +12,39 @@ export const generateId = (): string => {
 
 export const nowIso = (): string => new Date().toISOString()
 
+export const resolveRecordId = (
+	record: Record<string, unknown>,
+	idField: string,
+	fallbacks: string[] = ['_id'],
+): string | undefined => {
+	for (const field of [idField, ...fallbacks]) {
+		const value = record[field]
+		if (value !== undefined && value !== null && String(value).trim() !== '') {
+			return String(value)
+		}
+	}
+
+	return undefined
+}
+
+export const normalizeBootstrapRecords = (
+	records: unknown[] | undefined,
+	idField: string,
+	fallbacks: string[] = ['_id'],
+): Record<string, unknown>[] => {
+	if (!records?.length) return []
+
+	return records.flatMap(record => {
+		if (!record || typeof record !== 'object') return []
+
+		const typedRecord = record as Record<string, unknown>
+		const id = resolveRecordId(typedRecord, idField, fallbacks)
+		if (!id) return []
+
+		return [{ ...typedRecord, [idField]: id }]
+	})
+}
+
 export const withLocalMeta = <T>(
 	record: T,
 	syncStatus: 'synced' | 'pending' = 'synced',

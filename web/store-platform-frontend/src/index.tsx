@@ -8,12 +8,14 @@ import { PersistGate } from 'redux-persist/integration/react'
 import store, { persistor } from './store/store'
 import { SettingsProvider } from './shared/context/SettingsContext'
 import { loadTenantOfflineConfig } from './offline/offlineTenantAccess'
+import { loadWorkMode } from './offline/workMode'
 import { initOfflineState } from './offline/syncService'
 
 const warmOfflineSessionBeforeRender = async (): Promise<void> => {
 	const tenantId = store.getState().user?.user?.tenantId
 	if (!tenantId) return
 
+	await loadWorkMode()
 	await loadTenantOfflineConfig(tenantId)
 	await initOfflineState(tenantId)
 }

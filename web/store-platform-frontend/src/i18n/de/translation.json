@@ -497,10 +497,19 @@
 		"settingsTabs": {
 			"product": "Produkt",
 			"language": "Sprache",
+			"workMode": "Arbeitsmodus",
 			"displayLanguage": "Anzeigesprache",
 			"english": "Englisch",
 			"german": "Deutsch",
 			"arabic": "Arabisch"
+		},
+		"workModeSettings": {
+			"title": "Arbeitsmodus",
+			"description": "Wählen Sie, ob die App den Server oder lokale Offline-Daten nutzt. Im Offline-Modus werden die Daten einmal heruntergeladen; danach werden Netzwerkanfragen blockiert, bis Sie wieder online wechseln.",
+			"online": "Online — Live-Serverdaten",
+			"offline": "Offline — mit lokalen Daten arbeiten",
+			"notAvailable": "Offline-Modus ist für diesen Mandanten nicht aktiviert.",
+			"switching": "Arbeitsmodus wird gewechselt…"
 		},
 		"productsSettings": {
 			"productsPerPage": "Produkte pro Seite",
@@ -669,6 +678,8 @@
 	},
 	"offline": {
 		"bootstrapRequired": "Daten herunterladen, um offline zu arbeiten. Mit dem Internet verbinden und einmal synchronisieren.",
+		"bootstrapFailed": "Offline-Download fehlgeschlagen",
+		"retryBootstrap": "Download erneut versuchen",
 		"workingOffline": "Offline-Modus. {{count}} Änderung(en) warten auf Synchronisation.",
 		"syncNow": "Daten herunterladen",
 		"pushChanges": "Änderungen senden",

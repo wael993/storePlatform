@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useInsufficientStockConfirmation } from '../shared/hooks/useInsufficientStockConfirmation'
 import { useOfflineSync } from '../shared/hooks/useOfflineSync'
+import { useWorkMode } from '../shared/hooks/useWorkMode'
 import { useUser } from '../shared/hooks/useUser'
 import InsufficientStockModal from './InsufficientStockModal'
 import SyncConflictModal from './SyncConflictModal'
@@ -27,25 +28,17 @@ const OfflineSyncBanner = () => {
 		isOfflineCapable,
 		offlineEnabled,
 		syncPushResult,
-		bootstrap,
 		sync,
 		conflicts,
 		clearConflicts,
 	} = useOfflineSync(user?.tenantId)
+	const { workMode } = useWorkMode()
 	const {
 		isOpen: isInsufficientStockOpen,
 		items: insufficientStockItems,
 		confirm: confirmInsufficientStock,
 		cancel: cancelInsufficientStock,
 	} = useInsufficientStockConfirmation()
-
-	const handleBootstrap = async () => {
-		try {
-			await bootstrap()
-		} catch {
-			// Error state handled by sync service
-		}
-	}
 
 	const handleSync = async () => {
 		try {
@@ -57,42 +50,39 @@ const OfflineSyncBanner = () => {
 
 	if (!user?.tenantId || !offlineEnabled) return null
 
-	const showOfflineBanner = !isOnline || !isOfflineCapable
 	const isPushing = syncState === 'syncing'
 	const isBootstrapping = syncState === 'bootstrapping'
 	const isSyncing = isPushing || isBootstrapping
+	const isWorkingOffline = workMode === 'offline'
+	const showOfflineBanner = isWorkingOffline
 	const pushSucceeded = syncState === 'success'
 	const pushFailed =
 		isOnline && syncState === 'error' && syncPushResult !== null
 
-	console.log('🚀 ~ OfflineSyncBanner ~ isOfflineCapable:', isOfflineCapable)
 	return (
 		<>
 			<Box px={{ base: 3, md: 4 }} pt={2}>
 				{showOfflineBanner && (
 					<Alert
-						status={isOnline ? 'info' : 'warning'}
+						status="warning"
 						borderRadius="md"
 						mb={2}
 						variant="left-accent"
 					>
 						<AlertIcon />
 						<AlertDescription flex="1">
-							{!isOfflineCapable
-								? t('offline.bootstrapRequired')
-								: t('offline.workingOffline', { count: pendingCount })}
+							{t('offline.workingOffline', { count: pendingCount })}
 						</AlertDescription>
-						{isOnline && !isOfflineCapable && (
-							<Button
-								size="sm"
-								colorScheme="blue"
-								ml={3}
-								onClick={handleBootstrap}
-								isLoading={isBootstrapping}
-							>
-								{t('offline.syncNow')}
-							</Button>
-						)}
+					</Alert>
+				)}
+
+				{isWorkingOffline && syncState === 'error' && Boolean(lastError) && (
+					<Alert status="error" borderRadius="md" mb={2} variant="left-accent">
+						<AlertIcon />
+						<AlertDescription flex="1">
+							<Text fontWeight={600}>{t('offline.bootstrapFailed')}</Text>
+							<Text fontSize="sm">{lastError}</Text>
+						</AlertDescription>
 					</Alert>
 				)}
 
@@ -163,6 +153,7 @@ const OfflineSyncBanner = () => {
 				)}
 
 				{isOfflineCapable &&
+					workMode === 'online' &&
 					isOnline &&
 					pendingCount > 0 &&
 					!isPushing &&

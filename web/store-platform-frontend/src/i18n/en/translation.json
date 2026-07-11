@@ -511,10 +511,19 @@
 		"settingsTabs": {
 			"product": "Product",
 			"language": "Language",
+			"workMode": "Work Mode",
 			"displayLanguage": "Display Language",
 			"english": "English",
 			"german": "German",
 			"arabic": "Arabic"
+		},
+		"workModeSettings": {
+			"title": "Work Mode",
+			"description": "Choose whether the app uses the server or local offline data. Offline mode downloads data once, then blocks network requests until you switch back to online.",
+			"online": "Online — use live server data",
+			"offline": "Offline — work from local data",
+			"notAvailable": "Offline mode is not enabled for this tenant.",
+			"switching": "Switching work mode…"
 		},
 		"productsSettings": {
 			"productsPerPage": "Products Per Page",
@@ -685,6 +694,8 @@
 	},
 	"offline": {
 		"bootstrapRequired": "Download data to work offline. Connect to the internet and sync once.",
+		"bootstrapFailed": "Offline download failed",
+		"retryBootstrap": "Retry download",
 		"workingOffline": "Working offline. {{count}} change(s) waiting to sync.",
 		"syncNow": "Download data",
 		"pushChanges": "Push changes",

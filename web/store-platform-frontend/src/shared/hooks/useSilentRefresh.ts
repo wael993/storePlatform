@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useAuth } from './useAuth'
 import { config } from '../../config'
-import { getIsOnline } from '../../offline/connectivity'
+import { getIsNetworkOnline } from '../../offline/connectivity'
+import { getWorkMode } from '../../offline/workMode'
 import {
 	hasValidOfflineSession,
 	loadTenantOfflineConfig,
@@ -64,7 +65,7 @@ export function useSilentRefresh() {
 
 			const hasOfflineSession = await hasValidOfflineSession(tenantId)
 
-			if (!getIsOnline() && hasOfflineSession) {
+			if (!getIsNetworkOnline() && hasOfflineSession) {
 				return false
 			}
 
@@ -78,6 +79,8 @@ export function useSilentRefresh() {
 		const refreshToken = async (options?: {
 			forceLogoutOnFailure?: boolean
 		}) => {
+			if (getWorkMode() === 'offline') return
+
 			try {
 				const res = await fetch(
 					`${config.endpoints.storePlatformEndpoint}/refresh`,

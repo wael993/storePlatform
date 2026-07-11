@@ -1,33 +1,45 @@
+import { getWorkMode } from './workMode'
+
 type ConnectivityListener = (isOnline: boolean) => void
 
-let isOnlineState =
+let networkOnlineState =
 	typeof navigator !== 'undefined' ? navigator.onLine : true
 
 const listeners = new Set<ConnectivityListener>()
 
+const getEffectiveOnline = (): boolean =>
+	getWorkMode() === 'online' && networkOnlineState
+
 const notify = () => {
+	const isOnline = getEffectiveOnline()
 	for (const listener of listeners) {
-		listener(isOnlineState)
+		listener(isOnline)
 	}
+}
+
+export const notifyEffectiveConnectivityChange = (): void => {
+	notify()
 }
 
 if (typeof window !== 'undefined') {
 	window.addEventListener('online', () => {
-		isOnlineState = true
+		networkOnlineState = true
 		notify()
 	})
 
 	window.addEventListener('offline', () => {
-		isOnlineState = false
+		networkOnlineState = false
 		notify()
 	})
 }
 
-export const getIsOnline = (): boolean => isOnlineState
+export const getIsNetworkOnline = (): boolean => networkOnlineState
+
+export const getIsOnline = (): boolean => getEffectiveOnline()
 
 export const setOnlineFromFetchResult = (failed: boolean): void => {
-	if (failed && isOnlineState) {
-		isOnlineState = false
+	if (failed && networkOnlineState) {
+		networkOnlineState = false
 		notify()
 	}
 }
@@ -36,13 +48,13 @@ export const subscribeConnectivity = (
 	listener: ConnectivityListener,
 ): (() => void) => {
 	listeners.add(listener)
-	listener(isOnlineState)
+	listener(getEffectiveOnline())
 	return () => listeners.delete(listener)
 }
 
 export const markOnline = (): void => {
-	if (!isOnlineState) {
-		isOnlineState = true
+	if (!networkOnlineState) {
+		networkOnlineState = true
 		notify()
 	}
 }

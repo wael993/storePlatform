@@ -1,5 +1,18 @@
 export { offlineDb, getSyncMeta, setSyncMeta, SYNC_META_KEYS, getPendingOutboxCount } from './db'
-export { getIsOnline, subscribeConnectivity, markOnline } from './connectivity'
+export {
+	getIsOnline,
+	getIsNetworkOnline,
+	subscribeConnectivity,
+	markOnline,
+} from './connectivity'
+export {
+	getWorkMode,
+	setWorkMode,
+	loadWorkMode,
+	subscribeWorkMode,
+	resetWorkMode,
+	type WorkMode,
+} from './workMode'
 export {
 	applyBootstrapPayload,
 	applySyncChanges,
@@ -18,6 +31,8 @@ export {
 	syncNow,
 	initOfflineState,
 	onReconnect,
+	enterOfflineWorkMode,
+	exitOfflineWorkMode,
 	getOfflineState,
 	subscribeOfflineState,
 	notifyPendingCountChanged,

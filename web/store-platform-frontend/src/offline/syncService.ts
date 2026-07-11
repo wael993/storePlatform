@@ -8,6 +8,7 @@ import {
 	SYNC_META_KEYS,
 } from './db'
 import {
+	getIsNetworkOnline,
 	getIsOnline,
 	markOnline,
 	setOnlineFromFetchResult,
@@ -17,6 +18,7 @@ import {
 	loadTenantOfflineConfig,
 	isOfflineEnabledForTenant,
 } from './offlineTenantAccess'
+import { getWorkMode, setWorkMode } from './workMode'
 import {
 	applyBootstrapPayload,
 	applySyncChanges,
@@ -163,8 +165,8 @@ const fetchWithAuth = async (
 }
 
 export const bootstrapOfflineData = async (tenantId: string): Promise<void> => {
-	if (!getIsOnline()) {
-		throw new Error('Cannot bootstrap while offline')
+	if (!getIsNetworkOnline()) {
+		throw new Error('Cannot bootstrap without a network connection')
 	}
 
 	emit({ syncState: 'bootstrapping', lastError: null })
@@ -196,7 +198,7 @@ export const bootstrapOfflineData = async (tenantId: string): Promise<void> => {
 }
 
 export const pullSyncChanges = async (): Promise<void> => {
-	if (!getIsOnline()) return
+	if (!getIsNetworkOnline()) return
 
 	const lastSyncedAt = await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)
 	if (!lastSyncedAt) return
@@ -218,19 +220,27 @@ export const pullSyncChanges = async (): Promise<void> => {
 	emit({ lastSyncedAt: payload.serverTime, lastError: null })
 }
 
-export const pushOutbox = async (): Promise<void> => {
+export const pushOutbox = async (options?: {
+	force?: boolean
+}): Promise<void> => {
 	if (pushInFlight) return pushInFlight
 
-	pushInFlight = runPushOutbox().finally(() => {
+	pushInFlight = runPushOutbox(options).finally(() => {
 		pushInFlight = null
 	})
 
 	return pushInFlight
 }
 
-const runPushOutbox = async (): Promise<void> => {
-	if (!getIsOnline()) {
+const runPushOutbox = async (options?: {
+	force?: boolean
+}): Promise<void> => {
+	if (!getIsNetworkOnline()) {
 		emit({ syncState: 'offline' })
+		return
+	}
+
+	if (!options?.force && getWorkMode() === 'offline') {
 		return
 	}
 
@@ -396,8 +406,8 @@ const runPushOutbox = async (): Promise<void> => {
 	}
 }
 
-export const syncNow = async (): Promise<void> => {
-	await pushOutbox()
+export const syncNow = async (options?: { force?: boolean }): Promise<void> => {
+	await pushOutbox(options)
 }
 
 export const clearSyncPushResult = (): void => {
@@ -405,6 +415,13 @@ export const clearSyncPushResult = (): void => {
 }
 
 export const initOfflineState = async (tenantId?: string): Promise<void> => {
+	if (
+		currentState.syncState === 'bootstrapping' ||
+		currentState.syncState === 'syncing'
+	) {
+		return
+	}
+
 	if (tenantId) {
 		await loadTenantOfflineConfig(tenantId)
 	}
@@ -429,10 +446,7 @@ export const initOfflineState = async (tenantId?: string): Promise<void> => {
 	const lastSyncedAt = await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)
 	const pendingCount = await getPendingOutboxCount()
 
-	const preserveSyncState =
-		currentState.syncState === 'syncing' ||
-		currentState.syncState === 'bootstrapping' ||
-		isActivePushSyncState(currentState.syncState)
+	const preserveSyncState = isActivePushSyncState(currentState.syncState)
 
 	emit({
 		isOnline: getIsOnline(),
@@ -481,9 +495,46 @@ subscribeConnectivity(isOnline => {
 	const wasOnline = connectivityPreviousOnline
 	connectivityPreviousOnline = isOnline
 
-	if (isOnline && wasOnline === false) {
+	if (isOnline && wasOnline === false && getWorkMode() === 'online') {
 		void onReconnect()
 	}
 })
+
+export const enterOfflineWorkMode = async (tenantId: string): Promise<void> => {
+	if (!getIsNetworkOnline()) {
+		throw new Error('Network connection required to download offline data')
+	}
+
+	const pendingCount = await getPendingOutboxCount()
+	if (pendingCount > 0) {
+		await pushOutbox({ force: true })
+	}
+
+	await bootstrapOfflineData(tenantId)
+	await setWorkMode('offline')
+	await initOfflineState(tenantId)
+}
+
+export const exitOfflineWorkMode = async (tenantId?: string): Promise<void> => {
+	if (!getIsNetworkOnline()) {
+		throw new Error('Network connection required to sync changes')
+	}
+
+	await pushOutbox({ force: true })
+
+	const { syncPushResult } = getOfflineState()
+	if (
+		syncPushResult?.type === 'partial' ||
+		syncPushResult?.type === 'failed'
+	) {
+		throw new Error(
+			syncPushResult.errorMessage ??
+				'Some offline changes could not be synced. Please retry.',
+		)
+	}
+
+	await setWorkMode('online')
+	await initOfflineState(tenantId)
+}
 
 export { getInvoiceNumberBlockEnd }
