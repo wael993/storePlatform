@@ -2,6 +2,7 @@ export const TENANT_ACCESSIBLE_PAGE = {
 	USERS: 'USERS',
 	PRODUCTS: 'PRODUCTS',
 	DAILY: 'DAILY',
+	CASH_BALANCE: 'CASH_BALANCE',
 	SUPPLIERS: 'SUPPLIERS',
 	CUSTOMERS: 'CUSTOMERS',
 	CATEGORIES: 'CATEGORIES',
@@ -22,6 +23,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 	TENANT_ACCESSIBLE_PAGE.USERS,
 	TENANT_ACCESSIBLE_PAGE.PRODUCTS,
 	TENANT_ACCESSIBLE_PAGE.DAILY,
+	TENANT_ACCESSIBLE_PAGE.CASH_BALANCE,
 	TENANT_ACCESSIBLE_PAGE.SUPPLIERS,
 	TENANT_ACCESSIBLE_PAGE.CUSTOMERS,
 	TENANT_ACCESSIBLE_PAGE.CATEGORIES,
@@ -37,6 +39,8 @@ export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
 	[TENANT_ACCESSIBLE_PAGE.USERS]: 'components.pageHeaders.users',
 	[TENANT_ACCESSIBLE_PAGE.PRODUCTS]: 'components.pageHeaders.products',
 	[TENANT_ACCESSIBLE_PAGE.DAILY]: 'components.pageHeaders.daily',
+	[TENANT_ACCESSIBLE_PAGE.CASH_BALANCE]:
+		'components.pageHeaders.cashBalance',
 	[TENANT_ACCESSIBLE_PAGE.SUPPLIERS]: 'components.pageHeaders.suppliers',
 	[TENANT_ACCESSIBLE_PAGE.CUSTOMERS]: 'components.pageHeaders.customers',
 	[TENANT_ACCESSIBLE_PAGE.CATEGORIES]: 'components.pageHeaders.categories',
@@ -59,6 +63,8 @@ export const TENANT_PAGE_DESCRIPTION_KEYS: Record<
 	[TENANT_ACCESSIBLE_PAGE.PRODUCTS]:
 		'tenants.accessiblePages.productsDescription',
 	[TENANT_ACCESSIBLE_PAGE.DAILY]: 'tenants.accessiblePages.dailyDescription',
+	[TENANT_ACCESSIBLE_PAGE.CASH_BALANCE]:
+		'tenants.accessiblePages.cashBalanceDescription',
 	[TENANT_ACCESSIBLE_PAGE.SUPPLIERS]:
 		'tenants.accessiblePages.suppliersDescription',
 	[TENANT_ACCESSIBLE_PAGE.CUSTOMERS]:

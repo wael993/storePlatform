@@ -26,7 +26,7 @@ import Filters from '../filters/Filters'
 import { FilterSelectOption, ProductFilterValues } from '../filters/FilterModal'
 import { AddSquareIcon } from '../icons/AddSquare'
 import AddDailyActionModal from '../modals/DailyAction/AddDailyActionModal'
-import DailyActionsListWithActionBar from './list/DailyActionsListWithActionBar'
+import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
 import {
 	useGetDailyActionFilterValuesQuery,
 	useGetDailyActionsQuery,
@@ -38,6 +38,13 @@ import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 
 const fullWidth = '100%'
 
+const CASH_BALANCE_TABLE_ENTRY_TYPES = [
+	DailyActionType.PAYMENT_ENTRY,
+	DailyActionType.RECEIPT_ENTRY,
+	DailyActionType.EXPENSE_ENTRY,
+	DailyActionType.SELLING_ENTRY,
+] as const
+
 const getDateInputValueFromDate = (date: Date) => {
 	const year = date.getFullYear()
 	const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -46,7 +53,7 @@ const getDateInputValueFromDate = (date: Date) => {
 	return `${year}-${month}-${day}`
 }
 
-const getDefaultDailyFilters = (): ProductFilterValues => {
+const getDefaultCashBalanceFilters = (): ProductFilterValues => {
 	const today = new Date()
 	const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
 	const endOfCurrentMonth = new Date(
@@ -69,6 +76,19 @@ const getDefaultDailyFilters = (): ProductFilterValues => {
 	}
 }
 
+const getEffectiveCashBalanceFilters = (
+	filters: ProductFilterValues,
+): ProductFilterValues => {
+	const allowedTypes = CASH_BALANCE_TABLE_ENTRY_TYPES as unknown as string[]
+	const userTypes = filters.entryType ?? []
+	const entryType =
+		userTypes.length > 0
+			? userTypes.filter(type => allowedTypes.includes(type))
+			: [...allowedTypes]
+
+	return { ...filters, entryType }
+}
+
 const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
 	if (!entryType) return undefined
 	if (typeof entryType === 'string') return entryType
@@ -76,7 +96,14 @@ const getEntryTypeValue = (entryType: DailyAction['entryType']) => {
 }
 
 const parseDailyActionAmount = (dailyAction: DailyAction) => {
-	const rawAmount = dailyAction.totalPrice ?? dailyAction.singleUnitPrice ?? '0'
+	const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
+	const isAmountOnlyAction =
+		entryTypeValue === DailyActionType.PAYMENT_ENTRY ||
+		entryTypeValue === DailyActionType.RECEIPT_ENTRY ||
+		entryTypeValue === DailyActionType.EXPENSE_ENTRY
+	const rawAmount = isAmountOnlyAction
+		? (dailyAction.singleUnitPrice ?? dailyAction.totalPrice ?? '0')
+		: (dailyAction.totalPrice ?? dailyAction.singleUnitPrice ?? '0')
 	const amount = parseFloat(rawAmount.replace(/,/g, ''))
 
 	return Number.isFinite(amount) ? amount : 0
@@ -156,53 +183,51 @@ const styles = {
 		color: '#1E1E1E',
 	},
 } satisfies StylesObject
-interface DailyPageProps {
-	targetType: TargetType
-}
 
-const DailyPage = ({ targetType }: DailyPageProps) => {
+const CashBalancePage = () => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin, isAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
-	const [dailyFilters, setDailyFilters] = useState<ProductFilterValues>(
-		getDefaultDailyFilters,
-	)
+	const [cashBalanceFilters, setCashBalanceFilters] =
+		useState<ProductFilterValues>(getDefaultCashBalanceFilters)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
+
+	const effectiveFilters = useMemo(
+		() => getEffectiveCashBalanceFilters(cashBalanceFilters),
+		[cashBalanceFilters],
+	)
+
 	const { data: dailyActions = [], isLoading: isDailyActionsLoading } =
-		useGetDailyActionsQuery(dailyFilters)
+		useGetDailyActionsQuery(effectiveFilters)
 	const { data: dailyFilterValues } = useGetDailyActionFilterValuesQuery()
 
-	const dailyBudgetOverview = useMemo(() => {
+	const cashBalanceOverview = useMemo(() => {
 		const totals = dailyActions.reduce(
 			(accumulator, dailyAction) => {
 				const amount = parseDailyActionAmount(dailyAction)
 				const entryTypeValue = getEntryTypeValue(dailyAction.entryType)
 
-				if (entryTypeValue === DailyActionType.BUYING_ENTRY) {
-					accumulator.purchases += amount //مشتريات
-				}
-
 				if (entryTypeValue === DailyActionType.SELLING_ENTRY) {
-					accumulator.sales += amount //مبيعات
+					accumulator.sales += amount
 				}
 
 				if (entryTypeValue === DailyActionType.EXPENSE_ENTRY) {
-					accumulator.expenses += amount //مصاريف
+					accumulator.expenses += amount
 				}
 
 				if (entryTypeValue === DailyActionType.RECEIPT_ENTRY) {
-					accumulator.receipts += amount //قبض
+					accumulator.receipts += amount
 				}
 
 				if (entryTypeValue === DailyActionType.PAYMENT_ENTRY) {
-					accumulator.payments += amount //دفع
+					accumulator.payments += amount
 				}
 
 				return accumulator
 			},
-			{ purchases: 0, sales: 0, expenses: 0, receipts: 0, payments: 0 },
+			{ sales: 0, expenses: 0, receipts: 0, payments: 0 },
 		)
 
 		const currency =
@@ -212,11 +237,10 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			'N.SYP'
 
 		return {
-			purchases: totals.purchases.toFixed(2),
 			expenses: totals.expenses.toFixed(2),
-			costs: (totals.purchases + totals.expenses).toFixed(2),
+			receipts: totals.receipts.toFixed(2),
+			payments: totals.payments.toFixed(2),
 			sales: totals.sales.toFixed(2),
-			profit: (totals.sales - totals.purchases - totals.expenses).toFixed(2),
 			cashBalance: (
 				totals.receipts -
 				totals.payments -
@@ -226,33 +250,39 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 		}
 	}, [dailyActions])
 
-	const dailyBudgetOverviewLabels = useMemo(
+	const budgetOverviewLabels = useMemo(
 		() => ({
-			tooltip: t('components.daily.budgetOverview.tooltip'),
-			title: t('components.daily.budgetOverview.title'),
-			purchase: t('components.daily.budgetOverview.costs'),
-			payments: t('components.daily.budgetOverview.sales'),
-			balance: t('components.daily.budgetOverview.profit'),
+			tooltip: t('components.cashBalance.budgetOverview.tooltip'),
+			title: t('components.cashBalance.budgetOverview.title'),
+			purchase: t('components.cashBalance.budgetOverview.receipts'),
+			payments: t('components.cashBalance.budgetOverview.payments'),
+			balance: t('components.cashBalance.budgetOverview.expenses'),
 		}),
 		[t],
 	)
 
 	const entryTypeOptions: FilterSelectOption[] = useMemo(() => {
-		return (dailyFilterValues?.entryType ?? []).map(option => {
-			const translationKey = ENTRY_TYPE_LABELS_MAP[option.value]
-			return {
-				...option,
-				label: translationKey ? t(translationKey) : option.label,
-			}
-		})
+		const allowedTypes = new Set(
+			CASH_BALANCE_TABLE_ENTRY_TYPES as unknown as string[],
+		)
+
+		return (dailyFilterValues?.entryType ?? [])
+			.filter(option => allowedTypes.has(option.value))
+			.map(option => {
+				const translationKey = ENTRY_TYPE_LABELS_MAP[option.value]
+				return {
+					...option,
+					label: translationKey ? t(translationKey) : option.label,
+				}
+			})
 	}, [dailyFilterValues?.entryType, t])
 
 	const handleApplyFilters = (filters: ProductFilterValues) => {
-		setDailyFilters(filters)
+		setCashBalanceFilters(filters)
 	}
 
 	const handleResetFilters = () => {
-		setDailyFilters(getDefaultDailyFilters())
+		setCashBalanceFilters(getDefaultCashBalanceFilters())
 	}
 
 	return (
@@ -261,7 +291,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				<Flex sx={styles.header}>
 					<CustomBreadcrumb
 						marginTop="2rem"
-						items={breadCrumbItems[BreadCrumbItem.DAILY]}
+						items={breadCrumbItems[BreadCrumbItem.CASH_BALANCE]}
 					/>
 				</Flex>
 			)}
@@ -274,24 +304,24 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				mb={{ base: 4, md: '4rem' }}
 			>
 				<Heading sx={styles.title} variant="h5">
-					{t('components.pageHeaders.daily')}
+					{t('components.pageHeaders.cashBalance')}
 				</Heading>
 				{isOwnerOrAdmin && (
 					<HStack sx={styles.actionsRow}>
 						{!isMobile &&
 							isActionAllowed(AllowedActions.CAN_SEE_BUDGET_OVERVIEW) && (
 								<BudgetOverview
-									purchase={dailyBudgetOverview.costs}
-									payments={dailyBudgetOverview.sales}
-									balance={dailyBudgetOverview.profit}
-									currency={dailyBudgetOverview.currency}
+									purchase={cashBalanceOverview.receipts}
+									payments={cashBalanceOverview.payments}
+									balance={cashBalanceOverview.expenses}
+									currency={cashBalanceOverview.currency}
 									isFetching={isDailyActionsLoading}
-									labels={dailyBudgetOverviewLabels}
+									labels={budgetOverviewLabels}
 								/>
 							)}
 
-						{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
-							isAdmin && (
+						{isAdmin &&
+							isActionAllowed(AllowedActions.CAN_EDIT_CASH_BALANCE) && (
 								<Button
 									leftIcon={<AddSquareIcon />}
 									onClick={onOpen}
@@ -306,7 +336,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 							)}
 						<ExcelDownload
 							targetType={TargetType.DAILY_ACTION}
-							queryParams={dailyFilters}
+							queryParams={effectiveFilters}
 						/>
 					</HStack>
 				)}
@@ -315,20 +345,20 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			{isMobile && (
 				<Box sx={styles.mobileSummaryCard}>
 					<BudgetOverview
-						purchase={dailyBudgetOverview.costs}
-						payments={dailyBudgetOverview.sales}
-						balance={dailyBudgetOverview.profit}
-						currency={dailyBudgetOverview.currency}
+						purchase={cashBalanceOverview.receipts}
+						payments={cashBalanceOverview.payments}
+						balance={cashBalanceOverview.expenses}
+						currency={cashBalanceOverview.currency}
 						isFetching={isDailyActionsLoading}
-						labels={dailyBudgetOverviewLabels}
+						labels={budgetOverviewLabels}
 					/>
 					<Flex sx={styles.cashBalanceRow}>
 						<Text sx={styles.cashBalanceLabel}>
-							{t('components.daily.cashBalance')}
+							{t('components.cashBalance.cashBalance')}
 						</Text>
 						<Text sx={styles.cashBalanceValue}>
-							{mapFee(dailyBudgetOverview.cashBalance) ?? '0'}{' '}
-							{dailyBudgetOverview.currency}
+							{mapFee(cashBalanceOverview.cashBalance) ?? '0'}{' '}
+							{cashBalanceOverview.currency}
 						</Text>
 					</Flex>
 				</Box>
@@ -339,10 +369,12 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 					{isDailyActionsLoading && <Spinner />}
 					<Box sx={styles.divider} />
 					<HStack>
-						<Text sx={styles.title}>{t('components.daily.cashBalance')}:</Text>
 						<Text sx={styles.title}>
-							{mapFee(dailyBudgetOverview.cashBalance) ?? '0'}{' '}
-							{dailyBudgetOverview.currency}
+							{t('components.cashBalance.cashBalance')}:
+						</Text>
+						<Text sx={styles.title}>
+							{mapFee(cashBalanceOverview.cashBalance) ?? '0'}{' '}
+							{cashBalanceOverview.currency}
 						</Text>
 					</HStack>
 					<Box sx={styles.divider} />
@@ -356,7 +388,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			)}
 
 			<Filters
-				filters={dailyFilters}
+				filters={cashBalanceFilters}
 				onApplyFilters={handleApplyFilters}
 				onResetFilters={handleResetFilters}
 				supplierOptions={dailyFilterValues?.supplier ?? []}
@@ -388,10 +420,10 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			<AddDailyActionModal
 				isOpen={isOpen}
 				onClose={onClose}
-				targetType={targetType}
+				targetType={TargetType.CASH_BALANCE}
 			/>
 		</Flex>
 	)
 }
 
-export default DailyPage
+export default CashBalancePage

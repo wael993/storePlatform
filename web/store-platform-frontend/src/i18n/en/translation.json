@@ -73,6 +73,7 @@
 			"usersDescription": "Manage tenant users and roles.",
 			"productsDescription": "Product catalog and pricing.",
 			"dailyDescription": "Daily buying, selling, and expense actions.",
+			"cashBalanceDescription": "Cash balance with receipts, payments, expenses, and selling entries.",
 			"suppliersDescription": "Supplier directory and details.",
 			"customersDescription": "Customer directory and details.",
 			"categoriesDescription": "Product category directory.",
@@ -357,6 +358,18 @@
 			"unitCode": "Unit Code",
 			"expenseCode": "Expense Code"
 		},
+		"cashBalance": {
+			"cashBalance": "Cash Balance",
+			"budgetOverview": {
+				"tooltip": "Overview for the filtered cash balance entries.",
+				"title": "Cash Balance Overview",
+				"receipts": "Receipts",
+				"payments": "Payments",
+				"expenses": "Expenses",
+				"sales": "Sales",
+				"cashBalance": "Cash Balance"
+			}
+		},
 		"partner": {
 			"addPartner": "Add Partner",
 			"partnerName": "Partner Name",
@@ -482,6 +495,7 @@
 			"sellingInvoices": "Selling Invoices",
 			"settings": "Settings",
 			"daily": "Daily",
+			"cashBalance": "Cash Balance",
 			"products": "Products",
 			"orders": "Orders",
 			"invoices": "Invoices",

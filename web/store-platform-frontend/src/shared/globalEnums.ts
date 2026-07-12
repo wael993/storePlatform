@@ -25,6 +25,12 @@ export enum AllowedActions {
 	CAN_EDIT_DAILY_ACTION = 'editDailyAction',
 	CAN_DELETE_DAILY_ACTION = 'deleteDailyAction',
 
+	// CASH BALANCE
+	CAN_EDIT_CASH_BALANCE = 'canEditCashBalance',
+
+	//BUDGET OVERVIEW
+	CAN_SEE_BUDGET_OVERVIEW = 'seeBudgetOverview',
+
 	// STOCK QUANTITY
 	SEE_STOCK_QUANTITY = 'seeStockQuantity',
 	CAN_EDIT_STOCK_QUANTITY = 'canEditStockQuantity',
@@ -89,6 +95,7 @@ export enum TargetType {
 	PARTNER = 'PARTNER', //شريك
 	PRODUCT = 'PRODUCT', //منتج
 	DAILY_ACTION = 'DAILY_ACTION', //إجراء يومي
+	CASH_BALANCE = 'CASH_BALANCE', //الصندوق
 	// PAYMENT = 'PAYMENT',//دفع
 	// RECEIPT = 'RECEIPT',//قبض
 }
@@ -109,6 +116,7 @@ export enum BreadCrumbItem {
 	ORDERS = 'orders',
 	INVOICES = 'invoices',
 	DAILY = 'daily',
+	CASH_BALANCE = 'cashBalance',
 	USERS = 'users',
 	ADD_NEW_TENANT = 'addNewTenant',
 	TENANTS_LIST = 'tenantsList',

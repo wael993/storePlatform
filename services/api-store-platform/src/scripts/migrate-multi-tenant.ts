@@ -20,8 +20,11 @@ const COLLECTIONS = [
 
 async function migrateMultiTenant() {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString)
-		console.log('Connected to MongoDB')
+		await mongoose.connect(config.mongoDB.connectionString, {
+			dbName: config.mongoDB.databaseName,
+		})
+
+		console.log(`Connected to MongoDB (${mongoose.connection.name})`)
 
 		await Tenant.updateOne(
 			{ tenantId: DEFAULT_TENANT_ID },

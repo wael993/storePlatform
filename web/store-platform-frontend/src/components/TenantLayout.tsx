@@ -38,6 +38,7 @@ const TenantLayout = () => {
 		isInvoicesEnabled,
 		isUsersEnabled,
 		isDailyEnabled,
+		isCashBalancePageEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
 		isCategoriesEnabled,
@@ -52,6 +53,7 @@ const TenantLayout = () => {
 		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
+		isTenantCashBalancePageEnabled,
 		isTenantCustomersEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantCategoriesEnabled,
@@ -65,6 +67,9 @@ const TenantLayout = () => {
 		{ label: 'Welcome', path: RoutePaths.ROOT },
 		isDailyEnabled && isTenantDailyEnabled
 			? { label: 'Daily', path: RoutePaths.DAILY }
+			: null,
+		isCashBalancePageEnabled && isTenantCashBalancePageEnabled
+			? { label: 'Cash Balance', path: RoutePaths.CASH_BALANCE }
 			: null,
 		isBarcodeEnabled && isTenantBarcodeEnabled
 			? { label: 'Barcode', path: RoutePaths.BARCODE }

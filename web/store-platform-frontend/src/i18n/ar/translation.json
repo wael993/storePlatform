@@ -73,6 +73,7 @@
 			"usersDescription": "إدارة مستخدمي المستأجر والأدوار.",
 			"productsDescription": "كتالوج المنتجات والأسعار.",
 			"dailyDescription": "إجراءات الشراء والبيع والمصروفات اليومية.",
+			"cashBalanceDescription": "الصندوق مع القبض والدفع والنفقات وفواتير المبيعات.",
 			"suppliersDescription": "دليل الموردين والتفاصيل.",
 			"customersDescription": "دليل العملاء والتفاصيل.",
 			"categoriesDescription": "دليل فئات المنتجات.",
@@ -383,6 +384,18 @@
 			"unitCode": "رمز الوحدة",
 			"expenseCode": "رمز النفقات"
 		},
+		"cashBalance": {
+			"cashBalance": "الصندوق",
+			"budgetOverview": {
+				"tooltip": "نظرة عامة على إدخالات الصندوق بعد التصفية.",
+				"title": "نظرة عامة على الصندوق",
+				"receipts": "القبض",
+				"payments": "الدفع",
+				"expenses": "النفقات",
+				"sales": "المبيعات",
+				"cashBalance": "الصندوق"
+			}
+		},
 		"sellingInvoices": {
 			"title": "فواتير المبيعات",
 			"newInvoice": "فاتورة جديدة",
@@ -484,6 +497,7 @@
 			"sellingInvoices": "فواتير المبيعات",
 			"settings": "الإعدادات",
 			"daily": "اليومية",
+			"cashBalance": "الصندوق",
 			"products": "المنتجات",
 			"orders": "الطلبات",
 			"invoices": "الفواتير",

@@ -6,7 +6,10 @@ const STALE_INDEXES: Record<string, string[]> = {
 }
 
 async function dropStaleIndexes() {
-	await mongoose.connect(config.mongoDB.connectionString)
+	await mongoose.connect(config.mongoDB.connectionString, {
+		dbName: config.mongoDB.databaseName,
+	})
+
 	console.log('Connected to MongoDB')
 
 	for (const [collectionName, indexes] of Object.entries(STALE_INDEXES)) {

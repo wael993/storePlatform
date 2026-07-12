@@ -671,6 +671,7 @@ const getQuery = (
 
 				return response
 			},
+			invalidatesTags: ['frontend-resources'],
 		}),
 
 		logoutCurrent: builder.mutation<void, void>({
@@ -679,6 +680,7 @@ const getQuery = (
 				method: 'POST',
 				credentials: 'include',
 			}),
+			invalidatesTags: ['frontend-resources'],
 		}),
 
 		logoutAll: builder.mutation<{ sessionsRevoked: number }, void>({
@@ -791,6 +793,7 @@ const getQuery = (
 			transformResponse: (response: {
 				frontendResources: FrontendResources[]
 			}) => response.frontendResources,
+			providesTags: ['frontend-resources'],
 		}),
 		changePassword: builder.mutation<
 			void,

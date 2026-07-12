@@ -185,8 +185,13 @@
 				"seeDailyAction",
 				"addDailyAction",
 				"editDailyAction",
-				"deleteDailyAction"
+				"deleteDailyAction",
+				"seeBudgetOverview"
 			]
+		},
+		"/services/store_platform/cash-balance": {
+			"access": true,
+			"allowedActions": ["seeBudgetOverview", "canEditCashBalance"]
 		},
 		"/services/store_platform/categories": {
 			"access": true,

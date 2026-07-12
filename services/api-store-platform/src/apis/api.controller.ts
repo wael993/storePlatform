@@ -3336,16 +3336,6 @@ export default class ProductController {
 				)
 			}
 
-			console.log(
-				'🚀 ~ ProductController ~ patchTenant ~ sanitizedPages.length:',
-				sanitizedPages.length,
-			)
-
-			console.log(
-				'🚀 ~ ProductController ~ patchTenant ~ requestBody.accessiblePages.length:',
-				requestBody.accessiblePages.length,
-			)
-
 			if (sanitizedPages.length !== requestBody.accessiblePages.length) {
 				throw new BusinessLogicError(
 					ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
@@ -5069,7 +5059,7 @@ export default class ProductController {
 
 		cutoff.setDate(cutoff.getDate() - config.offlineSyncRetentionDays)
 		cutoff.setHours(0, 0, 0, 0)
-		
+
 		return cutoff
 	}
 

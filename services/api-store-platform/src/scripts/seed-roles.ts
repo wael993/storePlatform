@@ -105,6 +105,10 @@ const ROLE_MOCKS = [
 				access: true,
 				allowedActions: ['seeDailyAction'],
 			},
+			'/services/store_platform/cash-balance': {
+				access: true,
+				allowedActions: ['seeBudgetOverview'],
+			},
 			'/services/store_platform/categories': {
 				access: true,
 				allowedActions: ['seeCategory'],
@@ -195,7 +199,12 @@ const ROLE_MOCKS = [
 					'addDailyAction',
 					'editDailyAction',
 					'deleteDailyAction',
+					'seeBudgetOverview',
 				],
+			},
+			'/services/store_platform/cash-balance': {
+				access: true,
+				allowedActions: ['seeBudgetOverview', 'canEditCashBalance'],
 			},
 			'/services/store_platform/categories': {
 				access: true,
@@ -248,8 +257,11 @@ const ROLE_MOCKS = [
 
 const seedRoles = async () => {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString)
-		console.log('Connected to MongoDB')
+		await mongoose.connect(config.mongoDB.connectionString, {
+			dbName: config.mongoDB.databaseName,
+		})
+
+		console.log(`Connected to MongoDB (${mongoose.connection.name})`)
 
 		await Role.syncIndexes()
 

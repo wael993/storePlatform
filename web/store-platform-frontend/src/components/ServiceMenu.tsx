@@ -27,6 +27,7 @@ import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { compareLanguage } from '../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import ChangePasswordModal from './ChangePasswordModal'
+import { CashBalanceIcon } from '../icons/CashBalance'
 
 interface ServiceMenuProps {
 	navItems: {
@@ -108,6 +109,8 @@ const getNavigationIcon = (path: string, isActive: boolean): ReactElement => {
 	}
 
 	switch (path) {
+		case RoutePaths.CASH_BALANCE:
+			return <CashBalanceIcon {...iconProps} />
 		case RoutePaths.DAILY:
 			return <CalendarIcon {...iconProps} />
 		case RoutePaths.PRODUCTS:

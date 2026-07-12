@@ -85,16 +85,25 @@ const initCollections = async () => {
 	try {
 		const roleDocs = readRoleFiles()
 
-		await mongoose.connect(config.mongoDB.connectionString)
-		console.log('Connected to MongoDB')
+		await mongoose.connect(config.mongoDB.connectionString, {
+			dbName: config.mongoDB.databaseName,
+		})
+
+		console.log(
+			`Connected to MongoDB (${mongoose.connection.name}.${Role.collection.collectionName})`,
+		)
 
 		await Role.syncIndexes()
 
 		for (const roleDoc of roleDocs) {
-			await Role.updateOne(
+			const result = await Role.updateOne(
 				{ _id: roleDoc._id },
 				{ $set: roleDoc },
 				{ upsert: true },
+			)
+
+			console.log(
+				`  ${roleDoc._id}: matched=${result.matchedCount}, modified=${result.modifiedCount}, upserted=${result.upsertedCount ?? 0}`,
 			)
 		}
 
