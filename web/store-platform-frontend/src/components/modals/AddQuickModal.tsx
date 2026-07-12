@@ -21,6 +21,7 @@ import InputLabel from '../common/InputLabel'
 import { MODAL_CONFIG } from '../../shared/globalConstant'
 
 interface AddQuickModalProps {
+	showInternalCodeLabel?: boolean
 	nextInternalCode?: string
 	isOpen: boolean
 	onClose: () => void
@@ -86,6 +87,7 @@ const styles: StylesObject = {
 }
 
 const AddQuickModal = ({
+	showInternalCodeLabel = true,
 	nextInternalCode,
 	isOpen,
 	onClose,
@@ -135,23 +137,29 @@ const AddQuickModal = ({
 						/>
 					</VStack>
 
-					<VStack
-						sx={{ gap: '1.25rem', alignItems: 'left', marginBottom: '1.5rem' }}
-					>
-						<InputLabel
-							withGap={true}
-							label={t(MODAL_CONFIG[modalType].code)}
-							inputPlaceholder={
-								nextInternalCode
-									? nextInternalCode
-									: t(MODAL_CONFIG[modalType].code)
-							}
-							inputType={MODAL_CONFIG[modalType].inputType}
-							styles={documentNameStyles}
-							value={inputValue.code ?? nextInternalCode}
-							onChange={(value: string) => handleInputChange('code', value)}
-						/>
-					</VStack>
+					{showInternalCodeLabel && (
+						<VStack
+							sx={{
+								gap: '1.25rem',
+								alignItems: 'left',
+								marginBottom: '1.5rem',
+							}}
+						>
+							<InputLabel
+								withGap={true}
+								label={t(MODAL_CONFIG[modalType].code)}
+								inputPlaceholder={
+									nextInternalCode
+										? nextInternalCode
+										: t(MODAL_CONFIG[modalType].code)
+								}
+								inputType={MODAL_CONFIG[modalType].inputType}
+								styles={documentNameStyles}
+								value={inputValue.code ?? nextInternalCode}
+								onChange={(value: string) => handleInputChange('code', value)}
+							/>
+						</VStack>
+					)}
 
 					<ButtonGroup size="sm" sx={styles.buttonRow}>
 						<Button

@@ -125,7 +125,6 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 	} = useDisclosure()
 	const [modalType, setModalType] = useState<AddQuickModalType>('customer')
 	const [formData, setFormData] = useState<FormData>({ code: '', value: '' })
-
 	const [createCustomer, { isLoading: isCustomerLoading }] =
 		useCreateCustomerMutation()
 	const [createSupplier, { isLoading: isSupplierLoading }] =
@@ -366,6 +365,7 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 				inputValue={formData}
 				handleQuickAdd={handleQuickAdd}
 				userHasAdminRole={isOwnerOrAdmin}
+				showInternalCodeLabel={false}
 			/>
 		</>
 	)
