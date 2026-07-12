@@ -113,7 +113,7 @@ const ConfirmationDialog = ({
 					</AlertDialogBody>
 
 					<AlertDialogFooter>
-						<Flex justifyContent={buttonsAlignment}>
+						<Flex justifyContent={buttonsAlignment} gap={'1rem'}>
 							<Button sx={styles.secondaryButton} onClick={onClose}>
 								{cancelButtonText}
 							</Button>
