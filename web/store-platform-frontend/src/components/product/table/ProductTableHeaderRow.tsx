@@ -192,6 +192,8 @@ const ProductTableHeaderRow = ({
 						label: t('common.discount'),
 						width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.DISCOUNT,
 						sortKey: ProductSortHeaderKey.DISCOUNT,
+						align: 'right' as const,
+						isShop: false,
 					},
 				]
 			: []),
@@ -221,13 +223,13 @@ const ProductTableHeaderRow = ({
 		// 	align: 'right' as const,
 		// },
 
-		{
-			label: t('common.createdAt'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
-			sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
-			align: 'right' as const,
-			isShop: false,
-		},
+		// {
+		// 	label: t('common.createdAt'),
+		// 	width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.STOCK_QUANTITY,
+		// 	sortKey: ProductSortHeaderKey.STOCK_QUANTITY,
+		// 	align: 'right' as const,
+		// 	isShop: false,
+		// },
 
 		// Sticky Right
 		{

@@ -2,6 +2,7 @@ import type { FetchArgs } from '@reduxjs/toolkit/query'
 
 import type { PostSellingInvoiceBody, ProductsResponse } from '../api/apiStore'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
+import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
 	filterDailyActionsByParams,
 	parseDailyActionFiltersFromParams,
@@ -133,10 +134,11 @@ const buildSellingInvoicesSummary = (invoices: LocalInvoice[]) => {
 		return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
 	})
 
-	const todaySales = todaysInvoices.reduce(
-		(total, inv) => total + (Number(inv.amount) || 0),
-		0,
-	)
+	const todaySales = todaysInvoices.reduce((total, inv) => {
+		const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(inv)
+
+		return total + grandTotal
+	}, 0)
 
 	return {
 		todaySales,
@@ -145,8 +147,9 @@ const buildSellingInvoicesSummary = (invoices: LocalInvoice[]) => {
 			inv => inv.paymentType === 'credit' && inv.paymentStatus !== 'paid',
 		).length,
 		totalReceivable: invoices.reduce((total, inv) => {
-			const remaining = Number(inv.remainingAmount) || 0
-			return remaining > 0 ? total + remaining : total
+			const { remainingAmount } = getPrimaryInvoiceCurrencyAmounts(inv)
+
+			return remainingAmount > 0 ? total + remainingAmount : total
 		}, 0),
 		averageOrder:
 			todaysInvoices.length > 0 ? todaySales / todaysInvoices.length : 0,
@@ -328,12 +331,7 @@ const handlePostInvoice = async (
 			items: body.items,
 			status,
 			paymentStatus: body.paymentStatus,
-			paidAmount: body.paidAmount,
-			remainingAmount: body.remainingAmount,
-			amount: body.amount,
-			totalAmount: body.totalAmount,
-			totalTax: body.totalTax,
-			totalDiscount: body.totalDiscount,
+			currencyAmounts: body.currencyAmounts,
 			notes: body.notes,
 			issuedAt: body.issuedAt ?? nowIso(),
 			createdAt: nowIso(),

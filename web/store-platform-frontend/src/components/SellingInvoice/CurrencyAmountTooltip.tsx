@@ -2,14 +2,19 @@ import { Box, Text, Tooltip, VStack } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import {
 	getOtherCurrencyAmountLines,
+	getSavedOtherCurrencyAmountLines,
 	type DisplayCurrencyOption,
 } from './currencyDisplay'
+
+import type { InvoiceCurrencyAmount, SavedCurrencyAmountField } from './currencyDisplay'
 
 interface CurrencyAmountTooltipProps {
 	amount: number
 	displayText: string
 	options: DisplayCurrencyOption[]
 	displayCurrencyId: string | null
+	savedCurrencyAmounts?: InvoiceCurrencyAmount[]
+	savedAmountField?: SavedCurrencyAmountField
 	fontSize?: string
 	fontWeight?: number | string
 	color?: string
@@ -20,16 +25,21 @@ const CurrencyAmountTooltip = ({
 	displayText,
 	options,
 	displayCurrencyId,
+	savedCurrencyAmounts,
+	savedAmountField,
 	fontSize = 'sm',
 	fontWeight = 600,
 	color,
 }: CurrencyAmountTooltipProps) => {
 	const { t } = useTranslation()
-	const otherCurrencies = getOtherCurrencyAmountLines(
-		amount,
-		options,
-		displayCurrencyId,
-	)
+	const otherCurrencies =
+		savedCurrencyAmounts?.length && savedAmountField
+			? getSavedOtherCurrencyAmountLines(
+					savedCurrencyAmounts,
+					savedAmountField,
+					displayCurrencyId,
+				)
+			: getOtherCurrencyAmountLines(amount, options, displayCurrencyId)
 
 	if (otherCurrencies.length === 0) {
 		return (

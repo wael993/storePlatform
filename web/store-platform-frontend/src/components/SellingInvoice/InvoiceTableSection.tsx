@@ -54,6 +54,7 @@ import { AsPrintIcon } from '../../icons/Print'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import { formatInvoiceAmountForDisplay } from './currencyDisplay'
 
 interface InvoiceTableSectionProps {
 	invoices: SellingInvoice[]
@@ -433,9 +434,17 @@ const InvoiceTableSection = ({
 										<Td isNumeric fontWeight={500} color="gray.900">
 											<CurrencyAmountTooltip
 												amount={invoice.total}
-												displayText={formatAmount(invoice.total)}
+												displayText={formatInvoiceAmountForDisplay(
+													invoice.currencyAmounts,
+													'amount',
+													displayCurrencyId,
+													invoice.total,
+													displayCurrencyOptions,
+												)}
 												options={displayCurrencyOptions}
 												displayCurrencyId={displayCurrencyId}
+												savedCurrencyAmounts={invoice.currencyAmounts}
+												savedAmountField="amount"
 												fontWeight={500}
 												color="gray.900"
 											/>
@@ -443,9 +452,17 @@ const InvoiceTableSection = ({
 										<Td isNumeric color="gray.800">
 											<CurrencyAmountTooltip
 												amount={invoice.paid}
-												displayText={formatAmount(invoice.paid)}
+												displayText={formatInvoiceAmountForDisplay(
+													invoice.currencyAmounts,
+													'paidAmount',
+													displayCurrencyId,
+													invoice.paid,
+													displayCurrencyOptions,
+												)}
 												options={displayCurrencyOptions}
 												displayCurrencyId={displayCurrencyId}
+												savedCurrencyAmounts={invoice.currencyAmounts}
+												savedAmountField="paidAmount"
 												fontWeight={400}
 												color="gray.800"
 											/>
@@ -453,9 +470,17 @@ const InvoiceTableSection = ({
 										<Td isNumeric>
 											<CurrencyAmountTooltip
 												amount={invoice.due}
-												displayText={formatAmount(invoice.due)}
+												displayText={formatInvoiceAmountForDisplay(
+													invoice.currencyAmounts,
+													'remainingAmount',
+													displayCurrencyId,
+													invoice.due,
+													displayCurrencyOptions,
+												)}
 												options={displayCurrencyOptions}
 												displayCurrencyId={displayCurrencyId}
+												savedCurrencyAmounts={invoice.currencyAmounts}
+												savedAmountField="remainingAmount"
 												fontWeight={invoice.due > 0 ? 600 : 400}
 												color={
 													invoice.due > 0 ? PAGE_COLORS.danger : 'gray.800'

@@ -5,6 +5,12 @@ import {
 	calculateInvoiceTotals,
 	calculateLineItemTotal,
 } from './invoiceCalculations'
+import {
+	buildInvoiceCurrencyAmounts,
+	getPrimaryInvoiceCurrencyAmounts,
+	type InvoiceCurrencyAmount,
+} from './currencyDisplay'
+import type { CurrencySettings } from '../../api/apiStore'
 import type {
 	SellingInvoice,
 	SellingInvoiceDraft,
@@ -13,6 +19,8 @@ import type {
 	SellingInvoiceStatus,
 	SellingInvoiceSummary,
 } from './types'
+
+export type { InvoiceCurrencyAmount }
 
 export interface ApiSellingInvoice {
 	invoiceId: string
@@ -35,15 +43,18 @@ export interface ApiSellingInvoice {
 	}>
 	status?: string
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
-	paidAmount?: number
-	remainingAmount?: number
-	amount?: number
-	totalAmount?: number
-	totalTax?: number
-	totalDiscount?: number
+	currencyAmounts?: InvoiceCurrencyAmount[]
 	notes?: string
 	issuedAt?: string
 	createdAt?: string
+	/** @deprecated legacy invoices only */
+	amount?: number
+	/** @deprecated legacy invoices only */
+	paidAmount?: number
+	/** @deprecated legacy invoices only */
+	remainingAmount?: number
+	/** @deprecated legacy invoices only */
+	totalAmount?: number
 }
 
 export interface ApiSellingInvoicesResponse {
@@ -84,18 +95,24 @@ const formatInvoiceTime = (issuedAt?: string, createdAt?: string) => {
 
 export const mapApiInvoiceToSellingInvoice = (
 	invoice: ApiSellingInvoice,
-): SellingInvoice => ({
-	id: invoice.invoiceId,
-	invoiceNumber: Number.parseInt(invoice.invoiceNumber, 10) || 0,
-	time: formatInvoiceTime(invoice.issuedAt, invoice.createdAt),
-	customerName: invoice.customerName ?? 'Walk-in Customer',
-	status: mapApiStatusToUi(invoice),
-	paymentType: invoice.paymentType ?? 'cash',
-	itemCount: invoice.items?.length ?? 0,
-	total: Number(invoice.amount ?? invoice.totalAmount ?? 0),
-	paid: Number(invoice.paidAmount ?? 0),
-	due: Number(invoice.remainingAmount ?? 0),
-})
+): SellingInvoice => {
+	const { grandTotal, paidAmount, remainingAmount } =
+		getPrimaryInvoiceCurrencyAmounts(invoice)
+
+	return {
+		id: invoice.invoiceId,
+		invoiceNumber: Number.parseInt(invoice.invoiceNumber, 10) || 0,
+		time: formatInvoiceTime(invoice.issuedAt, invoice.createdAt),
+		customerName: invoice.customerName ?? 'Walk-in Customer',
+		status: mapApiStatusToUi(invoice),
+		paymentType: invoice.paymentType ?? 'cash',
+		itemCount: invoice.items?.length ?? 0,
+		total: grandTotal,
+		paid: paidAmount,
+		due: remainingAmount,
+		currencyAmounts: invoice.currencyAmounts,
+	}
+}
 
 export const mapApiSummaryToUi = (
 	summary: ApiSellingInvoicesResponse['summary'],
@@ -114,10 +131,21 @@ export const mapApiSummaryToUi = (
 export const buildInvoiceRequestBody = (
 	draft: SellingInvoiceDraft,
 	status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
+	currencySettings?: CurrencySettings | null,
 ) => {
 	const totals = calculateInvoiceTotals(draft.lineItems)
 	const paidAmount = draft.paidAmount
 	const remainingAmount = Math.max(0, totals.grandTotal - paidAmount)
+	const currencyAmounts = buildInvoiceCurrencyAmounts(
+		currencySettings,
+		totals,
+		paidAmount,
+		remainingAmount,
+	)
+
+	if (!currencyAmounts.length) {
+		throw new Error('Currency settings are required to save an invoice.')
+	}
 
 	let paymentStatus: 'unpaid' | 'partial' | 'paid' = 'unpaid'
 	if (paidAmount <= 0) paymentStatus = 'unpaid'
@@ -150,12 +178,7 @@ export const buildInvoiceRequestBody = (
 		})),
 		status,
 		paymentStatus,
-		paidAmount,
-		remainingAmount,
-		amount: totals.grandTotal,
-		totalAmount: totals.subtotal,
-		totalTax: totals.tax,
-		totalDiscount: totals.discount,
+		currencyAmounts,
 		notes: draft.note || undefined,
 		printAfterPayment: draft.printAfterPayment,
 		issuedAt,

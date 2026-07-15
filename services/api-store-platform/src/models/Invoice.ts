@@ -14,6 +14,20 @@ export interface IInvoiceItem {
 	lineTotal?: number
 }
 
+export interface IInvoiceCurrencyAmount {
+	currencyId: string
+	name: string
+	internalCode?: string
+	exchangeRate: number
+	isPrimary: boolean
+	amount: number
+	paidAmount: number
+	remainingAmount: number
+	subtotal: number
+	tax: number
+	discount: number
+}
+
 export interface IInvoice extends Document {
 	tenantId: string
 	invoiceId: string
@@ -33,12 +47,7 @@ export interface IInvoice extends Document {
 		| 'pending'
 		| 'void'
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
-	paidAmount?: number
-	remainingAmount?: number
-	amount: number
-	totalAmount?: number
-	totalTax?: number
-	totalDiscount?: number
+	currencyAmounts: IInvoiceCurrencyAmount[]
 	notes?: string
 	printAfterPayment?: boolean
 	warehouseId?: string
@@ -69,6 +78,23 @@ const InvoiceItemSchema = new Schema<IInvoiceItem>(
 		discountIsPercent: { type: Boolean, default: true },
 		taxRate: { type: Number, min: 0, default: 0 },
 		lineTotal: { type: Number, min: 0 },
+	},
+	{ _id: false },
+)
+
+const InvoiceCurrencyAmountSchema = new Schema<IInvoiceCurrencyAmount>(
+	{
+		currencyId: { type: String, required: true, trim: true },
+		name: { type: String, required: true, trim: true },
+		internalCode: { type: String, trim: true, uppercase: true },
+		exchangeRate: { type: Number, required: true, min: 0 },
+		isPrimary: { type: Boolean, default: false },
+		amount: { type: Number, required: true, min: 0 },
+		paidAmount: { type: Number, required: true, min: 0 },
+		remainingAmount: { type: Number, required: true, min: 0 },
+		subtotal: { type: Number, required: true, min: 0 },
+		tax: { type: Number, required: true, min: 0 },
+		discount: { type: Number, required: true, min: 0 },
 	},
 	{ _id: false },
 )
@@ -128,32 +154,13 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 			enum: ['unpaid', 'partial', 'paid'],
 			default: 'unpaid',
 		},
-		paidAmount: {
-			type: Number,
-			min: 0,
-			default: 0,
-		},
-		remainingAmount: {
-			type: Number,
-			min: 0,
-			default: 0,
-		},
-		amount: {
-			type: Number,
+		currencyAmounts: {
+			type: [InvoiceCurrencyAmountSchema],
 			required: true,
-			min: 0,
-		},
-		totalAmount: {
-			type: Number,
-			min: 0,
-		},
-		totalTax: {
-			type: Number,
-			min: 0,
-		},
-		totalDiscount: {
-			type: Number,
-			min: 0,
+			validate: {
+				validator: (value: IInvoiceCurrencyAmount[]) => value.length > 0,
+				message: 'At least one currency amount is required',
+			},
 		},
 		notes: {
 			type: String,

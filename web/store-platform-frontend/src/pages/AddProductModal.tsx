@@ -22,6 +22,7 @@ import {
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
 	useGetCurrenciesQuery,
+	useGetCurrencySettingsQuery,
 } from '../api/apiStore'
 import { useTranslation } from 'react-i18next'
 import InputLabel from '../components/common/InputLabel'
@@ -30,6 +31,11 @@ import MultiStepper from '../components/common/MultiStepper'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import { ChevronRightIcon } from '../components/icons/ChevronRight'
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon'
+import { useSettings } from '../shared/context/SettingsContext'
+import {
+	buildDisplayCurrencyOptions,
+	resolveDefaultDisplayCurrencyId,
+} from '../components/SellingInvoice/currencyDisplay'
 
 const TOTAL_STEPS = 3
 
@@ -42,7 +48,7 @@ const INITIAL_FORM = {
 	categoryId: '',
 	supplierId: '',
 	brandId: '',
-	taxRate: '19',
+	taxRate: '0',
 	unitId: '',
 	quantity: '',
 	minQuantity: '',
@@ -52,7 +58,7 @@ const INITIAL_FORM = {
 		wholesalePrice: '',
 		semiWholesalePrice: '',
 		discount: '',
-		currency: 'EUR',
+		currency: '',
 	},
 	status: 'active' as 'active' | 'inactive' | 'discontinued',
 	attributes: {
@@ -142,10 +148,10 @@ const AddProductModal = ({
 	)
 	const { data: currencies = [], isLoading: isCurrenciesLoading } =
 		useGetCurrenciesQuery({}, { skip: !isOpen })
-	const { data: brands = [], isLoading: isBrandsLoading } = useGetBrandsQuery(
-		undefined,
-		{ skip: !isOpen },
-	)
+	const { defaultInvoiceCurrencyId } = useSettings()
+	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
+		skip: !isOpen,
+	})
 
 	const categoryOptions = useMemo(
 		() =>
@@ -183,6 +189,36 @@ const AddProductModal = ({
 		[currencies],
 	)
 
+	const { data: brands = [], isLoading: isBrandsLoading } = useGetBrandsQuery(
+		undefined,
+		{ skip: !isOpen },
+	)
+
+	const defaultCurrencyCode = useMemo(() => {
+		const options = buildDisplayCurrencyOptions(currencySettings)
+		const currencyId = resolveDefaultDisplayCurrencyId(
+			options,
+			defaultInvoiceCurrencyId,
+		)
+
+		if (!currencyId) {
+			return ''
+		}
+
+		const match = currencies.find(currency => currency.currencyId === currencyId)
+
+		if (match) {
+			return match.internalCode || match.name
+		}
+
+		const settingsItem = [
+			currencySettings?.primaryCurrency,
+			...(currencySettings?.secondaryCurrencies ?? []),
+		].find(currency => currency?.currencyId === currencyId)
+
+		return settingsItem ? settingsItem.internalCode || settingsItem.name : ''
+	}, [currencySettings, defaultInvoiceCurrencyId, currencies])
+
 	const brandOptions = useMemo(
 		() =>
 			brands.map(brand => ({
@@ -211,18 +247,22 @@ const AddProductModal = ({
 	]
 
 	useEffect(() => {
-		if (barcode) {
-			setForm(prev => ({ ...prev, barcode }))
-		}
-	}, [barcode])
-
-	useEffect(() => {
 		if (!isOpen) {
 			setError('')
 			setStep(0)
 			setForm(INITIAL_FORM)
+			return
 		}
-	}, [isOpen])
+
+		setForm(prev => ({
+			...prev,
+			barcode: barcode || prev.barcode,
+			price: {
+				...prev.price,
+				currency: prev.price.currency || defaultCurrencyCode,
+			},
+		}))
+	}, [isOpen, barcode, defaultCurrencyCode])
 
 	const handleFieldChange = (key: keyof typeof INITIAL_FORM, value: string) => {
 		setForm(prev => ({ ...prev, [key]: value }))
@@ -258,7 +298,10 @@ const AddProductModal = ({
 	const handleCurrencySelect = (values: string[]) => {
 		setForm(prev => ({
 			...prev,
-			price: { ...prev.price, currency: values[0] ?? 'EUR' },
+			price: {
+				...prev.price,
+				currency: values[0] ?? defaultCurrencyCode,
+			},
 		}))
 	}
 
@@ -299,7 +342,11 @@ const AddProductModal = ({
 	}
 
 	const resetForm = () => {
-		setForm({ ...INITIAL_FORM, barcode: barcode || '' })
+		setForm({
+			...INITIAL_FORM,
+			barcode: barcode || '',
+			price: { ...INITIAL_FORM.price, currency: defaultCurrencyCode },
+		})
 		setStep(0)
 		setError('')
 	}
@@ -335,7 +382,11 @@ const AddProductModal = ({
 					discount: form.price.discount
 						? Number(form.price.discount)
 						: undefined,
-					currency: form.price.currency.trim() || 'EUR',
+					currency:
+						form.price.currency.trim() ||
+						defaultCurrencyCode ||
+						currencyOptions[0]?.value ||
+						'',
 				},
 				quantity: Number(form.quantity),
 				minQuantity: form.minQuantity.trim()

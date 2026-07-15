@@ -2,7 +2,7 @@ import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useListItem } from '../../list/hooks/useListItem'
-import { formatDate } from '../../../shared/dateUtils'
+// import { formatDate } from '../../../shared/dateUtils'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import { useUser } from '../../../shared/hooks/useUser'
 import { listStyles, cellFieldStyles } from '../../../shared/styles'
@@ -322,7 +322,9 @@ const ProductTableItem = memo(
 						>
 							<Skeleton isLoaded={!isLoading}>
 								<EditableCellField
-									value={productData.price.discount?.toLocaleString() ?? ''}
+									value={withNoValueFallback(
+										productData.price.discount?.toLocaleString(),
+									)}
 									isNumberField={true}
 									minimumDecimals={0}
 									ariaLabel={t('common.discount')}
@@ -364,7 +366,7 @@ const ProductTableItem = memo(
 						</Skeleton>
 					</Flex>
 				</Td> */}
-				<Td sx={styles.tableRow}>
+				{/* <Td sx={styles.tableRow}>
 					<Flex
 						sx={{
 							...styles.cellContentWrapper,
@@ -382,7 +384,7 @@ const ProductTableItem = memo(
 							</Text>
 						</Skeleton>
 					</Flex>
-				</Td>
+				</Td> */}
 
 				<Td
 					sx={{ ...styles.tableRow, ...styles.rightStickyContainer, right: 1 }}

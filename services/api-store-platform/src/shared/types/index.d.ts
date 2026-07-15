@@ -160,12 +160,19 @@ export type InvoiceRequestBody = {
 	}>
 	status?: 'draft' | 'confirmed' | 'partial' | 'paid' | 'cancelled' | 'pending' | 'void'
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
-	paidAmount?: number
-	remainingAmount?: number
-	amount?: number
-	totalAmount?: number
-	totalTax?: number
-	totalDiscount?: number
+	currencyAmounts: Array<{
+		currencyId: string
+		name: string
+		internalCode?: string
+		exchangeRate: number
+		isPrimary: boolean
+		amount: number
+		paidAmount: number
+		remainingAmount: number
+		subtotal: number
+		tax: number
+		discount: number
+	}>
 	notes?: string
 	printAfterPayment?: boolean
 	warehouseId?: string

@@ -104,7 +104,7 @@ function buildProducts(
 				currency: 'EUR',
 			},
 			unitId: UNITS[index % UNITS.length],
-			taxRate: '19',
+			taxRate: '0',
 			attributes: {
 				color: ['Black', 'White', 'Gray', 'Blue'][index % 4],
 				weight: `${80 + idx * 5}g`,

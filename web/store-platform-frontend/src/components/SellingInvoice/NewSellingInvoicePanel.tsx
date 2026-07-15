@@ -182,6 +182,7 @@ const NewSellingInvoicePanel = ({
 		setDisplayCurrencyId,
 		formatAmount,
 		hasCurrencyOptions,
+		currencySettings,
 	} = useInvoiceDisplayCurrency()
 
 	useEffect(() => {
@@ -286,7 +287,9 @@ const NewSellingInvoicePanel = ({
 		setSaveError(null)
 
 		try {
-			await postSellingInvoice(buildInvoiceRequestBody(draft, status)).unwrap()
+			await postSellingInvoice(
+				buildInvoiceRequestBody(draft, status, currencySettings),
+			).unwrap()
 			onSaved?.()
 			onClose()
 		} catch (error) {

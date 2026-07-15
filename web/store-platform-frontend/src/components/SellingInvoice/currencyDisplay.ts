@@ -78,7 +78,9 @@ export const getCurrencyLabel = (
 		return fallback
 	}
 
-	return options.find(option => option.currencyId === currencyId)?.label ?? fallback
+	return (
+		options.find(option => option.currencyId === currencyId)?.label ?? fallback
+	)
 }
 
 export const formatDisplayAmount = (
@@ -122,3 +124,162 @@ export const getOtherCurrencyAmountLines = (
 			name: option.name,
 			text: formatDisplayAmount(amount, option.currencyId, options),
 		}))
+
+export interface InvoiceCurrencyAmount {
+	currencyId: string
+	name: string
+	internalCode?: string
+	exchangeRate: number
+	isPrimary: boolean
+	amount: number
+	paidAmount: number
+	remainingAmount: number
+	subtotal: number
+	tax: number
+	discount: number
+}
+
+export const buildInvoiceCurrencyAmounts = (
+	settings: CurrencySettings | null | undefined,
+	totals: {
+		grandTotal: number
+		subtotal: number
+		tax: number
+		discount: number
+	},
+	paidAmount: number,
+	remainingAmount: number,
+): InvoiceCurrencyAmount[] => {
+	if (!settings?.primaryCurrency) {
+		return []
+	}
+
+	const currencies: Array<
+		CurrencySettingItem & { exchangeRate: number; isPrimary: boolean }
+	> = [
+		{
+			...settings.primaryCurrency,
+			exchangeRate: 1,
+			isPrimary: true,
+		},
+		...(settings.secondaryCurrencies ?? []).map(secondary => ({
+			...secondary,
+			exchangeRate: secondary.exchangeRate ?? 1,
+			isPrimary: false,
+		})),
+	]
+
+	return currencies.map(currency => ({
+		currencyId: currency.currencyId,
+		name: currency.name,
+		internalCode: currency.internalCode,
+		exchangeRate: currency.exchangeRate,
+		isPrimary: currency.isPrimary,
+		amount: totals.grandTotal * currency.exchangeRate,
+		paidAmount: paidAmount * currency.exchangeRate,
+		remainingAmount: remainingAmount * currency.exchangeRate,
+		subtotal: totals.subtotal * currency.exchangeRate,
+		tax: totals.tax * currency.exchangeRate,
+		discount: totals.discount * currency.exchangeRate,
+	}))
+}
+
+export interface InvoiceAmountSource {
+	currencyAmounts?: InvoiceCurrencyAmount[]
+	amount?: number
+	paidAmount?: number
+	remainingAmount?: number
+	totalAmount?: number
+	totalTax?: number
+	totalDiscount?: number
+}
+
+export type SavedCurrencyAmountField = 'amount' | 'paidAmount' | 'remainingAmount'
+
+export const formatSavedCurrencyAmount = (
+	currencyAmounts: InvoiceCurrencyAmount[] | undefined,
+	field: SavedCurrencyAmountField,
+	currencyId: string,
+): string | null => {
+	const entry = currencyAmounts?.find(amount => amount.currencyId === currencyId)
+
+	if (!entry) {
+		return null
+	}
+
+	const label = entry.internalCode || entry.name
+
+	return `${formatNumber(entry[field]) ?? '0.00'} ${label}`
+}
+
+export const getSavedOtherCurrencyAmountLines = (
+	currencyAmounts: InvoiceCurrencyAmount[] | undefined,
+	field: SavedCurrencyAmountField,
+	excludeCurrencyId?: string | null,
+): OtherCurrencyAmountLine[] => {
+	if (!currencyAmounts?.length) {
+		return []
+	}
+
+	return currencyAmounts
+		.filter(entry => entry.currencyId !== excludeCurrencyId)
+		.map(entry => ({
+			currencyId: entry.currencyId,
+			name: entry.name,
+			text: `${formatNumber(entry[field]) ?? '0.00'} ${entry.internalCode || entry.name}`,
+		}))
+}
+
+export const formatInvoiceAmountForDisplay = (
+	currencyAmounts: InvoiceCurrencyAmount[] | undefined,
+	field: SavedCurrencyAmountField,
+	displayCurrencyId: string | null,
+	primaryAmount: number,
+	options: DisplayCurrencyOption[],
+): string => {
+	if (displayCurrencyId && currencyAmounts?.length) {
+		const savedDisplay = formatSavedCurrencyAmount(
+			currencyAmounts,
+			field,
+			displayCurrencyId,
+		)
+
+		if (savedDisplay) {
+			return savedDisplay
+		}
+	}
+
+	return formatDisplayAmount(primaryAmount, displayCurrencyId, options)
+}
+
+export const getPrimaryInvoiceCurrencyAmounts = (
+	invoice: InvoiceAmountSource,
+) => {
+	const primary =
+		invoice.currencyAmounts?.find(amount => amount.isPrimary) ??
+		invoice.currencyAmounts?.[0]
+
+	if (primary) {
+		return {
+			grandTotal: primary.amount,
+			paidAmount: primary.paidAmount,
+			remainingAmount: primary.remainingAmount,
+			subtotal: primary.subtotal,
+			tax: primary.tax,
+			discount: primary.discount,
+			currencyId: primary.currencyId,
+		}
+	}
+
+	const grandTotal = Number(invoice.amount ?? invoice.totalAmount ?? 0)
+
+	return {
+		grandTotal,
+		paidAmount: Number(invoice.paidAmount ?? 0),
+		remainingAmount: Number(invoice.remainingAmount ?? 0),
+		subtotal: Number(invoice.totalAmount ?? grandTotal),
+		tax: Number(invoice.totalTax ?? 0),
+		discount: Number(invoice.totalDiscount ?? 0),
+		currencyId: undefined as string | undefined,
+	}
+}

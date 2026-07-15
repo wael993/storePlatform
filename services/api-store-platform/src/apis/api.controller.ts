@@ -144,6 +144,7 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
+import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
 import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
 import { Partner } from '../models/Partner'
@@ -1838,10 +1839,11 @@ export default class ProductController {
 			return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
 		})
 
-		const todaySales = todaysInvoices.reduce(
-			(total, invoice) => total + (Number(invoice.amount) || 0),
-			0,
-		)
+		const todaySales = todaysInvoices.reduce((total, invoice) => {
+			const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(invoice)
+
+			return total + grandTotal
+		}, 0)
 
 		const paidInvoices = invoices.filter(
 			invoice => invoice.status === 'paid',
@@ -1853,9 +1855,9 @@ export default class ProductController {
 		).length
 
 		const totalReceivable = invoices.reduce((total, invoice) => {
-			const remaining = Number(invoice.remainingAmount) || 0
+			const { remainingAmount } = getPrimaryInvoiceCurrencyAmounts(invoice)
 
-			return remaining > 0 ? total + remaining : total
+			return remainingAmount > 0 ? total + remainingAmount : total
 		}, 0)
 
 		const averageOrder =
@@ -2125,28 +2127,36 @@ export default class ProductController {
 			requestBody.items,
 		)
 
-		const grandTotal =
-			requestBody.amount ??
-			requestBody.totalAmount ??
-			requestBody.items.reduce(
-				(total, item) =>
-					total + (item.lineTotal ?? item.quantity * item.unitPrice),
-				0,
-			)
+		const tenantContext = getTenantContext(requestContext)
 
-		const paidAmount = requestBody.paidAmount ?? 0
+		const currencyAmounts =
+			requestBody.currencyAmounts?.length &&
+			requestBody.currencyAmounts.length > 0
+				? requestBody.currencyAmounts
+				: await this.buildInvoiceCurrencyAmountsFromItems(
+						tenantContext.tenantId,
+						requestBody,
+					)
+
+		if (!currencyAmounts.length) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Invoice currency amounts are required.',
+			)
+		}
+
+		const primary =
+			currencyAmounts.find(amount => amount.isPrimary) ?? currencyAmounts[0]
+
 		const paymentStatus =
 			requestBody.paymentStatus ??
-			this.deriveInvoicePaymentStatus(grandTotal, paidAmount)
+			this.deriveInvoicePaymentStatus(primary.amount, primary.paidAmount)
 
 		const status = this.deriveInvoiceStatus(
 			requestBody.status,
 			paymentStatus,
 			requestBody.paymentType,
 		)
-
-		const remainingAmount =
-			requestBody.remainingAmount ?? Math.max(0, grandTotal - paidAmount)
 
 		const invoiceId = requestBody.invoiceId ?? uuidv4()
 
@@ -2178,7 +2188,6 @@ export default class ProductController {
 			requestBody.invoiceNumber ??
 			String(await this.resolveNextInvoiceNumber(requestContext))
 
-		const tenantContext = getTenantContext(requestContext)
 		const existingByNumber = await withTenantScope(
 			Invoice.findOne({ invoiceNumber: String(invoiceNumber) }).lean(),
 			tenantContext.tenantId,
@@ -2202,12 +2211,7 @@ export default class ProductController {
 			items: requestBody.items,
 			status,
 			paymentStatus,
-			paidAmount,
-			remainingAmount,
-			amount: grandTotal,
-			totalAmount: requestBody.totalAmount ?? grandTotal,
-			totalTax: requestBody.totalTax ?? 0,
-			totalDiscount: requestBody.totalDiscount ?? 0,
+			currencyAmounts,
 			notes: requestBody.notes,
 			printAfterPayment: requestBody.printAfterPayment ?? false,
 			warehouseId: requestBody.warehouseId,
@@ -2258,6 +2262,74 @@ export default class ProductController {
 		}
 
 		return result
+	}
+
+	private async buildInvoiceCurrencyAmountsFromItems(
+		tenantId: string,
+		requestBody: InvoiceRequestBody,
+	) {
+		const items = requestBody.items ?? []
+		const grandTotal = items.reduce(
+			(total, item) =>
+				total + (item.lineTotal ?? item.quantity * item.unitPrice),
+			0,
+		)
+
+		return this.buildInvoiceCurrencyAmounts(tenantId, {
+			grandTotal,
+			paidAmount: 0,
+			remainingAmount: grandTotal,
+			subtotal: grandTotal,
+			tax: 0,
+			discount: 0,
+		})
+	}
+
+	private async buildInvoiceCurrencyAmounts(
+		tenantId: string,
+		totals: {
+			grandTotal: number
+			paidAmount: number
+			remainingAmount: number
+			subtotal: number
+			tax: number
+			discount: number
+		},
+	) {
+		const settings = await CurrencySettings.findOne({ tenantId })
+
+		if (!settings?.primaryCurrency) {
+			return []
+		}
+
+		const currencies: Array<
+			ICurrencySettingItem & { exchangeRate: number; isPrimary: boolean }
+		> = [
+			{
+				...settings.primaryCurrency,
+				exchangeRate: 1,
+				isPrimary: true,
+			},
+			...(settings.secondaryCurrencies ?? []).map(secondary => ({
+				...secondary,
+				exchangeRate: secondary.exchangeRate ?? 1,
+				isPrimary: false,
+			})),
+		]
+
+		return currencies.map(currency => ({
+			currencyId: currency.currencyId,
+			name: currency.name,
+			internalCode: currency.internalCode,
+			exchangeRate: currency.exchangeRate,
+			isPrimary: currency.isPrimary,
+			amount: totals.grandTotal * currency.exchangeRate,
+			paidAmount: totals.paidAmount * currency.exchangeRate,
+			remainingAmount: totals.remainingAmount * currency.exchangeRate,
+			subtotal: totals.subtotal * currency.exchangeRate,
+			tax: totals.tax * currency.exchangeRate,
+			discount: totals.discount * currency.exchangeRate,
+		}))
 	}
 
 	public async patchInvoice(

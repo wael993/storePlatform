@@ -1,3 +1,5 @@
+import type { InvoiceCurrencyAmount } from './currencyDisplay'
+
 export type SellingInvoiceStatus =
 	| 'paid'
 	| 'credit'
@@ -18,6 +20,7 @@ export interface SellingInvoice {
 	total: number
 	paid: number
 	due: number
+	currencyAmounts?: InvoiceCurrencyAmount[]
 }
 
 export interface SellingInvoiceSummary {
@@ -73,3 +76,5 @@ export interface InvoiceTotals {
 	tax: number
 	grandTotal: number
 }
+
+export type { InvoiceCurrencyAmount }

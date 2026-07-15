@@ -45,6 +45,7 @@ export const useInvoiceDisplayCurrency = () => {
 		setDisplayCurrencyId,
 		formatAmount,
 		hasCurrencyOptions: options.length > 0,
+		currencySettings,
 	}
 }
 
