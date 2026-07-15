@@ -37,6 +37,7 @@ import type {
 	SortDirection,
 } from './types'
 import { sortInvoices } from './utils'
+import { normalizeSearchQuery as normalizeBarcode } from './productSearch'
 import { AsInvoiceIcon } from '../../icons/Invoice'
 
 const styles = {
@@ -82,7 +83,6 @@ const SellingInvoicesPage = () => {
 	const { t } = useTranslation()
 	const breadCrumbItems = generateBreadcrumbs()
 
-	const [barcodeSearch, setBarcodeSearch] = useState('')
 	const [tableSearch, setTableSearch] = useState('')
 	const [statusFilter, setStatusFilter] = useState('all')
 	const [currentPage, setCurrentPage] = useState(1)
@@ -183,9 +183,11 @@ const SellingInvoicesPage = () => {
 		openNewInvoicePanel({ paymentType: 'credit' })
 	}
 
-	const handleBarcodeSearchSubmit = () => {
-		openNewInvoicePanel({ productSearch: barcodeSearch })
-		setBarcodeSearch('')
+	const handleBarcodeSearchSubmit = (value: string) => {
+		const barcode = normalizeBarcode(value)
+		if (!barcode) return
+
+		openNewInvoicePanel({ productSearch: barcode })
 	}
 
 	const handleInvoiceSaved = () => {
@@ -301,8 +303,6 @@ const SellingInvoicesPage = () => {
 
 						<Box mb={4} flexShrink={0}>
 							<InvoiceBarcodeSearchBar
-								value={barcodeSearch}
-								onChange={setBarcodeSearch}
 								onSubmit={handleBarcodeSearchSubmit}
 							/>
 						</Box>
@@ -347,11 +347,7 @@ const SellingInvoicesPage = () => {
 
 			<InvoiceSummaryCards summary={summary} isLoading={isLoadingInvoices} />
 
-			<InvoiceBarcodeSearchBar
-				value={barcodeSearch}
-				onChange={setBarcodeSearch}
-				onSubmit={handleBarcodeSearchSubmit}
-			/>
+			<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />
 
 			<Box>{invoiceListSection}</Box>
 		</Flex>

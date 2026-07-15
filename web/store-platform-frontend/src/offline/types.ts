@@ -1,5 +1,9 @@
 import type { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
-import type { InventoryItem, UserSettings } from '../api/apiStore'
+import type {
+	InventoryItem,
+	ProductCatalogItem,
+	UserSettings,
+} from '../api/apiStore'
 
 export type SyncStatus = 'synced' | 'pending' | 'conflict'
 
@@ -45,6 +49,10 @@ export interface LocalRecordMeta {
 	syncStatus: SyncStatus
 	clientId?: string
 	updatedAt: string
+}
+
+export interface LocalCatalogProduct extends ProductCatalogItem {
+	tenantId: string
 }
 
 export type LocalProduct = Product & LocalRecordMeta

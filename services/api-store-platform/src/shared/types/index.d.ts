@@ -104,6 +104,28 @@ export type ProductRequestBody = {
 	relatedActions?: ProductDailyAction[]
 }
 
+export type ProductCatalogItem = {
+	productId: string
+	name: string
+	latinName?: string
+	barcode: string
+	internalCode?: string
+	productFactoryCode?: string
+	unitId?: string
+	taxRate?: string
+	price: {
+		retailPrice: number
+		discount?: number
+		currency: string
+	}
+	images?: string[]
+}
+
+export type ProductCatalogResponse = {
+	products: ProductCatalogItem[]
+	totalCount: number
+}
+
 export type OrderRequestBody = {
 	orderNumber: string
 	status?: 'draft' | 'open' | 'paid' | 'cancelled'

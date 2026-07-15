@@ -52,6 +52,8 @@ import {
 	OrderRequestBody,
 	ProductDocument,
 	ProductRequestBody,
+	ProductCatalogItem,
+	ProductCatalogResponse,
 	ReportRequestBody,
 	RequestContext,
 	TenantSummary,
@@ -1112,6 +1114,8 @@ export default class ProductController {
 					{ id: searchRegex },
 					{ productId: searchRegex },
 					{ barcode: searchRegex },
+					{ internalCode: searchRegex },
+					{ productFactoryCode: searchRegex },
 				],
 			})
 		}
@@ -1184,6 +1188,52 @@ export default class ProductController {
 		return {
 			products: paginatedProducts,
 			totalCount,
+		}
+	}
+
+	public async getProductCatalog(
+		requestContext: RequestContext,
+	): Promise<ProductCatalogResponse> {
+		const tenantId = this.getTenantId(requestContext)
+		const cacheKey = redisCache.buildProductListKey(tenantId)
+
+		let fullProducts =
+			await redisCache.getJson<ProductRequestBody[]>(cacheKey)
+
+		if (!fullProducts) {
+			await this.getProducts(requestContext, {}, { limit: 1, offset: 0 })
+			fullProducts =
+				await redisCache.getJson<ProductRequestBody[]>(cacheKey)
+		}
+
+		const catalogProducts = (fullProducts ?? []).map(product =>
+			this.mapProductCatalogItem(product),
+		)
+
+		return {
+			products: catalogProducts,
+			totalCount: catalogProducts.length,
+		}
+	}
+
+	private mapProductCatalogItem(
+		product: ProductRequestBody,
+	): ProductCatalogItem {
+		return {
+			productId: product.productId,
+			name: product.name,
+			latinName: product.latinName,
+			barcode: product.barcode,
+			internalCode: product.internalCode,
+			productFactoryCode: product.productFactoryCode,
+			unitId: product.unitId,
+			taxRate: product.taxRate,
+			price: {
+				retailPrice: product.price.retailPrice,
+				discount: product.price.discount,
+				currency: product.price.currency,
+			},
+			images: product.images?.length ? [product.images[0]] : undefined,
 		}
 	}
 

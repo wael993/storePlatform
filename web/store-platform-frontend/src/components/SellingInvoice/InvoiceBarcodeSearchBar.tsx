@@ -6,27 +6,47 @@ import {
 	InputLeftElement,
 	Text,
 } from '@chakra-ui/react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PAGE_COLORS } from './constants'
+import { normalizeSearchQuery } from './productSearch'
 import { AsQrCodeIcon } from '../../icons/QrCode'
 
 interface InvoiceBarcodeSearchBarProps {
-	value: string
-	onChange: (value: string) => void
-	onSubmit: () => void
+	onSubmit: (value: string) => void
+	autoFocus?: boolean
 }
 
 const InvoiceBarcodeSearchBar = ({
-	value,
-	onChange,
 	onSubmit,
+	autoFocus = true,
 }: InvoiceBarcodeSearchBarProps) => {
 	const { t } = useTranslation()
+	const inputRef = useRef<HTMLInputElement>(null)
+
+	useEffect(() => {
+		if (!autoFocus) return
+
+		const timer = setTimeout(() => {
+			inputRef.current?.focus()
+		}, 100)
+
+		return () => clearTimeout(timer)
+	}, [autoFocus])
 
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-		if (event.key === 'Enter') {
-			onSubmit()
+		if (event.key !== 'Enter') return
+
+		event.preventDefault()
+
+		const value = normalizeSearchQuery(inputRef.current?.value ?? '')
+		if (!value) return
+
+		onSubmit(value)
+
+		if (inputRef.current) {
+			inputRef.current.value = ''
 		}
 	}
 
@@ -45,14 +65,15 @@ const InvoiceBarcodeSearchBar = ({
 					<AsQrCodeIcon color={PAGE_COLORS.primary} />
 				</InputLeftElement>
 				<Input
-					value={value}
-					onChange={event => onChange(event.target.value)}
+					ref={inputRef}
 					onKeyDown={handleKeyDown}
 					placeholder={t('components.sellingInvoices.barcodeSearchPlaceholder')}
 					border="none"
 					_focus={{ boxShadow: 'none' }}
 					fontSize="md"
 					pl="2.75rem"
+					autoComplete="off"
+					spellCheck={false}
 				/>
 				<Flex
 					align="center"

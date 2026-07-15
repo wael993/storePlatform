@@ -1,11 +1,12 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
 import type { PostSellingInvoiceBody, ProductsResponse } from '../api/apiStore'
+import { searchProducts } from '../components/SellingInvoice/productSearch'
 import {
 	filterDailyActionsByParams,
 	parseDailyActionFiltersFromParams,
 } from './dailyActionFilters'
-import { offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
+import { offlineDb, getSyncMeta, setSyncMeta, SYNC_META_KEYS } from './db'
 import {
 	getLocalDailyActionsForOffline,
 	getLocalInvoicesForOffline,
@@ -158,14 +159,12 @@ const filterProducts = (
 ): ProductsResponse => {
 	let filtered = [...products]
 
-	const searchText = params.get('searchText')?.trim().toLowerCase()
+	const searchText = params.get('searchText')?.trim()
 	if (searchText) {
-		filtered = filtered.filter(
-			p =>
-				p.name?.toLowerCase().includes(searchText) ||
-				p.barcode?.toLowerCase().includes(searchText) ||
-				p.internalCode?.toLowerCase().includes(searchText),
-		)
+		const limit = Number(params.get('limit'))
+		const searchLimit =
+			!Number.isNaN(limit) && limit > 0 ? limit : filtered.length
+		filtered = searchProducts(filtered, searchText, searchLimit)
 	}
 
 	const supplierFilter = params.get('supplier')?.split(',').filter(Boolean)
@@ -773,6 +772,23 @@ export const handleOfflineQuery = async (
 
 	try {
 		if (method === 'GET') {
+			if (path === 'products/catalog') {
+				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
+				const catalogProducts = tenantId
+					? await offlineDb.catalogProducts
+							.where('tenantId')
+							.equals(tenantId)
+							.toArray()
+					: []
+
+				return {
+					data: {
+						products: catalogProducts,
+						totalCount: catalogProducts.length,
+					},
+				}
+			}
+
 			if (path === 'products' || path.startsWith('products/')) {
 				if (path !== 'products') {
 					const productId = path.split('/')[1]

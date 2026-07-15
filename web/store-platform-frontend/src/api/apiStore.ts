@@ -66,6 +66,28 @@ export interface ProductsResponse {
 	totalCount: number
 }
 
+export interface ProductCatalogItem {
+	productId: string
+	name: string
+	latinName?: string
+	barcode: string
+	internalCode?: string
+	productFactoryCode?: string
+	unitId?: string
+	taxRate?: string
+	price: {
+		retailPrice: number
+		discount?: number
+		currency: string
+	}
+	images?: string[]
+}
+
+export interface ProductCatalogResponse {
+	products: ProductCatalogItem[]
+	totalCount: number
+}
+
 export interface ProductFilterValueOption {
 	value: string
 	label: string
@@ -280,6 +302,14 @@ const getQuery = (
 				return response
 			},
 			providesTags: ['products'],
+		}),
+
+		getProductCatalog: builder.query<ProductCatalogResponse, void>({
+			query: () => ({
+				url: 'products/catalog',
+			}),
+			providesTags: ['products'],
+			keepUnusedDataFor: 3600,
 		}),
 
 		getFilterValues: builder.query<ProductFilterValuesResponse, void>({
@@ -979,6 +1009,9 @@ export const storeApi = storePlatformApi.injectEndpoints({
 
 export const {
 	useGetProductsQuery,
+	useLazyGetProductsQuery,
+	useGetProductCatalogQuery,
+	usePrefetch,
 	useGetFilterValuesQuery,
 	useGetSuppliersQuery,
 	useGetSingleSupplierQuery,

@@ -46,4 +46,14 @@ export {
 	setTenantOfflineConfig,
 	subscribeTenantOfflineConfig,
 } from './offlineTenantAccess'
+export {
+	hydrateFromIndexedDB,
+	syncFromNetwork,
+	getCatalog,
+	getCatalogIndexes,
+	getProductCatalogState,
+	subscribeProductCatalog,
+	clearProductCatalogMemory,
+	clearForTenant,
+} from './productCatalogStore'
 export { getApiErrorMessage } from './getApiErrorMessage'

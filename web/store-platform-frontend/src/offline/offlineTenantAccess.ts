@@ -45,6 +45,9 @@ export const clearTenantOfflineConfig = (): void => {
 
 export const onAuthLogout = (): void => {
 	clearTenantOfflineConfig()
+	void import('./productCatalogStore').then(module =>
+		module.clearProductCatalogMemory(),
+	)
 	void import('./localStore').then(module => module.clearOfflineData())
 }
 

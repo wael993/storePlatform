@@ -157,6 +157,15 @@ export default class StoreRoutes extends PlatformValidator {
 		)
 
 		app
+			.route(`${baseRoute}/products/catalog`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getProductCatalog.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/filter-values`)
 			.get(
 				this.startCalc.bind(this),
@@ -1004,6 +1013,25 @@ export default class StoreRoutes extends PlatformValidator {
 				requestContext,
 				productFilterQuery,
 				paginationQuery,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getProductCatalog(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getProductCatalog(
+				requestContext,
 			)
 
 			response.status(200).json(resp)

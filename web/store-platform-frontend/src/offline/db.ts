@@ -1,6 +1,7 @@
 import Dexie, { Table } from 'dexie'
 
 import type {
+	LocalCatalogProduct,
 	LocalBrand,
 	LocalCategory,
 	LocalCurrency,
@@ -20,6 +21,7 @@ import type {
 } from './types'
 
 export class StorePlatformOfflineDB extends Dexie {
+	catalogProducts!: Table<LocalCatalogProduct, string>
 	products!: Table<LocalProduct, string>
 	inventory!: Table<LocalInventoryItem, string>
 	customers!: Table<LocalCustomer, string>
@@ -77,6 +79,26 @@ export class StorePlatformOfflineDB extends Dexie {
 			syncMeta: 'key',
 			outbox: 'id, clientMutationId, status, createdAt, entity',
 		})
+
+		this.version(3).stores({
+			catalogProducts: 'productId, tenantId, barcode, name',
+			products: 'productId, barcode, name, syncStatus, updatedAt',
+			inventory: 'inventoryId, productId, syncStatus, updatedAt',
+			customers: 'customerId, name, syncStatus, updatedAt',
+			suppliers: 'supplierId, name, syncStatus, updatedAt',
+			partners: 'partnerId, name, syncStatus, updatedAt',
+			categories: 'categoryId, name, syncStatus, updatedAt',
+			brands: 'brandId, name, syncStatus, updatedAt',
+			shelves: 'shelfId, name, syncStatus, updatedAt',
+			warehouses: 'warehouseId, name, syncStatus, updatedAt',
+			currencies: 'currencyId, name, syncStatus, updatedAt',
+			units: 'unitId, name, syncStatus, updatedAt',
+			expenses: 'expenseId, name, syncStatus, updatedAt',
+			dailyActions: 'actionId, invoiceDate, syncStatus, updatedAt',
+			invoices: 'invoiceId, invoiceNumber, issuedAt, syncStatus, updatedAt',
+			syncMeta: 'key',
+			outbox: 'id, clientMutationId, status, createdAt, entity',
+		})
 	}
 }
 
@@ -93,6 +115,7 @@ export const SYNC_META_KEYS = {
 	frontendResources: 'frontendResources',
 	offlineRetentionDays: 'offlineRetentionDays',
 	workMode: 'workMode',
+	catalogLastSyncedAt: 'catalogLastSyncedAt',
 } as const
 
 export const getSyncMeta = async (key: string): Promise<string | null> => {

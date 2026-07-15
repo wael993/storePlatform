@@ -9,6 +9,7 @@ import TopBar from './TopBar'
 import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
 import { useTenantRouteGuard } from '../shared/hooks/useTenantRouteGuard'
+import { useProductCatalogSync } from '../shared/hooks/useProductCatalogSync'
 
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths } from '../shared/routes'
@@ -25,6 +26,7 @@ const TenantLayout = () => {
 	const { isAdmin, isOwnerOrAdmin, user } = useUser()
 
 	useTenantRouteGuard(user?.accessiblePages)
+	useProductCatalogSync()
 
 	const enabledActions = getEnabledActions()
 	const tenantActions = getTenantActions(user?.accessiblePages)

@@ -14,6 +14,8 @@ import {
 } from '@chakra-ui/react'
 import { useLoginMutation } from '../api/apiStore'
 import { setTenantOfflineConfig, ensureTenantOfflineDataIsolation } from '../offline/offlineTenantAccess'
+import { hydrateFromIndexedDB } from '../offline/productCatalogStore'
+import { TENANT_ACCESSIBLE_PAGE } from '../shared/tenantAccessiblePages'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
 import { UserRole } from '../shared/globalEnums'
@@ -60,6 +62,10 @@ const Login = () => {
 			dispatch(setCredentials(response))
 			await setTenantOfflineConfig(response.tenantId, response.offlineEnabled)
 			await ensureTenantOfflineDataIsolation(response.tenantId)
+
+			if (response.accessiblePages?.includes(TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES)) {
+				void hydrateFromIndexedDB(response.tenantId)
+			}
 
 			const nextRoute =
 				response.role === UserRole.SUPER_ADMIN
