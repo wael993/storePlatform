@@ -129,7 +129,7 @@ const InvoiceTableSection = ({
 }: InvoiceTableSectionProps) => {
 	const { t } = useTranslation()
 	const {
-		formatAmount,
+		// formatAmount,
 		options: displayCurrencyOptions,
 		displayCurrencyId,
 	} = useInvoiceDisplayCurrency()
