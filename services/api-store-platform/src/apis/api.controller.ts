@@ -21,6 +21,10 @@ import User, { IUser } from '../models/User'
 import RefreshToken, { IRefreshToken } from '../models/RefreshToken'
 import Tenant, { ITenant } from '../models/Tenant'
 import UserSettings, { IUserSettings } from '../models/UserSettings'
+import CurrencySettings, {
+	ICurrencySettingItem,
+	ICurrencySettings,
+} from '../models/CurrencySettings'
 import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { Inventory } from '../models/Inventory'
@@ -3645,7 +3649,8 @@ export default class ProductController {
 	): Promise<void> {
 		try {
 			const { tenantId, userId } = request.user
-			const { productsPerPage, displayLanguage } = request.body
+			const { productsPerPage, displayLanguage, defaultInvoiceCurrencyId } =
+				request.body
 
 			if (!tenantId || !userId) {
 				throw new BusinessLogicError(
@@ -3664,6 +3669,11 @@ export default class ProductController {
 				updateData.displayLanguage = displayLanguage
 			}
 
+			if (defaultInvoiceCurrencyId !== undefined) {
+				updateData.defaultInvoiceCurrencyId =
+					defaultInvoiceCurrencyId?.trim() || undefined
+			}
+
 			const userSettings = await UserSettings.findOneAndUpdate(
 				{ tenantId, userId },
 				updateData,
@@ -3677,6 +3687,289 @@ export default class ProductController {
 			throw error
 		}
 	}
+
+	public async getCurrencySettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const { tenantId } = request.user
+
+			if (!tenantId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Missing tenantId',
+				)
+			}
+
+			let currencySettings = await CurrencySettings.findOne({ tenantId })
+
+			if (!currencySettings) {
+				currencySettings = await CurrencySettings.create({
+					tenantId,
+					primaryCurrency: null,
+					secondaryCurrencies: [],
+				})
+			}
+
+			response.status(200).json(currencySettings)
+		} catch (error: any) {
+			logger.error('Error fetching currency settings', error)
+
+			throw error
+		}
+	}
+
+	public async patchCurrencySettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const { tenantId, userId } = request.user
+			const { primaryCurrency, secondaryCurrencies } = request.body
+
+			if (!tenantId || !userId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Missing tenantId or userId',
+				)
+			}
+
+			if (primaryCurrency && !primaryCurrency.name?.trim()) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Primary currency name is required',
+				)
+			}
+
+			const normalizedPrimary: ICurrencySettingItem | null = primaryCurrency
+				? {
+						currencyId: this.resolveSyncClientId(primaryCurrency.currencyId),
+						name: primaryCurrency.name.trim(),
+						internalCode: primaryCurrency.internalCode?.trim() || undefined,
+					}
+				: null
+
+			const normalizedSecondary: ICurrencySettingItem[] = Array.isArray(
+				secondaryCurrencies,
+			)
+				? secondaryCurrencies
+						.filter(
+							(item: ICurrencySettingItem) =>
+								item?.name?.trim() && Number(item.exchangeRate) > 0,
+						)
+						.map((item: ICurrencySettingItem) => ({
+							currencyId: this.resolveSyncClientId(item.currencyId),
+							name: item.name.trim(),
+							internalCode: item.internalCode?.trim() || undefined,
+							exchangeRate: Number(item.exchangeRate),
+						}))
+				: []
+
+			const requestContext: RequestContext = {
+				userId,
+				tenantId,
+				tenantName: request.user?.tenantName,
+				role: request.user?.role,
+				user: request.user,
+				allowedFields: request.allowedFields || [],
+			}
+
+			const existingSettings = await CurrencySettings.findOne({ tenantId })
+
+			let resolvedPrimary: ICurrencySettingItem | null = null
+
+			if (normalizedPrimary) {
+				resolvedPrimary = await this.syncCurrencyFromSettings(
+					requestContext,
+					normalizedPrimary,
+				)
+			}
+
+			const resolvedSecondary: ICurrencySettingItem[] = await Promise.all(
+				normalizedSecondary.map(async item => {
+					const resolved = await this.syncCurrencyFromSettings(
+						requestContext,
+						item,
+					)
+
+					return {
+						...resolved,
+						exchangeRate: item.exchangeRate,
+					}
+				}),
+			)
+
+			const previousSecondaryIds =
+				existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ??
+				[]
+			const nextSecondaryIds = new Set(
+				resolvedSecondary.map(item => item.currencyId),
+			)
+			const removedSecondaryIds = previousSecondaryIds.filter(
+				currencyId => !nextSecondaryIds.has(currencyId),
+			)
+
+			if (removedSecondaryIds.length > 0) {
+				await this.deleteCurrenciesByIds(
+					requestContext,
+					removedSecondaryIds,
+				)
+			}
+
+			const updateData: Partial<ICurrencySettings> = {
+				primaryCurrency: resolvedPrimary,
+				secondaryCurrencies: resolvedSecondary,
+			}
+
+			const currencySettings = await CurrencySettings.findOneAndUpdate(
+				{ tenantId },
+				updateData,
+				{ new: true, upsert: true },
+			)
+
+			await redisCache.del(redisCache.buildCurrencyListKey(tenantId))
+
+			response.status(200).json(currencySettings)
+		} catch (error: any) {
+			logger.error('Error updating currency settings', error)
+
+			throw error
+		}
+	}
+
+	private async syncCurrencyFromSettings(
+		requestContext: RequestContext,
+		currency: Pick<ICurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>,
+	): Promise<Pick<ICurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>> {
+		const tenantContext = getTenantContext(requestContext)
+		const normalizedName = currency.name.trim()
+		const normalizedCode = currency.internalCode?.trim().toUpperCase() || undefined
+
+		const existing =
+			(await this.findCurrencyForSettings(
+				tenantContext.tenantId,
+				currency.currencyId,
+				normalizedCode,
+				normalizedName,
+			)) ?? null
+
+		if (existing) {
+			const nameChanged = existing.name !== normalizedName
+			const codeChanged = (existing.internalCode ?? undefined) !== normalizedCode
+
+			if (nameChanged || codeChanged) {
+				if (normalizedCode) {
+					const conflictingCode = await withTenantScope(
+						Currency.findOne({
+							internalCode: normalizedCode,
+							currencyId: { $ne: existing.currencyId },
+						}).lean(),
+						tenantContext.tenantId,
+					)
+
+					if (conflictingCode) {
+						throw new BusinessLogicError(
+							ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+							'Currency code already exists in this tenant.',
+						)
+					}
+				}
+
+				await withTenantScope(
+					Currency.findOneAndUpdate(
+						{ currencyId: existing.currencyId },
+						{
+							$set: {
+								name: normalizedName,
+								internalCode: normalizedCode,
+								updatedBy: {
+									_id: requestContext.userId as string,
+									displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
+									updatedAt: new Date(),
+								},
+							},
+						},
+						{ new: true, runValidators: true },
+					),
+					tenantContext.tenantId,
+				)
+			}
+
+			return {
+				currencyId: existing.currencyId,
+				name: normalizedName,
+				internalCode: normalizedCode,
+			}
+		}
+
+		await this.postCurrency(requestContext, {
+			currencyId: currency.currencyId,
+			name: normalizedName,
+			internalCode: normalizedCode,
+		})
+
+		return {
+			currencyId: currency.currencyId,
+			name: normalizedName,
+			internalCode: normalizedCode,
+		}
+	}
+
+	private async findCurrencyForSettings(
+		tenantId: string,
+		currencyId: string,
+		internalCode?: string,
+		name?: string,
+	) {
+		const existingById = await withTenantScope(
+			Currency.findOne({ currencyId }).lean(),
+			tenantId,
+		)
+
+		if (existingById) {
+			return existingById
+		}
+
+		if (internalCode) {
+			const existingByCode = await withTenantScope(
+				Currency.findOne({ internalCode }).lean(),
+				tenantId,
+			)
+
+			if (existingByCode) {
+				return existingByCode
+			}
+		}
+
+		if (name) {
+			const existingByName = await withTenantScope(
+				Currency.findOne({
+					name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+				}).lean(),
+				tenantId,
+			)
+
+			if (existingByName) {
+				return existingByName
+			}
+		}
+
+		return null
+	}
+
+	private async deleteCurrenciesByIds(
+		requestContext: RequestContext,
+		currencyIds: string[],
+	): Promise<void> {
+		const tenantContext = getTenantContext(requestContext)
+
+		await Currency.deleteMany({
+			tenantId: tenantContext.tenantId,
+			currencyId: { $in: currencyIds },
+		})
+	}
+
 	public async getPartners(
 		requestContext: RequestContext,
 	): Promise<PartnersResponse> {
@@ -5342,7 +5635,10 @@ export default class ProductController {
 	private async updateUserSettingsFromSync(
 		requestContext: RequestContext,
 		payload: Partial<
-			Pick<IUserSettings, 'productsPerPage' | 'displayLanguage'>
+			Pick<
+				IUserSettings,
+				'productsPerPage' | 'displayLanguage' | 'defaultInvoiceCurrencyId'
+			>
 		>,
 	): Promise<Record<string, unknown>> {
 		const tenantContext = getTenantContext(requestContext)
@@ -5354,6 +5650,11 @@ export default class ProductController {
 
 		if (payload.displayLanguage !== undefined) {
 			updateData.displayLanguage = payload.displayLanguage
+		}
+
+		if (payload.defaultInvoiceCurrencyId !== undefined) {
+			updateData.defaultInvoiceCurrencyId =
+				payload.defaultInvoiceCurrencyId?.trim() || undefined
 		}
 
 		const userSettings = await withTenantScope(
@@ -5775,7 +6076,12 @@ export default class ProductController {
 				data = await this.updateUserSettingsFromSync(
 					requestContext,
 					payload as Partial<
-						Pick<IUserSettings, 'productsPerPage' | 'displayLanguage'>
+						Pick<
+							IUserSettings,
+							| 'productsPerPage'
+							| 'displayLanguage'
+							| 'defaultInvoiceCurrencyId'
+						>
 					>,
 				)
 

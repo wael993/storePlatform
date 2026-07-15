@@ -528,6 +528,21 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/currency-settings`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getCurrencySettings.bind(this),
+			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchCurrencySettings.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/sync/bootstrap`)
 			.get(
 				this.startCalc.bind(this),
@@ -2437,6 +2452,32 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		try {
 			await this.productController.patchUserSettings(request, response)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getCurrencySettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.productController.getCurrencySettings(request, response)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchCurrencySettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.productController.patchCurrencySettings(request, response)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {

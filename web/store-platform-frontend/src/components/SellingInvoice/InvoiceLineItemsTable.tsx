@@ -18,16 +18,20 @@ import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
 import { calculateLineItemTotal } from './invoiceCalculations'
 import type { SellingInvoiceLineItem } from './types'
-import { formatCurrency } from './utils'
 import { AsTrashIcon } from '../../icons/Trash'
 import { AsProductIcon } from '../../icons/Product'
 import TextLabel from '../common/TextLabel'
+import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import type { DisplayCurrencyOption } from './currencyDisplay'
 // import { Dropdown } from '../dropdown/Dropdown'
 
 interface InvoiceLineItemsTableProps {
 	lineItems: SellingInvoiceLineItem[]
 	onUpdateItem: (id: string, updates: Partial<SellingInvoiceLineItem>) => void
 	onRemoveItem: (id: string) => void
+	formatAmount: (amount: number) => string
+	displayCurrencyId: string | null
+	currencyOptions: DisplayCurrencyOption[]
 }
 
 const ProductThumbnail = ({
@@ -69,6 +73,9 @@ const InvoiceLineItemsTable = ({
 	lineItems,
 	// onUpdateItem,
 	onRemoveItem,
+	formatAmount,
+	displayCurrencyId,
+	currencyOptions,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
 
@@ -139,15 +146,19 @@ const InvoiceLineItemsTable = ({
 								<TextLabel label="" value={item.quantity.toString()} />
 							</Td>
 							<Td>
-								<TextLabel
-									label=""
-									value={`${item.unitPrice.toString()} ل.س`}
+								<CurrencyAmountTooltip
+									amount={item.unitPrice}
+									displayText={formatAmount(item.unitPrice)}
+									options={currencyOptions}
+									displayCurrencyId={displayCurrencyId}
 								/>
 							</Td>
 							<Td>
-								<TextLabel
-									label=""
-									value={formatCurrency(calculateLineItemTotal(item))}
+								<CurrencyAmountTooltip
+									amount={calculateLineItemTotal(item)}
+									displayText={formatAmount(calculateLineItemTotal(item))}
+									options={currencyOptions}
+									displayCurrencyId={displayCurrencyId}
 								/>
 							</Td>
 							<Td>

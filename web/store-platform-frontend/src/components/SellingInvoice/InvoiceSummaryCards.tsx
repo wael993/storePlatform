@@ -2,7 +2,8 @@ import { Box, Flex, Skeleton, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
 import type { SellingInvoiceSummary } from './types'
-import { formatCurrency, formatTrend } from './utils'
+import { formatTrend } from './utils'
+import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import { AsTimeIcon } from '../../shared/icons/Time'
 import { AsPriceActivityFeeIcon } from '../../shared/icons/price/PriceActivityFeeIcon'
 import { DollarSignIcon } from '../../icons/DollarSign'
@@ -141,6 +142,7 @@ const InvoiceSummaryCards = ({
 	isLoading = false,
 }: InvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
+	const { formatAmount } = useInvoiceDisplayCurrency()
 
 	if (isLoading) {
 		return (
@@ -167,7 +169,7 @@ const InvoiceSummaryCards = ({
 		>
 			<SummaryCard
 				label={t('components.sellingInvoices.summary.todaySales')}
-				value={formatCurrency(summary.todaySales)}
+				value={formatAmount(summary.todaySales)}
 				trend={formatTrend(summary.todaySalesTrend)}
 				trendColor={PAGE_COLORS.success}
 				sparkline={{
@@ -195,14 +197,14 @@ const InvoiceSummaryCards = ({
 			/>
 			<SummaryCard
 				label={t('components.sellingInvoices.summary.totalReceivable')}
-				value={formatCurrency(summary.totalReceivable)}
+				value={formatAmount(summary.totalReceivable)}
 				icon={<WalletIcon fill="none" />}
 				iconBg="#FEE2E2"
 				iconColor="#DC2626"
 			/>
 			<SummaryCard
 				label={t('components.sellingInvoices.summary.averageOrder')}
-				value={formatCurrency(summary.averageOrder)}
+				value={formatAmount(summary.averageOrder)}
 				icon={<AsTimeIcon />}
 				iconBg="#DBEAFE"
 				iconColor="#2563EB"

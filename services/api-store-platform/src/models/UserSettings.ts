@@ -5,6 +5,7 @@ export interface IUserSettings extends Document {
 	userId: string
 	productsPerPage: number
 	displayLanguage: 'en' | 'de' | 'ar'
+	defaultInvoiceCurrencyId?: string
 	createdAt: Date
 	updatedAt: Date
 }
@@ -33,6 +34,10 @@ const UserSettingsSchema: Schema<IUserSettings> = new mongoose.Schema(
 			type: String,
 			enum: ['en', 'de', 'ar'],
 			default: 'en',
+		},
+		defaultInvoiceCurrencyId: {
+			type: String,
+			trim: true,
 		},
 	},
 	{ timestamps: true },

@@ -479,6 +479,8 @@
 				"grandTotal": "الإجمالي",
 				"paidAmount": "المبلغ المدفوع",
 				"change": "الباقي",
+				"displayCurrency": "عملة العرض",
+				"otherCurrencies": "عملات أخرى",
 				"saveDraft": "حفظ كمسودة",
 				"holdInvoice": "تعليق الفاتورة",
 				"payCashAndSave": "دفع نقداً وحفظ",
@@ -533,6 +535,7 @@
 		"settingsTabs": {
 			"product": "المنتج",
 			"language": "اللغة",
+			"currencies": "العملات",
 			"workMode": "وضع العمل",
 			"displayLanguage": "لغة العرض",
 			"english": "الإنجليزية",
@@ -552,6 +555,28 @@
 			"twentyPerPage": "20 منتجًا لكل صفحة",
 			"hundredPerPage": "100 منتج لكل صفحة",
 			"showAllProducts": "عرض جميع المنتجات"
+		},
+		"currenciesSettings": {
+			"primaryTitle": "العملة الأساسية",
+			"primaryDescription": "العملة الرئيسية المستخدمة كأساس لجميع أسعار الصرف.",
+			"secondaryTitle": "العملات الثانوية",
+			"secondaryDescription": "أضف عملات أخرى وحدد كيفية تحويلها إلى العملة الأساسية.",
+			"primaryLabel": "أساسية",
+			"secondaryLabel": "ثانوية",
+			"currencyName": "اسم العملة",
+			"currencyCode": "الرمز",
+			"namePlaceholder": "مثال: الليرة السورية",
+			"primaryNamePlaceholder": "مثال: الدولار الأمريكي",
+			"codePlaceholder": "مثال: USD",
+			"exchangeRate": "سعر الصرف",
+			"rateSuffix": "1 {{primary}} =",
+			"addSecondary": "إضافة عملة ثانوية",
+			"removeSecondary": "إزالة العملة",
+			"primaryRequired": "اسم العملة الأساسية مطلوب.",
+			"exchangeRateRequired": "كل عملة ثانوية تحتاج إلى سعر صرف صالح.",
+			"defaultInvoiceCurrency": "عملة الفاتورة الافتراضية",
+			"defaultInvoiceCurrencyPlaceholder": "اختر العملة الافتراضية",
+			"defaultInvoiceCurrencyHint": "يتم حفظ المبالغ في الفواتير الجديدة بالعملة الأساسية وعرضها افتراضيًا بهذه العملة."
 		},
 		"modal": {
 			"filterModal": {

@@ -34,6 +34,23 @@ export interface UserSettings {
 	userId: string
 	productsPerPage: number
 	displayLanguage: 'en' | 'de' | 'ar'
+	defaultInvoiceCurrencyId?: string
+	createdAt?: string
+	updatedAt?: string
+}
+
+export interface CurrencySettingItem {
+	currencyId: string
+	name: string
+	internalCode?: string
+	exchangeRate?: number
+}
+
+export interface CurrencySettings {
+	_id?: string
+	tenantId?: string
+	primaryCurrency: CurrencySettingItem | null
+	secondaryCurrencies: CurrencySettingItem[]
 	createdAt?: string
 	updatedAt?: string
 }
@@ -854,6 +871,26 @@ const getQuery = (
 			invalidatesTags: ['user-settings'],
 		}),
 
+		getCurrencySettings: builder.query<CurrencySettings, void>({
+			query: () => ({
+				url: 'currency-settings',
+				method: 'GET',
+			}),
+			providesTags: ['currency-settings'],
+		}),
+
+		updateCurrencySettings: builder.mutation<
+			CurrencySettings,
+			Pick<CurrencySettings, 'primaryCurrency' | 'secondaryCurrencies'>
+		>({
+			query: body => ({
+				url: 'currency-settings',
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['currency-settings', 'currencies'],
+		}),
+
 		getDailyActions: builder.query<
 			DailyAction[],
 			DailyActionFiltersQueryParams | void
@@ -1058,6 +1095,8 @@ export const {
 	useChangePasswordMutation,
 	useGetUserSettingsQuery,
 	useUpdateUserSettingsMutation,
+	useGetCurrencySettingsQuery,
+	useUpdateCurrencySettingsMutation,
 	useGetDailyActionsQuery,
 	useGetDailyActionFilterValuesQuery,
 	useGetSingleDailyActionQuery,

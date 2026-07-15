@@ -45,6 +45,7 @@ const API_SEGMENT_TO_PAGES: Record<string, TenantAccessiblePage[]> = {
 		TENANT_ACCESSIBLE_PAGE.CASH_BALANCE,
 	],
 	currencies: [TENANT_ACCESSIBLE_PAGE.SETTINGS],
+	'currency-settings': [TENANT_ACCESSIBLE_PAGE.SETTINGS],
 	units: [TENANT_ACCESSIBLE_PAGE.SETTINGS],
 	'user-settings': [TENANT_ACCESSIBLE_PAGE.SETTINGS],
 	tenants: [

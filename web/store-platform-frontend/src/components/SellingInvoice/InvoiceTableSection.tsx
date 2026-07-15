@@ -40,7 +40,7 @@ import type {
 	SellingInvoiceStatus,
 	SortDirection,
 } from './types'
-import { formatCurrency } from './utils'
+import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import { AsSearchIcon } from '../../icons/Search'
 // import { AsCalendarIcon } from '../../shared/icons/Calendar'
 // import { AsFilterIcon } from '../../shared/icons/Filter'
@@ -53,6 +53,7 @@ import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsPrintIcon } from '../../icons/Print'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
+import CurrencyAmountTooltip from './CurrencyAmountTooltip'
 
 interface InvoiceTableSectionProps {
 	invoices: SellingInvoice[]
@@ -126,6 +127,11 @@ const InvoiceTableSection = ({
 	onDateChange,
 }: InvoiceTableSectionProps) => {
 	const { t } = useTranslation()
+	const {
+		formatAmount,
+		options: displayCurrencyOptions,
+		displayCurrencyId,
+	} = useInvoiceDisplayCurrency()
 
 	const totalPages = Math.max(1, Math.ceil(totalCount / INVOICES_PER_PAGE))
 	const startIndex =
@@ -425,17 +431,36 @@ const InvoiceTableSection = ({
 											{invoice.itemCount}
 										</Td>
 										<Td isNumeric fontWeight={500} color="gray.900">
-											{formatCurrency(invoice.total)}
+											<CurrencyAmountTooltip
+												amount={invoice.total}
+												displayText={formatAmount(invoice.total)}
+												options={displayCurrencyOptions}
+												displayCurrencyId={displayCurrencyId}
+												fontWeight={500}
+												color="gray.900"
+											/>
 										</Td>
 										<Td isNumeric color="gray.800">
-											{formatCurrency(invoice.paid)}
+											<CurrencyAmountTooltip
+												amount={invoice.paid}
+												displayText={formatAmount(invoice.paid)}
+												options={displayCurrencyOptions}
+												displayCurrencyId={displayCurrencyId}
+												fontWeight={400}
+												color="gray.800"
+											/>
 										</Td>
-										<Td
-											isNumeric
-											fontWeight={invoice.due > 0 ? 600 : 400}
-											color={invoice.due > 0 ? PAGE_COLORS.danger : 'gray.800'}
-										>
-											{formatCurrency(invoice.due)}
+										<Td isNumeric>
+											<CurrencyAmountTooltip
+												amount={invoice.due}
+												displayText={formatAmount(invoice.due)}
+												options={displayCurrencyOptions}
+												displayCurrencyId={displayCurrencyId}
+												fontWeight={invoice.due > 0 ? 600 : 400}
+												color={
+													invoice.due > 0 ? PAGE_COLORS.danger : 'gray.800'
+												}
+											/>
 										</Td>
 										<Td>
 											<HStack spacing={1}>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
 	Flex,
 	Heading,
@@ -22,15 +22,36 @@ import { useNavigate } from 'react-router-dom'
 import ProductsSettings from '../components/settings/ProductsSettings'
 import LanguagesSettings from '../components/settings/LanguagesSettings'
 import WorkModeSettings from '../components/settings/WorkModeSettings'
+import CurrenciesSettings from '../components/settings/CurrenciesSettings'
 import SettingActions from '../components/settings/SettingActions'
 import useCustomToast from '../components/common/CustomToast'
-import { useUpdateUserSettingsMutation } from '../api/apiStore'
+import {
+	CurrencySettingItem,
+	useGetCurrencySettingsQuery,
+	useUpdateCurrencySettingsMutation,
+	useUpdateUserSettingsMutation,
+} from '../api/apiStore'
+import { generateId } from '../offline/utils'
 
 enum StepKeys {
 	product = 0,
 	Language = 1,
-	WorkMode = 2,
+	Currencies = 2,
+	WorkMode = 3,
 }
+
+const createEmptyPrimary = (): CurrencySettingItem => ({
+	currencyId: generateId(),
+	name: '',
+	internalCode: '',
+})
+
+const createEmptySecondary = (): CurrencySettingItem => ({
+	currencyId: generateId(),
+	name: '',
+	internalCode: '',
+	exchangeRate: undefined,
+})
 
 const styles = {
 	wrapper: {
@@ -90,16 +111,39 @@ const SettingsPage = () => {
 		setProductsPerPage,
 		displayLanguage,
 		setDisplayLanguage,
+		defaultInvoiceCurrencyId,
+		setDefaultInvoiceCurrencyId,
 		hasChanges,
 		setHasChanges,
 	} = useSettings()
+	const { data: currencySettingsData } = useGetCurrencySettingsQuery()
 	const [currentTabIndex, setCurrentTabIndex] = useState<number>(0)
+	const [primaryCurrency, setPrimaryCurrency] =
+		useState<CurrencySettingItem | null>(createEmptyPrimary())
+	const [secondaryCurrencies, setSecondaryCurrencies] = useState<
+		CurrencySettingItem[]
+	>([])
+	const [hasCurrencyChanges, setHasCurrencyChanges] = useState(false)
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const showToastMessage = useCustomToast()
-	const [updateUserSettings, { isLoading: isSaveInProgress }] =
+	const [updateUserSettings, { isLoading: isUserSettingsSaveInProgress }] =
 		useUpdateUserSettingsMutation()
+	const [updateCurrencySettings, { isLoading: isCurrencySaveInProgress }] =
+		useUpdateCurrencySettingsMutation()
+
+	useEffect(() => {
+		if (!currencySettingsData) {
+			return
+		}
+
+		setPrimaryCurrency(
+			currencySettingsData.primaryCurrency ?? createEmptyPrimary(),
+		)
+		setSecondaryCurrencies(currencySettingsData.secondaryCurrencies ?? [])
+		setHasCurrencyChanges(false)
+	}, [currencySettingsData])
 
 	const handleProductsPerPageChange = (value: string) => {
 		const numValue = value === 'all' ? 1000 : parseInt(value, 10)
@@ -109,6 +153,53 @@ const SettingsPage = () => {
 	const handleLanguageChange = (value: string) => {
 		const selectedLanguage = value === 'de' || value === 'ar' ? value : 'en'
 		setDisplayLanguage(selectedLanguage)
+	}
+
+	const handlePrimaryChange = (
+		field: 'name' | 'internalCode',
+		value: string,
+	) => {
+		setPrimaryCurrency(current => ({
+			...(current ?? createEmptyPrimary()),
+			[field]: value,
+		}))
+		setHasCurrencyChanges(true)
+	}
+
+	const handleSecondaryChange = (
+		index: number,
+		field: 'name' | 'internalCode' | 'exchangeRate',
+		value: string,
+	) => {
+		setSecondaryCurrencies(current =>
+			current.map((item, itemIndex) => {
+				if (itemIndex !== index) {
+					return item
+				}
+
+				if (field === 'exchangeRate') {
+					return {
+						...item,
+						exchangeRate: value === '' ? undefined : Number(value),
+					}
+				}
+
+				return { ...item, [field]: value }
+			}),
+		)
+		setHasCurrencyChanges(true)
+	}
+
+	const handleAddSecondary = () => {
+		setSecondaryCurrencies(current => [...current, createEmptySecondary()])
+		setHasCurrencyChanges(true)
+	}
+
+	const handleRemoveSecondary = (index: number) => {
+		setSecondaryCurrencies(current =>
+			current.filter((_, itemIndex) => itemIndex !== index),
+		)
+		setHasCurrencyChanges(true)
 	}
 
 	const handleTabsChange = (index: number) => {
@@ -126,14 +217,58 @@ const SettingsPage = () => {
 
 	const onSaveSettings = async () => {
 		try {
-			await updateUserSettings({
-				productsPerPage,
-				displayLanguage,
-			}).unwrap()
+			if (hasChanges) {
+				await updateUserSettings({
+					productsPerPage,
+					displayLanguage,
+					defaultInvoiceCurrencyId: defaultInvoiceCurrencyId || undefined,
+				}).unwrap()
 
-			void i18n.changeLanguage(displayLanguage)
+				void i18n.changeLanguage(displayLanguage)
+				setHasChanges(false)
+			}
 
-			setHasChanges(false)
+			if (hasCurrencyChanges) {
+				if (!primaryCurrency?.name?.trim()) {
+					showToastMessage({
+						status: 'error',
+						description: t('components.currenciesSettings.primaryRequired'),
+					})
+					return
+				}
+
+				const invalidSecondary = secondaryCurrencies.some(
+					item =>
+						item.name.trim() &&
+						(!item.exchangeRate || item.exchangeRate <= 0),
+				)
+
+				if (invalidSecondary) {
+					showToastMessage({
+						status: 'error',
+						description: t('components.currenciesSettings.exchangeRateRequired'),
+					})
+					return
+				}
+
+				await updateCurrencySettings({
+					primaryCurrency: {
+						...primaryCurrency,
+						name: primaryCurrency.name.trim(),
+						internalCode: primaryCurrency.internalCode?.trim() || undefined,
+					},
+					secondaryCurrencies: secondaryCurrencies
+						.filter(item => item.name.trim())
+						.map(item => ({
+							...item,
+							name: item.name.trim(),
+							internalCode: item.internalCode?.trim() || undefined,
+						})),
+				}).unwrap()
+
+				setHasCurrencyChanges(false)
+			}
+
 			showToastMessage({
 				status: 'success',
 				description: t('settings.updateSuccessMessage'),
@@ -165,6 +300,10 @@ const SettingsPage = () => {
 			}`,
 		}
 	}
+
+	const isSaveDisabled = !hasChanges && !hasCurrencyChanges
+	const isSaveInProgress =
+		isUserSettingsSaveInProgress || isCurrencySaveInProgress
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -200,6 +339,11 @@ const SettingsPage = () => {
 							{t('components.settingsTabs.language')}
 						</Text>
 					</Tab>
+					<Tab sx={getTabStyle(StepKeys.Currencies)}>
+						<Text sx={getTabTextStyle(StepKeys.Currencies)}>
+							{t('components.settingsTabs.currencies')}
+						</Text>
+					</Tab>
 					<Tab sx={getTabStyle(StepKeys.WorkMode)}>
 						<Text sx={getTabTextStyle(StepKeys.WorkMode)}>
 							{t('components.settingsTabs.workMode')}
@@ -224,13 +368,26 @@ const SettingsPage = () => {
 					</TabPanel>
 
 					<TabPanel sx={styles.contentWrapper}>
+						<CurrenciesSettings
+							primaryCurrency={primaryCurrency}
+							secondaryCurrencies={secondaryCurrencies}
+							defaultInvoiceCurrencyId={defaultInvoiceCurrencyId}
+							onDefaultInvoiceCurrencyChange={setDefaultInvoiceCurrencyId}
+							onPrimaryChange={handlePrimaryChange}
+							onSecondaryChange={handleSecondaryChange}
+							onAddSecondary={handleAddSecondary}
+							onRemoveSecondary={handleRemoveSecondary}
+						/>
+					</TabPanel>
+
+					<TabPanel sx={styles.contentWrapper}>
 						<WorkModeSettings />
 					</TabPanel>
 				</TabPanels>
 			</Tabs>
 
 			<SettingActions
-				isSaveDisabled={!hasChanges}
+				isSaveDisabled={isSaveDisabled}
 				isSaveInProgress={isSaveInProgress}
 				onSaveSettings={onSaveSettings}
 			/>

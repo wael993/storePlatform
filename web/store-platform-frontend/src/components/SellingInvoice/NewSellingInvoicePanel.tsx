@@ -36,7 +36,9 @@ import type {
 	SellingInvoiceLineItem,
 	SellingInvoicePaymentType,
 } from './types'
-import { formatCurrency } from './utils'
+import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
+import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import DropdownLabel from '../DropdownLabel'
 import { generateId } from '../../offline/utils'
 import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsPauseIcon } from '../../icons/Pause'
@@ -44,7 +46,6 @@ import { AsSaveIcon } from '../icons/Save'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 // import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsDocumentIcon } from '../../shared/icons/Document'
-import DropdownLabel from '../DropdownLabel'
 import DatePickerLabel from '../common/DatePickerLabel'
 
 interface NewSellingInvoicePanelProps {
@@ -175,6 +176,13 @@ const NewSellingInvoicePanel = ({
 		),
 	)
 	const [showNote, setShowNote] = useState(false)
+	const {
+		options: displayCurrencyOptions,
+		displayCurrencyId,
+		setDisplayCurrencyId,
+		formatAmount,
+		hasCurrencyOptions,
+	} = useInvoiceDisplayCurrency()
 
 	useEffect(() => {
 		if (!isActive) return
@@ -459,7 +467,47 @@ const NewSellingInvoicePanel = ({
 					lineItems={draft.lineItems}
 					onUpdateItem={handleUpdateItem}
 					onRemoveItem={handleRemoveItem}
+					formatAmount={formatAmount}
+					displayCurrencyId={displayCurrencyId}
+					currencyOptions={displayCurrencyOptions}
 				/>
+
+				{hasCurrencyOptions && (
+					<Box maxW={{ base: '100%', md: '20rem' }}>
+						<DropdownLabel
+							label={t('components.sellingInvoices.drawer.displayCurrency')}
+							options={displayCurrencyOptions.map(option => ({
+								label: `${option.name} (${option.label})`,
+								value: option.currencyId,
+							}))}
+							selectedOptions={
+								displayCurrencyId
+									? displayCurrencyOptions
+											.filter(option => option.currencyId === displayCurrencyId)
+											.map(option => ({
+												label: `${option.name} (${option.label})`,
+												value: option.currencyId,
+											}))
+									: []
+							}
+							onSelect={values => setDisplayCurrencyId(values[0] ?? null)}
+							placeholder={t(
+								'components.sellingInvoices.drawer.displayCurrency',
+							)}
+							isSingle
+							isSearchable={false}
+							customStyles={{
+								dropdownContainer: { width: '100%' },
+								dropdownMenu: {
+									mt: '0.4rem',
+									borderRadius: 'none',
+									width: '100%',
+								},
+								dropdownPlaceholder: { width: '100%' },
+							}}
+						/>
+					</Box>
+				)}
 
 				<Grid
 					templateColumns={{ base: '1fr', lg: '1.2fr 1fr 1fr' }}
@@ -531,25 +579,37 @@ const NewSellingInvoicePanel = ({
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
 									{t('components.sellingInvoices.drawer.subtotal')}
 								</Text>
-								<Text fontSize="sm" fontWeight={500}>
-									{formatCurrency(totals.subtotal)}
-								</Text>
+								<CurrencyAmountTooltip
+									amount={totals.subtotal}
+									displayText={formatAmount(totals.subtotal)}
+									options={displayCurrencyOptions}
+									displayCurrencyId={displayCurrencyId}
+									fontWeight={500}
+								/>
 							</Flex>
 							<Flex justify="space-between">
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
 									{t('components.sellingInvoices.drawer.discount')}
 								</Text>
-								<Text fontSize="sm" fontWeight={500}>
-									{formatCurrency(totals.discount)}
-								</Text>
+								<CurrencyAmountTooltip
+									amount={totals.discount}
+									displayText={formatAmount(totals.discount)}
+									options={displayCurrencyOptions}
+									displayCurrencyId={displayCurrencyId}
+									fontWeight={500}
+								/>
 							</Flex>
 							<Flex justify="space-between">
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
 									{t('components.sellingInvoices.drawer.tax')}
 								</Text>
-								<Text fontSize="sm" fontWeight={500}>
-									{formatCurrency(totals.tax)}
-								</Text>
+								<CurrencyAmountTooltip
+									amount={totals.tax}
+									displayText={formatAmount(totals.tax)}
+									options={displayCurrencyOptions}
+									displayCurrencyId={displayCurrencyId}
+									fontWeight={500}
+								/>
 							</Flex>
 							<Box
 								borderTop="1px solid"
@@ -560,13 +620,15 @@ const NewSellingInvoicePanel = ({
 									<Text fontWeight={700}>
 										{t('components.sellingInvoices.drawer.grandTotal')}
 									</Text>
-									<Text
+									<CurrencyAmountTooltip
+										amount={totals.grandTotal}
+										displayText={formatAmount(totals.grandTotal)}
+										options={displayCurrencyOptions}
+										displayCurrencyId={displayCurrencyId}
 										fontSize="2xl"
 										fontWeight={700}
 										color={PAGE_COLORS.primary}
-									>
-										{formatCurrency(totals.grandTotal)}
-									</Text>
+									/>
 								</Flex>
 							</Box>
 						</VStack>
@@ -618,13 +680,15 @@ const NewSellingInvoicePanel = ({
 								>
 									{t('components.sellingInvoices.drawer.change')}
 								</Text>
-								<Text
+								<CurrencyAmountTooltip
+									amount={changeAmount}
+									displayText={formatAmount(changeAmount)}
+									options={displayCurrencyOptions}
+									displayCurrencyId={displayCurrencyId}
 									fontSize="xl"
 									fontWeight={700}
 									color={PAGE_COLORS.success}
-								>
-									{formatCurrency(changeAmount)}
-								</Text>
+								/>
 							</Box>
 						</VStack>
 					</Box>

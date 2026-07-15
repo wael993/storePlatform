@@ -477,6 +477,8 @@
 				"grandTotal": "Grand Total",
 				"paidAmount": "Paid Amount",
 				"change": "Change",
+				"displayCurrency": "Display Currency",
+				"otherCurrencies": "Other currencies",
 				"saveDraft": "Save Draft",
 				"holdInvoice": "Hold Invoice",
 				"payCashAndSave": "Pay Cash & Save",
@@ -530,6 +532,7 @@
 		"settingsTabs": {
 			"product": "Product",
 			"language": "Language",
+			"currencies": "Currencies",
 			"workMode": "Work Mode",
 			"displayLanguage": "Display Language",
 			"english": "English",
@@ -549,6 +552,28 @@
 			"twentyPerPage": "20 products per page",
 			"hundredPerPage": "100 products per page",
 			"showAllProducts": "Show all products"
+		},
+		"currenciesSettings": {
+			"primaryTitle": "Primary Currency",
+			"primaryDescription": "The main currency used as the base for all exchange rates.",
+			"secondaryTitle": "Secondary Currencies",
+			"secondaryDescription": "Add other currencies and define how they convert to the primary currency.",
+			"primaryLabel": "Primary",
+			"secondaryLabel": "Secondary",
+			"currencyName": "Currency Name",
+			"currencyCode": "Code",
+			"namePlaceholder": "e.g. Syrian Pound",
+			"primaryNamePlaceholder": "e.g. US Dollar",
+			"codePlaceholder": "e.g. USD",
+			"exchangeRate": "Exchange Rate",
+			"rateSuffix": "1 {{primary}} =",
+			"addSecondary": "Add Secondary Currency",
+			"removeSecondary": "Remove currency",
+			"primaryRequired": "Primary currency name is required.",
+			"exchangeRateRequired": "Each secondary currency needs a valid exchange rate.",
+			"defaultInvoiceCurrency": "Default Invoice Currency",
+			"defaultInvoiceCurrencyPlaceholder": "Select default currency",
+			"defaultInvoiceCurrencyHint": "Amounts on new invoices are stored in the primary currency and shown in this currency by default."
 		},
 		"modal": {
 			"filterModal": {

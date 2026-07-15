@@ -464,6 +464,8 @@
 				"grandTotal": "Gesamtsumme",
 				"paidAmount": "Bezahlter Betrag",
 				"change": "Wechselgeld",
+				"displayCurrency": "Anzeigewährung",
+				"otherCurrencies": "Andere Währungen",
 				"saveDraft": "Entwurf speichern",
 				"holdInvoice": "Rechnung zurückstellen",
 				"payCashAndSave": "Bar bezahlen & speichern",
@@ -516,6 +518,7 @@
 		"settingsTabs": {
 			"product": "Produkt",
 			"language": "Sprache",
+			"currencies": "Währungen",
 			"workMode": "Arbeitsmodus",
 			"displayLanguage": "Anzeigesprache",
 			"english": "Englisch",
@@ -535,6 +538,28 @@
 			"twentyPerPage": "20 Produkte pro Seite",
 			"hundredPerPage": "100 Produkte pro Seite",
 			"showAllProducts": "Alle Produkte anzeigen"
+		},
+		"currenciesSettings": {
+			"primaryTitle": "Primärwährung",
+			"primaryDescription": "Die Hauptwährung, die als Basis für alle Wechselkurse dient.",
+			"secondaryTitle": "Sekundärwährungen",
+			"secondaryDescription": "Fügen Sie weitere Währungen hinzu und legen Sie fest, wie sie in die Primärwährung umgerechnet werden.",
+			"primaryLabel": "Primär",
+			"secondaryLabel": "Sekundär",
+			"currencyName": "Währungsname",
+			"currencyCode": "Code",
+			"namePlaceholder": "z. B. Syrisches Pfund",
+			"primaryNamePlaceholder": "z. B. US-Dollar",
+			"codePlaceholder": "z. B. USD",
+			"exchangeRate": "Wechselkurs",
+			"rateSuffix": "1 {{primary}} =",
+			"addSecondary": "Sekundärwährung hinzufügen",
+			"removeSecondary": "Währung entfernen",
+			"primaryRequired": "Der Name der Primärwährung ist erforderlich.",
+			"exchangeRateRequired": "Jede Sekundärwährung benötigt einen gültigen Wechselkurs.",
+			"defaultInvoiceCurrency": "Standard-Rechnungswährung",
+			"defaultInvoiceCurrencyPlaceholder": "Standardwährung auswählen",
+			"defaultInvoiceCurrencyHint": "Beträge auf neuen Rechnungen werden in der Primärwährung gespeichert und standardmäßig in dieser Währung angezeigt."
 		},
 		"modal": {
 			"filterModal": {

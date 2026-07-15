@@ -7,6 +7,8 @@ interface SettingsContextType {
 	setProductsPerPage: (value: number) => void
 	displayLanguage: 'en' | 'de' | 'ar'
 	setDisplayLanguage: (value: 'en' | 'de' | 'ar') => void
+	defaultInvoiceCurrencyId: string
+	setDefaultInvoiceCurrencyId: (value: string) => void
 	isLoading: boolean
 	hasChanges: boolean
 	setHasChanges: (value: boolean) => void
@@ -24,6 +26,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [displayLanguage, setDisplayLanguageState] = useState<
 		'en' | 'de' | 'ar'
 	>('en')
+	const [defaultInvoiceCurrencyId, setDefaultInvoiceCurrencyIdState] =
+		useState<string>('')
 	const [hasChanges, setHasChanges] = useState(false)
 
 	// Initialize from fetched settings
@@ -31,6 +35,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (userSettings) {
 			setProductsPerPageState(userSettings.productsPerPage || 20)
 			setDisplayLanguageState(userSettings.displayLanguage || 'en')
+			setDefaultInvoiceCurrencyIdState(
+				userSettings.defaultInvoiceCurrencyId || '',
+			)
 			if (i18n.resolvedLanguage !== userSettings.displayLanguage) {
 				void i18n.changeLanguage(userSettings.displayLanguage || 'en')
 			}
@@ -47,6 +54,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 		setHasChanges(true)
 	}
 
+	const setDefaultInvoiceCurrencyId = (value: string) => {
+		setDefaultInvoiceCurrencyIdState(value)
+		setHasChanges(true)
+	}
+
 	return (
 		<SettingsContext.Provider
 			value={{
@@ -54,6 +66,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 				setProductsPerPage,
 				displayLanguage,
 				setDisplayLanguage,
+				defaultInvoiceCurrencyId,
+				setDefaultInvoiceCurrencyId,
 				isLoading,
 				hasChanges,
 				setHasChanges,
