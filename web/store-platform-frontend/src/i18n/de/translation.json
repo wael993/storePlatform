@@ -481,6 +481,12 @@
 				"saveCreditInvoice": "Kreditrechnung speichern",
 				"removeItem": "Artikel entfernen",
 				"saveFailed": "Rechnung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+				"newDraftTab": "Weitere Rechnung starten",
+				"draftTab": "Entwurf {{index}}",
+				"closeDraftTab": "Entwurf schließen",
+				"closeDraftTitle": "Rechnungsentwurf verwerfen?",
+				"closeDraftBody": "Diese Rechnung hat ungespeicherte Änderungen. Verwerfen?",
+				"discardDraft": "Verwerfen",
 				"columns": {
 					"product": "Produkt",
 					"barcode": "Barcode",

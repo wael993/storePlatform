@@ -16,8 +16,7 @@ import {
 	Textarea,
 	VStack,
 } from '@chakra-ui/react'
-import { ChevronDownIcon, CloseIcon } from '@chakra-ui/icons'
-import dayjs from 'dayjs'
+import { AddIcon, ChevronDownIcon, CloseIcon } from '@chakra-ui/icons'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -33,6 +32,10 @@ import {
 	buildInvoiceRequestBody,
 	mapApiInvoiceToDraft,
 } from './invoiceApiMappers'
+import {
+	createInvoiceDraft,
+	WALK_IN_CUSTOMER_ID,
+} from './invoiceDraftSessions'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
 import { addProductToLineItems } from './productLineItem'
@@ -44,7 +47,6 @@ import type {
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
 import DropdownLabel from '../DropdownLabel'
-import { generateId } from '../../offline/utils'
 import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsPauseIcon } from '../../icons/Pause'
 import { AsSaveIcon } from '../icons/Save'
@@ -56,6 +58,11 @@ import DatePickerLabel from '../common/DatePickerLabel'
 
 export type InvoicePanelMode = 'create' | 'view' | 'edit'
 
+export interface InvoiceDraftTab {
+	id: string
+	label: string
+}
+
 interface NewSellingInvoicePanelProps {
 	isActive: boolean
 	onClose: () => void
@@ -66,27 +73,21 @@ interface NewSellingInvoicePanelProps {
 	mode?: InvoicePanelMode
 	invoiceId?: string
 	onRequestEdit?: () => void
+	/** Controlled draft for multi-tab create sessions */
+	draft?: SellingInvoiceDraft
+	onDraftChange?: (
+		updater:
+			| SellingInvoiceDraft
+			| ((current: SellingInvoiceDraft) => SellingInvoiceDraft),
+	) => void
+	showNote?: boolean
+	onShowNoteChange?: (showNote: boolean) => void
+	draftTabs?: InvoiceDraftTab[]
+	activeDraftTabId?: string
+	onSelectDraftTab?: (tabId: string) => void
+	onCloseDraftTab?: (tabId: string) => void
+	onAddDraftTab?: () => void
 }
-
-const WALK_IN_CUSTOMER_ID = 'walk-in'
-
-const createInitialDraft = (
-	salesPerson: string,
-	paymentType: SellingInvoicePaymentType = 'cash',
-	invoiceNumber = 1,
-): SellingInvoiceDraft => ({
-	invoiceId: generateId(),
-	invoiceNumber,
-	invoiceDate: dayjs().format('YYYY-MM-DD'),
-	invoiceTime: dayjs().format('HH:mm'),
-	salesPerson,
-	customerId: WALK_IN_CUSTOMER_ID,
-	customerName: 'Walk-in Customer',
-	paymentType,
-	lineItems: [],
-	note: '',
-	paidAmount: 0,
-})
 
 const PaymentTypeButton = ({
 	type,
@@ -173,6 +174,15 @@ const NewSellingInvoicePanel = ({
 	mode = 'create',
 	invoiceId,
 	onRequestEdit,
+	draft: controlledDraft,
+	onDraftChange,
+	showNote: controlledShowNote,
+	onShowNoteChange,
+	draftTabs = [],
+	activeDraftTabId,
+	onSelectDraftTab,
+	onCloseDraftTab,
+	onAddDraftTab,
 }: NewSellingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const { user } = useUser()
@@ -185,6 +195,8 @@ const NewSellingInvoicePanel = ({
 	const isReadOnly = mode === 'view'
 	const isExistingInvoice = mode === 'view' || mode === 'edit'
 	const isSaving = isCreating || isUpdating
+	const isControlledCreate =
+		mode === 'create' && Boolean(controlledDraft && onDraftChange)
 
 	const {
 		data: existingInvoice,
@@ -198,13 +210,22 @@ const NewSellingInvoicePanel = ({
 		.filter(Boolean)
 		.join(' ')
 
-	const [draft, setDraft] = useState<SellingInvoiceDraft>(() =>
-		createInitialDraft(
-			salesPerson || user?.email || 'User',
-			initialPaymentType,
-		),
+	const [internalDraft, setInternalDraft] = useState<SellingInvoiceDraft>(() =>
+		createInvoiceDraft(salesPerson || user?.email || 'User', {
+			paymentType: initialPaymentType,
+		}),
 	)
-	const [showNote, setShowNote] = useState(false)
+	const [internalShowNote, setInternalShowNote] = useState(false)
+
+	const draft = isControlledCreate ? controlledDraft! : internalDraft
+	const setDraft = isControlledCreate ? onDraftChange! : setInternalDraft
+	const showNote = isControlledCreate
+		? Boolean(controlledShowNote)
+		: internalShowNote
+	const setShowNote = isControlledCreate
+		? (value: boolean) => onShowNoteChange?.(value)
+		: setInternalShowNote
+
 	const {
 		options: displayCurrencyOptions,
 		displayCurrencyId,
@@ -215,21 +236,21 @@ const NewSellingInvoicePanel = ({
 	} = useInvoiceDisplayCurrency()
 
 	useEffect(() => {
-		if (!isActive || isExistingInvoice) return
+		if (!isActive || isExistingInvoice || isControlledCreate) return
 
-		setDraft({
-			...createInitialDraft(
-				salesPerson || user?.email || 'User',
-				initialPaymentType,
-				nextInvoiceNumber,
-			),
-			customerName: t('components.sellingInvoices.drawer.walkInCustomer'),
-		})
-		setShowNote(false)
+		setInternalDraft(
+			createInvoiceDraft(salesPerson || user?.email || 'User', {
+				paymentType: initialPaymentType,
+				invoiceNumber: nextInvoiceNumber,
+				customerName: t('components.sellingInvoices.drawer.walkInCustomer'),
+			}),
+		)
+		setInternalShowNote(false)
 		setSaveError(null)
 	}, [
 		isActive,
 		isExistingInvoice,
+		isControlledCreate,
 		initialPaymentType,
 		nextInvoiceNumber,
 		salesPerson,
@@ -240,15 +261,20 @@ const NewSellingInvoicePanel = ({
 	useEffect(() => {
 		if (!isActive || !isExistingInvoice || !existingInvoice) return
 
-		setDraft(
+		setInternalDraft(
 			mapApiInvoiceToDraft(
 				existingInvoice,
 				t('components.sellingInvoices.drawer.walkInCustomer'),
 			),
 		)
-		setShowNote(false)
+		setInternalShowNote(false)
 		setSaveError(null)
 	}, [isActive, isExistingInvoice, existingInvoice, t])
+
+	useEffect(() => {
+		if (!isControlledCreate) return
+		setSaveError(null)
+	}, [isControlledCreate, controlledDraft?.invoiceId])
 
 	const totals = useMemo(
 		() => calculateInvoiceTotals(draft.lineItems),
@@ -262,7 +288,7 @@ const NewSellingInvoicePanel = ({
 			...current,
 			paidAmount: calculateInvoiceTotals(current.lineItems).grandTotal,
 		}))
-	}, [draft.lineItems, draft.paymentType, isReadOnly])
+	}, [draft.lineItems, draft.paymentType, isReadOnly, setDraft])
 
 	const changeAmount = Math.max(0, draft.paidAmount - totals.grandTotal)
 
@@ -343,7 +369,11 @@ const NewSellingInvoicePanel = ({
 			}
 
 			onSaved?.()
-			onClose()
+			// Create multi-draft: onSaved removes this tab and shows the next one.
+			// Calling onClose here would hit stale draft state and open the discard dialog.
+			if (mode !== 'create') {
+				onClose()
+			}
 		} catch (error) {
 			const apiError = error as {
 				data?: { message?: string; code?: string }
@@ -403,12 +433,27 @@ const NewSellingInvoicePanel = ({
 	return (
 		<Box sx={panelStyles.root}>
 			<Flex sx={panelStyles.header}>
-				<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight={700}>
-					{t(panelTitleKey)}{' '}
-					<Text as="span" color={PAGE_COLORS.primary}>
-						#{draft.invoiceNumber}
+				<HStack spacing={2} align="center" minW={0} flex={1}>
+					<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight={700} noOfLines={1}>
+						{t(panelTitleKey)}{' '}
+						<Text as="span" color={PAGE_COLORS.primary}>
+							#{draft.invoiceNumber}
+						</Text>
 					</Text>
-				</Text>
+					{mode === 'create' && onAddDraftTab && (
+						<IconButton
+							aria-label={t('components.sellingInvoices.drawer.newDraftTab')}
+							icon={<AddIcon boxSize={2.5} />}
+							size="xs"
+							variant="outline"
+							borderRadius="md"
+							borderColor={PAGE_COLORS.border}
+							color={PAGE_COLORS.primary}
+							flexShrink={0}
+							onClick={onAddDraftTab}
+						/>
+					)}
+				</HStack>
 				<HStack spacing={1}>
 					{mode === 'view' && onRequestEdit && (
 						<IconButton
@@ -430,6 +475,67 @@ const NewSellingInvoicePanel = ({
 					/>
 				</HStack>
 			</Flex>
+
+			{mode === 'create' && draftTabs.length > 0 && (
+				<HStack
+					px={{ base: 4, md: 5 }}
+					py={2}
+					spacing={2}
+					overflowX="auto"
+					borderBottom="1px solid"
+					borderColor={PAGE_COLORS.border}
+					bg="gray.50"
+				>
+					{draftTabs.map(tab => {
+						const isActiveTab = tab.id === activeDraftTabId
+						return (
+							<HStack
+								key={tab.id}
+								as="button"
+								type="button"
+								spacing={1}
+								px={3}
+								py={1.5}
+								borderRadius="md"
+								border="1px solid"
+								borderColor={
+									isActiveTab ? PAGE_COLORS.primary : PAGE_COLORS.border
+								}
+								bg={isActiveTab ? 'white' : 'transparent'}
+								color={isActiveTab ? PAGE_COLORS.primary : PAGE_COLORS.muted}
+								fontSize="sm"
+								fontWeight={isActiveTab ? 600 : 500}
+								flexShrink={0}
+								onClick={() => onSelectDraftTab?.(tab.id)}
+								_hover={{ bg: 'white', borderColor: PAGE_COLORS.primary }}
+							>
+								<Text as="span">{tab.label}</Text>
+								{draftTabs.length > 1 && onCloseDraftTab && (
+									<Box
+										as="span"
+										role="button"
+										aria-label={t(
+											'components.sellingInvoices.drawer.closeDraftTab',
+										)}
+										display="inline-flex"
+										alignItems="center"
+										justifyContent="center"
+										boxSize={4}
+										borderRadius="sm"
+										onClick={(event: { stopPropagation: () => void }) => {
+											event.stopPropagation()
+											onCloseDraftTab(tab.id)
+										}}
+										_hover={{ bg: 'gray.200' }}
+									>
+										<CloseIcon boxSize={2} />
+									</Box>
+								)}
+							</HStack>
+						)
+					})}
+				</HStack>
+			)}
 
 			<Box sx={panelStyles.body}>
 				<Grid

@@ -494,6 +494,12 @@
 				"saveCreditInvoice": "Save Credit Invoice",
 				"removeItem": "Remove item",
 				"saveFailed": "Failed to save invoice. Please try again.",
+				"newDraftTab": "Start another invoice",
+				"draftTab": "Draft {{index}}",
+				"closeDraftTab": "Close draft",
+				"closeDraftTitle": "Discard invoice draft?",
+				"closeDraftBody": "This invoice has unsaved changes. Discard it?",
+				"discardDraft": "Discard",
 				"columns": {
 					"product": "Product",
 					"barcode": "Barcode",

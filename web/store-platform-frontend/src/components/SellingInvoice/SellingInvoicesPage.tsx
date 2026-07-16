@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import dayjs from 'dayjs'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -23,10 +23,12 @@ import {
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem } from '../../shared/globalEnums'
+import { useUser } from '../../shared/hooks/useUser'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
 import { PAGE_COLORS } from './constants'
 import { mapApiSummaryToUi } from './invoiceApiMappers'
+import { isDraftSessionDirty } from './invoiceDraftSessions'
 import InvoiceBarcodeSearchBar from './InvoiceBarcodeSearchBar'
 import InvoiceDetailModal from './InvoiceDetailModal'
 import InvoiceSummaryCards from './InvoiceSummaryCards'
@@ -34,7 +36,11 @@ import InvoiceTableSection from './InvoiceTableSection'
 import NewSellingInvoicePanel, {
 	type InvoicePanelMode,
 } from './NewSellingInvoicePanel'
-import type { SellingInvoicePaymentType } from './types'
+import type {
+	SellingInvoiceDraft,
+	SellingInvoicePaymentType,
+} from './types'
+import { useInvoiceDraftSessions } from './useInvoiceDraftSessions'
 import { normalizeSearchQuery as normalizeBarcode } from './productSearch'
 import { AsInvoiceIcon } from '../../icons/Invoice'
 import { AsTrashIcon } from '../../icons/Trash'
@@ -80,16 +86,16 @@ const styles = {
 
 const SellingInvoicesPage = () => {
 	const { t } = useTranslation()
+	const { user } = useUser()
 	const breadCrumbItems = generateBreadcrumbs()
 
-	const [isCreatingInvoice, setIsCreatingInvoice] = useState(false)
-	const [panelProductSearch, setPanelProductSearch] = useState('')
-	const [panelPaymentType, setPanelPaymentType] =
-		useState<SellingInvoicePaymentType>('cash')
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
 	const [detailMode, setDetailMode] =
 		useState<Extract<InvoicePanelMode, 'view' | 'edit'>>('view')
 	const [invoicePendingDelete, setInvoicePendingDelete] = useState<
+		string | null
+	>(null)
+	const [draftTabPendingClose, setDraftTabPendingClose] = useState<
 		string | null
 	>(null)
 
@@ -103,8 +109,12 @@ const SellingInvoicesPage = () => {
 		onOpen: onDeleteOpen,
 		onClose: onDeleteClose,
 	} = useDisclosure()
+	const {
+		isOpen: isCloseDraftOpen,
+		onOpen: onCloseDraftOpen,
+		onClose: onCloseDraftClose,
+	} = useDisclosure()
 
-	// Stable query for summary / next invoice number — not tied to table search
 	const { data: invoicesMeta, isLoading: isSummaryLoading } =
 		useGetSellingInvoicesQuery({
 			issuedDate: dayjs().format('YYYY-MM-DD'),
@@ -112,6 +122,58 @@ const SellingInvoicesPage = () => {
 
 	const [deleteSellingInvoice, { isLoading: isDeletingInvoice }] =
 		useDeleteSellingInvoiceMutation()
+
+	const salesPerson =
+		[user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+		user?.email ||
+		'User'
+
+	const {
+		sessions,
+		activeSessionId,
+		activeSession,
+		setActiveSessionId,
+		createSession,
+		updateDraft,
+		setShowNote,
+		clearInitialProductSearch,
+		removeSession,
+	} = useInvoiceDraftSessions({
+		nextInvoiceNumber: invoicesMeta?.nextInvoiceNumber ?? 1,
+		salesPerson,
+		walkInCustomerName: t('components.sellingInvoices.drawer.walkInCustomer'),
+	})
+
+	const isCreatingInvoice = sessions.length > 0
+
+	useEffect(() => {
+		if (!activeSession?.initialProductSearch) return
+		clearInitialProductSearch(activeSession.id)
+	}, [
+		activeSession?.id,
+		activeSession?.initialProductSearch,
+		clearInitialProductSearch,
+	])
+
+	const handleDraftChange = useCallback(
+		(
+			updater:
+				| SellingInvoiceDraft
+				| ((current: SellingInvoiceDraft) => SellingInvoiceDraft),
+		) => {
+			if (!activeSessionId) return
+			updateDraft(activeSessionId, updater)
+		},
+		[activeSessionId, updateDraft],
+	)
+
+	const handleShowNoteChange = useCallback(
+		(showNote: boolean) => {
+			if (!activeSessionId) return
+			setShowNote(activeSessionId, showNote)
+		},
+		[activeSessionId, setShowNote],
+	)
 
 	const summary = useMemo(
 		() =>
@@ -131,13 +193,22 @@ const SellingInvoicesPage = () => {
 		[invoicesMeta?.summary],
 	)
 
+	const draftTabs = useMemo(
+		() =>
+			sessions.map((session, index) => ({
+				id: session.id,
+				label: t('components.sellingInvoices.drawer.draftTab', {
+					index: index + 1,
+				}),
+			})),
+		[sessions, t],
+	)
+
 	const openNewInvoicePanel = (options?: {
 		productSearch?: string
 		paymentType?: SellingInvoicePaymentType
 	}) => {
-		setPanelProductSearch(options?.productSearch ?? '')
-		setPanelPaymentType(options?.paymentType ?? 'cash')
-		setIsCreatingInvoice(true)
+		createSession(options)
 	}
 
 	const handleNewInvoice = () => {
@@ -155,8 +226,34 @@ const SellingInvoicesPage = () => {
 		openNewInvoicePanel({ productSearch: barcode })
 	}
 
-	const handleInvoiceSaved = () => {
-		setIsCreatingInvoice(false)
+	const requestCloseDraftTab = (sessionId: string) => {
+		const session = sessions.find(item => item.id === sessionId)
+		if (!session) return
+
+		if (isDraftSessionDirty(session)) {
+			setDraftTabPendingClose(sessionId)
+			onCloseDraftOpen()
+			return
+		}
+
+		removeSession(sessionId)
+	}
+
+	const handleConfirmCloseDraftTab = () => {
+		if (draftTabPendingClose) {
+			removeSession(draftTabPendingClose)
+		}
+		setDraftTabPendingClose(null)
+		onCloseDraftClose()
+	}
+
+	const handleCreateInvoiceSaved = () => {
+		if (activeSessionId) {
+			removeSession(activeSessionId)
+		}
+	}
+
+	const handleDetailInvoiceSaved = () => {
 		handleDetailClose()
 	}
 
@@ -227,7 +324,6 @@ const SellingInvoicesPage = () => {
 					borderColor="#1D4ED8"
 					_hover={{ bg: '#1D4ED8' }}
 					aria-label={t('components.sellingInvoices.newInvoiceOptions')}
-					isDisabled={isCreatingInvoice}
 				>
 					<ChevronDownIcon />
 				</MenuButton>
@@ -259,7 +355,6 @@ const SellingInvoicesPage = () => {
 				px={5}
 				_hover={{ bg: '#1D4ED8' }}
 				onClick={handleNewInvoice}
-				isDisabled={isCreatingInvoice}
 			>
 				{t('components.sellingInvoices.newInvoice')}
 			</Button>
@@ -273,7 +368,7 @@ const SellingInvoicesPage = () => {
 				invoiceId={detailInvoiceId}
 				mode={detailMode}
 				onClose={handleDetailClose}
-				onSaved={handleInvoiceSaved}
+				onSaved={handleDetailInvoiceSaved}
 				onRequestEdit={() => setDetailMode('edit')}
 			/>
 			<ConfirmationDialog
@@ -290,10 +385,22 @@ const SellingInvoicesPage = () => {
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeletingInvoice}
 			/>
+			<ConfirmationDialog
+				isOpen={isCloseDraftOpen}
+				onClose={() => {
+					setDraftTabPendingClose(null)
+					onCloseDraftClose()
+				}}
+				onConfirm={handleConfirmCloseDraftTab}
+				header={t('components.sellingInvoices.drawer.closeDraftTitle')}
+				body={t('components.sellingInvoices.drawer.closeDraftBody')}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('components.sellingInvoices.drawer.discardDraft')}
+			/>
 		</>
 	)
 
-	if (isCreatingInvoice) {
+	if (isCreatingInvoice && activeSession) {
 		return (
 			<>
 				<Flex sx={styles.wrapper}>
@@ -331,12 +438,21 @@ const SellingInvoicesPage = () => {
 
 						<Box sx={styles.invoicePane} order={{ base: 1, xl: 2 }}>
 							<NewSellingInvoicePanel
-								isActive={isCreatingInvoice}
-								onClose={() => setIsCreatingInvoice(false)}
-								onSaved={handleInvoiceSaved}
+								key={activeSession.id}
+								isActive
+								onClose={() => requestCloseDraftTab(activeSession.id)}
+								onSaved={handleCreateInvoiceSaved}
 								nextInvoiceNumber={invoicesMeta?.nextInvoiceNumber ?? 1}
-								initialProductSearch={panelProductSearch}
-								initialPaymentType={panelPaymentType}
+								initialProductSearch={activeSession.initialProductSearch ?? ''}
+								draft={activeSession.draft}
+								onDraftChange={handleDraftChange}
+								showNote={activeSession.showNote}
+								onShowNoteChange={handleShowNoteChange}
+								draftTabs={draftTabs}
+								activeDraftTabId={activeSessionId ?? undefined}
+								onSelectDraftTab={setActiveSessionId}
+								onCloseDraftTab={requestCloseDraftTab}
+								onAddDraftTab={() => createSession()}
 							/>
 						</Box>
 					</Flex>

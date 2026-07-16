@@ -496,6 +496,12 @@
 				"saveCreditInvoice": "حفظ فاتورة آجلة",
 				"removeItem": "حذف العنصر",
 				"saveFailed": "فشل حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
+				"newDraftTab": "بدء فاتورة أخرى",
+				"draftTab": "مسودة {{index}}",
+				"closeDraftTab": "إغلاق المسودة",
+				"closeDraftTitle": "تجاهل مسودة الفاتورة؟",
+				"closeDraftBody": "هذه الفاتورة تحتوي على تغييرات غير محفوظة. هل تريد تجاهلها؟",
+				"discardDraft": "تجاهل",
 				"columns": {
 					"product": "المنتج",
 					"barcode": "الباركود",
