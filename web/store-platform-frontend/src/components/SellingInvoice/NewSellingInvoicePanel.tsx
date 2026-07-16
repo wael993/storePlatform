@@ -217,8 +217,10 @@ const NewSellingInvoicePanel = ({
 	)
 	const [internalShowNote, setInternalShowNote] = useState(false)
 
-	const draft = isControlledCreate ? controlledDraft! : internalDraft
-	const setDraft = isControlledCreate ? onDraftChange! : setInternalDraft
+	const draft =
+		isControlledCreate && controlledDraft ? controlledDraft : internalDraft
+	const setDraft =
+		isControlledCreate && onDraftChange ? onDraftChange : setInternalDraft
 	const showNote = isControlledCreate
 		? Boolean(controlledShowNote)
 		: internalShowNote
