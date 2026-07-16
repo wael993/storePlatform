@@ -1202,16 +1202,21 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildProductListKey(tenantId)
 
-		let fullProducts =
-			await redisCache.getJson<ProductRequestBody[]>(cacheKey)
+		let fullProducts = await redisCache.getJson<ProductRequestBody[]>(cacheKey)
 
 		if (!fullProducts) {
-			await this.getProducts(requestContext, {}, { limit: 1, offset: 0 })
+			const result = await this.getProducts(
+				requestContext,
+				{},
+				{ limit: Number.MAX_SAFE_INTEGER, offset: 0 },
+			)
+
 			fullProducts =
-				await redisCache.getJson<ProductRequestBody[]>(cacheKey)
+				(await redisCache.getJson<ProductRequestBody[]>(cacheKey)) ??
+				result.products
 		}
 
-		const catalogProducts = (fullProducts ?? []).map(product =>
+		const catalogProducts = fullProducts.map(product =>
 			this.mapProductCatalogItem(product),
 		)
 
@@ -3883,10 +3888,7 @@ export default class ProductController {
 			)
 
 			if (removedSecondaryIds.length > 0) {
-				await this.deleteCurrenciesByIds(
-					requestContext,
-					removedSecondaryIds,
-				)
+				await this.deleteCurrenciesByIds(requestContext, removedSecondaryIds)
 			}
 
 			const updateData: Partial<ICurrencySettings> = {
@@ -3912,11 +3914,17 @@ export default class ProductController {
 
 	private async syncCurrencyFromSettings(
 		requestContext: RequestContext,
-		currency: Pick<ICurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>,
-	): Promise<Pick<ICurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>> {
+		currency: Pick<
+			ICurrencySettingItem,
+			'currencyId' | 'name' | 'internalCode'
+		>,
+	): Promise<
+		Pick<ICurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>
+	> {
 		const tenantContext = getTenantContext(requestContext)
 		const normalizedName = currency.name.trim()
-		const normalizedCode = currency.internalCode?.trim().toUpperCase() || undefined
+		const normalizedCode =
+			currency.internalCode?.trim().toUpperCase() || undefined
 
 		const existing =
 			(await this.findCurrencyForSettings(
@@ -3928,7 +3936,8 @@ export default class ProductController {
 
 		if (existing) {
 			const nameChanged = existing.name !== normalizedName
-			const codeChanged = (existing.internalCode ?? undefined) !== normalizedCode
+			const codeChanged =
+				(existing.internalCode ?? undefined) !== normalizedCode
 
 			if (nameChanged || codeChanged) {
 				if (normalizedCode) {
@@ -6150,9 +6159,7 @@ export default class ProductController {
 					payload as Partial<
 						Pick<
 							IUserSettings,
-							| 'productsPerPage'
-							| 'displayLanguage'
-							| 'defaultInvoiceCurrencyId'
+							'productsPerPage' | 'displayLanguage' | 'defaultInvoiceCurrencyId'
 						>
 					>,
 				)

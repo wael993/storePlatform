@@ -102,7 +102,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 		isFetching,
 	} = useGetProductsQuery({
 		...productFilters,
-		limit: productsPerPage,
+		// limit: productsPerPage,
 		offset: currentPage * productsPerPage,
 	})
 
