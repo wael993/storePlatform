@@ -114,6 +114,39 @@ export const mapApiInvoiceToSellingInvoice = (
 	}
 }
 
+export const mapApiInvoiceToDraft = (
+	invoice: ApiSellingInvoice,
+	fallbackCustomerName = 'Walk-in Customer',
+): SellingInvoiceDraft => {
+	const { paidAmount } = getPrimaryInvoiceCurrencyAmounts(invoice)
+	const issuedAt = invoice.issuedAt ?? invoice.createdAt
+
+	return {
+		invoiceId: invoice.invoiceId,
+		invoiceNumber: Number.parseInt(invoice.invoiceNumber, 10) || 0,
+		invoiceDate: issuedAt ? dayjs(issuedAt).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+		invoiceTime: issuedAt ? dayjs(issuedAt).format('HH:mm') : dayjs().format('HH:mm'),
+		salesPerson: invoice.salesPerson ?? '',
+		customerId: invoice.customerId || 'walk-in',
+		customerName: invoice.customerName ?? fallbackCustomerName,
+		paymentType: invoice.paymentType ?? 'cash',
+		lineItems: (invoice.items ?? []).map(item => ({
+			id: generateId(),
+			productId: item.productId,
+			name: item.name,
+			barcode: item.barcode,
+			quantity: item.quantity,
+			unit: item.unit ?? '',
+			unitPrice: item.unitPrice,
+			discount: item.discount ?? 0,
+			discountIsPercent: item.discountIsPercent ?? true,
+			taxRate: item.taxRate ?? 0,
+		})),
+		note: invoice.notes ?? '',
+		paidAmount,
+	}
+}
+
 export const mapApiSummaryToUi = (
 	summary: ApiSellingInvoicesResponse['summary'],
 ): SellingInvoiceSummary => ({
@@ -180,7 +213,6 @@ export const buildInvoiceRequestBody = (
 		paymentStatus,
 		currencyAmounts,
 		notes: draft.note || undefined,
-		printAfterPayment: draft.printAfterPayment,
 		issuedAt,
 	}
 }

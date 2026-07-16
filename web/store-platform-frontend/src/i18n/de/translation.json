@@ -427,15 +427,23 @@
 			},
 			"actions": {
 				"view": "Ansehen",
+				"edit": "Bearbeiten",
 				"print": "Drucken",
-				"more": "Weitere Optionen"
+				"delete": "Löschen",
+				"more": "Weitere Optionen",
+				"deleteConfirmTitle": "Rechnung löschen",
+				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
 			},
 			"pagination": {
 				"showing": "{{start}} bis {{end}} von {{total}} Rechnungen"
 			},
 			"drawer": {
 				"title": "Neue Verkaufsrechnung",
+				"viewTitle": "Rechnung ansehen",
+				"editTitle": "Rechnung bearbeiten",
 				"close": "Schließen",
+				"loadFailed": "Rechnung konnte nicht geladen werden.",
+				"saveChanges": "Änderungen speichern",
 				"invoiceDate": "Rechnungsdatum",
 				"invoiceTime": "Uhrzeit",
 				"salesPerson": "Verkäufer",

@@ -1,7 +1,6 @@
 import {
 	Box,
 	Button,
-	Checkbox,
 	Flex,
 	Grid,
 	HStack,
@@ -12,6 +11,7 @@ import {
 	MenuButton,
 	MenuItem,
 	MenuList,
+	Spinner,
 	Text,
 	Textarea,
 	VStack,
@@ -22,12 +22,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
 	useGetCustomersQuery,
+	useGetSellingInvoiceQuery,
 	usePostSellingInvoiceMutation,
+	useUpdateSellingInvoiceMutation,
 } from '../../api/apiStore'
 import { useUser } from '../../shared/hooks/useUser'
 import { PAGE_COLORS } from './constants'
 import { calculateInvoiceTotals } from './invoiceCalculations'
-import { buildInvoiceRequestBody } from './invoiceApiMappers'
+import {
+	buildInvoiceRequestBody,
+	mapApiInvoiceToDraft,
+} from './invoiceApiMappers'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
 import { addProductToLineItems } from './productLineItem'
@@ -46,7 +51,10 @@ import { AsSaveIcon } from '../icons/Save'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 // import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsDocumentIcon } from '../../shared/icons/Document'
+import { AsEditIcon } from '../../shared/icons/Edit'
 import DatePickerLabel from '../common/DatePickerLabel'
+
+export type InvoicePanelMode = 'create' | 'view' | 'edit'
 
 interface NewSellingInvoicePanelProps {
 	isActive: boolean
@@ -55,6 +63,9 @@ interface NewSellingInvoicePanelProps {
 	nextInvoiceNumber?: number
 	initialProductSearch?: string
 	initialPaymentType?: SellingInvoicePaymentType
+	mode?: InvoicePanelMode
+	invoiceId?: string
+	onRequestEdit?: () => void
 }
 
 const WALK_IN_CUSTOMER_ID = 'walk-in'
@@ -74,7 +85,6 @@ const createInitialDraft = (
 	paymentType,
 	lineItems: [],
 	note: '',
-	printAfterPayment: false,
 	paidAmount: 0,
 })
 
@@ -84,12 +94,14 @@ const PaymentTypeButton = ({
 	icon,
 	isActive,
 	onClick,
+	isDisabled = false,
 }: {
 	type: SellingInvoicePaymentType
 	label: string
 	icon: React.ReactNode
 	isActive: boolean
 	onClick: (type: SellingInvoicePaymentType) => void
+	isDisabled?: boolean
 }) => {
 	const activeStyles = {
 		cash: { bg: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC' },
@@ -109,6 +121,7 @@ const PaymentTypeButton = ({
 			color={isActive ? activeStyles.color : PAGE_COLORS.muted}
 			borderColor={isActive ? activeStyles.borderColor : PAGE_COLORS.border}
 			onClick={() => onClick(type)}
+			isDisabled={isDisabled}
 		>
 			{label}
 		</Button>
@@ -157,13 +170,29 @@ const NewSellingInvoicePanel = ({
 	nextInvoiceNumber = 1,
 	initialProductSearch = '',
 	initialPaymentType = 'cash',
+	mode = 'create',
+	invoiceId,
+	onRequestEdit,
 }: NewSellingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const { user } = useUser()
 	const { data: customers = [] } = useGetCustomersQuery()
-	const [postSellingInvoice, { isLoading: isSaving }] =
+	const [postSellingInvoice, { isLoading: isCreating }] =
 		usePostSellingInvoiceMutation()
+	const [updateSellingInvoice, { isLoading: isUpdating }] =
+		useUpdateSellingInvoiceMutation()
 	const [saveError, setSaveError] = useState<string | null>(null)
+	const isReadOnly = mode === 'view'
+	const isExistingInvoice = mode === 'view' || mode === 'edit'
+	const isSaving = isCreating || isUpdating
+
+	const {
+		data: existingInvoice,
+		isLoading: isLoadingInvoice,
+		isError: isInvoiceError,
+	} = useGetSellingInvoiceQuery(invoiceId ?? '', {
+		skip: !isActive || !invoiceId || !isExistingInvoice,
+	})
 
 	const salesPerson = [user?.firstName, user?.lastName]
 		.filter(Boolean)
@@ -186,7 +215,7 @@ const NewSellingInvoicePanel = ({
 	} = useInvoiceDisplayCurrency()
 
 	useEffect(() => {
-		if (!isActive) return
+		if (!isActive || isExistingInvoice) return
 
 		setDraft({
 			...createInitialDraft(
@@ -200,11 +229,26 @@ const NewSellingInvoicePanel = ({
 		setSaveError(null)
 	}, [
 		isActive,
+		isExistingInvoice,
 		initialPaymentType,
 		nextInvoiceNumber,
 		salesPerson,
 		user?.email,
+		t,
 	])
+
+	useEffect(() => {
+		if (!isActive || !isExistingInvoice || !existingInvoice) return
+
+		setDraft(
+			mapApiInvoiceToDraft(
+				existingInvoice,
+				t('components.sellingInvoices.drawer.walkInCustomer'),
+			),
+		)
+		setShowNote(false)
+		setSaveError(null)
+	}, [isActive, isExistingInvoice, existingInvoice, t])
 
 	const totals = useMemo(
 		() => calculateInvoiceTotals(draft.lineItems),
@@ -212,13 +256,13 @@ const NewSellingInvoicePanel = ({
 	)
 
 	useEffect(() => {
-		if (draft.paymentType !== 'cash') return
+		if (isReadOnly || draft.paymentType !== 'cash') return
 
 		setDraft(current => ({
 			...current,
 			paidAmount: calculateInvoiceTotals(current.lineItems).grandTotal,
 		}))
-	}, [draft.lineItems, draft.paymentType])
+	}, [draft.lineItems, draft.paymentType, isReadOnly])
 
 	const changeAmount = Math.max(0, draft.paidAmount - totals.grandTotal)
 
@@ -282,14 +326,22 @@ const NewSellingInvoicePanel = ({
 	const handleSaveInvoice = async (
 		status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
 	) => {
-		if (draft.lineItems.length === 0) return
+		if (draft.lineItems.length === 0 || isReadOnly) return
 
 		setSaveError(null)
 
 		try {
-			await postSellingInvoice(
-				buildInvoiceRequestBody(draft, status, currencySettings),
-			).unwrap()
+			const body = buildInvoiceRequestBody(draft, status, currencySettings)
+
+			if (mode === 'edit') {
+				await updateSellingInvoice({
+					invoiceId: draft.invoiceId,
+					body,
+				}).unwrap()
+			} else {
+				await postSellingInvoice(body).unwrap()
+			}
+
 			onSaved?.()
 			onClose()
 		} catch (error) {
@@ -305,24 +357,78 @@ const NewSellingInvoicePanel = ({
 		}
 	}
 
+	const panelTitleKey =
+		mode === 'view'
+			? 'components.sellingInvoices.drawer.viewTitle'
+			: mode === 'edit'
+				? 'components.sellingInvoices.drawer.editTitle'
+				: 'components.sellingInvoices.drawer.title'
+
 	if (!isActive) return null
+
+	if (isExistingInvoice && isLoadingInvoice) {
+		return (
+			<Box sx={panelStyles.root}>
+				<Flex justify="center" align="center" flex={1} py={16}>
+					<Spinner color={PAGE_COLORS.primary} />
+				</Flex>
+			</Box>
+		)
+	}
+
+	if (isExistingInvoice && (isInvoiceError || !existingInvoice)) {
+		return (
+			<Box sx={panelStyles.root}>
+				<Flex sx={panelStyles.header}>
+					<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight={700}>
+						{t(panelTitleKey)}
+					</Text>
+					<IconButton
+						aria-label={t('components.sellingInvoices.drawer.close')}
+						icon={<CloseIcon boxSize={3} />}
+						variant="ghost"
+						size="sm"
+						onClick={onClose}
+					/>
+				</Flex>
+				<Flex justify="center" align="center" flex={1} py={16}>
+					<Text color={PAGE_COLORS.danger}>
+						{t('components.sellingInvoices.drawer.loadFailed')}
+					</Text>
+				</Flex>
+			</Box>
+		)
+	}
 
 	return (
 		<Box sx={panelStyles.root}>
 			<Flex sx={panelStyles.header}>
 				<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight={700}>
-					{t('components.sellingInvoices.drawer.title')}{' '}
+					{t(panelTitleKey)}{' '}
 					<Text as="span" color={PAGE_COLORS.primary}>
 						#{draft.invoiceNumber}
 					</Text>
 				</Text>
-				<IconButton
-					aria-label={t('components.sellingInvoices.drawer.close')}
-					icon={<CloseIcon boxSize={3} />}
-					variant="ghost"
-					size="sm"
-					onClick={onClose}
-				/>
+				<HStack spacing={1}>
+					{mode === 'view' && onRequestEdit && (
+						<IconButton
+							aria-label={t('components.sellingInvoices.actions.edit')}
+							icon={
+								<Icon as={AsEditIcon} color={PAGE_COLORS.primary} boxSize={5} />
+							}
+							variant="ghost"
+							size="sm"
+							onClick={onRequestEdit}
+						/>
+					)}
+					<IconButton
+						aria-label={t('components.sellingInvoices.drawer.close')}
+						icon={<CloseIcon boxSize={3} />}
+						variant="ghost"
+						size="sm"
+						onClick={onClose}
+					/>
+				</HStack>
 			</Flex>
 
 			<Box sx={panelStyles.body}>
@@ -413,6 +519,7 @@ const NewSellingInvoicePanel = ({
 						placeholder={t('components.sellingInvoices.drawer.customer')}
 						isSingle
 						isSearchable
+						isDisabled={isReadOnly}
 						customStyles={{
 							dropdownContainer: {
 								width: '100%',
@@ -440,6 +547,7 @@ const NewSellingInvoicePanel = ({
 							icon={<AsDollarSignIcon fill="none" />}
 							isActive={draft.paymentType === 'cash'}
 							onClick={handlePaymentTypeChange}
+							isDisabled={isReadOnly}
 						/>
 						{/* <PaymentTypeButton
 							type="card"
@@ -454,17 +562,20 @@ const NewSellingInvoicePanel = ({
 							icon={<AsPriceTagIcon fill="none" />}
 							isActive={draft.paymentType === 'credit'}
 							onClick={handlePaymentTypeChange}
+							isDisabled={isReadOnly}
 						/>
 					</HStack>
 				</Box>
 
-				<Box>
-					<InvoiceProductSearch
-						onAddProduct={handleAddProduct}
-						initialSearch={initialProductSearch}
-						autoFocus={isActive}
-					/>
-				</Box>
+				{!isReadOnly && (
+					<Box>
+						<InvoiceProductSearch
+							onAddProduct={handleAddProduct}
+							initialSearch={initialProductSearch}
+							autoFocus={isActive && mode === 'create'}
+						/>
+					</Box>
+				)}
 
 				<InvoiceLineItemsTable
 					lineItems={draft.lineItems}
@@ -473,6 +584,7 @@ const NewSellingInvoicePanel = ({
 					formatAmount={formatAmount}
 					displayCurrencyId={displayCurrencyId}
 					currencyOptions={displayCurrencyOptions}
+					isReadOnly={isReadOnly}
 				/>
 
 				{hasCurrencyOptions && (
@@ -549,25 +661,10 @@ const NewSellingInvoicePanel = ({
 									borderRadius="lg"
 									borderColor={PAGE_COLORS.border}
 									rows={3}
+									isReadOnly={isReadOnly}
 								/>
 							</VStack>
 						)}
-						<Checkbox
-							mt={3}
-							isChecked={draft.printAfterPayment}
-							onChange={event =>
-								setDraft(current => ({
-									...current,
-									printAfterPayment: event.target.checked,
-								}))
-							}
-							colorScheme="blue"
-							size="sm"
-						>
-							<Text fontSize="sm">
-								{t('components.sellingInvoices.drawer.printAfterPayment')}
-							</Text>
-						</Checkbox>
 					</Box>
 
 					<Box
@@ -662,7 +759,7 @@ const NewSellingInvoicePanel = ({
 									fontSize="xl"
 									fontWeight={700}
 									onEdit={
-										draft.paymentType === 'credit'
+										isReadOnly || draft.paymentType === 'credit'
 											? undefined
 											: paidAmount =>
 													setDraft(current => ({
@@ -701,122 +798,182 @@ const NewSellingInvoicePanel = ({
 					</Text>
 				)}
 
-				<Flex
-					gap={3}
-					pt={2}
-					pb={1}
-					direction={{ base: 'column', sm: 'row' }}
-					flexShrink={0}
-				>
-					<Button
-						variant="outline"
-						leftIcon={
-							<Icon
-								as={AsDocumentIcon}
-								color={PAGE_COLORS.primary}
-								boxSize={5}
-							/>
-						}
-						borderRadius="lg"
-						borderColor={PAGE_COLORS.border}
-						flex={{ base: 1, sm: 'none' }}
-						onClick={() => handleSaveInvoice('draft')}
-						isLoading={isSaving}
-						isDisabled={draft.lineItems.length === 0}
+				{!isReadOnly && (
+					<Flex
+						gap={3}
+						pt={2}
+						pb={1}
+						direction={{ base: 'column', sm: 'row' }}
+						flexShrink={0}
 					>
-						{t('components.sellingInvoices.drawer.saveDraft')}
-					</Button>
-					<Button
-						variant="outline"
-						leftIcon={
-							<Icon as={AsPauseIcon} color={PAGE_COLORS.primary} boxSize={5} />
-						}
-						borderRadius="lg"
-						borderColor={PAGE_COLORS.border}
-						flex={{ base: 1, sm: 'none' }}
-						onClick={() => handleSaveInvoice('draft')}
-						isLoading={isSaving}
-						isDisabled={draft.lineItems.length === 0}
-					>
-						{t('components.sellingInvoices.drawer.holdInvoice')}
-					</Button>
-					<HStack spacing={0} flex={1}>
-						<Menu>
-							<MenuButton
-								as={Button}
-								bg={PAGE_COLORS.primary}
-								color="white"
-								borderTopLeftRadius={0}
-								borderBottomLeftRadius={0}
-								borderTopRightRadius="lg"
-								borderBottomRightRadius="lg"
-								minW="auto"
-								px={2}
-								borderLeft="1px solid"
-								borderColor="#1D4ED8"
-								_hover={{ bg: '#1D4ED8' }}
-								isDisabled={
-									draft.lineItems.length === 0 ||
-									(draft.paymentType === 'credit' &&
-										draft.customerId === WALK_IN_CUSTOMER_ID)
-								}
-							>
-								<ChevronDownIcon />
-							</MenuButton>
-							<MenuList>
-								<MenuItem>
-									{t('components.sellingInvoices.drawer.saveDraft')}
-								</MenuItem>
-								<MenuItem>
-									{t('components.sellingInvoices.drawer.holdInvoice')}
-								</MenuItem>
-							</MenuList>
-						</Menu>
-						<Button
-							rightIcon={
-								<Icon
-									as={AsSaveIcon}
-									fill="none"
-									color={PAGE_COLORS.cardShadow}
-									boxSize={5}
-								/>
-							}
-							bg={PAGE_COLORS.primary}
-							color="white"
-							borderTopLeftRadius="lg"
-							borderBottomLeftRadius="lg"
-							borderTopRightRadius={0}
-							borderBottomRightRadius={0}
-							fontWeight={600}
-							flex={1}
-							_hover={{ bg: '#1D4ED8' }}
-							isDisabled={
-								draft.lineItems.length === 0 ||
-								(draft.paymentType === 'credit' &&
-									draft.customerId === WALK_IN_CUSTOMER_ID)
-							}
-							isLoading={isSaving}
-							onClick={() => {
-								if (draft.paymentType === 'credit') {
-									handleSaveInvoice('confirmed')
-									return
-								}
+						{mode === 'edit' ? (
+							<>
+								<Button
+									variant="outline"
+									borderRadius="lg"
+									borderColor={PAGE_COLORS.border}
+									flex={{ base: 1, sm: 'none' }}
+									onClick={onClose}
+								>
+									{t('common.cancel')}
+								</Button>
+								<Button
+									rightIcon={
+										<Icon
+											as={AsSaveIcon}
+											fill="none"
+											color={PAGE_COLORS.cardShadow}
+											boxSize={5}
+										/>
+									}
+									bg={PAGE_COLORS.primary}
+									color="white"
+									borderRadius="lg"
+									fontWeight={600}
+									flex={1}
+									_hover={{ bg: '#1D4ED8' }}
+									isDisabled={
+										draft.lineItems.length === 0 ||
+										(draft.paymentType === 'credit' &&
+											draft.customerId === WALK_IN_CUSTOMER_ID)
+									}
+									isLoading={isSaving}
+									onClick={() => {
+										if (draft.paymentType === 'credit') {
+											handleSaveInvoice('confirmed')
+											return
+										}
 
-								handleSaveInvoice(
-									draft.paidAmount + 0.009 >= totals.grandTotal
-										? 'paid'
-										: 'partial',
-								)
-							}}
-						>
-							{draft.paymentType === 'cash'
-								? t('components.sellingInvoices.drawer.payCashAndSave')
-								: draft.paymentType === 'card'
-									? t('components.sellingInvoices.drawer.payCardAndSave')
-									: t('components.sellingInvoices.drawer.saveCreditInvoice')}
-						</Button>
-					</HStack>
-				</Flex>
+										handleSaveInvoice(
+											draft.paidAmount + 0.009 >= totals.grandTotal
+												? 'paid'
+												: 'partial',
+										)
+									}}
+								>
+									{t('components.sellingInvoices.drawer.saveChanges')}
+								</Button>
+							</>
+						) : (
+							<>
+								<Button
+									variant="outline"
+									leftIcon={
+										<Icon
+											as={AsDocumentIcon}
+											color={PAGE_COLORS.primary}
+											boxSize={5}
+										/>
+									}
+									borderRadius="lg"
+									borderColor={PAGE_COLORS.border}
+									flex={{ base: 1, sm: 'none' }}
+									onClick={() => handleSaveInvoice('draft')}
+									isLoading={isSaving}
+									isDisabled={draft.lineItems.length === 0}
+								>
+									{t('components.sellingInvoices.drawer.saveDraft')}
+								</Button>
+								<Button
+									variant="outline"
+									leftIcon={
+										<Icon
+											as={AsPauseIcon}
+											color={PAGE_COLORS.primary}
+											boxSize={5}
+										/>
+									}
+									borderRadius="lg"
+									borderColor={PAGE_COLORS.border}
+									flex={{ base: 1, sm: 'none' }}
+									onClick={() => handleSaveInvoice('draft')}
+									isLoading={isSaving}
+									isDisabled={draft.lineItems.length === 0}
+								>
+									{t('components.sellingInvoices.drawer.holdInvoice')}
+								</Button>
+								<HStack spacing={0} flex={1}>
+									<Menu>
+										<MenuButton
+											as={Button}
+											bg={PAGE_COLORS.primary}
+											color="white"
+											borderTopLeftRadius={0}
+											borderBottomLeftRadius={0}
+											borderTopRightRadius="lg"
+											borderBottomRightRadius="lg"
+											minW="auto"
+											px={2}
+											borderLeft="1px solid"
+											borderColor="#1D4ED8"
+											_hover={{ bg: '#1D4ED8' }}
+											isDisabled={
+												draft.lineItems.length === 0 ||
+												(draft.paymentType === 'credit' &&
+													draft.customerId === WALK_IN_CUSTOMER_ID)
+											}
+										>
+											<ChevronDownIcon />
+										</MenuButton>
+										<MenuList>
+											<MenuItem>
+												{t('components.sellingInvoices.drawer.saveDraft')}
+											</MenuItem>
+											<MenuItem>
+												{t('components.sellingInvoices.drawer.holdInvoice')}
+											</MenuItem>
+										</MenuList>
+									</Menu>
+									<Button
+										rightIcon={
+											<Icon
+												as={AsSaveIcon}
+												fill="none"
+												color={PAGE_COLORS.cardShadow}
+												boxSize={5}
+											/>
+										}
+										bg={PAGE_COLORS.primary}
+										color="white"
+										borderTopLeftRadius="lg"
+										borderBottomLeftRadius="lg"
+										borderTopRightRadius={0}
+										borderBottomRightRadius={0}
+										fontWeight={600}
+										flex={1}
+										_hover={{ bg: '#1D4ED8' }}
+										isDisabled={
+											draft.lineItems.length === 0 ||
+											(draft.paymentType === 'credit' &&
+												draft.customerId === WALK_IN_CUSTOMER_ID)
+										}
+										isLoading={isSaving}
+										onClick={() => {
+											if (draft.paymentType === 'credit') {
+												handleSaveInvoice('confirmed')
+												return
+											}
+
+											handleSaveInvoice(
+												draft.paidAmount + 0.009 >= totals.grandTotal
+													? 'paid'
+													: 'partial',
+											)
+										}}
+									>
+										{draft.paymentType === 'cash'
+											? t('components.sellingInvoices.drawer.payCashAndSave')
+											: draft.paymentType === 'card'
+												? t('components.sellingInvoices.drawer.payCardAndSave')
+												: t(
+														'components.sellingInvoices.drawer.saveCreditInvoice',
+													)}
+									</Button>
+								</HStack>
+							</>
+						)}
+					</Flex>
+				)}
 			</Box>
 		</Box>
 	)

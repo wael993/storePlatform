@@ -752,6 +752,25 @@ const applyLocalEntityMutation = async (
 			JSON.stringify({ ...current, ...payload, updatedAt: nowIso() }),
 		)
 	}
+
+	if (entity === 'invoice' && op === 'update') {
+		const invoiceId = path.split('/')[1]
+		const existing = await offlineDb.invoices.get(invoiceId)
+		if (existing) {
+			await offlineDb.invoices.put({
+				...existing,
+				...payload,
+				invoiceId,
+				syncStatus: 'pending',
+				updatedAt: nowIso(),
+			})
+		}
+		return
+	}
+
+	if (entity === 'invoice' && op === 'delete') {
+		await offlineDb.invoices.delete(path.split('/')[1])
+	}
 }
 
 export const handleOfflineQuery = async (
@@ -965,7 +984,19 @@ export const handleOfflineQuery = async (
 				}
 			}
 
-			if (path === 'invoices') {
+			if (path === 'invoices' || path.startsWith('invoices/')) {
+				if (path !== 'invoices') {
+					const invoice = await offlineDb.invoices.get(path.split('/')[1])
+					return invoice
+						? { data: invoice }
+						: {
+								error: {
+									status: 404,
+									data: { message: 'Invoice not found' },
+								},
+							}
+				}
+
 				const invoices = await getLocalInvoicesForOffline()
 				const filtered = filterInvoices(invoices, params)
 				const nextInvoiceNumber = await getLocalNextInvoiceNumber()

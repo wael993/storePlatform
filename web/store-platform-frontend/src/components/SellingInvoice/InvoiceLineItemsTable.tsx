@@ -37,6 +37,7 @@ interface InvoiceLineItemsTableProps {
 	formatAmount: (amount: number) => string
 	displayCurrencyId: string | null
 	currencyOptions: DisplayCurrencyOption[]
+	isReadOnly?: boolean
 }
 
 const ProductThumbnail = ({
@@ -81,6 +82,7 @@ const InvoiceLineItemsTable = ({
 	formatAmount,
 	displayCurrencyId,
 	currencyOptions,
+	isReadOnly = false,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
 
@@ -133,7 +135,7 @@ const InvoiceLineItemsTable = ({
 						<Th>{t('components.sellingInvoices.drawer.columns.qty')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.price')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.total')}</Th>
-						<Th w="2.5rem" />
+						{!isReadOnly && <Th w="2.5rem" />}
 					</Tr>
 				</Thead>
 				<Tbody>
@@ -171,7 +173,11 @@ const InvoiceLineItemsTable = ({
 									displayText={formatAmount(item.unitPrice)}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}
-									onEdit={unitPrice => handleUnitPriceEdit(item, unitPrice)}
+									onEdit={
+										isReadOnly
+											? undefined
+											: unitPrice => handleUnitPriceEdit(item, unitPrice)
+									}
 								/>
 							</Td>
 							<Td>
@@ -180,24 +186,32 @@ const InvoiceLineItemsTable = ({
 									displayText={formatAmount(calculateLineItemTotal(item))}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}
-									onEdit={total => handleTotalEdit(item, total)}
-								/>
-							</Td>
-							<Td>
-								<IconButton
-									size="xs"
-									variant="ghost"
-									aria-label={t('components.sellingInvoices.drawer.removeItem')}
-									icon={
-										<AsTrashIcon
-											fill="none"
-											color={PAGE_COLORS.danger}
-											boxSize={4}
-										/>
+									onEdit={
+										isReadOnly
+											? undefined
+											: total => handleTotalEdit(item, total)
 									}
-									onClick={() => onRemoveItem(item.id)}
 								/>
 							</Td>
+							{!isReadOnly && (
+								<Td>
+									<IconButton
+										size="xs"
+										variant="ghost"
+										aria-label={t(
+											'components.sellingInvoices.drawer.removeItem',
+										)}
+										icon={
+											<AsTrashIcon
+												fill="none"
+												color={PAGE_COLORS.danger}
+												boxSize={4}
+											/>
+										}
+										onClick={() => onRemoveItem(item.id)}
+									/>
+								</Td>
+							)}
 						</Tr>
 					))}
 				</Tbody>

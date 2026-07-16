@@ -152,7 +152,6 @@ export interface PostSellingInvoiceBody {
 		discount: number
 	}>
 	notes?: string
-	printAfterPayment?: boolean
 	issuedAt?: string
 }
 
@@ -1025,6 +1024,13 @@ const getQuery = (
 			providesTags: ['invoices'],
 		}),
 
+		getSellingInvoice: builder.query<ApiSellingInvoice, string>({
+			query: (invoiceId: string) => ({
+				url: `invoices/${invoiceId}`,
+			}),
+			providesTags: ['invoices'],
+		}),
+
 		postSellingInvoice: builder.mutation<
 			{ _id: string; invoiceId: string; invoiceNumber: string },
 			PostSellingInvoiceBody
@@ -1033,6 +1039,26 @@ const getQuery = (
 				url: 'invoices',
 				method: 'POST',
 				body,
+			}),
+			invalidatesTags: ['invoices', 'inventory', 'products'],
+		}),
+
+		updateSellingInvoice: builder.mutation<
+			void,
+			{ invoiceId: string; body: PostSellingInvoiceBody }
+		>({
+			query: ({ invoiceId, body }) => ({
+				url: `invoices/${invoiceId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['invoices', 'inventory', 'products'],
+		}),
+
+		deleteSellingInvoice: builder.mutation<void, string>({
+			query: (invoiceId: string) => ({
+				url: `invoices/${invoiceId}`,
+				method: 'DELETE',
 			}),
 			invalidatesTags: ['invoices', 'inventory', 'products'],
 		}),
@@ -1116,6 +1142,10 @@ export const {
 	useUpdateExpenseMutation,
 	useDeleteExpenseMutation,
 	useGetSellingInvoicesQuery,
+	useGetSellingInvoiceQuery,
+	useLazyGetSellingInvoiceQuery,
 	usePostSellingInvoiceMutation,
+	useUpdateSellingInvoiceMutation,
+	useDeleteSellingInvoiceMutation,
 	useGetInventoryQuery,
 } = storeApi

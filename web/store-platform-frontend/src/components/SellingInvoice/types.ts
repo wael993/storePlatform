@@ -66,7 +66,6 @@ export interface SellingInvoiceDraft {
 	paymentType: SellingInvoicePaymentType
 	lineItems: SellingInvoiceLineItem[]
 	note: string
-	printAfterPayment: boolean
 	paidAmount: number
 }
 

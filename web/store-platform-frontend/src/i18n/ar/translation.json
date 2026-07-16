@@ -442,15 +442,23 @@
 			},
 			"actions": {
 				"view": "عرض",
+				"edit": "تعديل",
 				"print": "طباعة",
-				"more": "المزيد"
+				"delete": "حذف",
+				"more": "المزيد",
+				"deleteConfirmTitle": "حذف الفاتورة",
+				"deleteConfirmBody": "هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء."
 			},
 			"pagination": {
 				"showing": "عرض {{start}} إلى {{end}} من {{total}} فاتورة"
 			},
 			"drawer": {
 				"title": "فاتورة مبيعات جديدة",
+				"viewTitle": "عرض الفاتورة",
+				"editTitle": "تعديل الفاتورة",
 				"close": "إغلاق",
+				"loadFailed": "فشل تحميل الفاتورة.",
+				"saveChanges": "حفظ التغييرات",
 				"invoiceDate": "تاريخ الفاتورة",
 				"invoiceTime": "الوقت",
 				"salesPerson": "مندوب المبيعات",
