@@ -1,12 +1,16 @@
 import { Box, Text, Tooltip, VStack } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import {
+	convertPrimaryAmount,
+	convertToPrimaryAmount,
+	getCurrencyLabel,
 	getOtherCurrencyAmountLines,
 	getSavedOtherCurrencyAmountLines,
 	type DisplayCurrencyOption,
+	type InvoiceCurrencyAmount,
+	type SavedCurrencyAmountField,
 } from './currencyDisplay'
-
-import type { InvoiceCurrencyAmount, SavedCurrencyAmountField } from './currencyDisplay'
+import EditableNumberField from './EditableNumberField'
 
 interface CurrencyAmountTooltipProps {
 	amount: number
@@ -18,6 +22,7 @@ interface CurrencyAmountTooltipProps {
 	fontSize?: string
 	fontWeight?: number | string
 	color?: string
+	onEdit?: (amount: number) => void | Promise<void>
 }
 
 const CurrencyAmountTooltip = ({
@@ -30,6 +35,7 @@ const CurrencyAmountTooltip = ({
 	fontSize = 'sm',
 	fontWeight = 600,
 	color,
+	onEdit,
 }: CurrencyAmountTooltipProps) => {
 	const { t } = useTranslation()
 	const otherCurrencies =
@@ -41,12 +47,32 @@ const CurrencyAmountTooltip = ({
 				)
 			: getOtherCurrencyAmountLines(amount, options, displayCurrencyId)
 
+	const displayAmount = displayCurrencyId
+		? convertPrimaryAmount(amount, displayCurrencyId, options)
+		: amount
+
+	const content = onEdit ? (
+		<EditableNumberField
+			value={displayAmount}
+			currency={getCurrencyLabel(displayCurrencyId, options)}
+			isEditable
+			fontSize={fontSize}
+			fontWeight={fontWeight}
+			color={color}
+			onSave={async editedAmount => {
+				await onEdit(
+					convertToPrimaryAmount(editedAmount, displayCurrencyId, options),
+				)
+			}}
+		/>
+	) : (
+		<Text fontSize={fontSize} fontWeight={fontWeight} color={color}>
+			{displayText}
+		</Text>
+	)
+
 	if (otherCurrencies.length === 0) {
-		return (
-			<Text fontSize={fontSize} fontWeight={fontWeight} color={color}>
-				{displayText}
-			</Text>
-		)
+		return content
 	}
 
 	return (
@@ -68,16 +94,7 @@ const CurrencyAmountTooltip = ({
 			}
 		>
 			<Box as="span" display="inline-block">
-				<Text
-					as="span"
-					fontSize={fontSize}
-					fontWeight={fontWeight}
-					color={color}
-					// borderBottom="1px dashed"
-					borderColor="currentColor"
-				>
-					{displayText}
-				</Text>
+				{content}
 			</Box>
 		</Tooltip>
 	)

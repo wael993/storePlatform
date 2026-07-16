@@ -478,7 +478,7 @@
 					"barcode": "Barcode",
 					"qty": "Menge",
 					"unit": "Einheit",
-					"price": "Preis",
+					"price": "Einzelpreis",
 					"discount": "Rabatt",
 					"tax": "Steuer",
 					"total": "Gesamt"

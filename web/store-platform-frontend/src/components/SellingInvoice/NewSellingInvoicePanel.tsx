@@ -654,24 +654,22 @@ const NewSellingInvoicePanel = ({
 								>
 									{t('components.sellingInvoices.drawer.paidAmount')}
 								</Text>
-								<Input
-									type="number"
-									min={0}
-									step="0.01"
-									value={draft.paidAmount || ''}
-									onChange={event =>
-										setDraft(current => ({
-											...current,
-											paidAmount: Number.parseFloat(event.target.value) || 0,
-										}))
-									}
-									size="lg"
-									fontWeight={700}
+								<CurrencyAmountTooltip
+									amount={draft.paidAmount}
+									displayText={formatAmount(draft.paidAmount)}
+									options={displayCurrencyOptions}
+									displayCurrencyId={displayCurrencyId}
 									fontSize="xl"
-									borderRadius="lg"
-									borderColor={PAGE_COLORS.border}
-									bg="white"
-									isDisabled={draft.paymentType === 'credit'}
+									fontWeight={700}
+									onEdit={
+										draft.paymentType === 'credit'
+											? undefined
+											: paidAmount =>
+													setDraft(current => ({
+														...current,
+														paidAmount,
+													}))
+									}
 								/>
 							</Box>
 							<Box>

@@ -16,14 +16,19 @@ import {
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
-import { calculateLineItemTotal } from './invoiceCalculations'
+import {
+	calculateLineItemTotal,
+	unitPriceFromLineTotal,
+} from './invoiceCalculations'
 import type { SellingInvoiceLineItem } from './types'
 import { AsTrashIcon } from '../../icons/Trash'
 import { AsProductIcon } from '../../icons/Product'
 import TextLabel from '../common/TextLabel'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
-import type { DisplayCurrencyOption } from './currencyDisplay'
-// import { Dropdown } from '../dropdown/Dropdown'
+import {
+	roundPrimaryAmount,
+	type DisplayCurrencyOption,
+} from './currencyDisplay'
 
 interface InvoiceLineItemsTableProps {
 	lineItems: SellingInvoiceLineItem[]
@@ -71,13 +76,28 @@ const ProductThumbnail = ({
 
 const InvoiceLineItemsTable = ({
 	lineItems,
-	// onUpdateItem,
+	onUpdateItem,
 	onRemoveItem,
 	formatAmount,
 	displayCurrencyId,
 	currencyOptions,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
+
+	const handleUnitPriceEdit = (item: SellingInvoiceLineItem, unitPrice: number) => {
+		onUpdateItem(item.id, {
+			// Keep sub-cent primary precision so secondary-currency edits round-trip.
+			unitPrice: roundPrimaryAmount(unitPrice),
+			discount: 0,
+		})
+	}
+
+	const handleTotalEdit = (item: SellingInvoiceLineItem, total: number) => {
+		onUpdateItem(item.id, {
+			unitPrice: unitPriceFromLineTotal(total, item.quantity),
+			discount: 0,
+		})
+	}
 
 	if (lineItems.length === 0) {
 		return (
@@ -109,7 +129,7 @@ const InvoiceLineItemsTable = ({
 						<Th minW="12rem">
 							{t('components.sellingInvoices.drawer.columns.product')}
 						</Th>
-						<Th>{t('components.sellingInvoices.drawer.columns.barcode')}</Th>
+						{/* <Th>{t('components.sellingInvoices.drawer.columns.barcode')}</Th> */}
 						<Th>{t('components.sellingInvoices.drawer.columns.qty')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.price')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.total')}</Th>
@@ -139,9 +159,9 @@ const InvoiceLineItemsTable = ({
 									</Box>
 								</Flex>
 							</Td>
-							<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
+							{/* <Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
 								{item.barcode ?? '-'}
-							</Td>
+							</Td> */}
 							<Td>
 								<TextLabel label="" value={item.quantity.toString()} />
 							</Td>
@@ -151,6 +171,7 @@ const InvoiceLineItemsTable = ({
 									displayText={formatAmount(item.unitPrice)}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}
+									onEdit={unitPrice => handleUnitPriceEdit(item, unitPrice)}
 								/>
 							</Td>
 							<Td>
@@ -159,6 +180,7 @@ const InvoiceLineItemsTable = ({
 									displayText={formatAmount(calculateLineItemTotal(item))}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}
+									onEdit={total => handleTotalEdit(item, total)}
 								/>
 							</Td>
 							<Td>

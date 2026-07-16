@@ -1,3 +1,4 @@
+import { roundPrimaryAmount } from './currencyDisplay'
 import type { InvoiceTotals, SellingInvoiceLineItem } from './types'
 
 const getLineDiscountAmount = (item: SellingInvoiceLineItem) => {
@@ -15,6 +16,12 @@ export const calculateLineItemTotal = (item: SellingInvoiceLineItem) => {
 	const taxAmount = 0 //afterDiscount * (item.taxRate / 100)
 
 	return afterDiscount + taxAmount
+}
+
+/** Derive unit price from a desired line total (resets discount semantics). */
+export const unitPriceFromLineTotal = (total: number, quantity: number) => {
+	if (quantity <= 0) return 0
+	return roundPrimaryAmount(total / quantity)
 }
 
 export const calculateInvoiceTotals = (

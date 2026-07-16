@@ -55,6 +55,17 @@ export const resolveDefaultDisplayCurrencyId = (
 	return options[0]?.currencyId ?? null
 }
 
+/** Round to display-currency cents (2 decimals). */
+export const roundDisplayAmount = (amount: number) =>
+	Math.round(amount * 100) / 100
+
+/**
+ * Keep enough primary precision so secondary-currency edits round-trip.
+ * e.g. 1175 SYP / 132 → 8.901515… (not 8.90), so 8.901515… × 132 still shows 1175.
+ */
+export const roundPrimaryAmount = (amount: number) =>
+	Math.round(amount * 1e8) / 1e8
+
 export const convertPrimaryAmount = (
 	amount: number,
 	targetCurrencyId: string,
@@ -66,7 +77,27 @@ export const convertPrimaryAmount = (
 		return amount
 	}
 
-	return amount * target.exchangeRate
+	return roundDisplayAmount(amount * target.exchangeRate)
+}
+
+export const convertToPrimaryAmount = (
+	displayAmount: number,
+	displayCurrencyId: string | null,
+	options: DisplayCurrencyOption[],
+): number => {
+	if (!displayCurrencyId) {
+		return roundPrimaryAmount(displayAmount)
+	}
+
+	const rate =
+		options.find(option => option.currencyId === displayCurrencyId)
+			?.exchangeRate ?? 1
+
+	if (rate === 0) {
+		return roundPrimaryAmount(displayAmount)
+	}
+
+	return roundPrimaryAmount(displayAmount / rate)
 }
 
 export const getCurrencyLabel = (
