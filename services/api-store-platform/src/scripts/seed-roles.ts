@@ -35,6 +35,7 @@ const OWNER_READ_ONLY_RESOURCES = [
 	'/categories',
 	'/orders',
 	'/invoices',
+	'/buyingInvoices',
 	'/inventory',
 	'/reports',
 	'/dailyActions',

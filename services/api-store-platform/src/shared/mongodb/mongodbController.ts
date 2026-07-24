@@ -5,7 +5,7 @@ import {
 	Document,
 	MongoClient,
 } from 'mongodb'
-import { SortOrder } from 'mongoose'
+import { ClientSession, SortOrder } from 'mongoose'
 
 import logger, { EntityType } from '../logger/logger'
 import { config } from '../../config/config'
@@ -56,11 +56,13 @@ type Maybe<T> = T | undefined
 interface CreateDocumentContext {
 	collectionName: TenantResource
 	data: any
+	session?: ClientSession
 }
 
 interface UpdateDocumentContext {
 	collectionName: TenantResource
 	id: string
+	session?: ClientSession
 }
 interface DeleteDocumentContext {
 	collectionName: TenantResource
@@ -277,6 +279,7 @@ export default class MongodbController {
 		resource: TenantResource,
 		model: EntityModel,
 		{ fieldName, fieldValue }: Record<string, string>,
+		session?: ClientSession,
 	): Promise<T | null> {
 		const startTime = new Date().getTime()
 
@@ -291,6 +294,7 @@ export default class MongodbController {
 					fieldName,
 					fieldValue,
 				},
+				session,
 			)
 
 			logger.debug(
@@ -326,7 +330,7 @@ export default class MongodbController {
 	}
 
 	public async createDocument(
-		{ collectionName, data }: CreateDocumentContext,
+		{ collectionName, data, session }: CreateDocumentContext,
 		model: EntityModel,
 		requestContext: RequestContext,
 	): Promise<{ _id: string }> {
@@ -341,6 +345,7 @@ export default class MongodbController {
 			collectionName,
 			model,
 			data,
+			session,
 		)
 
 		logger.debug(
@@ -355,7 +360,7 @@ export default class MongodbController {
 	}
 
 	public async updateDocument(
-		{ collectionName, id }: UpdateDocumentContext,
+		{ collectionName, id, session }: UpdateDocumentContext,
 		requestContext: RequestContext,
 		model: EntityModel,
 		payload: Record<string, unknown>,
@@ -366,6 +371,7 @@ export default class MongodbController {
 			model,
 			id,
 			payload,
+			session,
 		)
 	}
 

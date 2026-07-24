@@ -26,6 +26,12 @@
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
+		"/buyingInvoices": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
+		},
 		"/inventory": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },

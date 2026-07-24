@@ -200,6 +200,66 @@ export type SellingInvoicesListResponse = {
 	totalCount: number
 }
 
+export type BuyingInvoiceRequestBody = {
+	buyingInvoiceId?: string
+	clientMutationId?: string
+	invoiceNumber?: string
+	supplierId?: string
+	supplierName?: string
+	paymentType?: 'cash' | 'credit'
+	items?: Array<{
+		productId: string
+		name: string
+		barcode?: string
+		quantity: number
+		unit?: string
+		unitPrice: number
+		discount?: number
+		discountIsPercent?: boolean
+		taxRate?: number
+		lineTotal?: number
+	}>
+	status?: 'draft' | 'confirmed' | 'partial' | 'paid' | 'cancelled' | 'pending' | 'void'
+	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	currencyAmounts: Array<{
+		currencyId: string
+		name: string
+		internalCode?: string
+		exchangeRate: number
+		isPrimary: boolean
+		amount: number
+		paidAmount: number
+		remainingAmount: number
+		subtotal: number
+		tax: number
+		discount: number
+	}>
+	notes?: string
+	warehouseId?: string
+	issuedAt?: Date | string
+}
+
+export type BuyingInvoicesQueryParams = {
+	searchText?: string
+	status?: string
+	issuedDate?: string
+}
+
+export type BuyingInvoicesSummary = {
+	todayPurchases: number
+	paidInvoices: number
+	creditInvoices: number
+	totalPayable: number
+	averageOrder: number
+}
+
+export type BuyingInvoicesListResponse = {
+	invoices: Array<Record<string, unknown>>
+	summary: BuyingInvoicesSummary
+	nextInvoiceNumber: number
+	totalCount: number
+}
+
 export type SyncPushEntry = {
 	clientMutationId: string
 	entity: string
@@ -515,6 +575,7 @@ export interface InventoryDocument {
 	warehouseId?: string
 	shelfId?: string
 	quantity?: number
+	averageCost?: number // weighted moving average cost, updated on each purchase
 	minQuantity?: number // low stock alert
 	maxQuantity?: number // overstock alert
 	reservedQuantity?: number // reserved for pending orders

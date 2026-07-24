@@ -25,6 +25,7 @@ import { AsTrashIcon } from '../../icons/Trash'
 import { AsProductIcon } from '../../icons/Product'
 import TextLabel from '../common/TextLabel'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import EditableNumberField from './EditableNumberField'
 import {
 	roundPrimaryAmount,
 	type DisplayCurrencyOption,
@@ -85,6 +86,10 @@ const InvoiceLineItemsTable = ({
 	isReadOnly = false,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
+
+	const handleQuantityEdit = (item: SellingInvoiceLineItem, quantity: number) => {
+		onUpdateItem(item.id, { quantity })
+	}
 
 	const handleUnitPriceEdit = (item: SellingInvoiceLineItem, unitPrice: number) => {
 		onUpdateItem(item.id, {
@@ -164,22 +169,46 @@ const InvoiceLineItemsTable = ({
 							{/* <Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
 								{item.barcode ?? '-'}
 							</Td> */}
-							<Td>
+						<Td>
+							{isReadOnly ? (
 								<TextLabel label="" value={item.quantity.toString()} />
-							</Td>
-							<Td>
-								<CurrencyAmountTooltip
-									amount={item.unitPrice}
-									displayText={formatAmount(item.unitPrice)}
-									options={currencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									onEdit={
-										isReadOnly
-											? undefined
-											: unitPrice => handleUnitPriceEdit(item, unitPrice)
-									}
+							) : (
+								<EditableNumberField
+									value={item.quantity}
+									isEditable
+									fontSize="sm"
+									fontWeight={600}
+									onSave={quantity => handleQuantityEdit(item, quantity)}
 								/>
-							</Td>
+							)}
+						</Td>
+						<Td>
+							<CurrencyAmountTooltip
+								amount={item.unitPrice}
+								displayText={formatAmount(item.unitPrice)}
+								options={currencyOptions}
+								displayCurrencyId={displayCurrencyId}
+								onEdit={
+									isReadOnly
+										? undefined
+										: unitPrice => handleUnitPriceEdit(item, unitPrice)
+								}
+								costReference={{
+									averageBuying:
+										item.averageCost != null
+											? formatAmount(item.averageCost)
+											: '-',
+									lastBuying:
+										item.lastBuyingPrice != null
+											? formatAmount(item.lastBuyingPrice)
+											: '-',
+									lastSelling:
+										item.lastSellingPrice != null
+											? formatAmount(item.lastSellingPrice)
+											: '-',
+								}}
+							/>
+						</Td>
 							<Td>
 								<CurrencyAmountTooltip
 									amount={calculateLineItemTotal(item)}

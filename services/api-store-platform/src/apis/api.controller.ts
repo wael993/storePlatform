@@ -27,6 +27,7 @@ import CurrencySettings, {
 } from '../models/CurrencySettings'
 import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
+import { BuyingInvoice } from '../models/BuyingInvoices'
 import { Inventory } from '../models/Inventory'
 import { Report } from '../models/Report'
 import { DailyAction, ActionType } from '../models/DailyAction'
@@ -87,6 +88,10 @@ import {
 	CategoryDocument,
 	SellingInvoicesListResponse,
 	SellingInvoicesQueryParams,
+	BuyingInvoiceRequestBody,
+	BuyingInvoicesListResponse,
+	BuyingInvoicesQueryParams,
+	BuyingInvoicesSummary,
 	CategoriesResponse,
 	BrandRequestBody,
 	ShelfRequestBody,
@@ -145,6 +150,12 @@ import {
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
 import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
+import {
+	formatInvoiceNumber,
+	isPrefixedInvoiceNumber,
+	parseInvoiceSequence,
+	type InvoiceNumberPrefix,
+} from '../shared/invoiceNumbering'
 import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
 import { Partner } from '../models/Partner'
@@ -1677,7 +1688,7 @@ export default class ProductController {
 
 	private async ensureInvoiceProductsBelongToTenant(
 		requestContext: RequestContext,
-		items: NonNullable<InvoiceRequestBody['items']>,
+		items: Array<{ productId: string }>,
 	) {
 		const tenantContext = getTenantContext(requestContext)
 		const requestedProductIds = items.map(item => item.productId)
@@ -1697,13 +1708,228 @@ export default class ProductController {
 	private async getInventoryByProductId(
 		requestContext: RequestContext,
 		productId: string,
+		session?: mongoose.ClientSession,
 	): Promise<InventoryDocument | null> {
 		return this.mongoDbClient.getDocumentByField<InventoryDocument>(
 			requestContext,
 			COLLECTION_NAMES.INVENTORY,
 			Inventory,
 			{ fieldName: 'productId', fieldValue: productId },
+			session,
 		)
+	}
+
+	private async runInTransaction<T>(
+		work: (session: mongoose.ClientSession) => Promise<T>,
+	): Promise<T> {
+		const session = await mongoose.startSession()
+
+		try {
+			let result: T | undefined
+
+			await session.withTransaction(async () => {
+				result = await work(session)
+			})
+
+			return result as T
+		} finally {
+			await session.endSession()
+		}
+	}
+
+	/**
+	 * Weighted moving average cost, recalculated on every purchase.
+	 * ponytail: assumes currentQuantity >= 0; if stock had gone negative from an
+	 * oversold sale, the average skews toward the new purchase price instead of
+	 * being mathematically "correct". Upgrade path: reset the average to the
+	 * purchase price whenever currentQuantity <= 0.
+	 */
+	private computeMovingAverageCost(
+		currentQuantity: number,
+		currentAverageCost: number,
+		purchaseQuantity: number,
+		purchaseUnitPrice: number,
+	): number {
+		const priorQuantity = Math.max(0, currentQuantity)
+		const totalQuantity = priorQuantity + purchaseQuantity
+
+		if (totalQuantity <= 0) return purchaseUnitPrice
+
+		return (
+			(priorQuantity * currentAverageCost +
+				purchaseQuantity * purchaseUnitPrice) /
+			totalQuantity
+		)
+	}
+
+	/**
+	 * Atomically adjusts Inventory.quantity and recomputes availableQuantity as
+	 * max(0, quantity - reservedQuantity). Upserts on first write.
+	 * Permission: inventory update (or create via invoice/buyingInvoice implicit write).
+	 */
+	private async atomicAdjustInventoryQuantity(
+		requestContext: RequestContext,
+		params: {
+			productId: string
+			warehouseId?: string
+			quantityDelta: number
+		},
+		session: mongoose.ClientSession,
+	): Promise<InventoryDocument> {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.INVENTORY,
+			'update',
+		)
+
+		const tenantContext = getTenantContext(requestContext)
+		const { productId, warehouseId, quantityDelta } = params
+
+		const inventoryId = uuidv4()
+		const createdBy = {
+			_id: requestContext.userId ?? '',
+			displayName:
+				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+			role: requestContext.user?.role ?? requestContext.role,
+			createdAt: new Date(),
+		}
+
+		const updated = await Inventory.findOneAndUpdate(
+			{ tenantId: tenantContext.tenantId, productId },
+			[
+				{
+					$set: {
+						inventoryId: { $ifNull: ['$inventoryId', inventoryId] },
+						productId: { $ifNull: ['$productId', productId] },
+						warehouseId: { $ifNull: ['$warehouseId', warehouseId] },
+						createdBy: { $ifNull: ['$createdBy', createdBy] },
+						quantity: {
+							$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
+						},
+						availableQuantity: {
+							$max: [
+								0,
+								{
+									$subtract: [
+										{
+											$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
+										},
+										{ $ifNull: ['$reservedQuantity', 0] },
+									],
+								},
+							],
+						},
+					},
+				},
+			],
+			{ new: true, upsert: true, session },
+		).lean()
+
+		return updated as unknown as InventoryDocument
+	}
+
+	/**
+	 * Purchase adjust: qty + weighted moving averageCost in one pipeline update so
+	 * concurrent purchases cannot race on averageCost. availableQuantity =
+	 * max(0, newQuantity - reservedQuantity).
+	 */
+	private async atomicPurchaseInventoryAdjustment(
+		requestContext: RequestContext,
+		params: {
+			productId: string
+			warehouseId?: string
+			purchaseQuantity: number
+			purchaseUnitPrice: number
+		},
+		session: mongoose.ClientSession,
+	): Promise<InventoryDocument> {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.INVENTORY,
+			'update',
+		)
+
+		const tenantContext = getTenantContext(requestContext)
+		const { productId, warehouseId, purchaseQuantity, purchaseUnitPrice } =
+			params
+
+		const inventoryId = uuidv4()
+		const createdBy = {
+			_id: requestContext.userId ?? '',
+			displayName:
+				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+			role: requestContext.user?.role ?? requestContext.role,
+			createdAt: new Date(),
+		}
+
+		const updated = await Inventory.findOneAndUpdate(
+			{ tenantId: tenantContext.tenantId, productId },
+			[
+				{
+					$set: {
+						inventoryId: { $ifNull: ['$inventoryId', inventoryId] },
+						productId: { $ifNull: ['$productId', productId] },
+						warehouseId: { $ifNull: ['$warehouseId', warehouseId] },
+						createdBy: { $ifNull: ['$createdBy', createdBy] },
+						quantity: {
+							$add: [{ $ifNull: ['$quantity', 0] }, purchaseQuantity],
+						},
+						availableQuantity: {
+							$max: [
+								0,
+								{
+									$subtract: [
+										{
+											$add: [
+												{ $ifNull: ['$quantity', 0] },
+												purchaseQuantity,
+											],
+										},
+										{ $ifNull: ['$reservedQuantity', 0] },
+									],
+								},
+							],
+						},
+						averageCost: {
+							$let: {
+								vars: {
+									priorQty: {
+										$max: [0, { $ifNull: ['$quantity', 0] }],
+									},
+									priorAvg: {
+										$ifNull: ['$averageCost', purchaseUnitPrice],
+									},
+								},
+								in: {
+									$cond: [
+										{
+											$lte: [{ $add: ['$$priorQty', purchaseQuantity] }, 0],
+										},
+										purchaseUnitPrice,
+										{
+											$divide: [
+												{
+													$add: [
+														{
+															$multiply: ['$$priorQty', '$$priorAvg'],
+														},
+														purchaseQuantity * purchaseUnitPrice,
+													],
+												},
+												{ $add: ['$$priorQty', purchaseQuantity] },
+											],
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+			],
+			{ new: true, upsert: true, session },
+		).lean()
+
+		return updated as unknown as InventoryDocument
 	}
 
 	private resolveSyncClientId(clientId?: string): string {
@@ -1716,21 +1942,32 @@ export default class ProductController {
 		return uuidv4()
 	}
 
+	private async resolveLatestInvoiceSequence(
+		requestContext: RequestContext,
+		model: typeof Invoice | typeof BuyingInvoice,
+	): Promise<number> {
+		const tenantContext = getTenantContext(requestContext)
+		const invoices = (await withTenantScope(
+			(model as typeof Invoice).find({}, { invoiceNumber: 1 }),
+			tenantContext.tenantId,
+		).lean()) as Array<{ invoiceNumber?: string }>
+
+		let maxSequence = 0
+
+		for (const invoice of invoices) {
+			maxSequence = Math.max(
+				maxSequence,
+				parseInvoiceSequence(invoice.invoiceNumber),
+			)
+		}
+
+		return maxSequence + 1
+	}
+
 	private async resolveLatestInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number> {
-		const tenantContext = getTenantContext(requestContext)
-		const latestInvoice = await withTenantScope(
-			Invoice.findOne({}, { invoiceNumber: 1 }).sort({ createdAt: -1 }).lean(),
-			tenantContext.tenantId,
-		)
-
-		const latestNumber = Number.parseInt(
-			String(latestInvoice?.invoiceNumber ?? '0'),
-			10,
-		)
-
-		return Number.isNaN(latestNumber) ? 1 : latestNumber + 1
+		return this.resolveLatestInvoiceSequence(requestContext, Invoice)
 	}
 
 	public async resolveNextInvoiceNumber(
@@ -1746,6 +1983,62 @@ export default class ProductController {
 		const minOnlineInvoiceNumber = offlineState?.minOnlineInvoiceNumber ?? 1
 
 		return Math.max(latestFromInvoices, minOnlineInvoiceNumber)
+	}
+
+	/**
+	 * Server-side allocation as SI-000001 / BI-000001.
+	 * Accepts a client-prefixed number only when unused (offline reserved blocks).
+	 * Ignores bare numeric client drafts that caused "already in use" races.
+	 * Call inside a transaction so unique-index conflicts retry with a fresh number.
+	 */
+	private async allocateInvoiceNumberForCreate(
+		requestContext: RequestContext,
+		prefix: InvoiceNumberPrefix,
+		requestedNumber: string | undefined,
+		model: typeof Invoice | typeof BuyingInvoice,
+		session?: mongoose.ClientSession,
+	): Promise<string> {
+		const tenantId = getTenantContext(requestContext).tenantId
+		const requested = requestedNumber?.trim()
+
+		if (requested && isPrefixedInvoiceNumber(requested, prefix)) {
+			const existingQuery = withTenantScope(
+				(model as typeof Invoice).findOne({ invoiceNumber: requested }),
+				tenantId,
+			)
+			const existing = await (
+				session ? existingQuery.session(session) : existingQuery
+			).lean()
+
+			if (!existing) {
+				return requested
+			}
+		}
+
+		const sequence =
+			prefix === 'SI'
+				? await this.resolveNextInvoiceNumber(requestContext)
+				: await this.resolveNextBuyingInvoiceNumber(requestContext)
+
+		for (let offset = 0; offset < 50; offset++) {
+			const candidate = formatInvoiceNumber(prefix, sequence + offset)
+			const existingQuery = withTenantScope(
+				(model as typeof Invoice).findOne({ invoiceNumber: candidate }),
+				tenantId,
+			)
+			const existing = await (
+				session ? existingQuery.session(session) : existingQuery
+			).lean()
+
+			if (!existing) {
+				return candidate
+			}
+		}
+
+		throw new BusinessLogicError(
+			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+			`Unable to allocate a unique ${prefix} invoice number.`,
+		)
 	}
 
 	private async allocateOfflineInvoiceBlock(
@@ -1926,36 +2219,82 @@ export default class ProductController {
 		}
 	}
 
+	/**
+	 * COGS for a sale line: Inventory.averageCost first, then product purchasePrice,
+	 * never the sale unitPrice. Falls back to 0 with a warn if neither exists.
+	 */
+	private async resolveSaleUnitCost(
+		requestContext: RequestContext,
+		productId: string,
+		averageCost: number | undefined,
+		session: mongoose.ClientSession,
+	): Promise<number> {
+		if (averageCost != null && Number.isFinite(averageCost)) {
+			return Number(averageCost)
+		}
+
+		const product = await this.mongoDbClient.getDocumentByField<{
+			price?: { purchasePrice?: number }
+		}>(
+			requestContext,
+			COLLECTION_NAMES.PRODUCTS,
+			Product,
+			{ fieldName: 'productId', fieldValue: productId },
+			session,
+		)
+
+		const purchasePrice = product?.price?.purchasePrice
+
+		if (purchasePrice != null && Number.isFinite(purchasePrice)) {
+			return Number(purchasePrice)
+		}
+
+		logger.warn(
+			`No averageCost or purchasePrice for product ${productId}; recording sale unitCost as 0.`,
+			{ entity: EntityType.MONGODB, productId },
+		)
+
+		return 0
+	}
+
 	private async applySaleInventoryAdjustments(
 		requestContext: RequestContext,
 		invoiceId: string,
 		invoiceNumber: string,
 		items: NonNullable<InvoiceRequestBody['items']>,
-	) {
+		session: mongoose.ClientSession,
+	): Promise<string[]> {
+		const touchedInventoryIds: string[] = []
+
 		for (const item of items) {
 			const inventory = await this.getInventoryByProductId(
 				requestContext,
 				item.productId,
+				session,
 			)
 
-			if (!inventory) continue
+			if (!inventory) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					`No inventory record found for product ${item.name}.`,
+				)
+			}
 
-			const currentQuantity = Number(inventory.quantity ?? 0)
-			const nextQuantity = currentQuantity - item.quantity
-			const reservedQuantity = Number(inventory.reservedQuantity ?? 0)
-			const nextAvailableQuantity = Math.max(0, nextQuantity - reservedQuantity)
-
-			await this.mongoDbClient.updateDocument(
-				{
-					collectionName: COLLECTION_NAMES.INVENTORY,
-					id: inventory.inventoryId,
-				},
+			const costBasis = await this.resolveSaleUnitCost(
 				requestContext,
-				Inventory,
+				item.productId,
+				inventory.averageCost,
+				session,
+			)
+
+			await this.atomicAdjustInventoryQuantity(
+				requestContext,
 				{
-					quantity: nextQuantity,
-					availableQuantity: nextAvailableQuantity,
+					productId: item.productId,
+					warehouseId: inventory.warehouseId,
+					quantityDelta: -item.quantity,
 				},
+				session,
 			)
 
 			await this.mongoDbClient.createDocument(
@@ -1967,22 +2306,84 @@ export default class ProductController {
 						warehouseId: inventory.warehouseId,
 						type: 'sale',
 						quantity: item.quantity,
-						unitCost: item.unitPrice,
+						unitCost: costBasis,
 						referenceType: 'selling_invoice',
 						referenceId: invoiceId,
 						note: `Invoice #${invoiceNumber}`,
 					},
+					session,
 				},
 				StockMoving,
 				requestContext,
 			)
 
-			await this.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventory.inventoryId,
-			)
+			touchedInventoryIds.push(inventory.inventoryId)
 		}
+
+		return touchedInventoryIds
+	}
+
+	/**
+	 * Reverses previously-applied sale movements when a selling invoice is
+	 * cancelled: stock comes back in (type=return_in), Inventory quantity goes up.
+	 */
+	private async reverseSaleInventoryAdjustments(
+		requestContext: RequestContext,
+		invoiceId: string,
+		invoiceNumber: string,
+		items: NonNullable<InvoiceRequestBody['items']>,
+		session: mongoose.ClientSession,
+	): Promise<string[]> {
+		const touchedInventoryIds: string[] = []
+
+		for (const item of items) {
+			const inventory = await this.getInventoryByProductId(
+				requestContext,
+				item.productId,
+				session,
+			)
+
+			const costBasis = await this.resolveSaleUnitCost(
+				requestContext,
+				item.productId,
+				inventory?.averageCost,
+				session,
+			)
+
+			const updatedInventory = await this.atomicAdjustInventoryQuantity(
+				requestContext,
+				{
+					productId: item.productId,
+					warehouseId: inventory?.warehouseId,
+					quantityDelta: item.quantity,
+				},
+				session,
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.STOCK_MOVINGS,
+					data: {
+						stockMovingId: uuidv4(),
+						productId: item.productId,
+						warehouseId: inventory?.warehouseId,
+						type: 'return_in',
+						quantity: item.quantity,
+						unitCost: costBasis,
+						referenceType: 'selling_invoice',
+						referenceId: invoiceId,
+						note: `Cancelled invoice #${invoiceNumber}`,
+					},
+					session,
+				},
+				StockMoving,
+				requestContext,
+			)
+
+			touchedInventoryIds.push(updatedInventory.inventoryId)
+		}
+
+		return touchedInventoryIds
 	}
 
 	public async getInvoices(
@@ -2127,10 +2528,9 @@ export default class ProductController {
 			)
 		}
 
-		await this.ensureInvoiceProductsBelongToTenant(
-			requestContext,
-			requestBody.items,
-		)
+		const invoiceItems = requestBody.items
+
+		await this.ensureInvoiceProductsBelongToTenant(requestContext, invoiceItems)
 
 		const tenantContext = getTenantContext(requestContext)
 
@@ -2189,66 +2589,74 @@ export default class ProductController {
 			return result
 		}
 
-		const invoiceNumber =
-			requestBody.invoiceNumber ??
-			String(await this.resolveNextInvoiceNumber(requestContext))
-
-		const existingByNumber = await withTenantScope(
-			Invoice.findOne({ invoiceNumber: String(invoiceNumber) }).lean(),
-			tenantContext.tenantId,
-		)
-
-		if (existingByNumber && existingByNumber.invoiceId !== invoiceId) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				`Invoice number ${invoiceNumber} is already in use.`,
-			)
-		}
-
-		const invoiceData = {
-			invoiceId,
-			invoiceNumber,
-			orderId: requestBody.orderId,
-			customerId: requestBody.customerId,
-			customerName: requestBody.customerName,
-			salesPerson: requestBody.salesPerson,
-			paymentType: requestBody.paymentType,
-			items: requestBody.items,
-			status,
-			paymentStatus,
-			currencyAmounts,
-			notes: requestBody.notes,
-			printAfterPayment: requestBody.printAfterPayment ?? false,
-			warehouseId: requestBody.warehouseId,
-			issuedAt: requestBody.issuedAt
-				? new Date(requestBody.issuedAt)
-				: new Date(),
-		}
-
 		if (this.shouldAdjustInventoryForInvoice(status)) {
-			await this.validateSaleInventory(requestContext, requestBody.items)
+			await this.validateSaleInventory(requestContext, invoiceItems)
 		}
 
-		const createInvoiceResponse = await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.INVOICES, data: invoiceData },
-			Invoice,
-			requestContext,
-		)
+		const { createInvoiceResponse, touchedInventoryIds, invoiceNumber } =
+			await this.runInTransaction(async session => {
+				const allocatedNumber = await this.allocateInvoiceNumberForCreate(
+					requestContext,
+					'SI',
+					requestBody.invoiceNumber,
+					Invoice,
+					session,
+				)
 
-		if (this.shouldAdjustInventoryForInvoice(status)) {
-			await this.applySaleInventoryAdjustments(
-				requestContext,
-				invoiceId,
-				invoiceNumber,
-				requestBody.items,
-			)
-		}
+				const created = await this.mongoDbClient.createDocument(
+					{
+						collectionName: COLLECTION_NAMES.INVOICES,
+						data: {
+							invoiceId,
+							invoiceNumber: allocatedNumber,
+							orderId: requestBody.orderId,
+							customerId: requestBody.customerId,
+							customerName: requestBody.customerName,
+							salesPerson: requestBody.salesPerson,
+							paymentType: requestBody.paymentType,
+							items: requestBody.items,
+							status,
+							paymentStatus,
+							currencyAmounts,
+							notes: requestBody.notes,
+							printAfterPayment: requestBody.printAfterPayment ?? false,
+							warehouseId: requestBody.warehouseId,
+							issuedAt: requestBody.issuedAt
+								? new Date(requestBody.issuedAt)
+								: new Date(),
+						},
+						session,
+					},
+					Invoice,
+					requestContext,
+				)
+
+				const inventoryIds = this.shouldAdjustInventoryForInvoice(status)
+					? await this.applySaleInventoryAdjustments(
+							requestContext,
+							invoiceId,
+							allocatedNumber,
+							invoiceItems,
+							session,
+						)
+					: []
+
+				return {
+					createInvoiceResponse: created,
+					touchedInventoryIds: inventoryIds,
+					invoiceNumber: allocatedNumber,
+				}
+			})
 
 		await this.invalidateEntityCache(
 			'invoices',
 			requestContext,
-			invoiceData.invoiceId,
+			invoiceId,
 		)
+
+		for (const inventoryId of touchedInventoryIds) {
+			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		}
 
 		const result = {
 			_id: createInvoiceResponse._id,
@@ -2343,14 +2751,49 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		await this.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
-		const updateResponse = await this.mongoDbClient.updateDocument(
-			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
-			requestContext,
-			Invoice,
-			requestBody,
+
+		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
+		const wasStockAffecting = Boolean(
+			existingInvoice &&
+			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
+		)
+		const isCancelling = wasStockAffecting && requestBody.status === 'cancelled'
+
+		if (wasStockAffecting && !isCancelling && requestBody.items) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Cannot edit items on a confirmed invoice. Cancel it and create a new one instead.',
+			)
+		}
+
+		const { updateResponse, touchedInventoryIds } = await this.runInTransaction(
+			async session => {
+				const inventoryIds = isCancelling
+					? await this.reverseSaleInventoryAdjustments(
+							requestContext,
+							existingInvoice.invoiceId,
+							existingInvoice.invoiceNumber,
+							existingInvoice.items ?? [],
+							session,
+						)
+					: []
+
+				const updated = await this.mongoDbClient.updateDocument(
+					{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId, session },
+					requestContext,
+					Invoice,
+					requestBody,
+				)
+
+				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
+			},
 		)
 
 		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
+
+		for (const inventoryId of touchedInventoryIds) {
+			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		}
 
 		return updateResponse
 	}
@@ -2359,6 +2802,18 @@ export default class ProductController {
 		invoiceId: string,
 		requestContext: RequestContext,
 	) {
+		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
+
+		if (
+			existingInvoice &&
+			this.shouldAdjustInventoryForInvoice(existingInvoice.status)
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Cannot delete a confirmed invoice. Cancel it instead.',
+			)
+		}
+
 		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
 			requestContext,
@@ -2368,6 +2823,539 @@ export default class ProductController {
 		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
 
 		return deleteResponse
+	}
+
+	private async resolveLatestBuyingInvoiceNumber(
+		requestContext: RequestContext,
+	): Promise<number> {
+		return this.resolveLatestInvoiceSequence(requestContext, BuyingInvoice)
+	}
+
+	public async resolveNextBuyingInvoiceNumber(
+		requestContext: RequestContext,
+	): Promise<number> {
+		return this.resolveLatestBuyingInvoiceNumber(requestContext)
+	}
+
+	private buildBuyingInvoicesSummary(
+		invoices: Array<Record<string, any>>,
+	): BuyingInvoicesSummary {
+		const todayStart = new Date()
+
+		todayStart.setHours(0, 0, 0, 0)
+
+		const todayEnd = new Date()
+
+		todayEnd.setHours(23, 59, 59, 999)
+
+		const todaysInvoices = invoices.filter(invoice => {
+			const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+
+			return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
+		})
+
+		const todayPurchases = todaysInvoices.reduce((total, invoice) => {
+			const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(invoice)
+
+			return total + grandTotal
+		}, 0)
+
+		const paidInvoices = invoices.filter(
+			invoice => invoice.status === 'paid',
+		).length
+
+		const creditInvoices = invoices.filter(
+			invoice =>
+				invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid',
+		).length
+
+		const totalPayable = invoices.reduce((total, invoice) => {
+			const { remainingAmount } = getPrimaryInvoiceCurrencyAmounts(invoice)
+
+			return remainingAmount > 0 ? total + remainingAmount : total
+		}, 0)
+
+		const averageOrder =
+			todaysInvoices.length > 0 ? todayPurchases / todaysInvoices.length : 0
+
+		return {
+			todayPurchases,
+			paidInvoices,
+			creditInvoices,
+			totalPayable,
+			averageOrder,
+		}
+	}
+
+	private mapBuyingInvoiceFiltersToUiStatus(
+		invoice: Record<string, any>,
+	): string {
+		if (invoice.status === 'draft') return 'draft'
+
+		if (invoice.status === 'cancelled') return 'cancelled'
+
+		if (invoice.status === 'paid') return 'paid'
+
+		if (invoice.status === 'partial') return 'partial'
+
+		if (invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid') {
+			return 'credit'
+		}
+
+		if (invoice.paymentStatus === 'partial') return 'partial'
+
+		return invoice.status ?? 'confirmed'
+	}
+
+	private async applyPurchaseInventoryAdjustments(
+		requestContext: RequestContext,
+		buyingInvoiceId: string,
+		invoiceNumber: string,
+		items: NonNullable<BuyingInvoiceRequestBody['items']>,
+		session: mongoose.ClientSession,
+		warehouseId?: string,
+	): Promise<string[]> {
+		const touchedInventoryIds: string[] = []
+
+		for (const item of items) {
+			const inventory = await this.getInventoryByProductId(
+				requestContext,
+				item.productId,
+				session,
+			)
+
+			const updatedInventory = await this.atomicPurchaseInventoryAdjustment(
+				requestContext,
+				{
+					productId: item.productId,
+					warehouseId: inventory?.warehouseId ?? warehouseId,
+					purchaseQuantity: item.quantity,
+					purchaseUnitPrice: item.unitPrice,
+				},
+				session,
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.STOCK_MOVINGS,
+					data: {
+						stockMovingId: uuidv4(),
+						productId: item.productId,
+						warehouseId: inventory?.warehouseId ?? warehouseId,
+						type: 'purchase',
+						quantity: item.quantity,
+						unitCost: item.unitPrice,
+						referenceType: 'buying_invoice',
+						referenceId: buyingInvoiceId,
+						note: `Buying Invoice #${invoiceNumber}`,
+					},
+					session,
+				},
+				StockMoving,
+				requestContext,
+			)
+
+			touchedInventoryIds.push(updatedInventory.inventoryId)
+		}
+
+		return touchedInventoryIds
+	}
+
+	/**
+	 * Reverses previously-applied purchase movements when a buying invoice is
+	 * cancelled: stock goes back out to the supplier (type=return_out), Inventory
+	 * quantity goes down. Does not roll back averageCost (it's a
+	 * running/blended figure, not tied to a single invoice).
+	 */
+	private async reversePurchaseInventoryAdjustments(
+		requestContext: RequestContext,
+		buyingInvoiceId: string,
+		invoiceNumber: string,
+		items: NonNullable<BuyingInvoiceRequestBody['items']>,
+		session: mongoose.ClientSession,
+	): Promise<string[]> {
+		const touchedInventoryIds: string[] = []
+
+		for (const item of items) {
+			const inventory = await this.getInventoryByProductId(
+				requestContext,
+				item.productId,
+				session,
+			)
+
+			const updatedInventory = await this.atomicAdjustInventoryQuantity(
+				requestContext,
+				{
+					productId: item.productId,
+					warehouseId: inventory?.warehouseId,
+					quantityDelta: -item.quantity,
+				},
+				session,
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.STOCK_MOVINGS,
+					data: {
+						stockMovingId: uuidv4(),
+						productId: item.productId,
+						warehouseId: inventory?.warehouseId,
+						type: 'return_out',
+						quantity: item.quantity,
+						unitCost: item.unitPrice,
+						referenceType: 'buying_invoice',
+						referenceId: buyingInvoiceId,
+						note: `Cancelled buying invoice #${invoiceNumber}`,
+					},
+					session,
+				},
+				StockMoving,
+				requestContext,
+			)
+
+			touchedInventoryIds.push(updatedInventory.inventoryId)
+		}
+
+		return touchedInventoryIds
+	}
+
+	public async getBuyingInvoices(
+		requestContext: RequestContext,
+		filters: BuyingInvoicesQueryParams = {},
+	): Promise<BuyingInvoicesListResponse> {
+		const { documents: invoices } = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.BUYING_INVOICES,
+			model: BuyingInvoice,
+			sort: { createdAt: 'desc' },
+		})
+
+		const normalizedSearch = filters.searchText?.trim().toLowerCase()
+
+		const filteredInvoices = invoices.filter((invoice: Record<string, any>) => {
+			const uiStatus = this.mapBuyingInvoiceFiltersToUiStatus(invoice)
+
+			if (
+				filters.status &&
+				filters.status !== 'all' &&
+				uiStatus !== filters.status
+			) {
+				return false
+			}
+
+			if (filters.issuedDate) {
+				const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+				const filterDate = new Date(filters.issuedDate)
+
+				if (!issuedAt) return false
+
+				const sameDay =
+					issuedAt.getFullYear() === filterDate.getFullYear() &&
+					issuedAt.getMonth() === filterDate.getMonth() &&
+					issuedAt.getDate() === filterDate.getDate()
+
+				if (!sameDay) return false
+			}
+
+			if (!normalizedSearch) return true
+
+			const invoiceNumber = String(invoice.invoiceNumber ?? '').toLowerCase()
+			const supplierName = String(invoice.supplierName ?? '').toLowerCase()
+
+			return (
+				invoiceNumber.includes(normalizedSearch) ||
+				supplierName.includes(normalizedSearch)
+			)
+		})
+
+		const summary = this.buildBuyingInvoicesSummary(invoices)
+		const nextInvoiceNumber =
+			await this.resolveNextBuyingInvoiceNumber(requestContext)
+
+		return {
+			invoices: filteredInvoices,
+			summary,
+			nextInvoiceNumber,
+			totalCount: filteredInvoices.length,
+		}
+	}
+
+	public async getBuyingInvoice(
+		buyingInvoiceId: string,
+		requestContext: RequestContext,
+	): Promise<any> {
+		return this.mongoDbClient.getDocumentByField(
+			requestContext,
+			COLLECTION_NAMES.BUYING_INVOICES,
+			BuyingInvoice,
+			{ fieldName: 'buyingInvoiceId', fieldValue: buyingInvoiceId },
+		)
+	}
+
+	public async postBuyingInvoice(
+		requestBody: BuyingInvoiceRequestBody,
+		requestContext: RequestContext,
+	) {
+		if (requestBody.clientMutationId) {
+			const processed = await this.getProcessedSyncMutation(
+				requestContext,
+				requestBody.clientMutationId,
+			)
+
+			if (processed?.result) {
+				return processed.result
+			}
+
+			if (processed?.error) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					processed.error,
+				)
+			}
+		}
+
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!requestBody.items?.length) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Buying invoice must contain at least one item.',
+			)
+		}
+
+		const buyingInvoiceItems = requestBody.items
+
+		await this.ensureInvoiceProductsBelongToTenant(
+			requestContext,
+			buyingInvoiceItems,
+		)
+
+		const grandTotal = buyingInvoiceItems.reduce(
+			(total, item) =>
+				total + (item.lineTotal ?? item.quantity * item.unitPrice),
+			0,
+		)
+
+		const currencyAmounts =
+			requestBody.currencyAmounts?.length &&
+			requestBody.currencyAmounts.length > 0
+				? requestBody.currencyAmounts
+				: await this.buildInvoiceCurrencyAmounts(tenantContext.tenantId, {
+						grandTotal,
+						paidAmount: 0,
+						remainingAmount: grandTotal,
+						subtotal: grandTotal,
+						tax: 0,
+						discount: 0,
+					})
+
+		if (!currencyAmounts.length) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Buying invoice currency amounts are required.',
+			)
+		}
+
+		const primary =
+			currencyAmounts.find(amount => amount.isPrimary) ?? currencyAmounts[0]
+
+		const paymentStatus =
+			requestBody.paymentStatus ??
+			this.deriveInvoicePaymentStatus(primary.amount, primary.paidAmount)
+
+		const status: NonNullable<BuyingInvoiceRequestBody['status']> =
+			requestBody.status === 'draft' || requestBody.status === 'cancelled'
+				? requestBody.status
+				: paymentStatus === 'paid'
+					? 'paid'
+					: paymentStatus === 'partial'
+						? 'partial'
+						: requestBody.paymentType === 'credit'
+							? 'confirmed'
+							: (requestBody.status ?? 'confirmed')
+
+		const buyingInvoiceId = requestBody.buyingInvoiceId ?? uuidv4()
+
+		const existingInvoice = requestBody.buyingInvoiceId
+			? await this.getBuyingInvoice(requestBody.buyingInvoiceId, requestContext)
+			: null
+
+		if (existingInvoice) {
+			const result = {
+				_id: existingInvoice._id,
+				buyingInvoiceId: existingInvoice.buyingInvoiceId,
+				invoiceNumber: existingInvoice.invoiceNumber,
+			}
+
+			if (requestBody.clientMutationId) {
+				await this.recordSyncMutation(
+					requestContext,
+					requestBody.clientMutationId,
+					'buying_invoice',
+					'create',
+					result,
+				)
+			}
+
+			return result
+		}
+
+		const { createInvoiceResponse, touchedInventoryIds, invoiceNumber } =
+			await this.runInTransaction(async session => {
+				const allocatedNumber = await this.allocateInvoiceNumberForCreate(
+					requestContext,
+					'BI',
+					requestBody.invoiceNumber,
+					BuyingInvoice,
+					session,
+				)
+
+				const created = await this.mongoDbClient.createDocument(
+					{
+						collectionName: COLLECTION_NAMES.BUYING_INVOICES,
+						data: {
+							buyingInvoiceId,
+							invoiceNumber: allocatedNumber,
+							supplierId: requestBody.supplierId,
+							supplierName: requestBody.supplierName,
+							paymentType: requestBody.paymentType,
+							items: requestBody.items,
+							status,
+							paymentStatus,
+							currencyAmounts,
+							notes: requestBody.notes,
+							warehouseId: requestBody.warehouseId,
+							issuedAt: requestBody.issuedAt
+								? new Date(requestBody.issuedAt)
+								: new Date(),
+						},
+						session,
+					},
+					BuyingInvoice,
+					requestContext,
+				)
+
+				const inventoryIds = this.shouldAdjustInventoryForInvoice(status)
+					? await this.applyPurchaseInventoryAdjustments(
+							requestContext,
+							buyingInvoiceId,
+							allocatedNumber,
+							buyingInvoiceItems,
+							session,
+							requestBody.warehouseId,
+						)
+					: []
+
+				return {
+					createInvoiceResponse: created,
+					touchedInventoryIds: inventoryIds,
+					invoiceNumber: allocatedNumber,
+				}
+			})
+
+		for (const inventoryId of touchedInventoryIds) {
+			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		}
+
+		const result = {
+			_id: createInvoiceResponse._id,
+			buyingInvoiceId,
+			invoiceNumber,
+		}
+
+		if (requestBody.clientMutationId) {
+			await this.recordSyncMutation(
+				requestContext,
+				requestBody.clientMutationId,
+				'buying_invoice',
+				'create',
+				result,
+			)
+		}
+
+		return result
+	}
+
+	public async patchBuyingInvoice(
+		buyingInvoiceId: string,
+		requestBody: Partial<BuyingInvoiceRequestBody>,
+		requestContext: RequestContext,
+	) {
+		const existingInvoice = await this.getBuyingInvoice(
+			buyingInvoiceId,
+			requestContext,
+		)
+		const wasStockAffecting = Boolean(
+			existingInvoice &&
+			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
+		)
+		const isCancelling = wasStockAffecting && requestBody.status === 'cancelled'
+
+		if (wasStockAffecting && !isCancelling && requestBody.items) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Cannot edit items on a confirmed buying invoice. Cancel it and create a new one instead.',
+			)
+		}
+
+		const { updateResponse, touchedInventoryIds } = await this.runInTransaction(
+			async session => {
+				const inventoryIds = isCancelling
+					? await this.reversePurchaseInventoryAdjustments(
+							requestContext,
+							existingInvoice.buyingInvoiceId,
+							existingInvoice.invoiceNumber,
+							existingInvoice.items ?? [],
+							session,
+						)
+					: []
+
+				const updated = await this.mongoDbClient.updateDocument(
+					{
+						collectionName: COLLECTION_NAMES.BUYING_INVOICES,
+						id: buyingInvoiceId,
+						session,
+					},
+					requestContext,
+					BuyingInvoice,
+					requestBody,
+				)
+
+				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
+			},
+		)
+
+		for (const inventoryId of touchedInventoryIds) {
+			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		}
+
+		return updateResponse
+	}
+
+	public async deleteBuyingInvoice(
+		buyingInvoiceId: string,
+		requestContext: RequestContext,
+	) {
+		const existingInvoice = await this.getBuyingInvoice(
+			buyingInvoiceId,
+			requestContext,
+		)
+
+		if (
+			existingInvoice &&
+			this.shouldAdjustInventoryForInvoice(existingInvoice.status)
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Cannot delete a confirmed buying invoice. Cancel it instead.',
+			)
+		}
+
+		return this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.BUYING_INVOICES, id: buyingInvoiceId },
+			requestContext,
+			BuyingInvoice,
+		)
 	}
 
 	public async getInventory(

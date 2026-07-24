@@ -386,6 +386,11 @@
 			"newInvoice": "Neue Rechnung",
 			"newCreditInvoice": "Neue Kreditrechnung",
 			"newInvoiceOptions": "Optionen für neue Rechnung",
+			"newBuyingInvoice": "Einkaufsrechnung",
+			"newEntry": "Buchungen",
+			"entries": {
+				"title": "Buchung hinzufügen"
+			},
 			"barcodeSearchPlaceholder": "Barcode scannen oder Produkt suchen...",
 			"barcodeSearchHint": "Enter drücken, um eine neue Rechnung zu starten",
 			"todaysInvoices": "Heutige Rechnungen",
@@ -474,6 +479,9 @@
 				"change": "Wechselgeld",
 				"displayCurrency": "Anzeigewährung",
 				"otherCurrencies": "Andere Währungen",
+				"averageBuying": "Durchschnittlicher Einkauf",
+				"lastBuying": "Letzter Einkauf",
+				"lastSelling": "Letzter Verkauf",
 				"saveDraft": "Entwurf speichern",
 				"holdInvoice": "Rechnung zurückstellen",
 				"payCashAndSave": "Bar bezahlen & speichern",
@@ -481,6 +489,7 @@
 				"saveCreditInvoice": "Kreditrechnung speichern",
 				"removeItem": "Artikel entfernen",
 				"saveFailed": "Rechnung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+				"saveSuccess": "Rechnung erfolgreich gespeichert.",
 				"newDraftTab": "Weitere Rechnung starten",
 				"draftTab": "Entwurf {{index}}",
 				"closeDraftTab": "Entwurf schließen",
@@ -497,6 +506,43 @@
 					"tax": "Steuer",
 					"total": "Gesamt"
 				}
+			}
+		},
+		"buyingInvoices": {
+			"drawer": {
+				"title": "Neue Einkaufsrechnung",
+				"close": "Schließen",
+				"invoiceDate": "Rechnungsdatum",
+				"invoiceTime": "Uhrzeit",
+				"supplier": "Lieferant",
+				"paymentType": "Zahlungsart",
+				"addNote": "+ Notiz hinzufügen",
+				"additionalInfo": "Zusätzliche Informationen",
+				"notePlaceholder": "Notiz hier eingeben...",
+				"subtotal": "Zwischensumme",
+				"discount": "Rabatt",
+				"tax": "Steuer (15%)",
+				"grandTotal": "Gesamtsumme",
+				"paidAmount": "Bezahlter Betrag",
+				"change": "Wechselgeld",
+				"displayCurrency": "Anzeigewährung",
+				"saveDraft": "Entwurf speichern",
+				"holdInvoice": "Rechnung zurückstellen",
+				"payCashAndSave": "Bar bezahlen & speichern",
+				"saveCreditInvoice": "Kreditrechnung speichern",
+				"saveFailed": "Rechnung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+				"saveSuccess": "Einkaufsrechnung erfolgreich gespeichert.",
+				"offlineUnavailable": "Einkaufsrechnungen benötigen eine Internetverbindung.",
+				"newDraftTab": "Weitere Rechnung starten",
+				"draftTab": "Entwurf {{index}}",
+				"closeDraftTab": "Entwurf schließen",
+				"closeDraftTitle": "Einkaufsrechnungsentwurf verwerfen?",
+				"closeDraftBody": "Diese Rechnung hat ungespeicherte Änderungen. Verwerfen?",
+				"discardDraft": "Verwerfen"
+			},
+			"paymentType": {
+				"cash": "Bar",
+				"credit": "Kredit (Später zahlen)"
 			}
 		},
 		"pageHeaders": {

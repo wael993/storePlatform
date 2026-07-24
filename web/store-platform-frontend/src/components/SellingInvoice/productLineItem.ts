@@ -18,6 +18,9 @@ export const createLineItemFromProduct = (product: Product): SellingInvoiceLineI
 		discount: product.price?.discount ?? 0,
 		discountIsPercent: true,
 		taxRate,
+		averageCost: product.inventory?.averageCost,
+		lastBuyingPrice: product.price?.purchasePrice,
+		lastSellingPrice: product.price?.retailPrice,
 	}
 }
 

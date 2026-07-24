@@ -26,6 +26,12 @@
 			"PATCH": { "accessLevel": "NONE", "fields": [] },
 			"DELETE": { "accessLevel": "NONE", "fields": [] }
 		},
+		"/buyingInvoices": {
+			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"POST": { "accessLevel": "NONE", "fields": [] },
+			"PATCH": { "accessLevel": "NONE", "fields": [] },
+			"DELETE": { "accessLevel": "NONE", "fields": [] }
+		},
 		"/inventory": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "NONE", "fields": [] },

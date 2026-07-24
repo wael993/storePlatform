@@ -18,14 +18,22 @@ import { useTranslation } from 'react-i18next'
 
 import {
 	useDeleteSellingInvoiceMutation,
+	useGetBuyingInvoicesQuery,
 	useGetSellingInvoicesQuery,
 } from '../../api/apiStore'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
+import useCustomToast from '../common/CustomToast'
+import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
+import NewBuyingInvoicePanel from '../BuyingInvoice/NewBuyingInvoicePanel'
+import { isBuyingInvoiceDraftSessionDirty } from '../BuyingInvoice/buyingInvoiceDraftSessions'
+import type { BuyingInvoiceDraft } from '../BuyingInvoice/types'
+import { useBuyingInvoiceDraftSessions } from '../BuyingInvoice/useBuyingInvoiceDraftSessions'
+import AddEntryModal from '../modals/DailyAction/AddEntryModal'
 import { PAGE_COLORS } from './constants'
 import { mapApiSummaryToUi } from './invoiceApiMappers'
 import { isDraftSessionDirty } from './invoiceDraftSessions'
@@ -43,7 +51,9 @@ import type {
 import { useInvoiceDraftSessions } from './useInvoiceDraftSessions'
 import { normalizeSearchQuery as normalizeBarcode } from './productSearch'
 import { AsInvoiceIcon } from '../../icons/Invoice'
+import { AsCashBalanceIcon } from '../../icons/CashBalance'
 import { AsTrashIcon } from '../../icons/Trash'
+import { AsTruckIcon } from '../../shared/icons/Truck'
 
 const styles = {
 	wrapper: {
@@ -86,8 +96,12 @@ const styles = {
 
 const SellingInvoicesPage = () => {
 	const { t } = useTranslation()
-	const { user } = useUser()
+	const showToast = useCustomToast()
+	const { user, isAdmin } = useUser()
 	const breadCrumbItems = generateBreadcrumbs()
+	const [isOnline, setIsOnline] = useState(getIsOnline)
+
+	useEffect(() => subscribeConnectivity(setIsOnline), [])
 
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
 	const [detailMode, setDetailMode] =
@@ -98,6 +112,8 @@ const SellingInvoicesPage = () => {
 	const [draftTabPendingClose, setDraftTabPendingClose] = useState<
 		string | null
 	>(null)
+	const [buyingDraftTabPendingClose, setBuyingDraftTabPendingClose] =
+		useState<string | null>(null)
 
 	const {
 		isOpen: isDetailOpen,
@@ -114,11 +130,25 @@ const SellingInvoicesPage = () => {
 		onOpen: onCloseDraftOpen,
 		onClose: onCloseDraftClose,
 	} = useDisclosure()
+	const {
+		isOpen: isCloseBuyingDraftOpen,
+		onOpen: onCloseBuyingDraftOpen,
+		onClose: onCloseBuyingDraftClose,
+	} = useDisclosure()
+	const {
+		isOpen: isEntryOpen,
+		onOpen: onEntryOpen,
+		onClose: onEntryClose,
+	} = useDisclosure()
 
 	const { data: invoicesMeta, isLoading: isSummaryLoading } =
 		useGetSellingInvoicesQuery({
 			issuedDate: dayjs().format('YYYY-MM-DD'),
 		})
+	const { data: buyingInvoicesMeta } = useGetBuyingInvoicesQuery(
+		{},
+		{ skip: !isAdmin },
+	)
 
 	const [deleteSellingInvoice, { isLoading: isDeletingInvoice }] =
 		useDeleteSellingInvoiceMutation()
@@ -146,6 +176,22 @@ const SellingInvoicesPage = () => {
 
 	const isCreatingInvoice = sessions.length > 0
 
+	const {
+		sessions: buyingSessions,
+		activeSessionId: activeBuyingSessionId,
+		activeSession: activeBuyingSession,
+		setActiveSessionId: setActiveBuyingSessionId,
+		createSession: createBuyingSession,
+		updateDraft: updateBuyingDraft,
+		setShowNote: setBuyingShowNote,
+		clearInitialProductSearch: clearBuyingInitialProductSearch,
+		removeSession: removeBuyingSession,
+	} = useBuyingInvoiceDraftSessions({
+		nextInvoiceNumber: buyingInvoicesMeta?.nextInvoiceNumber ?? 1,
+	})
+
+	const isCreatingBuyingInvoice = isAdmin && buyingSessions.length > 0
+
 	useEffect(() => {
 		if (!activeSession?.initialProductSearch) return
 		clearInitialProductSearch(activeSession.id)
@@ -153,6 +199,15 @@ const SellingInvoicesPage = () => {
 		activeSession?.id,
 		activeSession?.initialProductSearch,
 		clearInitialProductSearch,
+	])
+
+	useEffect(() => {
+		if (!activeBuyingSession?.initialProductSearch) return
+		clearBuyingInitialProductSearch(activeBuyingSession.id)
+	}, [
+		activeBuyingSession?.id,
+		activeBuyingSession?.initialProductSearch,
+		clearBuyingInitialProductSearch,
 	])
 
 	const handleDraftChange = useCallback(
@@ -173,6 +228,26 @@ const SellingInvoicesPage = () => {
 			setShowNote(activeSessionId, showNote)
 		},
 		[activeSessionId, setShowNote],
+	)
+
+	const handleBuyingDraftChange = useCallback(
+		(
+			updater:
+				| BuyingInvoiceDraft
+				| ((current: BuyingInvoiceDraft) => BuyingInvoiceDraft),
+		) => {
+			if (!activeBuyingSessionId) return
+			updateBuyingDraft(activeBuyingSessionId, updater)
+		},
+		[activeBuyingSessionId, updateBuyingDraft],
+	)
+
+	const handleBuyingShowNoteChange = useCallback(
+		(showNote: boolean) => {
+			if (!activeBuyingSessionId) return
+			setBuyingShowNote(activeBuyingSessionId, showNote)
+		},
+		[activeBuyingSessionId, setBuyingShowNote],
 	)
 
 	const summary = useMemo(
@@ -204,6 +279,17 @@ const SellingInvoicesPage = () => {
 		[sessions, t],
 	)
 
+	const buyingDraftTabs = useMemo(
+		() =>
+			buyingSessions.map((session, index) => ({
+				id: session.id,
+				label: t('components.buyingInvoices.drawer.draftTab', {
+					index: index + 1,
+				}),
+			})),
+		[buyingSessions, t],
+	)
+
 	const openNewInvoicePanel = (options?: {
 		productSearch?: string
 		paymentType?: SellingInvoicePaymentType
@@ -213,6 +299,18 @@ const SellingInvoicesPage = () => {
 
 	const handleNewInvoice = () => {
 		openNewInvoicePanel()
+	}
+
+	const handleNewBuyingInvoice = () => {
+		if (!isOnline) {
+			showToast({
+				title: t('components.buyingInvoices.drawer.offlineUnavailable'),
+				status: 'warning',
+				duration: 4000,
+			})
+			return
+		}
+		createBuyingSession()
 	}
 
 	const handleNewCreditInvoice = () => {
@@ -250,6 +348,33 @@ const SellingInvoicesPage = () => {
 	const handleCreateInvoiceSaved = () => {
 		if (activeSessionId) {
 			removeSession(activeSessionId)
+		}
+	}
+
+	const requestCloseBuyingDraftTab = (sessionId: string) => {
+		const session = buyingSessions.find(item => item.id === sessionId)
+		if (!session) return
+
+		if (isBuyingInvoiceDraftSessionDirty(session)) {
+			setBuyingDraftTabPendingClose(sessionId)
+			onCloseBuyingDraftOpen()
+			return
+		}
+
+		removeBuyingSession(sessionId)
+	}
+
+	const handleConfirmCloseBuyingDraftTab = () => {
+		if (buyingDraftTabPendingClose) {
+			removeBuyingSession(buyingDraftTabPendingClose)
+		}
+		setBuyingDraftTabPendingClose(null)
+		onCloseBuyingDraftClose()
+	}
+
+	const handleCreateBuyingInvoiceSaved = () => {
+		if (activeBuyingSessionId) {
+			removeBuyingSession(activeBuyingSessionId)
 		}
 	}
 
@@ -361,6 +486,32 @@ const SellingInvoicesPage = () => {
 		</HStack>
 	)
 
+	const adminActionButtons = isAdmin && (
+		<>
+			<Button
+				leftIcon={<Icon as={AsTruckIcon} boxSize={5} />}
+				variant="outline"
+				borderRadius="lg"
+				borderColor={PAGE_COLORS.border}
+				fontWeight={600}
+				onClick={handleNewBuyingInvoice}
+				isDisabled={!isOnline}
+			>
+				{t('components.sellingInvoices.newBuyingInvoice')}
+			</Button>
+			<Button
+				leftIcon={<Icon as={AsCashBalanceIcon} boxSize={5} />}
+				variant="outline"
+				borderRadius="lg"
+				borderColor={PAGE_COLORS.border}
+				fontWeight={600}
+				onClick={onEntryOpen}
+			>
+				{t('components.sellingInvoices.newEntry')}
+			</Button>
+		</>
+	)
+
 	const invoiceDetailOverlays = (
 		<>
 			<InvoiceDetailModal
@@ -397,8 +548,87 @@ const SellingInvoicesPage = () => {
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('components.sellingInvoices.drawer.discardDraft')}
 			/>
+			<ConfirmationDialog
+				isOpen={isCloseBuyingDraftOpen}
+				onClose={() => {
+					setBuyingDraftTabPendingClose(null)
+					onCloseBuyingDraftClose()
+				}}
+				onConfirm={handleConfirmCloseBuyingDraftTab}
+				header={t('components.buyingInvoices.drawer.closeDraftTitle')}
+				body={t('components.buyingInvoices.drawer.closeDraftBody')}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('components.buyingInvoices.drawer.discardDraft')}
+			/>
+			{isAdmin && (
+				<AddEntryModal isOpen={isEntryOpen} onClose={onEntryClose} />
+			)}
 		</>
 	)
+
+	if (isCreatingBuyingInvoice && activeBuyingSession) {
+		return (
+			<>
+				<Flex sx={styles.wrapper}>
+					<Flex
+						sx={styles.splitContainer}
+						direction={{ base: 'column', xl: 'row' }}
+					>
+						<Box sx={styles.listPane} order={{ base: 2, xl: 1 }}>
+							<CustomBreadcrumb
+								marginTop="0.5rem"
+								items={breadCrumbItems[BreadCrumbItem.INVOICES]}
+							/>
+
+							<Flex
+								justify="space-between"
+								align={{ base: 'stretch', sm: 'center' }}
+								direction={{ base: 'column', sm: 'row' }}
+								gap={3}
+								mb={4}
+								flexShrink={0}
+							>
+								<Heading sx={styles.title} variant="h5" fontSize="xl">
+									{t('components.sellingInvoices.title')}
+								</Heading>
+							</Flex>
+
+							<Box mb={4} flexShrink={0}>
+								<InvoiceBarcodeSearchBar
+									onSubmit={handleBarcodeSearchSubmit}
+								/>
+							</Box>
+
+							<Box sx={styles.listScrollArea}>{invoiceListSection}</Box>
+						</Box>
+
+						<Box sx={styles.invoicePane} order={{ base: 1, xl: 2 }}>
+							<NewBuyingInvoicePanel
+								key={activeBuyingSession.id}
+								isActive
+								onClose={() => requestCloseBuyingDraftTab(activeBuyingSession.id)}
+								onSaved={handleCreateBuyingInvoiceSaved}
+								nextInvoiceNumber={buyingInvoicesMeta?.nextInvoiceNumber ?? 1}
+								initialProductSearch={
+									activeBuyingSession.initialProductSearch ?? ''
+								}
+								draft={activeBuyingSession.draft}
+								onDraftChange={handleBuyingDraftChange}
+								showNote={activeBuyingSession.showNote}
+								onShowNoteChange={handleBuyingShowNoteChange}
+								draftTabs={buyingDraftTabs}
+								activeDraftTabId={activeBuyingSessionId ?? undefined}
+								onSelectDraftTab={setActiveBuyingSessionId}
+								onCloseDraftTab={requestCloseBuyingDraftTab}
+								onAddDraftTab={() => createBuyingSession()}
+							/>
+						</Box>
+					</Flex>
+				</Flex>
+				{invoiceDetailOverlays}
+			</>
+		)
+	}
 
 	if (isCreatingInvoice && activeSession) {
 		return (
@@ -480,7 +710,10 @@ const SellingInvoicesPage = () => {
 					<Heading sx={styles.title} variant="h5">
 						{t('components.sellingInvoices.title')}
 					</Heading>
-					{newInvoiceButton}
+					<HStack spacing={3} flexWrap="wrap">
+						{adminActionButtons}
+						{newInvoiceButton}
+					</HStack>
 				</Flex>
 
 				<InvoiceSummaryCards summary={summary} isLoading={isSummaryLoading} />

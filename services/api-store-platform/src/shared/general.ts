@@ -4,6 +4,7 @@ export const COLLECTION_NAMES = {
 	CATEGORIES: 'categories',
 	ORDERS: 'orders',
 	INVOICES: 'invoices',
+	BUYING_INVOICES: 'buyingInvoices',
 	USERS: 'users',
 	INVENTORY: 'inventory',
 	REPORTS: 'reports',

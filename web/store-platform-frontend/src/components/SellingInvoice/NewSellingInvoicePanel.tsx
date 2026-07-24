@@ -26,6 +26,7 @@ import {
 	useUpdateSellingInvoiceMutation,
 } from '../../api/apiStore'
 import { useUser } from '../../shared/hooks/useUser'
+import useCustomToast from '../common/CustomToast'
 import { PAGE_COLORS } from './constants'
 import { calculateInvoiceTotals } from './invoiceCalculations'
 import {
@@ -185,6 +186,7 @@ const NewSellingInvoicePanel = ({
 	onAddDraftTab,
 }: NewSellingInvoicePanelProps) => {
 	const { t } = useTranslation()
+	const showToast = useCustomToast()
 	const { user } = useUser()
 	const { data: customers = [] } = useGetCustomersQuery()
 	const [postSellingInvoice, { isLoading: isCreating }] =
@@ -370,6 +372,11 @@ const NewSellingInvoicePanel = ({
 				await postSellingInvoice(body).unwrap()
 			}
 
+			showToast({
+				title: t('components.sellingInvoices.drawer.saveSuccess'),
+				status: 'success',
+				duration: 3000,
+			})
 			onSaved?.()
 			// Create multi-draft: onSaved removes this tab and shows the next one.
 			// Calling onClose here would hit stale draft state and open the discard dialog.
@@ -380,6 +387,7 @@ const NewSellingInvoicePanel = ({
 			const apiError = error as {
 				data?: { message?: string; code?: string }
 			}
+			// Offline selling can cancel after insufficient-stock confirm dialog.
 			if (apiError.data?.code === 'INSUFFICIENT_STOCK_CANCELLED') return
 
 			setSaveError(

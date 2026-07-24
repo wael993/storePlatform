@@ -1,4 +1,4 @@
-import { Model } from 'mongoose'
+import { ClientSession, Model } from 'mongoose'
 import { withTenantScope } from './tenantScopedModel'
 import { RequestContext } from '../types'
 import { TenantResource, ensureTenantAccess, getTenantContext } from '../tenant'
@@ -22,6 +22,7 @@ const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.CATEGORIES]: 'categoryId',
 	[COLLECTION_NAMES.ORDERS]: 'orderId',
 	[COLLECTION_NAMES.INVOICES]: 'invoiceId',
+	[COLLECTION_NAMES.BUYING_INVOICES]: 'buyingInvoiceId',
 	[COLLECTION_NAMES.INVENTORY]: 'inventoryId',
 	[COLLECTION_NAMES.REPORTS]: 'reportId',
 	[COLLECTION_NAMES.DAILY_ACTIONS]: 'actionId',
@@ -99,16 +100,17 @@ export const getDocumentByField = async <T>(
 	resource: TenantResource,
 	model: EntityModel,
 	{ fieldName, fieldValue }: Record<string, string>,
+	session?: ClientSession,
 ): Promise<T | null> => {
 	await ensureTenantAccess(requestContext, resource, 'read')
 	const tenantContext = getTenantContext(requestContext)
 
-	return withTenantScope(
+	const query = withTenantScope(
 		model.findOne({ [fieldName]: fieldValue }),
 		tenantContext.tenantId,
 	)
-		.lean<T>()
-		.exec()
+
+	return (session ? query.session(session) : query).lean<T>().exec()
 }
 
 export const createDocument = async (
@@ -116,6 +118,7 @@ export const createDocument = async (
 	resource: TenantResource,
 	model: EntityModel,
 	payload: Record<string, unknown>,
+	session?: ClientSession,
 ): Promise<{ _id: string }> => {
 	logger.debug(`Starting createDocument for resource: ${resource}`, {
 		entity: EntityType.MONGODB,
@@ -146,7 +149,7 @@ export const createDocument = async (
 		},
 	)
 
-	const created = await model.create(documentToCreate)
+	const created = await new model(documentToCreate).save({ session })
 
 	logger.debug(
 		`Created MongoDB document successfully: ${JSON.stringify(created)}`,
@@ -165,6 +168,7 @@ export const updateDocument = async (
 	model: EntityModel,
 	id: string,
 	payload: Record<string, unknown>,
+	session?: ClientSession,
 ) => {
 	await ensureTenantAccess(requestContext, resource, 'update')
 	const tenantContext = getTenantContext(requestContext)
@@ -174,7 +178,7 @@ export const updateDocument = async (
 
 	delete updatePayload.updatedBy
 
-	const updated = await withTenantScope(
+	const query = withTenantScope(
 		model.findOneAndUpdate(
 			{ [idField]: id },
 			{
@@ -186,7 +190,9 @@ export const updateDocument = async (
 			{ new: true, runValidators: true },
 		),
 		tenantContext.tenantId,
-	).lean()
+	)
+
+	const updated = await (session ? query.session(session) : query).lean()
 
 	if (!updated) {
 		throw new BusinessLogicError(

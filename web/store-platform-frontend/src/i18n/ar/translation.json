@@ -397,10 +397,15 @@
 			}
 		},
 		"sellingInvoices": {
-			"title": "فواتير المبيعات",
+			"title": "فواتير ",
 			"newInvoice": "فاتورة جديدة",
 			"newCreditInvoice": "فاتورة آجلة جديدة",
 			"newInvoiceOptions": "خيارات الفاتورة الجديدة",
+			"newBuyingInvoice": "فاتورة شراء",
+			"newEntry": "سندات",
+			"entries": {
+				"title": "إضافة سند"
+			},
 			"barcodeSearchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
 			"barcodeSearchHint": "اضغط Enter لبدء فاتورة جديدة",
 			"todaysInvoices": "فواتير اليوم",
@@ -489,6 +494,9 @@
 				"change": "الباقي",
 				"displayCurrency": "عملة العرض",
 				"otherCurrencies": "عملات أخرى",
+				"averageBuying": "متوسط الشراء",
+				"lastBuying": "آخر شراء",
+				"lastSelling": "آخر بيع",
 				"saveDraft": "حفظ كمسودة",
 				"holdInvoice": "تعليق الفاتورة",
 				"payCashAndSave": "دفع نقداً وحفظ",
@@ -496,6 +504,7 @@
 				"saveCreditInvoice": "حفظ فاتورة آجلة",
 				"removeItem": "حذف العنصر",
 				"saveFailed": "فشل حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
+				"saveSuccess": "تم حفظ الفاتورة بنجاح.",
 				"newDraftTab": "بدء فاتورة أخرى",
 				"draftTab": "مسودة {{index}}",
 				"closeDraftTab": "إغلاق المسودة",
@@ -514,8 +523,45 @@
 				}
 			}
 		},
+		"buyingInvoices": {
+			"drawer": {
+				"title": "فاتورة شراء جديدة",
+				"close": "إغلاق",
+				"invoiceDate": "تاريخ الفاتورة",
+				"invoiceTime": "الوقت",
+				"supplier": "المورد",
+				"paymentType": "نوع الدفع",
+				"addNote": "+ إضافة ملاحظة",
+				"additionalInfo": "معلومات إضافية",
+				"notePlaceholder": "أدخل الملاحظة هنا...",
+				"subtotal": "المجموع الفرعي",
+				"discount": "الخصم",
+				"tax": "الضريبة",
+				"grandTotal": "الإجمالي",
+				"paidAmount": "المبلغ المدفوع",
+				"change": "الباقي",
+				"displayCurrency": "عملة العرض",
+				"saveDraft": "حفظ كمسودة",
+				"holdInvoice": "تعليق الفاتورة",
+				"payCashAndSave": "دفع نقداً وحفظ",
+				"saveCreditInvoice": "حفظ فاتورة آجلة",
+				"saveFailed": "فشل حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
+				"saveSuccess": "تم حفظ فاتورة الشراء بنجاح.",
+				"offlineUnavailable": "فواتير الشراء تتطلب اتصالاً بالإنترنت.",
+				"newDraftTab": "بدء فاتورة أخرى",
+				"draftTab": "مسودة {{index}}",
+				"closeDraftTab": "إغلاق المسودة",
+				"closeDraftTitle": "تجاهل مسودة فاتورة الشراء؟",
+				"closeDraftBody": "هذه الفاتورة تحتوي على تغييرات غير محفوظة. هل تريد تجاهلها؟",
+				"discardDraft": "تجاهل"
+			},
+			"paymentType": {
+				"cash": "نقداً",
+				"credit": "آجل (ادفع لاحقاً)"
+			}
+		},
 		"pageHeaders": {
-			"sellingInvoices": "فواتير المبيعات",
+			"sellingInvoices": "فواتير ",
 			"settings": "الإعدادات",
 			"daily": "اليومية",
 			"cashBalance": "الصندوق",

@@ -25,6 +25,7 @@ import {
 	requestInsufficientStockConfirmation,
 	type InsufficientStockItem,
 } from './insufficientStockConfirmation'
+import { formatSellingInvoiceNumber } from '../shared/invoiceNumbering'
 import {
 	generateId,
 	nowIso,
@@ -318,7 +319,7 @@ const handlePostInvoice = async (
 	}
 
 	const allocatedNumber = await allocateNextInvoiceNumber()
-	const invoiceNumber = String(allocatedNumber)
+	const invoiceNumber = formatSellingInvoiceNumber(allocatedNumber)
 
 	const invoice: LocalInvoice = withLocalMeta(
 		{
@@ -350,7 +351,7 @@ const handlePostInvoice = async (
 			...body,
 			invoiceId,
 			clientMutationId,
-			invoiceNumber: allocatedNumber,
+			invoiceNumber,
 		},
 		clientMutationId,
 	})

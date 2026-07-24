@@ -11,6 +11,7 @@ import {
 	type InvoiceCurrencyAmount,
 } from './currencyDisplay'
 import type { CurrencySettings } from '../../api/apiStore'
+import { parseInvoiceSequence } from '../../shared/invoiceNumbering'
 import type {
 	SellingInvoice,
 	SellingInvoiceDraft,
@@ -101,7 +102,7 @@ export const mapApiInvoiceToSellingInvoice = (
 
 	return {
 		id: invoice.invoiceId,
-		invoiceNumber: Number.parseInt(invoice.invoiceNumber, 10) || 0,
+		invoiceNumber: parseInvoiceSequence(invoice.invoiceNumber),
 		time: formatInvoiceTime(invoice.issuedAt, invoice.createdAt),
 		customerName: invoice.customerName ?? 'Walk-in Customer',
 		status: mapApiStatusToUi(invoice),
@@ -123,7 +124,7 @@ export const mapApiInvoiceToDraft = (
 
 	return {
 		invoiceId: invoice.invoiceId,
-		invoiceNumber: Number.parseInt(invoice.invoiceNumber, 10) || 0,
+		invoiceNumber: parseInvoiceSequence(invoice.invoiceNumber),
 		invoiceDate: issuedAt ? dayjs(issuedAt).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
 		invoiceTime: issuedAt ? dayjs(issuedAt).format('HH:mm') : dayjs().format('HH:mm'),
 		salesPerson: invoice.salesPerson ?? '',
@@ -192,7 +193,7 @@ export const buildInvoiceRequestBody = (
 	return {
 		invoiceId: draft.invoiceId,
 		clientMutationId: generateId(),
-		invoiceNumber: String(draft.invoiceNumber),
+		// Server allocates SI-000001; draft number is display-only preview.
 		customerId: draft.customerId === 'walk-in' ? undefined : draft.customerId,
 		customerName: draft.customerName,
 		salesPerson: draft.salesPerson,

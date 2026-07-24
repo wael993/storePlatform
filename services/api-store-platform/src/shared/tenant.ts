@@ -45,10 +45,18 @@ const ACTION_TO_HTTP_METHODS: Record<TenantAction, string[]> = {
 	delete: ['DELETE'],
 }
 
-// Side-effect resources created by other operations (e.g. stock movements on invoice save).
-const IMPLICIT_CREATE_SOURCES: Partial<Record<TenantResource, TenantResource[]>> =
+// Side-effect resources mutated by other operations (e.g. stock/inventory on invoice save).
+// Allowed when the caller has `create` on a listed source resource.
+const IMPLICIT_WRITE_SOURCES: Partial<Record<TenantResource, TenantResource[]>> =
 	{
-		[COLLECTION_NAMES.STOCK_MOVINGS]: [COLLECTION_NAMES.INVOICES],
+		[COLLECTION_NAMES.STOCK_MOVINGS]: [
+			COLLECTION_NAMES.INVOICES,
+			COLLECTION_NAMES.BUYING_INVOICES,
+		],
+		[COLLECTION_NAMES.INVENTORY]: [
+			COLLECTION_NAMES.INVOICES,
+			COLLECTION_NAMES.BUYING_INVOICES,
+		],
 	}
 
 let dynamicRoleCache: {
@@ -66,6 +74,7 @@ const createEmptyPermissionMap = (): TenantPermissionMap => ({
 	products: [],
 	orders: [],
 	invoices: [],
+	buyingInvoices: [],
 	inventory: [],
 	reports: [],
 	tenants: [],
@@ -350,8 +359,8 @@ export const ensureTenantAccess = async (
 	const permissions = dynamicEngine.matrix[tenantContext.role][resource] || []
 
 	if (!permissions.includes(action)) {
-		if (action === 'create') {
-			const sourceResources = IMPLICIT_CREATE_SOURCES[resource] || []
+		if (action === 'create' || action === 'update') {
+			const sourceResources = IMPLICIT_WRITE_SOURCES[resource] || []
 
 			for (const sourceResource of sourceResources) {
 				const sourcePermissions =

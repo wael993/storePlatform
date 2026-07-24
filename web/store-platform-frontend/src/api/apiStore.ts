@@ -5,6 +5,7 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
+import { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
 import {
 	getIsOnline,
 	markOnline,
@@ -168,12 +169,71 @@ export interface SellingInvoicesApiResponse {
 	totalCount: number
 }
 
+export interface BuyingInvoicesQueryParams {
+	searchText?: string
+	status?: string
+	issuedDate?: string
+}
+
+export interface PostBuyingInvoiceBody {
+	buyingInvoiceId?: string
+	clientMutationId?: string
+	invoiceNumber?: string
+	supplierId?: string
+	supplierName?: string
+	paymentType?: 'cash' | 'credit'
+	items: Array<{
+		productId: string
+		name: string
+		barcode?: string
+		quantity: number
+		unit?: string
+		unitPrice: number
+		discount?: number
+		discountIsPercent?: boolean
+		taxRate?: number
+		lineTotal?: number
+	}>
+	status?: string
+	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	currencyAmounts: Array<{
+		currencyId: string
+		name: string
+		internalCode?: string
+		exchangeRate: number
+		isPrimary: boolean
+		amount: number
+		paidAmount: number
+		remainingAmount: number
+		subtotal: number
+		tax: number
+		discount: number
+	}>
+	notes?: string
+	warehouseId?: string
+	issuedAt?: string
+}
+
+export interface BuyingInvoicesApiResponse {
+	invoices: ApiBuyingInvoice[]
+	summary: {
+		todayPurchases: number
+		paidInvoices: number
+		creditInvoices: number
+		totalPayable: number
+		averageOrder: number
+	}
+	nextInvoiceNumber: number
+	totalCount: number
+}
+
 export interface InventoryItem {
 	inventoryId: string
 	productId: string
 	warehouseId?: string
 	shelfId?: string
 	quantity?: number
+	averageCost?: number
 	availableQuantity?: number
 	reservedQuantity?: number
 }
@@ -1063,6 +1123,56 @@ const getQuery = (
 			invalidatesTags: ['invoices', 'inventory', 'products'],
 		}),
 
+		getBuyingInvoices: builder.query<
+			BuyingInvoicesApiResponse,
+			BuyingInvoicesQueryParams | undefined
+		>({
+			query: (params = {}) => ({
+				url: 'buying-invoices',
+				params,
+			}),
+			providesTags: ['buying-invoices'],
+		}),
+
+		getBuyingInvoice: builder.query<ApiBuyingInvoice, string>({
+			query: (buyingInvoiceId: string) => ({
+				url: `buying-invoices/${buyingInvoiceId}`,
+			}),
+			providesTags: ['buying-invoices'],
+		}),
+
+		postBuyingInvoice: builder.mutation<
+			{ _id: string; buyingInvoiceId: string; invoiceNumber: string },
+			PostBuyingInvoiceBody
+		>({
+			query: body => ({
+				url: 'buying-invoices',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+		}),
+
+		updateBuyingInvoice: builder.mutation<
+			void,
+			{ buyingInvoiceId: string; body: PostBuyingInvoiceBody }
+		>({
+			query: ({ buyingInvoiceId, body }) => ({
+				url: `buying-invoices/${buyingInvoiceId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+		}),
+
+		deleteBuyingInvoice: builder.mutation<void, string>({
+			query: (buyingInvoiceId: string) => ({
+				url: `buying-invoices/${buyingInvoiceId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+		}),
+
 		getInventory: builder.query<InventoryItem[], void>({
 			query: () => ({
 				url: 'inventory',
@@ -1147,5 +1257,10 @@ export const {
 	usePostSellingInvoiceMutation,
 	useUpdateSellingInvoiceMutation,
 	useDeleteSellingInvoiceMutation,
+	useGetBuyingInvoicesQuery,
+	useGetBuyingInvoiceQuery,
+	usePostBuyingInvoiceMutation,
+	useUpdateBuyingInvoiceMutation,
+	useDeleteBuyingInvoiceMutation,
 	useGetInventoryQuery,
 } = storeApi

@@ -328,6 +328,7 @@ interface Product {
 		warehouseId?: string
 		shelfId?: string
 		quantity?: number
+		averageCost?: number
 		minQuantity?: number
 		maxQuantity?: number
 		reservedQuantity?: number

@@ -399,6 +399,11 @@
 			"newInvoice": "New Invoice",
 			"newCreditInvoice": "New Credit Invoice",
 			"newInvoiceOptions": "New invoice options",
+			"newBuyingInvoice": "Buying Invoice",
+			"newEntry": "Entries",
+			"entries": {
+				"title": "Add Entry"
+			},
 			"barcodeSearchPlaceholder": "Scan barcode or search product...",
 			"barcodeSearchHint": "Press Enter to start a new invoice",
 			"todaysInvoices": "Today's Invoices",
@@ -487,6 +492,9 @@
 				"change": "Change",
 				"displayCurrency": "Display Currency",
 				"otherCurrencies": "Other currencies",
+				"averageBuying": "Average buying",
+				"lastBuying": "Last buying",
+				"lastSelling": "Last selling",
 				"saveDraft": "Save Draft",
 				"holdInvoice": "Hold Invoice",
 				"payCashAndSave": "Pay Cash & Save",
@@ -494,6 +502,7 @@
 				"saveCreditInvoice": "Save Credit Invoice",
 				"removeItem": "Remove item",
 				"saveFailed": "Failed to save invoice. Please try again.",
+				"saveSuccess": "Invoice saved successfully.",
 				"newDraftTab": "Start another invoice",
 				"draftTab": "Draft {{index}}",
 				"closeDraftTab": "Close draft",
@@ -510,6 +519,43 @@
 					"tax": "Tax",
 					"total": "Total"
 				}
+			}
+		},
+		"buyingInvoices": {
+			"drawer": {
+				"title": "New Buying Invoice",
+				"close": "Close",
+				"invoiceDate": "Invoice Date",
+				"invoiceTime": "Time",
+				"supplier": "Supplier",
+				"paymentType": "Payment Type",
+				"addNote": "+ Add Note",
+				"additionalInfo": "Additional Info",
+				"notePlaceholder": "Enter note here...",
+				"subtotal": "Subtotal",
+				"discount": "Discount",
+				"tax": "Tax (15%)",
+				"grandTotal": "Grand Total",
+				"paidAmount": "Paid Amount",
+				"change": "Change",
+				"displayCurrency": "Display Currency",
+				"saveDraft": "Save Draft",
+				"holdInvoice": "Hold Invoice",
+				"payCashAndSave": "Pay Cash & Save",
+				"saveCreditInvoice": "Save Credit Invoice",
+				"saveFailed": "Failed to save invoice. Please try again.",
+				"saveSuccess": "Buying invoice saved successfully.",
+				"offlineUnavailable": "Buying invoices require an internet connection.",
+				"newDraftTab": "Start another invoice",
+				"draftTab": "Draft {{index}}",
+				"closeDraftTab": "Close draft",
+				"closeDraftTitle": "Discard buying invoice draft?",
+				"closeDraftBody": "This invoice has unsaved changes. Discard it?",
+				"discardDraft": "Discard"
+			},
+			"paymentType": {
+				"cash": "Cash",
+				"credit": "Credit (Pay Later)"
 			}
 		},
 		"pageHeaders": {

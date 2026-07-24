@@ -53,6 +53,10 @@ export interface SellingInvoiceLineItem {
 	discount: number
 	discountIsPercent: boolean
 	taxRate: number
+	/** Cost reference snapshotted from the product at add-time, shown in the unit price tooltip. */
+	averageCost?: number
+	lastBuyingPrice?: number
+	lastSellingPrice?: number
 }
 
 export interface SellingInvoiceDraft {
