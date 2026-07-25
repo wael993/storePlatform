@@ -28,6 +28,9 @@ interface CurrencyAmountTooltipProps {
 	fontSize?: string
 	fontWeight?: number | string
 	color?: string
+	fieldId?: string
+	registerEditStart?: (fieldId: string, start: (() => void) | null) => void
+	onEnterCommit?: () => void
 	onEdit?: (amount: number) => void | Promise<void>
 	costReference?: CostReferenceLines
 }
@@ -42,6 +45,9 @@ const CurrencyAmountTooltip = ({
 	fontSize = 'sm',
 	fontWeight = 600,
 	color,
+	fieldId,
+	registerEditStart,
+	onEnterCommit,
 	onEdit,
 	costReference,
 }: CurrencyAmountTooltipProps) => {
@@ -67,6 +73,9 @@ const CurrencyAmountTooltip = ({
 			fontSize={fontSize}
 			fontWeight={fontWeight}
 			color={color}
+			fieldId={fieldId}
+			registerEditStart={registerEditStart}
+			onEnterCommit={onEnterCommit}
 			onSave={async editedAmount => {
 				await onEdit(
 					convertToPrimaryAmount(editedAmount, displayCurrencyId, options),

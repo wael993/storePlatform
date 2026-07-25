@@ -14,7 +14,7 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
 import {
@@ -87,11 +87,42 @@ const InvoiceLineItemsTable = ({
 	isReadOnly = false,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
+	const editStartRefs = useRef(new Map<string, () => void>())
 
 	// Newest line items are appended last; show newest first in the table.
 	const displayLineItems = useMemo(
 		() => [...lineItems].reverse(),
 		[lineItems],
+	)
+
+	type LineItemField = 'quantity' | 'unitPrice' | 'total'
+
+	const lineItemFieldId = (itemId: string, field: LineItemField) =>
+		`${itemId}-${field}`
+
+	const registerEditStart = useCallback(
+		(fieldId: string, start: (() => void) | null) => {
+			if (start) {
+				editStartRefs.current.set(fieldId, start)
+				return
+			}
+			editStartRefs.current.delete(fieldId)
+		},
+		[],
+	)
+
+	const focusNextField = useCallback(
+		(currentIndex: number, field: LineItemField) => {
+			const nextItem = displayLineItems[currentIndex + 1]
+			if (!nextItem) return
+
+			const nextFieldId = lineItemFieldId(nextItem.id, field)
+			// ponytail: rAF defer — let current input blur/unmount before opening next
+			requestAnimationFrame(() => {
+				editStartRefs.current.get(nextFieldId)?.()
+			})
+		},
+		[displayLineItems],
 	)
 
 	const handleQuantityEdit = (item: SellingInvoiceLineItem, quantity: number) => {
@@ -185,6 +216,9 @@ const InvoiceLineItemsTable = ({
 									isEditable
 									fontSize="sm"
 									fontWeight={600}
+									fieldId={lineItemFieldId(item.id, 'quantity')}
+									registerEditStart={registerEditStart}
+									onEnterCommit={() => focusNextField(index, 'quantity')}
 									onSave={quantity => handleQuantityEdit(item, quantity)}
 								/>
 							)}
@@ -195,6 +229,9 @@ const InvoiceLineItemsTable = ({
 								displayText={formatAmount(item.unitPrice)}
 								options={currencyOptions}
 								displayCurrencyId={displayCurrencyId}
+								fieldId={lineItemFieldId(item.id, 'unitPrice')}
+								registerEditStart={registerEditStart}
+								onEnterCommit={() => focusNextField(index, 'unitPrice')}
 								onEdit={
 									isReadOnly
 										? undefined
@@ -222,6 +259,9 @@ const InvoiceLineItemsTable = ({
 									displayText={formatAmount(calculateLineItemTotal(item))}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}
+									fieldId={lineItemFieldId(item.id, 'total')}
+									registerEditStart={registerEditStart}
+									onEnterCommit={() => focusNextField(index, 'total')}
 									onEdit={
 										isReadOnly
 											? undefined

@@ -10,6 +10,9 @@ interface EditableNumberFieldProps {
 	fontWeight?: number | string
 	color?: string
 	minWidth?: string
+	fieldId?: string
+	registerEditStart?: (fieldId: string, start: (() => void) | null) => void
+	onEnterCommit?: () => void
 	onSave: (value: number) => void | Promise<void>
 }
 
@@ -24,10 +27,14 @@ const EditableNumberField = ({
 	fontWeight = 600,
 	color,
 	minWidth = '4rem',
+	fieldId,
+	registerEditStart,
+	onEnterCommit,
 	onSave,
 }: EditableNumberFieldProps) => {
 	const inputRef = useRef<HTMLInputElement | null>(null)
 	const skipBlurCommitRef = useRef(false)
+	const committingEnterRef = useRef(false)
 	const [isEditing, setIsEditing] = useState(false)
 	const [draft, setDraft] = useState(toEditValue(value))
 
@@ -55,22 +62,32 @@ const EditableNumberField = ({
 		setIsEditing(true)
 	}
 
+	const startEditingRef = useRef(startEditing)
+	startEditingRef.current = startEditing
+
+	useEffect(() => {
+		if (!fieldId || !registerEditStart) return
+
+		registerEditStart(fieldId, () => startEditingRef.current())
+		return () => registerEditStart(fieldId, null)
+	}, [fieldId, registerEditStart])
+
 	const cancelEditing = () => {
 		skipBlurCommitRef.current = true
 		setDraft(toEditValue(value))
 		setIsEditing(false)
 	}
 
-	const commitEditing = async () => {
+	const commitEditing = async (): Promise<boolean> => {
 		if (skipBlurCommitRef.current) {
 			skipBlurCommitRef.current = false
-			return
+			return false
 		}
 
 		const parsed = Number.parseFloat(draft)
 		if (!Number.isFinite(parsed) || parsed < 0) {
 			cancelEditing()
-			return
+			return false
 		}
 
 		skipBlurCommitRef.current = true
@@ -78,12 +95,20 @@ const EditableNumberField = ({
 		if (parsed !== value) {
 			await onSave(parsed)
 		}
+
+		return true
 	}
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (event.key === 'Enter') {
 			event.preventDefault()
-			void commitEditing()
+			committingEnterRef.current = true
+			void commitEditing().then(committed => {
+				committingEnterRef.current = false
+				if (committed) {
+					onEnterCommit?.()
+				}
+			})
 		} else if (event.key === 'Escape') {
 			event.preventDefault()
 			cancelEditing()
@@ -116,7 +141,6 @@ const EditableNumberField = ({
 
 	return (
 		<HStack
-			// spacing={1}
 			minW={minWidth}
 			border="1px solid"
 			borderColor="gray.300"
@@ -130,6 +154,7 @@ const EditableNumberField = ({
 				value={draft}
 				onChange={e => setDraft(parseNumberValue(e.target.value))}
 				onBlur={() => {
+					if (committingEnterRef.current) return
 					void commitEditing()
 				}}
 				onKeyDown={handleKeyDown}
@@ -140,11 +165,6 @@ const EditableNumberField = ({
 				padding={'0.3rem'}
 				{...sharedTextStyles}
 			/>
-			{/* {currency ? (
-				<Text {...sharedTextStyles} flexShrink={0}>
-					{currency}
-				</Text>
-			) : null} */}
 		</HStack>
 	)
 }

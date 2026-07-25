@@ -316,8 +316,7 @@ const NewBuyingInvoicePanel = ({
 		}))
 	}
 
-	const canSave =
-		draft.lineItems.length > 0 && hasSupplier && hasSalesPerson
+	const canSave = draft.lineItems.length > 0 && hasSupplier && hasSalesPerson
 
 	const handleSaveInvoice = async (
 		status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
