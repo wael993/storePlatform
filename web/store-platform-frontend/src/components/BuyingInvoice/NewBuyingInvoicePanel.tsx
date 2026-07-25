@@ -36,6 +36,7 @@ import { AsSaveIcon } from '../icons/Save'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsDocumentIcon } from '../../shared/icons/Document'
 import DatePickerLabel from '../common/DatePickerLabel'
+import { useUser } from '../../shared/hooks/useUser'
 import { buildBuyingInvoiceRequestBody } from './buyingInvoiceApiMappers'
 import { createBuyingInvoiceDraft } from './buyingInvoiceDraftSessions'
 import useCustomToast from '../common/CustomToast'
@@ -71,6 +72,8 @@ interface NewBuyingInvoicePanelProps {
 	onSelectDraftTab?: (tabId: string) => void
 	onCloseDraftTab?: (tabId: string) => void
 	onAddDraftTab?: () => void
+	suppliers?: Supplier[]
+	salesPerson?: string
 }
 
 const PaymentTypeButton = ({
@@ -160,10 +163,26 @@ const NewBuyingInvoicePanel = ({
 	onSelectDraftTab,
 	onCloseDraftTab,
 	onAddDraftTab,
+	suppliers: suppliersProp,
+	salesPerson: salesPersonProp,
 }: NewBuyingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
-	const { data: suppliers = [] } = useGetSuppliersQuery({})
+	const { user } = useUser()
+	const { data: fetchedSuppliers = [] } = useGetSuppliersQuery(
+		{},
+		{
+			skip: suppliersProp !== undefined,
+			refetchOnMountOrArgChange: false,
+		},
+	)
+	const suppliers = suppliersProp ?? fetchedSuppliers
+	const salesPerson =
+		salesPersonProp ||
+		[user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+		user?.email ||
+		'User'
+
 	const [postBuyingInvoice, { isLoading: isSaving }] =
 		usePostBuyingInvoiceMutation()
 	const [saveError, setSaveError] = useState<string | null>(null)
@@ -173,7 +192,7 @@ const NewBuyingInvoicePanel = ({
 	const isControlledCreate = Boolean(controlledDraft && onDraftChange)
 
 	const [internalDraft, setInternalDraft] = useState<BuyingInvoiceDraft>(() =>
-		createBuyingInvoiceDraft({ paymentType: initialPaymentType }),
+		createBuyingInvoiceDraft(salesPerson, { paymentType: initialPaymentType }),
 	)
 	const [internalShowNote, setInternalShowNote] = useState(false)
 
@@ -201,14 +220,26 @@ const NewBuyingInvoicePanel = ({
 		if (!isActive || isControlledCreate) return
 
 		setInternalDraft(
-			createBuyingInvoiceDraft({
+			createBuyingInvoiceDraft(salesPerson, {
 				paymentType: initialPaymentType,
 				invoiceNumber: nextInvoiceNumber,
 			}),
 		)
 		setInternalShowNote(false)
 		setSaveError(null)
-	}, [isActive, isControlledCreate, initialPaymentType, nextInvoiceNumber])
+	}, [
+		isActive,
+		isControlledCreate,
+		initialPaymentType,
+		nextInvoiceNumber,
+		salesPerson,
+	])
+
+	useEffect(() => {
+		if (!draft.salesPerson && salesPerson) {
+			setDraft(current => ({ ...current, salesPerson }))
+		}
+	}, [draft.salesPerson, salesPerson, setDraft])
 
 	useEffect(() => {
 		if (!isControlledCreate) return
@@ -237,6 +268,7 @@ const NewBuyingInvoicePanel = ({
 	)
 
 	const hasSupplier = Boolean(draft.supplierId)
+	const hasSalesPerson = Boolean((draft.salesPerson || salesPerson).trim())
 
 	const handleAddProduct = (product: Product) => {
 		setDraft(current => ({
@@ -284,7 +316,8 @@ const NewBuyingInvoicePanel = ({
 		}))
 	}
 
-	const canSave = draft.lineItems.length > 0 && hasSupplier
+	const canSave =
+		draft.lineItems.length > 0 && hasSupplier && hasSalesPerson
 
 	const handleSaveInvoice = async (
 		status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
@@ -467,6 +500,45 @@ const NewBuyingInvoicePanel = ({
 							borderColor={PAGE_COLORS.border}
 						/>
 					</Box>
+
+					<DropdownLabel
+						label={t('components.buyingInvoices.drawer.salesPerson')}
+						options={[
+							{
+								label: draft.salesPerson || salesPerson,
+								value: draft.salesPerson || salesPerson,
+							},
+						]}
+						selectedOptions={[
+							{
+								label: draft.salesPerson || salesPerson,
+								value: draft.salesPerson || salesPerson,
+							},
+						]}
+						onSelect={values =>
+							setDraft(current => ({
+								...current,
+								salesPerson: values[0] ?? current.salesPerson ?? salesPerson,
+							}))
+						}
+						placeholder={t('components.buyingInvoices.drawer.salesPerson')}
+						isSingle
+						isSearchable
+						isDisabled
+						customStyles={{
+							dropdownContainer: {
+								width: '100%',
+							},
+							dropdownMenu: {
+								mt: '0.4rem',
+								borderRadius: 'none',
+								width: '100%',
+							},
+							dropdownPlaceholder: {
+								width: '100%',
+							},
+						}}
+					/>
 
 					<DropdownLabel
 						label={t('components.buyingInvoices.drawer.supplier')}

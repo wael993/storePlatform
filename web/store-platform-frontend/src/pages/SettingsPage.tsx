@@ -116,7 +116,10 @@ const SettingsPage = () => {
 		hasChanges,
 		setHasChanges,
 	} = useSettings()
-	const { data: currencySettingsData } = useGetCurrencySettingsQuery()
+	const { data: currencySettingsData } = useGetCurrencySettingsQuery(
+		undefined,
+		{ refetchOnMountOrArgChange: false },
+	)
 	const [currentTabIndex, setCurrentTabIndex] = useState<number>(0)
 	const [primaryCurrency, setPrimaryCurrency] =
 		useState<CurrencySettingItem | null>(createEmptyPrimary())

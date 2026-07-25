@@ -7,10 +7,19 @@ import {
 } from '../SellingInvoice/invoiceCalculations'
 import {
 	buildInvoiceCurrencyAmounts,
+	getPrimaryInvoiceCurrencyAmounts,
 	type InvoiceCurrencyAmount,
 } from '../SellingInvoice/currencyDisplay'
-import type { CurrencySettings } from '../../api/apiStore'
+import type {
+	SellingInvoice,
+	SellingInvoicePaymentType,
+	SellingInvoiceStatus,
+} from '../SellingInvoice/types'
 import type { BuyingInvoiceDraft } from './types'
+import type { CurrencySettings } from '../../api/apiStore'
+import { parseInvoiceSequence } from '../../shared/invoiceNumbering'
+
+export type { InvoiceCurrencyAmount }
 
 export interface ApiBuyingInvoice {
 	buyingInvoiceId: string
@@ -36,6 +45,47 @@ export interface ApiBuyingInvoice {
 	notes?: string
 	issuedAt?: string
 	createdAt?: string
+}
+
+const mapApiBuyingStatusToUi = (
+	invoice: ApiBuyingInvoice,
+): SellingInvoiceStatus => {
+	if (invoice.status === 'draft') return 'draft'
+	if (invoice.status === 'cancelled') return 'cancelled'
+	if (invoice.status === 'paid' || invoice.paymentStatus === 'paid') return 'paid'
+	if (invoice.status === 'partial' || invoice.paymentStatus === 'partial') {
+		return 'partial'
+	}
+	if (invoice.paymentType === 'credit') return 'credit'
+	return 'paid'
+}
+
+const formatInvoiceTime = (issuedAt?: string, createdAt?: string) => {
+	const source = issuedAt ?? createdAt
+	if (!source) return '--:--'
+
+	return dayjs(source).format('hh:mm A')
+}
+
+export const mapApiBuyingInvoiceToTableRow = (
+	invoice: ApiBuyingInvoice,
+): SellingInvoice => {
+	const { grandTotal, paidAmount, remainingAmount } =
+		getPrimaryInvoiceCurrencyAmounts(invoice)
+
+	return {
+		id: invoice.buyingInvoiceId,
+		invoiceNumber: parseInvoiceSequence(invoice.invoiceNumber),
+		time: formatInvoiceTime(invoice.issuedAt, invoice.createdAt),
+		customerName: invoice.supplierName ?? '—',
+		status: mapApiBuyingStatusToUi(invoice),
+		paymentType: (invoice.paymentType ?? 'cash') as SellingInvoicePaymentType,
+		itemCount: invoice.items?.length ?? 0,
+		total: grandTotal,
+		paid: paidAmount,
+		due: remainingAmount,
+		currencyAmounts: invoice.currencyAmounts,
+	}
 }
 
 export const buildBuyingInvoiceRequestBody = (

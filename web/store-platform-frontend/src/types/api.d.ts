@@ -322,6 +322,8 @@ interface Product {
 	}
 	images?: string[]
 	description?: string
+	/** Most recent unit price from a confirmed selling invoice, if any. */
+	lastSellingPrice?: number
 	inventory?: {
 		inventoryId: string
 		productId: string

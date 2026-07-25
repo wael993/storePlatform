@@ -88,6 +88,7 @@ interface NewSellingInvoicePanelProps {
 	onSelectDraftTab?: (tabId: string) => void
 	onCloseDraftTab?: (tabId: string) => void
 	onAddDraftTab?: () => void
+	customers?: Customer[]
 }
 
 const PaymentTypeButton = ({
@@ -184,11 +185,16 @@ const NewSellingInvoicePanel = ({
 	onSelectDraftTab,
 	onCloseDraftTab,
 	onAddDraftTab,
+	customers: customersProp,
 }: NewSellingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { user } = useUser()
-	const { data: customers = [] } = useGetCustomersQuery()
+	const { data: fetchedCustomers = [] } = useGetCustomersQuery(undefined, {
+		skip: customersProp !== undefined,
+		refetchOnMountOrArgChange: false,
+	})
+	const customers = customersProp ?? fetchedCustomers
 	const [postSellingInvoice, { isLoading: isCreating }] =
 		usePostSellingInvoiceMutation()
 	const [updateSellingInvoice, { isLoading: isUpdating }] =

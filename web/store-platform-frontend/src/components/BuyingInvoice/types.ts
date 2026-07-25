@@ -16,6 +16,7 @@ export interface BuyingInvoiceDraft {
 	invoiceNumber: number
 	invoiceDate: string
 	invoiceTime: string
+	salesPerson: string
 	supplierId: string
 	supplierName: string
 	paymentType: BuyingInvoicePaymentType

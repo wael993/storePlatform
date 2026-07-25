@@ -32,6 +32,17 @@ export interface SellingInvoiceSummary {
 	creditInvoicesTrend: number
 	totalReceivable: number
 	averageOrder: number
+	totalProfit: number
+	bestSeller: {
+		productId: string
+		productName: string
+		quantity: number
+	} | null
+	topProfitProduct: {
+		productId: string
+		productName: string
+		profit: number
+	} | null
 	salesSparkline: number[]
 }
 

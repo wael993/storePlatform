@@ -124,22 +124,184 @@ const mapInvoiceStatus = (status?: string) => {
 	return status ?? 'confirmed'
 }
 
-const buildSellingInvoicesSummary = (invoices: LocalInvoice[]) => {
-	const todayStart = new Date()
-	todayStart.setHours(0, 0, 0, 0)
-	const todayEnd = new Date()
-	todayEnd.setHours(23, 59, 59, 999)
+const PERIOD_EXCLUDED_STATUSES = new Set(['draft', 'cancelled', 'void', 'pending'])
 
-	const todaysInvoices = invoices.filter(inv => {
+const getInvoiceLineRevenue = (item: {
+	lineTotal?: number
+	quantity?: number
+	unitPrice?: number
+}) => {
+	if (item.lineTotal != null) return Number(item.lineTotal)
+
+	return Number(item.quantity ?? 0) * Number(item.unitPrice ?? 0)
+}
+
+const parseSummaryDateRange = (params: URLSearchParams) => {
+	const defaultDay = new Date()
+	defaultDay.setHours(0, 0, 0, 0)
+
+	const dateFrom = params.get('dateFrom')
+	const dateTo = params.get('dateTo')
+
+	const start = dateFrom ? new Date(dateFrom) : new Date(defaultDay)
+	const end = dateTo ? new Date(dateTo) : new Date(defaultDay)
+
+	start.setHours(0, 0, 0, 0)
+	end.setHours(23, 59, 59, 999)
+
+	if (start.getTime() > end.getTime()) {
+		const swappedStart = new Date(end)
+		const swappedEnd = new Date(start)
+
+		swappedStart.setHours(0, 0, 0, 0)
+		swappedEnd.setHours(23, 59, 59, 999)
+
+		return { start: swappedStart, end: swappedEnd }
+	}
+
+	return { start, end }
+}
+
+const isPeriodSummaryInvoice = (invoice: LocalInvoice) =>
+	!PERIOD_EXCLUDED_STATUSES.has(String(invoice.status ?? 'confirmed'))
+
+const buildSellingInvoicesSummary = (
+	invoices: LocalInvoice[],
+	params: URLSearchParams,
+) => {
+	const { start, end } = parseSummaryDateRange(params)
+
+	const periodInvoices = invoices.filter(inv => {
 		const issuedAt = inv.issuedAt ? new Date(inv.issuedAt) : null
-		return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
+
+		return (
+			Boolean(issuedAt && issuedAt >= start && issuedAt <= end) &&
+			isPeriodSummaryInvoice(inv)
+		)
 	})
 
-	const todaySales = todaysInvoices.reduce((total, inv) => {
+	const todaySales = periodInvoices.reduce((total, inv) => {
 		const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(inv)
 
 		return total + grandTotal
 	}, 0)
+
+	const productAggregates = new Map<
+		string,
+		{
+			productId: string
+			productName: string
+			quantitySold: number
+			revenue: number
+			cogs: number
+			profit: number
+		}
+	>()
+
+	const getAggregate = (productId: string, productName = '') => {
+		const existing = productAggregates.get(productId)
+
+		if (existing) {
+			if (!existing.productName && productName) {
+				existing.productName = productName
+			}
+
+			return existing
+		}
+
+		const created = {
+			productId,
+			productName,
+			quantitySold: 0,
+			revenue: 0,
+			cogs: 0,
+			profit: 0,
+		}
+
+		productAggregates.set(productId, created)
+
+		return created
+	}
+
+	for (const invoice of periodInvoices) {
+		for (const item of invoice.items ?? []) {
+			const productId = String(item.productId ?? '')
+
+			if (!productId) continue
+
+			const aggregate = getAggregate(productId, String(item.name ?? ''))
+			const quantity = Number(item.quantity ?? 0)
+
+			aggregate.revenue += getInvoiceLineRevenue(item)
+			// ponytail: offline has no StockMoving COGS; qty/revenue only until sync.
+			aggregate.quantitySold += quantity
+		}
+	}
+
+	for (const aggregate of productAggregates.values()) {
+		aggregate.profit = aggregate.revenue - aggregate.cogs
+	}
+
+	const pickBestSeller = () => {
+		const candidates = [...productAggregates.values()].filter(
+			aggregate => aggregate.quantitySold > 0,
+		)
+
+		if (!candidates.length) return null
+
+		candidates.sort((left, right) => {
+			if (right.quantitySold !== left.quantitySold) {
+				return right.quantitySold - left.quantitySold
+			}
+
+			if (right.profit !== left.profit) {
+				return right.profit - left.profit
+			}
+
+			return left.productName.localeCompare(right.productName)
+		})
+
+		const winner = candidates[0]
+
+		return {
+			productId: winner.productId,
+			productName: winner.productName || winner.productId,
+			quantity: winner.quantitySold,
+		}
+	}
+
+	const pickTopProfitProduct = () => {
+		const candidates = [...productAggregates.values()].filter(
+			aggregate => aggregate.quantitySold > 0,
+		)
+
+		if (!candidates.length) return null
+
+		candidates.sort((left, right) => {
+			if (right.profit !== left.profit) {
+				return right.profit - left.profit
+			}
+
+			if (right.quantitySold !== left.quantitySold) {
+				return right.quantitySold - left.quantitySold
+			}
+
+			return left.productName.localeCompare(right.productName)
+		})
+
+		const winner = candidates[0]
+
+		return {
+			productId: winner.productId,
+			productName: winner.productName || winner.productId,
+			profit: winner.profit,
+		}
+	}
+
+	const totalProfit = [...productAggregates.values()].reduce(
+		(total, aggregate) => total + aggregate.profit,
+		0,
+	)
 
 	return {
 		todaySales,
@@ -153,7 +315,10 @@ const buildSellingInvoicesSummary = (invoices: LocalInvoice[]) => {
 			return remainingAmount > 0 ? total + remainingAmount : total
 		}, 0),
 		averageOrder:
-			todaysInvoices.length > 0 ? todaySales / todaysInvoices.length : 0,
+			periodInvoices.length > 0 ? todaySales / periodInvoices.length : 0,
+		totalProfit,
+		bestSeller: pickBestSeller(),
+		topProfitProduct: pickTopProfitProduct(),
 	}
 }
 
@@ -252,6 +417,7 @@ const entityFromUrl = (path: string, method: string): OutboxEntity | null => {
 	const segment = path.split('/')[0]
 	const map: Record<string, OutboxEntity> = {
 		invoices: 'invoice',
+		'selling-invoices': 'invoice',
 		product: 'product',
 		products: 'product',
 		inventory: 'inventory',
@@ -296,10 +462,14 @@ const handlePostInvoice = async (
 		}
 	}
 
-	const duplicateOutbox = await findDuplicateOutboxEntry('invoices', 'POST', {
-		...body,
-		invoiceId,
-	} as Record<string, unknown>)
+	const duplicateOutbox = await findDuplicateOutboxEntry(
+		'selling-invoices',
+		'POST',
+		{
+			...body,
+			invoiceId,
+		} as Record<string, unknown>,
+	)
 
 	if (duplicateOutbox) {
 		return {
@@ -345,7 +515,7 @@ const handlePostInvoice = async (
 	await addOutboxEntry({
 		entity: 'invoice',
 		operation: 'create',
-		url: 'invoices',
+		url: 'selling-invoices',
 		method: 'POST',
 		payload: {
 			...body,
@@ -985,8 +1155,15 @@ export const handleOfflineQuery = async (
 				}
 			}
 
-			if (path === 'invoices' || path.startsWith('invoices/')) {
-				if (path !== 'invoices') {
+			if (
+				path === 'selling-invoices' ||
+				path.startsWith('selling-invoices/') ||
+				path === 'invoices' ||
+				path.startsWith('invoices/')
+			) {
+				const isCollection =
+					path === 'selling-invoices' || path === 'invoices'
+				if (!isCollection) {
 					const invoice = await offlineDb.invoices.get(path.split('/')[1])
 					return invoice
 						? { data: invoice }
@@ -1005,7 +1182,7 @@ export const handleOfflineQuery = async (
 				return {
 					data: {
 						invoices: filtered,
-						summary: buildSellingInvoicesSummary(invoices),
+						summary: buildSellingInvoicesSummary(invoices, params),
 						nextInvoiceNumber,
 						totalCount: filtered.length,
 					},
@@ -1072,7 +1249,10 @@ export const handleOfflineQuery = async (
 			}
 		}
 
-		if (method === 'POST' && path === 'invoices') {
+		if (
+			method === 'POST' &&
+			(path === 'selling-invoices' || path === 'invoices')
+		) {
 			const data = await handlePostInvoice(body as PostSellingInvoiceBody)
 			return { data }
 		}

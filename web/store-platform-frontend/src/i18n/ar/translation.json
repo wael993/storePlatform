@@ -416,6 +416,12 @@
 			"empty": "لا توجد فواتير.",
 			"summary": {
 				"todaySales": "مبيعات اليوم",
+				"periodSales": "مبيعات الفترة",
+				"totalProfit": "إجمالي الربح",
+				"bestSeller": "الأكثر مبيعاً",
+				"bestSellerValue": "{{name}} · {{quantity}} قطعة",
+				"topProfitProduct": "المنتج الأعلى ربحاً",
+				"topProfitProductValue": "{{name}} · {{profit}}",
 				"paidInvoices": "الفواتير المدفوعة",
 				"creditInvoices": "الفواتير الآجلة",
 				"totalReceivable": "إجمالي المستحقات",
@@ -433,6 +439,10 @@
 				"cash": "نقداً",
 				"credit": "آجل (ادفع لاحقاً)",
 				"card": "بطاقة"
+			},
+			"invoiceKind": {
+				"selling": "فاتورة مبيعات",
+				"buying": "فاتورة شراء"
 			},
 			"columns": {
 				"time": "الوقت",
@@ -529,6 +539,7 @@
 				"close": "إغلاق",
 				"invoiceDate": "تاريخ الفاتورة",
 				"invoiceTime": "الوقت",
+				"salesPerson": "مندوب المبيعات",
 				"supplier": "المورد",
 				"paymentType": "نوع الدفع",
 				"addNote": "+ إضافة ملاحظة",

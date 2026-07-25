@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-	useGetCurrencySettingsQuery,
-	useGetUserSettingsQuery,
-} from '../../api/apiStore'
+import { useGetCurrencySettingsQuery } from '../../api/apiStore'
+import { useSettings } from '../../shared/context/SettingsContext'
 import {
 	buildDisplayCurrencyOptions,
 	formatDisplayAmount,
@@ -11,8 +9,10 @@ import {
 } from './currencyDisplay'
 
 export const useInvoiceDisplayCurrency = () => {
-	const { data: currencySettings } = useGetCurrencySettingsQuery()
-	const { data: userSettings } = useGetUserSettingsQuery()
+	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
+		refetchOnMountOrArgChange: false,
+	})
+	const { defaultInvoiceCurrencyId } = useSettings()
 
 	const options = useMemo(
 		() => buildDisplayCurrencyOptions(currencySettings),
@@ -21,11 +21,8 @@ export const useInvoiceDisplayCurrency = () => {
 
 	const defaultCurrencyId = useMemo(
 		() =>
-			resolveDefaultDisplayCurrencyId(
-				options,
-				userSettings?.defaultInvoiceCurrencyId,
-			),
-		[options, userSettings?.defaultInvoiceCurrencyId],
+			resolveDefaultDisplayCurrencyId(options, defaultInvoiceCurrencyId),
+		[options, defaultInvoiceCurrencyId],
 	)
 
 	const [displayCurrencyId, setDisplayCurrencyId] = useState<string | null>(

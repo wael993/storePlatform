@@ -10,10 +10,12 @@ import {
 
 interface UseBuyingInvoiceDraftSessionsOptions {
 	nextInvoiceNumber: number
+	salesPerson: string
 }
 
 export const useBuyingInvoiceDraftSessions = ({
 	nextInvoiceNumber,
+	salesPerson,
 }: UseBuyingInvoiceDraftSessionsOptions) => {
 	const [state, setState] = useState(() => loadBuyingInvoiceDraftSessions())
 	const { sessions, activeSessionId } = state
@@ -46,7 +48,7 @@ export const useBuyingInvoiceDraftSessions = ({
 			paymentType?: BuyingInvoicePaymentType
 			productSearch?: string
 		}) => {
-			const session = createBuyingInvoiceDraftSession({
+			const session = createBuyingInvoiceDraftSession(salesPerson, {
 				paymentType: options?.paymentType,
 				invoiceNumber: nextInvoiceNumber,
 				productSearch: options?.productSearch,
@@ -61,7 +63,7 @@ export const useBuyingInvoiceDraftSessions = ({
 			}))
 			return session
 		},
-		[nextInvoiceNumber],
+		[nextInvoiceNumber, salesPerson],
 	)
 
 	const updateDraft = useCallback(

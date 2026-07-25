@@ -18,6 +18,7 @@ export interface BuyingInvoiceDraftSessionsState {
 }
 
 export const createBuyingInvoiceDraft = (
+	salesPerson: string,
 	options?: {
 		paymentType?: BuyingInvoicePaymentType
 		invoiceNumber?: number
@@ -27,6 +28,7 @@ export const createBuyingInvoiceDraft = (
 	invoiceNumber: options?.invoiceNumber ?? 1,
 	invoiceDate: dayjs().format('YYYY-MM-DD'),
 	invoiceTime: dayjs().format('HH:mm'),
+	salesPerson,
 	supplierId: '',
 	supplierName: '',
 	paymentType: options?.paymentType ?? 'cash',
@@ -36,13 +38,14 @@ export const createBuyingInvoiceDraft = (
 })
 
 export const createBuyingInvoiceDraftSession = (
+	salesPerson: string,
 	options?: {
 		paymentType?: BuyingInvoicePaymentType
 		invoiceNumber?: number
 		productSearch?: string
 	},
 ): BuyingInvoiceDraftSession => {
-	const draft = createBuyingInvoiceDraft(options)
+	const draft = createBuyingInvoiceDraft(salesPerson, options)
 	return {
 		id: draft.invoiceId,
 		draft,

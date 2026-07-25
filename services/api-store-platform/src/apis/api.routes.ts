@@ -243,7 +243,7 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
-			.route(`${baseRoute}/invoices`)
+			.route(`${baseRoute}/selling-invoices`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -258,7 +258,7 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
-			.route(`${baseRoute}/invoices/:id`)
+			.route(`${baseRoute}/selling-invoices/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -1853,6 +1853,8 @@ export default class StoreRoutes extends PlatformValidator {
 				searchText: request.query.searchText,
 				status: request.query.status,
 				issuedDate: request.query.issuedDate,
+				dateFrom: request.query.dateFrom,
+				dateTo: request.query.dateTo,
 			})
 
 			response.status(200).json(resp)

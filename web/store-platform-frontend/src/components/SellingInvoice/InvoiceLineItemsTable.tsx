@@ -14,6 +14,7 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
 import {
@@ -87,6 +88,12 @@ const InvoiceLineItemsTable = ({
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
 
+	// Newest line items are appended last; show newest first in the table.
+	const displayLineItems = useMemo(
+		() => [...lineItems].reverse(),
+		[lineItems],
+	)
+
 	const handleQuantityEdit = (item: SellingInvoiceLineItem, quantity: number) => {
 		onUpdateItem(item.id, { quantity })
 	}
@@ -144,7 +151,7 @@ const InvoiceLineItemsTable = ({
 					</Tr>
 				</Thead>
 				<Tbody>
-					{lineItems.map((item, index) => (
+					{displayLineItems.map((item, index) => (
 						<Tr key={item.id}>
 							<Td color={PAGE_COLORS.muted}>{index + 1}</Td>
 							<Td>

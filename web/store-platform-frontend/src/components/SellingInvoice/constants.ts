@@ -52,6 +52,19 @@ export const PAGE_COLORS = {
 	cardShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
 } as const
 
+export const INVOICE_KIND_BADGE = {
+	selling: {
+		bg: '#FEF3C7',
+		color: '#B45309',
+		labelKey: 'components.sellingInvoices.invoiceKind.selling',
+	},
+	buying: {
+		bg: '#DCFCE7',
+		color: '#15803D',
+		labelKey: 'components.sellingInvoices.invoiceKind.buying',
+	},
+} as const
+
 export const PAYMENT_TYPE_CONFIG = {
 	cash: {
 		color: PAGE_COLORS.success,

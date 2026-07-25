@@ -151,6 +151,7 @@ const AddProductModal = ({
 	const { defaultInvoiceCurrencyId } = useSettings()
 	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
 		skip: !isOpen,
+		refetchOnMountOrArgChange: false,
 	})
 
 	const categoryOptions = useMemo(

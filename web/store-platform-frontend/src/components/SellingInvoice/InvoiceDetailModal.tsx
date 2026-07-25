@@ -13,6 +13,7 @@ interface InvoiceDetailModalProps {
 	isOpen: boolean
 	invoiceId: string | null
 	mode: Extract<InvoicePanelMode, 'view' | 'edit'>
+	customers?: Customer[]
 	onClose: () => void
 	onSaved?: () => void
 	onRequestEdit: () => void
@@ -22,6 +23,7 @@ const InvoiceDetailModal = ({
 	isOpen,
 	invoiceId,
 	mode,
+	customers,
 	onClose,
 	onSaved,
 	onRequestEdit,
@@ -49,6 +51,7 @@ const InvoiceDetailModal = ({
 						isActive={isOpen}
 						mode={mode}
 						invoiceId={invoiceId}
+						customers={customers}
 						onClose={onClose}
 						onSaved={onSaved}
 						onRequestEdit={onRequestEdit}

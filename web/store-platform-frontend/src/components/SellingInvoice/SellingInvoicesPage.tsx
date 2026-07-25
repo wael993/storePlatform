@@ -19,7 +19,9 @@ import { useTranslation } from 'react-i18next'
 import {
 	useDeleteSellingInvoiceMutation,
 	useGetBuyingInvoicesQuery,
+	useGetCustomersQuery,
 	useGetSellingInvoicesQuery,
+	useGetSuppliersQuery,
 } from '../../api/apiStore'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
@@ -141,13 +143,31 @@ const SellingInvoicesPage = () => {
 		onClose: onEntryClose,
 	} = useDisclosure()
 
+	const [summaryDateFrom, setSummaryDateFrom] = useState(() => new Date())
+	const [summaryDateTo, setSummaryDateTo] = useState(() => new Date())
+
+	const summaryQueryParams = useMemo(
+		() => ({
+			dateFrom: dayjs(summaryDateFrom).format('YYYY-MM-DD'),
+			dateTo: dayjs(summaryDateTo).format('YYYY-MM-DD'),
+		}),
+		[summaryDateFrom, summaryDateTo],
+	)
+
 	const { data: invoicesMeta, isLoading: isSummaryLoading } =
-		useGetSellingInvoicesQuery({
-			issuedDate: dayjs().format('YYYY-MM-DD'),
+		useGetSellingInvoicesQuery(summaryQueryParams, {
+			refetchOnMountOrArgChange: false,
 		})
 	const { data: buyingInvoicesMeta } = useGetBuyingInvoicesQuery(
 		{},
-		{ skip: !isAdmin },
+		{ skip: !isAdmin, refetchOnMountOrArgChange: false },
+	)
+	const { data: invoiceCustomers = [] } = useGetCustomersQuery(undefined, {
+		refetchOnMountOrArgChange: false,
+	})
+	const { data: invoiceSuppliers = [] } = useGetSuppliersQuery(
+		{},
+		{ skip: !isAdmin, refetchOnMountOrArgChange: false },
 	)
 
 	const [deleteSellingInvoice, { isLoading: isDeletingInvoice }] =
@@ -188,6 +208,7 @@ const SellingInvoicesPage = () => {
 		removeSession: removeBuyingSession,
 	} = useBuyingInvoiceDraftSessions({
 		nextInvoiceNumber: buyingInvoicesMeta?.nextInvoiceNumber ?? 1,
+		salesPerson,
 	})
 
 	const isCreatingBuyingInvoice = isAdmin && buyingSessions.length > 0
@@ -250,6 +271,16 @@ const SellingInvoicesPage = () => {
 		[activeBuyingSessionId, setBuyingShowNote],
 	)
 
+	const handleSummaryDateFromChange = useCallback((date: Date | undefined) => {
+		if (!date) return
+		setSummaryDateFrom(date)
+	}, [])
+
+	const handleSummaryDateToChange = useCallback((date: Date | undefined) => {
+		if (!date) return
+		setSummaryDateTo(date)
+	}, [])
+
 	const summary = useMemo(
 		() =>
 			invoicesMeta?.summary
@@ -263,6 +294,9 @@ const SellingInvoicesPage = () => {
 						creditInvoicesTrend: 0,
 						totalReceivable: 0,
 						averageOrder: 0,
+						totalProfit: 0,
+						bestSeller: null,
+						topProfitProduct: null,
 						salesSparkline: [],
 					},
 		[invoicesMeta?.summary],
@@ -426,6 +460,7 @@ const SellingInvoicesPage = () => {
 
 	const invoiceListSection = (
 		<InvoiceTableSection
+			showBuyingInvoices={isAdmin}
 			onViewInvoice={handleViewInvoice}
 			onEditInvoice={handleEditInvoice}
 			onDeleteInvoice={handleDeleteInvoiceRequest}
@@ -518,6 +553,7 @@ const SellingInvoicesPage = () => {
 				isOpen={isDetailOpen}
 				invoiceId={detailInvoiceId}
 				mode={detailMode}
+				customers={invoiceCustomers}
 				onClose={handleDetailClose}
 				onSaved={handleDetailInvoiceSaved}
 				onRequestEdit={() => setDetailMode('edit')}
@@ -566,47 +602,85 @@ const SellingInvoicesPage = () => {
 		</>
 	)
 
-	if (isCreatingBuyingInvoice && activeBuyingSession) {
-		return (
-			<>
-				<Flex sx={styles.wrapper}>
-					<Flex
-						sx={styles.splitContainer}
-						direction={{ base: 'column', xl: 'row' }}
+	const showBuyingDraft = Boolean(
+		isCreatingBuyingInvoice && activeBuyingSession,
+	)
+	const showSellingDraft = Boolean(isCreatingInvoice && activeSession)
+	const isDraftOpen = showBuyingDraft || showSellingDraft
+
+	// Keep InvoiceTableSection mounted across draft open/close so list queries
+	// and local table filters are not remount-refetched / reset.
+	return (
+		<>
+			<Flex sx={styles.wrapper}>
+				<Flex
+					sx={isDraftOpen ? styles.splitContainer : undefined}
+					direction={isDraftOpen ? { base: 'column', xl: 'row' } : undefined}
+					flex={isDraftOpen ? undefined : 1}
+					minH={0}
+				>
+					<Box
+						sx={isDraftOpen ? styles.listPane : { width: '100%', minW: 0 }}
+						order={isDraftOpen ? { base: 2, xl: 1 } : undefined}
 					>
-						<Box sx={styles.listPane} order={{ base: 2, xl: 1 }}>
-							<CustomBreadcrumb
-								marginTop="0.5rem"
-								items={breadCrumbItems[BreadCrumbItem.INVOICES]}
-							/>
+						<CustomBreadcrumb
+							marginTop="0.5rem"
+							items={breadCrumbItems[BreadCrumbItem.INVOICES]}
+						/>
 
-							<Flex
-								justify="space-between"
-								align={{ base: 'stretch', sm: 'center' }}
-								direction={{ base: 'column', sm: 'row' }}
-								gap={3}
-								mb={4}
-								flexShrink={0}
+						<Flex
+							justify="space-between"
+							align={{ base: 'stretch', sm: 'center' }}
+							direction={{ base: 'column', sm: 'row' }}
+							gap={isDraftOpen ? 3 : 4}
+							mb={isDraftOpen ? 4 : 6}
+							flexShrink={0}
+						>
+							<Heading
+								sx={styles.title}
+								variant="h5"
+								fontSize={isDraftOpen ? 'xl' : undefined}
 							>
-								<Heading sx={styles.title} variant="h5" fontSize="xl">
-									{t('components.sellingInvoices.title')}
-								</Heading>
-							</Flex>
+								{t('components.sellingInvoices.title')}
+							</Heading>
+							{!isDraftOpen && (
+								<HStack spacing={3} flexWrap="wrap">
+									{adminActionButtons}
+									{newInvoiceButton}
+								</HStack>
+							)}
+						</Flex>
 
-							<Box mb={4} flexShrink={0}>
-								<InvoiceBarcodeSearchBar
-									onSubmit={handleBarcodeSearchSubmit}
-								/>
-							</Box>
+						{!isDraftOpen && (
+							<InvoiceSummaryCards
+								summary={summary}
+								isLoading={isSummaryLoading}
+								dateFrom={summaryDateFrom}
+								dateTo={summaryDateTo}
+								onDateFromChange={handleSummaryDateFromChange}
+								onDateToChange={handleSummaryDateToChange}
+							/>
+						)}
 
-							<Box sx={styles.listScrollArea}>{invoiceListSection}</Box>
+						<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>
+							<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />
 						</Box>
 
+						<Box sx={isDraftOpen ? styles.listScrollArea : undefined}>
+							{invoiceListSection}
+						</Box>
+					</Box>
+
+					{showBuyingDraft && activeBuyingSession ? (
 						<Box sx={styles.invoicePane} order={{ base: 1, xl: 2 }}>
 							<NewBuyingInvoicePanel
 								key={activeBuyingSession.id}
 								isActive
-								onClose={() => requestCloseBuyingDraftTab(activeBuyingSession.id)}
+								salesPerson={salesPerson}
+								suppliers={invoiceSuppliers}
+								onClose={() =>
+									requestCloseBuyingDraftTab(activeBuyingSession.id)
+								}
 								onSaved={handleCreateBuyingInvoiceSaved}
 								nextInvoiceNumber={buyingInvoicesMeta?.nextInvoiceNumber ?? 1}
 								initialProductSearch={
@@ -623,53 +697,12 @@ const SellingInvoicesPage = () => {
 								onAddDraftTab={() => createBuyingSession()}
 							/>
 						</Box>
-					</Flex>
-				</Flex>
-				{invoiceDetailOverlays}
-			</>
-		)
-	}
-
-	if (isCreatingInvoice && activeSession) {
-		return (
-			<>
-				<Flex sx={styles.wrapper}>
-					<Flex
-						sx={styles.splitContainer}
-						direction={{ base: 'column', xl: 'row' }}
-					>
-						<Box sx={styles.listPane} order={{ base: 2, xl: 1 }}>
-							<CustomBreadcrumb
-								marginTop="0.5rem"
-								items={breadCrumbItems[BreadCrumbItem.INVOICES]}
-							/>
-
-							<Flex
-								justify="space-between"
-								align={{ base: 'stretch', sm: 'center' }}
-								direction={{ base: 'column', sm: 'row' }}
-								gap={3}
-								mb={4}
-								flexShrink={0}
-							>
-								<Heading sx={styles.title} variant="h5" fontSize="xl">
-									{t('components.sellingInvoices.title')}
-								</Heading>
-							</Flex>
-
-							<Box mb={4} flexShrink={0}>
-								<InvoiceBarcodeSearchBar
-									onSubmit={handleBarcodeSearchSubmit}
-								/>
-							</Box>
-
-							<Box sx={styles.listScrollArea}>{invoiceListSection}</Box>
-						</Box>
-
+					) : showSellingDraft && activeSession ? (
 						<Box sx={styles.invoicePane} order={{ base: 1, xl: 2 }}>
 							<NewSellingInvoicePanel
 								key={activeSession.id}
 								isActive
+								customers={invoiceCustomers}
 								onClose={() => requestCloseDraftTab(activeSession.id)}
 								onSaved={handleCreateInvoiceSaved}
 								nextInvoiceNumber={invoicesMeta?.nextInvoiceNumber ?? 1}
@@ -685,42 +718,8 @@ const SellingInvoicesPage = () => {
 								onAddDraftTab={() => createSession()}
 							/>
 						</Box>
-					</Flex>
+					) : null}
 				</Flex>
-				{invoiceDetailOverlays}
-			</>
-		)
-	}
-
-	return (
-		<>
-			<Flex sx={styles.wrapper}>
-				<CustomBreadcrumb
-					marginTop="0.5rem"
-					items={breadCrumbItems[BreadCrumbItem.INVOICES]}
-				/>
-
-				<Flex
-					justify="space-between"
-					align={{ base: 'stretch', sm: 'center' }}
-					direction={{ base: 'column', sm: 'row' }}
-					gap={4}
-					mb={6}
-				>
-					<Heading sx={styles.title} variant="h5">
-						{t('components.sellingInvoices.title')}
-					</Heading>
-					<HStack spacing={3} flexWrap="wrap">
-						{adminActionButtons}
-						{newInvoiceButton}
-					</HStack>
-				</Flex>
-
-				<InvoiceSummaryCards summary={summary} isLoading={isSummaryLoading} />
-
-				<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />
-
-				<Box>{invoiceListSection}</Box>
 			</Flex>
 			{invoiceDetailOverlays}
 		</>

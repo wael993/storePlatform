@@ -50,6 +50,8 @@ const InvoiceProductSearch = ({
 	const [error, setError] = useState<string | null>(null)
 	const [isAddProductOpen, setIsAddProductOpen] = useState(false)
 	const [pendingBarcode, setPendingBarcode] = useState('')
+	const [highlightedIndex, setHighlightedIndex] = useState(-1)
+	const suggestionRefs = useRef<(HTMLLIElement | null)[]>([])
 
 	const { products, indexes, isReady, isSyncing, refetch } = useProductCatalog()
 
@@ -67,6 +69,7 @@ const InvoiceProductSearch = ({
 			setSuggestions([])
 			setError(null)
 			setShowSuggestions(false)
+			setHighlightedIndex(-1)
 			setTimeout(() => inputRef.current?.focus(), 100)
 		},
 		[clearInput, onAddProduct],
@@ -98,6 +101,7 @@ const InvoiceProductSearch = ({
 
 			setSuggestions(results)
 			setShowSuggestions(true)
+			setHighlightedIndex(0)
 			setError(null)
 		},
 		[handleAddProduct],
@@ -178,6 +182,32 @@ const InvoiceProductSearch = ({
 	}, [autoFocus])
 
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+		if (showSuggestions && suggestions.length > 0) {
+			if (event.key === 'ArrowDown') {
+				event.preventDefault()
+				setHighlightedIndex(current =>
+					current < suggestions.length - 1 ? current + 1 : 0,
+				)
+				return
+			}
+
+			if (event.key === 'ArrowUp') {
+				event.preventDefault()
+				setHighlightedIndex(current =>
+					current > 0 ? current - 1 : suggestions.length - 1,
+				)
+				return
+			}
+
+			if (event.key === 'Enter') {
+				event.preventDefault()
+				const selectedIndex =
+					highlightedIndex >= 0 ? highlightedIndex : 0
+				handleAddProduct(suggestions[selectedIndex])
+				return
+			}
+		}
+
 		if (event.key === 'Enter') {
 			event.preventDefault()
 			submitSearch(inputRef.current?.value ?? '')
@@ -185,8 +215,17 @@ const InvoiceProductSearch = ({
 
 		if (event.key === 'Escape') {
 			setShowSuggestions(false)
+			setHighlightedIndex(-1)
 		}
 	}
+
+	useEffect(() => {
+		if (highlightedIndex < 0) return
+
+		suggestionRefs.current[highlightedIndex]?.scrollIntoView({
+			block: 'nearest',
+		})
+	}, [highlightedIndex, suggestions])
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -217,10 +256,16 @@ const InvoiceProductSearch = ({
 						onInput={event => {
 							setSearchText(event.currentTarget.value)
 							setShowSuggestions(false)
+							setHighlightedIndex(-1)
 							if (error) setError(null)
 						}}
 						onFocus={() => {
-							if (suggestions.length > 0) setShowSuggestions(true)
+							if (suggestions.length > 0) {
+								setShowSuggestions(true)
+								setHighlightedIndex(current =>
+									current >= 0 ? current : 0,
+								)
+							}
 						}}
 						onKeyDown={handleKeyDown}
 						placeholder={t(
@@ -304,13 +349,21 @@ const InvoiceProductSearch = ({
 					maxH="16rem"
 					overflowY="auto"
 				>
-					{suggestions.map(product => (
+					{suggestions.map((product, index) => {
+						const isHighlighted = index === highlightedIndex
+
+						return (
 						<ListItem
 							key={product.productId}
+							ref={element => {
+								suggestionRefs.current[index] = element
+							}}
 							px={4}
 							py={3}
 							cursor="pointer"
-							_hover={{ bg: 'gray.50' }}
+							bg={isHighlighted ? 'blue.50' : undefined}
+							_hover={{ bg: isHighlighted ? 'blue.50' : 'gray.50' }}
+							onMouseEnter={() => setHighlightedIndex(index)}
 							onClick={() => handleAddProduct(product)}
 							borderBottom="1px solid"
 							borderColor={PAGE_COLORS.border}
@@ -340,7 +393,8 @@ const InvoiceProductSearch = ({
 								</Text>
 							</Flex>
 						</ListItem>
-					))}
+						)
+					})}
 				</List>
 			)}
 

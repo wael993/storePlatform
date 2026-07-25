@@ -11,9 +11,19 @@ export const mapCatalogItemToProduct = (item: ProductCatalogItem): Product => ({
 	taxRate: item.taxRate,
 	price: {
 		retailPrice: item.price.retailPrice,
+		purchasePrice: item.price.purchasePrice,
 		discount: item.price.discount,
 		currency: item.price.currency,
 	},
+	inventory:
+		item.averageCost != null
+			? {
+					inventoryId: '',
+					productId: item.productId,
+					averageCost: item.averageCost,
+				}
+			: undefined,
+	lastSellingPrice: item.lastSellingPrice,
 	images: item.images,
 	status: 'active',
 })
@@ -31,8 +41,11 @@ export const mapProductToCatalogItem = (
 	taxRate: product.taxRate,
 	price: {
 		retailPrice: product.price?.retailPrice ?? 0,
+		purchasePrice: product.price?.purchasePrice,
 		discount: product.price?.discount,
 		currency: product.price?.currency ?? '',
 	},
+	averageCost: product.inventory?.averageCost,
+	lastSellingPrice: product.lastSellingPrice,
 	images: product.images?.length ? [product.images[0]] : undefined,
 })

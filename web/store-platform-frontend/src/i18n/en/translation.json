@@ -414,6 +414,12 @@
 			"empty": "No invoices found.",
 			"summary": {
 				"todaySales": "Today's Sales",
+				"periodSales": "Period Sales",
+				"totalProfit": "Total Profit",
+				"bestSeller": "Best Seller",
+				"bestSellerValue": "{{name}} · {{quantity}} pcs",
+				"topProfitProduct": "Top Profit Product",
+				"topProfitProductValue": "{{name}} · {{profit}}",
 				"paidInvoices": "Paid Invoices",
 				"creditInvoices": "Credit Invoices",
 				"totalReceivable": "Total Receivable",
@@ -431,6 +437,10 @@
 				"cash": "Cash",
 				"credit": "Credit (Pay Later)",
 				"card": "Card"
+			},
+			"invoiceKind": {
+				"selling": "Selling invoice",
+				"buying": "Buying invoice"
 			},
 			"columns": {
 				"time": "Time",
@@ -527,6 +537,7 @@
 				"close": "Close",
 				"invoiceDate": "Invoice Date",
 				"invoiceTime": "Time",
+				"salesPerson": "Sales Person",
 				"supplier": "Supplier",
 				"paymentType": "Payment Type",
 				"addNote": "+ Add Note",

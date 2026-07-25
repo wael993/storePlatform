@@ -8,10 +8,17 @@ import { AsTimeIcon } from '../../shared/icons/Time'
 import { AsPriceActivityFeeIcon } from '../../shared/icons/price/PriceActivityFeeIcon'
 import { DollarSignIcon } from '../../icons/DollarSign'
 import { WalletIcon } from '../../icons/Wallet'
+import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
+import DatePickerLabel from '../common/DatePickerLabel'
+import { datePickerStyles } from '../../theme/styles'
 
 interface InvoiceSummaryCardsProps {
 	summary: SellingInvoiceSummary
 	isLoading?: boolean
+	dateFrom: Date
+	dateTo: Date
+	onDateFromChange: (date: Date | undefined) => void
+	onDateToChange: (date: Date | undefined) => void
 }
 
 const cardStyles = {
@@ -36,6 +43,13 @@ const cardStyles = {
 		fontWeight: '700',
 		color: 'gray.900',
 		lineHeight: '1.2',
+	},
+	productValue: {
+		fontSize: { base: 'md', md: 'lg' },
+		fontWeight: '700',
+		color: 'gray.900',
+		lineHeight: '1.3',
+		noOfLines: 2,
 	},
 	trend: {
 		fontSize: 'xs',
@@ -83,6 +97,7 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
 interface SummaryCardProps {
 	label: string
 	value: string
+	valueSx?: StylesObject[keyof StylesObject]
 	trend?: string
 	trendColor?: string
 	icon?: React.ReactNode
@@ -94,6 +109,7 @@ interface SummaryCardProps {
 const SummaryCard = ({
 	label,
 	value,
+	valueSx,
 	trend,
 	trendColor,
 	icon,
@@ -103,9 +119,9 @@ const SummaryCard = ({
 }: SummaryCardProps) => (
 	<Box sx={cardStyles.base}>
 		<Flex justify="space-between" align="flex-start">
-			<Box flex="1">
+			<Box flex="1" minW={0}>
 				<Text sx={cardStyles.label}>{label}</Text>
-				<Text sx={cardStyles.value}>{value}</Text>
+				<Text sx={valueSx ?? cardStyles.value}>{value}</Text>
 				{trend && (
 					<Text
 						sx={{
@@ -137,79 +153,167 @@ const SummaryCard = ({
 	</Box>
 )
 
+const EMPTY_SUMMARY_VALUE = '—'
+
 const InvoiceSummaryCards = ({
 	summary,
 	isLoading = false,
+	dateFrom,
+	dateTo,
+	onDateFromChange,
+	onDateToChange,
 }: InvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
 
+	const bestSellerValue = summary.bestSeller
+		? t('components.sellingInvoices.summary.bestSellerValue', {
+				name: summary.bestSeller.productName,
+				quantity: summary.bestSeller.quantity,
+			})
+		: EMPTY_SUMMARY_VALUE
+
+	const topProfitValue = summary.topProfitProduct
+		? t('components.sellingInvoices.summary.topProfitProductValue', {
+				name: summary.topProfitProduct.productName,
+				profit: formatAmount(summary.topProfitProduct.profit),
+			})
+		: EMPTY_SUMMARY_VALUE
+
+	const hasPeriodData =
+		summary.bestSeller !== null ||
+		summary.topProfitProduct !== null ||
+		summary.todaySales > 0
+
 	if (isLoading) {
 		return (
-			<Flex gap={4} flexWrap="wrap" mb={6}>
-				{Array.from({ length: 5 }).map((_, index) => (
-					<Skeleton
-						key={index}
-						height="7rem"
-						flex="1"
-						minW={{ base: '100%', sm: 'calc(50% - 0.5rem)', lg: '0' }}
-						borderRadius="xl"
-					/>
-				))}
-			</Flex>
+			<Box mb={6}>
+				<Flex gap={3} flexWrap="wrap" mb={4}>
+					<Skeleton height="2.5rem" width="12rem" borderRadius="lg" />
+					<Skeleton height="2.5rem" width="12rem" borderRadius="lg" />
+				</Flex>
+				<Flex gap={4} flexWrap="wrap">
+					{Array.from({ length: 8 }).map((_, index) => (
+						<Skeleton
+							key={index}
+							height="7rem"
+							flex="1"
+							minW={{ base: '100%', sm: 'calc(50% - 0.5rem)', lg: '0' }}
+							borderRadius="xl"
+						/>
+					))}
+				</Flex>
+			</Box>
 		)
 	}
 
 	return (
-		<Flex
-			gap={4}
-			flexWrap="wrap"
-			mb={6}
-			direction={{ base: 'column', sm: 'row' }}
-		>
-			<SummaryCard
-				label={t('components.sellingInvoices.summary.todaySales')}
-				value={formatAmount(summary.todaySales)}
-				trend={formatTrend(summary.todaySalesTrend)}
-				trendColor={PAGE_COLORS.success}
-				sparkline={{
-					data: summary.salesSparkline,
-					color: PAGE_COLORS.success,
-				}}
-			/>
-			<SummaryCard
-				label={t('components.sellingInvoices.summary.paidInvoices')}
-				value={String(summary.paidInvoices)}
-				trend={formatTrend(summary.paidInvoicesTrend, '')}
-				trendColor={PAGE_COLORS.success}
-				icon={<DollarSignIcon fill="none" />}
-				iconBg="#DCFCE7"
-				iconColor="#15803D"
-			/>
-			<SummaryCard
-				label={t('components.sellingInvoices.summary.creditInvoices')}
-				value={String(summary.creditInvoices)}
-				trend={formatTrend(summary.creditInvoicesTrend, '')}
-				trendColor={PAGE_COLORS.warning}
-				icon={<AsPriceActivityFeeIcon />}
-				iconBg="#FFEDD5"
-				iconColor="#C2410C"
-			/>
-			<SummaryCard
-				label={t('components.sellingInvoices.summary.totalReceivable')}
-				value={formatAmount(summary.totalReceivable)}
-				icon={<WalletIcon fill="none" />}
-				iconBg="#FEE2E2"
-				iconColor="#DC2626"
-			/>
-			<SummaryCard
-				label={t('components.sellingInvoices.summary.averageOrder')}
-				value={formatAmount(summary.averageOrder)}
-				icon={<AsTimeIcon />}
-				iconBg="#DBEAFE"
-				iconColor="#2563EB"
-			/>
-		</Flex>
+		<Box mb={6}>
+			<Flex gap={3} flexWrap="wrap" mb={4}>
+				<Box maxW={{ base: '100%', sm: '12rem' }}>
+					<DatePickerLabel
+						label={t('common.from')}
+						onChange={onDateFromChange}
+						defaultDate={dateFrom}
+						maxDate={dateTo}
+						styles={datePickerStyles}
+					/>
+				</Box>
+				<Box maxW={{ base: '100%', sm: '12rem' }}>
+					<DatePickerLabel
+						label={t('common.to')}
+						onChange={onDateToChange}
+						defaultDate={dateTo}
+						minDate={dateFrom}
+						styles={datePickerStyles}
+					/>
+				</Box>
+			</Flex>
+
+			<Flex
+				gap={4}
+				flexWrap="wrap"
+				direction={{ base: 'column', sm: 'row' }}
+			>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.periodSales')}
+					value={
+						hasPeriodData
+							? formatAmount(summary.todaySales)
+							: EMPTY_SUMMARY_VALUE
+					}
+					trend={formatTrend(summary.todaySalesTrend)}
+					trendColor={PAGE_COLORS.success}
+					sparkline={{
+						data: summary.salesSparkline,
+						color: PAGE_COLORS.success,
+					}}
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.totalProfit')}
+					value={
+						hasPeriodData
+							? formatAmount(summary.totalProfit)
+							: EMPTY_SUMMARY_VALUE
+					}
+					icon={<DollarSignIcon fill="none" />}
+					iconBg="#ECFDF5"
+					iconColor="#047857"
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.bestSeller')}
+					value={bestSellerValue}
+					valueSx={cardStyles.productValue}
+					icon={<AsPriceTagIcon fill="none" />}
+					iconBg="#FEF3C7"
+					iconColor="#B45309"
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.topProfitProduct')}
+					value={topProfitValue}
+					valueSx={cardStyles.productValue}
+					icon={<AsPriceActivityFeeIcon />}
+					iconBg="#EDE9FE"
+					iconColor="#6D28D9"
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.paidInvoices')}
+					value={String(summary.paidInvoices)}
+					trend={formatTrend(summary.paidInvoicesTrend, '')}
+					trendColor={PAGE_COLORS.success}
+					icon={<DollarSignIcon fill="none" />}
+					iconBg="#DCFCE7"
+					iconColor="#15803D"
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.creditInvoices')}
+					value={String(summary.creditInvoices)}
+					trend={formatTrend(summary.creditInvoicesTrend, '')}
+					trendColor={PAGE_COLORS.warning}
+					icon={<AsPriceActivityFeeIcon />}
+					iconBg="#FFEDD5"
+					iconColor="#C2410C"
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.totalReceivable')}
+					value={formatAmount(summary.totalReceivable)}
+					icon={<WalletIcon fill="none" />}
+					iconBg="#FEE2E2"
+					iconColor="#DC2626"
+				/>
+				<SummaryCard
+					label={t('components.sellingInvoices.summary.averageOrder')}
+					value={
+						hasPeriodData
+							? formatAmount(summary.averageOrder)
+							: EMPTY_SUMMARY_VALUE
+					}
+					icon={<AsTimeIcon />}
+					iconBg="#DBEAFE"
+					iconColor="#2563EB"
+				/>
+			</Flex>
+		</Box>
 	)
 }
 

@@ -20,7 +20,7 @@ export const createLineItemFromProduct = (product: Product): SellingInvoiceLineI
 		taxRate,
 		averageCost: product.inventory?.averageCost,
 		lastBuyingPrice: product.price?.purchasePrice,
-		lastSellingPrice: product.price?.retailPrice,
+		lastSellingPrice: product.lastSellingPrice,
 	}
 }
 
@@ -38,7 +38,15 @@ export const addProductToLineItems = (
 
 	return lineItems.map((item, index) =>
 		index === existingIndex
-			? { ...item, quantity: item.quantity + 1 }
+			? {
+					...item,
+					quantity: item.quantity + 1,
+					averageCost: product.inventory?.averageCost ?? item.averageCost,
+					lastBuyingPrice:
+						product.price?.purchasePrice ?? item.lastBuyingPrice,
+					lastSellingPrice:
+						product.lastSellingPrice ?? item.lastSellingPrice,
+				}
 			: item,
 	)
 }

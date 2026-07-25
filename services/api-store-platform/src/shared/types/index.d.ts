@@ -115,9 +115,12 @@ export type ProductCatalogItem = {
 	taxRate?: string
 	price: {
 		retailPrice: number
+		purchasePrice?: number
 		discount?: number
 		currency: string
 	}
+	averageCost?: number
+	lastSellingPrice?: number
 	images?: string[]
 }
 
@@ -183,6 +186,15 @@ export type SellingInvoicesQueryParams = {
 	searchText?: string
 	status?: string
 	issuedDate?: string
+	dateFrom?: string
+	dateTo?: string
+}
+
+export type SellingInvoicesSummaryProduct = {
+	productId: string
+	productName: string
+	quantity?: number
+	profit?: number
 }
 
 export type SellingInvoicesSummary = {
@@ -191,6 +203,9 @@ export type SellingInvoicesSummary = {
 	creditInvoices: number
 	totalReceivable: number
 	averageOrder: number
+	totalProfit: number
+	bestSeller: SellingInvoicesSummaryProduct | null
+	topProfitProduct: SellingInvoicesSummaryProduct | null
 }
 
 export type SellingInvoicesListResponse = {

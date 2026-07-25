@@ -95,9 +95,12 @@ export interface ProductCatalogItem {
 	taxRate?: string
 	price: {
 		retailPrice: number
+		purchasePrice?: number
 		discount?: number
 		currency: string
 	}
+	averageCost?: number
+	lastSellingPrice?: number
 	images?: string[]
 }
 
@@ -115,6 +118,8 @@ export interface SellingInvoicesQueryParams {
 	searchText?: string
 	status?: string
 	issuedDate?: string
+	dateFrom?: string
+	dateTo?: string
 }
 
 export interface PostSellingInvoiceBody {
@@ -164,6 +169,19 @@ export interface SellingInvoicesApiResponse {
 		creditInvoices: number
 		totalReceivable: number
 		averageOrder: number
+		totalProfit: number
+		bestSeller: {
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		} | null
+		topProfitProduct: {
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		} | null
 	}
 	nextInvoiceNumber: number
 	totalCount: number
@@ -1078,17 +1096,17 @@ const getQuery = (
 			SellingInvoicesQueryParams | undefined
 		>({
 			query: (params = {}) => ({
-				url: 'invoices',
+				url: 'selling-invoices',
 				params,
 			}),
-			providesTags: ['invoices'],
+			providesTags: ['selling-invoices'],
 		}),
 
 		getSellingInvoice: builder.query<ApiSellingInvoice, string>({
 			query: (invoiceId: string) => ({
-				url: `invoices/${invoiceId}`,
+				url: `selling-invoices/${invoiceId}`,
 			}),
-			providesTags: ['invoices'],
+			providesTags: ['selling-invoices'],
 		}),
 
 		postSellingInvoice: builder.mutation<
@@ -1096,11 +1114,11 @@ const getQuery = (
 			PostSellingInvoiceBody
 		>({
 			query: body => ({
-				url: 'invoices',
+				url: 'selling-invoices',
 				method: 'POST',
 				body,
 			}),
-			invalidatesTags: ['invoices', 'inventory', 'products'],
+			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
 		}),
 
 		updateSellingInvoice: builder.mutation<
@@ -1108,19 +1126,19 @@ const getQuery = (
 			{ invoiceId: string; body: PostSellingInvoiceBody }
 		>({
 			query: ({ invoiceId, body }) => ({
-				url: `invoices/${invoiceId}`,
+				url: `selling-invoices/${invoiceId}`,
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: ['invoices', 'inventory', 'products'],
+			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
 		}),
 
 		deleteSellingInvoice: builder.mutation<void, string>({
 			query: (invoiceId: string) => ({
-				url: `invoices/${invoiceId}`,
+				url: `selling-invoices/${invoiceId}`,
 				method: 'DELETE',
 			}),
-			invalidatesTags: ['invoices', 'inventory', 'products'],
+			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
 		}),
 
 		getBuyingInvoices: builder.query<

@@ -1227,8 +1227,14 @@ export default class ProductController {
 				result.products
 		}
 
+		const lastSellingByProductId =
+			await this.resolveLastSellingPricesByProductId(tenantId)
+
 		const catalogProducts = fullProducts.map(product =>
-			this.mapProductCatalogItem(product),
+			this.mapProductCatalogItem(
+				product,
+				lastSellingByProductId.get(product.productId),
+			),
 		)
 
 		return {
@@ -1237,8 +1243,44 @@ export default class ProductController {
 		}
 	}
 
+	private async resolveLastSellingPricesByProductId(
+		tenantId: string,
+	): Promise<Map<string, number>> {
+		const rows = (await Invoice.aggregate([
+			{
+				$match: {
+					tenantId,
+					status: { $nin: ['draft', 'cancelled', 'void'] },
+				},
+			},
+			{ $sort: { issuedAt: -1 } },
+			{ $unwind: '$items' },
+			{
+				$group: {
+					_id: '$items.productId',
+					lastSellingPrice: { $first: '$items.unitPrice' },
+				},
+			},
+		])) as Array<{ _id: string; lastSellingPrice?: number }>
+
+		const map = new Map<string, number>()
+
+		for (const row of rows) {
+			if (!row._id || row.lastSellingPrice == null) continue
+
+			const price = Number(row.lastSellingPrice)
+
+			if (Number.isFinite(price)) {
+				map.set(row._id, price)
+			}
+		}
+
+		return map
+	}
+
 	private mapProductCatalogItem(
 		product: ProductRequestBody,
+		lastSellingPrice?: number,
 	): ProductCatalogItem {
 		return {
 			productId: product.productId,
@@ -1251,9 +1293,12 @@ export default class ProductController {
 			taxRate: product.taxRate,
 			price: {
 				retailPrice: product.price.retailPrice,
+				purchasePrice: product.price.purchasePrice,
 				discount: product.price.discount,
 				currency: product.price.currency,
 			},
+			averageCost: product.inventory?.averageCost,
+			lastSellingPrice,
 			images: product.images?.length ? [product.images[0]] : undefined,
 		}
 	}
@@ -1880,10 +1925,7 @@ export default class ProductController {
 								{
 									$subtract: [
 										{
-											$add: [
-												{ $ifNull: ['$quantity', 0] },
-												purchaseQuantity,
-											],
+											$add: [{ $ifNull: ['$quantity', 0] }, purchaseQuantity],
 										},
 										{ $ifNull: ['$reservedQuantity', 0] },
 									],
@@ -2120,24 +2162,249 @@ export default class ProductController {
 		return !['draft', 'cancelled', 'void', 'pending'].includes(status)
 	}
 
-	private buildSellingInvoicesSummary(
-		invoices: Array<Record<string, any>>,
-	): SellingInvoicesSummary {
-		const todayStart = new Date()
+	private parseSummaryDateRange(filters: SellingInvoicesQueryParams = {}): {
+		start: Date
+		end: Date
+	} {
+		const defaultDay = new Date()
 
-		todayStart.setHours(0, 0, 0, 0)
+		defaultDay.setHours(0, 0, 0, 0)
 
-		const todayEnd = new Date()
+		const start = filters.dateFrom
+			? new Date(filters.dateFrom)
+			: new Date(defaultDay)
+		const end = filters.dateTo ? new Date(filters.dateTo) : new Date(defaultDay)
 
-		todayEnd.setHours(23, 59, 59, 999)
+		start.setHours(0, 0, 0, 0)
+		end.setHours(23, 59, 59, 999)
 
-		const todaysInvoices = invoices.filter(invoice => {
-			const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+		if (start.getTime() > end.getTime()) {
+			const swappedStart = new Date(end)
+			const swappedEnd = new Date(start)
 
-			return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
+			swappedStart.setHours(0, 0, 0, 0)
+			swappedEnd.setHours(23, 59, 59, 999)
+
+			return { start: swappedStart, end: swappedEnd }
+		}
+
+		return { start, end }
+	}
+
+	private isInvoiceInSummaryPeriod(
+		invoice: Record<string, any>,
+		start: Date,
+		end: Date,
+	): boolean {
+		const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+
+		return Boolean(issuedAt && issuedAt >= start && issuedAt <= end)
+	}
+
+	private isPeriodSummaryInvoice(invoice: Record<string, any>): boolean {
+		return this.shouldAdjustInventoryForInvoice(
+			(invoice.status ??
+				'confirmed') as NonNullable<InvoiceRequestBody['status']>,
+		)
+	}
+
+	private getInvoiceLineRevenue(item: Record<string, any>): number {
+		if (item.lineTotal != null) return Number(item.lineTotal)
+
+		return Number(item.quantity ?? 0) * Number(item.unitPrice ?? 0)
+	}
+
+	private async getSaleStockMovingsForInvoices(
+		requestContext: RequestContext,
+		invoiceIds: string[],
+	): Promise<Array<Record<string, any>>> {
+		if (!invoiceIds.length) return []
+
+		const tenantContext = getTenantContext(requestContext)
+
+		return withTenantScope(
+			StockMoving.find({
+				type: 'sale',
+				referenceType: 'selling_invoice',
+				referenceId: { $in: invoiceIds },
+			}).lean(),
+			tenantContext.tenantId,
+		)
+	}
+
+	private buildPeriodProductAggregates(
+		periodInvoices: Array<Record<string, any>>,
+		stockMovings: Array<Record<string, any>>,
+	): Map<
+		string,
+		{
+			productId: string
+			productName: string
+			quantitySold: number
+			revenue: number
+			cogs: number
+			profit: number
+		}
+	> {
+		const aggregates = new Map<
+			string,
+			{
+				productId: string
+				productName: string
+				quantitySold: number
+				revenue: number
+				cogs: number
+				profit: number
+			}
+		>()
+
+		const getAggregate = (productId: string, productName = '') => {
+			const existing = aggregates.get(productId)
+
+			if (existing) {
+				if (!existing.productName && productName) {
+					existing.productName = productName
+				}
+
+				return existing
+			}
+
+			const created = {
+				productId,
+				productName,
+				quantitySold: 0,
+				revenue: 0,
+				cogs: 0,
+				profit: 0,
+			}
+
+			aggregates.set(productId, created)
+
+			return created
+		}
+
+		for (const invoice of periodInvoices) {
+			for (const item of invoice.items ?? []) {
+				const productId = String(item.productId ?? '')
+
+				if (!productId) continue
+
+				const aggregate = getAggregate(productId, String(item.name ?? ''))
+
+				aggregate.revenue += this.getInvoiceLineRevenue(item)
+			}
+		}
+
+		for (const moving of stockMovings) {
+			const productId = String(moving.productId ?? '')
+
+			if (!productId) continue
+
+			const aggregate = getAggregate(productId)
+			const quantity = Number(moving.quantity ?? 0)
+			const unitCost = Number(moving.unitCost ?? 0)
+
+			aggregate.quantitySold += quantity
+			aggregate.cogs += quantity * unitCost
+		}
+
+		for (const aggregate of aggregates.values()) {
+			aggregate.profit = aggregate.revenue - aggregate.cogs
+		}
+
+		return aggregates
+	}
+
+	private pickBestSellerSummaryProduct(
+		aggregates: Map<
+			string,
+			{
+				productId: string
+				productName: string
+				quantitySold: number
+				profit: number
+			}
+		>,
+	): SellingInvoicesSummary['bestSeller'] {
+		const candidates = [...aggregates.values()].filter(
+			aggregate => aggregate.quantitySold > 0,
+		)
+
+		if (!candidates.length) return null
+
+		candidates.sort((left, right) => {
+			if (right.quantitySold !== left.quantitySold) {
+				return right.quantitySold - left.quantitySold
+			}
+
+			if (right.profit !== left.profit) {
+				return right.profit - left.profit
+			}
+
+			return left.productName.localeCompare(right.productName)
 		})
 
-		const todaySales = todaysInvoices.reduce((total, invoice) => {
+		const winner = candidates[0]
+
+		return {
+			productId: winner.productId,
+			productName: winner.productName || winner.productId,
+			quantity: winner.quantitySold,
+		}
+	}
+
+	private pickTopProfitSummaryProduct(
+		aggregates: Map<
+			string,
+			{
+				productId: string
+				productName: string
+				quantitySold: number
+				profit: number
+			}
+		>,
+	): SellingInvoicesSummary['topProfitProduct'] {
+		const candidates = [...aggregates.values()].filter(
+			aggregate => aggregate.quantitySold > 0,
+		)
+
+		if (!candidates.length) return null
+
+		candidates.sort((left, right) => {
+			if (right.profit !== left.profit) {
+				return right.profit - left.profit
+			}
+
+			if (right.quantitySold !== left.quantitySold) {
+				return right.quantitySold - left.quantitySold
+			}
+
+			return left.productName.localeCompare(right.productName)
+		})
+
+		const winner = candidates[0]
+
+		return {
+			productId: winner.productId,
+			productName: winner.productName || winner.productId,
+			profit: winner.profit,
+		}
+	}
+
+	private async buildSellingInvoicesSummary(
+		requestContext: RequestContext,
+		invoices: Array<Record<string, any>>,
+		filters: SellingInvoicesQueryParams = {},
+	): Promise<SellingInvoicesSummary> {
+		const { start, end } = this.parseSummaryDateRange(filters)
+
+		const periodInvoices = invoices.filter(
+			invoice =>
+				this.isInvoiceInSummaryPeriod(invoice, start, end) &&
+				this.isPeriodSummaryInvoice(invoice),
+		)
+
+		const todaySales = periodInvoices.reduce((total, invoice) => {
 			const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(invoice)
 
 			return total + grandTotal
@@ -2159,7 +2426,21 @@ export default class ProductController {
 		}, 0)
 
 		const averageOrder =
-			todaysInvoices.length > 0 ? todaySales / todaysInvoices.length : 0
+			periodInvoices.length > 0 ? todaySales / periodInvoices.length : 0
+
+		const invoiceIds = periodInvoices.map(invoice => String(invoice.invoiceId))
+		const stockMovings = await this.getSaleStockMovingsForInvoices(
+			requestContext,
+			invoiceIds,
+		)
+		const productAggregates = this.buildPeriodProductAggregates(
+			periodInvoices,
+			stockMovings,
+		)
+		const totalProfit = [...productAggregates.values()].reduce(
+			(total, aggregate) => total + aggregate.profit,
+			0,
+		)
 
 		return {
 			todaySales,
@@ -2167,6 +2448,9 @@ export default class ProductController {
 			creditInvoices,
 			totalReceivable,
 			averageOrder,
+			totalProfit,
+			bestSeller: this.pickBestSellerSummaryProduct(productAggregates),
+			topProfitProduct: this.pickTopProfitSummaryProduct(productAggregates),
 		}
 	}
 
@@ -2451,7 +2735,11 @@ export default class ProductController {
 			)
 		})
 
-		const summary = this.buildSellingInvoicesSummary(invoices)
+		const summary = await this.buildSellingInvoicesSummary(
+			requestContext,
+			invoices,
+			filters,
+		)
 		const nextInvoiceNumber =
 			await this.resolveNextInvoiceNumber(requestContext)
 
@@ -2648,11 +2936,7 @@ export default class ProductController {
 				}
 			})
 
-		await this.invalidateEntityCache(
-			'invoices',
-			requestContext,
-			invoiceId,
-		)
+		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
 
 		for (const inventoryId of touchedInventoryIds) {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)

@@ -45,7 +45,7 @@ export type TagType =
 	| 'currencies'
 	| 'units'
 	| 'expenses'
-	| 'invoices'
+	| 'selling-invoices'
 	| 'buying-invoices'
 	| 'inventory'
 	| 'frontend-resources'
@@ -76,7 +76,7 @@ const tagTypes: TagType[] = [
 	'currencies',
 	'units',
 	'expenses',
-	'invoices',
+	'selling-invoices',
 	'buying-invoices',
 	'inventory',
 	'frontend-resources',
@@ -180,12 +180,9 @@ const baseQueryWithOffline: BaseQueryFn<
 	const tenantId = state.user?.user?.tenantId
 	const accessToken = state.user?.accessToken
 	const offlineCapable = await isOfflineCapableForTenant(tenantId)
-	const canServeOffline =
-		offlineCapable && isOfflineCapableEndpoint(requestUrl)
+	const canServeOffline = offlineCapable && isOfflineCapableEndpoint(requestUrl)
 	const preferOfflineReads =
-		canServeOffline &&
-		method === 'GET' &&
-		(!accessToken || !getIsOnline())
+		canServeOffline && method === 'GET' && (!accessToken || !getIsOnline())
 
 	if (preferOfflineReads) {
 		const localResult = await tryServeOfflineQuery(args)

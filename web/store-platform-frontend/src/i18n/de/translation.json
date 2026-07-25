@@ -401,6 +401,12 @@
 			"empty": "Keine Rechnungen gefunden.",
 			"summary": {
 				"todaySales": "Heutiger Umsatz",
+				"periodSales": "Umsatz im Zeitraum",
+				"totalProfit": "Gesamtgewinn",
+				"bestSeller": "Bestseller",
+				"bestSellerValue": "{{name}} · {{quantity}} Stk.",
+				"topProfitProduct": "Produkt mit höchstem Gewinn",
+				"topProfitProductValue": "{{name}} · {{profit}}",
 				"paidInvoices": "Bezahlte Rechnungen",
 				"creditInvoices": "Kreditrechnungen",
 				"totalReceivable": "Gesamtforderungen",
@@ -418,6 +424,10 @@
 				"cash": "Bar",
 				"credit": "Kredit (Später zahlen)",
 				"card": "Karte"
+			},
+			"invoiceKind": {
+				"selling": "Verkaufsrechnung",
+				"buying": "Einkaufsrechnung"
 			},
 			"columns": {
 				"time": "Zeit",
@@ -514,6 +524,7 @@
 				"close": "Schließen",
 				"invoiceDate": "Rechnungsdatum",
 				"invoiceTime": "Uhrzeit",
+				"salesPerson": "Verkäufer",
 				"supplier": "Lieferant",
 				"paymentType": "Zahlungsart",
 				"addNote": "+ Notiz hinzufügen",

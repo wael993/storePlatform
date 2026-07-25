@@ -27,10 +27,15 @@ import dayjs from 'dayjs'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useGetSellingInvoicesQuery } from '../../api/apiStore'
+import {
+	useGetBuyingInvoicesQuery,
+	useGetSellingInvoicesQuery,
+} from '../../api/apiStore'
+import { mapApiBuyingInvoiceToTableRow } from '../BuyingInvoice/buyingInvoiceApiMappers'
 import { SortIcon } from '../icons/Sort'
 import {
 	INVOICES_PER_PAGE,
+	INVOICE_KIND_BADGE,
 	PAGE_COLORS,
 	PAYMENT_TYPE_CONFIG,
 	STATUS_CONFIG,
@@ -42,6 +47,7 @@ import {
 } from './invoiceApiMappers'
 import { normalizeSearchQuery } from './productSearch'
 import type {
+	SellingInvoice,
 	SellingInvoicePaymentType,
 	SellingInvoiceSortKey,
 	SellingInvoiceStatus,
@@ -66,7 +72,10 @@ interface InvoiceTableSectionProps {
 	onViewInvoice: (invoiceId: string) => void
 	onEditInvoice: (invoiceId: string) => void
 	onDeleteInvoice: (invoiceId: string) => void
+	showBuyingInvoices?: boolean
 }
+
+type InvoiceTableRow = SellingInvoice & { kind: 'selling' | 'buying' }
 
 const PaymentTypeIcon = ({ type }: { type: SellingInvoicePaymentType }) => {
 	switch (type) {
@@ -112,6 +121,7 @@ const InvoiceTableSection = ({
 	onViewInvoice,
 	onEditInvoice,
 	onDeleteInvoice,
+	showBuyingInvoices = false,
 }: InvoiceTableSectionProps) => {
 	const { t } = useTranslation()
 	const searchInputRef = useRef<HTMLInputElement>(null)
@@ -125,34 +135,63 @@ const InvoiceTableSection = ({
 
 	const activeSearch = tableSearch.trim() || undefined
 
-	const { data: invoicesResponse, isLoading, isFetching } =
-		useGetSellingInvoicesQuery({
-			searchText: activeSearch,
-			status: statusFilter === 'all' ? undefined : statusFilter,
-			issuedDate: activeSearch
-				? undefined
-				: dayjs(selectedDate).format('YYYY-MM-DD'),
-		})
+	const queryParams = {
+		searchText: activeSearch,
+		status: statusFilter === 'all' ? undefined : statusFilter,
+		issuedDate: activeSearch
+			? undefined
+			: dayjs(selectedDate).format('YYYY-MM-DD'),
+	}
 
 	const {
-		options: displayCurrencyOptions,
-		displayCurrencyId,
-	} = useInvoiceDisplayCurrency()
+		data: invoicesResponse,
+		isLoading: isLoadingSelling,
+		isFetching: isFetchingSelling,
+	} = useGetSellingInvoicesQuery(queryParams, {
+		refetchOnMountOrArgChange: false,
+	})
 
-	const invoices = useMemo(
-		() =>
-			(invoicesResponse?.invoices ?? []).map(invoice =>
-				mapApiInvoiceToSellingInvoice(invoice as ApiSellingInvoice),
-			),
-		[invoicesResponse?.invoices],
-	)
+	const {
+		data: buyingInvoicesResponse,
+		isLoading: isLoadingBuying,
+		isFetching: isFetchingBuying,
+	} = useGetBuyingInvoicesQuery(queryParams, {
+		skip: !showBuyingInvoices,
+		refetchOnMountOrArgChange: false,
+	})
+
+	const isLoading = isLoadingSelling || (showBuyingInvoices && isLoadingBuying)
+	const isFetching = isFetchingSelling || isFetchingBuying
+
+	const { options: displayCurrencyOptions, displayCurrencyId } =
+		useInvoiceDisplayCurrency()
+
+	const invoices = useMemo((): InvoiceTableRow[] => {
+		const selling = (invoicesResponse?.invoices ?? []).map(invoice => ({
+			...mapApiInvoiceToSellingInvoice(invoice as ApiSellingInvoice),
+			kind: 'selling' as const,
+		}))
+		const buying = showBuyingInvoices
+			? (buyingInvoicesResponse?.invoices ?? []).map(invoice => ({
+					...mapApiBuyingInvoiceToTableRow(invoice),
+					kind: 'buying' as const,
+				}))
+			: []
+
+		return [...selling, ...buying]
+	}, [
+		invoicesResponse?.invoices,
+		buyingInvoicesResponse?.invoices,
+		showBuyingInvoices,
+	])
 
 	const sortedInvoices = useMemo(
-		() => sortInvoices(invoices, sortKey, sortDirection),
+		(): InvoiceTableRow[] =>
+			sortInvoices(invoices, sortKey, sortDirection) as InvoiceTableRow[],
 		[invoices, sortKey, sortDirection],
 	)
 
-	const totalCount = invoicesResponse?.totalCount ?? invoices.length
+	const totalCount = invoices.length
 
 	const paginatedInvoices = useMemo(() => {
 		const start = (currentPage - 1) * INVOICES_PER_PAGE
@@ -211,7 +250,8 @@ const InvoiceTableSection = ({
 		setSortDirection('desc')
 	}
 
-	const showInitialLoader = isLoading && !invoicesResponse
+	const showInitialLoader =
+		isLoading && !invoicesResponse && !buyingInvoicesResponse
 	const showRefetchOverlay = isFetching && !showInitialLoader
 
 	return (
@@ -437,16 +477,29 @@ const InvoiceTableSection = ({
 									paginatedInvoices.map(invoice => {
 										const paymentConfig =
 											PAYMENT_TYPE_CONFIG[invoice.paymentType]
+										const kindBadge = INVOICE_KIND_BADGE[invoice.kind]
 
 										return (
 											<Tr
-												key={invoice.id}
+												key={`${invoice.kind}-${invoice.id}`}
 												_hover={{ bg: 'gray.50' }}
 												borderBottom="1px solid"
 												borderColor={PAGE_COLORS.border}
 											>
 												<Td fontWeight={600} color="gray.900">
-													{invoice.invoiceNumber}
+													<Badge
+														px={2.5}
+														py={0.5}
+														borderRadius="md"
+														fontSize="sm"
+														fontWeight={700}
+														bg={kindBadge.bg}
+														color={kindBadge.color}
+														textTransform="none"
+														title={t(kindBadge.labelKey)}
+													>
+														{invoice.invoiceNumber}
+													</Badge>
 												</Td>
 												<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
 													{invoice.time}
@@ -524,9 +577,7 @@ const InvoiceTableSection = ({
 														savedAmountField="remainingAmount"
 														fontWeight={invoice.due > 0 ? 600 : 400}
 														color={
-															invoice.due > 0
-																? PAGE_COLORS.danger
-																: 'gray.800'
+															invoice.due > 0 ? PAGE_COLORS.danger : 'gray.800'
 														}
 													/>
 												</Td>
@@ -602,16 +653,12 @@ const InvoiceTableSection = ({
 																<MenuItem
 																	onClick={() => onViewInvoice(invoice.id)}
 																>
-																	{t(
-																		'components.sellingInvoices.actions.view',
-																	)}
+																	{t('components.sellingInvoices.actions.view')}
 																</MenuItem>
 																<MenuItem
 																	onClick={() => onEditInvoice(invoice.id)}
 																>
-																	{t(
-																		'components.sellingInvoices.actions.edit',
-																	)}
+																	{t('components.sellingInvoices.actions.edit')}
 																</MenuItem>
 																<MenuItem
 																	onClick={() => onDeleteInvoice(invoice.id)}
@@ -669,9 +716,7 @@ const InvoiceTableSection = ({
 									borderRadius="md"
 									variant={page === currentPage ? 'solid' : 'outline'}
 									bg={page === currentPage ? PAGE_COLORS.primary : 'white'}
-									color={
-										page === currentPage ? 'white' : PAGE_COLORS.muted
-									}
+									color={page === currentPage ? 'white' : PAGE_COLORS.muted}
 									borderColor={
 										page === currentPage
 											? PAGE_COLORS.primary

@@ -66,6 +66,19 @@ export interface ApiSellingInvoicesResponse {
 		creditInvoices: number
 		totalReceivable: number
 		averageOrder: number
+		totalProfit: number
+		bestSeller: {
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		} | null
+		topProfitProduct: {
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		} | null
 	}
 	nextInvoiceNumber: number
 	totalCount: number
@@ -159,6 +172,21 @@ export const mapApiSummaryToUi = (
 	creditInvoicesTrend: 0,
 	totalReceivable: summary.totalReceivable,
 	averageOrder: summary.averageOrder,
+	totalProfit: summary.totalProfit ?? 0,
+	bestSeller: summary.bestSeller?.productId
+		? {
+				productId: summary.bestSeller.productId,
+				productName: summary.bestSeller.productName,
+				quantity: summary.bestSeller.quantity ?? 0,
+			}
+		: null,
+	topProfitProduct: summary.topProfitProduct?.productId
+		? {
+				productId: summary.topProfitProduct.productId,
+				productName: summary.topProfitProduct.productName,
+				profit: summary.topProfitProduct.profit ?? 0,
+			}
+		: null,
 	salesSparkline: [],
 })
 

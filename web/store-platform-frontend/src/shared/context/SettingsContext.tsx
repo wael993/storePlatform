@@ -21,7 +21,10 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
-	const { data: userSettings, isLoading } = useGetUserSettingsQuery()
+	const { data: userSettings, isLoading } = useGetUserSettingsQuery(
+		undefined,
+		{ refetchOnMountOrArgChange: false },
+	)
 	const [productsPerPage, setProductsPerPageState] = useState<number>(20)
 	const [displayLanguage, setDisplayLanguageState] = useState<
 		'en' | 'de' | 'ar'
