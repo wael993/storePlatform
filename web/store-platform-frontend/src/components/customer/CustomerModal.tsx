@@ -5,6 +5,12 @@ import {
 	Grid,
 	Flex,
 	Box,
+	Tab,
+	TabList,
+	TabPanel,
+	TabPanels,
+	Tabs,
+	Text,
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,10 +22,35 @@ import CenteredText from '../common/CenteredText'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
 import TopSection from '../TopSection'
 import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
+import CustomerInvoicesTab from './CustomerInvoicesTab'
 import {
 	entityDetailModalContainerZIndex,
 	entityDetailModalStyles,
 } from '../common/entityDetailModalStyles'
+
+const tabStyles = {
+	tabs: {
+		width: '100%',
+	},
+	tabList: {
+		borderBottom: '1px solid #EAEAEA',
+		gap: '0.5rem',
+		px: { base: 2, md: 4 },
+	},
+	tab: {
+		fontWeight: 600,
+		fontSize: '0.95rem',
+		color: '#929494',
+		_selected: {
+			color: '#376288',
+			borderBottom: '2px solid #376288',
+		},
+	},
+	tabPanel: {
+		px: { base: 2, md: 4 },
+		py: 4,
+	},
+} satisfies StylesObject
 
 interface CustomerModalProps {
 	targetType: TargetType
@@ -92,11 +123,36 @@ const CustomerModal = ({ targetType }: CustomerModalProps) => {
 						)}
 					</Grid>
 					<Box sx={entityDetailModalStyles.listSection}>
-						<DailyActionsListWithActionBar
-							dailyActions={customer?.relatedActions ?? []}
-							isLoading={isCustomerLoading && !customer}
-							embedded
-						/>
+						{customer ? (
+							<Tabs sx={tabStyles.tabs} variant="unstyled">
+								<TabList sx={tabStyles.tabList}>
+									<Tab sx={tabStyles.tab}>
+										<Text>{t('components.customer.invoices')}</Text>
+									</Tab>
+									<Tab sx={tabStyles.tab}>
+										<Text>{t('components.customer.dailyActions')}</Text>
+									</Tab>
+								</TabList>
+								<TabPanels>
+									<TabPanel sx={tabStyles.tabPanel}>
+										<CustomerInvoicesTab customerId={customer.customerId} />
+									</TabPanel>
+									<TabPanel sx={tabStyles.tabPanel}>
+										<DailyActionsListWithActionBar
+											dailyActions={customer.relatedActions ?? []}
+											isLoading={isCustomerLoading && !customer}
+											embedded
+										/>
+									</TabPanel>
+								</TabPanels>
+							</Tabs>
+						) : (
+							<DailyActionsListWithActionBar
+								dailyActions={[]}
+								isLoading={isCustomerLoading}
+								embedded
+							/>
+						)}
 					</Box>
 				</ModalBody>
 			</ModalContent>

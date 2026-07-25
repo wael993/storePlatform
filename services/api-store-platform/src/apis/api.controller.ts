@@ -88,6 +88,7 @@ import {
 	CategoryDocument,
 	SellingInvoicesListResponse,
 	SellingInvoicesQueryParams,
+	CustomerInvoiceSummary,
 	BuyingInvoiceRequestBody,
 	BuyingInvoicesListResponse,
 	BuyingInvoicesQueryParams,
@@ -2391,6 +2392,48 @@ export default class ProductController {
 		}
 	}
 
+	private buildCustomerInvoiceSummary(
+		invoices: Array<Record<string, any>>,
+	): CustomerInvoiceSummary {
+		let totalInvoiced = 0
+		let totalPaid = 0
+		let totalReceivable = 0
+		let paidCount = 0
+		let unpaidCount = 0
+
+		for (const invoice of invoices) {
+			const status = String(invoice.status ?? 'confirmed')
+
+			if (['draft', 'cancelled', 'void'].includes(status)) continue
+
+			const { grandTotal, paidAmount, remainingAmount } =
+				getPrimaryInvoiceCurrencyAmounts(invoice)
+
+			totalInvoiced += grandTotal
+			totalPaid += paidAmount
+
+			if (remainingAmount > 0) {
+				totalReceivable += remainingAmount
+			}
+
+			const uiStatus = this.mapInvoiceFiltersToUiStatus(invoice)
+
+			if (uiStatus === 'paid') {
+				paidCount += 1
+			} else if (uiStatus === 'credit' || uiStatus === 'partial') {
+				unpaidCount += 1
+			}
+		}
+
+		return {
+			totalInvoiced,
+			totalPaid,
+			totalReceivable,
+			paidCount,
+			unpaidCount,
+		}
+	}
+
 	private async buildSellingInvoicesSummary(
 		requestContext: RequestContext,
 		invoices: Array<Record<string, any>>,
@@ -2700,6 +2743,13 @@ export default class ProductController {
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
 		const filteredInvoices = invoices.filter((invoice: Record<string, any>) => {
+			if (
+				filters.customerId &&
+				String(invoice.customerId ?? '') !== filters.customerId
+			) {
+				return false
+			}
+
 			const uiStatus = this.mapInvoiceFiltersToUiStatus(invoice)
 
 			if (
@@ -2735,17 +2785,27 @@ export default class ProductController {
 			)
 		})
 
+		const scopedInvoices = filters.customerId
+			? invoices.filter(
+					invoice => String(invoice.customerId ?? '') === filters.customerId,
+				)
+			: invoices
+
 		const summary = await this.buildSellingInvoicesSummary(
 			requestContext,
-			invoices,
+			scopedInvoices,
 			filters,
 		)
+		const customerSummary = filters.customerId
+			? this.buildCustomerInvoiceSummary(scopedInvoices)
+			: undefined
 		const nextInvoiceNumber =
 			await this.resolveNextInvoiceNumber(requestContext)
 
 		const response: SellingInvoicesListResponse = {
 			invoices: filteredInvoices,
 			summary,
+			customerSummary,
 			nextInvoiceNumber,
 			totalCount: filteredInvoices.length,
 		}

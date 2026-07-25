@@ -188,6 +188,15 @@ export type SellingInvoicesQueryParams = {
 	issuedDate?: string
 	dateFrom?: string
 	dateTo?: string
+	customerId?: string
+}
+
+export type CustomerInvoiceSummary = {
+	totalInvoiced: number
+	totalPaid: number
+	totalReceivable: number
+	paidCount: number
+	unpaidCount: number
 }
 
 export type SellingInvoicesSummaryProduct = {
@@ -211,6 +220,7 @@ export type SellingInvoicesSummary = {
 export type SellingInvoicesListResponse = {
 	invoices: Array<Record<string, unknown>>
 	summary: SellingInvoicesSummary
+	customerSummary?: CustomerInvoiceSummary
 	nextInvoiceNumber: number
 	totalCount: number
 }

@@ -37,6 +37,7 @@ import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import AddDailyActionModal from './modals/DailyAction/AddDailyActionModal'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
+import CustomerInvoiceSummaryCards from './customer/CustomerInvoiceSummaryCards'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -395,7 +396,12 @@ const TopSection = ({
 					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
 						<Flex sx={styles.feeSectionFlexWrapper}>
 							<Flex sx={styles.itemWrapperWithMargin}>
-								<EditableField {...editableFieldProps} />
+								{customer?.customerId && (
+									<CustomerInvoiceSummaryCards
+										customerId={customer.customerId}
+									/>
+								)}
+								{/* <EditableField {...editableFieldProps} /> */}
 							</Flex>
 						</Flex>
 					</GridItem>
@@ -406,6 +412,7 @@ const TopSection = ({
 								...styles.feeSectionFlexWrapper,
 								justifyContent: 'center',
 								width: '100%',
+								flexDirection: 'column',
 							}}
 						>
 							<Flex sx={styles.itemWrapperWithMargin}>

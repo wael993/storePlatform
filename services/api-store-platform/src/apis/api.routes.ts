@@ -1855,6 +1855,7 @@ export default class StoreRoutes extends PlatformValidator {
 				issuedDate: request.query.issuedDate,
 				dateFrom: request.query.dateFrom,
 				dateTo: request.query.dateTo,
+				customerId: request.query.customerId,
 			})
 
 			response.status(200).json(resp)

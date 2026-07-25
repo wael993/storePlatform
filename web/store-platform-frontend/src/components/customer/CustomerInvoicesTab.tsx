@@ -1,0 +1,461 @@
+import {
+	Badge,
+	Box,
+	Button,
+	Flex,
+	HStack,
+	Icon,
+	IconButton,
+	Spinner,
+	Table,
+	Tbody,
+	Td,
+	Text,
+	Th,
+	Thead,
+	Tr,
+	useDisclosure,
+} from '@chakra-ui/react'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { useGetSellingInvoicesQuery } from '../../api/apiStore'
+import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
+import { AsCashIcon } from '../../icons/Cash'
+import { AsCreditCardIcon } from '../../icons/CreditCard'
+import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
+import CurrencyAmountTooltip from '../SellingInvoice/CurrencyAmountTooltip'
+import InvoiceDetailModal from '../SellingInvoice/InvoiceDetailModal'
+import {
+	INVOICES_PER_PAGE,
+	PAGE_COLORS,
+	PAYMENT_TYPE_CONFIG,
+	STATUS_CONFIG,
+} from '../SellingInvoice/constants'
+import { formatInvoiceAmountForDisplay } from '../SellingInvoice/currencyDisplay'
+import {
+	mapApiInvoiceToSellingInvoice,
+	type ApiSellingInvoice,
+} from '../SellingInvoice/invoiceApiMappers'
+import type {
+	SellingInvoice,
+	SellingInvoicePaymentType,
+	SellingInvoiceStatus,
+} from '../SellingInvoice/types'
+import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
+
+const CUSTOMER_STATUS_FILTER_TABS = [
+	'all',
+	'paid',
+	'credit',
+	'partial',
+] as const
+
+const PaymentTypeIcon = ({ type }: { type: SellingInvoicePaymentType }) => {
+	switch (type) {
+		case 'cash':
+			return <Icon as={AsCashIcon} color={PAGE_COLORS.success} boxSize={5} />
+		case 'credit':
+			return (
+				<Icon
+					as={AsPriceTagIcon}
+					fill="none"
+					color={PAGE_COLORS.danger}
+					boxSize={5}
+				/>
+			)
+		case 'card':
+			return (
+				<Icon as={AsCreditCardIcon} color={PAGE_COLORS.warning} boxSize={5} />
+			)
+	}
+}
+
+const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {
+	const { t } = useTranslation()
+	const config = STATUS_CONFIG[status]
+
+	return (
+		<Badge
+			px={3}
+			py={1}
+			borderRadius="full"
+			fontSize="xs"
+			fontWeight={600}
+			bg={config.bg}
+			color={config.color}
+			textTransform="none"
+		>
+			{t(config.labelKey)}
+		</Badge>
+	)
+}
+
+interface CustomerInvoicesTabProps {
+	customerId: string
+}
+
+const CustomerInvoicesTab = ({ customerId }: CustomerInvoicesTabProps) => {
+	const { t } = useTranslation()
+	const [statusFilter, setStatusFilter] = useState('all')
+	const [currentPage, setCurrentPage] = useState(1)
+	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
+	const {
+		isOpen: isDetailOpen,
+		onOpen: onDetailOpen,
+		onClose: onDetailClose,
+	} = useDisclosure()
+
+	const queryParams = {
+		customerId,
+		status: statusFilter === 'all' ? undefined : statusFilter,
+	}
+
+	const {
+		data: invoicesResponse,
+		isLoading,
+		isFetching,
+	} = useGetSellingInvoicesQuery(queryParams, {
+		skip: !customerId,
+	})
+
+	const { options: displayCurrencyOptions, displayCurrencyId } =
+		useInvoiceDisplayCurrency()
+
+	const invoices = useMemo((): SellingInvoice[] => {
+		return (invoicesResponse?.invoices ?? []).map(invoice =>
+			mapApiInvoiceToSellingInvoice(invoice as ApiSellingInvoice),
+		)
+	}, [invoicesResponse?.invoices])
+
+	const totalCount = invoices.length
+	const totalPages = Math.max(1, Math.ceil(totalCount / INVOICES_PER_PAGE))
+	const paginatedInvoices = useMemo(() => {
+		const start = (currentPage - 1) * INVOICES_PER_PAGE
+		return invoices.slice(start, start + INVOICES_PER_PAGE)
+	}, [invoices, currentPage])
+
+	const startIndex =
+		totalCount === 0 ? 0 : (currentPage - 1) * INVOICES_PER_PAGE + 1
+	const endIndex = Math.min(currentPage * INVOICES_PER_PAGE, totalCount)
+
+	const handleStatusFilterChange = (status: string) => {
+		setStatusFilter(status)
+		setCurrentPage(1)
+	}
+
+	const handleViewInvoice = (invoiceId: string) => {
+		setDetailInvoiceId(invoiceId)
+		onDetailOpen()
+	}
+
+	const handleDetailClose = () => {
+		setDetailInvoiceId(null)
+		onDetailClose()
+	}
+
+	const showInitialLoader = isLoading && !invoicesResponse
+	const showRefetchOverlay = isFetching && !showInitialLoader
+
+	return (
+		<Box position="relative">
+			<Box
+				bg="white"
+				borderRadius="xl"
+				border="1px solid"
+				borderColor={PAGE_COLORS.border}
+				boxShadow={PAGE_COLORS.cardShadow}
+				overflow="hidden"
+				minHeight="20rem"
+			>
+				<Box
+					p={{ base: 4, md: 5 }}
+					borderBottom="1px solid"
+					borderColor={PAGE_COLORS.border}
+				>
+					<Flex
+						direction={{ base: 'column', md: 'row' }}
+						gap={3}
+						justify="space-between"
+						align={{ base: 'stretch', md: 'center' }}
+						mb={3}
+					>
+						<HStack spacing={2}>
+							<Text fontSize="lg" fontWeight={700} color="gray.900">
+								{t('components.customer.invoices')}
+							</Text>
+							<Badge
+								bg="#DBEAFE"
+								color={PAGE_COLORS.primary}
+								borderRadius="full"
+								px={2.5}
+								py={0.5}
+								fontSize="xs"
+								fontWeight={700}
+							>
+								{totalCount}
+							</Badge>
+						</HStack>
+					</Flex>
+
+					<Flex gap={2} flexWrap="wrap">
+						{CUSTOMER_STATUS_FILTER_TABS.map(tab => {
+							const isActive = statusFilter === tab
+
+							return (
+								<Button
+									key={tab}
+									size="sm"
+									fontSize="sm"
+									px={4}
+									bg={isActive ? PAGE_COLORS.primary : 'white'}
+									color={isActive ? 'white' : PAGE_COLORS.muted}
+									border="1px solid"
+									borderColor={
+										isActive ? PAGE_COLORS.primary : PAGE_COLORS.border
+									}
+									_hover={{
+										bg: isActive ? PAGE_COLORS.primary : 'gray.50',
+									}}
+									onClick={() => handleStatusFilterChange(tab)}
+								>
+									{t(`components.sellingInvoices.status.${tab}`)}
+								</Button>
+							)
+						})}
+					</Flex>
+				</Box>
+
+				{showInitialLoader ? (
+					<Flex justify="center" py={10}>
+						<Spinner color={PAGE_COLORS.primary} />
+					</Flex>
+				) : (
+					<>
+						{showRefetchOverlay && (
+							<Flex
+								position="absolute"
+								inset={0}
+								align="center"
+								justify="center"
+								bg="whiteAlpha.700"
+								zIndex={1}
+								pointerEvents="none"
+							>
+								<Spinner color={PAGE_COLORS.primary} size="sm" />
+							</Flex>
+						)}
+
+						<Box overflowX="auto">
+							<Table variant="simple" size="sm">
+								<Thead bg="gray.50">
+									<Tr>
+										<Th whiteSpace="nowrap">#</Th>
+										<Th whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.time')}
+										</Th>
+										<Th whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.status')}
+										</Th>
+										<Th whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.paymentType')}
+										</Th>
+										<Th isNumeric whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.total')}
+										</Th>
+										<Th isNumeric whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.paid')}
+										</Th>
+										<Th isNumeric whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.due')}
+										</Th>
+										<Th whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.actions')}
+										</Th>
+									</Tr>
+								</Thead>
+								<Tbody>
+									{paginatedInvoices.length === 0 ? (
+										<Tr>
+											<Td colSpan={8} py={10} textAlign="center">
+												<Text color={PAGE_COLORS.muted}>
+													{t('components.sellingInvoices.empty')}
+												</Text>
+											</Td>
+										</Tr>
+									) : (
+										paginatedInvoices.map(invoice => {
+											const paymentConfig =
+												PAYMENT_TYPE_CONFIG[invoice.paymentType]
+
+											return (
+												<Tr
+													key={invoice.id}
+													_hover={{ bg: 'gray.50', cursor: 'pointer' }}
+													onClick={() => handleViewInvoice(invoice.id)}
+												>
+													<Td fontWeight={600} color="gray.900">
+														{invoice.invoiceNumber}
+													</Td>
+													<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
+														{invoice.time}
+													</Td>
+													<Td>
+														<StatusBadge status={invoice.status} />
+													</Td>
+													<Td>
+														<HStack spacing={1.5} color={paymentConfig.color}>
+															<PaymentTypeIcon type={invoice.paymentType} />
+															<Text
+																fontSize="sm"
+																fontWeight={500}
+																whiteSpace="nowrap"
+															>
+																{t(paymentConfig.labelKey)}
+															</Text>
+														</HStack>
+													</Td>
+													<Td isNumeric fontWeight={500} color="gray.900">
+														<CurrencyAmountTooltip
+															amount={invoice.total}
+															displayText={formatInvoiceAmountForDisplay(
+																invoice.currencyAmounts,
+																'amount',
+																displayCurrencyId,
+																invoice.total,
+																displayCurrencyOptions,
+															)}
+															options={displayCurrencyOptions}
+															displayCurrencyId={displayCurrencyId}
+															savedCurrencyAmounts={invoice.currencyAmounts}
+															savedAmountField="amount"
+															fontWeight={500}
+															color="gray.900"
+														/>
+													</Td>
+													<Td isNumeric color="gray.800">
+														<CurrencyAmountTooltip
+															amount={invoice.paid}
+															displayText={formatInvoiceAmountForDisplay(
+																invoice.currencyAmounts,
+																'paidAmount',
+																displayCurrencyId,
+																invoice.paid,
+																displayCurrencyOptions,
+															)}
+															options={displayCurrencyOptions}
+															displayCurrencyId={displayCurrencyId}
+															savedCurrencyAmounts={invoice.currencyAmounts}
+															savedAmountField="paidAmount"
+															fontWeight={400}
+															color="gray.800"
+														/>
+													</Td>
+													<Td isNumeric>
+														<CurrencyAmountTooltip
+															amount={invoice.due}
+															displayText={formatInvoiceAmountForDisplay(
+																invoice.currencyAmounts,
+																'remainingAmount',
+																displayCurrencyId,
+																invoice.due,
+																displayCurrencyOptions,
+															)}
+															options={displayCurrencyOptions}
+															displayCurrencyId={displayCurrencyId}
+															savedCurrencyAmounts={invoice.currencyAmounts}
+															savedAmountField="remainingAmount"
+															fontWeight={invoice.due > 0 ? 600 : 400}
+															color={
+																invoice.due > 0
+																	? PAGE_COLORS.danger
+																	: 'gray.800'
+															}
+														/>
+													</Td>
+													<Td>
+														<IconButton
+															size="xs"
+															variant="ghost"
+															aria-label={t(
+																'components.sellingInvoices.actions.view',
+															)}
+															icon={
+																<Icon
+																	as={AsWatcherEyeIcon}
+																	color={PAGE_COLORS.primary}
+																	boxSize={5}
+																/>
+															}
+															color={PAGE_COLORS.muted}
+															onClick={event => {
+																event.stopPropagation()
+																handleViewInvoice(invoice.id)
+															}}
+														/>
+													</Td>
+												</Tr>
+											)
+										})
+									)}
+								</Tbody>
+							</Table>
+						</Box>
+
+						{totalCount > INVOICES_PER_PAGE && (
+							<Flex
+								p={4}
+								justify="space-between"
+								align="center"
+								borderTop="1px solid"
+								borderColor={PAGE_COLORS.border}
+							>
+								<Text fontSize="sm" color={PAGE_COLORS.muted}>
+									{t('components.sellingInvoices.pagination.showing', {
+										start: startIndex,
+										end: endIndex,
+										total: totalCount,
+									})}
+								</Text>
+								<HStack spacing={2}>
+									<Button
+										size="sm"
+										variant="outline"
+										isDisabled={currentPage <= 1}
+										onClick={() => setCurrentPage(page => page - 1)}
+									>
+										{t('pagination.previous')}
+									</Button>
+									<Text fontSize="sm" color={PAGE_COLORS.muted}>
+										{t('pagination.pageOf', {
+											currentPage,
+											totalPages,
+										})}
+									</Text>
+									<Button
+										size="sm"
+										variant="outline"
+										isDisabled={currentPage >= totalPages}
+										onClick={() => setCurrentPage(page => page + 1)}
+									>
+										{t('pagination.next')}
+									</Button>
+								</HStack>
+							</Flex>
+						)}
+					</>
+				)}
+			</Box>
+
+			<InvoiceDetailModal
+				isOpen={isDetailOpen}
+				invoiceId={detailInvoiceId}
+				mode="view"
+				onClose={handleDetailClose}
+				onRequestEdit={handleDetailClose}
+			/>
+		</Box>
+	)
+}
+
+export default CustomerInvoicesTab

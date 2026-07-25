@@ -309,7 +309,12 @@
 			"name": "اسم العميل",
 			"code": "رمز العميل",
 			"sold": "المبيعات",
-			"createdAt": "تاريخ الإنشاء"
+			"createdAt": "تاريخ الإنشاء",
+			"invoices": "الفواتير",
+			"dailyActions": "الإجراءات اليومية",
+			"totalInvoiced": "إجمالي الفواتير",
+			"totalPaid": "إجمالي المدفوع",
+			"totalReceivable": "إجمالي المستحق"
 		},
 		"daily": {
 			"productLine": "المنتج {{number}}",

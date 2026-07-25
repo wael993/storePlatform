@@ -1,207 +1,178 @@
 import mongoose from 'mongoose'
+import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
 import { Product } from '../models/Products'
-import { Brand } from '../models/Brand'
 import { Category } from '../models/Category'
-import { Supplier } from '../models/Supplier'
+import { Inventory } from '../models/Inventory'
+import { Unit } from '../models/Unit'
+import { Warehouse } from '../models/Warehaus'
 import Tenant from '../models/Tenant'
-import {
-	DEFAULT_TENANT_DOMAIN,
-	DEFAULT_TENANT_ID,
-	DEFAULT_TENANT_NAME,
-} from '../shared/tenant'
-import { v4 as uuidv4 } from 'uuid'
+import { INITIAL_PRODUCTS_DATA } from './initial-products-data'
 
-const PRODUCT_NAMES = [
-	// 'Wireless Mouse',
-	// 'Mechanical Keyboard',
-	// 'Gaming Headset',
-	// 'USB-C Hub',
-	// 'Portable SSD 1TB',
-	// 'Webcam 1080p',
-	// 'Bluetooth Speaker',
-	// 'Noise Cancelling Earbuds',
-	// 'Laptop Stand',
-	// 'Monitor 27 inch',
-	// 'Smartwatch Pro',
-	// 'Router AX3000',
-	// 'Smart Home Hub',
-	// 'Action Camera',
-	// 'Power Bank 20000mAh',
-	// 'Wireless Charger',
-	// 'LED Desk Lamp',
-	// 'External DVD Drive',
-	// 'Graphic Tablet',
-	// 'Portable Projector',
-	// 'Fitness Tracker',
-	// 'VR Controller Set',
-	// 'Streaming Microphone',
-	// 'WiFi Repeater',
-	// 'IP Security Camera',
-	// 'Smart Plug Pack',
-	// 'NAS Storage 2-Bay',
-	// 'Travel Adapter',
-	// 'Docking Station',
-	// 'Barcode Scanner',
-
-	'ابوشوكة اخضر',
-	'ملون',
-	'ابو شوكة',
-	'اسطنبولي',
-	'اسطنبولي ناعم',
-	'قيسي',
-	'نبالي',
-	'ابوشوكة اسود',
-	'رمان',
-	'نبالي اخضر',
-	'خيار 0',
-	'خيار 1',
-	'خيار 2',
-	'خيار قطاعة',
-]
-
-const UNITS: Array<'piece' | 'set' | 'kg' | 'meter' | 'mm'> = [
-	// 'piece',
-	// 'set',
-	// 'piece',
-	// 'piece',
-	'kg',
-	// 'piece',
-	// 'meter',
-	// 'piece',
-	// 'mm',
-	// 'piece',
-]
-
-function buildProducts(
-	brandIds: string[],
-	categoryIds: string[],
-	supplierIds: string[],
-) {
-	return PRODUCT_NAMES.map((name, index) => {
-		const idx = index + 1
-		const wholesale = 8 + idx * 1.4
-		const retailPrice = Number((wholesale * 1.85).toFixed(2))
-		const semiWholesalePrice = Number((wholesale * 1.45).toFixed(2))
-		const purchasePrice = Number((wholesale * 1.15).toFixed(2))
-
-		return {
-			productFactoryCode: `FC-${idx.toString().padStart(3, '0')}`,
-			internalCode: `IC-${idx.toString().padStart(3, '0')}`,
-			productId: uuidv4(),
-			name,
-			barcode: `900000000${idx.toString().padStart(4, '0')}`,
-			categoryId: categoryIds[index % categoryIds.length],
-			brandId: brandIds[index % brandIds.length],
-			supplierId: supplierIds[index % supplierIds.length],
-			images: [],
-			price: {
-				wholesalePrice: Number(wholesale.toFixed(2)),
-				retailPrice,
-				semiWholesalePrice,
-				purchasePrice,
-				discount: Number((retailPrice - 1.5).toFixed(2)),
-				currency: 'EUR',
-			},
-			unitId: UNITS[index % UNITS.length],
-			taxRate: '0',
-			attributes: {
-				color: ['Black', 'White', 'Gray', 'Blue'][index % 4],
-				weight: `${80 + idx * 5}g`,
-			},
-			status: 'active' as const,
-			description: `${name} - seeded demo product ${idx}`,
-		}
-	})
+const TENANT_ID = 'zobani-car'
+const WAREHOUSE_NAME = 'الرئيسي'
+const DEFAULT_UNIT_NAME = 'قطعة'
+const SEED_USER = {
+	_id: 'seed-script',
+	displayName: 'Seed Script',
+	createdAt: new Date(),
 }
 
-// To run this script: cd ../../admin-backend && ts-node src/scripts/create-initial-products.ts
+async function resolveUnitIds(
+	unitNames: string[],
+): Promise<Map<string, string>> {
+	const existing = await Unit.find({
+		tenantId: TENANT_ID,
+		name: { $in: unitNames },
+	}).lean()
+
+	const unitIdsByName = new Map(existing.map(unit => [unit.name, unit.unitId]))
+	const missing = unitNames.filter(name => !unitIdsByName.has(name))
+
+	if (missing.length > 0) {
+		const created = await Unit.insertMany(
+			missing.map(name => ({
+				tenantId: TENANT_ID,
+				unitId: uuidv4(),
+				name,
+				internalCode: name.toUpperCase(),
+				createdBy: SEED_USER,
+			})),
+		)
+
+		for (const unit of created) {
+			unitIdsByName.set(unit.name, unit.unitId)
+		}
+	}
+
+	return unitIdsByName
+}
+
 async function createInitialProducts() {
 	try {
-		// Connect to MongoDB
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
 		})
 
 		console.log('Connected to MongoDB')
 
-		await Tenant.updateOne(
-			{ tenantId: DEFAULT_TENANT_ID },
-			{
-				$set: {
-					name: DEFAULT_TENANT_NAME,
-					domain: DEFAULT_TENANT_DOMAIN,
-					status: 'active',
-				},
-			},
-			{ upsert: true },
-		)
-
-		const [brands, categories, suppliers] = await Promise.all([
-			Brand.find({ tenantId: DEFAULT_TENANT_ID }).sort({ name: 1 }).lean(),
-			Category.find({ tenantId: DEFAULT_TENANT_ID }).sort({ name: 1 }).lean(),
-			Supplier.find({ tenantId: DEFAULT_TENANT_ID }).sort({ name: 1 }).lean(),
+		const [tenant, warehouse] = await Promise.all([
+			Tenant.findOne({ tenantId: TENANT_ID }).lean(),
+			Warehouse.findOne({
+				tenantId: TENANT_ID,
+				name: WAREHOUSE_NAME,
+			}).lean(),
 		])
 
-		if (!brands.length || !categories.length || !suppliers.length) {
+		if (!tenant) {
+			throw new Error(`Tenant "${TENANT_ID}" was not found`)
+		}
+
+		if (!warehouse) {
 			throw new Error(
-				'Missing master data. Run npm run seed:master before seeding products.',
+				`Warehouse "${WAREHOUSE_NAME}" was not found for tenant "${TENANT_ID}"`,
 			)
 		}
 
-		const brandIds = brands.map(item => String(item._id))
-		const categoryIds = categories.map(item =>
-			String(item.categoryId ?? item._id),
+		const categoryNames = [
+			...new Set(INITIAL_PRODUCTS_DATA.map(product => product.category)),
+		]
+		const unitNames = [
+			...new Set(
+				INITIAL_PRODUCTS_DATA.map(
+					product => product.unitName || DEFAULT_UNIT_NAME,
+				),
+			),
+		]
+
+		await Category.bulkWrite(
+			categoryNames.map((name, index) => ({
+				updateOne: {
+					filter: { tenantId: TENANT_ID, name },
+					update: {
+						$setOnInsert: {
+							tenantId: TENANT_ID,
+							categoryId: `${TENANT_ID}-inventory-category-${index + 1}`,
+							name,
+							createdBy: SEED_USER,
+						},
+					},
+					upsert: true,
+				},
+			})),
 		)
-		const supplierIds = suppliers.map(item =>
-			String(item.supplierId ?? item._id),
+
+		const categories = await Category.find({
+			tenantId: TENANT_ID,
+			name: { $in: categoryNames },
+		}).lean()
+		const categoryIdsByName = new Map(
+			categories.map(category => [category.name, category.categoryId]),
 		)
-		const initialProducts = buildProducts(brandIds, categoryIds, supplierIds)
+		const unitIdsByName = await resolveUnitIds(unitNames)
 
-		await Product.deleteMany({
-			tenantId: DEFAULT_TENANT_ID,
-			productId: { $in: initialProducts.map(p => p.productId) },
-		} as any)
+		const products = INITIAL_PRODUCTS_DATA.map((product, index) => {
+			const productId = `${TENANT_ID}-inventory-product-${index + 1}`
+			const categoryId = categoryIdsByName.get(product.category)
+			const unitName = product.unitName || DEFAULT_UNIT_NAME
+			const unitId = unitIdsByName.get(unitName)
 
-		console.log('Deleted existing matching products')
+			if (!categoryId) {
+				throw new Error(`Category "${product.category}" could not be resolved`)
+			}
 
-		const now = new Date()
-		const documents = initialProducts.map(productData => ({
-			tenantId: DEFAULT_TENANT_ID,
-			...productData,
-			createdBy: {
-				_id: 'seed-script',
-				displayName: 'Seed Script',
-				createdAt: now,
-			},
-		}))
+			if (!unitId) {
+				throw new Error(`Unit "${unitName}" could not be resolved`)
+			}
 
-		await Product.insertMany(documents)
-		console.log(`Created ${documents.length} products`)
-
-		const seededProducts = await Product.find({
-			tenantId: DEFAULT_TENANT_ID,
-			productId: { $in: initialProducts.map(p => p.productId) },
+			return { ...product, productId, categoryId, unitId }
 		})
-			.select({
-				name: 1,
-				productId: 1,
-				brandId: 1,
-				categoryId: 1,
-				supplierId: 1,
-			})
-			.sort({ name: 1 })
-			.lean()
 
-		console.log('Seeded products:')
-		for (const product of seededProducts) {
-			console.log(
-				`${product.productId} | ${product.name} | brand=${product.brandId} | category=${product.categoryId} | supplier=${product.supplierId}`,
-			)
-		}
+		await Product.insertMany(
+			products.map(product => ({
+				tenantId: TENANT_ID,
+				productId: product.productId,
+				name: product.name,
+				unitId: product.unitId,
+				categoryId: product.categoryId,
+				productFactoryCode: product.productFactoryCode,
+				internalCode: product.internalCode,
+				...(product.barcode && { barcode: product.barcode }),
+				price: {
+					purchasePrice: product.purchasePrice,
+					retailPrice: product.retailPrice,
+					currency: 'USD',
+				},
+				images: [],
+				status: 'active' as const,
+				createdBy: SEED_USER,
+			})),
+		)
+
+		await Inventory.bulkWrite(
+			products.map((product, index) => ({
+				updateOne: {
+					filter: { tenantId: TENANT_ID, productId: product.productId },
+					update: {
+						$set: {
+							tenantId: TENANT_ID,
+							warehouseId: warehouse.warehouseId,
+							quantity: product.quantity,
+							reservedQuantity: 0,
+							availableQuantity: product.quantity,
+						},
+						$setOnInsert: {
+							inventoryId: `${TENANT_ID}-inventory-${index + 1}`,
+							createdBy: SEED_USER,
+						},
+					},
+					upsert: true,
+				},
+			})),
+		)
 
 		console.log(
-			`All ${initialProducts.length} initial products seeded successfully`,
+			`Seeded ${products.length} products in ${categoryNames.length} categories with ${unitNames.length} units; inventory assigned to "${WAREHOUSE_NAME}"`,
 		)
 	} catch (error) {
 		console.error('Error creating initial products:', error)

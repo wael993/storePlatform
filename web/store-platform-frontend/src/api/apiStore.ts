@@ -120,6 +120,15 @@ export interface SellingInvoicesQueryParams {
 	issuedDate?: string
 	dateFrom?: string
 	dateTo?: string
+	customerId?: string
+}
+
+export interface CustomerInvoiceSummary {
+	totalInvoiced: number
+	totalPaid: number
+	totalReceivable: number
+	paidCount: number
+	unpaidCount: number
 }
 
 export interface PostSellingInvoiceBody {
@@ -183,6 +192,7 @@ export interface SellingInvoicesApiResponse {
 			profit?: number
 		} | null
 	}
+	customerSummary?: CustomerInvoiceSummary
 	nextInvoiceNumber: number
 	totalCount: number
 }

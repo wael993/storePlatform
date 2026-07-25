@@ -12,6 +12,7 @@
 		"init-collections": "ts-node src/scripts/init-collections.ts",
 		"seed:users": "ts-node src/scripts/create-admin-user.ts",
 		"seed:products": "ts-node src/scripts/create-initial-products.ts",
+		"seed:customers": "ts-node src/scripts/create-initial-customers.ts",
 		"seed:roles": "ts-node src/scripts/seed-roles.ts",
 		"seed:master": "ts-node src/scripts/seed-master-data.ts",
 		"migrate:multi-tenant": "ts-node src/scripts/migrate-multi-tenant.ts",
