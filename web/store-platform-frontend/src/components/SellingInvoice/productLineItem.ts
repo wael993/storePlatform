@@ -2,7 +2,17 @@ import type { SellingInvoiceLineItem } from './types'
 
 const DEFAULT_TAX_RATE = 15
 
-export const createLineItemFromProduct = (product: Product): SellingInvoiceLineItem => {
+export type InvoiceLineItemKind = 'selling' | 'buying'
+
+const getDefaultUnitPrice = (product: Product, kind: InvoiceLineItemKind) =>
+	kind === 'buying'
+		? (product.price?.purchasePrice ?? 0)
+		: (product.price?.retailPrice ?? 0)
+
+export const createLineItemFromProduct = (
+	product: Product,
+	kind: InvoiceLineItemKind = 'selling',
+): SellingInvoiceLineItem => {
 	const taxRate = Number.parseFloat(product.taxRate ?? '') || DEFAULT_TAX_RATE
 
 	return {
@@ -14,7 +24,7 @@ export const createLineItemFromProduct = (product: Product): SellingInvoiceLineI
 		imageUrl: product.images?.[0],
 		quantity: 1,
 		unit: product.unitId ?? 'pcs',
-		unitPrice: product.price?.retailPrice ?? 0,
+		unitPrice: getDefaultUnitPrice(product, kind),
 		discount: product.price?.discount ?? 0,
 		discountIsPercent: true,
 		taxRate,
@@ -27,13 +37,14 @@ export const createLineItemFromProduct = (product: Product): SellingInvoiceLineI
 export const addProductToLineItems = (
 	lineItems: SellingInvoiceLineItem[],
 	product: Product,
+	kind: InvoiceLineItemKind = 'selling',
 ) => {
 	const existingIndex = lineItems.findIndex(
 		item => item.productId === product.productId,
 	)
 
 	if (existingIndex === -1) {
-		return [...lineItems, createLineItemFromProduct(product)]
+		return [...lineItems, createLineItemFromProduct(product, kind)]
 	}
 
 	return lineItems.map((item, index) =>

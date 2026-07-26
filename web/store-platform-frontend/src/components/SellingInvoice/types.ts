@@ -70,7 +70,13 @@ export interface SellingInvoiceLineItem {
 	lastSellingPrice?: number
 }
 
-export interface SellingInvoiceDraft {
+export interface InvoiceDiscountDraftFields {
+	useInvoiceDiscount: boolean
+	invoiceDiscount: number
+	invoiceDiscountIsPercent: boolean
+}
+
+export interface SellingInvoiceDraft extends InvoiceDiscountDraftFields {
 	invoiceId: string
 	invoiceNumber: number
 	invoiceDate: string

@@ -30,6 +30,12 @@ import useCustomToast from '../common/CustomToast'
 import { PAGE_COLORS } from './constants'
 import { calculateInvoiceTotals } from './invoiceCalculations'
 import {
+	applyInvoiceLevelDiscount,
+	clearInvoiceDiscountFields,
+	getInvoiceDiscountSettings,
+} from './invoiceDiscountDraft'
+import EditableDiscountField from './EditableDiscountField'
+import {
 	buildInvoiceRequestBody,
 	mapApiInvoiceToDraft,
 } from './invoiceApiMappers'
@@ -287,8 +293,13 @@ const NewSellingInvoicePanel = ({
 	}, [isControlledCreate, controlledDraft?.invoiceId])
 
 	const totals = useMemo(
-		() => calculateInvoiceTotals(draft.lineItems),
-		[draft.lineItems],
+		() => calculateInvoiceTotals(draft.lineItems, getInvoiceDiscountSettings(draft)),
+		[
+			draft.lineItems,
+			draft.useInvoiceDiscount,
+			draft.invoiceDiscount,
+			draft.invoiceDiscountIsPercent,
+		],
 	)
 
 	useEffect(() => {
@@ -296,9 +307,20 @@ const NewSellingInvoicePanel = ({
 
 		setDraft(current => ({
 			...current,
-			paidAmount: calculateInvoiceTotals(current.lineItems).grandTotal,
+			paidAmount: calculateInvoiceTotals(
+				current.lineItems,
+				getInvoiceDiscountSettings(current),
+			).grandTotal,
 		}))
-	}, [draft.lineItems, draft.paymentType, isReadOnly, setDraft])
+	}, [
+		draft.lineItems,
+		draft.paymentType,
+		draft.useInvoiceDiscount,
+		draft.invoiceDiscount,
+		draft.invoiceDiscountIsPercent,
+		isReadOnly,
+		setDraft,
+	])
 
 	const changeAmount = Math.max(0, draft.paidAmount - totals.grandTotal)
 
@@ -324,11 +346,39 @@ const NewSellingInvoicePanel = ({
 		id: string,
 		updates: Partial<SellingInvoiceLineItem>,
 	) => {
+		setDraft(current => {
+			const clearsInvoiceDiscount =
+				'discount' in updates || 'discountIsPercent' in updates
+
+			return {
+				...current,
+				...(clearsInvoiceDiscount ? clearInvoiceDiscountFields() : {}),
+				lineItems: current.lineItems.map(item =>
+					item.id === id ? { ...item, ...updates } : item,
+				),
+			}
+		})
+	}
+
+	const handleInvoiceDiscountEdit = (
+		discount: number,
+		discountIsPercent: boolean,
+	) => {
+		const invoiceDiscountFields = applyInvoiceLevelDiscount(
+			discount,
+			discountIsPercent,
+		)
+
 		setDraft(current => ({
 			...current,
-			lineItems: current.lineItems.map(item =>
-				item.id === id ? { ...item, ...updates } : item,
-			),
+			...invoiceDiscountFields,
+			lineItems: invoiceDiscountFields.useInvoiceDiscount
+				? current.lineItems.map(item => ({
+						...item,
+						discount: 0,
+						discountIsPercent: true,
+					}))
+				: current.lineItems,
 		}))
 	}
 
@@ -707,6 +757,7 @@ const NewSellingInvoicePanel = ({
 					displayCurrencyId={displayCurrencyId}
 					currencyOptions={displayCurrencyOptions}
 					isReadOnly={isReadOnly}
+					invoiceKind="selling"
 				/>
 
 				{hasCurrencyOptions && (
@@ -813,13 +864,34 @@ const NewSellingInvoicePanel = ({
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
 									{t('components.sellingInvoices.drawer.discount')}
 								</Text>
-								<CurrencyAmountTooltip
-									amount={totals.discount}
-									displayText={formatAmount(totals.discount)}
-									options={displayCurrencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									fontWeight={500}
-								/>
+								{isReadOnly ? (
+									<CurrencyAmountTooltip
+										amount={totals.discount}
+										displayText={formatAmount(totals.discount)}
+										options={displayCurrencyOptions}
+										displayCurrencyId={displayCurrencyId}
+										fontWeight={500}
+									/>
+								) : (
+									<EditableDiscountField
+										discount={
+											draft.useInvoiceDiscount
+												? draft.invoiceDiscount
+												: totals.discount
+										}
+										discountIsPercent={
+											draft.useInvoiceDiscount
+												? draft.invoiceDiscountIsPercent
+												: false
+										}
+										discountAmount={totals.discount}
+										formatAmount={formatAmount}
+										fontWeight={500}
+										currencyOptions={displayCurrencyOptions}
+										displayCurrencyId={displayCurrencyId}
+										onSave={handleInvoiceDiscountEdit}
+									/>
+								)}
 							</Flex>
 							<Flex justify="space-between">
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>

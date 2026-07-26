@@ -4,13 +4,19 @@ import { PAGE_COLORS } from './constants'
 import type { SellingInvoiceSummary } from './types'
 import { formatTrend } from './utils'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
-import { AsTimeIcon } from '../../shared/icons/Time'
+// import { AsTimeIcon } from '../../shared/icons/Time'
 import { AsPriceActivityFeeIcon } from '../../shared/icons/price/PriceActivityFeeIcon'
 import { DollarSignIcon } from '../../icons/DollarSign'
 import { WalletIcon } from '../../icons/Wallet'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
+import { AsCashBalanceIcon } from '../../icons/CashBalance'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
+
+export interface CashBalanceSummaryValues {
+	period: number
+	allTime: number
+}
 
 interface InvoiceSummaryCardsProps {
 	summary: SellingInvoiceSummary
@@ -19,6 +25,9 @@ interface InvoiceSummaryCardsProps {
 	dateTo: Date
 	onDateFromChange: (date: Date | undefined) => void
 	onDateToChange: (date: Date | undefined) => void
+	showCashBalance?: boolean
+	cashBalance?: CashBalanceSummaryValues
+	isCashBalanceLoading?: boolean
 }
 
 const cardStyles = {
@@ -50,6 +59,19 @@ const cardStyles = {
 		color: 'gray.900',
 		lineHeight: '1.3',
 		noOfLines: 2,
+	},
+	subValue: {
+		fontSize: { base: 'lg', md: 'xl' },
+		fontWeight: '700',
+		color: 'gray.900',
+		lineHeight: '1.2',
+	},
+	subLabel: {
+		fontSize: 'xs',
+		fontWeight: '500',
+		color: PAGE_COLORS.muted,
+		mb: '0.5',
+		mt: '2',
 	},
 	trend: {
 		fontSize: 'xs',
@@ -155,6 +177,53 @@ const SummaryCard = ({
 
 const EMPTY_SUMMARY_VALUE = '—'
 
+interface CashBalanceSummaryCardProps {
+	title: string
+	periodLabel: string
+	allTimeLabel: string
+	periodValue: string
+	allTimeValue: string
+	isLoading?: boolean
+}
+
+const CashBalanceSummaryCard = ({
+	title,
+	periodLabel,
+	allTimeLabel,
+	periodValue,
+	allTimeValue,
+	isLoading = false,
+}: CashBalanceSummaryCardProps) => (
+	<Box sx={cardStyles.base}>
+		<Flex justify="space-between" align="flex-start">
+			<Box flex="1" minW={0}>
+				<Text sx={cardStyles.label}>{title}</Text>
+				<Text sx={cardStyles.subLabel}>{periodLabel}</Text>
+				{isLoading ? (
+					<Skeleton height="1.5rem" width="70%" mt={1} />
+				) : (
+					<Text sx={cardStyles.subValue}>{periodValue}</Text>
+				)}
+				<Text sx={cardStyles.subLabel}>{allTimeLabel}</Text>
+				{isLoading ? (
+					<Skeleton height="1.5rem" width="70%" mt={1} />
+				) : (
+					<Text sx={cardStyles.subValue}>{allTimeValue}</Text>
+				)}
+			</Box>
+			<Flex
+				sx={{
+					...cardStyles.iconCircle,
+					bg: '#E0F2FE',
+					color: '#0369A1',
+				}}
+			>
+				<AsCashBalanceIcon boxSize={5} />
+			</Flex>
+		</Flex>
+	</Box>
+)
+
 const InvoiceSummaryCards = ({
 	summary,
 	isLoading = false,
@@ -162,6 +231,9 @@ const InvoiceSummaryCards = ({
 	dateTo,
 	onDateFromChange,
 	onDateToChange,
+	showCashBalance = false,
+	cashBalance,
+	isCashBalanceLoading = false,
 }: InvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
@@ -186,6 +258,8 @@ const InvoiceSummaryCards = ({
 		summary.todaySales > 0
 
 	if (isLoading) {
+		const skeletonCount = showCashBalance ? 9 : 8
+
 		return (
 			<Box mb={6}>
 				<Flex gap={3} flexWrap="wrap" mb={4}>
@@ -193,7 +267,7 @@ const InvoiceSummaryCards = ({
 					<Skeleton height="2.5rem" width="12rem" borderRadius="lg" />
 				</Flex>
 				<Flex gap={4} flexWrap="wrap">
-					{Array.from({ length: 8 }).map((_, index) => (
+					{Array.from({ length: skeletonCount }).map((_, index) => (
 						<Skeleton
 							key={index}
 							height="7rem"
@@ -230,11 +304,7 @@ const InvoiceSummaryCards = ({
 				</Box>
 			</Flex>
 
-			<Flex
-				gap={4}
-				flexWrap="wrap"
-				direction={{ base: 'column', sm: 'row' }}
-			>
+			<Flex gap={4} flexWrap="wrap" direction={{ base: 'column', sm: 'row' }}>
 				<SummaryCard
 					label={t('components.sellingInvoices.summary.periodSales')}
 					value={
@@ -276,7 +346,7 @@ const InvoiceSummaryCards = ({
 					iconBg="#EDE9FE"
 					iconColor="#6D28D9"
 				/>
-				<SummaryCard
+				{/* <SummaryCard
 					label={t('components.sellingInvoices.summary.paidInvoices')}
 					value={String(summary.paidInvoices)}
 					trend={formatTrend(summary.paidInvoicesTrend, '')}
@@ -284,8 +354,8 @@ const InvoiceSummaryCards = ({
 					icon={<DollarSignIcon fill="none" />}
 					iconBg="#DCFCE7"
 					iconColor="#15803D"
-				/>
-				<SummaryCard
+				/> */}
+				{/* <SummaryCard
 					label={t('components.sellingInvoices.summary.creditInvoices')}
 					value={String(summary.creditInvoices)}
 					trend={formatTrend(summary.creditInvoicesTrend, '')}
@@ -293,7 +363,7 @@ const InvoiceSummaryCards = ({
 					icon={<AsPriceActivityFeeIcon />}
 					iconBg="#FFEDD5"
 					iconColor="#C2410C"
-				/>
+				/> */}
 				<SummaryCard
 					label={t('components.sellingInvoices.summary.totalReceivable')}
 					value={formatAmount(summary.totalReceivable)}
@@ -301,7 +371,7 @@ const InvoiceSummaryCards = ({
 					iconBg="#FEE2E2"
 					iconColor="#DC2626"
 				/>
-				<SummaryCard
+				{/* <SummaryCard
 					label={t('components.sellingInvoices.summary.averageOrder')}
 					value={
 						hasPeriodData
@@ -311,7 +381,21 @@ const InvoiceSummaryCards = ({
 					icon={<AsTimeIcon />}
 					iconBg="#DBEAFE"
 					iconColor="#2563EB"
-				/>
+				/> */}
+				{showCashBalance && cashBalance && (
+					<CashBalanceSummaryCard
+						title={t('components.sellingInvoices.summary.cashBalance')}
+						periodLabel={t(
+							'components.sellingInvoices.summary.cashBalancePeriod',
+						)}
+						allTimeLabel={t(
+							'components.sellingInvoices.summary.cashBalanceAllTime',
+						)}
+						periodValue={formatAmount(cashBalance.period)}
+						allTimeValue={formatAmount(cashBalance.allTime)}
+						isLoading={isCashBalanceLoading}
+					/>
+				)}
 			</Flex>
 		</Box>
 	)

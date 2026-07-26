@@ -168,6 +168,8 @@ export interface PostSellingInvoiceBody {
 	}>
 	notes?: string
 	issuedAt?: string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 }
 
 export interface SellingInvoicesApiResponse {
@@ -240,6 +242,8 @@ export interface PostBuyingInvoiceBody {
 	notes?: string
 	warehouseId?: string
 	issuedAt?: string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 }
 
 export interface BuyingInvoicesApiResponse {

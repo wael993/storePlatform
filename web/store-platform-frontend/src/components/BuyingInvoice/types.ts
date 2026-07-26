@@ -1,5 +1,6 @@
 import type {
 	InvoiceCurrencyAmount,
+	InvoiceDiscountDraftFields,
 	InvoiceTotals,
 	SellingInvoiceLineItem,
 } from '../SellingInvoice/types'
@@ -11,7 +12,7 @@ export type BuyingInvoicePaymentType = 'cash' | 'credit'
 /** Line items share the exact same shape as selling invoices (product/qty/price/discount/tax). */
 export type BuyingInvoiceLineItem = SellingInvoiceLineItem
 
-export interface BuyingInvoiceDraft {
+export interface BuyingInvoiceDraft extends InvoiceDiscountDraftFields {
 	invoiceId: string
 	invoiceNumber: number
 	invoiceDate: string

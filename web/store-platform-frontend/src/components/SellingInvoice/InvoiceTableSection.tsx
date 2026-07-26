@@ -28,13 +28,18 @@ import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
+	useDeleteDailyActionMutation,
 	useGetBuyingInvoicesQuery,
+	useGetDailyActionsQuery,
 	useGetSellingInvoicesQuery,
 } from '../../api/apiStore'
+import ConfirmationDialog from '../ConfirmationDialog'
+import useCustomToast from '../common/CustomToast'
 import { mapApiBuyingInvoiceToTableRow } from '../BuyingInvoice/buyingInvoiceApiMappers'
 import { SortIcon } from '../icons/Sort'
 import {
 	INVOICES_PER_PAGE,
+	ENTRY_KIND_BADGE,
 	INVOICE_KIND_BADGE,
 	PAGE_COLORS,
 	PAYMENT_TYPE_CONFIG,
@@ -42,18 +47,22 @@ import {
 	STATUS_FILTER_TABS,
 } from './constants'
 import {
+	mapDailyActionsToEntryTableRows,
+	getDailyActionId,
+	type InvoiceTableRow,
+} from './entryTableMappers'
+import {
 	mapApiInvoiceToSellingInvoice,
 	type ApiSellingInvoice,
 } from './invoiceApiMappers'
 import { normalizeSearchQuery } from './productSearch'
 import type {
-	SellingInvoice,
 	SellingInvoicePaymentType,
 	SellingInvoiceSortKey,
 	SellingInvoiceStatus,
 	SortDirection,
 } from './types'
-import { sortInvoices } from './utils'
+import { sortTableRows } from './utils'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import { AsSearchIcon } from '../../icons/Search'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
@@ -66,16 +75,22 @@ import { AsTrashIcon } from '../../icons/Trash'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
-import { formatInvoiceAmountForDisplay } from './currencyDisplay'
+import {
+	convertEntryAmountToPrimary,
+	formatEntryAmountForDisplay,
+	formatInvoiceAmountForDisplay,
+} from './currencyDisplay'
+import { ChevronRightIcon } from '../icons/ChevronRight'
+import { ChevronLeftIcon } from '../icons/ChevronLeftIcon'
 
 interface InvoiceTableSectionProps {
-	onViewInvoice: (invoiceId: string) => void
-	onEditInvoice: (invoiceId: string) => void
-	onDeleteInvoice: (invoiceId: string) => void
+	onViewInvoice: (invoiceId: string, kind: 'selling' | 'buying') => void
+	onEditInvoice: (invoiceId: string, kind: 'selling' | 'buying') => void
+	onDeleteInvoice: (invoiceId: string, kind: 'selling' | 'buying') => void
+	onViewEntry?: (entry: DailyAction) => void
+	onEditEntry?: (entry: DailyAction) => void
 	showBuyingInvoices?: boolean
 }
-
-type InvoiceTableRow = SellingInvoice & { kind: 'selling' | 'buying' }
 
 const PaymentTypeIcon = ({ type }: { type: SellingInvoicePaymentType }) => {
 	switch (type) {
@@ -121,10 +136,19 @@ const InvoiceTableSection = ({
 	onViewInvoice,
 	onEditInvoice,
 	onDeleteInvoice,
+	onViewEntry,
+	onEditEntry,
 	showBuyingInvoices = false,
 }: InvoiceTableSectionProps) => {
 	const { t } = useTranslation()
+	const showToast = useCustomToast()
 	const searchInputRef = useRef<HTMLInputElement>(null)
+
+	const [entryPendingDelete, setEntryPendingDelete] = useState<string | null>(
+		null,
+	)
+	const [deleteDailyAction, { isLoading: isDeletingEntry }] =
+		useDeleteDailyActionMutation()
 
 	const [tableSearch, setTableSearch] = useState('')
 	const [statusFilter, setStatusFilter] = useState('all')
@@ -135,12 +159,19 @@ const InvoiceTableSection = ({
 
 	const activeSearch = tableSearch.trim() || undefined
 
+	const selectedDateKey = dayjs(selectedDate).format('YYYY-MM-DD')
+
 	const queryParams = {
 		searchText: activeSearch,
 		status: statusFilter === 'all' ? undefined : statusFilter,
-		issuedDate: activeSearch
-			? undefined
-			: dayjs(selectedDate).format('YYYY-MM-DD'),
+		issuedDate: activeSearch ? undefined : selectedDateKey,
+	}
+
+	const entryQueryParams = {
+		searchText: activeSearch,
+		entryType: ['RECEIPT_ENTRY', 'PAYMENT_ENTRY', 'EXPENSE_ENTRY'],
+		invoiceDateFrom: activeSearch ? undefined : selectedDateKey,
+		invoiceDateTo: activeSearch ? undefined : selectedDateKey,
 	}
 
 	const {
@@ -160,13 +191,24 @@ const InvoiceTableSection = ({
 		refetchOnMountOrArgChange: false,
 	})
 
-	const isLoading = isLoadingSelling || (showBuyingInvoices && isLoadingBuying)
-	const isFetching = isFetchingSelling || isFetchingBuying
+	const {
+		data: dailyActions = [],
+		isLoading: isLoadingEntries,
+		isFetching: isFetchingEntries,
+	} = useGetDailyActionsQuery(entryQueryParams, {
+		skip: !showBuyingInvoices,
+		refetchOnMountOrArgChange: false,
+	})
+
+	const isLoading =
+		isLoadingSelling ||
+		(showBuyingInvoices && (isLoadingBuying || isLoadingEntries))
+	const isFetching = isFetchingSelling || isFetchingBuying || isFetchingEntries
 
 	const { options: displayCurrencyOptions, displayCurrencyId } =
 		useInvoiceDisplayCurrency()
 
-	const invoices = useMemo((): InvoiceTableRow[] => {
+	const tableRows = useMemo((): InvoiceTableRow[] => {
 		const selling = (invoicesResponse?.invoices ?? []).map(invoice => ({
 			...mapApiInvoiceToSellingInvoice(invoice as ApiSellingInvoice),
 			kind: 'selling' as const,
@@ -177,26 +219,38 @@ const InvoiceTableSection = ({
 					kind: 'buying' as const,
 				}))
 			: []
+		const entries = showBuyingInvoices
+			? mapDailyActionsToEntryTableRows(dailyActions)
+			: []
 
-		return [...selling, ...buying]
+		return [...selling, ...buying, ...entries]
 	}, [
 		invoicesResponse?.invoices,
 		buyingInvoicesResponse?.invoices,
+		dailyActions,
 		showBuyingInvoices,
 	])
 
-	const sortedInvoices = useMemo(
+	const filteredRows = useMemo((): InvoiceTableRow[] => {
+		if (statusFilter === 'all') return tableRows
+
+		return tableRows.filter(
+			row => row.kind !== 'entry' && row.status === statusFilter,
+		)
+	}, [statusFilter, tableRows])
+
+	const sortedRows = useMemo(
 		(): InvoiceTableRow[] =>
-			sortInvoices(invoices, sortKey, sortDirection) as InvoiceTableRow[],
-		[invoices, sortKey, sortDirection],
+			sortTableRows(filteredRows, sortKey, sortDirection),
+		[filteredRows, sortKey, sortDirection],
 	)
 
-	const totalCount = invoices.length
+	const totalCount = filteredRows.length
 
-	const paginatedInvoices = useMemo(() => {
+	const paginatedRows = useMemo(() => {
 		const start = (currentPage - 1) * INVOICES_PER_PAGE
-		return sortedInvoices.slice(start, start + INVOICES_PER_PAGE)
-	}, [sortedInvoices, currentPage])
+		return sortedRows.slice(start, start + INVOICES_PER_PAGE)
+	}, [sortedRows, currentPage])
 
 	const totalPages = Math.max(1, Math.ceil(totalCount / INVOICES_PER_PAGE))
 	const startIndex =
@@ -240,6 +294,10 @@ const InvoiceTableSection = ({
 		setCurrentPage(1)
 	}
 
+	const shiftSelectedDate = (days: number) => {
+		handleDateChange(dayjs(selectedDate).add(days, 'day').toDate())
+	}
+
 	const handleSortChange = (key: SellingInvoiceSortKey) => {
 		if (sortKey === key) {
 			setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
@@ -250,8 +308,38 @@ const InvoiceTableSection = ({
 		setSortDirection('desc')
 	}
 
+	const findDailyActionById = (entryId: string) =>
+		dailyActions.find(action => getDailyActionId(action) === entryId)
+
+	const handleDeleteEntryRequest = (entryId: string) => {
+		setEntryPendingDelete(entryId)
+	}
+
+	const handleConfirmDeleteEntry = async () => {
+		if (!entryPendingDelete) return
+
+		try {
+			await deleteDailyAction([entryPendingDelete]).unwrap()
+			showToast({
+				status: 'success',
+				description: t(
+					'components.daily.confirmations.deleteDailyActionSuccess',
+				),
+			})
+		} catch {
+			showToast({
+				status: 'error',
+				description: t('components.daily.confirmations.deleteDailyActionError'),
+			})
+		} finally {
+			setEntryPendingDelete(null)
+		}
+	}
+
 	const showInitialLoader =
-		isLoading && !invoicesResponse && !buyingInvoicesResponse
+		isLoading &&
+		!invoicesResponse &&
+		(!showBuyingInvoices || !buyingInvoicesResponse)
 	const showRefetchOverlay = isFetching && !showInitialLoader
 
 	return (
@@ -321,19 +409,41 @@ const InvoiceTableSection = ({
 								spellCheck={false}
 							/>
 						</InputGroup>
-						<DatePickerLabel
-							label={''}
-							onChange={handleDateChange}
-							defaultDate={selectedDate}
-							styles={{
-								...datePickerStyles,
-								dateInput: {
-									...datePickerStyles.dateInput,
-									color: PAGE_COLORS.muted,
-									backgroundColor: PAGE_COLORS.cardShadow,
-								},
-							}}
-						/>
+						<Flex align="center" gap={1}>
+							<IconButton
+								aria-label={t('common.previous')}
+								icon={<ChevronRightIcon boxSize={5} />}
+								size="sm"
+								variant="ghost"
+								borderRadius="lg"
+								color={PAGE_COLORS.muted}
+								_hover={{ bg: 'gray.100' }}
+								onClick={() => shiftSelectedDate(-1)}
+							/>
+							<DatePickerLabel
+								label={''}
+								onChange={handleDateChange}
+								defaultDate={selectedDate}
+								styles={{
+									...datePickerStyles,
+									dateInput: {
+										...datePickerStyles.dateInput,
+										color: PAGE_COLORS.muted,
+										backgroundColor: PAGE_COLORS.cardShadow,
+									},
+								}}
+							/>
+							<IconButton
+								aria-label={t('common.next')}
+								icon={<ChevronLeftIcon boxSize={5} />}
+								size="sm"
+								variant="ghost"
+								borderRadius="lg"
+								color={PAGE_COLORS.muted}
+								_hover={{ bg: 'gray.100' }}
+								onClick={() => shiftSelectedDate(1)}
+							/>
+						</Flex>
 					</Flex>
 				</Flex>
 
@@ -465,7 +575,7 @@ const InvoiceTableSection = ({
 								</Tr>
 							</Thead>
 							<Tbody>
-								{paginatedInvoices.length === 0 ? (
+								{paginatedRows.length === 0 ? (
 									<Tr>
 										<Td colSpan={10} py={10} textAlign="center">
 											<Text color={PAGE_COLORS.muted}>
@@ -474,7 +584,184 @@ const InvoiceTableSection = ({
 										</Td>
 									</Tr>
 								) : (
-									paginatedInvoices.map(invoice => {
+									paginatedRows.map(row => {
+										if (row.kind === 'entry') {
+											const entryBadge = ENTRY_KIND_BADGE[row.entrySubType]
+											const entryPrimaryAmount = convertEntryAmountToPrimary(
+												row.amount,
+												row.currencyId,
+												displayCurrencyOptions,
+											)
+											const entryDisplayText = formatEntryAmountForDisplay(
+												row.amount,
+												row.currencyId,
+												displayCurrencyId,
+												displayCurrencyOptions,
+											)
+
+											return (
+												<Tr
+													key={`entry-${row.id}`}
+													_hover={{ bg: 'gray.50' }}
+													borderBottom="1px solid"
+													borderColor={PAGE_COLORS.border}
+												>
+													<Td fontWeight={600} color="gray.900">
+														<Badge
+															px={2.5}
+															py={0.5}
+															borderRadius="md"
+															fontSize="xs"
+															fontWeight={700}
+															bg={entryBadge.bg}
+															color={entryBadge.color}
+															textTransform="none"
+															title={t(entryBadge.labelKey)}
+														>
+															{t(entryBadge.labelKey)}
+														</Badge>
+													</Td>
+													<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
+														{row.time}
+													</Td>
+													<Td color="gray.800" whiteSpace="nowrap">
+														{row.entityName}
+													</Td>
+													<Td color={PAGE_COLORS.muted}>—</Td>
+													<Td color={PAGE_COLORS.muted}>—</Td>
+													<Td isNumeric color={PAGE_COLORS.muted}>
+														—
+													</Td>
+													<Td isNumeric fontWeight={500} color="gray.900">
+														<CurrencyAmountTooltip
+															amount={entryPrimaryAmount}
+															displayText={entryDisplayText}
+															options={displayCurrencyOptions}
+															displayCurrencyId={displayCurrencyId}
+															fontWeight={500}
+															color="gray.900"
+														/>
+													</Td>
+													<Td isNumeric color={PAGE_COLORS.muted}>
+														—
+													</Td>
+													<Td isNumeric color={PAGE_COLORS.muted}>
+														—
+													</Td>
+													<Td>
+														<HStack spacing={1}>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.view',
+																)}
+																icon={
+																	<Icon
+																		as={AsWatcherEyeIcon}
+																		color={PAGE_COLORS.primary}
+																		boxSize={5}
+																	/>
+																}
+																color={PAGE_COLORS.muted}
+																onClick={() => {
+																	const entry = findDailyActionById(row.id)
+																	if (entry) onViewEntry?.(entry)
+																}}
+															/>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.edit',
+																)}
+																icon={
+																	<Icon
+																		as={AsEditIcon}
+																		color={PAGE_COLORS.primary}
+																		boxSize={5}
+																	/>
+																}
+																color={PAGE_COLORS.muted}
+																onClick={() => {
+																	const entry = findDailyActionById(row.id)
+																	if (entry) onEditEntry?.(entry)
+																}}
+															/>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.delete',
+																)}
+																icon={
+																	<Icon
+																		as={AsTrashIcon}
+																		fill="none"
+																		color={PAGE_COLORS.danger}
+																		boxSize={5}
+																	/>
+																}
+																color={PAGE_COLORS.muted}
+																onClick={() => handleDeleteEntryRequest(row.id)}
+															/>
+															<Menu>
+																<MenuButton
+																	as={IconButton}
+																	size="xs"
+																	variant="ghost"
+																	aria-label={t(
+																		'components.sellingInvoices.actions.more',
+																	)}
+																	icon={
+																		<Icon
+																			as={AsThreeDotsIcon}
+																			color={PAGE_COLORS.primary}
+																			boxSize={5}
+																		/>
+																	}
+																	color={PAGE_COLORS.muted}
+																/>
+																<MenuList>
+																	<MenuItem
+																		onClick={() => {
+																			const entry = findDailyActionById(row.id)
+																			if (entry) onViewEntry?.(entry)
+																		}}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.view',
+																		)}
+																	</MenuItem>
+																	<MenuItem
+																		onClick={() => {
+																			const entry = findDailyActionById(row.id)
+																			if (entry) onEditEntry?.(entry)
+																		}}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.edit',
+																		)}
+																	</MenuItem>
+																	<MenuItem
+																		onClick={() =>
+																			handleDeleteEntryRequest(row.id)
+																		}
+																		color={PAGE_COLORS.danger}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.delete',
+																		)}
+																	</MenuItem>
+																</MenuList>
+															</Menu>
+														</HStack>
+													</Td>
+												</Tr>
+											)
+										}
+
+										const invoice = row
 										const paymentConfig =
 											PAYMENT_TYPE_CONFIG[invoice.paymentType]
 										const kindBadge = INVOICE_KIND_BADGE[invoice.kind]
@@ -597,7 +884,9 @@ const InvoiceTableSection = ({
 																/>
 															}
 															color={PAGE_COLORS.muted}
-															onClick={() => onViewInvoice(invoice.id)}
+															onClick={() =>
+																onViewInvoice(invoice.id, invoice.kind)
+															}
 														/>
 														<IconButton
 															size="xs"
@@ -613,7 +902,9 @@ const InvoiceTableSection = ({
 																/>
 															}
 															color={PAGE_COLORS.muted}
-															onClick={() => onEditInvoice(invoice.id)}
+															onClick={() =>
+																onEditInvoice(invoice.id, invoice.kind)
+															}
 														/>
 														<IconButton
 															size="xs"
@@ -630,7 +921,9 @@ const InvoiceTableSection = ({
 																/>
 															}
 															color={PAGE_COLORS.muted}
-															onClick={() => onDeleteInvoice(invoice.id)}
+															onClick={() =>
+																onDeleteInvoice(invoice.id, invoice.kind)
+															}
 														/>
 														<Menu>
 															<MenuButton
@@ -651,17 +944,23 @@ const InvoiceTableSection = ({
 															/>
 															<MenuList>
 																<MenuItem
-																	onClick={() => onViewInvoice(invoice.id)}
+																	onClick={() =>
+																		onViewInvoice(invoice.id, invoice.kind)
+																	}
 																>
 																	{t('components.sellingInvoices.actions.view')}
 																</MenuItem>
 																<MenuItem
-																	onClick={() => onEditInvoice(invoice.id)}
+																	onClick={() =>
+																		onEditInvoice(invoice.id, invoice.kind)
+																	}
 																>
 																	{t('components.sellingInvoices.actions.edit')}
 																</MenuItem>
 																<MenuItem
-																	onClick={() => onDeleteInvoice(invoice.id)}
+																	onClick={() =>
+																		onDeleteInvoice(invoice.id, invoice.kind)
+																	}
 																	color={PAGE_COLORS.danger}
 																>
 																	{t(
@@ -741,6 +1040,18 @@ const InvoiceTableSection = ({
 					</Flex>
 				</>
 			)}
+			<ConfirmationDialog
+				isOpen={Boolean(entryPendingDelete)}
+				onClose={() => setEntryPendingDelete(null)}
+				onConfirm={handleConfirmDeleteEntry}
+				header={t('components.daily.confirmations.deleteDailyAction')}
+				body={t(
+					'components.daily.confirmations.deleteDailyActionConfirmationBody',
+				)}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeletingEntry}
+			/>
 		</Box>
 	)
 }

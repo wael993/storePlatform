@@ -65,6 +65,24 @@ export const INVOICE_KIND_BADGE = {
 	},
 } as const
 
+export const ENTRY_KIND_BADGE = {
+	receipt: {
+		bg: '#DBEAFE',
+		color: '#1D4ED8',
+		labelKey: 'common.receiptEntry',
+	},
+	payment: {
+		bg: '#FEE2E2',
+		color: '#DC2626',
+		labelKey: 'common.paymentEntry',
+	},
+	expense: {
+		bg: '#F3E8FF',
+		color: '#7C3AED',
+		labelKey: 'common.expenseEntry',
+	},
+} as const
+
 export const PAYMENT_TYPE_CONFIG = {
 	cash: {
 		color: PAGE_COLORS.success,

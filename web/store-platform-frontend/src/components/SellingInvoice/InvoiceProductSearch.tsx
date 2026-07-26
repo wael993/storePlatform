@@ -201,8 +201,7 @@ const InvoiceProductSearch = ({
 
 			if (event.key === 'Enter') {
 				event.preventDefault()
-				const selectedIndex =
-					highlightedIndex >= 0 ? highlightedIndex : 0
+				const selectedIndex = highlightedIndex >= 0 ? highlightedIndex : 0
 				handleAddProduct(suggestions[selectedIndex])
 				return
 			}
@@ -262,9 +261,7 @@ const InvoiceProductSearch = ({
 						onFocus={() => {
 							if (suggestions.length > 0) {
 								setShowSuggestions(true)
-								setHighlightedIndex(current =>
-									current >= 0 ? current : 0,
-								)
+								setHighlightedIndex(current => (current >= 0 ? current : 0))
 							}
 						}}
 						onKeyDown={handleKeyDown}
@@ -353,46 +350,46 @@ const InvoiceProductSearch = ({
 						const isHighlighted = index === highlightedIndex
 
 						return (
-						<ListItem
-							key={product.productId}
-							ref={element => {
-								suggestionRefs.current[index] = element
-							}}
-							px={4}
-							py={3}
-							cursor="pointer"
-							bg={isHighlighted ? 'blue.50' : undefined}
-							_hover={{ bg: isHighlighted ? 'blue.50' : 'gray.50' }}
-							onMouseEnter={() => setHighlightedIndex(index)}
-							onClick={() => handleAddProduct(product)}
-							borderBottom="1px solid"
-							borderColor={PAGE_COLORS.border}
-						>
-							<Text fontWeight={600} fontSize="sm">
-								{product.name}
-							</Text>
-							<Flex gap={3} mt={0.5} flexWrap="wrap">
-								{product.barcode && (
-									<Text fontSize="xs" color={PAGE_COLORS.muted}>
-										{product.barcode}
-									</Text>
-								)}
-								{product.internalCode && (
-									<Text fontSize="xs" color={PAGE_COLORS.muted}>
-										{product.internalCode}
-									</Text>
-								)}
-								{product.productFactoryCode && (
-									<Text fontSize="xs" color={PAGE_COLORS.muted}>
-										{product.productFactoryCode}
-									</Text>
-								)}
-								<Text fontSize="xs" color={PAGE_COLORS.primary}>
-									{product.price?.retailPrice?.toFixed(2)}{' '}
-									{product.price?.currency}
+							<ListItem
+								key={product.productId}
+								ref={element => {
+									suggestionRefs.current[index] = element
+								}}
+								px={4}
+								py={3}
+								cursor="pointer"
+								bg={isHighlighted ? 'blue.50' : undefined}
+								_hover={{ bg: isHighlighted ? 'blue.50' : 'gray.50' }}
+								onMouseEnter={() => setHighlightedIndex(index)}
+								onClick={() => handleAddProduct(product)}
+								borderBottom="1px solid"
+								borderColor={PAGE_COLORS.border}
+							>
+								<Text fontWeight={600} fontSize="sm">
+									{product.name}
 								</Text>
-							</Flex>
-						</ListItem>
+								<Flex gap={3} mt={0.5} flexWrap="wrap">
+									{product.barcode && (
+										<Text fontSize="xs" color={PAGE_COLORS.muted}>
+											{product.barcode}
+										</Text>
+									)}
+									{product.internalCode && (
+										<Text fontSize="xs" color={PAGE_COLORS.muted}>
+											{product.internalCode}
+										</Text>
+									)}
+									{product.productFactoryCode && (
+										<Text fontSize="xs" color={PAGE_COLORS.muted}>
+											{product.productFactoryCode}
+										</Text>
+									)}
+									<Text fontSize="xs" color={PAGE_COLORS.primary}>
+										{product.price?.retailPrice?.toFixed(2)}{' '}
+										{product.price?.currency}
+									</Text>
+								</Flex>
+							</ListItem>
 						)
 					})}
 				</List>

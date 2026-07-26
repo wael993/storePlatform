@@ -5,6 +5,7 @@ import {
 	calculateInvoiceTotals,
 	calculateLineItemTotal,
 } from './invoiceCalculations'
+import { getInvoiceDiscountSettings } from './invoiceDiscountDraft'
 import {
 	buildInvoiceCurrencyAmounts,
 	getPrimaryInvoiceCurrencyAmounts,
@@ -48,6 +49,8 @@ export interface ApiSellingInvoice {
 	notes?: string
 	issuedAt?: string
 	createdAt?: string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 	/** @deprecated legacy invoices only */
 	amount?: number
 	/** @deprecated legacy invoices only */
@@ -158,6 +161,9 @@ export const mapApiInvoiceToDraft = (
 		})),
 		note: invoice.notes ?? '',
 		paidAmount,
+		useInvoiceDiscount: (invoice.invoiceDiscount ?? 0) > 0,
+		invoiceDiscount: invoice.invoiceDiscount ?? 0,
+		invoiceDiscountIsPercent: invoice.invoiceDiscountIsPercent ?? false,
 	}
 }
 
@@ -195,7 +201,10 @@ export const buildInvoiceRequestBody = (
 	status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
 	currencySettings?: CurrencySettings | null,
 ) => {
-	const totals = calculateInvoiceTotals(draft.lineItems)
+	const totals = calculateInvoiceTotals(
+		draft.lineItems,
+		getInvoiceDiscountSettings(draft),
+	)
 	const paidAmount = draft.paidAmount
 	const remainingAmount = Math.max(0, totals.grandTotal - paidAmount)
 	const currencyAmounts = buildInvoiceCurrencyAmounts(
@@ -243,6 +252,10 @@ export const buildInvoiceRequestBody = (
 		currencyAmounts,
 		notes: draft.note || undefined,
 		issuedAt,
+		invoiceDiscount: draft.useInvoiceDiscount ? draft.invoiceDiscount : 0,
+		invoiceDiscountIsPercent: draft.useInvoiceDiscount
+			? draft.invoiceDiscountIsPercent
+			: false,
 	}
 }
 

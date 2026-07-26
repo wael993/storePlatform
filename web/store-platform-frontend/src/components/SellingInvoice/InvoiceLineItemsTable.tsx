@@ -19,13 +19,15 @@ import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
 import {
 	calculateLineItemTotal,
-	unitPriceFromLineTotal,
+	getLineDiscountAmount,
+	unitPriceFromLineTotalWithDiscount,
 } from './invoiceCalculations'
 import type { SellingInvoiceLineItem } from './types'
 import { AsTrashIcon } from '../../icons/Trash'
 import { AsProductIcon } from '../../icons/Product'
 import TextLabel from '../common/TextLabel'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import EditableDiscountField from './EditableDiscountField'
 import EditableNumberField from './EditableNumberField'
 import {
 	roundPrimaryAmount,
@@ -40,6 +42,7 @@ interface InvoiceLineItemsTableProps {
 	displayCurrencyId: string | null
 	currencyOptions: DisplayCurrencyOption[]
 	isReadOnly?: boolean
+	invoiceKind?: 'selling' | 'buying'
 }
 
 const ProductThumbnail = ({
@@ -85,17 +88,15 @@ const InvoiceLineItemsTable = ({
 	displayCurrencyId,
 	currencyOptions,
 	isReadOnly = false,
+	invoiceKind = 'selling',
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
 	const editStartRefs = useRef(new Map<string, () => void>())
 
 	// Newest line items are appended last; show newest first in the table.
-	const displayLineItems = useMemo(
-		() => [...lineItems].reverse(),
-		[lineItems],
-	)
+	const displayLineItems = useMemo(() => [...lineItems].reverse(), [lineItems])
 
-	type LineItemField = 'quantity' | 'unitPrice' | 'total'
+	type LineItemField = 'quantity' | 'unitPrice' | 'discount' | 'total'
 
 	const lineItemFieldId = (itemId: string, field: LineItemField) =>
 		`${itemId}-${field}`
@@ -125,22 +126,38 @@ const InvoiceLineItemsTable = ({
 		[displayLineItems],
 	)
 
-	const handleQuantityEdit = (item: SellingInvoiceLineItem, quantity: number) => {
+	const handleQuantityEdit = (
+		item: SellingInvoiceLineItem,
+		quantity: number,
+	) => {
 		onUpdateItem(item.id, { quantity })
 	}
 
-	const handleUnitPriceEdit = (item: SellingInvoiceLineItem, unitPrice: number) => {
+	const handleUnitPriceEdit = (
+		item: SellingInvoiceLineItem,
+		unitPrice: number,
+	) => {
 		onUpdateItem(item.id, {
-			// Keep sub-cent primary precision so secondary-currency edits round-trip.
 			unitPrice: roundPrimaryAmount(unitPrice),
-			discount: 0,
 		})
+	}
+
+	const handleDiscountEdit = (
+		item: SellingInvoiceLineItem,
+		discount: number,
+		discountIsPercent: boolean,
+	) => {
+		onUpdateItem(item.id, { discount, discountIsPercent })
 	}
 
 	const handleTotalEdit = (item: SellingInvoiceLineItem, total: number) => {
 		onUpdateItem(item.id, {
-			unitPrice: unitPriceFromLineTotal(total, item.quantity),
-			discount: 0,
+			unitPrice: unitPriceFromLineTotalWithDiscount(
+				total,
+				item.quantity,
+				item.discount,
+				item.discountIsPercent,
+			),
 		})
 	}
 
@@ -162,7 +179,7 @@ const InvoiceLineItemsTable = ({
 
 	return (
 		<Box
-			overflowX="auto"
+			// overflowX="auto"
 			border="1px solid"
 			borderColor={PAGE_COLORS.border}
 			borderRadius="lg"
@@ -177,6 +194,7 @@ const InvoiceLineItemsTable = ({
 						{/* <Th>{t('components.sellingInvoices.drawer.columns.barcode')}</Th> */}
 						<Th>{t('components.sellingInvoices.drawer.columns.qty')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.price')}</Th>
+						<Th>{t('components.sellingInvoices.drawer.columns.discount')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.total')}</Th>
 						{!isReadOnly && <Th w="2.5rem" />}
 					</Tr>
@@ -207,52 +225,78 @@ const InvoiceLineItemsTable = ({
 							{/* <Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
 								{item.barcode ?? '-'}
 							</Td> */}
-						<Td>
-							{isReadOnly ? (
-								<TextLabel label="" value={item.quantity.toString()} />
-							) : (
-								<EditableNumberField
-									value={item.quantity}
-									isEditable
-									fontSize="sm"
-									fontWeight={600}
-									fieldId={lineItemFieldId(item.id, 'quantity')}
+							<Td>
+								{isReadOnly ? (
+									<TextLabel label="" value={item.quantity.toString()} />
+								) : (
+									<EditableNumberField
+										value={item.quantity}
+										isEditable
+										fontSize="sm"
+										fontWeight={600}
+										fieldId={lineItemFieldId(item.id, 'quantity')}
+										registerEditStart={registerEditStart}
+										onEnterCommit={() => focusNextField(index, 'quantity')}
+										onSave={quantity => handleQuantityEdit(item, quantity)}
+									/>
+								)}
+							</Td>
+							<Td>
+								<CurrencyAmountTooltip
+									amount={item.unitPrice}
+									displayText={formatAmount(item.unitPrice)}
+									options={currencyOptions}
+									displayCurrencyId={displayCurrencyId}
+									fieldId={lineItemFieldId(item.id, 'unitPrice')}
 									registerEditStart={registerEditStart}
-									onEnterCommit={() => focusNextField(index, 'quantity')}
-									onSave={quantity => handleQuantityEdit(item, quantity)}
+									onEnterCommit={() => focusNextField(index, 'unitPrice')}
+									onEdit={
+										isReadOnly
+											? undefined
+											: unitPrice => handleUnitPriceEdit(item, unitPrice)
+									}
+									costReference={
+										invoiceKind === 'selling'
+											? {
+													averageBuying:
+														item.averageCost != null
+															? formatAmount(item.averageCost)
+															: '-',
+													lastBuying:
+														item.lastBuyingPrice != null
+															? formatAmount(item.lastBuyingPrice)
+															: '-',
+													lastSelling:
+														item.lastSellingPrice != null
+															? formatAmount(item.lastSellingPrice)
+															: '-',
+												}
+											: undefined
+									}
 								/>
-							)}
-						</Td>
-						<Td>
-							<CurrencyAmountTooltip
-								amount={item.unitPrice}
-								displayText={formatAmount(item.unitPrice)}
-								options={currencyOptions}
-								displayCurrencyId={displayCurrencyId}
-								fieldId={lineItemFieldId(item.id, 'unitPrice')}
-								registerEditStart={registerEditStart}
-								onEnterCommit={() => focusNextField(index, 'unitPrice')}
-								onEdit={
-									isReadOnly
-										? undefined
-										: unitPrice => handleUnitPriceEdit(item, unitPrice)
-								}
-								costReference={{
-									averageBuying:
-										item.averageCost != null
-											? formatAmount(item.averageCost)
-											: '-',
-									lastBuying:
-										item.lastBuyingPrice != null
-											? formatAmount(item.lastBuyingPrice)
-											: '-',
-									lastSelling:
-										item.lastSellingPrice != null
-											? formatAmount(item.lastSellingPrice)
-											: '-',
-								}}
-							/>
-						</Td>
+							</Td>
+							<Td>
+								{isReadOnly ? (
+									<Text fontSize="sm" fontWeight={600}>
+										{formatAmount(getLineDiscountAmount(item))}
+									</Text>
+								) : (
+									<EditableDiscountField
+										discount={item.discount}
+										discountIsPercent={item.discountIsPercent}
+										discountAmount={getLineDiscountAmount(item)}
+										formatAmount={formatAmount}
+										fontSize="sm"
+										fontWeight={600}
+										fieldId={lineItemFieldId(item.id, 'discount')}
+										registerEditStart={registerEditStart}
+										onEnterCommit={() => focusNextField(index, 'discount')}
+										onSave={(discount, discountIsPercent) =>
+											handleDiscountEdit(item, discount, discountIsPercent)
+										}
+									/>
+								)}
+							</Td>
 							<Td>
 								<CurrencyAmountTooltip
 									amount={calculateLineItemTotal(item)}

@@ -73,7 +73,6 @@
 			"usersDescription": "Mandantenbenutzer und Rollen verwalten.",
 			"productsDescription": "Produktkatalog und Preise.",
 			"dailyDescription": "Tägliche Kauf-, Verkaufs- und Ausgabenaktionen.",
-			"cashBalanceDescription": "Kassenbestand mit Eingängen, Zahlungen, Ausgaben und Verkäufen.",
 			"suppliersDescription": "Lieferantenverzeichnis und Details.",
 			"customersDescription": "Kundenverzeichnis und Details.",
 			"partnersDescription": "Partnerverzeichnis und Details.",
@@ -345,18 +344,6 @@
 			"unitCode": "Einheitscode",
 			"expenseCode": "Ausgabencode"
 		},
-		"cashBalance": {
-			"cashBalance": "Kassenbestand",
-			"budgetOverview": {
-				"tooltip": "Übersicht für die gefilterten Kassenbestand-Einträge.",
-				"title": "Kassenbestand-Übersicht",
-				"receipts": "Eingänge",
-				"payments": "Zahlungen",
-				"expenses": "Ausgaben",
-				"sales": "Verkäufe",
-				"cashBalance": "Kassenbestand"
-			}
-		},
 		"partner": {
 			"addPartner": "Partner hinzufügen",
 			"partnerName": "Partnername",
@@ -389,7 +376,9 @@
 			"newBuyingInvoice": "Einkaufsrechnung",
 			"newEntry": "Buchungen",
 			"entries": {
-				"title": "Buchung hinzufügen"
+				"title": "Buchung hinzufügen",
+				"viewTitle": "Buchung anzeigen",
+				"editTitle": "Buchung bearbeiten"
 			},
 			"barcodeSearchPlaceholder": "Barcode scannen oder Produkt suchen...",
 			"barcodeSearchHint": "Enter drücken, um eine neue Rechnung zu starten",
@@ -410,7 +399,10 @@
 				"paidInvoices": "Bezahlte Rechnungen",
 				"creditInvoices": "Kreditrechnungen",
 				"totalReceivable": "Gesamtforderungen",
-				"averageOrder": "Durchschnittliche Bestellung"
+				"averageOrder": "Durchschnittliche Bestellung",
+				"cashBalance": "Kassenbestand",
+				"cashBalancePeriod": "Zeitraum",
+				"cashBalanceAllTime": "Gesamt"
 			},
 			"status": {
 				"all": "Alle",
@@ -560,7 +552,6 @@
 			"sellingInvoices": "Verkaufsrechnungen",
 			"settings": "Einstellungen",
 			"daily": "Täglich",
-			"cashBalance": "Kassenbestand",
 			"products": "Produkte",
 			"orders": "Bestellungen",
 			"invoices": "Rechnungen",

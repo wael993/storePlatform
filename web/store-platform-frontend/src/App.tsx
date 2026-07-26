@@ -26,7 +26,6 @@ import SupplierPage from './components/supplier/SupplierPage'
 import CustomerPage from './components/customer/CustomerPage'
 import PartnerPage from './components/partner/PartnerPage'
 import DailyPage from './components/daily/DailyPage'
-import CashBalancePage from './components/cashBalance/CashBalancePage'
 import CustomerModal from './components/customer/CustomerModal'
 import CategoryPage from './components/category/CategoryPage'
 import SupplierModal from './components/supplier/SupplierModal'
@@ -55,7 +54,6 @@ const App = () => {
 		isTenantsListEnabled,
 		isBarcodeEnabled,
 		isDailyEnabled,
-		isCashBalancePageEnabled,
 		isProductsEnabled,
 		isOrdersEnabled,
 		isSellingInvoicesEnabled,
@@ -73,7 +71,6 @@ const App = () => {
 		isTenantBarcodeEnabled,
 		isTenantProductsEnabled,
 		isTenantDailyEnabled,
-		isTenantCashBalancePageEnabled,
 		isTenantOrdersEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantUsersEnabled,
@@ -126,13 +123,6 @@ const App = () => {
 							<Route
 								path={RoutePaths.DAILY}
 								element={<DailyPage targetType={TargetType.DAILY_ACTION} />}
-							/>
-						)}
-
-						{isCashBalancePageEnabled && isTenantCashBalancePageEnabled && (
-							<Route
-								path={RoutePaths.CASH_BALANCE}
-								element={<CashBalancePage />}
 							/>
 						)}
 

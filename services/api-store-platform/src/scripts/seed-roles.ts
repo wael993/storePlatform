@@ -106,10 +106,6 @@ const ROLE_MOCKS = [
 				access: true,
 				allowedActions: ['seeDailyAction'],
 			},
-			'/services/store_platform/cash-balance': {
-				access: true,
-				allowedActions: ['seeBudgetOverview'],
-			},
 			'/services/store_platform/categories': {
 				access: true,
 				allowedActions: ['seeCategory'],
@@ -202,10 +198,6 @@ const ROLE_MOCKS = [
 					'deleteDailyAction',
 					'seeBudgetOverview',
 				],
-			},
-			'/services/store_platform/cash-balance': {
-				access: true,
-				allowedActions: ['seeBudgetOverview', 'canEditCashBalance'],
 			},
 			'/services/store_platform/categories': {
 				access: true,

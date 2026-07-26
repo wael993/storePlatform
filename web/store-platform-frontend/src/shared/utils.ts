@@ -50,7 +50,6 @@ export const getEnabledActions = () => {
 		isAddNewTenantEnabled: enabledActions.has('ADD_NEW_TENANT'),
 		isTenantsListEnabled: enabledActions.has('TENANTS_LIST'),
 		isDailyEnabled: enabledActions.has('DAILY'),
-		isCashBalancePageEnabled: enabledActions.has('CASH_BALANCE'),
 		isBarcodeEnabled: enabledActions.has('BARCODE'),
 		isProductsEnabled: enabledActions.has('PRODUCTS'),
 		isOrdersEnabled: enabledActions.has('ORDERS'),
@@ -73,7 +72,6 @@ export const getGloballyEnabledTenantPages = (
 		USERS: enabledActions.isUsersEnabled,
 		PRODUCTS: enabledActions.isProductsEnabled,
 		DAILY: enabledActions.isDailyEnabled,
-		CASH_BALANCE: enabledActions.isCashBalancePageEnabled,
 		SUPPLIERS: enabledActions.isSuppliersEnabled,
 		CUSTOMERS: enabledActions.isCustomersEnabled,
 		CATEGORIES: enabledActions.isCategoriesEnabled,
@@ -102,7 +100,6 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantBarcodeEnabled: tenantPages.has('BARCODE'),
 		isTenantProductsEnabled: tenantPages.has('PRODUCTS'),
 		isTenantDailyEnabled: tenantPages.has('DAILY'),
-		isTenantCashBalancePageEnabled: tenantPages.has('CASH_BALANCE'),
 		isTenantOrdersEnabled: tenantPages.has('ORDERS'),
 		isTenantInvoicesEnabled: tenantPages.has('INVOICE'),
 		isTenantUsersEnabled: tenantPages.has('USERS'),
@@ -144,11 +141,6 @@ export const isTenantRouteAllowed = (
 		[
 			RoutePaths.DAILY,
 			globalActions.isDailyEnabled && tenantActions.isTenantDailyEnabled,
-		],
-		[
-			RoutePaths.CASH_BALANCE,
-			globalActions.isCashBalancePageEnabled &&
-				tenantActions.isTenantCashBalancePageEnabled,
 		],
 		[
 			RoutePaths.ORDERS,

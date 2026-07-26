@@ -73,7 +73,6 @@
 			"usersDescription": "إدارة مستخدمي المستأجر والأدوار.",
 			"productsDescription": "كتالوج المنتجات والأسعار.",
 			"dailyDescription": "إجراءات الشراء والبيع والمصروفات اليومية.",
-			"cashBalanceDescription": "الصندوق مع القبض والدفع والنفقات وفواتير المبيعات.",
 			"suppliersDescription": "دليل الموردين والتفاصيل.",
 			"customersDescription": "دليل العملاء والتفاصيل.",
 			"categoriesDescription": "دليل فئات المنتجات.",
@@ -389,18 +388,6 @@
 			"unitCode": "رمز الوحدة",
 			"expenseCode": "رمز النفقات"
 		},
-		"cashBalance": {
-			"cashBalance": "الصندوق",
-			"budgetOverview": {
-				"tooltip": "نظرة عامة على إدخالات الصندوق بعد التصفية.",
-				"title": "نظرة عامة على الصندوق",
-				"receipts": "القبض",
-				"payments": "الدفع",
-				"expenses": "النفقات",
-				"sales": "المبيعات",
-				"cashBalance": "الصندوق"
-			}
-		},
 		"sellingInvoices": {
 			"title": "فواتير ",
 			"newInvoice": "فاتورة جديدة",
@@ -409,7 +396,9 @@
 			"newBuyingInvoice": "فاتورة شراء",
 			"newEntry": "سندات",
 			"entries": {
-				"title": "إضافة سند"
+				"title": "إضافة سند",
+				"viewTitle": "عرض السند",
+				"editTitle": "تعديل السند"
 			},
 			"barcodeSearchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
 			"barcodeSearchHint": "اضغط Enter لبدء فاتورة جديدة",
@@ -430,7 +419,10 @@
 				"paidInvoices": "الفواتير المدفوعة",
 				"creditInvoices": "الفواتير الآجلة",
 				"totalReceivable": "إجمالي المستحقات",
-				"averageOrder": "متوسط الطلب"
+				"averageOrder": "متوسط الطلب",
+				"cashBalance": "رصيد الصندوق",
+				"cashBalancePeriod": "الفترة",
+				"cashBalanceAllTime": "كل الوقت"
 			},
 			"status": {
 				"all": "الكل",
@@ -580,7 +572,6 @@
 			"sellingInvoices": "فواتير ",
 			"settings": "الإعدادات",
 			"daily": "اليومية",
-			"cashBalance": "الصندوق",
 			"products": "المنتجات",
 			"orders": "الطلبات",
 			"invoices": "الفواتير",

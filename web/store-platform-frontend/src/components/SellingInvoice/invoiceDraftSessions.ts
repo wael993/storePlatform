@@ -38,6 +38,9 @@ export const createInvoiceDraft = (
 	lineItems: [],
 	note: '',
 	paidAmount: 0,
+	useInvoiceDiscount: false,
+	invoiceDiscount: 0,
+	invoiceDiscountIsPercent: false,
 })
 
 export const createInvoiceDraftSession = (

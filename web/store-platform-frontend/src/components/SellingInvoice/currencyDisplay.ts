@@ -283,6 +283,33 @@ export const formatInvoiceAmountForDisplay = (
 	return formatDisplayAmount(primaryAmount, displayCurrencyId, options)
 }
 
+export const convertEntryAmountToPrimary = (
+	amount: number,
+	entryCurrencyId: string | null | undefined,
+	options: DisplayCurrencyOption[],
+): number => {
+	if (!entryCurrencyId) {
+		return roundPrimaryAmount(amount)
+	}
+
+	return convertToPrimaryAmount(amount, entryCurrencyId, options)
+}
+
+export const formatEntryAmountForDisplay = (
+	amount: number,
+	entryCurrencyId: string | null | undefined,
+	displayCurrencyId: string | null,
+	options: DisplayCurrencyOption[],
+): string => {
+	const primaryAmount = convertEntryAmountToPrimary(
+		amount,
+		entryCurrencyId,
+		options,
+	)
+
+	return formatDisplayAmount(primaryAmount, displayCurrencyId, options)
+}
+
 export const getPrimaryInvoiceCurrencyAmounts = (
 	invoice: InvoiceAmountSource,
 ) => {

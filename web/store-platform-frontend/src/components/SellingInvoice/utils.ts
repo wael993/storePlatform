@@ -1,4 +1,5 @@
 import { formatNumber } from '../../shared/utils'
+import type { InvoiceTableRow } from './entryTableMappers'
 import type {
 	SellingInvoice,
 	SellingInvoiceSortKey,
@@ -39,6 +40,31 @@ export const sortInvoices = (
 
 		if (sortKey === 'invoiceNumber') {
 			comparison = a.invoiceNumber - b.invoiceNumber
+		} else {
+			comparison = parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)
+		}
+
+		return direction === 'asc' ? comparison : -comparison
+	})
+
+	return sorted
+}
+
+const getRowSortNumber = (row: InvoiceTableRow) =>
+	row.kind === 'entry' ? row.sortKey : row.invoiceNumber
+
+export const sortTableRows = (
+	rows: InvoiceTableRow[],
+	sortKey: SellingInvoiceSortKey,
+	direction: SortDirection,
+) => {
+	const sorted = [...rows]
+
+	sorted.sort((a, b) => {
+		let comparison = 0
+
+		if (sortKey === 'invoiceNumber') {
+			comparison = getRowSortNumber(a) - getRowSortNumber(b)
 		} else {
 			comparison = parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)
 		}

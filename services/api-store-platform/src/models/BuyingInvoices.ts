@@ -47,6 +47,8 @@ export interface IBuyingInvoice extends Document {
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
 	currencyAmounts: IBuyingInvoiceCurrencyAmount[]
 	notes?: string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 	warehouseId?: string
 	issuedAt: Date
 	createdBy: {
@@ -154,6 +156,15 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 		notes: {
 			type: String,
 			trim: true,
+		},
+		invoiceDiscount: {
+			type: Number,
+			min: 0,
+			default: 0,
+		},
+		invoiceDiscountIsPercent: {
+			type: Boolean,
+			default: false,
 		},
 		warehouseId: {
 			type: String,

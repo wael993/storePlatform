@@ -180,6 +180,8 @@ export type InvoiceRequestBody = {
 	printAfterPayment?: boolean
 	warehouseId?: string
 	issuedAt?: Date | string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 }
 
 export type SellingInvoicesQueryParams = {
@@ -262,6 +264,8 @@ export type BuyingInvoiceRequestBody = {
 	notes?: string
 	warehouseId?: string
 	issuedAt?: Date | string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 }
 
 export type BuyingInvoicesQueryParams = {

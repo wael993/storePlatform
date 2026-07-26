@@ -49,6 +49,8 @@ export interface IInvoice extends Document {
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
 	currencyAmounts: IInvoiceCurrencyAmount[]
 	notes?: string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 	printAfterPayment?: boolean
 	warehouseId?: string
 	issuedAt: Date
@@ -165,6 +167,15 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 		notes: {
 			type: String,
 			trim: true,
+		},
+		invoiceDiscount: {
+			type: Number,
+			min: 0,
+			default: 0,
+		},
+		invoiceDiscountIsPercent: {
+			type: Boolean,
+			default: false,
 		},
 		printAfterPayment: {
 			type: Boolean,

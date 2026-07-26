@@ -30,7 +30,7 @@ import { Invoice } from '../models/Invoice'
 import { BuyingInvoice } from '../models/BuyingInvoices'
 import { Inventory } from '../models/Inventory'
 import { Report } from '../models/Report'
-import { DailyAction, ActionType } from '../models/DailyAction'
+import { DailyAction } from '../models/DailyAction'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
@@ -2204,8 +2204,9 @@ export default class ProductController {
 
 	private isPeriodSummaryInvoice(invoice: Record<string, any>): boolean {
 		return this.shouldAdjustInventoryForInvoice(
-			(invoice.status ??
-				'confirmed') as NonNullable<InvoiceRequestBody['status']>,
+			(invoice.status ?? 'confirmed') as NonNullable<
+				InvoiceRequestBody['status']
+			>,
 		)
 	}
 
@@ -2518,11 +2519,13 @@ export default class ProductController {
 	private async validateSaleInventory(
 		requestContext: RequestContext,
 		items: NonNullable<InvoiceRequestBody['items']>,
+		session?: mongoose.ClientSession,
 	) {
 		for (const item of items) {
 			const inventory = await this.getInventoryByProductId(
 				requestContext,
 				item.productId,
+				session,
 			)
 
 			if (!inventory) {
@@ -2967,6 +2970,9 @@ export default class ProductController {
 							paymentStatus,
 							currencyAmounts,
 							notes: requestBody.notes,
+							invoiceDiscount: requestBody.invoiceDiscount ?? 0,
+							invoiceDiscountIsPercent:
+								requestBody.invoiceDiscountIsPercent ?? false,
 							printAfterPayment: requestBody.printAfterPayment ?? false,
 							warehouseId: requestBody.warehouseId,
 							issuedAt: requestBody.issuedAt
@@ -3102,25 +3108,41 @@ export default class ProductController {
 			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
 		)
 		const isCancelling = wasStockAffecting && requestBody.status === 'cancelled'
-
-		if (wasStockAffecting && !isCancelling && requestBody.items) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Cannot edit items on a confirmed invoice. Cancel it and create a new one instead.',
-			)
-		}
+		const isEditingItems =
+			wasStockAffecting && !isCancelling && Boolean(requestBody.items?.length)
 
 		const { updateResponse, touchedInventoryIds } = await this.runInTransaction(
 			async session => {
-				const inventoryIds = isCancelling
-					? await this.reverseSaleInventoryAdjustments(
+				let inventoryIds: string[] = []
+
+				if (isCancelling || isEditingItems) {
+					inventoryIds = await this.reverseSaleInventoryAdjustments(
+						requestContext,
+						existingInvoice.invoiceId,
+						existingInvoice.invoiceNumber,
+						existingInvoice.items ?? [],
+						session,
+					)
+				}
+
+				if (isEditingItems) {
+					await this.validateSaleInventory(
+						requestContext,
+						requestBody.items!,
+						session,
+					)
+
+					inventoryIds = [
+						...inventoryIds,
+						...(await this.applySaleInventoryAdjustments(
 							requestContext,
 							existingInvoice.invoiceId,
 							existingInvoice.invoiceNumber,
-							existingInvoice.items ?? [],
+							requestBody.items!,
 							session,
-						)
-					: []
+						)),
+					]
+				}
 
 				const updated = await this.mongoDbClient.updateDocument(
 					{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId, session },
@@ -3147,16 +3169,22 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
-
-		if (
+		const wasStockAffecting = Boolean(
 			existingInvoice &&
-			this.shouldAdjustInventoryForInvoice(existingInvoice.status)
-		) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Cannot delete a confirmed invoice. Cancel it instead.',
-			)
-		}
+			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
+		)
+
+		const touchedInventoryIds = wasStockAffecting
+			? await this.runInTransaction(async session =>
+					this.reverseSaleInventoryAdjustments(
+						requestContext,
+						existingInvoice!.invoiceId,
+						existingInvoice!.invoiceNumber,
+						existingInvoice!.items ?? [],
+						session,
+					),
+				)
+			: []
 
 		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
@@ -3165,6 +3193,10 @@ export default class ProductController {
 		)
 
 		await this.invalidateEntityCache('invoices', requestContext, invoiceId)
+
+		for (const inventoryId of touchedInventoryIds) {
+			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		}
 
 		return deleteResponse
 	}
@@ -3568,6 +3600,9 @@ export default class ProductController {
 							paymentStatus,
 							currencyAmounts,
 							notes: requestBody.notes,
+							invoiceDiscount: requestBody.invoiceDiscount ?? 0,
+							invoiceDiscountIsPercent:
+								requestBody.invoiceDiscountIsPercent ?? false,
 							warehouseId: requestBody.warehouseId,
 							issuedAt: requestBody.issuedAt
 								? new Date(requestBody.issuedAt)
@@ -3634,25 +3669,36 @@ export default class ProductController {
 			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
 		)
 		const isCancelling = wasStockAffecting && requestBody.status === 'cancelled'
-
-		if (wasStockAffecting && !isCancelling && requestBody.items) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Cannot edit items on a confirmed buying invoice. Cancel it and create a new one instead.',
-			)
-		}
+		const isEditingItems =
+			wasStockAffecting && !isCancelling && Boolean(requestBody.items?.length)
 
 		const { updateResponse, touchedInventoryIds } = await this.runInTransaction(
 			async session => {
-				const inventoryIds = isCancelling
-					? await this.reversePurchaseInventoryAdjustments(
+				let inventoryIds: string[] = []
+
+				if (isCancelling || isEditingItems) {
+					inventoryIds = await this.reversePurchaseInventoryAdjustments(
+						requestContext,
+						existingInvoice.buyingInvoiceId,
+						existingInvoice.invoiceNumber,
+						existingInvoice.items ?? [],
+						session,
+					)
+				}
+
+				if (isEditingItems) {
+					inventoryIds = [
+						...inventoryIds,
+						...(await this.applyPurchaseInventoryAdjustments(
 							requestContext,
 							existingInvoice.buyingInvoiceId,
 							existingInvoice.invoiceNumber,
-							existingInvoice.items ?? [],
+							requestBody.items!,
 							session,
-						)
-					: []
+							existingInvoice.warehouseId,
+						)),
+					]
+				}
 
 				const updated = await this.mongoDbClient.updateDocument(
 					{
@@ -3684,22 +3730,34 @@ export default class ProductController {
 			buyingInvoiceId,
 			requestContext,
 		)
-
-		if (
+		const wasStockAffecting = Boolean(
 			existingInvoice &&
-			this.shouldAdjustInventoryForInvoice(existingInvoice.status)
-		) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Cannot delete a confirmed buying invoice. Cancel it instead.',
-			)
-		}
+			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
+		)
 
-		return this.mongoDbClient.deleteDocument(
+		const touchedInventoryIds = wasStockAffecting
+			? await this.runInTransaction(async session =>
+					this.reversePurchaseInventoryAdjustments(
+						requestContext,
+						existingInvoice!.buyingInvoiceId,
+						existingInvoice!.invoiceNumber,
+						existingInvoice!.items ?? [],
+						session,
+					),
+				)
+			: []
+
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.BUYING_INVOICES, id: buyingInvoiceId },
 			requestContext,
 			BuyingInvoice,
 		)
+
+		for (const inventoryId of touchedInventoryIds) {
+			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
+		}
+
+		return deleteResponse
 	}
 
 	public async getInventory(
@@ -4391,24 +4449,41 @@ export default class ProductController {
 
 	public async patchDailyAction(
 		actionId: string,
-		requestBody: Partial<{
-			type: ActionType
-			salesArea: string
-			locationCustomer: string
-			shopTerminal: string
-			promotionSpace: string
-			amount: number
-			description: string
-			reference: string
-			invoiceNumber: string
-		}>,
+		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
 	) {
+		const optionalString = (value?: string) => value?.trim() || undefined
+		const dailyActionData = {
+			entryType: requestBody.entryType,
+			productId: optionalString(requestBody.productId),
+			invoiceNumber: optionalString(requestBody.invoiceNumber),
+			invoiceDate: requestBody.invoiceDate
+				? new Date(requestBody.invoiceDate)
+				: undefined,
+			productName: optionalString(requestBody.productName),
+			supplierId: optionalString(requestBody.supplierId),
+			supplierName: optionalString(requestBody.supplierName),
+			partnerId: optionalString(requestBody.partnerId),
+			partnerName: optionalString(requestBody.partnerName),
+			customerId: optionalString(requestBody.customerId),
+			customerName: optionalString(requestBody.customerName),
+			expenseId: optionalString(requestBody.expenseId),
+			expenseName: optionalString(requestBody.expenseName),
+			currencyId: requestBody.currencyId,
+			currencyName: requestBody.currencyName,
+			unitId: optionalString(requestBody.unitId),
+			unitName: optionalString(requestBody.unitName),
+			weight: optionalString(requestBody.weight),
+			singleUnitPrice: optionalString(requestBody.singleUnitPrice),
+			totalPrice: optionalString(requestBody.totalPrice),
+			note: optionalString(requestBody.note),
+		}
+
 		const updateResponse = await this.mongoDbClient.updateDocument(
 			{ collectionName: COLLECTION_NAMES.DAILY_ACTIONS, id: actionId },
 			requestContext,
 			DailyAction,
-			requestBody,
+			dailyActionData,
 		)
 
 		await this.invalidateDailyActionsCache(requestContext, actionId)
@@ -7457,7 +7532,7 @@ export default class ProductController {
 
 				await this.patchDailyAction(
 					actionId,
-					payload as Record<string, unknown>,
+					payload as unknown as DailyActionRequestBody,
 					requestContext,
 				)
 

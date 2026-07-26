@@ -145,10 +145,6 @@
 			"access": true,
 			"allowedActions": ["seeBudgetOverview"]
 		},
-		"/services/store_platform/cash-balance": {
-			"access": true,
-			"allowedActions": ["seeBudgetOverview"]
-		},
 		"/services/store_platform/categories": {
 			"access": true,
 			"allowedActions": ["seeCategory"]

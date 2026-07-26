@@ -11,6 +11,7 @@ import {
 	MenuButton,
 	MenuItem,
 	MenuList,
+	Spinner,
 	Text,
 	Textarea,
 	VStack,
@@ -19,11 +20,19 @@ import { AddIcon, ChevronDownIcon, CloseIcon } from '@chakra-ui/icons'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+	useGetBuyingInvoiceQuery,
 	useGetSuppliersQuery,
 	usePostBuyingInvoiceMutation,
+	useUpdateBuyingInvoiceMutation,
 } from '../../api/apiStore'
 import { PAGE_COLORS } from '../SellingInvoice/constants'
 import { calculateInvoiceTotals } from '../SellingInvoice/invoiceCalculations'
+import {
+	applyInvoiceLevelDiscount,
+	clearInvoiceDiscountFields,
+	getInvoiceDiscountSettings,
+} from '../SellingInvoice/invoiceDiscountDraft'
+import EditableDiscountField from '../SellingInvoice/EditableDiscountField'
 import InvoiceLineItemsTable from '../SellingInvoice/InvoiceLineItemsTable'
 import InvoiceProductSearch from '../SellingInvoice/InvoiceProductSearch'
 import { addProductToLineItems } from '../SellingInvoice/productLineItem'
@@ -37,7 +46,10 @@ import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsDocumentIcon } from '../../shared/icons/Document'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { useUser } from '../../shared/hooks/useUser'
-import { buildBuyingInvoiceRequestBody } from './buyingInvoiceApiMappers'
+import {
+	buildBuyingInvoiceRequestBody,
+	mapApiBuyingInvoiceToDraft,
+} from './buyingInvoiceApiMappers'
 import { createBuyingInvoiceDraft } from './buyingInvoiceDraftSessions'
 import useCustomToast from '../common/CustomToast'
 import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
@@ -52,10 +64,15 @@ export interface BuyingInvoiceDraftTab {
 	label: string
 }
 
+export type BuyingInvoicePanelMode = 'create' | 'view' | 'edit'
+
 interface NewBuyingInvoicePanelProps {
 	isActive: boolean
 	onClose: () => void
 	onSaved?: () => void
+	mode?: BuyingInvoicePanelMode
+	buyingInvoiceId?: string
+	onRequestEdit?: () => void
 	nextInvoiceNumber?: number
 	initialProductSearch?: string
 	initialPaymentType?: BuyingInvoicePaymentType
@@ -81,12 +98,14 @@ const PaymentTypeButton = ({
 	label,
 	icon,
 	isActive,
+	isDisabled = false,
 	onClick,
 }: {
 	type: BuyingInvoicePaymentType
 	label: string
 	icon: React.ReactNode
 	isActive: boolean
+	isDisabled?: boolean
 	onClick: (type: BuyingInvoicePaymentType) => void
 }) => {
 	const activeStyles = {
@@ -105,6 +124,7 @@ const PaymentTypeButton = ({
 			bg={isActive ? activeStyles.bg : 'white'}
 			color={isActive ? activeStyles.color : PAGE_COLORS.muted}
 			borderColor={isActive ? activeStyles.borderColor : PAGE_COLORS.border}
+			isDisabled={isDisabled}
 			onClick={() => onClick(type)}
 		>
 			{label}
@@ -151,6 +171,9 @@ const NewBuyingInvoicePanel = ({
 	isActive,
 	onClose,
 	onSaved,
+	mode = 'create',
+	buyingInvoiceId,
+	onRequestEdit,
 	nextInvoiceNumber = 1,
 	initialProductSearch = '',
 	initialPaymentType = 'cash',
@@ -169,6 +192,8 @@ const NewBuyingInvoicePanel = ({
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { user } = useUser()
+	const isReadOnly = mode === 'view'
+	const isExistingInvoice = mode === 'view' || mode === 'edit'
 	const { data: fetchedSuppliers = [] } = useGetSuppliersQuery(
 		{},
 		{
@@ -183,8 +208,18 @@ const NewBuyingInvoicePanel = ({
 		user?.email ||
 		'User'
 
-	const [postBuyingInvoice, { isLoading: isSaving }] =
+	const [postBuyingInvoice, { isLoading: isCreating }] =
 		usePostBuyingInvoiceMutation()
+	const [updateBuyingInvoice, { isLoading: isUpdating }] =
+		useUpdateBuyingInvoiceMutation()
+	const {
+		data: existingInvoice,
+		isLoading: isLoadingInvoice,
+		isError: isInvoiceError,
+	} = useGetBuyingInvoiceQuery(buyingInvoiceId ?? '', {
+		skip: !isActive || !buyingInvoiceId || !isExistingInvoice,
+	})
+	const isSaving = isCreating || isUpdating
 	const [saveError, setSaveError] = useState<string | null>(null)
 	const [isOnline, setIsOnline] = useState(getIsOnline)
 
@@ -217,7 +252,7 @@ const NewBuyingInvoicePanel = ({
 	} = useInvoiceDisplayCurrency()
 
 	useEffect(() => {
-		if (!isActive || isControlledCreate) return
+		if (!isActive || isControlledCreate || isExistingInvoice) return
 
 		setInternalDraft(
 			createBuyingInvoiceDraft(salesPerson, {
@@ -230,10 +265,19 @@ const NewBuyingInvoicePanel = ({
 	}, [
 		isActive,
 		isControlledCreate,
+		isExistingInvoice,
 		initialPaymentType,
 		nextInvoiceNumber,
 		salesPerson,
 	])
+
+	useEffect(() => {
+		if (!isActive || !isExistingInvoice || !existingInvoice) return
+
+		setInternalDraft(mapApiBuyingInvoiceToDraft(existingInvoice))
+		setInternalShowNote(Boolean(existingInvoice.notes?.trim()))
+		setSaveError(null)
+	}, [existingInvoice, isActive, isExistingInvoice])
 
 	useEffect(() => {
 		if (!draft.salesPerson && salesPerson) {
@@ -247,18 +291,34 @@ const NewBuyingInvoicePanel = ({
 	}, [isControlledCreate, controlledDraft?.invoiceId])
 
 	const totals = useMemo(
-		() => calculateInvoiceTotals(draft.lineItems),
-		[draft.lineItems],
+		() => calculateInvoiceTotals(draft.lineItems, getInvoiceDiscountSettings(draft)),
+		[
+			draft.lineItems,
+			draft.useInvoiceDiscount,
+			draft.invoiceDiscount,
+			draft.invoiceDiscountIsPercent,
+		],
 	)
 
 	useEffect(() => {
-		if (draft.paymentType !== 'cash') return
+		if (isReadOnly || draft.paymentType !== 'cash') return
 
 		setDraft(current => ({
 			...current,
-			paidAmount: calculateInvoiceTotals(current.lineItems).grandTotal,
+			paidAmount: calculateInvoiceTotals(
+				current.lineItems,
+				getInvoiceDiscountSettings(current),
+			).grandTotal,
 		}))
-	}, [draft.lineItems, draft.paymentType, setDraft])
+	}, [
+		draft.lineItems,
+		draft.paymentType,
+		draft.useInvoiceDiscount,
+		draft.invoiceDiscount,
+		draft.invoiceDiscountIsPercent,
+		isReadOnly,
+		setDraft,
+	])
 
 	const changeAmount = Math.max(0, draft.paidAmount - totals.grandTotal)
 
@@ -273,7 +333,7 @@ const NewBuyingInvoicePanel = ({
 	const handleAddProduct = (product: Product) => {
 		setDraft(current => ({
 			...current,
-			lineItems: addProductToLineItems(current.lineItems, product),
+			lineItems: addProductToLineItems(current.lineItems, product, 'buying'),
 		}))
 	}
 
@@ -281,11 +341,39 @@ const NewBuyingInvoicePanel = ({
 		id: string,
 		updates: Partial<BuyingInvoiceLineItem>,
 	) => {
+		setDraft(current => {
+			const clearsInvoiceDiscount =
+				'discount' in updates || 'discountIsPercent' in updates
+
+			return {
+				...current,
+				...(clearsInvoiceDiscount ? clearInvoiceDiscountFields() : {}),
+				lineItems: current.lineItems.map(item =>
+					item.id === id ? { ...item, ...updates } : item,
+				),
+			}
+		})
+	}
+
+	const handleInvoiceDiscountEdit = (
+		discount: number,
+		discountIsPercent: boolean,
+	) => {
+		const invoiceDiscountFields = applyInvoiceLevelDiscount(
+			discount,
+			discountIsPercent,
+		)
+
 		setDraft(current => ({
 			...current,
-			lineItems: current.lineItems.map(item =>
-				item.id === id ? { ...item, ...updates } : item,
-			),
+			...invoiceDiscountFields,
+			lineItems: invoiceDiscountFields.useInvoiceDiscount
+				? current.lineItems.map(item => ({
+						...item,
+						discount: 0,
+						discountIsPercent: true,
+					}))
+				: current.lineItems,
 		}))
 	}
 
@@ -336,7 +424,14 @@ const NewBuyingInvoicePanel = ({
 				status,
 				currencySettings,
 			)
-			await postBuyingInvoice(body).unwrap()
+			if (isExistingInvoice) {
+				await updateBuyingInvoice({
+					buyingInvoiceId: draft.invoiceId,
+					body,
+				}).unwrap()
+			} else {
+				await postBuyingInvoice(body).unwrap()
+			}
 			showToast({
 				title: t('components.buyingInvoices.drawer.saveSuccess'),
 				status: 'success',
@@ -355,7 +450,48 @@ const NewBuyingInvoicePanel = ({
 		}
 	}
 
+	const panelTitleKey =
+		mode === 'view'
+			? 'components.sellingInvoices.drawer.viewTitle'
+			: mode === 'edit'
+				? 'components.sellingInvoices.drawer.editTitle'
+				: 'components.buyingInvoices.drawer.title'
+
 	if (!isActive) return null
+
+	if (isExistingInvoice && isLoadingInvoice) {
+		return (
+			<Box sx={panelStyles.root}>
+				<Flex justify="center" align="center" flex={1} py={16}>
+					<Spinner color={PAGE_COLORS.primary} />
+				</Flex>
+			</Box>
+		)
+	}
+
+	if (isExistingInvoice && (isInvoiceError || !existingInvoice)) {
+		return (
+			<Box sx={panelStyles.root}>
+				<Flex sx={panelStyles.header}>
+					<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight={700}>
+						{t(panelTitleKey)}
+					</Text>
+					<IconButton
+						aria-label={t('components.buyingInvoices.drawer.close')}
+						icon={<CloseIcon boxSize={3} />}
+						variant="ghost"
+						size="sm"
+						onClick={onClose}
+					/>
+				</Flex>
+				<Flex justify="center" align="center" flex={1} py={16}>
+					<Text color={PAGE_COLORS.danger}>
+						{t('components.sellingInvoices.drawer.loadFailed')}
+					</Text>
+				</Flex>
+			</Box>
+		)
+	}
 
 	return (
 		<Box sx={panelStyles.root}>
@@ -366,7 +502,7 @@ const NewBuyingInvoicePanel = ({
 						fontWeight={700}
 						noOfLines={1}
 					>
-						{t('components.buyingInvoices.drawer.title')}{' '}
+						{t(panelTitleKey)}{' '}
 						<Text as="span" color={PAGE_COLORS.primary}>
 							#{draft.invoiceNumber}
 						</Text>
@@ -385,13 +521,20 @@ const NewBuyingInvoicePanel = ({
 						/>
 					)}
 				</HStack>
-				<IconButton
-					aria-label={t('components.buyingInvoices.drawer.close')}
-					icon={<CloseIcon boxSize={3} />}
-					variant="ghost"
-					size="sm"
-					onClick={onClose}
-				/>
+				<HStack spacing={2}>
+					{mode === 'view' && onRequestEdit && (
+						<Button size="sm" onClick={onRequestEdit}>
+							{t('components.sellingInvoices.actions.edit')}
+						</Button>
+					)}
+					<IconButton
+						aria-label={t('components.buyingInvoices.drawer.close')}
+						icon={<CloseIcon boxSize={3} />}
+						variant="ghost"
+						size="sm"
+						onClick={onClose}
+					/>
+				</HStack>
 			</Flex>
 
 			{draftTabs.length > 0 && (
@@ -554,6 +697,7 @@ const NewBuyingInvoicePanel = ({
 						placeholder={t('components.buyingInvoices.drawer.supplier')}
 						isSingle
 						isSearchable
+						isDisabled={isReadOnly}
 						customStyles={{
 							dropdownContainer: {
 								width: '100%',
@@ -580,6 +724,7 @@ const NewBuyingInvoicePanel = ({
 							label={t('components.buyingInvoices.paymentType.cash')}
 							icon={<AsDollarSignIcon fill="none" />}
 							isActive={draft.paymentType === 'cash'}
+							isDisabled={isReadOnly}
 							onClick={handlePaymentTypeChange}
 						/>
 						<PaymentTypeButton
@@ -587,18 +732,21 @@ const NewBuyingInvoicePanel = ({
 							label={t('components.buyingInvoices.paymentType.credit')}
 							icon={<AsPriceTagIcon fill="none" />}
 							isActive={draft.paymentType === 'credit'}
+							isDisabled={isReadOnly}
 							onClick={handlePaymentTypeChange}
 						/>
 					</HStack>
 				</Box>
 
-				<Box>
-					<InvoiceProductSearch
-						onAddProduct={handleAddProduct}
-						initialSearch={initialProductSearch}
-						autoFocus={isActive}
-					/>
-				</Box>
+				{!isReadOnly && (
+					<Box>
+						<InvoiceProductSearch
+							onAddProduct={handleAddProduct}
+							initialSearch={initialProductSearch}
+							autoFocus={isActive}
+						/>
+					</Box>
+				)}
 
 				<InvoiceLineItemsTable
 					lineItems={draft.lineItems}
@@ -607,6 +755,8 @@ const NewBuyingInvoicePanel = ({
 					formatAmount={formatAmount}
 					displayCurrencyId={displayCurrencyId}
 					currencyOptions={displayCurrencyOptions}
+					isReadOnly={isReadOnly}
+					invoiceKind="buying"
 				/>
 
 				{hasCurrencyOptions && (
@@ -711,13 +861,34 @@ const NewBuyingInvoicePanel = ({
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
 									{t('components.buyingInvoices.drawer.discount')}
 								</Text>
-								<CurrencyAmountTooltip
-									amount={totals.discount}
-									displayText={formatAmount(totals.discount)}
-									options={displayCurrencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									fontWeight={500}
-								/>
+								{isReadOnly ? (
+									<CurrencyAmountTooltip
+										amount={totals.discount}
+										displayText={formatAmount(totals.discount)}
+										options={displayCurrencyOptions}
+										displayCurrencyId={displayCurrencyId}
+										fontWeight={500}
+									/>
+								) : (
+									<EditableDiscountField
+										discount={
+											draft.useInvoiceDiscount
+												? draft.invoiceDiscount
+												: totals.discount
+										}
+										discountIsPercent={
+											draft.useInvoiceDiscount
+												? draft.invoiceDiscountIsPercent
+												: false
+										}
+										discountAmount={totals.discount}
+										formatAmount={formatAmount}
+										fontWeight={500}
+										currencyOptions={displayCurrencyOptions}
+										displayCurrencyId={displayCurrencyId}
+										onSave={handleInvoiceDiscountEdit}
+									/>
+								)}
 							</Flex>
 							<Flex justify="space-between">
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
@@ -818,6 +989,7 @@ const NewBuyingInvoicePanel = ({
 					</Text>
 				)}
 
+				{!isReadOnly && (
 				<Flex
 					gap={3}
 					pt={2}
@@ -924,6 +1096,7 @@ const NewBuyingInvoicePanel = ({
 						</Button>
 					</HStack>
 				</Flex>
+				)}
 			</Box>
 		</Box>
 	)

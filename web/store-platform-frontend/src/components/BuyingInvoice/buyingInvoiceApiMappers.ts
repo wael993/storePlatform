@@ -5,6 +5,7 @@ import {
 	calculateInvoiceTotals,
 	calculateLineItemTotal,
 } from '../SellingInvoice/invoiceCalculations'
+import { getInvoiceDiscountSettings } from '../SellingInvoice/invoiceDiscountDraft'
 import {
 	buildInvoiceCurrencyAmounts,
 	getPrimaryInvoiceCurrencyAmounts,
@@ -45,6 +46,8 @@ export interface ApiBuyingInvoice {
 	notes?: string
 	issuedAt?: string
 	createdAt?: string
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
 }
 
 const mapApiBuyingStatusToUi = (
@@ -88,12 +91,54 @@ export const mapApiBuyingInvoiceToTableRow = (
 	}
 }
 
+export const mapApiBuyingInvoiceToDraft = (
+	invoice: ApiBuyingInvoice,
+): BuyingInvoiceDraft => {
+	const { paidAmount } = getPrimaryInvoiceCurrencyAmounts(invoice)
+	const issuedAt = invoice.issuedAt ?? invoice.createdAt
+
+	return {
+		invoiceId: invoice.buyingInvoiceId,
+		invoiceNumber: parseInvoiceSequence(invoice.invoiceNumber),
+		invoiceDate: issuedAt
+			? dayjs(issuedAt).format('YYYY-MM-DD')
+			: dayjs().format('YYYY-MM-DD'),
+		invoiceTime: issuedAt
+			? dayjs(issuedAt).format('HH:mm')
+			: dayjs().format('HH:mm'),
+		salesPerson: '',
+		supplierId: invoice.supplierId ?? '',
+		supplierName: invoice.supplierName ?? '—',
+		paymentType: invoice.paymentType ?? 'cash',
+		lineItems: (invoice.items ?? []).map(item => ({
+			id: generateId(),
+			productId: item.productId,
+			name: item.name,
+			barcode: item.barcode,
+			quantity: item.quantity,
+			unit: item.unit ?? '',
+			unitPrice: item.unitPrice,
+			discount: item.discount ?? 0,
+			discountIsPercent: item.discountIsPercent ?? true,
+			taxRate: item.taxRate ?? 0,
+		})),
+		note: invoice.notes ?? '',
+		paidAmount,
+		useInvoiceDiscount: (invoice.invoiceDiscount ?? 0) > 0,
+		invoiceDiscount: invoice.invoiceDiscount ?? 0,
+		invoiceDiscountIsPercent: invoice.invoiceDiscountIsPercent ?? false,
+	}
+}
+
 export const buildBuyingInvoiceRequestBody = (
 	draft: BuyingInvoiceDraft,
 	status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
 	currencySettings?: CurrencySettings | null,
 ) => {
-	const totals = calculateInvoiceTotals(draft.lineItems)
+	const totals = calculateInvoiceTotals(
+		draft.lineItems,
+		getInvoiceDiscountSettings(draft),
+	)
 	const paidAmount = draft.paidAmount
 	const remainingAmount = Math.max(0, totals.grandTotal - paidAmount)
 	const currencyAmounts = buildInvoiceCurrencyAmounts(
@@ -140,5 +185,9 @@ export const buildBuyingInvoiceRequestBody = (
 		currencyAmounts,
 		notes: draft.note || undefined,
 		issuedAt,
+		invoiceDiscount: draft.useInvoiceDiscount ? draft.invoiceDiscount : 0,
+		invoiceDiscountIsPercent: draft.useInvoiceDiscount
+			? draft.invoiceDiscountIsPercent
+			: false,
 	}
 }

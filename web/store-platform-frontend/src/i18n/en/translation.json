@@ -73,7 +73,6 @@
 			"usersDescription": "Manage tenant users and roles.",
 			"productsDescription": "Product catalog and pricing.",
 			"dailyDescription": "Daily buying, selling, and expense actions.",
-			"cashBalanceDescription": "Cash balance with receipts, payments, expenses, and selling entries.",
 			"suppliersDescription": "Supplier directory and details.",
 			"customersDescription": "Customer directory and details.",
 			"categoriesDescription": "Product category directory.",
@@ -363,18 +362,6 @@
 			"unitCode": "Unit Code",
 			"expenseCode": "Expense Code"
 		},
-		"cashBalance": {
-			"cashBalance": "Cash Balance",
-			"budgetOverview": {
-				"tooltip": "Overview for the filtered cash balance entries.",
-				"title": "Cash Balance Overview",
-				"receipts": "Receipts",
-				"payments": "Payments",
-				"expenses": "Expenses",
-				"sales": "Sales",
-				"cashBalance": "Cash Balance"
-			}
-		},
 		"partner": {
 			"addPartner": "Add Partner",
 			"partnerName": "Partner Name",
@@ -407,7 +394,9 @@
 			"newBuyingInvoice": "Buying Invoice",
 			"newEntry": "Entries",
 			"entries": {
-				"title": "Add Entry"
+				"title": "Add Entry",
+				"viewTitle": "View Entry",
+				"editTitle": "Edit Entry"
 			},
 			"barcodeSearchPlaceholder": "Scan barcode or search product...",
 			"barcodeSearchHint": "Press Enter to start a new invoice",
@@ -428,7 +417,10 @@
 				"paidInvoices": "Paid Invoices",
 				"creditInvoices": "Credit Invoices",
 				"totalReceivable": "Total Receivable",
-				"averageOrder": "Average Order"
+				"averageOrder": "Average Order",
+				"cashBalance": "Cash Balance",
+				"cashBalancePeriod": "Period",
+				"cashBalanceAllTime": "All time"
 			},
 			"status": {
 				"all": "All",
@@ -578,7 +570,6 @@
 			"sellingInvoices": "Selling Invoices",
 			"settings": "Settings",
 			"daily": "Daily",
-			"cashBalance": "Cash Balance",
 			"products": "Products",
 			"orders": "Orders",
 			"invoices": "Invoices",

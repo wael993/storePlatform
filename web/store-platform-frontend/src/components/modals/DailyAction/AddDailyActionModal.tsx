@@ -227,22 +227,6 @@ const AddDailyActionModal = ({
 				},
 			]
 		}
-		if (targetType === TargetType.CASH_BALANCE) {
-			return [
-				{
-					value: DailyActionType.RECEIPT_ENTRY,
-					label: t('common.receiptEntry'),
-				},
-				{
-					value: DailyActionType.PAYMENT_ENTRY,
-					label: t('common.paymentEntry'),
-				},
-				{
-					value: DailyActionType.EXPENSE_ENTRY,
-					label: t('common.expenseEntry'),
-				},
-			]
-		}
 		return []
 	}
 

@@ -17,12 +17,21 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
+	useDeleteBuyingInvoiceMutation,
 	useDeleteSellingInvoiceMutation,
 	useGetBuyingInvoicesQuery,
 	useGetCustomersQuery,
+	useGetDailyActionsQuery,
 	useGetSellingInvoicesQuery,
 	useGetSuppliersQuery,
 } from '../../api/apiStore'
+import type { ApiBuyingInvoice } from '../BuyingInvoice/buyingInvoiceApiMappers'
+import {
+	CASH_BALANCE_ALL_TIME_FROM,
+	calculateCashBalance,
+} from './cashBalance'
+import type { ApiSellingInvoice } from './invoiceApiMappers'
+import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem } from '../../shared/globalEnums'
@@ -32,10 +41,13 @@ import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
 import NewBuyingInvoicePanel from '../BuyingInvoice/NewBuyingInvoicePanel'
+import BuyingInvoiceDetailModal from '../BuyingInvoice/BuyingInvoiceDetailModal'
 import { isBuyingInvoiceDraftSessionDirty } from '../BuyingInvoice/buyingInvoiceDraftSessions'
 import type { BuyingInvoiceDraft } from '../BuyingInvoice/types'
 import { useBuyingInvoiceDraftSessions } from '../BuyingInvoice/useBuyingInvoiceDraftSessions'
-import AddEntryModal from '../modals/DailyAction/AddEntryModal'
+import QuickEntryModal, {
+	type QuickEntryModalMode,
+} from './QuickEntryModal'
 import { PAGE_COLORS } from './constants'
 import { mapApiSummaryToUi } from './invoiceApiMappers'
 import { isDraftSessionDirty } from './invoiceDraftSessions'
@@ -111,6 +123,9 @@ const SellingInvoicesPage = () => {
 	const [invoicePendingDelete, setInvoicePendingDelete] = useState<
 		string | null
 	>(null)
+	const [invoicePendingDeleteKind, setInvoicePendingDeleteKind] = useState<
+		'selling' | 'buying'
+	>('selling')
 	const [draftTabPendingClose, setDraftTabPendingClose] = useState<
 		string | null
 	>(null)
@@ -121,6 +136,11 @@ const SellingInvoicesPage = () => {
 		isOpen: isDetailOpen,
 		onOpen: onDetailOpen,
 		onClose: onDetailClose,
+	} = useDisclosure()
+	const {
+		isOpen: isBuyingDetailOpen,
+		onOpen: onBuyingDetailOpen,
+		onClose: onBuyingDetailClose,
 	} = useDisclosure()
 	const {
 		isOpen: isDeleteOpen,
@@ -142,6 +162,9 @@ const SellingInvoicesPage = () => {
 		onOpen: onEntryOpen,
 		onClose: onEntryClose,
 	} = useDisclosure()
+	const [entryModalMode, setEntryModalMode] =
+		useState<QuickEntryModalMode>('create')
+	const [selectedEntry, setSelectedEntry] = useState<DailyAction | null>(null)
 
 	const [summaryDateFrom, setSummaryDateFrom] = useState(() => new Date())
 	const [summaryDateTo, setSummaryDateTo] = useState(() => new Date())
@@ -162,6 +185,36 @@ const SellingInvoicesPage = () => {
 		{},
 		{ skip: !isAdmin, refetchOnMountOrArgChange: false },
 	)
+
+	const cashBalancePeriodQuery = useMemo(
+		() => ({
+			entryType: ['RECEIPT_ENTRY', 'PAYMENT_ENTRY', 'EXPENSE_ENTRY'],
+			invoiceDateFrom: dayjs(summaryDateFrom).format('YYYY-MM-DD'),
+			invoiceDateTo: dayjs(summaryDateTo).format('YYYY-MM-DD'),
+		}),
+		[summaryDateFrom, summaryDateTo],
+	)
+
+	const cashBalanceAllTimeQuery = useMemo(
+		() => ({
+			entryType: ['RECEIPT_ENTRY', 'PAYMENT_ENTRY', 'EXPENSE_ENTRY'],
+			invoiceDateFrom: CASH_BALANCE_ALL_TIME_FROM,
+		}),
+		[],
+	)
+
+	const { data: periodDailyActions = [], isLoading: isPeriodCashBalanceLoading } =
+		useGetDailyActionsQuery(cashBalancePeriodQuery, {
+			skip: !isAdmin,
+			refetchOnMountOrArgChange: false,
+		})
+	const { data: allTimeDailyActions = [], isLoading: isAllTimeCashBalanceLoading } =
+		useGetDailyActionsQuery(cashBalanceAllTimeQuery, {
+			skip: !isAdmin,
+			refetchOnMountOrArgChange: false,
+		})
+
+	const { options: cashBalanceCurrencyOptions } = useInvoiceDisplayCurrency()
 	const { data: invoiceCustomers = [] } = useGetCustomersQuery(undefined, {
 		refetchOnMountOrArgChange: false,
 	})
@@ -172,6 +225,8 @@ const SellingInvoicesPage = () => {
 
 	const [deleteSellingInvoice, { isLoading: isDeletingInvoice }] =
 		useDeleteSellingInvoiceMutation()
+	const [deleteBuyingInvoice, { isLoading: isDeletingBuyingInvoice }] =
+		useDeleteBuyingInvoiceMutation()
 
 	const salesPerson =
 		[user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
@@ -302,6 +357,65 @@ const SellingInvoicesPage = () => {
 		[invoicesMeta?.summary],
 	)
 
+	const sellingInvoicesForCashBalance = useMemo(
+		() => (invoicesMeta?.invoices ?? []) as ApiSellingInvoice[],
+		[invoicesMeta?.invoices],
+	)
+
+	const buyingInvoicesForCashBalance = useMemo(
+		() => (buyingInvoicesMeta?.invoices ?? []) as ApiBuyingInvoice[],
+		[buyingInvoicesMeta?.invoices],
+	)
+
+	const periodCashBalanceRange = useMemo(
+		() => ({
+			dateFrom: dayjs(summaryDateFrom).format('YYYY-MM-DD'),
+			dateTo: dayjs(summaryDateTo).format('YYYY-MM-DD'),
+		}),
+		[summaryDateFrom, summaryDateTo],
+	)
+
+	const allTimeCashBalanceRange = useMemo(
+		() => ({ dateFrom: CASH_BALANCE_ALL_TIME_FROM }),
+		[],
+	)
+
+	const periodCashBalance = useMemo(
+		() =>
+			calculateCashBalance({
+				dailyActions: periodDailyActions,
+				sellingInvoices: sellingInvoicesForCashBalance,
+				buyingInvoices: buyingInvoicesForCashBalance,
+				range: periodCashBalanceRange,
+				displayCurrencyOptions: cashBalanceCurrencyOptions,
+			}),
+		[
+			periodDailyActions,
+			sellingInvoicesForCashBalance,
+			buyingInvoicesForCashBalance,
+			periodCashBalanceRange,
+			cashBalanceCurrencyOptions,
+		],
+	)
+
+	const allTimeCashBalance = useMemo(
+		() =>
+			calculateCashBalance({
+				dailyActions: allTimeDailyActions,
+				sellingInvoices: sellingInvoicesForCashBalance,
+				buyingInvoices: buyingInvoicesForCashBalance,
+				range: allTimeCashBalanceRange,
+				displayCurrencyOptions: cashBalanceCurrencyOptions,
+			}),
+		[
+			allTimeDailyActions,
+			sellingInvoicesForCashBalance,
+			buyingInvoicesForCashBalance,
+			allTimeCashBalanceRange,
+			cashBalanceCurrencyOptions,
+		],
+	)
+
 	const draftTabs = useMemo(
 		() =>
 			sessions.map((session, index) => ({
@@ -414,14 +528,22 @@ const SellingInvoicesPage = () => {
 
 	const handleDetailInvoiceSaved = () => {
 		handleDetailClose()
+		handleBuyingDetailClose()
 	}
 
 	const openInvoiceDetail = (
 		invoiceId: string,
+		kind: 'selling' | 'buying',
 		mode: Extract<InvoicePanelMode, 'view' | 'edit'>,
 	) => {
 		setDetailInvoiceId(invoiceId)
 		setDetailMode(mode)
+
+		if (kind === 'buying') {
+			onBuyingDetailOpen()
+			return
+		}
+
 		onDetailOpen()
 	}
 
@@ -431,16 +553,32 @@ const SellingInvoicesPage = () => {
 		setDetailMode('view')
 	}
 
-	const handleViewInvoice = (invoiceId: string) => {
-		openInvoiceDetail(invoiceId, 'view')
+	const handleBuyingDetailClose = () => {
+		onBuyingDetailClose()
+		setDetailInvoiceId(null)
+		setDetailMode('view')
 	}
 
-	const handleEditInvoice = (invoiceId: string) => {
-		openInvoiceDetail(invoiceId, 'edit')
+	const handleViewInvoice = (
+		invoiceId: string,
+		kind: 'selling' | 'buying',
+	) => {
+		openInvoiceDetail(invoiceId, kind, 'view')
 	}
 
-	const handleDeleteInvoiceRequest = (invoiceId: string) => {
+	const handleEditInvoice = (
+		invoiceId: string,
+		kind: 'selling' | 'buying',
+	) => {
+		openInvoiceDetail(invoiceId, kind, 'edit')
+	}
+
+	const handleDeleteInvoiceRequest = (
+		invoiceId: string,
+		kind: 'selling' | 'buying',
+	) => {
 		setInvoicePendingDelete(invoiceId)
+		setInvoicePendingDeleteKind(kind)
 		onDeleteOpen()
 	}
 
@@ -448,14 +586,45 @@ const SellingInvoicesPage = () => {
 		if (!invoicePendingDelete) return
 
 		try {
-			await deleteSellingInvoice(invoicePendingDelete).unwrap()
+			if (invoicePendingDeleteKind === 'buying') {
+				await deleteBuyingInvoice(invoicePendingDelete).unwrap()
+			} else {
+				await deleteSellingInvoice(invoicePendingDelete).unwrap()
+			}
+
 			if (detailInvoiceId === invoicePendingDelete) {
 				handleDetailClose()
+				handleBuyingDetailClose()
 			}
 		} finally {
 			setInvoicePendingDelete(null)
+			setInvoicePendingDeleteKind('selling')
 			onDeleteClose()
 		}
+	}
+
+	const handleNewEntry = () => {
+		setSelectedEntry(null)
+		setEntryModalMode('create')
+		onEntryOpen()
+	}
+
+	const handleViewEntry = (entry: DailyAction) => {
+		setSelectedEntry(entry)
+		setEntryModalMode('view')
+		onEntryOpen()
+	}
+
+	const handleEditEntry = (entry: DailyAction) => {
+		setSelectedEntry(entry)
+		setEntryModalMode('edit')
+		onEntryOpen()
+	}
+
+	const handleEntryModalClose = () => {
+		onEntryClose()
+		setSelectedEntry(null)
+		setEntryModalMode('create')
 	}
 
 	const invoiceListSection = (
@@ -464,6 +633,8 @@ const SellingInvoicesPage = () => {
 			onViewInvoice={handleViewInvoice}
 			onEditInvoice={handleEditInvoice}
 			onDeleteInvoice={handleDeleteInvoiceRequest}
+			onViewEntry={handleViewEntry}
+			onEditEntry={handleEditEntry}
 		/>
 	)
 
@@ -540,7 +711,7 @@ const SellingInvoicesPage = () => {
 				borderRadius="lg"
 				borderColor={PAGE_COLORS.border}
 				fontWeight={600}
-				onClick={onEntryOpen}
+				onClick={handleNewEntry}
 			>
 				{t('components.sellingInvoices.newEntry')}
 			</Button>
@@ -558,10 +729,20 @@ const SellingInvoicesPage = () => {
 				onSaved={handleDetailInvoiceSaved}
 				onRequestEdit={() => setDetailMode('edit')}
 			/>
+			<BuyingInvoiceDetailModal
+				isOpen={isBuyingDetailOpen}
+				buyingInvoiceId={detailInvoiceId}
+				mode={detailMode}
+				suppliers={invoiceSuppliers}
+				onClose={handleBuyingDetailClose}
+				onSaved={handleDetailInvoiceSaved}
+				onRequestEdit={() => setDetailMode('edit')}
+			/>
 			<ConfirmationDialog
 				isOpen={isDeleteOpen}
 				onClose={() => {
 					setInvoicePendingDelete(null)
+					setInvoicePendingDeleteKind('selling')
 					onDeleteClose()
 				}}
 				onConfirm={handleConfirmDeleteInvoice}
@@ -570,7 +751,9 @@ const SellingInvoicesPage = () => {
 				body={t('components.sellingInvoices.actions.deleteConfirmBody')}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
-				isConfirmationButtonLoading={isDeletingInvoice}
+				isConfirmationButtonLoading={
+					isDeletingInvoice || isDeletingBuyingInvoice
+				}
 			/>
 			<ConfirmationDialog
 				isOpen={isCloseDraftOpen}
@@ -597,7 +780,14 @@ const SellingInvoicesPage = () => {
 				confirmationButtonText={t('components.buyingInvoices.drawer.discardDraft')}
 			/>
 			{isAdmin && (
-				<AddEntryModal isOpen={isEntryOpen} onClose={onEntryClose} />
+				<QuickEntryModal
+					isOpen={isEntryOpen}
+					onClose={handleEntryModalClose}
+					mode={entryModalMode}
+					initialEntry={selectedEntry}
+					customers={invoiceCustomers}
+					suppliers={invoiceSuppliers}
+				/>
 			)}
 		</>
 	)
@@ -659,6 +849,14 @@ const SellingInvoicesPage = () => {
 								dateTo={summaryDateTo}
 								onDateFromChange={handleSummaryDateFromChange}
 								onDateToChange={handleSummaryDateToChange}
+								showCashBalance={isAdmin}
+								cashBalance={{
+									period: periodCashBalance,
+									allTime: allTimeCashBalance,
+								}}
+								isCashBalanceLoading={
+									isPeriodCashBalanceLoading || isAllTimeCashBalanceLoading
+								}
 							/>
 						)}
 
