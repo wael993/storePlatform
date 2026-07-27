@@ -56,7 +56,8 @@ const mapApiBuyingStatusToUi = (
 ): SellingInvoiceStatus => {
 	if (invoice.status === 'draft') return 'draft'
 	if (invoice.status === 'cancelled') return 'cancelled'
-	if (invoice.status === 'paid' || invoice.paymentStatus === 'paid') return 'paid'
+	if (invoice.status === 'paid' || invoice.paymentStatus === 'paid')
+		return 'paid'
 	if (invoice.status === 'partial' || invoice.paymentStatus === 'partial') {
 		return 'partial'
 	}

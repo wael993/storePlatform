@@ -49,16 +49,20 @@ export const withLocalMeta = <T>(
 	record: T,
 	syncStatus: 'synced' | 'pending' = 'synced',
 	clientId?: string,
-): T & { syncStatus: 'synced' | 'pending'; updatedAt: string; clientId?: string } => ({
+): T & {
+	syncStatus: 'synced' | 'pending'
+	updatedAt: string
+	clientId?: string
+} => ({
 	...record,
 	syncStatus,
-	clientId:
-		clientId ??
-		(record as T & { clientId?: string }).clientId,
+	clientId: clientId ?? (record as T & { clientId?: string }).clientId,
 	updatedAt: nowIso(),
 })
 
-export const parseUrlPath = (url: string): { path: string; params: URLSearchParams } => {
+export const parseUrlPath = (
+	url: string,
+): { path: string; params: URLSearchParams } => {
 	const [pathPart, queryPart] = url.split('?')
 	return {
 		path: pathPart.replace(/^\//, ''),
@@ -66,7 +70,11 @@ export const parseUrlPath = (url: string): { path: string; params: URLSearchPara
 	}
 }
 
-const appendParamValue = (params: URLSearchParams, key: string, value: unknown) => {
+const appendParamValue = (
+	params: URLSearchParams,
+	key: string,
+	value: unknown,
+) => {
 	if (value === undefined || value === null) return
 
 	if (Array.isArray(value)) {
@@ -94,4 +102,5 @@ export const resolveRequestParams = (
 	return params
 }
 
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+export const sleep = (ms: number) =>
+	new Promise(resolve => setTimeout(resolve, ms))

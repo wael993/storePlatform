@@ -20,8 +20,7 @@ export const useInvoiceDisplayCurrency = () => {
 	)
 
 	const defaultCurrencyId = useMemo(
-		() =>
-			resolveDefaultDisplayCurrencyId(options, defaultInvoiceCurrencyId),
+		() => resolveDefaultDisplayCurrencyId(options, defaultInvoiceCurrencyId),
 		[options, defaultInvoiceCurrencyId],
 	)
 

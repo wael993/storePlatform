@@ -44,9 +44,7 @@ export function useSilentRefresh() {
 	const dispatch = useDispatch()
 	const { isAuthenticated } = useAuth()
 	const accessToken = useSelector((state: RootState) => state.user.accessToken)
-	const tenantId = useSelector(
-		(state: RootState) => state.user.user?.tenantId,
-	)
+	const tenantId = useSelector((state: RootState) => state.user.user?.tenantId)
 
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 

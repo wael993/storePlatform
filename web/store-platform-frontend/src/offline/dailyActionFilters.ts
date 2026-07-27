@@ -42,7 +42,10 @@ export const parseDailyActionFiltersFromParams = (
 	const splitParam = (key: string) => {
 		const value = params.get(key)
 		if (!value) return undefined
-		const items = value.split(',').map(item => item.trim()).filter(Boolean)
+		const items = value
+			.split(',')
+			.map(item => item.trim())
+			.filter(Boolean)
 		return items.length ? items : undefined
 	}
 
@@ -125,7 +128,10 @@ export const filterDailyActionsByParams = (
 		normalizedFilters.invoiceDateFrom,
 		'start',
 	)
-	const invoiceDateTo = getInvoiceDateBoundary(normalizedFilters.invoiceDateTo, 'end')
+	const invoiceDateTo = getInvoiceDateBoundary(
+		normalizedFilters.invoiceDateTo,
+		'end',
+	)
 	if (invoiceDateFrom || invoiceDateTo) {
 		filtered = filtered.filter(action => {
 			if (!action.invoiceDate) return false

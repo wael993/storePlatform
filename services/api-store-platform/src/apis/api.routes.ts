@@ -1082,9 +1082,8 @@ export default class StoreRoutes extends PlatformValidator {
 		const requestContext = this.getRequestContext(request)
 
 		try {
-			const resp = await this.productController.getProductCatalog(
-				requestContext,
-			)
+			const resp =
+				await this.productController.getProductCatalog(requestContext)
 
 			response.status(200).json(resp)
 		} catch (error: any) {

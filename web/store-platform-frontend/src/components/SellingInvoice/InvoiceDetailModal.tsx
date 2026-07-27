@@ -1,9 +1,4 @@
-import {
-	Modal,
-	ModalBody,
-	ModalContent,
-	ModalOverlay,
-} from '@chakra-ui/react'
+import { Modal, ModalBody, ModalContent, ModalOverlay } from '@chakra-ui/react'
 
 import NewSellingInvoicePanel, {
 	type InvoicePanelMode,

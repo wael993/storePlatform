@@ -124,7 +124,12 @@ const mapInvoiceStatus = (status?: string) => {
 	return status ?? 'confirmed'
 }
 
-const PERIOD_EXCLUDED_STATUSES = new Set(['draft', 'cancelled', 'void', 'pending'])
+const PERIOD_EXCLUDED_STATUSES = new Set([
+	'draft',
+	'cancelled',
+	'void',
+	'pending',
+])
 
 const getInvoiceLineRevenue = (item: {
 	lineTotal?: number
@@ -1161,8 +1166,7 @@ export const handleOfflineQuery = async (
 				path === 'invoices' ||
 				path.startsWith('invoices/')
 			) {
-				const isCollection =
-					path === 'selling-invoices' || path === 'invoices'
+				const isCollection = path === 'selling-invoices' || path === 'invoices'
 				if (!isCollection) {
 					const invoice = await offlineDb.invoices.get(path.split('/')[1])
 					return invoice

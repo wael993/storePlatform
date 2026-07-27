@@ -28,9 +28,7 @@ export const shouldRetainInvoice = (
 
 	const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
 	return (
-		issuedAt !== null &&
-		!Number.isNaN(issuedAt.getTime()) &&
-		issuedAt >= cutoff
+		issuedAt !== null && !Number.isNaN(issuedAt.getTime()) && issuedAt >= cutoff
 	)
 }
 
@@ -72,22 +70,20 @@ export const getLocalInvoicesForOffline = async (): Promise<LocalInvoice[]> => {
 	)
 }
 
-export const getLocalDailyActionsForOffline =
-	async (): Promise<LocalDailyAction[]> => {
-		const cutoffIso = getRetentionCutoffIso()
-		const [recent, pending] = await Promise.all([
-			offlineDb.dailyActions
-				.where('invoiceDate')
-				.aboveOrEqual(cutoffIso)
-				.toArray(),
-			offlineDb.dailyActions.where('syncStatus').equals('pending').toArray(),
-		])
+export const getLocalDailyActionsForOffline = async (): Promise<
+	LocalDailyAction[]
+> => {
+	const cutoffIso = getRetentionCutoffIso()
+	const [recent, pending] = await Promise.all([
+		offlineDb.dailyActions
+			.where('invoiceDate')
+			.aboveOrEqual(cutoffIso)
+			.toArray(),
+		offlineDb.dailyActions.where('syncStatus').equals('pending').toArray(),
+	])
 
-		return mergeByKey(
-			[...recent, ...pending],
-			action => action.actionId,
-		)
-	}
+	return mergeByKey([...recent, ...pending], action => action.actionId)
+}
 
 export const pruneExpiredOfflineRecords = async (
 	retentionDays: number = OFFLINE_SYNC_RETENTION_DAYS,

@@ -187,8 +187,7 @@ const EditableDiscountField = ({
 		</HStack>
 	)
 
-	const showTooltip =
-		discountIsPercent || otherCurrencies.length > 0
+	const showTooltip = discountIsPercent || otherCurrencies.length > 0
 
 	if (!showTooltip) {
 		return fieldContent
@@ -209,7 +208,11 @@ const EditableDiscountField = ({
 					{otherCurrencies.length > 0 && (
 						<>
 							{discountIsPercent && (
-								<Box borderTop="1px solid" borderColor="whiteAlpha.400" pt={1} />
+								<Box
+									borderTop="1px solid"
+									borderColor="whiteAlpha.400"
+									pt={1}
+								/>
 							)}
 							<Text fontSize="xs" fontWeight={700} opacity={0.85}>
 								{t('components.sellingInvoices.drawer.otherCurrencies')}

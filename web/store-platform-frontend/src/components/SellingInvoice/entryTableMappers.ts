@@ -145,8 +145,7 @@ export const mapDailyActionToQuickEntryForm = (
 			break
 	}
 
-	const rawAmount =
-		dailyAction.singleUnitPrice ?? dailyAction.totalPrice ?? ''
+	const rawAmount = dailyAction.singleUnitPrice ?? dailyAction.totalPrice ?? ''
 	const invoiceDate =
 		dailyAction.invoiceDate?.split('T')[0] ?? getTodayDateInputValue()
 

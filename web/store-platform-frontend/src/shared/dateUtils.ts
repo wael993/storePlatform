@@ -38,7 +38,9 @@ export const buildInvoiceIssuedAtIso = (
 	)
 
 	if (!isValid(parsed)) {
-		throw new Error(`Invalid invoice date or time: ${invoiceDate} ${invoiceTime}`)
+		throw new Error(
+			`Invalid invoice date or time: ${invoiceDate} ${invoiceTime}`,
+		)
 	}
 
 	return parsed.toISOString()

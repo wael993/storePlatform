@@ -56,7 +56,10 @@ export const useBuyingInvoiceDraftSessions = ({
 
 			setState(current => ({
 				sessions: [
-					...withSyncedBuyingInvoiceNumbers(current.sessions, nextInvoiceNumber),
+					...withSyncedBuyingInvoiceNumbers(
+						current.sessions,
+						nextInvoiceNumber,
+					),
 					session,
 				],
 				activeSessionId: session.id,

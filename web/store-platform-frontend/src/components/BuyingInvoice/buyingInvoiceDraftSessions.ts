@@ -73,29 +73,32 @@ const isValidSession = (value: unknown): value is BuyingInvoiceDraftSession => {
 	)
 }
 
-export const loadBuyingInvoiceDraftSessions = (): BuyingInvoiceDraftSessionsState => {
-	try {
-		const raw = sessionStorage.getItem(STORAGE_KEY)
-		if (!raw) return { sessions: [], activeSessionId: null }
+export const loadBuyingInvoiceDraftSessions =
+	(): BuyingInvoiceDraftSessionsState => {
+		try {
+			const raw = sessionStorage.getItem(STORAGE_KEY)
+			if (!raw) return { sessions: [], activeSessionId: null }
 
-		const parsed = JSON.parse(raw) as BuyingInvoiceDraftSessionsState
-		const sessions = Array.isArray(parsed.sessions)
-			? parsed.sessions.filter(isValidSession)
-			: []
+			const parsed = JSON.parse(raw) as BuyingInvoiceDraftSessionsState
+			const sessions = Array.isArray(parsed.sessions)
+				? parsed.sessions.filter(isValidSession)
+				: []
 
-		if (sessions.length === 0) {
+			if (sessions.length === 0) {
+				return { sessions: [], activeSessionId: null }
+			}
+
+			const activeSessionId = sessions.some(
+				s => s.id === parsed.activeSessionId,
+			)
+				? parsed.activeSessionId
+				: sessions[0].id
+
+			return { sessions, activeSessionId }
+		} catch {
 			return { sessions: [], activeSessionId: null }
 		}
-
-		const activeSessionId = sessions.some(s => s.id === parsed.activeSessionId)
-			? parsed.activeSessionId
-			: sessions[0].id
-
-		return { sessions, activeSessionId }
-	} catch {
-		return { sessions: [], activeSessionId: null }
 	}
-}
 
 export const saveBuyingInvoiceDraftSessions = (
 	state: BuyingInvoiceDraftSessionsState,

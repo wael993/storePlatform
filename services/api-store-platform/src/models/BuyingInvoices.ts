@@ -81,22 +81,23 @@ const BuyingInvoiceItemSchema = new Schema<IBuyingInvoiceItem>(
 	{ _id: false },
 )
 
-const BuyingInvoiceCurrencyAmountSchema = new Schema<IBuyingInvoiceCurrencyAmount>(
-	{
-		currencyId: { type: String, required: true, trim: true },
-		name: { type: String, required: true, trim: true },
-		internalCode: { type: String, trim: true, uppercase: true },
-		exchangeRate: { type: Number, required: true, min: 0 },
-		isPrimary: { type: Boolean, default: false },
-		amount: { type: Number, required: true, min: 0 },
-		paidAmount: { type: Number, required: true, min: 0 },
-		remainingAmount: { type: Number, required: true, min: 0 },
-		subtotal: { type: Number, required: true, min: 0 },
-		tax: { type: Number, required: true, min: 0 },
-		discount: { type: Number, required: true, min: 0 },
-	},
-	{ _id: false },
-)
+const BuyingInvoiceCurrencyAmountSchema =
+	new Schema<IBuyingInvoiceCurrencyAmount>(
+		{
+			currencyId: { type: String, required: true, trim: true },
+			name: { type: String, required: true, trim: true },
+			internalCode: { type: String, trim: true, uppercase: true },
+			exchangeRate: { type: Number, required: true, min: 0 },
+			isPrimary: { type: Boolean, default: false },
+			amount: { type: Number, required: true, min: 0 },
+			paidAmount: { type: Number, required: true, min: 0 },
+			remainingAmount: { type: Number, required: true, min: 0 },
+			subtotal: { type: Number, required: true, min: 0 },
+			tax: { type: Number, required: true, min: 0 },
+			discount: { type: Number, required: true, min: 0 },
+		},
+		{ _id: false },
+	)
 
 const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 	{

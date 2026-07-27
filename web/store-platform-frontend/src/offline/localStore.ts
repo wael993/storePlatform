@@ -19,7 +19,12 @@ import {
 	setSyncMeta,
 	SYNC_META_KEYS,
 } from './db'
-import { generateId, nowIso, withLocalMeta, normalizeBootstrapRecords } from './utils'
+import {
+	generateId,
+	nowIso,
+	withLocalMeta,
+	normalizeBootstrapRecords,
+} from './utils'
 
 const INVOICE_NUMBER_BLOCK_SIZE = 500
 

@@ -98,7 +98,12 @@ const CustomerInvoiceSummaryCards = ({
 		return (
 			<Flex sx={styles.container} mb={3}>
 				{Array.from({ length: 3 }).map((_, index) => (
-					<Skeleton key={index} height="1.75rem" width="100%" borderRadius="md" />
+					<Skeleton
+						key={index}
+						height="1.75rem"
+						width="100%"
+						borderRadius="md"
+					/>
 				))}
 			</Flex>
 		)

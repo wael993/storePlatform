@@ -11,7 +11,9 @@ import { useUser } from '../../shared/hooks/useUser'
 export const useProductCatalog = () => {
 	const { user } = useUser()
 	const tenantId = user?.tenantId
-	const [state, setState] = useState<ProductCatalogState>(getProductCatalogState())
+	const [state, setState] = useState<ProductCatalogState>(
+		getProductCatalogState(),
+	)
 
 	useEffect(() => subscribeProductCatalog(setState), [])
 

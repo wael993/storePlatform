@@ -95,7 +95,9 @@ export default class MongodbController {
 		return /mongodb(\+srv)?:\/\/[^/]+@/i.test(this.url)
 	}
 
-	private buildMongoClientOptions(): ConstructorParameters<typeof MongoClient>[1] {
+	private buildMongoClientOptions(): ConstructorParameters<
+		typeof MongoClient
+	>[1] {
 		const options: ConstructorParameters<typeof MongoClient>[1] = {
 			connectTimeoutMS: 300,
 			heartbeatFrequencyMS: 1000,

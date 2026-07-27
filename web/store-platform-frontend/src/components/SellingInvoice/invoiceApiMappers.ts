@@ -142,8 +142,12 @@ export const mapApiInvoiceToDraft = (
 	return {
 		invoiceId: invoice.invoiceId,
 		invoiceNumber: parseInvoiceSequence(invoice.invoiceNumber),
-		invoiceDate: issuedAt ? dayjs(issuedAt).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-		invoiceTime: issuedAt ? dayjs(issuedAt).format('HH:mm') : dayjs().format('HH:mm'),
+		invoiceDate: issuedAt
+			? dayjs(issuedAt).format('YYYY-MM-DD')
+			: dayjs().format('YYYY-MM-DD'),
+		invoiceTime: issuedAt
+			? dayjs(issuedAt).format('HH:mm')
+			: dayjs().format('HH:mm'),
 		salesPerson: invoice.salesPerson ?? '',
 		customerId: invoice.customerId || 'walk-in',
 		customerName: invoice.customerName ?? fallbackCustomerName,

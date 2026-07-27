@@ -14,10 +14,11 @@ export const useInsufficientStockConfirmation = () => {
 	const [pending, setPending] = useState<PendingConfirmation | null>(null)
 
 	useEffect(() => {
-		setInsufficientStockConfirmationHandler(items =>
-			new Promise<boolean>(resolve => {
-				setPending({ items, resolve })
-			}),
+		setInsufficientStockConfirmationHandler(
+			items =>
+				new Promise<boolean>(resolve => {
+					setPending({ items, resolve })
+				}),
 		)
 
 		return () => setInsufficientStockConfirmationHandler(null)

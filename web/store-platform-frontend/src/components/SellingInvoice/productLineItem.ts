@@ -53,10 +53,8 @@ export const addProductToLineItems = (
 					...item,
 					quantity: item.quantity + 1,
 					averageCost: product.inventory?.averageCost ?? item.averageCost,
-					lastBuyingPrice:
-						product.price?.purchasePrice ?? item.lastBuyingPrice,
-					lastSellingPrice:
-						product.lastSellingPrice ?? item.lastSellingPrice,
+					lastBuyingPrice: product.price?.purchasePrice ?? item.lastBuyingPrice,
+					lastSellingPrice: product.lastSellingPrice ?? item.lastSellingPrice,
 				}
 			: item,
 	)

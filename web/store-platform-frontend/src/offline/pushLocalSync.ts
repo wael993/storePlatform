@@ -2,7 +2,10 @@ import type { OutboxEntry, SyncPushResult } from './types'
 import { offlineDb } from './db'
 
 const markSynced = async <T extends { syncStatus: string; updatedAt: string }>(
-	table: { get: (key: string) => Promise<T | undefined>; put: (item: T) => Promise<unknown> },
+	table: {
+		get: (key: string) => Promise<T | undefined>
+		put: (item: T) => Promise<unknown>
+	},
 	key: string,
 	serverTime: string,
 ) => {
@@ -62,12 +65,14 @@ export const applyPushResultToLocalStore = async (
 		}
 		case 'customer': {
 			const customerId = String(data.customerId ?? payload.customerId ?? '')
-			if (customerId) await markSynced(offlineDb.customers, customerId, serverTime)
+			if (customerId)
+				await markSynced(offlineDb.customers, customerId, serverTime)
 			return
 		}
 		case 'supplier': {
 			const supplierId = String(data.supplierId ?? payload.supplierId ?? '')
-			if (supplierId) await markSynced(offlineDb.suppliers, supplierId, serverTime)
+			if (supplierId)
+				await markSynced(offlineDb.suppliers, supplierId, serverTime)
 			return
 		}
 		case 'partner': {
@@ -77,7 +82,8 @@ export const applyPushResultToLocalStore = async (
 		}
 		case 'category': {
 			const categoryId = String(data.categoryId ?? payload.categoryId ?? '')
-			if (categoryId) await markSynced(offlineDb.categories, categoryId, serverTime)
+			if (categoryId)
+				await markSynced(offlineDb.categories, categoryId, serverTime)
 			return
 		}
 		case 'brand': {
@@ -93,7 +99,8 @@ export const applyPushResultToLocalStore = async (
 		}
 		case 'warehouse': {
 			const warehouseId = String(data.warehouseId ?? payload.warehouseId ?? '')
-			if (warehouseId) await markSynced(offlineDb.warehouses, warehouseId, serverTime)
+			if (warehouseId)
+				await markSynced(offlineDb.warehouses, warehouseId, serverTime)
 			return
 		}
 		case 'expense': {
@@ -105,12 +112,14 @@ export const applyPushResultToLocalStore = async (
 			const actionId = String(
 				data.actionId ?? payload.actionId ?? entry.url.split('/').pop() ?? '',
 			)
-			if (actionId) await markSynced(offlineDb.dailyActions, actionId, serverTime)
+			if (actionId)
+				await markSynced(offlineDb.dailyActions, actionId, serverTime)
 			return
 		}
 		case 'currency': {
 			const currencyId = String(data.currencyId ?? payload.currencyId ?? '')
-			if (currencyId) await markSynced(offlineDb.currencies, currencyId, serverTime)
+			if (currencyId)
+				await markSynced(offlineDb.currencies, currencyId, serverTime)
 			return
 		}
 		case 'unit': {
@@ -123,7 +132,9 @@ export const applyPushResultToLocalStore = async (
 	}
 }
 
-export const markInventorySyncedAfterPush = async (serverTime: string): Promise<void> => {
+export const markInventorySyncedAfterPush = async (
+	serverTime: string,
+): Promise<void> => {
 	const inventory = await offlineDb.inventory
 		.where('syncStatus')
 		.equals('pending')

@@ -206,7 +206,9 @@ const AddProductModal = ({
 			return ''
 		}
 
-		const match = currencies.find(currency => currency.currencyId === currencyId)
+		const match = currencies.find(
+			currency => currency.currencyId === currencyId,
+		)
 
 		if (match) {
 			return match.internalCode || match.name

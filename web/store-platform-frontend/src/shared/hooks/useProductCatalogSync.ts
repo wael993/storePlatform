@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
 
-import { getIsNetworkOnline, subscribeConnectivity } from '../../offline/connectivity'
+import {
+	getIsNetworkOnline,
+	subscribeConnectivity,
+} from '../../offline/connectivity'
 import {
 	getProductCatalogState,
 	hydrateFromIndexedDB,

@@ -242,14 +242,15 @@ const SettingsPage = () => {
 
 				const invalidSecondary = secondaryCurrencies.some(
 					item =>
-						item.name.trim() &&
-						(!item.exchangeRate || item.exchangeRate <= 0),
+						item.name.trim() && (!item.exchangeRate || item.exchangeRate <= 0),
 				)
 
 				if (invalidSecondary) {
 					showToastMessage({
 						status: 'error',
-						description: t('components.currenciesSettings.exchangeRateRequired'),
+						description: t(
+							'components.currenciesSettings.exchangeRateRequired',
+						),
 					})
 					return
 				}

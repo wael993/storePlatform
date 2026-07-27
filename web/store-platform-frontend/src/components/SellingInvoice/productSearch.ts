@@ -87,7 +87,10 @@ export const productMatchesCode = (
 	)
 }
 
-const productMatchesCodePartial = (product: Product, query: string): boolean => {
+const productMatchesCodePartial = (
+	product: Product,
+	query: string,
+): boolean => {
 	const normalizedQuery = normalizeSearchQuery(query).toLowerCase()
 	return getSearchableCodes(product).some(code =>
 		normalizeSearchQuery(code).toLowerCase().includes(normalizedQuery),

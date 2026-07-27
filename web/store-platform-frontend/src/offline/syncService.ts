@@ -232,9 +232,7 @@ export const pushOutbox = async (options?: {
 	return pushInFlight
 }
 
-const runPushOutbox = async (options?: {
-	force?: boolean
-}): Promise<void> => {
+const runPushOutbox = async (options?: { force?: boolean }): Promise<void> => {
 	if (!getIsNetworkOnline()) {
 		emit({ syncState: 'offline' })
 		return
@@ -523,10 +521,7 @@ export const exitOfflineWorkMode = async (tenantId?: string): Promise<void> => {
 	await pushOutbox({ force: true })
 
 	const { syncPushResult } = getOfflineState()
-	if (
-		syncPushResult?.type === 'partial' ||
-		syncPushResult?.type === 'failed'
-	) {
+	if (syncPushResult?.type === 'partial' || syncPushResult?.type === 'failed') {
 		throw new Error(
 			syncPushResult.errorMessage ??
 				'Some offline changes could not be synced. Please retry.',

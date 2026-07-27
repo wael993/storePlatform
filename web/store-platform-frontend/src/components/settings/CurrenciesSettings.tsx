@@ -84,7 +84,9 @@ const CurrenciesSettings = ({
 	onRemoveSecondary,
 }: CurrenciesSettingsProps) => {
 	const { t } = useTranslation()
-	const primaryName = primaryCurrency?.name?.trim() || t('components.currenciesSettings.primaryLabel')
+	const primaryName =
+		primaryCurrency?.name?.trim() ||
+		t('components.currenciesSettings.primaryLabel')
 	const displayCurrencyOptions = buildOptionsFromItems(
 		primaryCurrency,
 		secondaryCurrencies,
@@ -92,145 +94,158 @@ const CurrenciesSettings = ({
 
 	return (
 		<VStack align="stretch" spacing={6} width="100%">
-			<Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={8} width="100%">
-			<Box>
-				<Heading sx={styles.sectionHeading}>
-					{t('components.currenciesSettings.secondaryTitle')}
-				</Heading>
-				<Text sx={styles.hint} mb={4}>
-					{t('components.currenciesSettings.secondaryDescription')}
-				</Text>
+			<Grid
+				templateColumns={{ base: '1fr', lg: '1fr 1fr' }}
+				gap={8}
+				width="100%"
+			>
+				<Box>
+					<Heading sx={styles.sectionHeading}>
+						{t('components.currenciesSettings.secondaryTitle')}
+					</Heading>
+					<Text sx={styles.hint} mb={4}>
+						{t('components.currenciesSettings.secondaryDescription')}
+					</Text>
 
-				<VStack align="stretch" spacing={3}>
-					{secondaryCurrencies.map((secondary, index) => (
-						<Flex key={secondary.currencyId || index} sx={styles.secondaryRow}>
-							<FormControl flex={1}>
-								<FormLabel sx={styles.label}>
-									{t('components.currenciesSettings.currencyName')}
-								</FormLabel>
-								<Input
-									value={secondary.name}
-									onChange={event =>
-										onSecondaryChange(index, 'name', event.target.value)
-									}
-									placeholder={t('components.currenciesSettings.namePlaceholder')}
-									borderRadius={0}
-								/>
-							</FormControl>
-
-							<FormControl flex={1}>
-								<FormLabel sx={styles.label}>
-									{t('components.currenciesSettings.currencyCode')}
-								</FormLabel>
-								<Input
-									value={secondary.internalCode ?? ''}
-									onChange={event =>
-										onSecondaryChange(
-											index,
-											'internalCode',
-											event.target.value,
-										)
-									}
-									placeholder={t('components.currenciesSettings.codePlaceholder')}
-									borderRadius={0}
-								/>
-							</FormControl>
-
-							<FormControl flex={1}>
-								<FormLabel sx={styles.label}>
-									{t('components.currenciesSettings.exchangeRate')}
-								</FormLabel>
-								<InputGroup>
+					<VStack align="stretch" spacing={3}>
+						{secondaryCurrencies.map((secondary, index) => (
+							<Flex
+								key={secondary.currencyId || index}
+								sx={styles.secondaryRow}
+							>
+								<FormControl flex={1}>
+									<FormLabel sx={styles.label}>
+										{t('components.currenciesSettings.currencyName')}
+									</FormLabel>
 									<Input
-										type="number"
-										min={0}
-										step="any"
-										value={secondary.exchangeRate ?? ''}
+										value={secondary.name}
+										onChange={event =>
+											onSecondaryChange(index, 'name', event.target.value)
+										}
+										placeholder={t(
+											'components.currenciesSettings.namePlaceholder',
+										)}
+										borderRadius={0}
+									/>
+								</FormControl>
+
+								<FormControl flex={1}>
+									<FormLabel sx={styles.label}>
+										{t('components.currenciesSettings.currencyCode')}
+									</FormLabel>
+									<Input
+										value={secondary.internalCode ?? ''}
 										onChange={event =>
 											onSecondaryChange(
 												index,
-												'exchangeRate',
+												'internalCode',
 												event.target.value,
 											)
 										}
-										placeholder="0"
+										placeholder={t(
+											'components.currenciesSettings.codePlaceholder',
+										)}
 										borderRadius={0}
 									/>
-									<InputRightAddon
-										borderRadius={0}
-										fontSize="0.75rem"
-										whiteSpace="nowrap"
-									>
-										{t('components.currenciesSettings.rateSuffix', {
-											primary: primaryName,
-											secondary:
-												secondary.name?.trim() ||
-												t('components.currenciesSettings.secondaryLabel'),
-										})}
-									</InputRightAddon>
-								</InputGroup>
-							</FormControl>
+								</FormControl>
 
-							<IconButton
-								aria-label={t('components.currenciesSettings.removeSecondary')}
-								icon={<AsCloseIcon />}
-								variant="ghost"
-								color="#939596"
-								onClick={() => onRemoveSecondary(index)}
-								mb={1}
+								<FormControl flex={1}>
+									<FormLabel sx={styles.label}>
+										{t('components.currenciesSettings.exchangeRate')}
+									</FormLabel>
+									<InputGroup>
+										<Input
+											type="number"
+											min={0}
+											step="any"
+											value={secondary.exchangeRate ?? ''}
+											onChange={event =>
+												onSecondaryChange(
+													index,
+													'exchangeRate',
+													event.target.value,
+												)
+											}
+											placeholder="0"
+											borderRadius={0}
+										/>
+										<InputRightAddon
+											borderRadius={0}
+											fontSize="0.75rem"
+											whiteSpace="nowrap"
+										>
+											{t('components.currenciesSettings.rateSuffix', {
+												primary: primaryName,
+												secondary:
+													secondary.name?.trim() ||
+													t('components.currenciesSettings.secondaryLabel'),
+											})}
+										</InputRightAddon>
+									</InputGroup>
+								</FormControl>
+
+								<IconButton
+									aria-label={t(
+										'components.currenciesSettings.removeSecondary',
+									)}
+									icon={<AsCloseIcon />}
+									variant="ghost"
+									color="#939596"
+									onClick={() => onRemoveSecondary(index)}
+									mb={1}
+								/>
+							</Flex>
+						))}
+					</VStack>
+
+					<Button
+						variant="outline"
+						sx={styles.addButton}
+						onClick={onAddSecondary}
+					>
+						{t('components.currenciesSettings.addSecondary')}
+					</Button>
+				</Box>
+
+				<Box sx={styles.sectionBox}>
+					<Heading sx={styles.sectionHeading}>
+						{t('components.currenciesSettings.primaryTitle')}
+					</Heading>
+					<Text sx={styles.hint} mb={4}>
+						{t('components.currenciesSettings.primaryDescription')}
+					</Text>
+
+					<VStack align="stretch" spacing={4}>
+						<FormControl>
+							<FormLabel sx={styles.label}>
+								{t('components.currenciesSettings.currencyName')}
+							</FormLabel>
+							<Input
+								value={primaryCurrency?.name ?? ''}
+								onChange={event => onPrimaryChange('name', event.target.value)}
+								placeholder={t(
+									'components.currenciesSettings.primaryNamePlaceholder',
+								)}
+								borderRadius={0}
 							/>
-						</Flex>
-					))}
-				</VStack>
+						</FormControl>
 
-				<Button
-					variant="outline"
-					sx={styles.addButton}
-					onClick={onAddSecondary}
-				>
-					{t('components.currenciesSettings.addSecondary')}
-				</Button>
-			</Box>
-
-			<Box sx={styles.sectionBox}>
-				<Heading sx={styles.sectionHeading}>
-					{t('components.currenciesSettings.primaryTitle')}
-				</Heading>
-				<Text sx={styles.hint} mb={4}>
-					{t('components.currenciesSettings.primaryDescription')}
-				</Text>
-
-				<VStack align="stretch" spacing={4}>
-					<FormControl>
-						<FormLabel sx={styles.label}>
-							{t('components.currenciesSettings.currencyName')}
-						</FormLabel>
-						<Input
-							value={primaryCurrency?.name ?? ''}
-							onChange={event =>
-								onPrimaryChange('name', event.target.value)
-							}
-							placeholder={t('components.currenciesSettings.primaryNamePlaceholder')}
-							borderRadius={0}
-						/>
-					</FormControl>
-
-					<FormControl>
-						<FormLabel sx={styles.label}>
-							{t('components.currenciesSettings.currencyCode')}
-						</FormLabel>
-						<Input
-							value={primaryCurrency?.internalCode ?? ''}
-							onChange={event =>
-								onPrimaryChange('internalCode', event.target.value)
-							}
-							placeholder={t('components.currenciesSettings.codePlaceholder')}
-							borderRadius={0}
-						/>
-					</FormControl>
-				</VStack>
-			</Box>
-		</Grid>
+						<FormControl>
+							<FormLabel sx={styles.label}>
+								{t('components.currenciesSettings.currencyCode')}
+							</FormLabel>
+							<Input
+								value={primaryCurrency?.internalCode ?? ''}
+								onChange={event =>
+									onPrimaryChange('internalCode', event.target.value)
+								}
+								placeholder={t('components.currenciesSettings.codePlaceholder')}
+								borderRadius={0}
+							/>
+						</FormControl>
+					</VStack>
+				</Box>
+			</Grid>
 
 			{displayCurrencyOptions.length > 0 && (
 				<Box maxW={{ base: '100%', lg: '50%' }}>
@@ -241,7 +256,7 @@ const CurrenciesSettings = ({
 							value: option.currencyId,
 						}))}
 						selectedOptions={
-							(defaultInvoiceCurrencyId || primaryCurrency?.currencyId)
+							defaultInvoiceCurrencyId || primaryCurrency?.currencyId
 								? displayCurrencyOptions
 										.filter(
 											option =>
@@ -255,9 +270,7 @@ const CurrenciesSettings = ({
 										}))
 								: []
 						}
-						onSelect={values =>
-							onDefaultInvoiceCurrencyChange(values[0] ?? '')
-						}
+						onSelect={values => onDefaultInvoiceCurrencyChange(values[0] ?? '')}
 						placeholder={t(
 							'components.currenciesSettings.defaultInvoiceCurrencyPlaceholder',
 						)}
@@ -265,7 +278,11 @@ const CurrenciesSettings = ({
 						isSearchable={false}
 						customStyles={{
 							dropdownContainer: { width: '100%' },
-							dropdownMenu: { mt: '0.4rem', borderRadius: 'none', width: '100%' },
+							dropdownMenu: {
+								mt: '0.4rem',
+								borderRadius: 'none',
+								width: '100%',
+							},
 							dropdownPlaceholder: { width: '100%' },
 						}}
 					/>

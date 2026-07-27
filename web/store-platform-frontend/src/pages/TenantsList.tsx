@@ -450,9 +450,7 @@ const TenantsList = () => {
 										justifyContent="space-between"
 									>
 										<Box>
-											<FormLabel mb={0}>
-												{t('tenants.offlineMode')}
-											</FormLabel>
+											<FormLabel mb={0}>{t('tenants.offlineMode')}</FormLabel>
 											<Text fontSize="sm" color="gray.500">
 												{t('tenants.offlineModeDescription')}
 											</Text>

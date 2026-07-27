@@ -26,10 +26,7 @@ import {
 	useGetSuppliersQuery,
 } from '../../api/apiStore'
 import type { ApiBuyingInvoice } from '../BuyingInvoice/buyingInvoiceApiMappers'
-import {
-	CASH_BALANCE_ALL_TIME_FROM,
-	calculateCashBalance,
-} from './cashBalance'
+import { CASH_BALANCE_ALL_TIME_FROM, calculateCashBalance } from './cashBalance'
 import type { ApiSellingInvoice } from './invoiceApiMappers'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import CustomBreadcrumb from '../CustomBreadcrumb'
@@ -45,9 +42,7 @@ import BuyingInvoiceDetailModal from '../BuyingInvoice/BuyingInvoiceDetailModal'
 import { isBuyingInvoiceDraftSessionDirty } from '../BuyingInvoice/buyingInvoiceDraftSessions'
 import type { BuyingInvoiceDraft } from '../BuyingInvoice/types'
 import { useBuyingInvoiceDraftSessions } from '../BuyingInvoice/useBuyingInvoiceDraftSessions'
-import QuickEntryModal, {
-	type QuickEntryModalMode,
-} from './QuickEntryModal'
+import QuickEntryModal, { type QuickEntryModalMode } from './QuickEntryModal'
 import { PAGE_COLORS } from './constants'
 import { mapApiSummaryToUi } from './invoiceApiMappers'
 import { isDraftSessionDirty } from './invoiceDraftSessions'
@@ -58,10 +53,7 @@ import InvoiceTableSection from './InvoiceTableSection'
 import NewSellingInvoicePanel, {
 	type InvoicePanelMode,
 } from './NewSellingInvoicePanel'
-import type {
-	SellingInvoiceDraft,
-	SellingInvoicePaymentType,
-} from './types'
+import type { SellingInvoiceDraft, SellingInvoicePaymentType } from './types'
 import { useInvoiceDraftSessions } from './useInvoiceDraftSessions'
 import { normalizeSearchQuery as normalizeBarcode } from './productSearch'
 import { AsInvoiceIcon } from '../../icons/Invoice'
@@ -129,8 +121,9 @@ const SellingInvoicesPage = () => {
 	const [draftTabPendingClose, setDraftTabPendingClose] = useState<
 		string | null
 	>(null)
-	const [buyingDraftTabPendingClose, setBuyingDraftTabPendingClose] =
-		useState<string | null>(null)
+	const [buyingDraftTabPendingClose, setBuyingDraftTabPendingClose] = useState<
+		string | null
+	>(null)
 
 	const {
 		isOpen: isDetailOpen,
@@ -203,16 +196,20 @@ const SellingInvoicesPage = () => {
 		[],
 	)
 
-	const { data: periodDailyActions = [], isLoading: isPeriodCashBalanceLoading } =
-		useGetDailyActionsQuery(cashBalancePeriodQuery, {
-			skip: !isAdmin,
-			refetchOnMountOrArgChange: false,
-		})
-	const { data: allTimeDailyActions = [], isLoading: isAllTimeCashBalanceLoading } =
-		useGetDailyActionsQuery(cashBalanceAllTimeQuery, {
-			skip: !isAdmin,
-			refetchOnMountOrArgChange: false,
-		})
+	const {
+		data: periodDailyActions = [],
+		isLoading: isPeriodCashBalanceLoading,
+	} = useGetDailyActionsQuery(cashBalancePeriodQuery, {
+		skip: !isAdmin,
+		refetchOnMountOrArgChange: false,
+	})
+	const {
+		data: allTimeDailyActions = [],
+		isLoading: isAllTimeCashBalanceLoading,
+	} = useGetDailyActionsQuery(cashBalanceAllTimeQuery, {
+		skip: !isAdmin,
+		refetchOnMountOrArgChange: false,
+	})
 
 	const { options: cashBalanceCurrencyOptions } = useInvoiceDisplayCurrency()
 	const { data: invoiceCustomers = [] } = useGetCustomersQuery(undefined, {
@@ -559,17 +556,11 @@ const SellingInvoicesPage = () => {
 		setDetailMode('view')
 	}
 
-	const handleViewInvoice = (
-		invoiceId: string,
-		kind: 'selling' | 'buying',
-	) => {
+	const handleViewInvoice = (invoiceId: string, kind: 'selling' | 'buying') => {
 		openInvoiceDetail(invoiceId, kind, 'view')
 	}
 
-	const handleEditInvoice = (
-		invoiceId: string,
-		kind: 'selling' | 'buying',
-	) => {
+	const handleEditInvoice = (invoiceId: string, kind: 'selling' | 'buying') => {
 		openInvoiceDetail(invoiceId, kind, 'edit')
 	}
 
@@ -765,7 +756,9 @@ const SellingInvoicesPage = () => {
 				header={t('components.sellingInvoices.drawer.closeDraftTitle')}
 				body={t('components.sellingInvoices.drawer.closeDraftBody')}
 				cancelButtonText={t('common.cancel')}
-				confirmationButtonText={t('components.sellingInvoices.drawer.discardDraft')}
+				confirmationButtonText={t(
+					'components.sellingInvoices.drawer.discardDraft',
+				)}
 			/>
 			<ConfirmationDialog
 				isOpen={isCloseBuyingDraftOpen}
@@ -777,7 +770,9 @@ const SellingInvoicesPage = () => {
 				header={t('components.buyingInvoices.drawer.closeDraftTitle')}
 				body={t('components.buyingInvoices.drawer.closeDraftBody')}
 				cancelButtonText={t('common.cancel')}
-				confirmationButtonText={t('components.buyingInvoices.drawer.discardDraft')}
+				confirmationButtonText={t(
+					'components.buyingInvoices.drawer.discardDraft',
+				)}
 			/>
 			{isAdmin && (
 				<QuickEntryModal

@@ -1,7 +1,9 @@
 const PREFIXED_INVOICE_NUMBER = /^(SI|BI)-(\d+)$/i
 
 /** Numeric sequence for UI display from SI-000001 / BI-000002 / legacy "12". */
-export const parseInvoiceSequence = (value?: string | number | null): number => {
+export const parseInvoiceSequence = (
+	value?: string | number | null,
+): number => {
 	if (value == null || value === '') return 0
 
 	if (typeof value === 'number') {

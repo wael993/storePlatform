@@ -161,7 +161,14 @@ export type InvoiceRequestBody = {
 		taxRate?: number
 		lineTotal?: number
 	}>
-	status?: 'draft' | 'confirmed' | 'partial' | 'paid' | 'cancelled' | 'pending' | 'void'
+	status?:
+		| 'draft'
+		| 'confirmed'
+		| 'partial'
+		| 'paid'
+		| 'cancelled'
+		| 'pending'
+		| 'void'
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
 	currencyAmounts: Array<{
 		currencyId: string
@@ -246,7 +253,14 @@ export type BuyingInvoiceRequestBody = {
 		taxRate?: number
 		lineTotal?: number
 	}>
-	status?: 'draft' | 'confirmed' | 'partial' | 'paid' | 'cancelled' | 'pending' | 'void'
+	status?:
+		| 'draft'
+		| 'confirmed'
+		| 'partial'
+		| 'paid'
+		| 'cancelled'
+		| 'pending'
+		| 'void'
 	paymentStatus?: 'unpaid' | 'partial' | 'paid'
 	currencyAmounts: Array<{
 		currencyId: string

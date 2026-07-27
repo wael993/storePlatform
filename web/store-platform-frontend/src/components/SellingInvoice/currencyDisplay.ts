@@ -225,14 +225,19 @@ export interface InvoiceAmountSource {
 	totalDiscount?: number
 }
 
-export type SavedCurrencyAmountField = 'amount' | 'paidAmount' | 'remainingAmount'
+export type SavedCurrencyAmountField =
+	| 'amount'
+	| 'paidAmount'
+	| 'remainingAmount'
 
 export const formatSavedCurrencyAmount = (
 	currencyAmounts: InvoiceCurrencyAmount[] | undefined,
 	field: SavedCurrencyAmountField,
 	currencyId: string,
 ): string | null => {
-	const entry = currencyAmounts?.find(amount => amount.currencyId === currencyId)
+	const entry = currencyAmounts?.find(
+		amount => amount.currencyId === currencyId,
+	)
 
 	if (!entry) {
 		return null

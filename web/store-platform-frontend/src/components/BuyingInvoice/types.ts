@@ -5,7 +5,12 @@ import type {
 	SellingInvoiceLineItem,
 } from '../SellingInvoice/types'
 
-export type BuyingInvoiceStatus = 'paid' | 'credit' | 'partial' | 'draft' | 'cancelled'
+export type BuyingInvoiceStatus =
+	| 'paid'
+	| 'credit'
+	| 'partial'
+	| 'draft'
+	| 'cancelled'
 
 export type BuyingInvoicePaymentType = 'cash' | 'credit'
 

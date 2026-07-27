@@ -47,17 +47,18 @@ const ACTION_TO_HTTP_METHODS: Record<TenantAction, string[]> = {
 
 // Side-effect resources mutated by other operations (e.g. stock/inventory on invoice save).
 // Allowed when the caller has `create` on a listed source resource.
-const IMPLICIT_WRITE_SOURCES: Partial<Record<TenantResource, TenantResource[]>> =
-	{
-		[COLLECTION_NAMES.STOCK_MOVINGS]: [
-			COLLECTION_NAMES.INVOICES,
-			COLLECTION_NAMES.BUYING_INVOICES,
-		],
-		[COLLECTION_NAMES.INVENTORY]: [
-			COLLECTION_NAMES.INVOICES,
-			COLLECTION_NAMES.BUYING_INVOICES,
-		],
-	}
+const IMPLICIT_WRITE_SOURCES: Partial<
+	Record<TenantResource, TenantResource[]>
+> = {
+	[COLLECTION_NAMES.STOCK_MOVINGS]: [
+		COLLECTION_NAMES.INVOICES,
+		COLLECTION_NAMES.BUYING_INVOICES,
+	],
+	[COLLECTION_NAMES.INVENTORY]: [
+		COLLECTION_NAMES.INVOICES,
+		COLLECTION_NAMES.BUYING_INVOICES,
+	],
+}
 
 let dynamicRoleCache: {
 	expiresAt: number
