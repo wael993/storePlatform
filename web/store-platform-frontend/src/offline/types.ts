@@ -1,3 +1,5 @@
+import type { CurrencySettings } from '../api/apiStore'
+import type { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
 import type { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import type {
 	InventoryItem,
@@ -9,6 +11,7 @@ export type SyncStatus = 'synced' | 'pending' | 'conflict'
 
 export type OutboxEntity =
 	| 'invoice'
+	| 'buyingInvoice'
 	| 'product'
 	| 'inventory'
 	| 'customer'
@@ -23,6 +26,7 @@ export type OutboxEntity =
 	| 'currency'
 	| 'unit'
 	| 'userSettings'
+	| 'currencySettings'
 
 export type OutboxOperation = 'create' | 'update' | 'delete'
 
@@ -74,6 +78,10 @@ export interface LocalInvoice extends ApiSellingInvoice, LocalRecordMeta {
 	invoiceId: string
 }
 
+export interface LocalBuyingInvoice extends ApiBuyingInvoice, LocalRecordMeta {
+	buyingInvoiceId: string
+}
+
 export interface BootstrapPayload {
 	products: Product[]
 	inventory: InventoryItem[]
@@ -89,10 +97,14 @@ export interface BootstrapPayload {
 	expenses: Expense[]
 	dailyActions: DailyAction[]
 	invoices: ApiSellingInvoice[]
+	buyingInvoices?: ApiBuyingInvoice[]
+	currencySettings?: CurrencySettings
 	userSettings?: UserSettings
 	frontendResources?: FrontendResources[]
 	nextInvoiceNumber: number
 	invoiceNumberBlockEnd: number
+	nextBuyingInvoiceNumber?: number
+	buyingInvoiceNumberBlockEnd?: number
 	serverTime: string
 	offlineRetentionDays?: number
 }
@@ -112,6 +124,8 @@ export interface SyncChangesPayload {
 	expenses?: Expense[]
 	dailyActions?: DailyAction[]
 	invoices?: ApiSellingInvoice[]
+	buyingInvoices?: ApiBuyingInvoice[]
+	currencySettings?: CurrencySettings
 	userSettings?: UserSettings
 	frontendResources?: FrontendResources[]
 	serverTime: string

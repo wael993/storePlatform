@@ -345,6 +345,8 @@ export type SyncBootstrapResponse = {
 	expenses: Array<Record<string, unknown>>
 	dailyActions: Array<Record<string, unknown>>
 	invoices: Array<Record<string, unknown>>
+	buyingInvoices?: Array<Record<string, unknown>>
+	currencySettings?: Record<string, unknown>
 	userSettings?: Record<string, unknown>
 	frontendResources?: Array<{
 		path: string
@@ -353,6 +355,8 @@ export type SyncBootstrapResponse = {
 	}>
 	nextInvoiceNumber: number
 	invoiceNumberBlockEnd: number
+	nextBuyingInvoiceNumber?: number
+	buyingInvoiceNumberBlockEnd?: number
 	serverTime: string
 	offlineRetentionDays?: number
 }

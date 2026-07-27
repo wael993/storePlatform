@@ -1,5 +1,5 @@
 import { offlineDb } from './db'
-import type { LocalDailyAction, LocalInvoice } from './types'
+import type { LocalBuyingInvoice, LocalDailyAction, LocalInvoice } from './types'
 
 export const OFFLINE_SYNC_RETENTION_DAYS = 90
 
@@ -32,6 +32,23 @@ export const shouldRetainInvoice = (
 	)
 }
 
+export const isOpenCreditBuyingInvoice = (
+	invoice: LocalBuyingInvoice,
+): boolean =>
+	invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid'
+
+export const shouldRetainBuyingInvoice = (
+	invoice: LocalBuyingInvoice,
+	cutoff: Date,
+): boolean => {
+	if (invoice.syncStatus === 'pending') return true
+	if (isOpenCreditBuyingInvoice(invoice)) return true
+
+	const issuedAt = invoice.issuedAt ? new Date(invoice.issuedAt) : null
+	return (
+		issuedAt !== null && !Number.isNaN(issuedAt.getTime()) && issuedAt >= cutoff
+	)
+}
 export const shouldRetainDailyAction = (
 	action: LocalDailyAction,
 	cutoff: Date,
@@ -70,6 +87,24 @@ export const getLocalInvoicesForOffline = async (): Promise<LocalInvoice[]> => {
 	)
 }
 
+export const getLocalBuyingInvoicesForOffline = async (): Promise<
+	LocalBuyingInvoice[]
+> => {
+	const cutoffIso = getRetentionCutoffIso()
+	const [recent, pending, openCredit] = await Promise.all([
+		offlineDb.buyingInvoices.where('issuedAt').aboveOrEqual(cutoffIso).toArray(),
+		offlineDb.buyingInvoices.where('syncStatus').equals('pending').toArray(),
+		offlineDb.buyingInvoices
+			.filter(invoice => isOpenCreditBuyingInvoice(invoice))
+			.toArray(),
+	])
+
+	return mergeByKey(
+		[...recent, ...pending, ...openCredit],
+		invoice => invoice.buyingInvoiceId,
+	)
+}
+
 export const getLocalDailyActionsForOffline = async (): Promise<
 	LocalDailyAction[]
 > => {
@@ -90,14 +125,19 @@ export const pruneExpiredOfflineRecords = async (
 ): Promise<void> => {
 	const cutoff = getRetentionCutoffDate(retentionDays)
 
-	const [invoices, dailyActions] = await Promise.all([
+	const [invoices, buyingInvoices, dailyActions] = await Promise.all([
 		offlineDb.invoices.toArray(),
+		offlineDb.buyingInvoices.toArray(),
 		offlineDb.dailyActions.toArray(),
 	])
 
 	const invoiceIdsToDelete = invoices
 		.filter(invoice => !shouldRetainInvoice(invoice, cutoff))
 		.map(invoice => invoice.invoiceId)
+
+	const buyingInvoiceIdsToDelete = buyingInvoices
+		.filter(invoice => !shouldRetainBuyingInvoice(invoice, cutoff))
+		.map(invoice => invoice.buyingInvoiceId)
 
 	const actionIdsToDelete = dailyActions
 		.filter(action => !shouldRetainDailyAction(action, cutoff))
@@ -106,6 +146,9 @@ export const pruneExpiredOfflineRecords = async (
 	await Promise.all([
 		invoiceIdsToDelete.length
 			? offlineDb.invoices.bulkDelete(invoiceIdsToDelete)
+			: Promise.resolve(),
+		buyingInvoiceIdsToDelete.length
+			? offlineDb.buyingInvoices.bulkDelete(buyingInvoiceIdsToDelete)
 			: Promise.resolve(),
 		actionIdsToDelete.length
 			? offlineDb.dailyActions.bulkDelete(actionIdsToDelete)

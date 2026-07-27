@@ -6,6 +6,7 @@ import {
 import type { Table } from 'dexie'
 import type {
 	BootstrapPayload,
+	LocalBuyingInvoice,
 	LocalInvoice,
 	OutboxEntity,
 	OutboxOperation,
@@ -49,6 +50,13 @@ const putBootstrapRecords = async <T>(
 
 export const getLocalNextInvoiceNumber = async (): Promise<number> => {
 	const current = Number(await getSyncMeta(SYNC_META_KEYS.nextInvoiceNumber))
+	return Number.isFinite(current) && current > 0 ? current : 1
+}
+
+export const getLocalNextBuyingInvoiceNumber = async (): Promise<number> => {
+	const current = Number(
+		await getSyncMeta(SYNC_META_KEYS.nextBuyingInvoiceNumber),
+	)
 	return Number.isFinite(current) && current > 0 ? current : 1
 }
 
@@ -131,6 +139,29 @@ export const allocateNextInvoiceNumber = async (): Promise<number> => {
 	return current
 }
 
+export const allocateNextBuyingInvoiceNumber = async (): Promise<number> => {
+	const current = Number(
+		await getSyncMeta(SYNC_META_KEYS.nextBuyingInvoiceNumber),
+	)
+	const blockEnd = Number(
+		await getSyncMeta(SYNC_META_KEYS.buyingInvoiceNumberBlockEnd),
+	)
+
+	if (!current || Number.isNaN(current)) {
+		return 1
+	}
+
+	if (current > blockEnd) {
+		throw new Error(
+			'Buying invoice numbers exhausted. Please sync online.',
+		)
+	}
+
+	const next = current + 1
+	await setSyncMeta(SYNC_META_KEYS.nextBuyingInvoiceNumber, String(next))
+	return current
+}
+
 export const applyBootstrapPayload = async (
 	payload: BootstrapPayload,
 	tenantId: string,
@@ -161,6 +192,7 @@ export const applyBootstrapPayload = async (
 			offlineDb.expenses,
 			offlineDb.dailyActions,
 			offlineDb.invoices,
+			offlineDb.buyingInvoices,
 			offlineDb.syncMeta,
 			offlineDb.outbox,
 		],
@@ -179,6 +211,7 @@ export const applyBootstrapPayload = async (
 			await offlineDb.expenses.clear()
 			await offlineDb.dailyActions.clear()
 			await offlineDb.invoices.clear()
+			await offlineDb.buyingInvoices.clear()
 			await offlineDb.outbox.clear()
 
 			await putBootstrapRecords(
@@ -266,6 +299,12 @@ export const applyBootstrapPayload = async (
 				payload.invoices,
 				'invoiceId',
 			)
+			await putBootstrapRecords(
+				offlineDb.buyingInvoices,
+				'buying invoices',
+				payload.buyingInvoices,
+				'buyingInvoiceId',
+			)
 
 			await setSyncMeta(SYNC_META_KEYS.lastSyncedAt, payload.serverTime)
 			await setSyncMeta(
@@ -276,11 +315,30 @@ export const applyBootstrapPayload = async (
 				SYNC_META_KEYS.invoiceNumberBlockEnd,
 				String(payload.invoiceNumberBlockEnd),
 			)
+			if (payload.nextBuyingInvoiceNumber !== undefined) {
+				await setSyncMeta(
+					SYNC_META_KEYS.nextBuyingInvoiceNumber,
+					String(payload.nextBuyingInvoiceNumber),
+				)
+			}
+			if (payload.buyingInvoiceNumberBlockEnd !== undefined) {
+				await setSyncMeta(
+					SYNC_META_KEYS.buyingInvoiceNumberBlockEnd,
+					String(payload.buyingInvoiceNumberBlockEnd),
+				)
+			}
 			await setSyncMeta(SYNC_META_KEYS.isOfflineCapable, 'true')
 			await setSyncMeta(SYNC_META_KEYS.tenantId, tenantId)
 
 			if (payload.userSettings) {
 				await setSyncMeta('userSettings', JSON.stringify(payload.userSettings))
+			}
+
+			if (payload.currencySettings) {
+				await setSyncMeta(
+					SYNC_META_KEYS.currencySettings,
+					JSON.stringify(payload.currencySettings),
+				)
 			}
 
 			if (payload.frontendResources?.length) {
@@ -411,6 +469,16 @@ export const applySyncChanges = async (
 		),
 		item => item.invoiceId,
 	)
+	await upsertIfNotPending(
+		offlineDb.buyingInvoices,
+		payload.buyingInvoices?.map(inv =>
+			withLocalMeta(
+				{ ...inv, buyingInvoiceId: inv.buyingInvoiceId },
+				'synced',
+			),
+		),
+		item => item.buyingInvoiceId,
+	)
 
 	if (payload.serverTime) {
 		await setSyncMeta(SYNC_META_KEYS.lastSyncedAt, payload.serverTime)
@@ -418,6 +486,13 @@ export const applySyncChanges = async (
 
 	if (payload.userSettings) {
 		await setSyncMeta('userSettings', JSON.stringify(payload.userSettings))
+	}
+
+	if (payload.currencySettings) {
+		await setSyncMeta(
+			SYNC_META_KEYS.currencySettings,
+			JSON.stringify(payload.currencySettings),
+		)
 	}
 
 	const retentionDays = Number(
@@ -497,6 +572,31 @@ export const decrementLocalInventory = async (
 	})
 }
 
+export const incrementLocalInventory = async (
+	productId: string,
+	quantity: number,
+): Promise<void> => {
+	const inventory = await offlineDb.inventory
+		.where('productId')
+		.equals(productId)
+		.first()
+
+	if (!inventory) return
+
+	const currentQty = Number(inventory.quantity ?? 0)
+	const nextQty = currentQty + quantity
+	const reserved = Number(inventory.reservedQuantity ?? 0)
+
+	await offlineDb.inventory.put({
+		...inventory,
+		quantity: nextQty,
+		availableQuantity: Math.max(0, nextQty - reserved),
+		syncStatus:
+			inventory.syncStatus === 'synced' ? 'pending' : inventory.syncStatus,
+		updatedAt: nowIso(),
+	})
+}
+
 export const saveLocalInvoice = async (
 	invoice: LocalInvoice,
 ): Promise<void> => {
@@ -507,6 +607,21 @@ export const saveLocalInvoice = async (
 			if (invoice.status !== 'draft' && invoice.status !== 'cancelled') {
 				await decrementLocalInventory(item.productId, item.quantity)
 			}
+		}
+	}
+}
+
+const shouldAdjustBuyingInventory = (status?: string): boolean =>
+	status !== 'draft' && status !== 'cancelled'
+
+export const saveLocalBuyingInvoice = async (
+	invoice: LocalBuyingInvoice,
+): Promise<void> => {
+	await offlineDb.buyingInvoices.put(invoice)
+
+	if (invoice.items?.length && shouldAdjustBuyingInventory(invoice.status)) {
+		for (const item of invoice.items) {
+			await incrementLocalInventory(item.productId, item.quantity)
 		}
 	}
 }
@@ -568,6 +683,7 @@ export const clearOfflineData = async (): Promise<void> => {
 			offlineDb.expenses,
 			offlineDb.dailyActions,
 			offlineDb.invoices,
+			offlineDb.buyingInvoices,
 			offlineDb.syncMeta,
 			offlineDb.outbox,
 		],
@@ -586,6 +702,7 @@ export const clearOfflineData = async (): Promise<void> => {
 			await offlineDb.expenses.clear()
 			await offlineDb.dailyActions.clear()
 			await offlineDb.invoices.clear()
+			await offlineDb.buyingInvoices.clear()
 			await offlineDb.syncMeta.clear()
 			await offlineDb.outbox.clear()
 		},

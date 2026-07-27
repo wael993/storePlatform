@@ -9,15 +9,22 @@ export {
 	getIsOnline,
 	getIsNetworkOnline,
 	subscribeConnectivity,
+	subscribeNetworkOnline,
 	markOnline,
 } from './connectivity'
 export {
 	getWorkMode,
+	getWorkModePreference,
+	isAutoWorkMode,
 	setWorkMode,
+	setWorkModePreference,
 	loadWorkMode,
+	loadWorkModePreference,
 	subscribeWorkMode,
+	subscribeWorkModePreference,
 	resetWorkMode,
 	type WorkMode,
+	type WorkModePreference,
 } from './workMode'
 export {
 	applyBootstrapPayload,
@@ -35,6 +42,10 @@ export {
 	pushOutbox,
 	pullSyncChanges,
 	syncNow,
+	runFullSync,
+	maybeRefreshOfflineData,
+	alignAutoWorkModeOnSessionStart,
+	startPeriodicBootstrapRefresh,
 	initOfflineState,
 	onReconnect,
 	enterOfflineWorkMode,

@@ -5,6 +5,8 @@ export interface IOfflineSyncState extends Document {
 	tenantId: string
 	nextBlockStart: number
 	minOnlineInvoiceNumber: number
+	buyingNextBlockStart?: number
+	minOnlineBuyingInvoiceNumber?: number
 }
 
 const OfflineSyncStateSchema: Schema<IOfflineSyncState> = new mongoose.Schema(
@@ -18,6 +20,14 @@ const OfflineSyncStateSchema: Schema<IOfflineSyncState> = new mongoose.Schema(
 			type: Number,
 			required: true,
 			default: 1,
+		},
+		buyingNextBlockStart: {
+			type: Number,
+			required: false,
+		},
+		minOnlineBuyingInvoiceNumber: {
+			type: Number,
+			required: false,
 		},
 	},
 	{ timestamps: true },

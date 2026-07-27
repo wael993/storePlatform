@@ -2168,6 +2168,56 @@ export default class ProductController {
 		}
 	}
 
+	private async allocateOfflineBuyingInvoiceBlock(
+		requestContext: RequestContext,
+	): Promise<{
+		nextBuyingInvoiceNumber: number
+		buyingInvoiceNumberBlockEnd: number
+	}> {
+		const tenantId = this.getTenantId(requestContext)
+		const latestFromInvoices =
+			await this.resolveLatestBuyingInvoiceNumber(requestContext)
+		const session = await mongoose.startSession()
+
+		try {
+			let blockStart = latestFromInvoices
+			let blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
+
+			await session.withTransaction(async () => {
+				const existing = await withTenantScope(
+					OfflineSyncState.findOne({}).session(session),
+					tenantId,
+				)
+
+				blockStart = existing?.buyingNextBlockStart ?? latestFromInvoices
+
+				blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
+				const nextBlockStart = blockEnd + 1
+
+				await withTenantScope(
+					OfflineSyncState.findOneAndUpdate(
+						{},
+						{
+							$set: { buyingNextBlockStart: nextBlockStart },
+							$max: {
+								minOnlineBuyingInvoiceNumber: nextBlockStart,
+							},
+						},
+						{ upsert: true, session, new: true },
+					),
+					tenantId,
+				)
+			})
+
+			return {
+				nextBuyingInvoiceNumber: blockStart,
+				buyingInvoiceNumberBlockEnd: blockEnd,
+			}
+		} finally {
+			await session.endSession()
+		}
+	}
+
 	private deriveInvoicePaymentStatus(
 		grandTotal: number,
 		paidAmount: number,
@@ -5284,37 +5334,6 @@ export default class ProductController {
 				)
 			}
 
-			if (primaryCurrency && !primaryCurrency.name?.trim()) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Primary currency name is required',
-				)
-			}
-
-			const normalizedPrimary: ICurrencySettingItem | null = primaryCurrency
-				? {
-						currencyId: this.resolveSyncClientId(primaryCurrency.currencyId),
-						name: primaryCurrency.name.trim(),
-						internalCode: primaryCurrency.internalCode?.trim() || undefined,
-					}
-				: null
-
-			const normalizedSecondary: ICurrencySettingItem[] = Array.isArray(
-				secondaryCurrencies,
-			)
-				? secondaryCurrencies
-						.filter(
-							(item: ICurrencySettingItem) =>
-								item?.name?.trim() && Number(item.exchangeRate) > 0,
-						)
-						.map((item: ICurrencySettingItem) => ({
-							currencyId: this.resolveSyncClientId(item.currencyId),
-							name: item.name.trim(),
-							internalCode: item.internalCode?.trim() || undefined,
-							exchangeRate: Number(item.exchangeRate),
-						}))
-				: []
-
 			const requestContext: RequestContext = {
 				userId,
 				tenantId,
@@ -5324,57 +5343,10 @@ export default class ProductController {
 				allowedFields: request.allowedFields || [],
 			}
 
-			const existingSettings = await CurrencySettings.findOne({ tenantId })
-
-			let resolvedPrimary: ICurrencySettingItem | null = null
-
-			if (normalizedPrimary) {
-				resolvedPrimary = await this.syncCurrencyFromSettings(
-					requestContext,
-					normalizedPrimary,
-				)
-			}
-
-			const resolvedSecondary: ICurrencySettingItem[] = await Promise.all(
-				normalizedSecondary.map(async item => {
-					const resolved = await this.syncCurrencyFromSettings(
-						requestContext,
-						item,
-					)
-
-					return {
-						...resolved,
-						exchangeRate: item.exchangeRate,
-					}
-				}),
+			const currencySettings = await this.applyCurrencySettingsUpdate(
+				requestContext,
+				{ primaryCurrency, secondaryCurrencies },
 			)
-
-			const previousSecondaryIds =
-				existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ??
-				[]
-			const nextSecondaryIds = new Set(
-				resolvedSecondary.map(item => item.currencyId),
-			)
-			const removedSecondaryIds = previousSecondaryIds.filter(
-				currencyId => !nextSecondaryIds.has(currencyId),
-			)
-
-			if (removedSecondaryIds.length > 0) {
-				await this.deleteCurrenciesByIds(requestContext, removedSecondaryIds)
-			}
-
-			const updateData: Partial<ICurrencySettings> = {
-				primaryCurrency: resolvedPrimary,
-				secondaryCurrencies: resolvedSecondary,
-			}
-
-			const currencySettings = await CurrencySettings.findOneAndUpdate(
-				{ tenantId },
-				updateData,
-				{ new: true, upsert: true },
-			)
-
-			await redisCache.del(redisCache.buildCurrencyListKey(tenantId))
 
 			response.status(200).json(currencySettings)
 		} catch (error: any) {
@@ -5382,6 +5354,102 @@ export default class ProductController {
 
 			throw error
 		}
+	}
+
+	private async applyCurrencySettingsUpdate(
+		requestContext: RequestContext,
+		body: {
+			primaryCurrency?: ICurrencySettingItem | null
+			secondaryCurrencies?: ICurrencySettingItem[]
+		},
+	): Promise<ICurrencySettings> {
+		const tenantId = this.getTenantId(requestContext)
+		const { primaryCurrency, secondaryCurrencies } = body
+
+		if (primaryCurrency && !primaryCurrency.name?.trim()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Primary currency name is required',
+			)
+		}
+
+		const normalizedPrimary: ICurrencySettingItem | null = primaryCurrency
+			? {
+					currencyId: this.resolveSyncClientId(primaryCurrency.currencyId),
+					name: primaryCurrency.name.trim(),
+					internalCode: primaryCurrency.internalCode?.trim() || undefined,
+				}
+			: null
+
+		const normalizedSecondary: ICurrencySettingItem[] = Array.isArray(
+			secondaryCurrencies,
+		)
+			? secondaryCurrencies
+					.filter(
+						(item: ICurrencySettingItem) =>
+							item?.name?.trim() && Number(item.exchangeRate) > 0,
+					)
+					.map((item: ICurrencySettingItem) => ({
+						currencyId: this.resolveSyncClientId(item.currencyId),
+						name: item.name.trim(),
+						internalCode: item.internalCode?.trim() || undefined,
+						exchangeRate: Number(item.exchangeRate),
+					}))
+			: []
+
+		const existingSettings = await CurrencySettings.findOne({ tenantId })
+
+		let resolvedPrimary: ICurrencySettingItem | null = null
+
+		if (normalizedPrimary) {
+			resolvedPrimary = await this.syncCurrencyFromSettings(
+				requestContext,
+				normalizedPrimary,
+			)
+		}
+
+		const resolvedSecondary: ICurrencySettingItem[] = await Promise.all(
+			normalizedSecondary.map(async item => {
+				const resolved = await this.syncCurrencyFromSettings(
+					requestContext,
+					item,
+				)
+
+				return {
+					...resolved,
+					exchangeRate: item.exchangeRate,
+				}
+			}),
+		)
+
+		const previousSecondaryIds =
+			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ??
+			[]
+		const nextSecondaryIds = new Set(
+			resolvedSecondary.map(item => item.currencyId),
+		)
+		const removedSecondaryIds = previousSecondaryIds.filter(
+			currencyId => !nextSecondaryIds.has(currencyId),
+		)
+
+		if (removedSecondaryIds.length > 0) {
+			await this.deleteCurrenciesByIds(requestContext, removedSecondaryIds)
+		}
+
+		const updateData: Partial<ICurrencySettings> = {
+			primaryCurrency: resolvedPrimary,
+			secondaryCurrencies: resolvedSecondary,
+		}
+
+		const currencySettings = await CurrencySettings.findOneAndUpdate(
+			{ tenantId },
+			updateData,
+			{ new: true, upsert: true },
+		)
+
+		await redisCache.del(redisCache.buildCurrencyListKey(tenantId))
+
+		return currencySettings!
 	}
 
 	private async syncCurrencyFromSettings(
@@ -6981,6 +7049,28 @@ export default class ProductController {
 		) as Promise<Array<Record<string, unknown>>>
 	}
 
+	private async getBuyingInvoicesForOfflineBootstrap(
+		requestContext: RequestContext,
+	): Promise<Array<Record<string, unknown>>> {
+		const tenantContext = getTenantContext(requestContext)
+		const cutoff = this.getOfflineRetentionCutoff()
+
+		return withTenantScope(
+			BuyingInvoice.find({
+				$or: [
+					{ issuedAt: { $gte: cutoff } },
+					{
+						paymentType: 'credit',
+						paymentStatus: { $in: ['unpaid', 'partial'] },
+					},
+				],
+			})
+				.sort({ createdAt: -1 })
+				.lean(),
+			tenantContext.tenantId,
+		) as Promise<Array<Record<string, unknown>>>
+	}
+
 	private async getDailyActionsForOfflineBootstrap(
 		requestContext: RequestContext,
 	): Promise<DailyActionResponse['data']> {
@@ -7025,6 +7115,7 @@ export default class ProductController {
 			expensesResponse,
 			offlineDailyActions,
 			offlineInvoices,
+			offlineBuyingInvoices,
 		] = await Promise.all([
 			this.getInventory(requestContext),
 			this.getCustomers(requestContext),
@@ -7039,6 +7130,7 @@ export default class ProductController {
 			this.getExpenses(requestContext),
 			this.getDailyActionsForOfflineBootstrap(requestContext),
 			this.getInvoicesForOfflineBootstrap(requestContext),
+			this.getBuyingInvoicesForOfflineBootstrap(requestContext),
 		])
 
 		const tenantContext = getTenantContext(requestContext)
@@ -7049,8 +7141,14 @@ export default class ProductController {
 			tenantContext.tenantId,
 		)
 
+		const currencySettings = await CurrencySettings.findOne({
+			tenantId: tenantContext.tenantId,
+		}).lean()
+
 		const nextInvoiceNumberBlock =
 			await this.allocateOfflineInvoiceBlock(requestContext)
+		const nextBuyingInvoiceNumberBlock =
+			await this.allocateOfflineBuyingInvoiceBlock(requestContext)
 
 		const { frontendResources } = requestContext.userId
 			? await this.getUserFrontendResources(
@@ -7094,10 +7192,20 @@ export default class ProductController {
 				Record<string, unknown>
 			>,
 			invoices: offlineInvoices,
+			buyingInvoices: offlineBuyingInvoices,
+			currencySettings: (currencySettings ?? {
+				tenantId: tenantContext.tenantId,
+				primaryCurrency: null,
+				secondaryCurrencies: [],
+			}) as Record<string, unknown>,
 			userSettings: userSettings as Record<string, unknown> | undefined,
 			frontendResources,
 			nextInvoiceNumber: nextInvoiceNumberBlock.nextInvoiceNumber,
 			invoiceNumberBlockEnd: nextInvoiceNumberBlock.invoiceNumberBlockEnd,
+			nextBuyingInvoiceNumber:
+				nextBuyingInvoiceNumberBlock.nextBuyingInvoiceNumber,
+			buyingInvoiceNumberBlockEnd:
+				nextBuyingInvoiceNumberBlock.buyingInvoiceNumberBlockEnd,
 			serverTime: new Date().toISOString(),
 			offlineRetentionDays: config.offlineSyncRetentionDays,
 		}
@@ -7243,6 +7351,7 @@ export default class ProductController {
 			expenses,
 			dailyActions,
 			invoices,
+			buyingInvoices,
 		] = await Promise.all([
 			this.getDocumentsSince(
 				requestContext,
@@ -7328,6 +7437,12 @@ export default class ProductController {
 				Invoice,
 				since,
 			),
+			this.getDocumentsSince(
+				requestContext,
+				COLLECTION_NAMES.BUYING_INVOICES,
+				BuyingInvoice,
+				since,
+			),
 		])
 
 		return {
@@ -7353,6 +7468,9 @@ export default class ProductController {
 			expenses: expenses as unknown as Array<Record<string, unknown>>,
 			dailyActions: dailyActions as unknown as Array<Record<string, unknown>>,
 			invoices: invoices as unknown as Array<Record<string, unknown>>,
+			buyingInvoices: buyingInvoices as unknown as Array<
+				Record<string, unknown>
+			>,
 			serverTime: new Date().toISOString(),
 		}
 	}
@@ -7386,6 +7504,96 @@ export default class ProductController {
 					},
 					requestContext,
 				)) as Record<string, unknown>
+			} else if (entry.entity === 'invoice' && entry.method === 'PATCH') {
+				const invoiceId = this.extractSyncPathId(entry.url)
+
+				data = (await this.patchInvoice(
+					invoiceId,
+					payload as Partial<InvoiceRequestBody>,
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'invoice' && entry.method === 'DELETE') {
+				const invoiceId = this.extractSyncPathId(entry.url)
+
+				await this.deleteInvoice(invoiceId, requestContext)
+				data = { success: true, invoiceId }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'buyingInvoice' && entry.method === 'POST') {
+				data = (await this.postBuyingInvoice(
+					{
+						...(payload as BuyingInvoiceRequestBody),
+						clientMutationId: entry.clientMutationId,
+					},
+					requestContext,
+				)) as Record<string, unknown>
+			} else if (entry.entity === 'buyingInvoice' && entry.method === 'PATCH') {
+				const buyingInvoiceId = this.extractSyncPathId(entry.url)
+
+				data = (await this.patchBuyingInvoice(
+					buyingInvoiceId,
+					payload as Partial<BuyingInvoiceRequestBody>,
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (
+				entry.entity === 'buyingInvoice' &&
+				entry.method === 'DELETE'
+			) {
+				const buyingInvoiceId = this.extractSyncPathId(entry.url)
+
+				await this.deleteBuyingInvoice(buyingInvoiceId, requestContext)
+				data = { success: true, buyingInvoiceId }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (
+				entry.entity === 'currencySettings' &&
+				entry.method === 'PATCH'
+			) {
+				const currencySettings = await this.applyCurrencySettingsUpdate(
+					requestContext,
+					payload as {
+						primaryCurrency?: ICurrencySettingItem | null
+						secondaryCurrencies?: ICurrencySettingItem[]
+					},
+				)
+
+				data = currencySettings as unknown as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
 			} else if (entry.entity === 'product' && entry.method === 'POST') {
 				data = (await this.postProduct(
 					payload as ProductRequestBody,

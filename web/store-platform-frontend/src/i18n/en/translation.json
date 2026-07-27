@@ -608,9 +608,10 @@
 		},
 		"workModeSettings": {
 			"title": "Work Mode",
-			"description": "Choose whether the app uses the server or local offline data. Offline mode downloads data once, then blocks network requests until you switch back to online.",
+			"description": "Choose whether the app uses the server or local offline data. Automatic mode switches based on your internet connection.",
 			"online": "Online — use live server data",
 			"offline": "Offline — work from local data",
+			"auto": "Automatic — switch based on internet connection",
 			"notAvailable": "Offline mode is not enabled for this tenant.",
 			"switching": "Switching work mode…"
 		},
@@ -691,6 +692,7 @@
 			"greeting": "Hello, {{userName}}",
 			"logout": "Logout",
 			"icons": "Quick Add",
+			"sync": "Sync data",
 			"noNavigationItems": "No navigation items available."
 		}
 	},

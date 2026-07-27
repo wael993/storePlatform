@@ -589,9 +589,10 @@
 		},
 		"workModeSettings": {
 			"title": "Arbeitsmodus",
-			"description": "Wählen Sie, ob die App den Server oder lokale Offline-Daten nutzt. Im Offline-Modus werden die Daten einmal heruntergeladen; danach werden Netzwerkanfragen blockiert, bis Sie wieder online wechseln.",
+			"description": "Wählen Sie, ob die App den Server oder lokale Offline-Daten nutzt. Im automatischen Modus wechselt die App je nach Internetverbindung.",
 			"online": "Online — Live-Serverdaten",
 			"offline": "Offline — mit lokalen Daten arbeiten",
+			"auto": "Automatisch — je nach Internetverbindung wechseln",
 			"notAvailable": "Offline-Modus ist für diesen Mandanten nicht aktiviert.",
 			"switching": "Arbeitsmodus wird gewechselt…"
 		},
@@ -666,6 +667,7 @@
 			"welcome": "Willkommen",
 			"notifications": "Benachrichtigungen",
 			"icons": "Schnell hinzufügen",
+			"sync": "Daten synchronisieren",
 			"releaseNotes": "Versionshinweise",
 			"settings": "Einstellungen",
 			"menu": "Menü",

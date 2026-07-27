@@ -56,7 +56,6 @@ import {
 } from './buyingInvoiceApiMappers'
 import { createBuyingInvoiceDraft } from './buyingInvoiceDraftSessions'
 import useCustomToast from '../common/CustomToast'
-import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
 import type {
 	BuyingInvoiceDraft,
 	BuyingInvoiceLineItem,
@@ -225,9 +224,6 @@ const NewBuyingInvoicePanel = ({
 	})
 	const isSaving = isCreating || isUpdating
 	const [saveError, setSaveError] = useState<string | null>(null)
-	const [isOnline, setIsOnline] = useState(getIsOnline)
-
-	useEffect(() => subscribeConnectivity(setIsOnline), [])
 	const isControlledCreate = Boolean(controlledDraft && onDraftChange)
 
 	const [internalDraft, setInternalDraft] = useState<BuyingInvoiceDraft>(() =>
@@ -418,11 +414,6 @@ const NewBuyingInvoicePanel = ({
 		status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
 	) => {
 		if (!canSave) return
-
-		if (!isOnline) {
-			setSaveError(t('components.buyingInvoices.drawer.offlineUnavailable'))
-			return
-		}
 
 		setSaveError(null)
 
@@ -1020,7 +1011,7 @@ const NewBuyingInvoicePanel = ({
 							flex={{ base: 1, sm: 'none' }}
 							onClick={() => handleSaveInvoice('draft')}
 							isLoading={isSaving}
-							isDisabled={!canSave || !isOnline}
+							isDisabled={!canSave}
 						>
 							{t('components.buyingInvoices.drawer.saveDraft')}
 						</Button>
@@ -1038,7 +1029,7 @@ const NewBuyingInvoicePanel = ({
 							flex={{ base: 1, sm: 'none' }}
 							onClick={() => handleSaveInvoice('draft')}
 							isLoading={isSaving}
-							isDisabled={!canSave || !isOnline}
+							isDisabled={!canSave}
 						>
 							{t('components.buyingInvoices.drawer.holdInvoice')}
 						</Button>
@@ -1057,7 +1048,7 @@ const NewBuyingInvoicePanel = ({
 									borderLeft="1px solid"
 									borderColor="#1D4ED8"
 									_hover={{ bg: '#1D4ED8' }}
-									isDisabled={!canSave || !isOnline}
+									isDisabled={!canSave}
 								>
 									<ChevronDownIcon />
 								</MenuButton>
@@ -1088,7 +1079,7 @@ const NewBuyingInvoicePanel = ({
 								fontWeight={600}
 								flex={1}
 								_hover={{ bg: '#1D4ED8' }}
-								isDisabled={!canSave || !isOnline}
+								isDisabled={!canSave}
 								isLoading={isSaving}
 								onClick={() => {
 									if (draft.paymentType === 'credit') {

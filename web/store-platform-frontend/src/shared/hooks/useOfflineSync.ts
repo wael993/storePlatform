@@ -8,7 +8,9 @@ import {
 	getOfflineState,
 	initOfflineState,
 	subscribeOfflineState,
-	syncNow,
+	runFullSync,
+	alignAutoWorkModeOnSessionStart,
+	startPeriodicBootstrapRefresh,
 	clearSyncPushResult,
 } from '../../offline/syncService'
 import {
@@ -75,6 +77,9 @@ export const useOfflineSync = (tenantId?: string) => {
 			await initOfflineState(tenantId)
 			if (cancelled) return
 
+			await alignAutoWorkModeOnSessionStart(tenantId)
+			if (cancelled) return
+
 			setConfigLoaded(true)
 		}
 
@@ -86,11 +91,13 @@ export const useOfflineSync = (tenantId?: string) => {
 		const unsubConnectivity = subscribeConnectivity(isOnline => {
 			setState(current => ({ ...current, isOnline }))
 		})
+		const stopPeriodicBootstrap = startPeriodicBootstrapRefresh(tenantId)
 
 		return () => {
 			cancelled = true
 			unsubState()
 			unsubConnectivity()
+			stopPeriodicBootstrap()
 		}
 	}, [tenantId])
 
@@ -160,9 +167,9 @@ export const useOfflineSync = (tenantId?: string) => {
 	}, [tenantId, offlineEnabled])
 
 	const sync = useCallback(async () => {
-		if (!offlineEnabled) return
+		if (!offlineEnabled || !tenantId) return
 		try {
-			await syncNow()
+			await runFullSync(tenantId)
 		} catch {
 			// Notifications handled by useSyncPushNotifications
 		}
@@ -179,7 +186,7 @@ export const useOfflineSync = (tenantId?: string) => {
 		} else {
 			setConflicts([])
 		}
-	}, [offlineEnabled])
+	}, [offlineEnabled, tenantId])
 
 	const clearConflicts = useCallback(() => setConflicts([]), [])
 

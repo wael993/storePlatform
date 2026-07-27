@@ -1,16 +1,25 @@
 import { getWorkMode } from './workMode'
 
 type ConnectivityListener = (isOnline: boolean) => void
+type NetworkListener = (isNetworkOnline: boolean) => void
 
 let networkOnlineState =
 	typeof navigator !== 'undefined' ? navigator.onLine : true
 
 const listeners = new Set<ConnectivityListener>()
+const networkListeners = new Set<NetworkListener>()
 
 const getEffectiveOnline = (): boolean =>
 	getWorkMode() === 'online' && networkOnlineState
 
+const notifyNetwork = () => {
+	for (const listener of networkListeners) {
+		listener(networkOnlineState)
+	}
+}
+
 const notify = () => {
+	notifyNetwork()
 	const isOnline = getEffectiveOnline()
 	for (const listener of listeners) {
 		listener(isOnline)
@@ -50,6 +59,14 @@ export const subscribeConnectivity = (
 	listeners.add(listener)
 	listener(getEffectiveOnline())
 	return () => listeners.delete(listener)
+}
+
+export const subscribeNetworkOnline = (
+	listener: NetworkListener,
+): (() => void) => {
+	networkListeners.add(listener)
+	listener(networkOnlineState)
+	return () => networkListeners.delete(listener)
 }
 
 export const markOnline = (): void => {

@@ -1,5 +1,5 @@
 import type { OutboxEntry, SyncPushResult } from './types'
-import { offlineDb } from './db'
+import { offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
 
 const markSynced = async <T extends { syncStatus: string; updatedAt: string }>(
 	table: {
@@ -53,9 +53,19 @@ export const applyPushResultToLocalStore = async (
 
 	switch (entry.entity) {
 		case 'invoice': {
-			const invoiceId = String(payload.invoiceId ?? '')
+			const invoiceId = String(
+				payload.invoiceId ?? entry.url.split('/').pop() ?? '',
+			)
 			if (!invoiceId) return
 			await markSynced(offlineDb.invoices, invoiceId, serverTime)
+			return
+		}
+		case 'buyingInvoice': {
+			const buyingInvoiceId = String(
+				payload.buyingInvoiceId ?? data.buyingInvoiceId ?? '',
+			)
+			if (!buyingInvoiceId) return
+			await markSynced(offlineDb.buyingInvoices, buyingInvoiceId, serverTime)
 			return
 		}
 		case 'product': {
@@ -125,6 +135,15 @@ export const applyPushResultToLocalStore = async (
 		case 'unit': {
 			const unitId = String(data.unitId ?? payload.unitId ?? '')
 			if (unitId) await markSynced(offlineDb.units, unitId, serverTime)
+			return
+		}
+		case 'currencySettings': {
+			if (item.data) {
+				await setSyncMeta(
+					SYNC_META_KEYS.currencySettings,
+					JSON.stringify(item.data),
+				)
+			}
 			return
 		}
 		default:

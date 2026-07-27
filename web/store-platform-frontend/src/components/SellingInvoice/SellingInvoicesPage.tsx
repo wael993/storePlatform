@@ -34,7 +34,6 @@ import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
 import useCustomToast from '../common/CustomToast'
-import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
 import NewBuyingInvoicePanel from '../BuyingInvoice/NewBuyingInvoicePanel'
@@ -105,10 +104,6 @@ const SellingInvoicesPage = () => {
 	const showToast = useCustomToast()
 	const { user, isAdmin } = useUser()
 	const breadCrumbItems = generateBreadcrumbs()
-	const [isOnline, setIsOnline] = useState(getIsOnline)
-
-	useEffect(() => subscribeConnectivity(setIsOnline), [])
-
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
 	const [detailMode, setDetailMode] =
 		useState<Extract<InvoicePanelMode, 'view' | 'edit'>>('view')
@@ -447,14 +442,6 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleNewBuyingInvoice = () => {
-		if (!isOnline) {
-			showToast({
-				title: t('components.buyingInvoices.drawer.offlineUnavailable'),
-				status: 'warning',
-				duration: 4000,
-			})
-			return
-		}
 		createBuyingSession()
 	}
 
@@ -692,7 +679,7 @@ const SellingInvoicesPage = () => {
 				borderColor={PAGE_COLORS.border}
 				fontWeight={600}
 				onClick={handleNewBuyingInvoice}
-				isDisabled={!isOnline}
+				// isDisabled={!isOnline}
 			>
 				{t('components.sellingInvoices.newBuyingInvoice')}
 			</Button>

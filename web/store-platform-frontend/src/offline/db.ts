@@ -10,6 +10,7 @@ import type {
 	LocalExpense,
 	LocalInventoryItem,
 	LocalInvoice,
+	LocalBuyingInvoice,
 	LocalPartner,
 	LocalProduct,
 	LocalShelf,
@@ -36,6 +37,7 @@ export class StorePlatformOfflineDB extends Dexie {
 	expenses!: Table<LocalExpense, string>
 	dailyActions!: Table<LocalDailyAction, string>
 	invoices!: Table<LocalInvoice, string>
+	buyingInvoices!: Table<LocalBuyingInvoice, string>
 	syncMeta!: Table<SyncMetaRecord, string>
 	outbox!: Table<OutboxEntry, string>
 
@@ -80,7 +82,7 @@ export class StorePlatformOfflineDB extends Dexie {
 			outbox: 'id, clientMutationId, status, createdAt, entity',
 		})
 
-		this.version(3).stores({
+		this.version(4).stores({
 			catalogProducts: 'productId, tenantId, barcode, name',
 			products: 'productId, barcode, name, syncStatus, updatedAt',
 			inventory: 'inventoryId, productId, syncStatus, updatedAt',
@@ -96,6 +98,8 @@ export class StorePlatformOfflineDB extends Dexie {
 			expenses: 'expenseId, name, syncStatus, updatedAt',
 			dailyActions: 'actionId, invoiceDate, syncStatus, updatedAt',
 			invoices: 'invoiceId, invoiceNumber, issuedAt, syncStatus, updatedAt',
+			buyingInvoices:
+				'buyingInvoiceId, invoiceNumber, issuedAt, syncStatus, updatedAt',
 			syncMeta: 'key',
 			outbox: 'id, clientMutationId, status, createdAt, entity',
 		})
@@ -107,14 +111,18 @@ export const offlineDb = new StorePlatformOfflineDB()
 export const SYNC_META_KEYS = {
 	lastSyncedAt: 'lastSyncedAt',
 	nextInvoiceNumber: 'nextInvoiceNumber',
+	nextBuyingInvoiceNumber: 'nextBuyingInvoiceNumber',
+	buyingInvoiceNumberBlockEnd: 'buyingInvoiceNumberBlockEnd',
 	invoiceNumberBlockEnd: 'invoiceNumberBlockEnd',
 	isOfflineCapable: 'isOfflineCapable',
 	tenantId: 'tenantId',
 	sessionTenantId: 'sessionTenantId',
 	tenantOfflineEnabled: 'tenantOfflineEnabled',
 	frontendResources: 'frontendResources',
+	currencySettings: 'currencySettings',
 	offlineRetentionDays: 'offlineRetentionDays',
 	workMode: 'workMode',
+	workModePreference: 'workModePreference',
 	catalogLastSyncedAt: 'catalogLastSyncedAt',
 } as const
 

@@ -34,6 +34,9 @@ import IconsViewer from './IconsViewer'
 import { GridIcon } from '../shared/icons/Grid'
 import AddQuickNewEntryModal from './AddQuickNewEntryModal.tsx'
 import { config } from '../config'
+import { useOfflineSync } from '../shared/hooks/useOfflineSync'
+import { useUser } from '../shared/hooks/useUser'
+import { AsDragGripIcon } from '../shared/icons/DragGrip'
 
 interface TopBarProps {
 	navItems: {
@@ -94,6 +97,23 @@ const TopBar = ({
 		onOpen: onOpenAddQuickModal,
 		onClose: onCloseAddQuickModal,
 	} = useDisclosure()
+	const { user } = useUser()
+	const {
+		offlineEnabled,
+		isOnline,
+		syncState,
+		sync,
+	} = useOfflineSync(user?.tenantId)
+
+	const isSyncing = syncState === 'syncing' || syncState === 'bootstrapping'
+
+	const handleSync = async () => {
+		try {
+			await sync()
+		} catch {
+			// Error state handled by sync service
+		}
+	}
 
 	const activePath =
 		navItems.find(
@@ -201,10 +221,24 @@ const TopBar = ({
 									e.stopPropagation()
 								}}
 							/>
+
+							{offlineEnabled ? (
+								<IconButton
+									aria-label={t('components.topBar.sync')}
+									icon={<RepeatIcon boxSize={4} />}
+									sx={styles.iconButton}
+									onClick={e => {
+										void handleSync()
+										e.stopPropagation()
+									}}
+									isLoading={isSyncing}
+									isDisabled={!isOnline}
+								/>
+							) : null}
 							{config.environment === 'local' ? (
 								<IconButton
 									aria-label={t('components.topBar.releaseNotes')}
-									icon={<RepeatIcon boxSize={4} />}
+									icon={<AsDragGripIcon boxSize={4} />}
 									sx={styles.iconButton}
 									onClick={e => {
 										onOpenIconsViewer()

@@ -1,6 +1,6 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
-import type { PostSellingInvoiceBody, ProductsResponse } from '../api/apiStore'
+import type { PostSellingInvoiceBody, PostBuyingInvoiceBody, ProductsResponse, CurrencySettings, CurrencySettingItem } from '../api/apiStore'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
@@ -11,21 +11,25 @@ import { offlineDb, getSyncMeta, setSyncMeta, SYNC_META_KEYS } from './db'
 import {
 	getLocalDailyActionsForOffline,
 	getLocalInvoicesForOffline,
+	getLocalBuyingInvoicesForOffline,
 } from './offlineRetention'
 import {
 	addOutboxEntry,
 	allocateNextInvoiceNumber,
+	allocateNextBuyingInvoiceNumber,
 	findDuplicateOutboxEntry,
 	getLocalNextInvoiceNumber,
+	getLocalNextBuyingInvoiceNumber,
 	saveLocalInvoice,
+	saveLocalBuyingInvoice,
 } from './localStore'
-import type { LocalInvoice, OutboxEntity } from './types'
+import type { LocalBuyingInvoice, LocalInvoice, OutboxEntity } from './types'
 import {
 	InsufficientStockCancelledError,
 	requestInsufficientStockConfirmation,
 	type InsufficientStockItem,
 } from './insufficientStockConfirmation'
-import { formatSellingInvoiceNumber } from '../shared/invoiceNumbering'
+import { formatSellingInvoiceNumber, formatBuyingInvoiceNumber } from '../shared/invoiceNumbering'
 import {
 	generateId,
 	nowIso,
@@ -418,11 +422,91 @@ const filterInvoices = (invoices: LocalInvoice[], params: URLSearchParams) => {
 	return filtered
 }
 
+const filterBuyingInvoices = (
+	invoices: LocalBuyingInvoice[],
+	params: URLSearchParams,
+) => {
+	let filtered = [...invoices]
+
+	const status = params.get('status')
+	if (status && status !== 'all') {
+		filtered = filtered.filter(inv => {
+			if (status === 'draft') return inv.status === 'draft'
+			if (status === 'cancelled') return inv.status === 'cancelled'
+			if (status === 'paid') return inv.status === 'paid'
+			if (status === 'partial') return inv.status === 'partial'
+			if (status === 'credit') {
+				return inv.paymentType === 'credit' && inv.paymentStatus !== 'paid'
+			}
+			return true
+		})
+	}
+
+	const issuedDate = params.get('issuedDate')
+	if (issuedDate) {
+		const filterDate = new Date(issuedDate)
+		filtered = filtered.filter(inv => {
+			const issuedAt = inv.issuedAt ? new Date(inv.issuedAt) : null
+			if (!issuedAt) return false
+			return (
+				issuedAt.getFullYear() === filterDate.getFullYear() &&
+				issuedAt.getMonth() === filterDate.getMonth() &&
+				issuedAt.getDate() === filterDate.getDate()
+			)
+		})
+	}
+
+	const searchText = params.get('searchText')?.trim().toLowerCase()
+	if (searchText) {
+		filtered = filtered.filter(inv => {
+			const invoiceNumber = String(inv.invoiceNumber ?? '').toLowerCase()
+			const supplierName = String(inv.supplierName ?? '').toLowerCase()
+			return (
+				invoiceNumber.includes(searchText) || supplierName.includes(searchText)
+			)
+		})
+	}
+
+	return filtered
+}
+
+const buildBuyingInvoicesSummary = (invoices: LocalBuyingInvoice[]) => {
+	const todayStart = new Date()
+	todayStart.setHours(0, 0, 0, 0)
+	const todayEnd = new Date()
+	todayEnd.setHours(23, 59, 59, 999)
+
+	const todaysInvoices = invoices.filter(inv => {
+		const issuedAt = inv.issuedAt ? new Date(inv.issuedAt) : null
+		return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
+	})
+
+	const todayPurchases = todaysInvoices.reduce((total, inv) => {
+		const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(inv)
+		return total + grandTotal
+	}, 0)
+
+	return {
+		todayPurchases,
+		paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
+		creditInvoices: invoices.filter(
+			inv => inv.paymentType === 'credit' && inv.paymentStatus !== 'paid',
+		).length,
+		totalPayable: invoices.reduce((total, inv) => {
+			const { remainingAmount } = getPrimaryInvoiceCurrencyAmounts(inv)
+			return remainingAmount > 0 ? total + remainingAmount : total
+		}, 0),
+		averageOrder:
+			todaysInvoices.length > 0 ? todayPurchases / todaysInvoices.length : 0,
+	}
+}
+
 const entityFromUrl = (path: string, method: string): OutboxEntity | null => {
 	const segment = path.split('/')[0]
 	const map: Record<string, OutboxEntity> = {
 		invoices: 'invoice',
 		'selling-invoices': 'invoice',
+		'buying-invoices': 'buyingInvoice',
 		product: 'product',
 		products: 'product',
 		inventory: 'inventory',
@@ -438,9 +522,12 @@ const entityFromUrl = (path: string, method: string): OutboxEntity | null => {
 		currencies: 'currency',
 		units: 'unit',
 		'user-settings': 'userSettings',
+		'currency-settings': 'currencySettings',
 	}
 
 	if (method === 'PATCH' && segment === 'user-settings') return 'userSettings'
+	if (method === 'PATCH' && segment === 'currency-settings')
+		return 'currencySettings'
 
 	return map[segment] ?? null
 }
@@ -536,6 +623,248 @@ const handlePostInvoice = async (
 		invoiceId,
 		invoiceNumber: invoice.invoiceNumber,
 	}
+}
+
+const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
+	const buyingInvoiceId = body.buyingInvoiceId ?? generateId()
+	const existingInvoice = await offlineDb.buyingInvoices.get(buyingInvoiceId)
+
+	if (existingInvoice) {
+		return {
+			_id: buyingInvoiceId,
+			buyingInvoiceId,
+			invoiceNumber: existingInvoice.invoiceNumber,
+		}
+	}
+
+	const duplicateOutbox = await findDuplicateOutboxEntry(
+		'buying-invoices',
+		'POST',
+		{
+			...body,
+			buyingInvoiceId,
+		} as Record<string, unknown>,
+	)
+
+	if (duplicateOutbox) {
+		return {
+			_id: buyingInvoiceId,
+			buyingInvoiceId,
+			invoiceNumber: String(
+				body.invoiceNumber ??
+					formatBuyingInvoiceNumber(await getLocalNextBuyingInvoiceNumber()),
+			),
+		}
+	}
+
+	const clientMutationId = body.clientMutationId ?? generateId()
+	const status = mapInvoiceStatus(body.status)
+	const allocatedNumber = await allocateNextBuyingInvoiceNumber()
+	const invoiceNumber =
+		body.invoiceNumber ?? formatBuyingInvoiceNumber(allocatedNumber)
+
+	const invoice: LocalBuyingInvoice = withLocalMeta(
+		{
+			buyingInvoiceId,
+			invoiceNumber,
+			supplierId: body.supplierId,
+			supplierName: body.supplierName,
+			paymentType: body.paymentType,
+			items: body.items,
+			status,
+			paymentStatus: body.paymentStatus,
+			currencyAmounts: body.currencyAmounts,
+			notes: body.notes,
+			issuedAt: body.issuedAt ?? nowIso(),
+			createdAt: nowIso(),
+			invoiceDiscount: body.invoiceDiscount,
+			invoiceDiscountIsPercent: body.invoiceDiscountIsPercent,
+		},
+		'pending',
+		clientMutationId,
+	)
+
+	await saveLocalBuyingInvoice(invoice)
+	await addOutboxEntry({
+		entity: 'buyingInvoice',
+		operation: 'create',
+		url: 'buying-invoices',
+		method: 'POST',
+		payload: {
+			...body,
+			buyingInvoiceId,
+			clientMutationId,
+			invoiceNumber,
+		},
+		clientMutationId,
+	})
+
+	return {
+		_id: buyingInvoiceId,
+		buyingInvoiceId,
+		invoiceNumber: invoice.invoiceNumber,
+	}
+}
+
+const getLocalCurrencySettings = async (): Promise<CurrencySettings> => {
+	const settingsRaw = (await offlineDb.syncMeta.get(SYNC_META_KEYS.currencySettings))
+		?.value
+	if (settingsRaw) {
+		return JSON.parse(settingsRaw) as CurrencySettings
+	}
+
+	return {
+		primaryCurrency: null,
+		secondaryCurrencies: [],
+	}
+}
+
+const resolveLocalCurrencyFromSettings = async (
+	item: Pick<CurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>,
+): Promise<
+	Pick<CurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>
+> => {
+	const normalizedName = item.name.trim()
+	const normalizedCode = item.internalCode?.trim() || undefined
+
+	if (item.currencyId) {
+		const existing = await offlineDb.currencies.get(item.currencyId)
+		if (existing) {
+			await offlineDb.currencies.put({
+				...existing,
+				name: normalizedName,
+				internalCode: normalizedCode,
+				syncStatus: existing.syncStatus === 'synced' ? 'pending' : existing.syncStatus,
+				updatedAt: nowIso(),
+			})
+			return {
+				currencyId: existing.currencyId,
+				name: normalizedName,
+				internalCode: normalizedCode,
+			}
+		}
+	}
+
+	const all = await offlineDb.currencies.toArray()
+	const byName = all.find(currency => currency.name === normalizedName)
+	if (byName) {
+		await offlineDb.currencies.put({
+			...byName,
+			name: normalizedName,
+			internalCode: normalizedCode ?? byName.internalCode,
+			syncStatus: byName.syncStatus === 'synced' ? 'pending' : byName.syncStatus,
+			updatedAt: nowIso(),
+		})
+		return {
+			currencyId: byName.currencyId,
+			name: normalizedName,
+			internalCode: normalizedCode ?? byName.internalCode,
+		}
+	}
+
+	const currencyId = item.currencyId || generateId()
+	await offlineDb.currencies.put(
+		withLocalMeta(
+			{
+				currencyId,
+				name: normalizedName,
+				internalCode: normalizedCode,
+			} as Currency,
+			'pending',
+			currencyId,
+		),
+	)
+
+	return { currencyId, name: normalizedName, internalCode: normalizedCode }
+}
+
+const applyLocalCurrencySettingsUpdate = async (
+	body: Pick<CurrencySettings, 'primaryCurrency' | 'secondaryCurrencies'>,
+): Promise<CurrencySettings> => {
+	const current = await getLocalCurrencySettings()
+	const { primaryCurrency, secondaryCurrencies } = body
+
+	if (primaryCurrency && !primaryCurrency.name?.trim()) {
+		throw new Error('Primary currency name is required')
+	}
+
+	let resolvedPrimary: CurrencySettingItem | null = current.primaryCurrency
+
+	if (primaryCurrency !== undefined) {
+		resolvedPrimary = primaryCurrency
+			? await resolveLocalCurrencyFromSettings(primaryCurrency)
+			: null
+	}
+
+	const normalizedSecondary = Array.isArray(secondaryCurrencies)
+		? secondaryCurrencies.filter(
+				item => item?.name?.trim() && Number(item.exchangeRate) > 0,
+			)
+		: current.secondaryCurrencies
+
+	const resolvedSecondary: CurrencySettingItem[] = await Promise.all(
+		normalizedSecondary.map(async item => {
+			const resolved = await resolveLocalCurrencyFromSettings(item)
+			return {
+				...resolved,
+				exchangeRate: Number(item.exchangeRate),
+			}
+		}),
+	)
+
+	const previousSecondaryIds =
+		current.secondaryCurrencies?.map(item => item.currencyId) ?? []
+	const nextSecondaryIds = new Set(resolvedSecondary.map(item => item.currencyId))
+
+	for (const currencyId of previousSecondaryIds) {
+		if (currencyId && !nextSecondaryIds.has(currencyId)) {
+			await offlineDb.currencies.delete(currencyId)
+		}
+	}
+
+	const updated: CurrencySettings = {
+		...current,
+		primaryCurrency: resolvedPrimary,
+		secondaryCurrencies: resolvedSecondary,
+		updatedAt: nowIso(),
+	}
+
+	await setSyncMeta(
+		SYNC_META_KEYS.currencySettings,
+		JSON.stringify(updated),
+	)
+
+	return updated
+}
+
+const handlePatchCurrencySettings = async (body: unknown) => {
+	const payload = (body ?? {}) as Pick<
+		CurrencySettings,
+		'primaryCurrency' | 'secondaryCurrencies'
+	>
+	const duplicate = await findDuplicateOutboxEntry(
+		'currency-settings',
+		'PATCH',
+		payload as Record<string, unknown>,
+	)
+
+	if (duplicate) {
+		return getLocalCurrencySettings()
+	}
+
+	const clientMutationId = generateId()
+	const updated = await applyLocalCurrencySettingsUpdate(payload)
+
+	await addOutboxEntry({
+		entity: 'currencySettings',
+		operation: 'update',
+		url: 'currency-settings',
+		method: 'PATCH',
+		payload,
+		clientMutationId,
+	})
+
+	return updated
 }
 
 const handleGenericMutation = async (
@@ -929,6 +1258,15 @@ const applyLocalEntityMutation = async (
 		)
 	}
 
+	if (entity === 'currencySettings' && op === 'update') {
+		await applyLocalCurrencySettingsUpdate(
+			payload as Pick<
+				CurrencySettings,
+				'primaryCurrency' | 'secondaryCurrencies'
+			>,
+		)
+	}
+
 	if (entity === 'invoice' && op === 'update') {
 		const invoiceId = path.split('/')[1]
 		const existing = await offlineDb.invoices.get(invoiceId)
@@ -946,6 +1284,25 @@ const applyLocalEntityMutation = async (
 
 	if (entity === 'invoice' && op === 'delete') {
 		await offlineDb.invoices.delete(path.split('/')[1])
+	}
+
+	if (entity === 'buyingInvoice' && op === 'update') {
+		const buyingInvoiceId = path.split('/')[1]
+		const existing = await offlineDb.buyingInvoices.get(buyingInvoiceId)
+		if (existing) {
+			await offlineDb.buyingInvoices.put({
+				...existing,
+				...payload,
+				buyingInvoiceId,
+				syncStatus: 'pending',
+				updatedAt: nowIso(),
+			})
+		}
+		return
+	}
+
+	if (entity === 'buyingInvoice' && op === 'delete') {
+		await offlineDb.buyingInvoices.delete(path.split('/')[1])
 	}
 }
 
@@ -1193,6 +1550,39 @@ export const handleOfflineQuery = async (
 				}
 			}
 
+			if (
+				path === 'buying-invoices' ||
+				path.startsWith('buying-invoices/')
+			) {
+				const isCollection = path === 'buying-invoices'
+				if (!isCollection) {
+					const buyingInvoice = await offlineDb.buyingInvoices.get(
+						path.split('/')[1],
+					)
+					return buyingInvoice
+						? { data: buyingInvoice }
+						: {
+								error: {
+									status: 404,
+									data: { message: 'Buying invoice not found' },
+								},
+							}
+				}
+
+				const invoices = await getLocalBuyingInvoicesForOffline()
+				const filtered = filterBuyingInvoices(invoices, params)
+				const nextInvoiceNumber = await getLocalNextBuyingInvoiceNumber()
+
+				return {
+					data: {
+						invoices: filtered,
+						summary: buildBuyingInvoicesSummary(invoices),
+						nextInvoiceNumber,
+						totalCount: filtered.length,
+					},
+				}
+			}
+
 			if (path === 'user-settings') {
 				const settingsRaw = (await offlineDb.syncMeta.get('userSettings'))
 					?.value
@@ -1202,6 +1592,10 @@ export const handleOfflineQuery = async (
 				return {
 					error: { status: 404, data: { message: 'Settings not found' } },
 				}
+			}
+
+			if (path === 'currency-settings') {
+				return { data: await getLocalCurrencySettings() }
 			}
 
 			if (path === 'filter-values') {
@@ -1258,6 +1652,16 @@ export const handleOfflineQuery = async (
 			(path === 'selling-invoices' || path === 'invoices')
 		) {
 			const data = await handlePostInvoice(body as PostSellingInvoiceBody)
+			return { data }
+		}
+
+		if (method === 'POST' && path === 'buying-invoices') {
+			const data = await handlePostBuyingInvoice(body as PostBuyingInvoiceBody)
+			return { data }
+		}
+
+		if (method === 'PATCH' && path === 'currency-settings') {
+			const data = await handlePatchCurrencySettings(body)
 			return { data }
 		}
 

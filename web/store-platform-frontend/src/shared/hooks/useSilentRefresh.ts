@@ -9,7 +9,7 @@ import {
 	loadTenantOfflineConfig,
 	setTenantOfflineConfig,
 } from '../../offline/offlineTenantAccess'
-import { initOfflineState } from '../../offline/syncService'
+import { initOfflineState, maybeRefreshOfflineData } from '../../offline/syncService'
 import { logout, setTenantSession } from '../../store/user/reducer'
 import { RootState } from '../../store/store'
 
@@ -112,6 +112,11 @@ export function useSilentRefresh() {
 			if (tenantId) {
 				await loadTenantOfflineConfig(tenantId)
 				await initOfflineState(tenantId)
+				try {
+					await maybeRefreshOfflineData(tenantId)
+				} catch {
+					// Bootstrap refresh is best-effort on login
+				}
 			}
 
 			if (shouldRefreshToken(accessToken)) {
