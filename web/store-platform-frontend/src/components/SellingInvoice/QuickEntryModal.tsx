@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import {
 	useGetCurrenciesQuery,
 	useGetExpensesQuery,
+	useGetPartnersQuery,
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
 } from '../../api/apiStore'
@@ -105,6 +106,8 @@ const QuickEntryModal = ({
 		useGetCurrenciesQuery({}, { skip: !isOpen })
 	const { data: expenses = [], isLoading: isExpensesLoading } =
 		useGetExpensesQuery(undefined, { skip: !isOpen })
+	const { data: partners = [], isLoading: isPartnersLoading } =
+		useGetPartnersQuery(undefined, { skip: !isOpen })
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -190,18 +193,41 @@ const QuickEntryModal = ({
 		}
 	}, [form.entryType, t])
 
+	const partnerOptions = useMemo(
+		(): DropdownOption[] =>
+			partners
+				.map(partner => ({
+					value: partner.partnerId ?? partner.internalCode ?? '',
+					label: partner.name ?? partner.internalCode ?? 'TBD',
+				}))
+				.filter(option => Boolean(option.value)),
+		[partners],
+	)
+
+	const customerOptions = useMemo(
+		(): DropdownOption[] =>
+			customers.map(customer => ({
+				value: customer.customerId,
+				label: customer.name,
+			})),
+		[customers],
+	)
+
+	const supplierOptions = useMemo(
+		(): DropdownOption[] =>
+			suppliers.map(supplier => ({
+				value: supplier.supplierId,
+				label: supplier.name,
+			})),
+		[suppliers],
+	)
+
 	const entityOptions = useMemo((): DropdownOption[] => {
 		switch (form.entryType) {
 			case DailyActionType.RECEIPT_ENTRY:
-				return customers.map(customer => ({
-					value: customer.customerId,
-					label: customer.name,
-				}))
+				return [...partnerOptions, ...customerOptions]
 			case DailyActionType.PAYMENT_ENTRY:
-				return suppliers.map(supplier => ({
-					value: supplier.supplierId,
-					label: supplier.name,
-				}))
+				return [...partnerOptions, ...supplierOptions]
 			case DailyActionType.EXPENSE_ENTRY:
 				return expenses
 					.map(expense => ({
@@ -210,7 +236,13 @@ const QuickEntryModal = ({
 					}))
 					.filter(option => Boolean(option.value))
 		}
-	}, [customers, expenses, form.entryType, suppliers])
+	}, [
+		customerOptions,
+		expenses,
+		form.entryType,
+		partnerOptions,
+		supplierOptions,
+	])
 
 	const selectedEntityOption = useMemo(
 		() =>
@@ -238,7 +270,10 @@ const QuickEntryModal = ({
 	)
 
 	const isEntityLoading =
-		form.entryType === DailyActionType.EXPENSE_ENTRY && isExpensesLoading
+		(form.entryType === DailyActionType.EXPENSE_ENTRY && isExpensesLoading) ||
+		((form.entryType === DailyActionType.RECEIPT_ENTRY ||
+			form.entryType === DailyActionType.PAYMENT_ENTRY) &&
+			isPartnersLoading)
 
 	const isSaveDisabled =
 		isSaving ||
@@ -249,35 +284,51 @@ const QuickEntryModal = ({
 		!form.amount.trim() ||
 		!form.invoiceDate
 
+	const isPartnerSelection = (entityId: string) =>
+		partnerOptions.some(option => option.value === entityId)
+
 	const buildPayload = () => {
 		const optionalString = (value: string) => value.trim() || undefined
+		const entityId = optionalString(form.entityId)
+		const entityName = optionalString(form.entityName)
+		const selectedPartner =
+			entityId && isPartnerSelection(entityId)
+				? { partnerId: entityId, partnerName: entityName }
+				: {}
 
 		return {
 			entryType: form.entryType,
 			customerId:
-				form.entryType === DailyActionType.RECEIPT_ENTRY
-					? optionalString(form.entityId)
+				form.entryType === DailyActionType.RECEIPT_ENTRY && entityId
+					? isPartnerSelection(entityId)
+						? undefined
+						: entityId
 					: undefined,
 			customerName:
-				form.entryType === DailyActionType.RECEIPT_ENTRY
-					? optionalString(form.entityName)
+				form.entryType === DailyActionType.RECEIPT_ENTRY && entityName
+					? isPartnerSelection(form.entityId)
+						? undefined
+						: entityName
 					: undefined,
 			supplierId:
-				form.entryType === DailyActionType.PAYMENT_ENTRY
-					? optionalString(form.entityId)
+				form.entryType === DailyActionType.PAYMENT_ENTRY && entityId
+					? isPartnerSelection(entityId)
+						? undefined
+						: entityId
 					: undefined,
 			supplierName:
-				form.entryType === DailyActionType.PAYMENT_ENTRY
-					? optionalString(form.entityName)
+				form.entryType === DailyActionType.PAYMENT_ENTRY && entityName
+					? isPartnerSelection(form.entityId)
+						? undefined
+						: entityName
 					: undefined,
 			expenseId:
-				form.entryType === DailyActionType.EXPENSE_ENTRY
-					? optionalString(form.entityId)
-					: undefined,
+				form.entryType === DailyActionType.EXPENSE_ENTRY ? entityId : undefined,
 			expenseName:
 				form.entryType === DailyActionType.EXPENSE_ENTRY
-					? optionalString(form.entityName)
+					? entityName
 					: undefined,
+			...selectedPartner,
 			currencyId: form.currencyId,
 			currencyName: form.currencyName,
 			singleUnitPrice: formatNumberForDb(form.amount, 2) ?? undefined,

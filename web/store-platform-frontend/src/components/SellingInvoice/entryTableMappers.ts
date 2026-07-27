@@ -100,6 +100,7 @@ export const mapDailyActionToEntryTableRow = (
 		dailyAction.customerName ??
 		dailyAction.supplierName ??
 		dailyAction.expenseName ??
+		dailyAction.partnerName ??
 		'-'
 
 	const sortSource = dailyAction.createdAt ?? dailyAction.invoiceDate
@@ -132,12 +133,12 @@ export const mapDailyActionToQuickEntryForm = (
 
 	switch (entryType) {
 		case DailyActionType.RECEIPT_ENTRY:
-			entityId = dailyAction.customerId ?? ''
-			entityName = dailyAction.customerName ?? ''
+			entityId = dailyAction.partnerId ?? dailyAction.customerId ?? ''
+			entityName = dailyAction.partnerName ?? dailyAction.customerName ?? ''
 			break
 		case DailyActionType.PAYMENT_ENTRY:
-			entityId = dailyAction.supplierId ?? ''
-			entityName = dailyAction.supplierName ?? ''
+			entityId = dailyAction.partnerId ?? dailyAction.supplierId ?? ''
+			entityName = dailyAction.partnerName ?? dailyAction.supplierName ?? ''
 			break
 		case DailyActionType.EXPENSE_ENTRY:
 			entityId = dailyAction.expenseId ?? ''
