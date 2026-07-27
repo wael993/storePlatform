@@ -804,7 +804,8 @@
 		"supplierFocus": "تركيز المورد",
 		"addFocus": "إضافة تركيز",
 		"shop": "المتجر",
-		"promotionSpace": "مساحة العرض"
+		"promotionSpace": "مساحة العرض",
+		"date": "التاريخ"
 	},
 	"offline": {
 		"bootstrapRequired": "حمّل البيانات للعمل بدون إنترنت. اتصل بالإنترنت وقم بالمزامنة مرة واحدة.",
