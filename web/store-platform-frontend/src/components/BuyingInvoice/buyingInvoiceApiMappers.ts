@@ -19,6 +19,7 @@ import type {
 import type { BuyingInvoiceDraft } from './types'
 import type { CurrencySettings } from '../../api/apiStore'
 import { parseInvoiceSequence } from '../../shared/invoiceNumbering'
+import { buildInvoiceIssuedAtIso } from '../../shared/dateUtils'
 
 export type { InvoiceCurrencyAmount }
 
@@ -157,9 +158,7 @@ export const buildBuyingInvoiceRequestBody = (
 	else if (paidAmount + 0.009 >= totals.grandTotal) paymentStatus = 'paid'
 	else paymentStatus = 'partial'
 
-	const issuedAt = dayjs(
-		`${draft.invoiceDate}T${draft.invoiceTime}`,
-	).toISOString()
+	const issuedAt = buildInvoiceIssuedAtIso(draft.invoiceDate, draft.invoiceTime)
 
 	return {
 		buyingInvoiceId: draft.invoiceId,

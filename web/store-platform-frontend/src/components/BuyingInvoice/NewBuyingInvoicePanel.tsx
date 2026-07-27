@@ -45,6 +45,10 @@ import { AsSaveIcon } from '../icons/Save'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsDocumentIcon } from '../../shared/icons/Document'
 import DatePickerLabel from '../common/DatePickerLabel'
+import {
+	formatDateInputValue,
+	parseDateInputValue,
+} from '../../shared/dateUtils'
 import { useUser } from '../../shared/hooks/useUser'
 import {
 	buildBuyingInvoiceRequestBody,
@@ -291,7 +295,11 @@ const NewBuyingInvoicePanel = ({
 	}, [isControlledCreate, controlledDraft?.invoiceId])
 
 	const totals = useMemo(
-		() => calculateInvoiceTotals(draft.lineItems, getInvoiceDiscountSettings(draft)),
+		() =>
+			calculateInvoiceTotals(
+				draft.lineItems,
+				getInvoiceDiscountSettings(draft),
+			),
 		[
 			draft.lineItems,
 			draft.useInvoiceDiscount,
@@ -612,11 +620,12 @@ const NewBuyingInvoicePanel = ({
 						onChange={date =>
 							setDraft(current => ({
 								...current,
-								invoiceDate: date?.toISOString() ?? current.invoiceDate,
+								invoiceDate: date
+									? formatDateInputValue(date)
+									: current.invoiceDate,
 							}))
 						}
-						defaultDate={new Date(draft.invoiceDate)}
-						isDisabled
+						defaultDate={parseDateInputValue(draft.invoiceDate)}
 					/>
 					<Box>
 						<Text
@@ -990,112 +999,116 @@ const NewBuyingInvoicePanel = ({
 				)}
 
 				{!isReadOnly && (
-				<Flex
-					gap={3}
-					pt={2}
-					pb={1}
-					direction={{ base: 'column', sm: 'row' }}
-					flexShrink={0}
-				>
-					<Button
-						variant="outline"
-						leftIcon={
-							<Icon
-								as={AsDocumentIcon}
-								color={PAGE_COLORS.primary}
-								boxSize={5}
-							/>
-						}
-						borderRadius="lg"
-						borderColor={PAGE_COLORS.border}
-						flex={{ base: 1, sm: 'none' }}
-						onClick={() => handleSaveInvoice('draft')}
-						isLoading={isSaving}
-						isDisabled={!canSave || !isOnline}
+					<Flex
+						gap={3}
+						pt={2}
+						pb={1}
+						direction={{ base: 'column', sm: 'row' }}
+						flexShrink={0}
 					>
-						{t('components.buyingInvoices.drawer.saveDraft')}
-					</Button>
-					<Button
-						variant="outline"
-						leftIcon={
-							<Icon as={AsPauseIcon} color={PAGE_COLORS.primary} boxSize={5} />
-						}
-						borderRadius="lg"
-						borderColor={PAGE_COLORS.border}
-						flex={{ base: 1, sm: 'none' }}
-						onClick={() => handleSaveInvoice('draft')}
-						isLoading={isSaving}
-						isDisabled={!canSave || !isOnline}
-					>
-						{t('components.buyingInvoices.drawer.holdInvoice')}
-					</Button>
-					<HStack spacing={0} flex={1}>
-						<Menu>
-							<MenuButton
-								as={Button}
-								bg={PAGE_COLORS.primary}
-								color="white"
-								borderTopLeftRadius={0}
-								borderBottomLeftRadius={0}
-								borderTopRightRadius="lg"
-								borderBottomRightRadius="lg"
-								minW="auto"
-								px={2}
-								borderLeft="1px solid"
-								borderColor="#1D4ED8"
-								_hover={{ bg: '#1D4ED8' }}
-								isDisabled={!canSave || !isOnline}
-							>
-								<ChevronDownIcon />
-							</MenuButton>
-							<MenuList>
-								<MenuItem onClick={() => handleSaveInvoice('draft')}>
-									{t('components.buyingInvoices.drawer.saveDraft')}
-								</MenuItem>
-								<MenuItem onClick={() => handleSaveInvoice('draft')}>
-									{t('components.buyingInvoices.drawer.holdInvoice')}
-								</MenuItem>
-							</MenuList>
-						</Menu>
 						<Button
-							rightIcon={
+							variant="outline"
+							leftIcon={
 								<Icon
-									as={AsSaveIcon}
-									fill="none"
-									color={PAGE_COLORS.cardShadow}
+									as={AsDocumentIcon}
+									color={PAGE_COLORS.primary}
 									boxSize={5}
 								/>
 							}
-							bg={PAGE_COLORS.primary}
-							color="white"
-							borderTopLeftRadius="lg"
-							borderBottomLeftRadius="lg"
-							borderTopRightRadius={0}
-							borderBottomRightRadius={0}
-							fontWeight={600}
-							flex={1}
-							_hover={{ bg: '#1D4ED8' }}
-							isDisabled={!canSave || !isOnline}
+							borderRadius="lg"
+							borderColor={PAGE_COLORS.border}
+							flex={{ base: 1, sm: 'none' }}
+							onClick={() => handleSaveInvoice('draft')}
 							isLoading={isSaving}
-							onClick={() => {
-								if (draft.paymentType === 'credit') {
-									handleSaveInvoice('confirmed')
-									return
-								}
-
-								handleSaveInvoice(
-									draft.paidAmount + 0.009 >= totals.grandTotal
-										? 'paid'
-										: 'partial',
-								)
-							}}
+							isDisabled={!canSave || !isOnline}
 						>
-							{draft.paymentType === 'cash'
-								? t('components.buyingInvoices.drawer.payCashAndSave')
-								: t('components.buyingInvoices.drawer.saveCreditInvoice')}
+							{t('components.buyingInvoices.drawer.saveDraft')}
 						</Button>
-					</HStack>
-				</Flex>
+						<Button
+							variant="outline"
+							leftIcon={
+								<Icon
+									as={AsPauseIcon}
+									color={PAGE_COLORS.primary}
+									boxSize={5}
+								/>
+							}
+							borderRadius="lg"
+							borderColor={PAGE_COLORS.border}
+							flex={{ base: 1, sm: 'none' }}
+							onClick={() => handleSaveInvoice('draft')}
+							isLoading={isSaving}
+							isDisabled={!canSave || !isOnline}
+						>
+							{t('components.buyingInvoices.drawer.holdInvoice')}
+						</Button>
+						<HStack spacing={0} flex={1}>
+							<Menu>
+								<MenuButton
+									as={Button}
+									bg={PAGE_COLORS.primary}
+									color="white"
+									borderTopLeftRadius={0}
+									borderBottomLeftRadius={0}
+									borderTopRightRadius="lg"
+									borderBottomRightRadius="lg"
+									minW="auto"
+									px={2}
+									borderLeft="1px solid"
+									borderColor="#1D4ED8"
+									_hover={{ bg: '#1D4ED8' }}
+									isDisabled={!canSave || !isOnline}
+								>
+									<ChevronDownIcon />
+								</MenuButton>
+								<MenuList>
+									<MenuItem onClick={() => handleSaveInvoice('draft')}>
+										{t('components.buyingInvoices.drawer.saveDraft')}
+									</MenuItem>
+									<MenuItem onClick={() => handleSaveInvoice('draft')}>
+										{t('components.buyingInvoices.drawer.holdInvoice')}
+									</MenuItem>
+								</MenuList>
+							</Menu>
+							<Button
+								rightIcon={
+									<Icon
+										as={AsSaveIcon}
+										fill="none"
+										color={PAGE_COLORS.cardShadow}
+										boxSize={5}
+									/>
+								}
+								bg={PAGE_COLORS.primary}
+								color="white"
+								borderTopLeftRadius="lg"
+								borderBottomLeftRadius="lg"
+								borderTopRightRadius={0}
+								borderBottomRightRadius={0}
+								fontWeight={600}
+								flex={1}
+								_hover={{ bg: '#1D4ED8' }}
+								isDisabled={!canSave || !isOnline}
+								isLoading={isSaving}
+								onClick={() => {
+									if (draft.paymentType === 'credit') {
+										handleSaveInvoice('confirmed')
+										return
+									}
+
+									handleSaveInvoice(
+										draft.paidAmount + 0.009 >= totals.grandTotal
+											? 'paid'
+											: 'partial',
+									)
+								}}
+							>
+								{draft.paymentType === 'cash'
+									? t('components.buyingInvoices.drawer.payCashAndSave')
+									: t('components.buyingInvoices.drawer.saveCreditInvoice')}
+							</Button>
+						</HStack>
+					</Flex>
 				)}
 			</Box>
 		</Box>

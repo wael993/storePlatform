@@ -39,10 +39,7 @@ import {
 	buildInvoiceRequestBody,
 	mapApiInvoiceToDraft,
 } from './invoiceApiMappers'
-import {
-	createInvoiceDraft,
-	WALK_IN_CUSTOMER_ID,
-} from './invoiceDraftSessions'
+import { createInvoiceDraft, WALK_IN_CUSTOMER_ID } from './invoiceDraftSessions'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
 import { addProductToLineItems } from './productLineItem'
@@ -62,6 +59,10 @@ import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsDocumentIcon } from '../../shared/icons/Document'
 import { AsEditIcon } from '../../shared/icons/Edit'
 import DatePickerLabel from '../common/DatePickerLabel'
+import {
+	formatDateInputValue,
+	parseDateInputValue,
+} from '../../shared/dateUtils'
 
 export type InvoicePanelMode = 'create' | 'view' | 'edit'
 
@@ -293,7 +294,11 @@ const NewSellingInvoicePanel = ({
 	}, [isControlledCreate, controlledDraft?.invoiceId])
 
 	const totals = useMemo(
-		() => calculateInvoiceTotals(draft.lineItems, getInvoiceDiscountSettings(draft)),
+		() =>
+			calculateInvoiceTotals(
+				draft.lineItems,
+				getInvoiceDiscountSettings(draft),
+			),
 		[
 			draft.lineItems,
 			draft.useInvoiceDiscount,
@@ -500,7 +505,11 @@ const NewSellingInvoicePanel = ({
 		<Box sx={panelStyles.root}>
 			<Flex sx={panelStyles.header}>
 				<HStack spacing={2} align="center" minW={0} flex={1}>
-					<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight={700} noOfLines={1}>
+					<Text
+						fontSize={{ base: 'lg', md: 'xl' }}
+						fontWeight={700}
+						noOfLines={1}
+					>
 						{t(panelTitleKey)}{' '}
 						<Text as="span" color={PAGE_COLORS.primary}>
 							#{draft.invoiceNumber}
@@ -617,11 +626,12 @@ const NewSellingInvoicePanel = ({
 						onChange={date =>
 							setDraft(current => ({
 								...current,
-								invoiceDate: date?.toISOString() ?? current.invoiceDate,
+								invoiceDate: date
+									? formatDateInputValue(date)
+									: current.invoiceDate,
 							}))
 						}
-						defaultDate={new Date(draft.invoiceDate)}
-						isDisabled
+						defaultDate={parseDateInputValue(draft.invoiceDate)}
 					/>
 					<Box>
 						<Text
