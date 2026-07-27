@@ -42,7 +42,8 @@ import {
 import { createInvoiceDraft, WALK_IN_CUSTOMER_ID } from './invoiceDraftSessions'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
-import { addProductToLineItems } from './productLineItem'
+import { addProductToLineItems, syncLineItemCostReferences } from './productLineItem'
+import { useProductCatalog } from './useProductCatalog'
 import type {
 	SellingInvoiceDraft,
 	SellingInvoiceLineItem,
@@ -242,6 +243,7 @@ const NewSellingInvoicePanel = ({
 	const setShowNote = isControlledCreate
 		? (value: boolean) => onShowNoteChange?.(value)
 		: setInternalShowNote
+	const { products: catalogProducts } = useProductCatalog()
 
 	const {
 		options: displayCurrencyOptions,
@@ -287,6 +289,20 @@ const NewSellingInvoicePanel = ({
 		setInternalShowNote(false)
 		setSaveError(null)
 	}, [isActive, isExistingInvoice, existingInvoice, t])
+
+	useEffect(() => {
+		if (isReadOnly || catalogProducts.length === 0) return
+
+		setDraft(current => {
+			const lineItems = syncLineItemCostReferences(
+				current.lineItems,
+				catalogProducts,
+			)
+			return lineItems === current.lineItems
+				? current
+				: { ...current, lineItems }
+		})
+	}, [catalogProducts, isReadOnly, setDraft])
 
 	useEffect(() => {
 		if (!isControlledCreate) return

@@ -1230,11 +1230,14 @@ export default class ProductController {
 
 		const lastSellingByProductId =
 			await this.resolveLastSellingPricesByProductId(tenantId)
+		const lastBuyingByProductId =
+			await this.resolveLastBuyingPricesByProductId(tenantId)
 
 		const catalogProducts = fullProducts.map(product =>
 			this.mapProductCatalogItem(
 				product,
 				lastSellingByProductId.get(product.productId),
+				lastBuyingByProductId.get(product.productId),
 			),
 		)
 
@@ -1279,9 +1282,45 @@ export default class ProductController {
 		return map
 	}
 
+	private async resolveLastBuyingPricesByProductId(
+		tenantId: string,
+	): Promise<Map<string, number>> {
+		const rows = (await BuyingInvoice.aggregate([
+			{
+				$match: {
+					tenantId,
+					status: { $nin: ['draft', 'cancelled', 'void'] },
+				},
+			},
+			{ $sort: { issuedAt: -1 } },
+			{ $unwind: '$items' },
+			{
+				$group: {
+					_id: '$items.productId',
+					lastBuyingPrice: { $first: '$items.unitPrice' },
+				},
+			},
+		])) as Array<{ _id: string; lastBuyingPrice?: number }>
+
+		const map = new Map<string, number>()
+
+		for (const row of rows) {
+			if (!row._id || row.lastBuyingPrice == null) continue
+
+			const price = Number(row.lastBuyingPrice)
+
+			if (Number.isFinite(price)) {
+				map.set(row._id, price)
+			}
+		}
+
+		return map
+	}
+
 	private mapProductCatalogItem(
 		product: ProductRequestBody,
 		lastSellingPrice?: number,
+		lastBuyingPrice?: number,
 	): ProductCatalogItem {
 		return {
 			productId: product.productId,
@@ -1299,6 +1338,7 @@ export default class ProductController {
 				currency: product.price.currency,
 			},
 			averageCost: product.inventory?.averageCost,
+			lastBuyingPrice,
 			lastSellingPrice,
 			images: product.images?.length ? [product.images[0]] : undefined,
 		}
@@ -2395,10 +2435,10 @@ export default class ProductController {
 
 	private buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, any>>,
+		customerEntries: DailyActionResponse['data'] = [],
 	): CustomerInvoiceSummary {
 		let totalInvoiced = 0
 		let totalPaid = 0
-		let totalReceivable = 0
 		let paidCount = 0
 		let unpaidCount = 0
 
@@ -2407,15 +2447,11 @@ export default class ProductController {
 
 			if (['draft', 'cancelled', 'void'].includes(status)) continue
 
-			const { grandTotal, paidAmount, remainingAmount } =
+			const { grandTotal, paidAmount } =
 				getPrimaryInvoiceCurrencyAmounts(invoice)
 
 			totalInvoiced += grandTotal
 			totalPaid += paidAmount
-
-			if (remainingAmount > 0) {
-				totalReceivable += remainingAmount
-			}
 
 			const uiStatus = this.mapInvoiceFiltersToUiStatus(invoice)
 
@@ -2425,6 +2461,18 @@ export default class ProductController {
 				unpaidCount += 1
 			}
 		}
+
+		totalInvoiced += this.sumActionAmounts(
+			customerEntries,
+			DailyActionType.SELLING_ENTRY,
+		)
+
+		totalPaid += this.sumActionAmounts(
+			customerEntries,
+			DailyActionType.RECEIPT_ENTRY,
+		)
+
+		const totalReceivable = Math.max(0, totalInvoiced - totalPaid)
 
 		return {
 			totalInvoiced,
@@ -2799,9 +2847,26 @@ export default class ProductController {
 			scopedInvoices,
 			filters,
 		)
-		const customerSummary = filters.customerId
-			? this.buildCustomerInvoiceSummary(scopedInvoices)
-			: undefined
+		let customerSummary: CustomerInvoiceSummary | undefined
+
+		if (filters.customerId) {
+			const { data: customerEntries } = await this.getDailyActions(
+				requestContext,
+				{
+					customer: [filters.customerId],
+					entryType: [
+						DailyActionType.SELLING_ENTRY,
+						DailyActionType.RECEIPT_ENTRY,
+					],
+				},
+			)
+
+			customerSummary = this.buildCustomerInvoiceSummary(
+				scopedInvoices,
+				customerEntries,
+			)
+		}
+
 		const nextInvoiceNumber =
 			await this.resolveNextInvoiceNumber(requestContext)
 

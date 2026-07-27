@@ -16,6 +16,16 @@ import { offlineDb } from '../offline/db'
 import { isOfflineCapableForTenant } from '../offline/localStore'
 import { RootState } from '../store/store'
 
+const syncProductCatalogAfterBuyingInvoice = async (api: {
+	getState: () => unknown
+}) => {
+	const tenantId = (api.getState() as RootState).user?.user?.tenantId
+	if (!tenantId) return
+
+	const { syncFromNetwork } = await import('../offline/productCatalogStore')
+	await syncFromNetwork(tenantId)
+}
+
 interface LoginData {
 	email: string
 	password: string
@@ -100,6 +110,7 @@ export interface ProductCatalogItem {
 		currency: string
 	}
 	averageCost?: number
+	lastBuyingPrice?: number
 	lastSellingPrice?: number
 	images?: string[]
 }
@@ -1064,6 +1075,7 @@ const getQuery = (
 				'supplier',
 				'partners',
 				'partner',
+				'selling-invoices',
 			],
 		}),
 
@@ -1086,6 +1098,7 @@ const getQuery = (
 				'customer',
 				'suppliers',
 				'supplier',
+				'selling-invoices',
 			],
 		}),
 
@@ -1102,6 +1115,7 @@ const getQuery = (
 				'customer',
 				'suppliers',
 				'supplier',
+				'selling-invoices',
 			],
 		}),
 
@@ -1183,6 +1197,14 @@ const getQuery = (
 				body,
 			}),
 			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogAfterBuyingInvoice(api)
+				} catch {
+					// catalog sync is best-effort after a successful buy
+				}
+			},
 		}),
 
 		updateBuyingInvoice: builder.mutation<
@@ -1195,6 +1217,14 @@ const getQuery = (
 				body,
 			}),
 			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogAfterBuyingInvoice(api)
+				} catch {
+					// catalog sync is best-effort after a successful buy
+				}
+			},
 		}),
 
 		deleteBuyingInvoice: builder.mutation<void, string>({
@@ -1203,6 +1233,14 @@ const getQuery = (
 				method: 'DELETE',
 			}),
 			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogAfterBuyingInvoice(api)
+				} catch {
+					// catalog sync is best-effort after a successful buy
+				}
+			},
 		}),
 
 		getInventory: builder.query<InventoryItem[], void>({

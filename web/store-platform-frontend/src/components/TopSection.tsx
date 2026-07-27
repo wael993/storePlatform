@@ -401,7 +401,6 @@ const TopSection = ({
 										customerId={customer.customerId}
 									/>
 								)}
-								{/* <EditableField {...editableFieldProps} /> */}
 							</Flex>
 						</Flex>
 					</GridItem>

@@ -324,6 +324,8 @@ interface Product {
 	description?: string
 	/** Most recent unit price from a confirmed selling invoice, if any. */
 	lastSellingPrice?: number
+	/** Most recent unit price from a confirmed buying invoice, if any. */
+	lastBuyingPrice?: number
 	inventory?: {
 		inventoryId: string
 		productId: string

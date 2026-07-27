@@ -24,6 +24,7 @@ export const mapCatalogItemToProduct = (item: ProductCatalogItem): Product => ({
 				}
 			: undefined,
 	lastSellingPrice: item.lastSellingPrice,
+	lastBuyingPrice: item.lastBuyingPrice,
 	images: item.images,
 	status: 'active',
 })
@@ -47,5 +48,6 @@ export const mapProductToCatalogItem = (
 	},
 	averageCost: product.inventory?.averageCost,
 	lastSellingPrice: product.lastSellingPrice,
+	lastBuyingPrice: product.lastBuyingPrice,
 	images: product.images?.length ? [product.images[0]] : undefined,
 })

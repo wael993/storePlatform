@@ -96,6 +96,11 @@ const InvoiceLineItemsTable = ({
 	// Newest line items are appended last; show newest first in the table.
 	const displayLineItems = useMemo(() => [...lineItems].reverse(), [lineItems])
 
+	console.log(
+		'🚀 ~ InvoiceLineItemsTable ~ displayLineItems:',
+		displayLineItems,
+	)
+
 	type LineItemField = 'quantity' | 'unitPrice' | 'discount' | 'total'
 
 	const lineItemFieldId = (itemId: string, field: LineItemField) =>
@@ -243,7 +248,7 @@ const InvoiceLineItemsTable = ({
 							</Td>
 							<Td>
 								<CurrencyAmountTooltip
-									amount={item.unitPrice}
+									amount={item.lastBuyingPrice ?? item.unitPrice}
 									displayText={formatAmount(item.unitPrice)}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}

@@ -120,6 +120,7 @@ export type ProductCatalogItem = {
 		currency: string
 	}
 	averageCost?: number
+	lastBuyingPrice?: number
 	lastSellingPrice?: number
 	images?: string[]
 }
