@@ -18,7 +18,9 @@ export const syncLineItemCostReferences = (
 ): SellingInvoiceLineItem[] => {
 	if (lineItems.length === 0 || products.length === 0) return lineItems
 
-	const productsById = new Map(products.map(product => [product.productId, product]))
+	const productsById = new Map(
+		products.map(product => [product.productId, product]),
+	)
 	let changed = false
 
 	const next = lineItems.map(item => {

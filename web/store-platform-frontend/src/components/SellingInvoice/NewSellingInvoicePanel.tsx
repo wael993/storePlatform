@@ -42,7 +42,10 @@ import {
 import { createInvoiceDraft, WALK_IN_CUSTOMER_ID } from './invoiceDraftSessions'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
-import { addProductToLineItems, syncLineItemCostReferences } from './productLineItem'
+import {
+	addProductToLineItems,
+	syncLineItemCostReferences,
+} from './productLineItem'
 import { useProductCatalog } from './useProductCatalog'
 import type {
 	SellingInvoiceDraft,
