@@ -1,5 +1,5 @@
 export const MIN_NAME_TOKEN_LENGTH = 2
-export const SEARCH_RESULTS_LIMIT = 8
+export const SEARCH_RESULTS_LIMIT = 80
 
 export const normalizeSearchQuery = (query: string): string =>
 	query.replace(/[\r\n\t]+/g, '').trim()

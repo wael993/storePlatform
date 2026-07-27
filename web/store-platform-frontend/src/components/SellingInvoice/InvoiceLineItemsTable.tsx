@@ -248,8 +248,8 @@ const InvoiceLineItemsTable = ({
 							</Td>
 							<Td>
 								<CurrencyAmountTooltip
-									amount={item.lastBuyingPrice ?? item.unitPrice}
-									displayText={formatAmount(item.unitPrice)}
+									amount={item.unitPrice ?? '0'}
+									displayText={formatAmount(item.unitPrice ?? '0')}
 									options={currencyOptions}
 									displayCurrencyId={displayCurrencyId}
 									fieldId={lineItemFieldId(item.id, 'unitPrice')}
