@@ -120,6 +120,7 @@ export const SYNC_META_KEYS = {
 	tenantOfflineEnabled: 'tenantOfflineEnabled',
 	frontendResources: 'frontendResources',
 	currencySettings: 'currencySettings',
+	invoiceSettings: 'invoiceSettings',
 	offlineRetentionDays: 'offlineRetentionDays',
 	workMode: 'workMode',
 	workModePreference: 'workModePreference',

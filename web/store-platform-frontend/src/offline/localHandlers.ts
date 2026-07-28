@@ -1,6 +1,6 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
-import type { PostSellingInvoiceBody, PostBuyingInvoiceBody, ProductsResponse, CurrencySettings, CurrencySettingItem } from '../api/apiStore'
+import type { PostSellingInvoiceBody, PostBuyingInvoiceBody, ProductsResponse, CurrencySettings, CurrencySettingItem, InvoiceSettings } from '../api/apiStore'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
@@ -523,11 +523,14 @@ const entityFromUrl = (path: string, method: string): OutboxEntity | null => {
 		units: 'unit',
 		'user-settings': 'userSettings',
 		'currency-settings': 'currencySettings',
+		'invoice-settings': 'invoiceSettings',
 	}
 
 	if (method === 'PATCH' && segment === 'user-settings') return 'userSettings'
 	if (method === 'PATCH' && segment === 'currency-settings')
 		return 'currencySettings'
+	if (method === 'PATCH' && segment === 'invoice-settings')
+		return 'invoiceSettings'
 
 	return map[segment] ?? null
 }
@@ -719,6 +722,19 @@ const getLocalCurrencySettings = async (): Promise<CurrencySettings> => {
 	}
 }
 
+const getLocalInvoiceSettings = async (): Promise<InvoiceSettings> => {
+	const settingsRaw = (
+		await offlineDb.syncMeta.get(SYNC_META_KEYS.invoiceSettings)
+	)?.value
+	if (settingsRaw) {
+		return JSON.parse(settingsRaw) as InvoiceSettings
+	}
+
+	return {
+		noMergeInvoiceLines: false,
+	}
+}
+
 const resolveLocalCurrencyFromSettings = async (
 	item: Pick<CurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>,
 ): Promise<
@@ -837,6 +853,24 @@ const applyLocalCurrencySettingsUpdate = async (
 	return updated
 }
 
+const applyLocalInvoiceSettingsUpdate = async (
+	payload: Pick<InvoiceSettings, 'noMergeInvoiceLines'>,
+): Promise<InvoiceSettings> => {
+	const current = await getLocalInvoiceSettings()
+	const updated: InvoiceSettings = {
+		...current,
+		noMergeInvoiceLines: payload.noMergeInvoiceLines ?? false,
+		updatedAt: nowIso(),
+	}
+
+	await setSyncMeta(
+		SYNC_META_KEYS.invoiceSettings,
+		JSON.stringify(updated),
+	)
+
+	return updated
+}
+
 const handlePatchCurrencySettings = async (body: unknown) => {
 	const payload = (body ?? {}) as Pick<
 		CurrencySettings,
@@ -859,6 +893,36 @@ const handlePatchCurrencySettings = async (body: unknown) => {
 		entity: 'currencySettings',
 		operation: 'update',
 		url: 'currency-settings',
+		method: 'PATCH',
+		payload,
+		clientMutationId,
+	})
+
+	return updated
+}
+
+const handlePatchInvoiceSettings = async (body: unknown) => {
+	const payload = (body ?? {}) as Pick<
+		InvoiceSettings,
+		'noMergeInvoiceLines'
+	>
+	const duplicate = await findDuplicateOutboxEntry(
+		'invoice-settings',
+		'PATCH',
+		payload as Record<string, unknown>,
+	)
+
+	if (duplicate) {
+		return getLocalInvoiceSettings()
+	}
+
+	const clientMutationId = generateId()
+	const updated = await applyLocalInvoiceSettingsUpdate(payload)
+
+	await addOutboxEntry({
+		entity: 'invoiceSettings',
+		operation: 'update',
+		url: 'invoice-settings',
 		method: 'PATCH',
 		payload,
 		clientMutationId,
@@ -1267,6 +1331,12 @@ const applyLocalEntityMutation = async (
 		)
 	}
 
+	if (entity === 'invoiceSettings' && op === 'update') {
+		await applyLocalInvoiceSettingsUpdate(
+			payload as Pick<InvoiceSettings, 'noMergeInvoiceLines'>,
+		)
+	}
+
 	if (entity === 'invoice' && op === 'update') {
 		const invoiceId = path.split('/')[1]
 		const existing = await offlineDb.invoices.get(invoiceId)
@@ -1598,6 +1668,10 @@ export const handleOfflineQuery = async (
 				return { data: await getLocalCurrencySettings() }
 			}
 
+			if (path === 'invoice-settings') {
+				return { data: await getLocalInvoiceSettings() }
+			}
+
 			if (path === 'filter-values') {
 				const products = await offlineDb.products.toArray()
 				const suppliers = new Map<string, string>()
@@ -1662,6 +1736,11 @@ export const handleOfflineQuery = async (
 
 		if (method === 'PATCH' && path === 'currency-settings') {
 			const data = await handlePatchCurrencySettings(body)
+			return { data }
+		}
+
+		if (method === 'PATCH' && path === 'invoice-settings') {
+			const data = await handlePatchInvoiceSettings(body)
 			return { data }
 		}
 

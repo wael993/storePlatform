@@ -62,7 +62,7 @@ const getProductNameWords = (name: string): string[] =>
 const productNameMatchesToken = (name: string, token: string): boolean => {
 	const lowerToken = token.toLowerCase()
 	return getProductNameWords(name).some(word =>
-		word.toLowerCase().startsWith(lowerToken),
+		word.toLowerCase().includes(lowerToken),
 	)
 }
 

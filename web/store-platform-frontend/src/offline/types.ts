@@ -1,4 +1,4 @@
-import type { CurrencySettings } from '../api/apiStore'
+import type { CurrencySettings, InvoiceSettings } from '../api/apiStore'
 import type { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
 import type { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import type {
@@ -27,6 +27,7 @@ export type OutboxEntity =
 	| 'unit'
 	| 'userSettings'
 	| 'currencySettings'
+	| 'invoiceSettings'
 
 export type OutboxOperation = 'create' | 'update' | 'delete'
 
@@ -99,6 +100,7 @@ export interface BootstrapPayload {
 	invoices: ApiSellingInvoice[]
 	buyingInvoices?: ApiBuyingInvoice[]
 	currencySettings?: CurrencySettings
+	invoiceSettings?: InvoiceSettings
 	userSettings?: UserSettings
 	frontendResources?: FrontendResources[]
 	nextInvoiceNumber: number
@@ -126,6 +128,7 @@ export interface SyncChangesPayload {
 	invoices?: ApiSellingInvoice[]
 	buyingInvoices?: ApiBuyingInvoice[]
 	currencySettings?: CurrencySettings
+	invoiceSettings?: InvoiceSettings
 	userSettings?: UserSettings
 	frontendResources?: FrontendResources[]
 	serverTime: string

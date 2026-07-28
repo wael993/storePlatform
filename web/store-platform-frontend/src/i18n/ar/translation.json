@@ -604,6 +604,7 @@
 			"language": "اللغة",
 			"currencies": "العملات",
 			"workMode": "وضع العمل",
+			"invoice": "الفاتورة",
 			"displayLanguage": "لغة العرض",
 			"english": "الإنجليزية",
 			"german": "الألمانية",
@@ -617,6 +618,11 @@
 			"auto": "تلقائي — التبديل حسب اتصال الإنترنت",
 			"notAvailable": "وضع عدم الاتصال غير مفعّل لهذا المستأجر.",
 			"switching": "جاري تغيير وضع العمل…"
+		},
+		"invoiceSettings": {
+			"title": "الفاتورة",
+			"description": "تحكم في كيفية إضافة المنتجات إلى فواتير البيع والشراء.",
+			"noMergeInvoiceLines": "عدم دمج المنتجات المكررة"
 		},
 		"productsSettings": {
 			"productsPerPage": "المنتجات لكل صفحة",

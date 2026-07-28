@@ -347,6 +347,7 @@ export type SyncBootstrapResponse = {
 	invoices: Array<Record<string, unknown>>
 	buyingInvoices?: Array<Record<string, unknown>>
 	currencySettings?: Record<string, unknown>
+	invoiceSettings?: Record<string, unknown>
 	userSettings?: Record<string, unknown>
 	frontendResources?: Array<{
 		path: string

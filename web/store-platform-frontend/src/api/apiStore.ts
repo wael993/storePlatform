@@ -66,6 +66,14 @@ export interface CurrencySettings {
 	updatedAt?: string
 }
 
+export interface InvoiceSettings {
+	_id?: string
+	tenantId?: string
+	noMergeInvoiceLines: boolean
+	createdAt?: string
+	updatedAt?: string
+}
+
 export interface ProductFiltersQueryParams {
 	searchText?: string
 	supplier?: string[]
@@ -1000,6 +1008,26 @@ const getQuery = (
 			invalidatesTags: ['currency-settings', 'currencies'],
 		}),
 
+		getInvoiceSettings: builder.query<InvoiceSettings, void>({
+			query: () => ({
+				url: 'invoice-settings',
+				method: 'GET',
+			}),
+			providesTags: ['invoice-settings'],
+		}),
+
+		updateInvoiceSettings: builder.mutation<
+			InvoiceSettings,
+			Pick<InvoiceSettings, 'noMergeInvoiceLines'>
+		>({
+			query: body => ({
+				url: 'invoice-settings',
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['invoice-settings'],
+		}),
+
 		getDailyActions: builder.query<
 			DailyAction[],
 			DailyActionFiltersQueryParams | void
@@ -1310,6 +1338,8 @@ export const {
 	useUpdateUserSettingsMutation,
 	useGetCurrencySettingsQuery,
 	useUpdateCurrencySettingsMutation,
+	useGetInvoiceSettingsQuery,
+	useUpdateInvoiceSettingsMutation,
 	useGetDailyActionsQuery,
 	useGetDailyActionFilterValuesQuery,
 	useGetSingleDailyActionQuery,

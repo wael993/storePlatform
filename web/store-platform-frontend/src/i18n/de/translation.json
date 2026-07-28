@@ -582,6 +582,7 @@
 			"language": "Sprache",
 			"currencies": "Währungen",
 			"workMode": "Arbeitsmodus",
+			"invoice": "Rechnung",
 			"displayLanguage": "Anzeigesprache",
 			"english": "Englisch",
 			"german": "Deutsch",
@@ -595,6 +596,11 @@
 			"auto": "Automatisch — je nach Internetverbindung wechseln",
 			"notAvailable": "Offline-Modus ist für diesen Mandanten nicht aktiviert.",
 			"switching": "Arbeitsmodus wird gewechselt…"
+		},
+		"invoiceSettings": {
+			"title": "Rechnung",
+			"description": "Steuern Sie, wie Produkte zu Verkaufs- und Einkaufsrechnungen hinzugefügt werden.",
+			"noMergeInvoiceLines": "Doppelte Produkte nicht zusammenführen"
 		},
 		"productsSettings": {
 			"productsPerPage": "Produkte pro Seite",

@@ -601,6 +601,7 @@
 			"language": "Language",
 			"currencies": "Currencies",
 			"workMode": "Work Mode",
+			"invoice": "Invoice",
 			"displayLanguage": "Display Language",
 			"english": "English",
 			"german": "German",
@@ -614,6 +615,11 @@
 			"auto": "Automatic — switch based on internet connection",
 			"notAvailable": "Offline mode is not enabled for this tenant.",
 			"switching": "Switching work mode…"
+		},
+		"invoiceSettings": {
+			"title": "Invoice",
+			"description": "Control how products are added to selling and buying invoices.",
+			"noMergeInvoiceLines": "Don't merge duplicate products"
 		},
 		"productsSettings": {
 			"productsPerPage": "Products Per Page",

@@ -23,12 +23,15 @@ import ProductsSettings from '../components/settings/ProductsSettings'
 import LanguagesSettings from '../components/settings/LanguagesSettings'
 import WorkModeSettings from '../components/settings/WorkModeSettings'
 import CurrenciesSettings from '../components/settings/CurrenciesSettings'
+import InvoiceSettings from '../components/settings/InvoiceSettings'
 import SettingActions from '../components/settings/SettingActions'
 import useCustomToast from '../components/common/CustomToast'
 import {
 	CurrencySettingItem,
 	useGetCurrencySettingsQuery,
 	useUpdateCurrencySettingsMutation,
+	useGetInvoiceSettingsQuery,
+	useUpdateInvoiceSettingsMutation,
 	useUpdateUserSettingsMutation,
 } from '../api/apiStore'
 import { generateId } from '../offline/utils'
@@ -38,6 +41,7 @@ enum StepKeys {
 	Language = 1,
 	Currencies = 2,
 	WorkMode = 3,
+	Invoice = 4,
 }
 
 const createEmptyPrimary = (): CurrencySettingItem => ({
@@ -120,6 +124,9 @@ const SettingsPage = () => {
 		undefined,
 		{ refetchOnMountOrArgChange: false },
 	)
+	const { data: invoiceSettingsData } = useGetInvoiceSettingsQuery(undefined, {
+		refetchOnMountOrArgChange: false,
+	})
 	const [currentTabIndex, setCurrentTabIndex] = useState<number>(0)
 	const [primaryCurrency, setPrimaryCurrency] =
 		useState<CurrencySettingItem | null>(createEmptyPrimary())
@@ -127,6 +134,8 @@ const SettingsPage = () => {
 		CurrencySettingItem[]
 	>([])
 	const [hasCurrencyChanges, setHasCurrencyChanges] = useState(false)
+	const [noMergeInvoiceLines, setNoMergeInvoiceLines] = useState(false)
+	const [hasInvoiceChanges, setHasInvoiceChanges] = useState(false)
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const navigate = useNavigate()
@@ -135,6 +144,8 @@ const SettingsPage = () => {
 		useUpdateUserSettingsMutation()
 	const [updateCurrencySettings, { isLoading: isCurrencySaveInProgress }] =
 		useUpdateCurrencySettingsMutation()
+	const [updateInvoiceSettings, { isLoading: isInvoiceSaveInProgress }] =
+		useUpdateInvoiceSettingsMutation()
 
 	useEffect(() => {
 		if (!currencySettingsData) {
@@ -147,6 +158,15 @@ const SettingsPage = () => {
 		setSecondaryCurrencies(currencySettingsData.secondaryCurrencies ?? [])
 		setHasCurrencyChanges(false)
 	}, [currencySettingsData])
+
+	useEffect(() => {
+		if (!invoiceSettingsData) {
+			return
+		}
+
+		setNoMergeInvoiceLines(invoiceSettingsData.noMergeInvoiceLines ?? false)
+		setHasInvoiceChanges(false)
+	}, [invoiceSettingsData])
 
 	const handleProductsPerPageChange = (value: string) => {
 		const numValue = value === 'all' ? 1000 : parseInt(value, 10)
@@ -203,6 +223,11 @@ const SettingsPage = () => {
 			current.filter((_, itemIndex) => itemIndex !== index),
 		)
 		setHasCurrencyChanges(true)
+	}
+
+	const handleNoMergeInvoiceLinesChange = (checked: boolean) => {
+		setNoMergeInvoiceLines(checked)
+		setHasInvoiceChanges(true)
 	}
 
 	const handleTabsChange = (index: number) => {
@@ -273,6 +298,11 @@ const SettingsPage = () => {
 				setHasCurrencyChanges(false)
 			}
 
+			if (hasInvoiceChanges) {
+				await updateInvoiceSettings({ noMergeInvoiceLines }).unwrap()
+				setHasInvoiceChanges(false)
+			}
+
 			showToastMessage({
 				status: 'success',
 				description: t('settings.updateSuccessMessage'),
@@ -305,9 +335,11 @@ const SettingsPage = () => {
 		}
 	}
 
-	const isSaveDisabled = !hasChanges && !hasCurrencyChanges
+	const isSaveDisabled = !hasChanges && !hasCurrencyChanges && !hasInvoiceChanges
 	const isSaveInProgress =
-		isUserSettingsSaveInProgress || isCurrencySaveInProgress
+		isUserSettingsSaveInProgress ||
+		isCurrencySaveInProgress ||
+		isInvoiceSaveInProgress
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -353,6 +385,11 @@ const SettingsPage = () => {
 							{t('components.settingsTabs.workMode')}
 						</Text>
 					</Tab>
+					<Tab sx={getTabStyle(StepKeys.Invoice)}>
+						<Text sx={getTabTextStyle(StepKeys.Invoice)}>
+							{t('components.settingsTabs.invoice')}
+						</Text>
+					</Tab>
 				</TabList>
 				<Divider sx={styles.divider} />
 
@@ -386,6 +423,13 @@ const SettingsPage = () => {
 
 					<TabPanel sx={styles.contentWrapper}>
 						<WorkModeSettings />
+					</TabPanel>
+
+					<TabPanel sx={styles.contentWrapper}>
+						<InvoiceSettings
+							noMergeInvoiceLines={noMergeInvoiceLines}
+							onNoMergeInvoiceLinesChange={handleNoMergeInvoiceLinesChange}
+						/>
 					</TabPanel>
 				</TabPanels>
 			</Tabs>

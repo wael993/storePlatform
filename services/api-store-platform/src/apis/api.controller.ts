@@ -25,6 +25,7 @@ import CurrencySettings, {
 	ICurrencySettingItem,
 	ICurrencySettings,
 } from '../models/CurrencySettings'
+import InvoiceSettings, { IInvoiceSettings } from '../models/InvoiceSettings'
 import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { BuyingInvoice } from '../models/BuyingInvoices'
@@ -5452,6 +5453,94 @@ export default class ProductController {
 		return currencySettings!
 	}
 
+	public async getInvoiceSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const { tenantId } = request.user
+
+			if (!tenantId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Missing tenantId',
+				)
+			}
+
+			let invoiceSettings = await InvoiceSettings.findOne({ tenantId })
+
+			if (!invoiceSettings) {
+				invoiceSettings = await InvoiceSettings.create({
+					tenantId,
+					noMergeInvoiceLines: false,
+				})
+			}
+
+			response.status(200).json(invoiceSettings)
+		} catch (error: any) {
+			logger.error('Error fetching invoice settings', error)
+
+			throw error
+		}
+	}
+
+	public async patchInvoiceSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const { tenantId, userId } = request.user
+			const { noMergeInvoiceLines } = request.body
+
+			if (!tenantId || !userId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'Missing tenantId or userId',
+				)
+			}
+
+			const requestContext: RequestContext = {
+				userId,
+				tenantId,
+				tenantName: request.user?.tenantName,
+				role: request.user?.role,
+				user: request.user,
+				allowedFields: request.allowedFields || [],
+			}
+
+			const invoiceSettings = await this.applyInvoiceSettingsUpdate(
+				requestContext,
+				{ noMergeInvoiceLines },
+			)
+
+			response.status(200).json(invoiceSettings)
+		} catch (error: any) {
+			logger.error('Error updating invoice settings', error)
+
+			throw error
+		}
+	}
+
+	private async applyInvoiceSettingsUpdate(
+		requestContext: RequestContext,
+		body: { noMergeInvoiceLines?: boolean },
+	): Promise<IInvoiceSettings> {
+		const tenantId = this.getTenantId(requestContext)
+		const updateData: Partial<IInvoiceSettings> = {}
+
+		if (body.noMergeInvoiceLines !== undefined) {
+			updateData.noMergeInvoiceLines = Boolean(body.noMergeInvoiceLines)
+		}
+
+		const invoiceSettings = await InvoiceSettings.findOneAndUpdate(
+			{ tenantId },
+			updateData,
+			{ new: true, upsert: true },
+		)
+
+		return invoiceSettings!
+	}
+
 	private async syncCurrencyFromSettings(
 		requestContext: RequestContext,
 		currency: Pick<
@@ -7145,6 +7234,10 @@ export default class ProductController {
 			tenantId: tenantContext.tenantId,
 		}).lean()
 
+		const invoiceSettings = await InvoiceSettings.findOne({
+			tenantId: tenantContext.tenantId,
+		}).lean()
+
 		const nextInvoiceNumberBlock =
 			await this.allocateOfflineInvoiceBlock(requestContext)
 		const nextBuyingInvoiceNumberBlock =
@@ -7197,6 +7290,10 @@ export default class ProductController {
 				tenantId: tenantContext.tenantId,
 				primaryCurrency: null,
 				secondaryCurrencies: [],
+			}) as Record<string, unknown>,
+			invoiceSettings: (invoiceSettings ?? {
+				tenantId: tenantContext.tenantId,
+				noMergeInvoiceLines: false,
 			}) as Record<string, unknown>,
 			userSettings: userSettings as Record<string, unknown> | undefined,
 			frontendResources,
@@ -7586,6 +7683,24 @@ export default class ProductController {
 				)
 
 				data = currencySettings as unknown as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (
+				entry.entity === 'invoiceSettings' &&
+				entry.method === 'PATCH'
+			) {
+				const invoiceSettings = await this.applyInvoiceSettingsUpdate(
+					requestContext,
+					payload as { noMergeInvoiceLines?: boolean },
+				)
+
+				data = invoiceSettings as unknown as Record<string, unknown>
 
 				await this.recordSyncMutation(
 					requestContext,

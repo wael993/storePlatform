@@ -580,6 +580,21 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/invoice-settings`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getInvoiceSettings.bind(this),
+			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchInvoiceSettings.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/sync/bootstrap`)
 			.get(
 				this.startCalc.bind(this),
@@ -2623,6 +2638,32 @@ export default class StoreRoutes extends PlatformValidator {
 	): Promise<void> {
 		try {
 			await this.productController.patchCurrencySettings(request, response)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getInvoiceSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.productController.getInvoiceSettings(request, response)
+		} catch (error: any) {
+			handleError(error, error.httpStatus || 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchInvoiceSettings(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.productController.patchInvoiceSettings(request, response)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {

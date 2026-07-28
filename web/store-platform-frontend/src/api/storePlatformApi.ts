@@ -26,6 +26,7 @@ export type TagType =
 	| 'tenants'
 	| 'user-settings'
 	| 'currency-settings'
+	| 'invoice-settings'
 	| 'daily-actions'
 	| 'daily-action'
 	| 'suppliers'
@@ -57,6 +58,7 @@ const tagTypes: TagType[] = [
 	'tenants',
 	'user-settings',
 	'currency-settings',
+	'invoice-settings',
 	'daily-actions',
 	'daily-action',
 	'suppliers',

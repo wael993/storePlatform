@@ -146,6 +146,15 @@ export const applyPushResultToLocalStore = async (
 			}
 			return
 		}
+		case 'invoiceSettings': {
+			if (item.data) {
+				await setSyncMeta(
+					SYNC_META_KEYS.invoiceSettings,
+					JSON.stringify(item.data),
+				)
+			}
+			return
+		}
 		default:
 			return
 	}

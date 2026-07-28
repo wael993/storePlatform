@@ -341,6 +341,13 @@ export const applyBootstrapPayload = async (
 				)
 			}
 
+			if (payload.invoiceSettings) {
+				await setSyncMeta(
+					SYNC_META_KEYS.invoiceSettings,
+					JSON.stringify(payload.invoiceSettings),
+				)
+			}
+
 			if (payload.frontendResources?.length) {
 				await setSyncMeta(
 					SYNC_META_KEYS.frontendResources,
@@ -492,6 +499,13 @@ export const applySyncChanges = async (
 		await setSyncMeta(
 			SYNC_META_KEYS.currencySettings,
 			JSON.stringify(payload.currencySettings),
+		)
+	}
+
+	if (payload.invoiceSettings) {
+		await setSyncMeta(
+			SYNC_META_KEYS.invoiceSettings,
+			JSON.stringify(payload.invoiceSettings),
 		)
 	}
 

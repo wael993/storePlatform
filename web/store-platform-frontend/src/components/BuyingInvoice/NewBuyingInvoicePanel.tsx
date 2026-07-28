@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
 	useGetBuyingInvoiceQuery,
+	useGetInvoiceSettingsQuery,
 	useGetSuppliersQuery,
 	usePostBuyingInvoiceMutation,
 	useUpdateBuyingInvoiceMutation,
@@ -204,6 +205,9 @@ const NewBuyingInvoicePanel = ({
 			refetchOnMountOrArgChange: false,
 		},
 	)
+	const { data: invoiceSettings } = useGetInvoiceSettingsQuery(undefined, {
+		refetchOnMountOrArgChange: false,
+	})
 	const suppliers = suppliersProp ?? fetchedSuppliers
 	const salesPerson =
 		salesPersonProp ||
@@ -337,7 +341,9 @@ const NewBuyingInvoicePanel = ({
 	const handleAddProduct = (product: Product) => {
 		setDraft(current => ({
 			...current,
-			lineItems: addProductToLineItems(current.lineItems, product, 'buying'),
+			lineItems: addProductToLineItems(current.lineItems, product, 'buying', {
+				noMergeInvoiceLines: invoiceSettings?.noMergeInvoiceLines ?? false,
+			}),
 		}))
 	}
 

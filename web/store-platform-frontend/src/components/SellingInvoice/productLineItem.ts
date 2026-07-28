@@ -75,7 +75,12 @@ export const addProductToLineItems = (
 	lineItems: SellingInvoiceLineItem[],
 	product: Product,
 	kind: InvoiceLineItemKind = 'selling',
+	options?: { noMergeInvoiceLines?: boolean },
 ) => {
+	if (options?.noMergeInvoiceLines) {
+		return [...lineItems, createLineItemFromProduct(product, kind)]
+	}
+
 	const existingIndex = lineItems.findIndex(
 		item => item.productId === product.productId,
 	)
