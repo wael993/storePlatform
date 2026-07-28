@@ -1,5 +1,9 @@
 import { offlineDb } from './db'
-import type { LocalBuyingInvoice, LocalDailyAction, LocalInvoice } from './types'
+import type {
+	LocalBuyingInvoice,
+	LocalDailyAction,
+	LocalInvoice,
+} from './types'
 
 export const OFFLINE_SYNC_RETENTION_DAYS = 90
 
@@ -92,7 +96,10 @@ export const getLocalBuyingInvoicesForOffline = async (): Promise<
 > => {
 	const cutoffIso = getRetentionCutoffIso()
 	const [recent, pending, openCredit] = await Promise.all([
-		offlineDb.buyingInvoices.where('issuedAt').aboveOrEqual(cutoffIso).toArray(),
+		offlineDb.buyingInvoices
+			.where('issuedAt')
+			.aboveOrEqual(cutoffIso)
+			.toArray(),
 		offlineDb.buyingInvoices.where('syncStatus').equals('pending').toArray(),
 		offlineDb.buyingInvoices
 			.filter(invoice => isOpenCreditBuyingInvoice(invoice))

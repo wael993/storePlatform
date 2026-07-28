@@ -5424,8 +5424,7 @@ export default class ProductController {
 		)
 
 		const previousSecondaryIds =
-			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ??
-			[]
+			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ?? []
 		const nextSecondaryIds = new Set(
 			resolvedSecondary.map(item => item.currencyId),
 		)

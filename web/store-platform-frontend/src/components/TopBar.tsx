@@ -98,12 +98,9 @@ const TopBar = ({
 		onClose: onCloseAddQuickModal,
 	} = useDisclosure()
 	const { user } = useUser()
-	const {
-		offlineEnabled,
-		isOnline,
-		syncState,
-		sync,
-	} = useOfflineSync(user?.tenantId)
+	const { offlineEnabled, isOnline, syncState, sync } = useOfflineSync(
+		user?.tenantId,
+	)
 
 	const isSyncing = syncState === 'syncing' || syncState === 'bootstrapping'
 

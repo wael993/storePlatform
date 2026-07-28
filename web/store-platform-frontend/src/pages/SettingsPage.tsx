@@ -335,7 +335,8 @@ const SettingsPage = () => {
 		}
 	}
 
-	const isSaveDisabled = !hasChanges && !hasCurrencyChanges && !hasInvoiceChanges
+	const isSaveDisabled =
+		!hasChanges && !hasCurrencyChanges && !hasInvoiceChanges
 	const isSaveInProgress =
 		isUserSettingsSaveInProgress ||
 		isCurrencySaveInProgress ||

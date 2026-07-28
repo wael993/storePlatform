@@ -29,9 +29,7 @@ const InvoiceSettings = ({
 				</Text>
 				<Checkbox
 					isChecked={noMergeInvoiceLines}
-					onChange={event =>
-						onNoMergeInvoiceLinesChange(event.target.checked)
-					}
+					onChange={event => onNoMergeInvoiceLinesChange(event.target.checked)}
 				>
 					{t('components.invoiceSettings.noMergeInvoiceLines')}
 				</Checkbox>

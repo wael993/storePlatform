@@ -9,7 +9,10 @@ import {
 	loadTenantOfflineConfig,
 	setTenantOfflineConfig,
 } from '../../offline/offlineTenantAccess'
-import { initOfflineState, maybeRefreshOfflineData } from '../../offline/syncService'
+import {
+	initOfflineState,
+	maybeRefreshOfflineData,
+} from '../../offline/syncService'
 import { logout, setTenantSession } from '../../store/user/reducer'
 import { RootState } from '../../store/store'
 

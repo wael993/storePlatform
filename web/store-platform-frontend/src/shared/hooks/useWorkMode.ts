@@ -56,7 +56,11 @@ export const useWorkMode = () => {
 
 	const switchWorkModePreference = useCallback(
 		async (nextPreference: WorkModePreference) => {
-			if (!tenantId || !offlineEnabled || nextPreference === workModePreference) {
+			if (
+				!tenantId ||
+				!offlineEnabled ||
+				nextPreference === workModePreference
+			) {
 				return
 			}
 

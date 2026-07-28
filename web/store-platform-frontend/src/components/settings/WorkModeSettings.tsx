@@ -36,11 +36,7 @@ const WorkModeSettings = () => {
 
 	const handleWorkModeChange = async (value: string) => {
 		const nextPreference =
-			value === 'offline'
-				? 'offline'
-				: value === 'auto'
-					? 'auto'
-					: 'online'
+			value === 'offline' ? 'offline' : value === 'auto' ? 'auto' : 'online'
 		try {
 			await switchWorkModePreference(nextPreference)
 		} catch {
@@ -76,9 +72,7 @@ const WorkModeSettings = () => {
 						<Radio value="offline">
 							{t('components.workModeSettings.offline')}
 						</Radio>
-						<Radio value="auto">
-							{t('components.workModeSettings.auto')}
-						</Radio>
+						<Radio value="auto">{t('components.workModeSettings.auto')}</Radio>
 					</Stack>
 				</RadioGroup>
 			</FormControl>

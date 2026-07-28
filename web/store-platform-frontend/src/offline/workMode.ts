@@ -14,7 +14,8 @@ const preferenceListeners = new Set<WorkModePreferenceListener>()
 
 export const getWorkMode = (): WorkMode => workMode
 
-export const getWorkModePreference = (): WorkModePreference => workModePreference
+export const getWorkModePreference = (): WorkModePreference =>
+	workModePreference
 
 export const isAutoWorkMode = (): boolean => workModePreference === 'auto'
 

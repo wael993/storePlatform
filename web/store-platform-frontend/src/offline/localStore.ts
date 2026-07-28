@@ -152,9 +152,7 @@ export const allocateNextBuyingInvoiceNumber = async (): Promise<number> => {
 	}
 
 	if (current > blockEnd) {
-		throw new Error(
-			'Buying invoice numbers exhausted. Please sync online.',
-		)
+		throw new Error('Buying invoice numbers exhausted. Please sync online.')
 	}
 
 	const next = current + 1
@@ -479,10 +477,7 @@ export const applySyncChanges = async (
 	await upsertIfNotPending(
 		offlineDb.buyingInvoices,
 		payload.buyingInvoices?.map(inv =>
-			withLocalMeta(
-				{ ...inv, buyingInvoiceId: inv.buyingInvoiceId },
-				'synced',
-			),
+			withLocalMeta({ ...inv, buyingInvoiceId: inv.buyingInvoiceId }, 'synced'),
 		),
 		item => item.buyingInvoiceId,
 	)

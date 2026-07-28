@@ -1,6 +1,13 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
-import type { PostSellingInvoiceBody, PostBuyingInvoiceBody, ProductsResponse, CurrencySettings, CurrencySettingItem, InvoiceSettings } from '../api/apiStore'
+import type {
+	PostSellingInvoiceBody,
+	PostBuyingInvoiceBody,
+	ProductsResponse,
+	CurrencySettings,
+	CurrencySettingItem,
+	InvoiceSettings,
+} from '../api/apiStore'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
@@ -29,7 +36,10 @@ import {
 	requestInsufficientStockConfirmation,
 	type InsufficientStockItem,
 } from './insufficientStockConfirmation'
-import { formatSellingInvoiceNumber, formatBuyingInvoiceNumber } from '../shared/invoiceNumbering'
+import {
+	formatSellingInvoiceNumber,
+	formatBuyingInvoiceNumber,
+} from '../shared/invoiceNumbering'
 import {
 	generateId,
 	nowIso,
@@ -710,8 +720,9 @@ const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
 }
 
 const getLocalCurrencySettings = async (): Promise<CurrencySettings> => {
-	const settingsRaw = (await offlineDb.syncMeta.get(SYNC_META_KEYS.currencySettings))
-		?.value
+	const settingsRaw = (
+		await offlineDb.syncMeta.get(SYNC_META_KEYS.currencySettings)
+	)?.value
 	if (settingsRaw) {
 		return JSON.parse(settingsRaw) as CurrencySettings
 	}
@@ -750,7 +761,8 @@ const resolveLocalCurrencyFromSettings = async (
 				...existing,
 				name: normalizedName,
 				internalCode: normalizedCode,
-				syncStatus: existing.syncStatus === 'synced' ? 'pending' : existing.syncStatus,
+				syncStatus:
+					existing.syncStatus === 'synced' ? 'pending' : existing.syncStatus,
 				updatedAt: nowIso(),
 			})
 			return {
@@ -768,7 +780,8 @@ const resolveLocalCurrencyFromSettings = async (
 			...byName,
 			name: normalizedName,
 			internalCode: normalizedCode ?? byName.internalCode,
-			syncStatus: byName.syncStatus === 'synced' ? 'pending' : byName.syncStatus,
+			syncStatus:
+				byName.syncStatus === 'synced' ? 'pending' : byName.syncStatus,
 			updatedAt: nowIso(),
 		})
 		return {
@@ -830,7 +843,9 @@ const applyLocalCurrencySettingsUpdate = async (
 
 	const previousSecondaryIds =
 		current.secondaryCurrencies?.map(item => item.currencyId) ?? []
-	const nextSecondaryIds = new Set(resolvedSecondary.map(item => item.currencyId))
+	const nextSecondaryIds = new Set(
+		resolvedSecondary.map(item => item.currencyId),
+	)
 
 	for (const currencyId of previousSecondaryIds) {
 		if (currencyId && !nextSecondaryIds.has(currencyId)) {
@@ -845,10 +860,7 @@ const applyLocalCurrencySettingsUpdate = async (
 		updatedAt: nowIso(),
 	}
 
-	await setSyncMeta(
-		SYNC_META_KEYS.currencySettings,
-		JSON.stringify(updated),
-	)
+	await setSyncMeta(SYNC_META_KEYS.currencySettings, JSON.stringify(updated))
 
 	return updated
 }
@@ -863,10 +875,7 @@ const applyLocalInvoiceSettingsUpdate = async (
 		updatedAt: nowIso(),
 	}
 
-	await setSyncMeta(
-		SYNC_META_KEYS.invoiceSettings,
-		JSON.stringify(updated),
-	)
+	await setSyncMeta(SYNC_META_KEYS.invoiceSettings, JSON.stringify(updated))
 
 	return updated
 }
@@ -902,10 +911,7 @@ const handlePatchCurrencySettings = async (body: unknown) => {
 }
 
 const handlePatchInvoiceSettings = async (body: unknown) => {
-	const payload = (body ?? {}) as Pick<
-		InvoiceSettings,
-		'noMergeInvoiceLines'
-	>
+	const payload = (body ?? {}) as Pick<InvoiceSettings, 'noMergeInvoiceLines'>
 	const duplicate = await findDuplicateOutboxEntry(
 		'invoice-settings',
 		'PATCH',
@@ -1620,10 +1626,7 @@ export const handleOfflineQuery = async (
 				}
 			}
 
-			if (
-				path === 'buying-invoices' ||
-				path.startsWith('buying-invoices/')
-			) {
+			if (path === 'buying-invoices' || path.startsWith('buying-invoices/')) {
 				const isCollection = path === 'buying-invoices'
 				if (!isCollection) {
 					const buyingInvoice = await offlineDb.buyingInvoices.get(
