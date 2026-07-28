@@ -263,10 +263,17 @@ export const buildInvoiceRequestBody = (
 }
 
 export const mapInventoryByProductId = (
-	inventoryItems: Array<{ productId: string; quantity?: number }>,
+	inventoryItems: Array<{
+		productId: string
+		quantity?: number
+		availableQuantity?: number
+	}>,
 ) =>
 	new Map(
-		inventoryItems.map(item => [item.productId, Number(item.quantity ?? 0)]),
+		inventoryItems.map(item => [
+			item.productId,
+			Number(item.availableQuantity ?? item.quantity ?? 0),
+		]),
 	)
 
 export const getAvailableStock = (

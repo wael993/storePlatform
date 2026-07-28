@@ -22,6 +22,7 @@ import {
 	searchProducts,
 	SEARCH_RESULTS_LIMIT,
 } from './productSearch'
+import { useInventoryByProductId } from './useInventoryByProductId'
 import { useProductCatalog } from './useProductCatalog'
 import { AsSearchIcon } from '../../icons/Search'
 import { AsCirclePlusIcon } from '../../shared/icons/CirclePlus'
@@ -54,6 +55,7 @@ const InvoiceProductSearch = ({
 	const suggestionRefs = useRef<(HTMLLIElement | null)[]>([])
 
 	const { products, indexes, isReady, isSyncing, refetch } = useProductCatalog()
+	const inventoryByProductId = useInventoryByProductId()
 
 	const clearInput = useCallback(() => {
 		setSearchText('')
@@ -348,6 +350,7 @@ const InvoiceProductSearch = ({
 				>
 					{suggestions.map((product, index) => {
 						const isHighlighted = index === highlightedIndex
+						const stock = inventoryByProductId.get(product.productId)
 
 						return (
 							<ListItem
@@ -388,6 +391,13 @@ const InvoiceProductSearch = ({
 										{product.price?.retailPrice?.toFixed(2)}{' '}
 										{product.price?.currency}
 									</Text>
+									{stock !== undefined && (
+										<Text fontSize="xs" color={PAGE_COLORS.muted}>
+											{t('products.stockValue', {
+												stock: stock?.toLocaleString(),
+											})}
+										</Text>
+									)}
 								</Flex>
 							</ListItem>
 						)

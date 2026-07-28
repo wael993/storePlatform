@@ -22,7 +22,7 @@ import {
 	useUpdateDailyActionMutation,
 } from '../../api/apiStore'
 import { DailyActionType } from '../../shared/globalEnums'
-import { formatNumberForDb, parseNumberValue } from '../../shared/utils'
+import { formatNumberForDb, mapFee, parseNumberValue } from '../../shared/utils'
 import { datePickerStyles, documentNameStyles } from '../../theme/styles'
 import DatePickerLabel from '../common/DatePickerLabel'
 import InputLabel from '../common/InputLabel'
@@ -441,9 +441,9 @@ const QuickEntryModal = ({
 							withGap
 							label={t('common.amount')}
 							inputPlaceholder={t('common.amount')}
-							inputType="number"
+							inputType="text"
 							styles={documentNameStyles}
-							value={form.amount}
+							value={mapFee(form.amount) ?? '0'}
 							isDisabled={isReadOnly}
 							onChange={(value: string) =>
 								setForm(current => ({
