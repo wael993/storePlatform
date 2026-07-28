@@ -36,6 +36,8 @@ import {
 	buildDisplayCurrencyOptions,
 	resolveDefaultDisplayCurrencyId,
 } from '../components/SellingInvoice/currencyDisplay'
+import { compareLanguage } from '../shared/utils'
+import i18n from '../i18n'
 
 const TOTAL_STEPS = 3
 
@@ -133,6 +135,7 @@ const AddProductModal = ({
 	onSuccess,
 }: AddProductModalProps) => {
 	const { t } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const [postNewProduct, { isLoading }] = usePostProductMutation()
 	const [error, setError] = useState('')
 	const [step, setStep] = useState(0)
@@ -445,7 +448,8 @@ const AddProductModal = ({
 				inputType="text"
 				label={t('common.barcode')}
 				value={form.barcode}
-				isReadOnly
+				// isReadOnly
+				onChange={value => handleFieldChange('barcode', value)}
 			/>
 			<InputLabel
 				inputType="text"
@@ -666,7 +670,10 @@ const AddProductModal = ({
 		<Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
 			<ModalOverlay />
 			<ModalContent borderRadius="0">
-				<ModalHeader sx={styles.header}>
+				<ModalHeader
+					sx={{ ...styles.header, justifyContent: isArabic ? 'end' : 'start' }}
+				>
+					<ModalCloseButton sx={styles.modalCloseButton} />
 					<VStack sx={styles.headerTitleStepperContainer}>
 						<Text sx={styles.headerText}>{t('productModal.newProduct')}</Text>
 						<MultiStepper
@@ -675,7 +682,6 @@ const AddProductModal = ({
 							setStep={setStep}
 						/>
 					</VStack>
-					<ModalCloseButton sx={styles.modalCloseButton} />
 				</ModalHeader>
 
 				<ModalBody sx={styles.body}>
@@ -703,7 +709,13 @@ const AddProductModal = ({
 						<HStack gap={2}>
 							{step > 0 && (
 								<Button
-									leftIcon={<ChevronLeftIcon />}
+									leftIcon={
+										<ChevronLeftIcon
+											sx={
+												isArabic ? { transform: 'rotate(180deg)' } : undefined
+											}
+										/>
+									}
 									onClick={() => setStep(prev => prev - 1)}
 									sx={{ ...styles.button, ...styles.secondaryButton }}
 								>
@@ -713,7 +725,13 @@ const AddProductModal = ({
 
 							{step < TOTAL_STEPS - 1 && (
 								<Button
-									rightIcon={<ChevronRightIcon />}
+									rightIcon={
+										<ChevronRightIcon
+											sx={
+												isArabic ? { transform: 'rotate(180deg)' } : undefined
+											}
+										/>
+									}
 									onClick={() => setStep(prev => prev + 1)}
 									sx={styles.button}
 								>
