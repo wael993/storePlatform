@@ -388,6 +388,7 @@
 			"filters": "Filter",
 			"settings": "Einstellungen",
 			"empty": "Keine Rechnungen gefunden.",
+			"summaryTitle": "Zusammenfassung",
 			"summary": {
 				"todaySales": "Heutiger Umsatz",
 				"periodSales": "Umsatz im Zeitraum",

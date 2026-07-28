@@ -1,4 +1,9 @@
 import {
+	Accordion,
+	AccordionButton,
+	AccordionIcon,
+	AccordionItem,
+	AccordionPanel,
 	Box,
 	Button,
 	Flex,
@@ -821,24 +826,34 @@ const SellingInvoicesPage = () => {
 							)}
 						</Flex>
 
-						{!isDraftOpen && (
-							<InvoiceSummaryCards
-								summary={summary}
-								isLoading={isSummaryLoading}
-								dateFrom={summaryDateFrom}
-								dateTo={summaryDateTo}
-								onDateFromChange={handleSummaryDateFromChange}
-								onDateToChange={handleSummaryDateToChange}
-								showCashBalance={isAdmin}
-								cashBalance={{
-									period: periodCashBalance,
-									allTime: allTimeCashBalance,
-								}}
-								isCashBalanceLoading={
-									isPeriodCashBalanceLoading || isAllTimeCashBalanceLoading
-								}
-							/>
-						)}
+						<Accordion allowToggle>
+							<AccordionItem border="none">
+								<AccordionButton px={0}>
+									<Box flex="1" textAlign="right">
+										{t('components.sellingInvoices.summaryTitle')}
+									</Box>
+									<AccordionIcon />
+								</AccordionButton>
+								<AccordionPanel px={0} pb={4}>
+									<InvoiceSummaryCards
+										summary={summary}
+										isLoading={isSummaryLoading}
+										dateFrom={summaryDateFrom}
+										dateTo={summaryDateTo}
+										onDateFromChange={handleSummaryDateFromChange}
+										onDateToChange={handleSummaryDateToChange}
+										showCashBalance={isAdmin}
+										cashBalance={{
+											period: periodCashBalance,
+											allTime: allTimeCashBalance,
+										}}
+										isCashBalanceLoading={
+											isPeriodCashBalanceLoading || isAllTimeCashBalanceLoading
+										}
+									/>
+								</AccordionPanel>
+							</AccordionItem>
+						</Accordion>
 
 						<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>
 							<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />

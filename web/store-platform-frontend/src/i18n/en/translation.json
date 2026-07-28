@@ -406,6 +406,7 @@
 			"filters": "Filters",
 			"settings": "Settings",
 			"empty": "No invoices found.",
+			"summaryTitle": "Summary",
 			"summary": {
 				"todaySales": "Today's Sales",
 				"periodSales": "Period Sales",

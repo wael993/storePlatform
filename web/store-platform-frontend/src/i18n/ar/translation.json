@@ -408,6 +408,7 @@
 			"filters": "تصفية",
 			"settings": "الإعدادات",
 			"empty": "لا توجد فواتير.",
+			"summaryTitle": "ملخص",
 			"summary": {
 				"todaySales": "مبيعات اليوم",
 				"periodSales": "مبيعات الفترة",
