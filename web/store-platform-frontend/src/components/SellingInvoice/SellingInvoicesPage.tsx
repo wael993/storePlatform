@@ -33,7 +33,6 @@ import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
-import useCustomToast from '../common/CustomToast'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
 import NewBuyingInvoicePanel from '../BuyingInvoice/NewBuyingInvoicePanel'
@@ -101,7 +100,6 @@ const styles = {
 
 const SellingInvoicesPage = () => {
 	const { t } = useTranslation()
-	const showToast = useCustomToast()
 	const { user, isAdmin } = useUser()
 	const breadCrumbItems = generateBreadcrumbs()
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
