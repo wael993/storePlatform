@@ -191,7 +191,11 @@ const SettingsPage = () => {
 
 	const handleSecondaryChange = (
 		index: number,
-		field: 'name' | 'internalCode' | 'exchangeRate',
+		field:
+			| 'name'
+			| 'internalCode'
+			| 'exchangeRate'
+			| 'exchangeRateUnitCurrencyId',
 		value: string,
 	) => {
 		setSecondaryCurrencies(current =>
@@ -204,6 +208,13 @@ const SettingsPage = () => {
 					return {
 						...item,
 						exchangeRate: value === '' ? undefined : Number(value),
+					}
+				}
+
+				if (field === 'exchangeRateUnitCurrencyId') {
+					return {
+						...item,
+						exchangeRateUnitCurrencyId: value || undefined,
 					}
 				}
 
@@ -292,6 +303,10 @@ const SettingsPage = () => {
 							...item,
 							name: item.name.trim(),
 							internalCode: item.internalCode?.trim() || undefined,
+							exchangeRateUnitCurrencyId:
+								item.exchangeRateUnitCurrencyId ||
+								primaryCurrency.currencyId ||
+								undefined,
 						})),
 				}).unwrap()
 

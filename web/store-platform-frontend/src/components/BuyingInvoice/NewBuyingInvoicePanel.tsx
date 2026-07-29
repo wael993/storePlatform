@@ -343,6 +343,7 @@ const NewBuyingInvoicePanel = ({
 			...current,
 			lineItems: addProductToLineItems(current.lineItems, product, 'buying', {
 				noMergeInvoiceLines: invoiceSettings?.noMergeInvoiceLines ?? false,
+				currencyOptions: displayCurrencyOptions,
 			}),
 		}))
 	}

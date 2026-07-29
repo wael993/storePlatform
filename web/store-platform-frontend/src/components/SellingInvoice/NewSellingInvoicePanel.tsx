@@ -304,12 +304,13 @@ const NewSellingInvoicePanel = ({
 			const lineItems = syncLineItemCostReferences(
 				current.lineItems,
 				catalogProducts,
+				displayCurrencyOptions,
 			)
 			return lineItems === current.lineItems
 				? current
 				: { ...current, lineItems }
 		})
-	}, [catalogProducts, isReadOnly, setDraft])
+	}, [catalogProducts, displayCurrencyOptions, isReadOnly, setDraft])
 
 	useEffect(() => {
 		if (!isControlledCreate) return
@@ -368,6 +369,7 @@ const NewSellingInvoicePanel = ({
 			...current,
 			lineItems: addProductToLineItems(current.lineItems, product, 'selling', {
 				noMergeInvoiceLines: invoiceSettings?.noMergeInvoiceLines ?? false,
+				currencyOptions: displayCurrencyOptions,
 			}),
 		}))
 	}

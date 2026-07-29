@@ -5,6 +5,7 @@ export interface ICurrencySettingItem {
 	name: string
 	internalCode?: string
 	exchangeRate?: number
+	exchangeRateUnitCurrencyId?: string
 }
 
 export interface ICurrencySettings extends Document {
@@ -21,6 +22,7 @@ const CurrencySettingItemSchema = new Schema<ICurrencySettingItem>(
 		name: { type: String, required: true, trim: true },
 		internalCode: { type: String, trim: true, uppercase: true },
 		exchangeRate: { type: Number, min: 0 },
+		exchangeRateUnitCurrencyId: { type: String, trim: true },
 	},
 	{ _id: false },
 )

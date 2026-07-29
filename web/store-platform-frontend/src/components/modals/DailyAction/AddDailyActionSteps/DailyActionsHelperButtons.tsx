@@ -6,7 +6,7 @@ import { hoverFocusActiveButtonStyles } from '../../../../theme/styles'
 import {
 	useCreateBrandMutation,
 	useCreateCategoryMutation,
-	useCreateCurrencyMutation,
+	// useCreateCurrencyMutation,
 	useCreateCustomerMutation,
 	useCreateExpenseMutation,
 	useCreatePartnerMutation,
@@ -45,7 +45,7 @@ const BUTTONS: {
 	{ type: 'customer', labelKey: 'components.daily.addCustomer' },
 	{ type: 'supplier', labelKey: 'components.daily.addSupplier' },
 	{ type: 'expense', labelKey: 'components.daily.addExpense' },
-	{ type: 'currency', labelKey: 'components.daily.addCurrency' },
+	// { type: 'currency', labelKey: 'components.daily.addCurrency' },
 	{ type: 'unit', labelKey: 'components.daily.addUnit' },
 ]
 
@@ -68,8 +68,8 @@ const DailyActionsHelperButtons = () => {
 		useCreateCustomerMutation()
 	const [createExpense, { isLoading: isExpenseLoading }] =
 		useCreateExpenseMutation()
-	const [createCurrency, { isLoading: isCurrencyLoading }] =
-		useCreateCurrencyMutation()
+	// const [createCurrency, { isLoading: isCurrencyLoading }] =
+	// 	useCreateCurrencyMutation()
 	const [createUnit, { isLoading: isUnitLoading }] = useCreateUnitMutation()
 	const [createPartner, { isLoading: isPartnerLoading }] =
 		useCreatePartnerMutation()
@@ -113,7 +113,7 @@ const DailyActionsHelperButtons = () => {
 		isSupplierLoading ||
 		isCustomerLoading ||
 		isExpenseLoading ||
-		isCurrencyLoading ||
+		// isCurrencyLoading ||
 		isUnitLoading ||
 		isPartnerLoading ||
 		isCategoryLoading ||
@@ -194,20 +194,20 @@ const DailyActionsHelperButtons = () => {
 				)
 			},
 
-			currency: async ({ value, code }) => {
-				const label = value.trim()
+			// currency: async ({ value, code }) => {
+			// 	const label = value.trim()
 
-				if (!label) return
+			// 	if (!label) return
 
-				await executeAction(
-					() =>
-						createCurrency({
-							name: label,
-							internalCode: (code.trim() || label).toUpperCase(),
-						}).unwrap(),
-					t('components.daily.errors.addCurrencyFailed'),
-				)
-			},
+			// 	await executeAction(
+			// 		() =>
+			// 			createCurrency({
+			// 				name: label,
+			// 				internalCode: (code.trim() || label).toUpperCase(),
+			// 			}).unwrap(),
+			// 		t('components.daily.errors.addCurrencyFailed'),
+			// 	)
+			// },
 
 			unit: async ({ value, code }) => {
 				if (!value.trim()) return

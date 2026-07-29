@@ -837,6 +837,7 @@ const applyLocalCurrencySettingsUpdate = async (
 			return {
 				...resolved,
 				exchangeRate: Number(item.exchangeRate),
+				exchangeRateUnitCurrencyId: item.exchangeRateUnitCurrencyId,
 			}
 		}),
 	)

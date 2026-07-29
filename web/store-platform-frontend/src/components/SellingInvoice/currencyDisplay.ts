@@ -37,6 +37,57 @@ export const buildDisplayCurrencyOptions = (
 	return options
 }
 
+export const resolveCurrencyIdFromCode = (
+	code: string | undefined,
+	options: DisplayCurrencyOption[],
+): string | null => {
+	const normalized = code?.trim().toLowerCase()
+
+	if (!normalized) {
+		return null
+	}
+
+	const match = options.find(
+		option =>
+			option.label.toLowerCase() === normalized ||
+			option.name.toLowerCase() === normalized,
+	)
+
+	return match?.currencyId ?? null
+}
+
+export const getExchangeRateDisplayValue = (
+	canonicalRate: number | undefined,
+	unitCurrencyId: string | null | undefined,
+	primaryCurrencyId: string | null | undefined,
+): number | undefined => {
+	if (!canonicalRate || canonicalRate <= 0) {
+		return undefined
+	}
+
+	if (!unitCurrencyId || unitCurrencyId === primaryCurrencyId) {
+		return canonicalRate
+	}
+
+	return roundPrimaryAmount(1 / canonicalRate)
+}
+
+export const normalizeExchangeRateInput = (
+	inputValue: number,
+	unitCurrencyId: string | null | undefined,
+	primaryCurrencyId: string | null | undefined,
+): number => {
+	if (inputValue <= 0) {
+		return inputValue
+	}
+
+	if (!unitCurrencyId || unitCurrencyId === primaryCurrencyId) {
+		return inputValue
+	}
+
+	return roundPrimaryAmount(1 / inputValue)
+}
+
 export const resolveDefaultDisplayCurrencyId = (
 	options: DisplayCurrencyOption[],
 	preferredCurrencyId?: string | null,

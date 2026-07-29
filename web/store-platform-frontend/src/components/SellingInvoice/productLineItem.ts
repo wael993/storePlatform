@@ -1,20 +1,62 @@
 import type { SellingInvoiceLineItem } from './types'
+import {
+	convertEntryAmountToPrimary,
+	resolveCurrencyIdFromCode,
+	type DisplayCurrencyOption,
+} from './currencyDisplay'
 
 const DEFAULT_TAX_RATE = 15
 
 export type InvoiceLineItemKind = 'selling' | 'buying'
 
-const getDefaultUnitPrice = (product: Product, kind: InvoiceLineItemKind) =>
-	kind === 'buying'
-		? (product.price?.purchasePrice ?? 0)
-		: (product.price?.retailPrice ?? 0)
+const toPrimaryAmount = (
+	amount: number | undefined,
+	product: Product,
+	currencyOptions: DisplayCurrencyOption[],
+): number | undefined => {
+	if (amount == null) {
+		return undefined
+	}
 
-const getLastBuyingPrice = (product: Product) =>
-	product.lastBuyingPrice ?? product.price?.purchasePrice
+	if (currencyOptions.length === 0) {
+		return amount
+	}
+
+	const entryCurrencyId = resolveCurrencyIdFromCode(
+		product.price?.currency,
+		currencyOptions,
+	)
+
+	return convertEntryAmountToPrimary(amount, entryCurrencyId, currencyOptions)
+}
+
+const getDefaultUnitPrice = (
+	product: Product,
+	kind: InvoiceLineItemKind,
+	currencyOptions: DisplayCurrencyOption[],
+) => {
+	const raw =
+		kind === 'buying'
+			? (product.price?.purchasePrice ?? 0)
+			: (product.price?.retailPrice ?? 0)
+
+	return toPrimaryAmount(raw, product, currencyOptions) ?? raw
+}
+
+const getLastBuyingPrice = (
+	product: Product,
+	currencyOptions: DisplayCurrencyOption[],
+) =>
+	toPrimaryAmount(
+		product.lastBuyingPrice ?? product.price?.purchasePrice,
+		product,
+		currencyOptions,
+	)
 
 export const syncLineItemCostReferences = (
 	lineItems: SellingInvoiceLineItem[],
 	products: Product[],
+	currencyOptions: DisplayCurrencyOption[] = [],
 ): SellingInvoiceLineItem[] => {
 	if (lineItems.length === 0 || products.length === 0) return lineItems
 
@@ -27,9 +69,17 @@ export const syncLineItemCostReferences = (
 		const product = productsById.get(item.productId)
 		if (!product) return item
 
-		const averageCost = product.inventory?.averageCost ?? item.averageCost
-		const lastBuyingPrice = getLastBuyingPrice(product) ?? item.lastBuyingPrice
-		const lastSellingPrice = product.lastSellingPrice ?? item.lastSellingPrice
+		const averageCost =
+			toPrimaryAmount(
+				product.inventory?.averageCost,
+				product,
+				currencyOptions,
+			) ?? item.averageCost
+		const lastBuyingPrice =
+			getLastBuyingPrice(product, currencyOptions) ?? item.lastBuyingPrice
+		const lastSellingPrice =
+			toPrimaryAmount(product.lastSellingPrice, product, currencyOptions) ??
+			item.lastSellingPrice
 
 		if (
 			averageCost === item.averageCost &&
@@ -49,6 +99,7 @@ export const syncLineItemCostReferences = (
 export const createLineItemFromProduct = (
 	product: Product,
 	kind: InvoiceLineItemKind = 'selling',
+	currencyOptions: DisplayCurrencyOption[] = [],
 ): SellingInvoiceLineItem => {
 	const taxRate = Number.parseFloat(product.taxRate ?? '') || DEFAULT_TAX_RATE
 
@@ -61,13 +112,21 @@ export const createLineItemFromProduct = (
 		imageUrl: product.images?.[0],
 		quantity: 1,
 		unit: product.unitId ?? 'pcs',
-		unitPrice: getDefaultUnitPrice(product, kind),
+		unitPrice: getDefaultUnitPrice(product, kind, currencyOptions),
 		discount: product.price?.discount ?? 0,
 		discountIsPercent: true,
 		taxRate,
-		averageCost: product.inventory?.averageCost,
-		lastBuyingPrice: getLastBuyingPrice(product),
-		lastSellingPrice: product.lastSellingPrice,
+		averageCost: toPrimaryAmount(
+			product.inventory?.averageCost,
+			product,
+			currencyOptions,
+		),
+		lastBuyingPrice: getLastBuyingPrice(product, currencyOptions),
+		lastSellingPrice: toPrimaryAmount(
+			product.lastSellingPrice,
+			product,
+			currencyOptions,
+		),
 	}
 }
 
@@ -75,10 +134,18 @@ export const addProductToLineItems = (
 	lineItems: SellingInvoiceLineItem[],
 	product: Product,
 	kind: InvoiceLineItemKind = 'selling',
-	options?: { noMergeInvoiceLines?: boolean },
+	options?: {
+		noMergeInvoiceLines?: boolean
+		currencyOptions?: DisplayCurrencyOption[]
+	},
 ) => {
+	const currencyOptions = options?.currencyOptions ?? []
+
 	if (options?.noMergeInvoiceLines) {
-		return [...lineItems, createLineItemFromProduct(product, kind)]
+		return [
+			...lineItems,
+			createLineItemFromProduct(product, kind, currencyOptions),
+		]
 	}
 
 	const existingIndex = lineItems.findIndex(
@@ -86,7 +153,10 @@ export const addProductToLineItems = (
 	)
 
 	if (existingIndex === -1) {
-		return [...lineItems, createLineItemFromProduct(product, kind)]
+		return [
+			...lineItems,
+			createLineItemFromProduct(product, kind, currencyOptions),
+		]
 	}
 
 	return lineItems.map((item, index) =>
@@ -94,9 +164,18 @@ export const addProductToLineItems = (
 			? {
 					...item,
 					quantity: item.quantity + 1,
-					averageCost: product.inventory?.averageCost ?? item.averageCost,
-					lastBuyingPrice: getLastBuyingPrice(product) ?? item.lastBuyingPrice,
-					lastSellingPrice: product.lastSellingPrice ?? item.lastSellingPrice,
+					averageCost:
+						toPrimaryAmount(
+							product.inventory?.averageCost,
+							product,
+							currencyOptions,
+						) ?? item.averageCost,
+					lastBuyingPrice:
+						getLastBuyingPrice(product, currencyOptions) ??
+						item.lastBuyingPrice,
+					lastSellingPrice:
+						toPrimaryAmount(product.lastSellingPrice, product, currencyOptions) ??
+						item.lastSellingPrice,
 				}
 			: item,
 	)

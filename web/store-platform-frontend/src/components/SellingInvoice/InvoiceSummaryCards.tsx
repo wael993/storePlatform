@@ -6,7 +6,7 @@ import { formatTrend } from './utils'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 // import { AsTimeIcon } from '../../shared/icons/Time'
 import { AsPriceActivityFeeIcon } from '../../shared/icons/price/PriceActivityFeeIcon'
-import { DollarSignIcon } from '../../icons/DollarSign'
+// import { DollarSignIcon } from '../../icons/DollarSign'
 import { WalletIcon } from '../../icons/Wallet'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsCashBalanceIcon } from '../../icons/CashBalance'
@@ -319,7 +319,8 @@ const InvoiceSummaryCards = ({
 						color: PAGE_COLORS.success,
 					}}
 				/>
-				<SummaryCard
+				{/* TODO: Fix before Readding total profit card */}
+				{/* <SummaryCard
 					label={t('components.sellingInvoices.summary.totalProfit')}
 					value={
 						hasPeriodData
@@ -329,7 +330,7 @@ const InvoiceSummaryCards = ({
 					icon={<DollarSignIcon fill="none" />}
 					iconBg="#ECFDF5"
 					iconColor="#047857"
-				/>
+				/> */}
 				<SummaryCard
 					label={t('components.sellingInvoices.summary.bestSeller')}
 					value={bestSellerValue}

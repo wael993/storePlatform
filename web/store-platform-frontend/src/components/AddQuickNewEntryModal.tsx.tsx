@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next'
 import {
 	useCreateBrandMutation,
 	useCreateCategoryMutation,
-	useCreateCurrencyMutation,
+	// useCreateCurrencyMutation,
 	useCreateCustomerMutation,
 	useCreateExpenseMutation,
 	useCreatePartnerMutation,
@@ -34,7 +34,7 @@ import { CubeIcon } from '../shared/icons/Cube'
 import { GridIcon } from '../shared/icons/Grid'
 import { LayerGroupIcon } from '../shared/icons/LayerGroup'
 import { PersonIcon } from '../shared/icons/Person'
-import { PriceTagIcon } from '../shared/icons/PriceTag'
+// import { PriceTagIcon } from '../shared/icons/PriceTag'
 import { StarIcon } from '../shared/icons/Star'
 import { StoreIcon } from '../shared/icons/Store'
 import { TruckIcon } from '../shared/icons/Truck'
@@ -61,7 +61,7 @@ const QUICK_ADD_CARDS: QuickAddCard[] = [
 	{ type: 'customer', labelKey: 'common.customer', Icon: PersonIcon },
 	{ type: 'supplier', labelKey: 'common.supplier', Icon: TruckIcon },
 	{ type: 'expense', labelKey: 'common.expense', Icon: CashflowIcon },
-	{ type: 'currency', labelKey: 'common.currency', Icon: PriceTagIcon },
+	// { type: 'currency', labelKey: 'common.currency', Icon: PriceTagIcon },
 	{ type: 'unit', labelKey: 'common.unit', Icon: CubeIcon },
 	{
 		type: 'category',
@@ -131,8 +131,8 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 		useCreateSupplierMutation()
 	const [createExpense, { isLoading: isExpenseLoading }] =
 		useCreateExpenseMutation()
-	const [createCurrency, { isLoading: isCurrencyLoading }] =
-		useCreateCurrencyMutation()
+	// const [createCurrency, { isLoading: isCurrencyLoading }] =
+	// 	useCreateCurrencyMutation()
 	const [createUnit, { isLoading: isUnitLoading }] = useCreateUnitMutation()
 	const [createCategory, { isLoading: isCategoryLoading }] =
 		useCreateCategoryMutation()
@@ -147,7 +147,7 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 		isCustomerLoading ||
 		isSupplierLoading ||
 		isExpenseLoading ||
-		isCurrencyLoading ||
+		// isCurrencyLoading ||
 		isUnitLoading ||
 		isCategoryLoading ||
 		isBrandLoading ||
@@ -213,18 +213,18 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 					t('components.daily.errors.addExpenseFailed'),
 				)
 			},
-			currency: async ({ value, code }) => {
-				const label = value.trim()
-				if (!label) return
-				await executeAction(
-					() =>
-						createCurrency({
-							name: label,
-							internalCode: (code.trim() || label).toUpperCase(),
-						}).unwrap(),
-					t('components.daily.errors.addCurrencyFailed'),
-				)
-			},
+			// currency: async ({ value, code }) => {
+			// 	const label = value.trim()
+			// 	if (!label) return
+			// 	await executeAction(
+			// 		() =>
+			// 			createCurrency({
+			// 				name: label,
+			// 				internalCode: (code.trim() || label).toUpperCase(),
+			// 			}).unwrap(),
+			// 		t('components.daily.errors.addCurrencyFailed'),
+			// 	)
+			// },
 			unit: async ({ value, code }) => {
 				if (!value.trim()) return
 				await executeAction(

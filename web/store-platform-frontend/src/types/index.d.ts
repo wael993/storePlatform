@@ -20,7 +20,7 @@ interface FilterOptions {
 }
 type AddQuickModalType =
 	| 'product'
-	| 'currency'
+	// | 'currency'
 	| 'supplier'
 	| 'customer'
 	| 'unit'

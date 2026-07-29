@@ -5395,6 +5395,8 @@ export default class ProductController {
 						name: item.name.trim(),
 						internalCode: item.internalCode?.trim() || undefined,
 						exchangeRate: Number(item.exchangeRate),
+						exchangeRateUnitCurrencyId:
+							item.exchangeRateUnitCurrencyId?.trim() || undefined,
 					}))
 			: []
 
@@ -5419,6 +5421,7 @@ export default class ProductController {
 				return {
 					...resolved,
 					exchangeRate: item.exchangeRate,
+					exchangeRateUnitCurrencyId: item.exchangeRateUnitCurrencyId,
 				}
 			}),
 		)

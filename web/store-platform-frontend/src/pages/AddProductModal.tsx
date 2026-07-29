@@ -184,14 +184,12 @@ const AddProductModal = ({
 		[units],
 	)
 
-	const currencyOptions = useMemo(
-		() =>
-			currencies.map(currency => ({
-				value: currency.internalCode || currency.name,
-				label: currency.name,
-			})),
-		[currencies],
-	)
+	const currencyOptions = useMemo(() => {
+		return currencies.map(currency => ({
+			value: currency.internalCode || currency.name,
+			label: currency.name,
+		}))
+	}, [currencies])
 
 	const { data: brands = [], isLoading: isBrandsLoading } = useGetBrandsQuery(
 		undefined,
@@ -365,6 +363,7 @@ const AddProductModal = ({
 		}
 
 		try {
+			console.log('form', form.price.currency)
 			await postNewProduct({
 				name: form.name.trim() || form.latinName.trim(),
 				latinName: form.latinName.trim() || undefined,
@@ -467,7 +466,19 @@ const AddProductModal = ({
 			<Divider />
 
 			<Text sx={styles.bodyHeading}>{t('productModal.pricingSection')}</Text>
-
+			<DropdownLabel
+				isSearchable
+				isSingle
+				label={t('productModal.currency')}
+				placeholder={t('productModal.currencyPlaceholder')}
+				options={currencyOptions}
+				selectedOptions={getSelectedOption(
+					currencyOptions,
+					form.price.currency,
+				)}
+				onSelect={handleCurrencySelect}
+				isLoading={isCurrenciesLoading}
+			/>
 			<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
 				<InputLabel
 					inputType="number"
@@ -575,19 +586,6 @@ const AddProductModal = ({
 						(values[0] as typeof form.status) || 'active',
 					)
 				}
-			/>
-			<DropdownLabel
-				isSearchable
-				isSingle
-				label={t('productModal.currency')}
-				placeholder={t('productModal.currencyPlaceholder')}
-				options={currencyOptions}
-				selectedOptions={getSelectedOption(
-					currencyOptions,
-					form.price.currency,
-				)}
-				onSelect={handleCurrencySelect}
-				isLoading={isCurrenciesLoading}
 			/>
 		</VStack>
 	)

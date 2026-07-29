@@ -16,7 +16,7 @@ import { offlineDb } from '../offline/db'
 import { isOfflineCapableForTenant } from '../offline/localStore'
 import { RootState } from '../store/store'
 
-const syncProductCatalogAfterBuyingInvoice = async (api: {
+const syncProductCatalogFromNetwork = async (api: {
 	getState: () => unknown
 }) => {
 	const tenantId = (api.getState() as RootState).user?.user?.tenantId
@@ -55,6 +55,7 @@ export interface CurrencySettingItem {
 	name: string
 	internalCode?: string
 	exchangeRate?: number
+	exchangeRateUnitCurrencyId?: string
 }
 
 export interface CurrencySettings {
@@ -711,6 +712,14 @@ const getQuery = (
 					}
 				},
 				invalidatesTags: ['products'],
+				async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+					try {
+						await queryFulfilled
+						await syncProductCatalogFromNetwork(api)
+					} catch {
+						// catalog sync is best-effort after a successful create
+					}
+				},
 			},
 		),
 		getExpenses: builder.query<Expense[], void>({
@@ -1175,6 +1184,14 @@ const getQuery = (
 				body,
 			}),
 			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful sell
+				}
+			},
 		}),
 
 		updateSellingInvoice: builder.mutation<
@@ -1187,6 +1204,14 @@ const getQuery = (
 				body,
 			}),
 			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful sell
+				}
+			},
 		}),
 
 		deleteSellingInvoice: builder.mutation<void, string>({
@@ -1195,6 +1220,14 @@ const getQuery = (
 				method: 'DELETE',
 			}),
 			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful sell
+				}
+			},
 		}),
 
 		getBuyingInvoices: builder.query<
@@ -1228,7 +1261,7 @@ const getQuery = (
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
-					await syncProductCatalogAfterBuyingInvoice(api)
+					await syncProductCatalogFromNetwork(api)
 				} catch {
 					// catalog sync is best-effort after a successful buy
 				}
@@ -1248,7 +1281,7 @@ const getQuery = (
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
-					await syncProductCatalogAfterBuyingInvoice(api)
+					await syncProductCatalogFromNetwork(api)
 				} catch {
 					// catalog sync is best-effort after a successful buy
 				}
@@ -1264,7 +1297,7 @@ const getQuery = (
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
-					await syncProductCatalogAfterBuyingInvoice(api)
+					await syncProductCatalogFromNetwork(api)
 				} catch {
 					// catalog sync is best-effort after a successful buy
 				}
