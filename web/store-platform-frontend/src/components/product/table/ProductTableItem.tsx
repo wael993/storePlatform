@@ -177,13 +177,13 @@ const ProductTableItem = memo(
 				</Td>
 
 				{/* Brand */}
-				<Td sx={styles.tableRow}>
+				{/* 	<Td sx={styles.tableRow}>
 					<Flex sx={styles.cellContentWrapper}>
 						<Skeleton isLoaded={!isLoading}>
 							<Text sx={styles.text}>{productData.brandId ?? '-'}</Text>
 						</Skeleton>
 					</Flex>
-				</Td>
+				</Td> */}
 
 				{/* Category Name */}
 				<Td sx={styles.tableRow}>

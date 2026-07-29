@@ -131,11 +131,11 @@ const ProductTableHeaderRow = ({
 			sortKey: ProductSortHeaderKey.BARCODE,
 		},
 		// Location
-		{
-			label: t('common.brand'),
-			width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.BRAND,
-			sortKey: ProductSortHeaderKey.BRAND_NAME,
-		},
+		// {
+		// 	label: t('common.brand'),
+		// 	width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.BRAND,
+		// 	sortKey: ProductSortHeaderKey.BRAND_NAME,
+		// },
 		// Timeframe
 		{
 			label: t('common.category'),

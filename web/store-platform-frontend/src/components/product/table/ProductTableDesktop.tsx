@@ -196,9 +196,9 @@ const ProductTableDesktop = memo(
 					case ProductSortHeaderKey.BARCODE: {
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
 					}
-					case ProductSortHeaderKey.BRAND_NAME: {
-						return compareStringsForSorting(a.brandId, b.brandId, sortOrder)
-					}
+					// case ProductSortHeaderKey.BRAND_NAME: {
+					// 	return compareStringsForSorting(a.brandId, b.brandId, sortOrder)
+					// }
 					case ProductSortHeaderKey.CATEGORY_NAME: {
 						return compareStringsForSorting(
 							a.categoryName,

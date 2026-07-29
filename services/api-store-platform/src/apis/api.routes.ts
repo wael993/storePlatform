@@ -1718,7 +1718,8 @@ export default class StoreRoutes extends PlatformValidator {
 		request: any,
 		response: express.Response,
 	): Promise<void> {
-		const productId = request.params._id
+		console.log('🚀 ~ StoreRoutes ~ patchProduct ~ request:', request)
+		const productId = request.params.id
 		const requestBody = request.body
 		const requestContext = this.getRequestContext(request)
 
