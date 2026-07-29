@@ -174,8 +174,11 @@ export const addProductToLineItems = (
 						getLastBuyingPrice(product, currencyOptions) ??
 						item.lastBuyingPrice,
 					lastSellingPrice:
-						toPrimaryAmount(product.lastSellingPrice, product, currencyOptions) ??
-						item.lastSellingPrice,
+						toPrimaryAmount(
+							product.lastSellingPrice,
+							product,
+							currencyOptions,
+						) ?? item.lastSellingPrice,
 				}
 			: item,
 	)
