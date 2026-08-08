@@ -83,14 +83,14 @@ const TenantLayout = () => {
 		isCustomersEnabled && isTenantCustomersEnabled
 			? { label: 'Customers', path: RoutePaths.CUSTOMERS }
 			: null,
+		isSuppliersEnabled && isTenantSuppliersEnabled
+			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }
+			: null,
 		isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled
 			? { label: 'Selling Invoices', path: RoutePaths.SELLING_INVOICES }
 			: null,
 		isCategoriesEnabled && isTenantCategoriesEnabled
 			? { label: 'Categories', path: RoutePaths.CATEGORIES }
-			: null,
-		isSuppliersEnabled && isTenantSuppliersEnabled
-			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }
 			: null,
 		isPartnersEnabled && isTenantPartnersEnabled
 			? { label: 'Partners', path: RoutePaths.PARTNERS }

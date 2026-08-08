@@ -86,7 +86,7 @@ export enum Breakpoints {
 }
 
 export enum TargetType {
-	CUSTOMER = 'CUSTOMER', //عميل
+	CUSTOMER = 'CUSTOMER', //زبون
 	CATEGORY = 'CATEGORY', //فئة
 	SUPPLIER = 'SUPPLIER', //مورد
 	PARTNER = 'PARTNER', //شريك
