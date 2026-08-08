@@ -286,8 +286,24 @@ export interface InventoryItem {
 	shelfId?: string
 	quantity?: number
 	averageCost?: number
+	minQuantity?: number
 	availableQuantity?: number
 	reservedQuantity?: number
+}
+
+interface EditInventoryQueryArgument {
+	id: string
+	body: Partial<
+		Pick<
+			InventoryItem,
+			| 'productId'
+			| 'warehouseId'
+			| 'shelfId'
+			| 'quantity'
+			| 'minQuantity'
+			| 'averageCost'
+		>
+	>
 }
 
 export interface ProductFilterValuesResponse {
@@ -1310,6 +1326,14 @@ const getQuery = (
 			}),
 			providesTags: ['inventory'],
 		}),
+		editInventory: builder.mutation<void, EditInventoryQueryArgument>({
+			query: ({ id, body }: EditInventoryQueryArgument) => ({
+				url: `inventory/by-product/${id}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['inventory', 'products', 'product'],
+		}),
 	}
 }
 
@@ -1396,4 +1420,5 @@ export const {
 	useUpdateBuyingInvoiceMutation,
 	useDeleteBuyingInvoiceMutation,
 	useGetInventoryQuery,
+	useEditInventoryMutation,
 } = storeApi

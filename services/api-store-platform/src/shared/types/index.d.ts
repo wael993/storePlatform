@@ -387,6 +387,7 @@ export type InventoryRequestBody = {
 	warehouseId?: string
 	shelfId?: string
 	quantity?: number
+	minQuantity?: number
 }
 export type ReportRequestBody = {
 	name: string

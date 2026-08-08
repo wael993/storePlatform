@@ -328,6 +328,18 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.postInventory.bind(this),
 			)
+
+		app
+			.route(`${baseRoute}/inventory/by-product/:productId`)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchInventoryByProduct.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/inventory/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -340,7 +352,6 @@ export default class StoreRoutes extends PlatformValidator {
 				this.authorizationValidator.bind(this),
 				this.patchInventory.bind(this),
 			)
-
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -1718,7 +1729,6 @@ export default class StoreRoutes extends PlatformValidator {
 		request: any,
 		response: express.Response,
 	): Promise<void> {
-		console.log('🚀 ~ StoreRoutes ~ patchProduct ~ request:', request)
 		const productId = request.params.id
 		const requestBody = request.body
 		const requestContext = this.getRequestContext(request)
@@ -2178,6 +2188,27 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchInventoryByProduct(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.patchInventoryByProductId(
+				request.params.productId,
+				request.body,
+				requestContext,
+			)
+
+			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

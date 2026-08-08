@@ -74,7 +74,7 @@ interface AddRequiredDocumentButtonProps {
 const AddRequiredDocumentButton = ({
 	onAddDocument,
 	isLoading,
-	isDisabled = false,
+	isDisabled = true,
 	requiredDocumentButtonStyles = {},
 	requiredDocumentIconStyles = {},
 }: AddRequiredDocumentButtonProps) => {
@@ -111,7 +111,7 @@ const AddRequiredDocumentButton = ({
 						}}
 					/>
 				}
-				onClick={onOpen}
+				onClick={!isDisabled ? onOpen : undefined}
 				isDisabled={isDisabled}
 			>
 				{t('common.buttonText')}

@@ -1,7 +1,6 @@
 import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useListItem } from '../../list/hooks/useListItem'
 // import { formatDate } from '../../../shared/dateUtils'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import { useUser } from '../../../shared/hooks/useUser'
@@ -15,8 +14,8 @@ import {
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
-import { slice } from 'lodash'
 import { withNoValueFallback } from '../../../shared/utils'
+import { useProductInlineEdit } from '../useProductInlineEdit'
 
 interface ProductTableItemProps {
 	product: Product
@@ -33,12 +32,7 @@ const ProductTableItem = memo(
 		isHovered,
 		isLoading,
 	}: ProductTableItemProps) => {
-		const {
-			handleEditBuyCost,
-			handleEditSellPrice,
-			handleEditDiscount,
-			patchProductProgressState,
-		} = useListItem(productData)
+		const { editField, isFieldInProgress } = useProductInlineEdit(productData)
 
 		const productState = PRODUCT_STATE_CONFIG[productData.status]
 
@@ -53,7 +47,9 @@ const ProductTableItem = memo(
 			canEditDiscount,
 			canEditBuyCost,
 			seeStockQuantity,
+			canEditStockQuantity,
 			seeMinStockQuantity,
+			canEditMinStockQuantity,
 			seeWholesalePrice,
 			seeDiscount,
 			seeBuyCost,
@@ -156,34 +152,61 @@ const ProductTableItem = memo(
 
 				{/* Name*/}
 				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
+					<Flex
+						sx={{
+							...styles.cellContentWrapper,
+							padding: isLoading ? '1rem' : 0,
+						}}
+					>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={{ ...styles.text, fontWeight: 500 }}>
-								{productData.name}
-							</Text>
+							<EditableCellField
+								value={productData.name}
+								ariaLabel={t('common.productName')}
+								onEdit={value => editField('name', value)}
+								isEditable={isOwnerOrAdmin}
+								customStyles={{
+									...cellFieldStyles,
+									valueText: {
+										...cellFieldStyles.valueText,
+										textAlign: 'left',
+										fontWeight: 500,
+									},
+								}}
+								fontColor={'#1E1E1E'}
+								isLoading={isFieldInProgress('name')}
+							/>
 						</Skeleton>
 					</Flex>
 				</Td>
 
 				{/* Barcode */}
 				<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
+					<Flex
+						sx={{
+							...styles.cellContentWrapper,
+							padding: isLoading ? '1rem' : 0,
+						}}
+					>
 						<Skeleton isLoaded={!isLoading}>
-							<Text sx={{ ...styles.text, fontWeight: 500 }}>
-								{slice(productData.barcode, 0, 10)}
-							</Text>
+							<EditableCellField
+								value={productData.barcode ?? ''}
+								ariaLabel={t('common.barcode')}
+								onEdit={value => editField('barcode', value)}
+								isEditable={isOwnerOrAdmin}
+								customStyles={{
+									...cellFieldStyles,
+									valueText: {
+										...cellFieldStyles.valueText,
+										textAlign: 'left',
+										fontWeight: 500,
+									},
+								}}
+								fontColor={'#1E1E1E'}
+								isLoading={isFieldInProgress('barcode')}
+							/>
 						</Skeleton>
 					</Flex>
 				</Td>
-
-				{/* Brand */}
-				{/* 	<Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>{productData.brandId ?? '-'}</Text>
-						</Skeleton>
-					</Flex>
-				</Td> */}
 
 				{/* Category Name */}
 				<Td sx={styles.tableRow}>
@@ -220,13 +243,32 @@ const ProductTableItem = memo(
 
 				{seeStockQuantity && (
 					<Td sx={styles.tableRow}>
-						<Flex sx={styles.cellContentWrapper}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
 							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.text}>
-									{withNoValueFallback(
+								<EditableCellField
+									value={withNoValueFallback(
 										productData.inventory?.quantity?.toLocaleString(),
 									)}
-								</Text>
+									isNumberField={true}
+									minimumDecimals={0}
+									ariaLabel={t('common.stockQuantity')}
+									onEdit={value => editField('quantity', value)}
+									isEditable={canEditStockQuantity}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={isFieldInProgress('quantity')}
+								/>
 							</Skeleton>
 						</Flex>
 					</Td>
@@ -234,13 +276,32 @@ const ProductTableItem = memo(
 
 				{seeMinStockQuantity && (
 					<Td sx={styles.tableRow}>
-						<Flex sx={styles.cellContentWrapper}>
+						<Flex
+							sx={{
+								...styles.cellContentWrapper,
+								padding: isLoading ? '1rem' : 0,
+							}}
+						>
 							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.text}>
-									{withNoValueFallback(
+								<EditableCellField
+									value={withNoValueFallback(
 										productData.inventory?.minQuantity?.toLocaleString(),
 									)}
-								</Text>
+									isNumberField={true}
+									minimumDecimals={0}
+									ariaLabel={t('common.stockMinQuantity')}
+									onEdit={value => editField('minQuantity', value)}
+									isEditable={canEditMinStockQuantity}
+									customStyles={{
+										...cellFieldStyles,
+										valueText: {
+											...cellFieldStyles.valueText,
+											textAlign: 'left',
+										},
+									}}
+									fontColor={'#1E1E1E'}
+									isLoading={isFieldInProgress('minQuantity')}
+								/>
 							</Skeleton>
 						</Flex>
 					</Td>
@@ -262,7 +323,7 @@ const ProductTableItem = memo(
 									isNumberField={false}
 									ariaLabel={t('common.buyCost')}
 									placeholder={t('common.addBuyCost')}
-									onEdit={handleEditBuyCost}
+									onEdit={value => editField('purchasePrice', value)}
 									isEditable={canEditBuyCost}
 									customStyles={{
 										...cellFieldStyles,
@@ -272,7 +333,7 @@ const ProductTableItem = memo(
 										},
 									}}
 									fontColor={'#1E1E1E'}
-									isLoading={patchProductProgressState.isBuyCostInProgress}
+									isLoading={isFieldInProgress('purchasePrice')}
 								/>
 							</Skeleton>
 						</Flex>
@@ -292,7 +353,7 @@ const ProductTableItem = memo(
 									value={productData.price.retailPrice?.toLocaleString() ?? ''}
 									isNumberField={true}
 									ariaLabel={t('common.sellPrice')}
-									onEdit={handleEditSellPrice}
+									onEdit={value => editField('retailPrice', value)}
 									isEditable={canEditWholesalePrice}
 									customStyles={{
 										...cellFieldStyles,
@@ -302,9 +363,7 @@ const ProductTableItem = memo(
 										},
 									}}
 									fontColor={'#1E1E1E'}
-									isLoading={
-										patchProductProgressState.isWholesalePriceInProgress
-									}
+									isLoading={isFieldInProgress('retailPrice')}
 								/>
 							</Skeleton>
 						</Flex>
@@ -329,7 +388,7 @@ const ProductTableItem = memo(
 									minimumDecimals={0}
 									ariaLabel={t('common.discount')}
 									placeholder={t('common.addDiscount')}
-									onEdit={handleEditDiscount}
+									onEdit={value => editField('discount', value)}
 									currency={'%'}
 									isEditable={canEditDiscount}
 									customStyles={{
@@ -340,7 +399,7 @@ const ProductTableItem = memo(
 										},
 									}}
 									fontColor={'#1E1E1E'}
-									isLoading={patchProductProgressState.isDiscountInProgress}
+									isLoading={isFieldInProgress('discount')}
 								/>
 							</Skeleton>
 						</Flex>
