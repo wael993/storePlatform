@@ -1,13 +1,13 @@
 import mongoose from 'mongoose'
 import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
-import { Customer } from '../models/Customer'
+import { Supplier } from '../models/Supplier'
 import { Currency } from '../models/Currency'
-import { Invoice } from '../models/Invoice'
+import { BuyingInvoice } from '../models/BuyingInvoices'
 import { Product } from '../models/Products'
 import { Unit } from '../models/Unit'
 import Tenant from '../models/Tenant'
-import { INITIAL_CUSTOMERS_DATA } from './initial-customers-data'
+import { INITIAL_SUPPLIERS_DATA } from './initial-suppliers-data'
 
 const TENANT_ID = 'zobani-car'
 const OPENING_PRODUCT_NAME = 'رصيد افتتاحي'
@@ -96,7 +96,7 @@ async function ensureOpeningProduct(unitId: string) {
 	return OPENING_PRODUCT_ID
 }
 
-async function createInitialCustomers() {
+async function createInitialSuppliers() {
 	try {
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
@@ -114,37 +114,37 @@ async function createInitialCustomers() {
 		const unitId = await resolvePieceUnitId()
 		const openingProductId = await ensureOpeningProduct(unitId)
 
-		const customers = INITIAL_CUSTOMERS_DATA.map((customer, index) => {
+		const suppliers = INITIAL_SUPPLIERS_DATA.map((supplier, index) => {
 			const n = index + 1
 
 			return {
 				tenantId: TENANT_ID,
-				customerId: `${TENANT_ID}-customer-${n}`,
-				internalCode: customer.internalCode,
-				name: customer.name,
-				...(customer.phone && { phone: customer.phone }),
+				supplierId: `${TENANT_ID}-supplier-${n}`,
+				internalCode: supplier.internalCode,
+				name: supplier.name,
+				...(supplier.phone && { phone: supplier.phone }),
 				createdBy: SEED_USER,
 			}
 		})
 
-		await Customer.insertMany(customers)
+		await Supplier.insertMany(suppliers)
 
-		const receivableRows = INITIAL_CUSTOMERS_DATA.map((row, index) => ({
+		const payableRows = INITIAL_SUPPLIERS_DATA.map((row, index) => ({
 			row,
-			customer: customers[index],
+			supplier: suppliers[index],
 			n: index + 1,
-		})).filter(({ row }) => row.direction === 'receivable')
+		})).filter(({ row }) => row.direction === 'payable')
 
-		await Invoice.insertMany(
-			receivableRows.map(({ row, customer, n }) => {
+		await BuyingInvoice.insertMany(
+			payableRows.map(({ row, supplier, n }) => {
 				const amount = Number(row.amount.toFixed(2))
 
 				return {
 					tenantId: TENANT_ID,
-					invoiceId: `${TENANT_ID}-opening-SI-${n}`,
-					invoiceNumber: `SI-OPEN-${String(n).padStart(3, '0')}`,
-					customerId: customer.customerId,
-					customerName: customer.name,
+					buyingInvoiceId: `${TENANT_ID}-opening-BI-${n}`,
+					invoiceNumber: `BI-OPEN-${String(n).padStart(3, '0')}`,
+					supplierId: supplier.supplierId,
+					supplierName: supplier.name,
 					paymentType: 'credit' as const,
 					status: 'confirmed' as const,
 					paymentStatus: 'unpaid' as const,
@@ -183,22 +183,19 @@ async function createInitialCustomers() {
 			}),
 		)
 
-		const totalReceivable = receivableRows.reduce(
+		const totalPayable = payableRows.reduce(
 			(sum, { row }) => sum + row.amount,
 			0,
 		)
-		const payableCount = INITIAL_CUSTOMERS_DATA.filter(
-			row => row.direction === 'payable',
-		).length
-		const zeroCount = INITIAL_CUSTOMERS_DATA.filter(
-			row => row.direction === 'zero',
+		const receivableCount = INITIAL_SUPPLIERS_DATA.filter(
+			row => row.direction === 'receivable',
 		).length
 
 		console.log(
-			`Seeded ${customers.length} customers and ${receivableRows.length} opening credit invoices (total receivable ${totalReceivable.toFixed(2)} USD; ${payableCount} payable-only, ${zeroCount} zero-balance with no invoice)`,
+			`Seeded ${suppliers.length} suppliers and ${payableRows.length} opening credit buying invoices (total payable ${totalPayable.toFixed(2)} USD; ${receivableCount} receivable-only with no invoice)`,
 		)
 	} catch (error) {
-		console.error('Error creating initial customers:', error)
+		console.error('Error creating initial suppliers:', error)
 		process.exit(1)
 	} finally {
 		await mongoose.disconnect()
@@ -206,4 +203,4 @@ async function createInitialCustomers() {
 	}
 }
 
-createInitialCustomers()
+createInitialSuppliers()
