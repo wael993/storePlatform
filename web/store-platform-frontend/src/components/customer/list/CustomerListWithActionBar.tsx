@@ -1,4 +1,11 @@
-import { VStack } from '@chakra-ui/react'
+import {
+	Box,
+	Icon,
+	Input,
+	InputGroup,
+	InputLeftElement,
+	VStack,
+} from '@chakra-ui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomerListActionBar from './CustomerListActionBar'
@@ -7,6 +14,8 @@ import EmptyState from '../../common/EmptyState'
 import { compareBreakpoint } from '../../../shared/utils'
 import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import CustomerListMobil from './CustomerListMobil'
+import { matchesNameOrCode } from '../../list/shared/utils'
+import { AsSearchIcon } from '../../../icons/Search'
 
 interface CustomerListWithActionBarProps {
 	customers?: Customer[]
@@ -19,6 +28,7 @@ const CustomerListWithActionBar = ({
 }: CustomerListWithActionBarProps) => {
 	const { t } = useTranslation()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
+	const [searchText, setSearchText] = useState('')
 	const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([])
 	const customerElements: Customer[] = useMemo(() => {
 		return (
@@ -31,6 +41,14 @@ const CustomerListWithActionBar = ({
 		)
 	}, [customers])
 
+	const filteredCustomers = useMemo(
+		() =>
+			customerElements.filter(customer =>
+				matchesNameOrCode(customer, searchText),
+			),
+		[customerElements, searchText],
+	)
+
 	const onSelect = useCallback((id: string) => {
 		setSelectedCustomerIds(prev =>
 			prev.includes(id)
@@ -41,19 +59,19 @@ const CustomerListWithActionBar = ({
 
 	const onAllItemsSelectedChange = useCallback(() => {
 		setSelectedCustomerIds(prevSelectedIds =>
-			prevSelectedIds.length === customerElements.length
+			prevSelectedIds.length === filteredCustomers.length
 				? []
-				: customerElements.map(a => a.customerId),
+				: filteredCustomers.map(a => a.customerId),
 		)
-	}, [customerElements])
+	}, [filteredCustomers])
 
 	useEffect(() => {
 		setSelectedCustomerIds(prevSelectedIds =>
 			prevSelectedIds.filter(id =>
-				customerElements.some(customer => customer.customerId === id),
+				filteredCustomers.some(customer => customer.customerId === id),
 			),
 		)
-	}, [customerElements])
+	}, [filteredCustomers])
 
 	if ((!customerElements || customerElements.length === 0) && !isLoading) {
 		return (
@@ -65,13 +83,33 @@ const CustomerListWithActionBar = ({
 	}
 
 	return (
-		<VStack w="100%" p={0}>
+		<VStack w="100%" p={0} align="stretch">
+			<Box px={4} mb={3} maxW={{ base: '100%', md: '21rem' }}>
+				<InputGroup size="sm">
+					<InputLeftElement pointerEvents="none">
+						<Icon as={AsSearchIcon} color="#929494" boxSize={5} />
+					</InputLeftElement>
+					<Input
+						value={searchText}
+						onChange={event => setSearchText(event.target.value)}
+						placeholder={t('components.filters.nameOrCodeSearchPlaceholder')}
+						borderRadius="lg"
+						bg="gray.50"
+						border="1px solid"
+						borderColor="#EAEAEA"
+						pl={10}
+						autoComplete="off"
+						spellCheck={false}
+					/>
+				</InputGroup>
+			</Box>
+
 			{selectedCustomerIds.length > 0 && (
 				<CustomerListActionBar
 					selectedCustomers={
 						(selectedCustomerIds
 							.map(id =>
-								customerElements?.find(customer => customer.customerId === id),
+								filteredCustomers.find(customer => customer.customerId === id),
 							)
 							.filter(Boolean) as Customer[]) ?? []
 					}
@@ -80,25 +118,33 @@ const CustomerListWithActionBar = ({
 					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
-			{isMobile ? (
+
+			{filteredCustomers.length === 0 && !isLoading ? (
+				<EmptyState
+					title={t('common.emptyStateTitle')}
+					description={t('common.emptyStateDescription')}
+				/>
+			) : isMobile ? (
 				<CustomerListMobil
-					customers={customerElements}
+					customers={filteredCustomers}
 					isLoading={isLoading}
 					onSelect={onSelect}
 					selectedCustomers={selectedCustomerIds}
 					areAllItemsSelected={
-						selectedCustomerIds.length === customerElements.length
+						filteredCustomers.length > 0 &&
+						selectedCustomerIds.length === filteredCustomers.length
 					}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
 				/>
 			) : (
 				<CustomerListDesktop
-					customers={customerElements}
+					customers={filteredCustomers}
 					isLoading={isLoading}
 					onSelect={onSelect}
 					selectedCustomers={selectedCustomerIds}
 					areAllItemsSelected={
-						selectedCustomerIds.length === customerElements.length
+						filteredCustomers.length > 0 &&
+						selectedCustomerIds.length === filteredCustomers.length
 					}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
 				/>

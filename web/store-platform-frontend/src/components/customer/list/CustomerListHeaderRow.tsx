@@ -99,10 +99,9 @@ const CustomerListHeaderRow = ({
 		},
 
 		{
-			label: t('components.customer.createdAt'),
-			width: CUSTOMER_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
-			sortKey: CustomerSortHeaderKey.CREATED_AT,
-			align: 'right' as const,
+			label: t('components.invoiceSummary.totalReceivable'),
+			width: CUSTOMER_LIST_WIDTHS_MAP_IN_REM.TOTAL_RECEIVABLE,
+			sortKey: CustomerSortHeaderKey.TOTAL_RECEIVABLE,
 		},
 
 		{
@@ -167,10 +166,10 @@ const CustomerListHeaderRow = ({
 					>
 						<Flex
 							alignItems={'center'}
-							justifyContent={header.align === 'right' ? 'flex-end' : undefined}
+							// justifyContent={header.align === 'right' ? 'flex-end' : undefined}
 							sx={{
 								...styles.tableHeaderText,
-								...(header.align === 'right' ? { paddingRight: '1.5rem' } : {}),
+								// ...(header.align === 'right' ? { paddingRight: '1.5rem' } : {}),
 							}}
 						>
 							<Text sx={styles.tableHeaderText}>{header.label}</Text>

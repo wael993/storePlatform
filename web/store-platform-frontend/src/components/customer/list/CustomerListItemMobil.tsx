@@ -15,12 +15,13 @@ import {
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { formatDate } from '../../../shared/dateUtils'
 import { buildRoutePath } from '../../../shared/routes'
 import { compareLanguage, withNoValueFallback } from '../../../shared/utils'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
+import { PAGE_COLORS } from '../../SellingInvoice/constants'
+import { useInvoiceDisplayCurrency } from '../../SellingInvoice/useInvoiceDisplayCurrency'
 
 const styles = {
 	listItemGridItem: {
@@ -88,6 +89,8 @@ const CustomerListItemMobil = ({
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
+	const { formatAmount } = useInvoiceDisplayCurrency()
+	const totalReceivable = customer.totalReceivable ?? 0
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
 		event.stopPropagation()
@@ -160,13 +163,16 @@ const CustomerListItemMobil = ({
 					<Grid templateColumns="repeat(2, 1fr)" gap="6">
 						<GridItem sx={styles.listItemGridItem}>
 							<Text sx={styles.titleText}>
-								{t('components.customer.createdAt')}
+								{t('components.invoiceSummary.totalReceivable')}
 							</Text>
 							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.valueText}>
-									{customer.createdAt
-										? formatDate(new Date(customer.createdAt))
-										: '-'}
+								<Text
+									sx={{
+										...styles.valueText,
+										color: totalReceivable > 0 ? PAGE_COLORS.danger : undefined,
+									}}
+								>
+									{formatAmount(totalReceivable)}
 								</Text>
 							</Skeleton>
 						</GridItem>

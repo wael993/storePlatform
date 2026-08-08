@@ -1986,6 +1986,7 @@ export default class StoreRoutes extends PlatformValidator {
 					searchText: request.query.searchText,
 					status: request.query.status,
 					issuedDate: request.query.issuedDate,
+					supplierId: request.query.supplierId,
 				},
 			)
 

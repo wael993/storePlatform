@@ -106,6 +106,7 @@ interface Supplier {
 	internalCode?: string
 	createdAt?: string
 	updatedAt?: string
+	totalPayable?: number
 	createdBy?: {
 		_id: string
 		displayName: string
@@ -162,6 +163,7 @@ interface Customer {
 	internalCode?: string
 	createdAt?: string
 	updatedAt?: string
+	totalReceivable?: number
 	createdBy?: {
 		_id: string
 		displayName: string

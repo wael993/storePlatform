@@ -303,6 +303,16 @@
 			"sumBuyingWeight": "مجموع الوزن المشتري",
 			"sumSellingWeight": "مجموع الوزن المباع"
 		},
+		"invoiceSummary": {
+			"totalInvoiced": "إجمالي الفواتير",
+			"totalPaid": "إجمالي المدفوع",
+			"totalReceivable": "إجمالي المستحق",
+			"totalPayable": "إجمالي المستحق للدفع"
+		},
+		"supplier": {
+			"invoices": "الفواتير",
+			"dailyActions": "الإجراءات اليومية"
+		},
 		"customer": {
 			"errorLoadingCustomer": "حدث خطأ أثناء تحميل العميل. يرجى المحاولة مرة أخرى!",
 			"name": "اسم العميل",
@@ -310,10 +320,7 @@
 			"sold": "المبيعات",
 			"createdAt": "تاريخ الإنشاء",
 			"invoices": "الفواتير",
-			"dailyActions": "الإجراءات اليومية",
-			"totalInvoiced": "إجمالي الفواتير",
-			"totalPaid": "إجمالي المدفوع",
-			"totalReceivable": "إجمالي المستحق"
+			"dailyActions": "الإجراءات اليومية"
 		},
 		"daily": {
 			"productLine": "المنتج {{number}}",
@@ -689,6 +696,7 @@
 			"filter": "المرشحات",
 			"search": "بحث",
 			"searchPlaceholder": "الاسم، معرّف المنتج، الباركود",
+			"nameOrCodeSearchPlaceholder": "البحث بالاسم أو الرمز",
 			"dailySearchPlaceholder": "رقم الفاتورة",
 			"saveFilterPreset": "حفظ إعدادات المرشحات",
 			"supplier": "المورد",

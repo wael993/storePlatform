@@ -109,10 +109,9 @@ const SupplierListHeaderRow = ({
 			sortKey: SupplierSortHeaderKey.INTERNAL_CODE,
 		},
 		{
-			label: t('supplier.list.createdAt'),
-			width: SUPPLIER_LIST_WIDTHS_MAP_IN_REM.CREATED_AT,
-			sortKey: SupplierSortHeaderKey.CREATED_AT,
-			align: 'right' as const,
+			label: t('components.invoiceSummary.totalPayable'),
+			width: SUPPLIER_LIST_WIDTHS_MAP_IN_REM.TOTAL_PAYABLE,
+			sortKey: SupplierSortHeaderKey.TOTAL_PAYABLE,
 		},
 
 		{
@@ -177,10 +176,10 @@ const SupplierListHeaderRow = ({
 					>
 						<Flex
 							alignItems={'center'}
-							justifyContent={header.align === 'right' ? 'flex-end' : undefined}
+							// justifyContent={header.align === 'right' ? 'flex-end' : undefined}
 							sx={{
 								...styles.tableHeaderText,
-								...(header.align === 'right' ? { paddingRight: '1.5rem' } : {}),
+								// ...(header.align === 'right' ? { paddingRight: '1.5rem' } : {}),
 							}}
 						>
 							<Text sx={styles.tableHeaderText}>{header.label}</Text>

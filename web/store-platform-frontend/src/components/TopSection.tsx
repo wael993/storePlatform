@@ -10,7 +10,7 @@ import {
 	useDisclosure,
 	VStack,
 } from '@chakra-ui/react'
-import React, { useMemo } from 'react'
+// import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from './CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
@@ -29,15 +29,15 @@ import { cellFieldStyles } from '../shared/styles'
 import { AsClockIcon } from './icons/Clock'
 // import { formatDateFromAndDateTo } from '../shared/dateUtils'
 import { TicketStatus } from './common/TicketStatus'
-import { BudgetOverview } from './common/BudgetOverview'
-import { useGetBudgetOverviewQuery } from '../api/apiStore'
+// import { BudgetOverview } from './common/BudgetOverview'
+// import { useGetBudgetOverviewQuery } from '../api/apiStore'
 import { CloseButton } from './common/CloseButton'
 import { AddSquareIcon } from './icons/AddSquare'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import AddDailyActionModal from './modals/DailyAction/AddDailyActionModal'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
-import CustomerInvoiceSummaryCards from './customer/CustomerInvoiceSummaryCards'
+import PartyInvoiceSummaryCards from './common/PartyInvoiceSummaryCards'
 
 const iconSize = '1.5rem'
 const fullWidth = '100%'
@@ -237,51 +237,51 @@ const TopSection = ({
 	const { t } = useTranslation()
 	const entry = customer ?? supplier ?? partner ?? product
 
-	const budgetOverviewArgs = customer?.customerId
-		? ({
-				entityType: 'customer',
-				id: customer.customerId,
-			} satisfies BudgetOverviewQueryArgument)
-		: supplier?.supplierId
-			? ({
-					entityType: 'supplier',
-					id: supplier.supplierId,
-				} satisfies BudgetOverviewQueryArgument)
-			: partner?.partnerId
-				? ({
-						entityType: 'partner' as const,
-						id: partner.partnerId,
-					} satisfies BudgetOverviewQueryArgument)
-				: product?.productId
-					? ({
-							entityType: 'product',
-							id: product.productId,
-						} satisfies BudgetOverviewQueryArgument)
-					: undefined
+	// const budgetOverviewArgs = customer?.customerId
+	// 	? ({
+	// 			entityType: 'customer',
+	// 			id: customer.customerId,
+	// 		} satisfies BudgetOverviewQueryArgument)
+	// 	: supplier?.supplierId
+	// 		? ({
+	// 				entityType: 'supplier',
+	// 				id: supplier.supplierId,
+	// 			} satisfies BudgetOverviewQueryArgument)
+	// 		: partner?.partnerId
+	// 			? ({
+	// 					entityType: 'partner' as const,
+	// 					id: partner.partnerId,
+	// 				} satisfies BudgetOverviewQueryArgument)
+	// 			: product?.productId
+	// 				? ({
+	// 						entityType: 'product',
+	// 						id: product.productId,
+	// 					} satisfies BudgetOverviewQueryArgument)
+	// 				: undefined
 
-	const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
-		useGetBudgetOverviewQuery(
-			budgetOverviewArgs ?? ({} as BudgetOverviewQueryArgument),
-			{
-				skip: !budgetOverviewArgs,
-			},
-		)
+	// const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
+	// 	useGetBudgetOverviewQuery(
+	// 		budgetOverviewArgs ?? ({} as BudgetOverviewQueryArgument),
+	// 		{
+	// 			skip: !budgetOverviewArgs,
+	// 		},
+	// 	)
 
-	const budgetOverviewLabels = useMemo(
-		() =>
-			isProductTarget
-				? {
-						tooltip: t('components.daily.budgetOverview.tooltip'),
-						title: t('components.daily.budgetOverview.title'),
-						purchase: t('components.daily.budgetOverview.sales'),
-						payments: t('components.daily.budgetOverview.costs'),
-						balance: t('components.daily.budgetOverview.profit'),
-						sumBuyingWeight: t('components.budgetOverview.sumBuyingWeight'),
-						sumSellingWeight: t('components.budgetOverview.sumSellingWeight'),
-					}
-				: undefined,
-		[isProductTarget, t],
-	)
+	// const budgetOverviewLabels = useMemo(
+	// 	() =>
+	// 		isProductTarget
+	// 			? {
+	// 					tooltip: t('components.daily.budgetOverview.tooltip'),
+	// 					title: t('components.daily.budgetOverview.title'),
+	// 					purchase: t('components.daily.budgetOverview.sales'),
+	// 					payments: t('components.daily.budgetOverview.costs'),
+	// 					balance: t('components.daily.budgetOverview.profit'),
+	// 					sumBuyingWeight: t('components.budgetOverview.sumBuyingWeight'),
+	// 					sumSellingWeight: t('components.budgetOverview.sumSellingWeight'),
+	// 				}
+	// 			: undefined,
+	// 	[isProductTarget, t],
+	// )
 
 	if (!entry) return null
 
@@ -396,16 +396,20 @@ const TopSection = ({
 					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
 						<Flex sx={styles.feeSectionFlexWrapper}>
 							<Flex sx={styles.itemWrapperWithMargin}>
-								{customer?.customerId && (
-									<CustomerInvoiceSummaryCards
-										customerId={customer.customerId}
-									/>
+								{customer?.customerId ? (
+									<PartyInvoiceSummaryCards customerId={customer.customerId} />
+								) : (
+									supplier?.supplierId && (
+										<PartyInvoiceSummaryCards
+											supplierId={supplier.supplierId}
+										/>
+									)
 								)}
 							</Flex>
 						</Flex>
 					</GridItem>
 
-					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
+					{/* <GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
 						<Flex
 							sx={{
 								...styles.feeSectionFlexWrapper,
@@ -428,7 +432,7 @@ const TopSection = ({
 								/>
 							</Flex>
 						</Flex>
-					</GridItem>
+					</GridItem> */}
 
 					<GridItem
 						sx={{

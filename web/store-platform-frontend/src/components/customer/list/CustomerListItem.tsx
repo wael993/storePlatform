@@ -2,10 +2,11 @@ import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
 import { CUSTOMER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
-import { formatDate } from '../../../shared/dateUtils'
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
+import { PAGE_COLORS } from '../../SellingInvoice/constants'
+import { useInvoiceDisplayCurrency } from '../../SellingInvoice/useInvoiceDisplayCurrency'
 
 const styles = {
 	tableRow: {
@@ -89,8 +90,10 @@ const CustomerListItem = ({
 	isHovered,
 	isLoading,
 }: CustomerListItemProps) => {
+	const { formatAmount } = useInvoiceDisplayCurrency()
 	const showCheckbox = true
 	const isReadyForExecution = false
+	const totalReceivable = customer.totalReceivable ?? 0
 
 	return (
 		<>
@@ -155,24 +158,17 @@ const CustomerListItem = ({
 			</Td>
 
 			<Td sx={styles.tableRow}>
-				<Flex
-					sx={{
-						...styles.cellContentWrapper,
-						flexDirection: 'column',
-						justifyContent: 'center',
-						alignItems: 'start',
-					}}
-				>
+				<Flex sx={styles.cellContentWrapper}>
 					<Skeleton isLoaded={!isLoading}>
-						<Text sx={styles.text}>
-							{customer.createdAt
-								? formatDate(new Date(customer.createdAt))
-								: ''}
-						</Text>
-						<Text sx={styles.text}>
-							{customer.createdAt
-								? formatDate(new Date(customer.createdAt))
-								: ''}
+						<Text
+							sx={{
+								...styles.text,
+								fontWeight: totalReceivable > 0 ? 600 : 500,
+								color:
+									totalReceivable > 0 ? PAGE_COLORS.danger : styles.text.color,
+							}}
+						>
+							{formatAmount(totalReceivable)}
 						</Text>
 					</Skeleton>
 				</Flex>

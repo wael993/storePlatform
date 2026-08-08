@@ -95,6 +95,7 @@ import {
 	SellingInvoicesListResponse,
 	SellingInvoicesQueryParams,
 	CustomerInvoiceSummary,
+	SupplierInvoiceSummary,
 	BuyingInvoiceRequestBody,
 	BuyingInvoicesListResponse,
 	BuyingInvoicesQueryParams,
@@ -2445,6 +2446,56 @@ export default class ProductController {
 		}
 	}
 
+	private buildSupplierInvoiceSummary(
+		invoices: Array<Record<string, any>>,
+		supplierEntries: DailyActionResponse['data'] = [],
+	): SupplierInvoiceSummary {
+		let totalInvoiced = 0
+		let totalPaid = 0
+		let paidCount = 0
+		let unpaidCount = 0
+
+		for (const invoice of invoices) {
+			const status = String(invoice.status ?? 'confirmed')
+
+			if (['draft', 'cancelled', 'void'].includes(status)) continue
+
+			const { grandTotal, paidAmount } =
+				getPrimaryInvoiceCurrencyAmounts(invoice)
+
+			totalInvoiced += grandTotal
+			totalPaid += paidAmount
+
+			const uiStatus = this.mapBuyingInvoiceFiltersToUiStatus(invoice)
+
+			if (uiStatus === 'paid') {
+				paidCount += 1
+			} else if (uiStatus === 'credit' || uiStatus === 'partial') {
+				unpaidCount += 1
+			}
+		}
+
+		totalInvoiced += this.sumActionAmounts(
+			supplierEntries,
+			DailyActionType.BUYING_ENTRY,
+		)
+
+		totalPaid += this.sumActionAmounts(
+			supplierEntries,
+			DailyActionType.PAYMENT_ENTRY,
+		)
+
+		const totalPayable = Math.max(0, totalInvoiced - totalPaid)
+
+		return {
+			totalInvoiced,
+			totalPaid,
+			totalPayable,
+			paidCount,
+			unpaidCount,
+		}
+	}
+
 	private async buildSellingInvoicesSummary(
 		requestContext: RequestContext,
 		invoices: Array<Record<string, any>>,
@@ -3035,6 +3086,10 @@ export default class ProductController {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 		}
 
+		await redisCache.del(
+			redisCache.buildCustomerListKey(this.getTenantId(requestContext)),
+		)
+
 		const result = {
 			_id: createInvoiceResponse._id,
 			invoiceId,
@@ -3188,6 +3243,10 @@ export default class ProductController {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 		}
 
+		await redisCache.del(
+			redisCache.buildCustomerListKey(this.getTenantId(requestContext)),
+		)
+
 		return updateResponse
 	}
 
@@ -3224,6 +3283,10 @@ export default class ProductController {
 		for (const inventoryId of touchedInventoryIds) {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 		}
+
+		await redisCache.del(
+			redisCache.buildCustomerListKey(this.getTenantId(requestContext)),
+		)
 
 		return deleteResponse
 	}
@@ -3436,6 +3499,13 @@ export default class ProductController {
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
 		const filteredInvoices = invoices.filter((invoice: Record<string, any>) => {
+			if (
+				filters.supplierId &&
+				String(invoice.supplierId ?? '') !== filters.supplierId
+			) {
+				return false
+			}
+
 			const uiStatus = this.mapBuyingInvoiceFiltersToUiStatus(invoice)
 
 			if (
@@ -3471,13 +3541,40 @@ export default class ProductController {
 			)
 		})
 
-		const summary = this.buildBuyingInvoicesSummary(invoices)
+		const scopedInvoices = filters.supplierId
+			? invoices.filter(
+					invoice => String(invoice.supplierId ?? '') === filters.supplierId,
+				)
+			: invoices
+
+		const summary = this.buildBuyingInvoicesSummary(scopedInvoices)
+		let supplierSummary: SupplierInvoiceSummary | undefined
+
+		if (filters.supplierId) {
+			const { data: supplierEntries } = await this.getDailyActions(
+				requestContext,
+				{
+					supplier: [filters.supplierId],
+					entryType: [
+						DailyActionType.BUYING_ENTRY,
+						DailyActionType.PAYMENT_ENTRY,
+					],
+				},
+			)
+
+			supplierSummary = this.buildSupplierInvoiceSummary(
+				scopedInvoices,
+				supplierEntries,
+			)
+		}
+
 		const nextInvoiceNumber =
 			await this.resolveNextBuyingInvoiceNumber(requestContext)
 
 		return {
 			invoices: filteredInvoices,
 			summary,
+			supplierSummary,
 			nextInvoiceNumber,
 			totalCount: filteredInvoices.length,
 		}
@@ -3663,6 +3760,10 @@ export default class ProductController {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 		}
 
+		await redisCache.del(
+			redisCache.buildSupplierListKey(this.getTenantId(requestContext)),
+		)
+
 		const result = {
 			_id: createInvoiceResponse._id,
 			buyingInvoiceId,
@@ -3746,6 +3847,10 @@ export default class ProductController {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 		}
 
+		await redisCache.del(
+			redisCache.buildSupplierListKey(this.getTenantId(requestContext)),
+		)
+
 		return updateResponse
 	}
 
@@ -3783,6 +3888,10 @@ export default class ProductController {
 		for (const inventoryId of touchedInventoryIds) {
 			await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 		}
+
+		await redisCache.del(
+			redisCache.buildSupplierListKey(this.getTenantId(requestContext)),
+		)
 
 		return deleteResponse
 	}
@@ -5809,25 +5918,59 @@ export default class ProductController {
 		})
 
 		const dailyActions = await this.getDailyActions(requestContext)
-		const data = suppliers.documents.map((supplier: SupplierDocument) => ({
-			supplierId: supplier.supplierId,
-			name: supplier.name,
-			internalCode: supplier.internalCode,
-			createdAt: supplier.createdAt?.toISOString(),
-			updatedAt: supplier.updatedAt?.toISOString(),
-			createdBy: supplier.createdBy as any,
-			updatedBy: supplier.updatedBy
-				? {
-						...supplier.updatedBy,
-						updatedAt: supplier.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-			actions: dailyActions.data.filter(
+		const { documents: buyingInvoices } = await this.mongoDbClient.getDocuments(
+			{
+				requestContext,
+				collectionName: COLLECTION_NAMES.BUYING_INVOICES,
+				model: BuyingInvoice,
+				sort: { createdAt: 'desc' },
+			},
+		)
+
+		const invoicesBySupplierId = new Map<string, Array<Record<string, any>>>()
+
+		for (const invoice of buyingInvoices) {
+			const supplierId = String(invoice.supplierId ?? '')
+
+			if (!supplierId) continue
+
+			const existing = invoicesBySupplierId.get(supplierId)
+
+			if (existing) {
+				existing.push(invoice)
+			} else {
+				invoicesBySupplierId.set(supplierId, [invoice])
+			}
+		}
+
+		const data = suppliers.documents.map((supplier: SupplierDocument) => {
+			const actions = dailyActions.data.filter(
 				action =>
 					action.supplierId === supplier.supplierId ||
 					action.supplierId === supplier.internalCode,
-			),
-		}))
+			)
+			const { totalPayable } = this.buildSupplierInvoiceSummary(
+				invoicesBySupplierId.get(supplier.supplierId) ?? [],
+				actions,
+			)
+
+			return {
+				supplierId: supplier.supplierId,
+				name: supplier.name,
+				internalCode: supplier.internalCode,
+				createdAt: supplier.createdAt?.toISOString(),
+				updatedAt: supplier.updatedAt?.toISOString(),
+				totalPayable,
+				createdBy: supplier.createdBy as any,
+				updatedBy: supplier.updatedBy
+					? {
+							...supplier.updatedBy,
+							updatedAt: supplier.updatedBy.updatedAt.toISOString(),
+						}
+					: undefined,
+				actions,
+			}
+		})
 
 		const mappedSuppliers = mapSuppliers(data)
 
@@ -5982,22 +6125,57 @@ export default class ProductController {
 		})
 
 		const dailyActions = await this.getDailyActions(requestContext)
+		const { documents: sellingInvoices } =
+			await this.mongoDbClient.getDocuments({
+				requestContext,
+				collectionName: COLLECTION_NAMES.INVOICES,
+				model: Invoice,
+				sort: { createdAt: 'desc' },
+			})
 
-		const data = customers.documents.map((customer: CustomerDocument) => ({
-			customerId: customer.customerId,
-			name: customer.name,
-			internalCode: customer.internalCode,
-			createdAt: customer.createdAt?.toISOString(),
-			updatedAt: customer.updatedAt?.toISOString(),
-			createdBy: customer.createdBy as any,
-			updatedBy: customer.updatedBy
-				? {
-						...customer.updatedBy,
-						updatedAt: customer.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-			relatedActions: filterCustomerRelatedActions(dailyActions.data, customer),
-		}))
+		const invoicesByCustomerId = new Map<string, Array<Record<string, any>>>()
+
+		for (const invoice of sellingInvoices) {
+			const customerId = String(invoice.customerId ?? '')
+
+			if (!customerId) continue
+
+			const existing = invoicesByCustomerId.get(customerId)
+
+			if (existing) {
+				existing.push(invoice)
+			} else {
+				invoicesByCustomerId.set(customerId, [invoice])
+			}
+		}
+
+		const data = customers.documents.map((customer: CustomerDocument) => {
+			const relatedActions = filterCustomerRelatedActions(
+				dailyActions.data,
+				customer,
+			)
+			const { totalReceivable } = this.buildCustomerInvoiceSummary(
+				invoicesByCustomerId.get(customer.customerId) ?? [],
+				relatedActions,
+			)
+
+			return {
+				customerId: customer.customerId,
+				name: customer.name,
+				internalCode: customer.internalCode,
+				createdAt: customer.createdAt?.toISOString(),
+				updatedAt: customer.updatedAt?.toISOString(),
+				totalReceivable,
+				createdBy: customer.createdBy as any,
+				updatedBy: customer.updatedBy
+					? {
+							...customer.updatedBy,
+							updatedAt: customer.updatedBy.updatedAt.toISOString(),
+						}
+					: undefined,
+				relatedActions,
+			}
+		})
 
 		const mappedCustomers = mapCustomers(data)
 		const response: CustomersResponse = {

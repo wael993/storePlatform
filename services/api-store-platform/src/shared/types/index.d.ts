@@ -287,6 +287,15 @@ export type BuyingInvoicesQueryParams = {
 	searchText?: string
 	status?: string
 	issuedDate?: string
+	supplierId?: string
+}
+
+export type SupplierInvoiceSummary = {
+	totalInvoiced: number
+	totalPaid: number
+	totalPayable: number
+	paidCount: number
+	unpaidCount: number
 }
 
 export type BuyingInvoicesSummary = {
@@ -300,6 +309,7 @@ export type BuyingInvoicesSummary = {
 export type BuyingInvoicesListResponse = {
 	invoices: Array<Record<string, unknown>>
 	summary: BuyingInvoicesSummary
+	supplierSummary?: SupplierInvoiceSummary
 	nextInvoiceNumber: number
 	totalCount: number
 }

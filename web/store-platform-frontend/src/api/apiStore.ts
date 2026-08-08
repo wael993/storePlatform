@@ -223,6 +223,15 @@ export interface BuyingInvoicesQueryParams {
 	searchText?: string
 	status?: string
 	issuedDate?: string
+	supplierId?: string
+}
+
+export interface SupplierInvoiceSummary {
+	totalInvoiced: number
+	totalPaid: number
+	totalPayable: number
+	paidCount: number
+	unpaidCount: number
 }
 
 export interface PostBuyingInvoiceBody {
@@ -275,6 +284,7 @@ export interface BuyingInvoicesApiResponse {
 		totalPayable: number
 		averageOrder: number
 	}
+	supplierSummary?: SupplierInvoiceSummary
 	nextInvoiceNumber: number
 	totalCount: number
 }
@@ -1129,6 +1139,7 @@ const getQuery = (
 				'partners',
 				'partner',
 				'selling-invoices',
+				'buying-invoices',
 			],
 		}),
 
@@ -1152,6 +1163,7 @@ const getQuery = (
 				'suppliers',
 				'supplier',
 				'selling-invoices',
+				'buying-invoices',
 			],
 		}),
 
@@ -1169,6 +1181,7 @@ const getQuery = (
 				'suppliers',
 				'supplier',
 				'selling-invoices',
+				'buying-invoices',
 			],
 		}),
 
@@ -1199,7 +1212,12 @@ const getQuery = (
 				method: 'POST',
 				body,
 			}),
-			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
+			invalidatesTags: [
+				'selling-invoices',
+				'inventory',
+				'products',
+				'customers',
+			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
@@ -1219,7 +1237,12 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
+			invalidatesTags: [
+				'selling-invoices',
+				'inventory',
+				'products',
+				'customers',
+			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
@@ -1235,7 +1258,12 @@ const getQuery = (
 				url: `selling-invoices/${invoiceId}`,
 				method: 'DELETE',
 			}),
-			invalidatesTags: ['selling-invoices', 'inventory', 'products'],
+			invalidatesTags: [
+				'selling-invoices',
+				'inventory',
+				'products',
+				'customers',
+			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
@@ -1273,7 +1301,12 @@ const getQuery = (
 				method: 'POST',
 				body,
 			}),
-			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+			invalidatesTags: [
+				'buying-invoices',
+				'inventory',
+				'products',
+				'suppliers',
+			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
@@ -1293,7 +1326,12 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+			invalidatesTags: [
+				'buying-invoices',
+				'inventory',
+				'products',
+				'suppliers',
+			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled
@@ -1309,7 +1347,12 @@ const getQuery = (
 				url: `buying-invoices/${buyingInvoiceId}`,
 				method: 'DELETE',
 			}),
-			invalidatesTags: ['buying-invoices', 'inventory', 'products'],
+			invalidatesTags: [
+				'buying-invoices',
+				'inventory',
+				'products',
+				'suppliers',
+			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
 					await queryFulfilled

@@ -23,13 +23,13 @@ export enum ProductSortHeaderKey {
 export enum SupplierSortHeaderKey {
 	NAME = 'name',
 	INTERNAL_CODE = 'internalCode',
-	CREATED_AT = 'createdAt',
+	TOTAL_PAYABLE = 'totalPayable',
 }
 export enum CustomerSortHeaderKey {
 	NAME = 'name',
 	INTERNAL_CODE = 'internalCode',
 	SOLD = 'sold',
-	CREATED_AT = 'createdAt',
+	TOTAL_RECEIVABLE = 'totalReceivable',
 }
 export enum PartnerSortHeaderKey {
 	NAME = 'name',

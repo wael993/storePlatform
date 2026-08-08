@@ -1,6 +1,19 @@
 import { LIST_INTERNAL_ONLY_COLUMNS } from './constants'
 import { SortOrder } from './globalEnums'
 
+export const matchesNameOrCode = (
+	item: { name?: string; internalCode?: string },
+	searchText: string,
+) => {
+	const query = searchText.trim().toLowerCase()
+	if (!query) return true
+
+	return (
+		(item.name ?? '').toLowerCase().includes(query) ||
+		(item.internalCode ?? '').toLowerCase().includes(query)
+	)
+}
+
 export const compareDatesForSorting = (
 	firstDate?: string,
 	secondDate?: string,

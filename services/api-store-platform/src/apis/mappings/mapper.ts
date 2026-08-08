@@ -145,6 +145,7 @@ export const mapCustomers = (customers: Customer[]): CustomerResponse[] =>
 		internalCode: customer.internalCode,
 		createdAt: customer.createdAt,
 		updatedAt: customer.updatedAt,
+		totalReceivable: customer.totalReceivable ?? 0,
 		createdBy: customer.createdBy,
 		updatedBy: customer.updatedBy,
 		relatedActions: (customer.relatedActions ?? []).map(mapCustomerAction),
@@ -153,12 +154,14 @@ export const mapCustomers = (customers: Customer[]): CustomerResponse[] =>
 export const mapCustomer = (
 	customer: CustomerDocument,
 	relatedActions: CustomerDailyAction[] = [],
+	totalReceivable = 0,
 ): CustomerResponse => ({
 	customerId: customer.customerId ?? customer.internalCode ?? '',
 	name: customer.name,
 	internalCode: customer.internalCode,
 	createdAt: customer.createdAt?.toISOString(),
 	updatedAt: customer.updatedAt?.toISOString(),
+	totalReceivable,
 	createdBy: customer.createdBy
 		? {
 				_id: customer.createdBy._id,
@@ -186,6 +189,7 @@ export const mapSuppliers = (suppliers: Supplier[]) => {
 			internalCode: supplier.internalCode,
 			createdAt: supplier.createdAt,
 			updatedAt: supplier.updatedAt,
+			totalPayable: supplier.totalPayable ?? 0,
 			createdBy: supplier.createdBy,
 			updatedBy: supplier.updatedBy,
 			relatedActions: actions.map(action => ({

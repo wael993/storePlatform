@@ -268,6 +268,16 @@
 			"payments": "Zahlungswert",
 			"balance": "Saldo"
 		},
+		"invoiceSummary": {
+			"totalInvoiced": "Gesamt fakturiert",
+			"totalPaid": "Gesamt bezahlt",
+			"totalReceivable": "Gesamtforderungen",
+			"totalPayable": "Gesamtverbindlichkeiten"
+		},
+		"supplier": {
+			"invoices": "Rechnungen",
+			"dailyActions": "Tagesaktionen"
+		},
 		"customer": {
 			"name": "Kundenname",
 			"code": "Kundencode",
@@ -667,6 +677,7 @@
 			"filter": "Filter",
 			"search": "Suchen",
 			"searchPlaceholder": "Name, Produkt-ID, Barcode",
+			"nameOrCodeSearchPlaceholder": "Nach Name oder Code suchen",
 			"dailySearchPlaceholder": "Aktions-ID, Produkt, Lieferant, Kunde, Rechnungsnummer",
 			"saveFilterPreset": "Filter-Preset speichern",
 			"supplier": "Lieferant",

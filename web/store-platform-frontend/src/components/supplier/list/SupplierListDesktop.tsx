@@ -11,7 +11,7 @@ import React, {
 import { TableVirtuoso } from 'react-virtuoso'
 import DraggableScrollContainer from '../../common/DraggableScrollContainer'
 import {
-	compareDatesForSorting,
+	compareNumbersForSorting,
 	compareStringsForSorting,
 	getTableWidth,
 } from '../../list/shared/utils'
@@ -207,8 +207,12 @@ const SupplierListDesktop = memo(
 							sortOrder,
 						)
 					}
-					case SupplierSortHeaderKey.CREATED_AT: {
-						return compareDatesForSorting(a.createdAt, b.createdAt, sortOrder)
+					case SupplierSortHeaderKey.TOTAL_PAYABLE: {
+						return compareNumbersForSorting(
+							a.totalPayable,
+							b.totalPayable,
+							sortOrder,
+						)
 					}
 					default:
 						return 0
