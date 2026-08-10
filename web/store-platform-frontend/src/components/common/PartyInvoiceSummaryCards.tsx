@@ -14,7 +14,7 @@ const styles = {
 	container: {
 		flexDirection: 'column',
 		alignItems: 'flex-start',
-		gap: '0.5rem',
+		gap: '0rem',
 		width: '100%',
 		fontSize: '0.9rem',
 	},
@@ -158,7 +158,7 @@ const PartyInvoiceSummaryCards = ({
 		: t('components.invoiceSummary.totalReceivable')
 
 	return (
-		<Box width="100%" mb={3} opacity={isFetching ? 0.7 : 1}>
+		<Box width="100%" mb={1} opacity={isFetching ? 0.7 : 1}>
 			<Flex sx={styles.container}>
 				<SummaryRow
 					label={t('components.invoiceSummary.totalInvoiced')}

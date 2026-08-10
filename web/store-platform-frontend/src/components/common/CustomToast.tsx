@@ -6,7 +6,7 @@ const useCustomToast = () => {
 	const showCustomToast = (options: UseToastOptions) => {
 		toast({
 			...options,
-			duration: options.duration || 5000,
+			duration: options.duration ?? 5000,
 			isClosable: options.isClosable ?? true,
 			containerStyle: options.containerStyle || {
 				marginBottom: { base: '3rem', lg: '5rem' },

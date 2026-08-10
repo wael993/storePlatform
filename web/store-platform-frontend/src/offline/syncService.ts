@@ -1,5 +1,6 @@
 import { config } from '../config'
 import store from '../store/store'
+import { setAccessToken } from '../store/user/reducer'
 import {
 	getPendingOutboxCount,
 	getProcessingOutboxCount,
@@ -147,6 +148,27 @@ const isActivePushSyncState = (syncState: OfflineState['syncState']): boolean =>
 	syncState === 'syncing' ||
 	syncState === 'success' ||
 	(syncState === 'error' && currentState.syncPushResult !== null)
+
+const refreshAccessToken = async (): Promise<void> => {
+	const response = await fetch(
+		`${config.endpoints.storePlatformEndpoint}/refresh`,
+		{
+			method: 'POST',
+			credentials: 'include',
+		},
+	)
+
+	if (!response.ok) {
+		throw new Error('Session expired. Please log in again.')
+	}
+
+	const data = (await response.json()) as { accessToken?: string }
+	if (!data.accessToken) {
+		throw new Error('Session expired. Please log in again.')
+	}
+
+	store.dispatch(setAccessToken(data.accessToken))
+}
 
 const fetchWithAuth = async (
 	path: string,
@@ -673,6 +695,7 @@ export const exitOfflineWorkMode = async (tenantId?: string): Promise<void> => {
 		throw new Error('Network connection required to sync changes')
 	}
 
+	await refreshAccessToken()
 	await pushOutbox({ force: true })
 
 	const { syncPushResult } = getOfflineState()

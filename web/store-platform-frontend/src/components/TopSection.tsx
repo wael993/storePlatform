@@ -394,7 +394,15 @@ const TopSection = ({
 					</GridItem>
 
 					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
-						<Flex sx={styles.feeSectionFlexWrapper}>
+						<Flex
+							sx={{
+								...styles.feeSectionFlexWrapper,
+								justifyContent: 'center',
+								width: '100%',
+								flexDirection: 'column',
+							}}
+							// sx={styles.feeSectionFlexWrapper}
+						>
 							<Flex sx={styles.itemWrapperWithMargin}>
 								{customer?.customerId ? (
 									<PartyInvoiceSummaryCards customerId={customer.customerId} />
