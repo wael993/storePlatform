@@ -18,6 +18,7 @@ import {
 	isOfflineCapableEndpoint,
 } from '../offline/localHandlers'
 import { isOfflineCapableForTenant } from '../offline/localStore'
+import { getWorkMode } from '../offline/workMode'
 
 export type TagType =
 	| 'products'
@@ -94,6 +95,7 @@ const baseQuery = fetchBaseQuery({
 		if (token) {
 			headers.set('Authorization', `Bearer ${token}`)
 		}
+		headers.set('x-work-mode', getWorkMode())
 		return headers
 	},
 })

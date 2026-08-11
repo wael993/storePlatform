@@ -8,6 +8,7 @@
 		"@emotion/react": "^11.14.0",
 		"@emotion/styled": "^11.14.1",
 		"@hookform/resolvers": "^5.4.0",
+		"@react-pdf/renderer": "^4.6.0",
 		"@reduxjs/toolkit": "2.6.1",
 		"@testing-library/dom": "^10.4.0",
 		"@testing-library/jest-dom": "^6.6.3",

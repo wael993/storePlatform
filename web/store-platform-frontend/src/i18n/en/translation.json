@@ -462,10 +462,21 @@
 				"view": "View",
 				"edit": "Edit",
 				"print": "Print",
+				"download": "Download",
 				"delete": "Delete",
 				"more": "More options",
 				"deleteConfirmTitle": "Delete invoice",
-				"deleteConfirmBody": "Are you sure you want to delete this invoice? This action cannot be undone."
+				"deleteConfirmBody": "Are you sure you want to delete this invoice? This action cannot be undone.",
+				"exportFailed": "Could not prepare this invoice for print/download."
+			},
+			"document": {
+				"invoiceNumber": "Invoice No.",
+				"item": "Item",
+				"qty": "Qty",
+				"unit": "Unit",
+				"unitPrice": "Unit price",
+				"lineTotal": "Line total",
+				"tax": "Tax"
 			},
 			"pagination": {
 				"showing": "Showing {{start}} to {{end}} of {{total}} invoices"
@@ -622,12 +633,24 @@
 			"offline": "Offline — work from local data",
 			"auto": "Automatic — switch based on internet connection",
 			"notAvailable": "Offline mode is not enabled for this tenant.",
-			"switching": "Switching work mode…"
+			"switching": "Switching work mode…",
+			"settingsLockedOffline": "Other settings are unavailable offline. Switch to online mode to change them."
 		},
 		"invoiceSettings": {
 			"title": "Invoice",
-			"description": "Control how products are added to selling and buying invoices.",
-			"noMergeInvoiceLines": "Don't merge duplicate products"
+			"description": "Control how products are added to selling and buying invoices, and customize the printable invoice header.",
+			"noMergeInvoiceLines": "Don't merge duplicate products",
+			"pdfHeaderTitle": "Invoice PDF header",
+			"pdfHeaderDescription": "These details appear on printed and downloaded invoices. Empty fields are omitted.",
+			"displayName": "Store / company name",
+			"displayNamePlaceholder": "Defaults to tenant name",
+			"address": "Address",
+			"phone": "Phone",
+			"email": "Email",
+			"taxNumber": "Tax / VAT number",
+			"logoUrl": "Logo URL",
+			"logoUrlHint": "Paste a public image URL for the invoice logo.",
+			"footerNote": "Footer note"
 		},
 		"productsSettings": {
 			"productsPerPage": "Products Per Page",

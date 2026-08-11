@@ -7,7 +7,9 @@ import type {
 	CurrencySettings,
 	CurrencySettingItem,
 	InvoiceSettings,
+	InvoiceSettingsUpdate,
 } from '../api/apiStore'
+import { getWorkMode } from './workMode'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
@@ -743,6 +745,13 @@ const getLocalInvoiceSettings = async (): Promise<InvoiceSettings> => {
 
 	return {
 		noMergeInvoiceLines: false,
+		displayName: '',
+		address: '',
+		phone: '',
+		email: '',
+		taxNumber: '',
+		logoUrl: '',
+		footerNote: '',
 	}
 }
 
@@ -867,12 +876,14 @@ const applyLocalCurrencySettingsUpdate = async (
 }
 
 const applyLocalInvoiceSettingsUpdate = async (
-	payload: Pick<InvoiceSettings, 'noMergeInvoiceLines'>,
+	payload: InvoiceSettingsUpdate,
 ): Promise<InvoiceSettings> => {
 	const current = await getLocalInvoiceSettings()
 	const updated: InvoiceSettings = {
 		...current,
-		noMergeInvoiceLines: payload.noMergeInvoiceLines ?? false,
+		...payload,
+		noMergeInvoiceLines:
+			payload.noMergeInvoiceLines ?? current.noMergeInvoiceLines ?? false,
 		updatedAt: nowIso(),
 	}
 
@@ -912,7 +923,7 @@ const handlePatchCurrencySettings = async (body: unknown) => {
 }
 
 const handlePatchInvoiceSettings = async (body: unknown) => {
-	const payload = (body ?? {}) as Pick<InvoiceSettings, 'noMergeInvoiceLines'>
+	const payload = (body ?? {}) as InvoiceSettingsUpdate
 	const duplicate = await findDuplicateOutboxEntry(
 		'invoice-settings',
 		'PATCH',
@@ -1339,9 +1350,7 @@ const applyLocalEntityMutation = async (
 	}
 
 	if (entity === 'invoiceSettings' && op === 'update') {
-		await applyLocalInvoiceSettingsUpdate(
-			payload as Pick<InvoiceSettings, 'noMergeInvoiceLines'>,
-		)
+		await applyLocalInvoiceSettingsUpdate(payload as InvoiceSettingsUpdate)
 	}
 
 	if (entity === 'invoice' && op === 'update') {
@@ -1383,6 +1392,24 @@ const applyLocalEntityMutation = async (
 	}
 }
 
+const SETTINGS_MUTATION_PATHS = new Set([
+	'user-settings',
+	'currency-settings',
+	'invoice-settings',
+])
+
+const settingsLockedOfflineError = () =>
+	({
+		error: {
+			status: 403,
+			data: {
+				message:
+					'Settings cannot be changed while offline. Switch to online mode first.',
+				code: 'SETTINGS_LOCKED_OFFLINE',
+			},
+		},
+	}) as const
+
 export const handleOfflineQuery = async (
 	args: string | FetchArgs,
 ): Promise<
@@ -1396,6 +1423,14 @@ export const handleOfflineQuery = async (
 
 	const { path } = parseUrlPath(url)
 	const params = resolveRequestParams(args)
+
+	if (
+		['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) &&
+		SETTINGS_MUTATION_PATHS.has(path) &&
+		getWorkMode() === 'offline'
+	) {
+		return settingsLockedOfflineError()
+	}
 
 	try {
 		if (method === 'GET') {

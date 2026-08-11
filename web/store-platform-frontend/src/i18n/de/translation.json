@@ -447,10 +447,21 @@
 				"view": "Ansehen",
 				"edit": "Bearbeiten",
 				"print": "Drucken",
+				"download": "Herunterladen",
 				"delete": "Löschen",
 				"more": "Weitere Optionen",
 				"deleteConfirmTitle": "Rechnung löschen",
-				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+				"exportFailed": "Rechnung konnte nicht für Druck/Download vorbereitet werden."
+			},
+			"document": {
+				"invoiceNumber": "Rechnungsnr.",
+				"item": "Artikel",
+				"qty": "Menge",
+				"unit": "Einheit",
+				"unitPrice": "Einzelpreis",
+				"lineTotal": "Zeilensumme",
+				"tax": "Steuer"
 			},
 			"pagination": {
 				"showing": "{{start}} bis {{end}} von {{total}} Rechnungen"
@@ -606,12 +617,24 @@
 			"offline": "Offline — mit lokalen Daten arbeiten",
 			"auto": "Automatisch — je nach Internetverbindung wechseln",
 			"notAvailable": "Offline-Modus ist für diesen Mandanten nicht aktiviert.",
-			"switching": "Arbeitsmodus wird gewechselt…"
+			"switching": "Arbeitsmodus wird gewechselt…",
+			"settingsLockedOffline": "Andere Einstellungen sind offline nicht verfügbar. Wechseln Sie in den Online-Modus, um sie zu ändern."
 		},
 		"invoiceSettings": {
 			"title": "Rechnung",
-			"description": "Steuern Sie, wie Produkte zu Verkaufs- und Einkaufsrechnungen hinzugefügt werden.",
-			"noMergeInvoiceLines": "Doppelte Produkte nicht zusammenführen"
+			"description": "Steuern Sie, wie Produkte zu Verkaufs- und Einkaufsrechnungen hinzugefügt werden, und passen Sie den PDF-Kopf an.",
+			"noMergeInvoiceLines": "Doppelte Produkte nicht zusammenführen",
+			"pdfHeaderTitle": "PDF-Rechnungskopf",
+			"pdfHeaderDescription": "Diese Angaben erscheinen auf gedruckten und heruntergeladenen Rechnungen. Leere Felder werden weggelassen.",
+			"displayName": "Geschäfts-/Firmenname",
+			"displayNamePlaceholder": "Standard ist der Mandantenname",
+			"address": "Adresse",
+			"phone": "Telefon",
+			"email": "E-Mail",
+			"taxNumber": "Steuer-/USt-IdNr.",
+			"logoUrl": "Logo-URL",
+			"logoUrlHint": "Öffentliche Bild-URL für das Rechnungslogo einfügen.",
+			"footerNote": "Fußzeilennotiz"
 		},
 		"productsSettings": {
 			"productsPerPage": "Produkte pro Seite",

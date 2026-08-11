@@ -71,9 +71,28 @@ export interface InvoiceSettings {
 	_id?: string
 	tenantId?: string
 	noMergeInvoiceLines: boolean
+	displayName?: string
+	address?: string
+	phone?: string
+	email?: string
+	taxNumber?: string
+	logoUrl?: string
+	footerNote?: string
 	createdAt?: string
 	updatedAt?: string
 }
+
+export type InvoiceSettingsUpdate = Pick<
+	InvoiceSettings,
+	| 'noMergeInvoiceLines'
+	| 'displayName'
+	| 'address'
+	| 'phone'
+	| 'email'
+	| 'taxNumber'
+	| 'logoUrl'
+	| 'footerNote'
+>
 
 export interface ProductFiltersQueryParams {
 	searchText?: string
@@ -1053,7 +1072,7 @@ const getQuery = (
 
 		updateInvoiceSettings: builder.mutation<
 			InvoiceSettings,
-			Pick<InvoiceSettings, 'noMergeInvoiceLines'>
+			InvoiceSettingsUpdate
 		>({
 			query: body => ({
 				url: 'invoice-settings',
@@ -1459,6 +1478,7 @@ export const {
 	useDeleteSellingInvoiceMutation,
 	useGetBuyingInvoicesQuery,
 	useGetBuyingInvoiceQuery,
+	useLazyGetBuyingInvoiceQuery,
 	usePostBuyingInvoiceMutation,
 	useUpdateBuyingInvoiceMutation,
 	useDeleteBuyingInvoiceMutation,

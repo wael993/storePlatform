@@ -397,3 +397,69 @@ export const getPrimaryInvoiceCurrencyAmounts = (
 		currencyId: undefined as string | undefined,
 	}
 }
+
+export type InvoicePdfCurrencyAmounts = {
+	grandTotal: number
+	paidAmount: number
+	remainingAmount: number
+	subtotal: number
+	tax: number
+	discount: number
+	currencyId: string | undefined
+	/** Multiply primary amounts by this to match PDF totals/lines. */
+	exchangeRate: number
+}
+
+/**
+ * Amounts for PDF / print: Default Invoice Currency when present on the invoice,
+ * otherwise convert primary amounts. Always returns the exchangeRate used so
+ * line items can convert with the same rate as the totals.
+ */
+export const getInvoicePdfCurrencyAmounts = (
+	invoice: InvoiceAmountSource,
+	pdfCurrencyId: string | null | undefined,
+	options: DisplayCurrencyOption[],
+): InvoicePdfCurrencyAmounts => {
+	const optionRate =
+		(pdfCurrencyId &&
+			options.find(option => option.currencyId === pdfCurrencyId)
+				?.exchangeRate) ||
+		1
+
+	if (pdfCurrencyId) {
+		const saved = invoice.currencyAmounts?.find(
+			amount => amount.currencyId === pdfCurrencyId,
+		)
+		if (saved) {
+			return {
+				grandTotal: saved.amount,
+				paidAmount: saved.paidAmount,
+				remainingAmount: saved.remainingAmount,
+				subtotal: saved.subtotal,
+				tax: saved.tax,
+				discount: saved.discount,
+				currencyId: saved.currencyId,
+				exchangeRate: saved.exchangeRate > 0 ? saved.exchangeRate : optionRate,
+			}
+		}
+	}
+
+	const primary = getPrimaryInvoiceCurrencyAmounts(invoice)
+	if (!pdfCurrencyId) {
+		return { ...primary, exchangeRate: 1 }
+	}
+
+	const exchangeRate = optionRate > 0 ? optionRate : 1
+	const convert = (amount: number) => roundDisplayAmount(amount * exchangeRate)
+
+	return {
+		grandTotal: convert(primary.grandTotal),
+		paidAmount: convert(primary.paidAmount),
+		remainingAmount: convert(primary.remainingAmount),
+		subtotal: convert(primary.subtotal),
+		tax: convert(primary.tax),
+		discount: convert(primary.discount),
+		currencyId: pdfCurrencyId,
+		exchangeRate,
+	}
+}

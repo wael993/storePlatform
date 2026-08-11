@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
+	Alert,
+	AlertDescription,
+	AlertIcon,
+	Box,
 	Flex,
 	Heading,
 	Tab,
@@ -23,7 +27,9 @@ import ProductsSettings from '../components/settings/ProductsSettings'
 import LanguagesSettings from '../components/settings/LanguagesSettings'
 import WorkModeSettings from '../components/settings/WorkModeSettings'
 import CurrenciesSettings from '../components/settings/CurrenciesSettings'
-import InvoiceSettings from '../components/settings/InvoiceSettings'
+import InvoiceSettings, {
+	type InvoiceBrandFormValues,
+} from '../components/settings/InvoiceSettings'
 import SettingActions from '../components/settings/SettingActions'
 import useCustomToast from '../components/common/CustomToast'
 import {
@@ -35,6 +41,8 @@ import {
 	useUpdateUserSettingsMutation,
 } from '../api/apiStore'
 import { generateId } from '../offline/utils'
+import { useUser } from '../shared/hooks/useUser'
+import { useWorkMode } from '../shared/hooks/useWorkMode'
 
 enum StepKeys {
 	product = 0,
@@ -55,6 +63,16 @@ const createEmptySecondary = (): CurrencySettingItem => ({
 	name: '',
 	internalCode: '',
 	exchangeRate: undefined,
+})
+
+const emptyInvoiceBrand = (): InvoiceBrandFormValues => ({
+	displayName: '',
+	address: '',
+	phone: '',
+	email: '',
+	taxNumber: '',
+	logoUrl: '',
+	footerNote: '',
 })
 
 const styles = {
@@ -135,10 +153,15 @@ const SettingsPage = () => {
 	>([])
 	const [hasCurrencyChanges, setHasCurrencyChanges] = useState(false)
 	const [noMergeInvoiceLines, setNoMergeInvoiceLines] = useState(false)
+	const [invoiceBrand, setInvoiceBrand] =
+		useState<InvoiceBrandFormValues>(emptyInvoiceBrand())
 	const [hasInvoiceChanges, setHasInvoiceChanges] = useState(false)
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const navigate = useNavigate()
+	const { user } = useUser()
+	const { workMode } = useWorkMode()
+	const settingsLockedOffline = workMode === 'offline'
 	const showToastMessage = useCustomToast()
 	const [updateUserSettings, { isLoading: isUserSettingsSaveInProgress }] =
 		useUpdateUserSettingsMutation()
@@ -165,6 +188,16 @@ const SettingsPage = () => {
 		}
 
 		setNoMergeInvoiceLines(invoiceSettingsData.noMergeInvoiceLines ?? false)
+		setInvoiceBrand({
+			// Keep empty when unset — PDF falls back to tenant name at read time.
+			displayName: invoiceSettingsData.displayName ?? '',
+			address: invoiceSettingsData.address ?? '',
+			phone: invoiceSettingsData.phone ?? '',
+			email: invoiceSettingsData.email ?? '',
+			taxNumber: invoiceSettingsData.taxNumber ?? '',
+			logoUrl: invoiceSettingsData.logoUrl ?? '',
+			footerNote: invoiceSettingsData.footerNote ?? '',
+		})
 		setHasInvoiceChanges(false)
 	}, [invoiceSettingsData])
 
@@ -241,6 +274,14 @@ const SettingsPage = () => {
 		setHasInvoiceChanges(true)
 	}
 
+	const handleInvoiceBrandChange = (
+		field: keyof InvoiceBrandFormValues,
+		value: string,
+	) => {
+		setInvoiceBrand(current => ({ ...current, [field]: value }))
+		setHasInvoiceChanges(true)
+	}
+
 	const handleTabsChange = (index: number) => {
 		setCurrentTabIndex(index)
 	}
@@ -255,6 +296,14 @@ const SettingsPage = () => {
 	}
 
 	const onSaveSettings = async () => {
+		if (settingsLockedOffline) {
+			showToastMessage({
+				status: 'error',
+				description: t('components.workModeSettings.settingsLockedOffline'),
+			})
+			return
+		}
+
 		try {
 			if (hasChanges) {
 				await updateUserSettings({
@@ -314,7 +363,16 @@ const SettingsPage = () => {
 			}
 
 			if (hasInvoiceChanges) {
-				await updateInvoiceSettings({ noMergeInvoiceLines }).unwrap()
+				await updateInvoiceSettings({
+					noMergeInvoiceLines,
+					displayName: invoiceBrand.displayName.trim(),
+					address: invoiceBrand.address.trim(),
+					phone: invoiceBrand.phone.trim(),
+					email: invoiceBrand.email.trim(),
+					taxNumber: invoiceBrand.taxNumber.trim(),
+					logoUrl: invoiceBrand.logoUrl.trim(),
+					footerNote: invoiceBrand.footerNote.trim(),
+				}).unwrap()
 				setHasInvoiceChanges(false)
 			}
 
@@ -351,7 +409,8 @@ const SettingsPage = () => {
 	}
 
 	const isSaveDisabled =
-		!hasChanges && !hasCurrencyChanges && !hasInvoiceChanges
+		settingsLockedOffline ||
+		(!hasChanges && !hasCurrencyChanges && !hasInvoiceChanges)
 	const isSaveInProgress =
 		isUserSettingsSaveInProgress ||
 		isCurrencySaveInProgress ||
@@ -373,6 +432,15 @@ const SettingsPage = () => {
 					<Icon sx={styles.icon} as={AsCloseIcon} onClick={onClose} />
 				</Flex>
 			</Flex>
+
+			{settingsLockedOffline && (
+				<Alert status="info" borderRadius="md" variant="left-accent" mb={4}>
+					<AlertIcon />
+					<AlertDescription fontSize="sm">
+						{t('components.workModeSettings.settingsLockedOffline')}
+					</AlertDescription>
+				</Alert>
+			)}
 
 			<Tabs
 				index={currentTabIndex}
@@ -411,30 +479,48 @@ const SettingsPage = () => {
 
 				<TabPanels>
 					<TabPanel sx={styles.contentWrapper}>
-						<ProductsSettings
-							productsPerPage={productsPerPage}
-							handleProductsPerPageChange={handleProductsPerPageChange}
-						/>
+						<Box
+							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+							opacity={settingsLockedOffline ? 0.55 : 1}
+							aria-disabled={settingsLockedOffline}
+						>
+							<ProductsSettings
+								productsPerPage={productsPerPage}
+								handleProductsPerPageChange={handleProductsPerPageChange}
+							/>
+						</Box>
 					</TabPanel>
 
 					<TabPanel sx={styles.contentWrapper}>
-						<LanguagesSettings
-							displayLanguage={displayLanguage}
-							handleLanguageChange={handleLanguageChange}
-						/>
+						<Box
+							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+							opacity={settingsLockedOffline ? 0.55 : 1}
+							aria-disabled={settingsLockedOffline}
+						>
+							<LanguagesSettings
+								displayLanguage={displayLanguage}
+								handleLanguageChange={handleLanguageChange}
+							/>
+						</Box>
 					</TabPanel>
 
 					<TabPanel sx={styles.contentWrapper}>
-						<CurrenciesSettings
-							primaryCurrency={primaryCurrency}
-							secondaryCurrencies={secondaryCurrencies}
-							defaultInvoiceCurrencyId={defaultInvoiceCurrencyId}
-							onDefaultInvoiceCurrencyChange={setDefaultInvoiceCurrencyId}
-							onPrimaryChange={handlePrimaryChange}
-							onSecondaryChange={handleSecondaryChange}
-							onAddSecondary={handleAddSecondary}
-							onRemoveSecondary={handleRemoveSecondary}
-						/>
+						<Box
+							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+							opacity={settingsLockedOffline ? 0.55 : 1}
+							aria-disabled={settingsLockedOffline}
+						>
+							<CurrenciesSettings
+								primaryCurrency={primaryCurrency}
+								secondaryCurrencies={secondaryCurrencies}
+								defaultInvoiceCurrencyId={defaultInvoiceCurrencyId}
+								onDefaultInvoiceCurrencyChange={setDefaultInvoiceCurrencyId}
+								onPrimaryChange={handlePrimaryChange}
+								onSecondaryChange={handleSecondaryChange}
+								onAddSecondary={handleAddSecondary}
+								onRemoveSecondary={handleRemoveSecondary}
+							/>
+						</Box>
 					</TabPanel>
 
 					<TabPanel sx={styles.contentWrapper}>
@@ -442,10 +528,19 @@ const SettingsPage = () => {
 					</TabPanel>
 
 					<TabPanel sx={styles.contentWrapper}>
-						<InvoiceSettings
-							noMergeInvoiceLines={noMergeInvoiceLines}
-							onNoMergeInvoiceLinesChange={handleNoMergeInvoiceLinesChange}
-						/>
+						<Box
+							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+							opacity={settingsLockedOffline ? 0.55 : 1}
+							aria-disabled={settingsLockedOffline}
+						>
+							<InvoiceSettings
+								noMergeInvoiceLines={noMergeInvoiceLines}
+								brand={invoiceBrand}
+								displayNameFallback={user?.tenantName?.trim() || undefined}
+								onNoMergeInvoiceLinesChange={handleNoMergeInvoiceLinesChange}
+								onBrandChange={handleInvoiceBrandChange}
+							/>
+						</Box>
 					</TabPanel>
 				</TabPanels>
 			</Tabs>

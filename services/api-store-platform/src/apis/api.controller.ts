@@ -10,6 +10,7 @@ import { config } from '../config/config'
 import {
 	BusinessLogicError,
 	AuthenticationError,
+	AuthorizationError,
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
 import { Supplier } from '../models/Supplier'
@@ -177,6 +178,23 @@ import { SyncMutation } from '../models/SyncMutation'
 import { OfflineSyncState } from '../models/OfflineSyncState'
 
 const OFFLINE_INVOICE_NUMBER_BLOCK = 500
+
+/** Clients in offline work mode must not mutate settings (header set by FE). */
+const assertSettingsMutableWhileOnline = (request: {
+	headers?: Record<string, unknown>
+}): void => {
+	const raw = request.headers?.['x-work-mode']
+	const workMode = String(Array.isArray(raw) ? raw[0] : (raw ?? ''))
+		.trim()
+		.toLowerCase()
+
+	if (workMode === 'offline') {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Settings cannot be changed while the client is in offline work mode',
+		)
+	}
+}
 
 type TokenPayload = {
 	userId: string
@@ -5295,6 +5313,8 @@ export default class ProductController {
 		response: express.Response,
 	): Promise<void> {
 		try {
+			assertSettingsMutableWhileOnline(request)
+
 			const { tenantId, userId } = request.user
 			const { productsPerPage, displayLanguage, defaultInvoiceCurrencyId } =
 				request.body
@@ -5372,6 +5392,8 @@ export default class ProductController {
 		response: express.Response,
 	): Promise<void> {
 		try {
+			assertSettingsMutableWhileOnline(request)
+
 			const { tenantId, userId } = request.user
 			const { primaryCurrency, secondaryCurrencies } = request.body
 
@@ -5538,8 +5560,9 @@ export default class ProductController {
 		response: express.Response,
 	): Promise<void> {
 		try {
+			assertSettingsMutableWhileOnline(request)
+
 			const { tenantId, userId } = request.user
-			const { noMergeInvoiceLines } = request.body
 
 			if (!tenantId || !userId) {
 				throw new BusinessLogicError(
@@ -5559,7 +5582,7 @@ export default class ProductController {
 
 			const invoiceSettings = await this.applyInvoiceSettingsUpdate(
 				requestContext,
-				{ noMergeInvoiceLines },
+				request.body,
 			)
 
 			response.status(200).json(invoiceSettings)
@@ -5572,13 +5595,38 @@ export default class ProductController {
 
 	private async applyInvoiceSettingsUpdate(
 		requestContext: RequestContext,
-		body: { noMergeInvoiceLines?: boolean },
+		body: {
+			noMergeInvoiceLines?: boolean
+			displayName?: string
+			address?: string
+			phone?: string
+			email?: string
+			taxNumber?: string
+			logoUrl?: string
+			footerNote?: string
+		},
 	): Promise<IInvoiceSettings> {
 		const tenantId = this.getTenantId(requestContext)
 		const updateData: Partial<IInvoiceSettings> = {}
 
 		if (body.noMergeInvoiceLines !== undefined) {
 			updateData.noMergeInvoiceLines = Boolean(body.noMergeInvoiceLines)
+		}
+
+		const stringFields = [
+			'displayName',
+			'address',
+			'phone',
+			'email',
+			'taxNumber',
+			'logoUrl',
+			'footerNote',
+		] as const
+
+		for (const field of stringFields) {
+			if (body[field] !== undefined) {
+				updateData[field] = String(body[field]).trim()
+			}
 		}
 
 		const invoiceSettings = await InvoiceSettings.findOneAndUpdate(
@@ -7412,6 +7460,13 @@ export default class ProductController {
 			invoiceSettings: (invoiceSettings ?? {
 				tenantId: tenantContext.tenantId,
 				noMergeInvoiceLines: false,
+				displayName: '',
+				address: '',
+				phone: '',
+				email: '',
+				taxNumber: '',
+				logoUrl: '',
+				footerNote: '',
 			}) as Record<string, unknown>,
 			userSettings: userSettings as Record<string, unknown> | undefined,
 			frontendResources,
@@ -7815,7 +7870,16 @@ export default class ProductController {
 			) {
 				const invoiceSettings = await this.applyInvoiceSettingsUpdate(
 					requestContext,
-					payload as { noMergeInvoiceLines?: boolean },
+					payload as {
+						noMergeInvoiceLines?: boolean
+						displayName?: string
+						address?: string
+						phone?: string
+						email?: string
+						taxNumber?: string
+						logoUrl?: string
+						footerNote?: string
+					},
 				)
 
 				data = invoiceSettings as unknown as Record<string, unknown>

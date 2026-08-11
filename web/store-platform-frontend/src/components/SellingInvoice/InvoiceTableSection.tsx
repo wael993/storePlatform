@@ -72,6 +72,8 @@ import { AsEditIcon } from '../../shared/icons/Edit'
 import { AsCashIcon } from '../../icons/Cash'
 import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsTrashIcon } from '../../icons/Trash'
+import { AsPrintIcon } from '../../icons/Print'
+import { AsDownloadIcon } from '../../icons/Download'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
@@ -82,6 +84,7 @@ import {
 } from './currencyDisplay'
 import { ChevronRightIcon } from '../icons/ChevronRight'
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon'
+import { useInvoiceDocumentExport } from './useInvoiceDocumentExport'
 
 interface InvoiceTableSectionProps {
 	onViewInvoice: (invoiceId: string, kind: 'selling' | 'buying') => void
@@ -143,6 +146,8 @@ const InvoiceTableSection = ({
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const searchInputRef = useRef<HTMLInputElement>(null)
+	const { isExporting, printInvoice, downloadInvoice } =
+		useInvoiceDocumentExport()
 
 	const [entryPendingDelete, setEntryPendingDelete] = useState<string | null>(
 		null,
@@ -925,6 +930,44 @@ const InvoiceTableSection = ({
 																onDeleteInvoice(invoice.id, invoice.kind)
 															}
 														/>
+														<IconButton
+															size="xs"
+															variant="ghost"
+															aria-label={t(
+																'components.sellingInvoices.actions.print',
+															)}
+															isDisabled={isExporting}
+															icon={
+																<Icon
+																	as={AsPrintIcon}
+																	color={PAGE_COLORS.primary}
+																	boxSize={5}
+																/>
+															}
+															color={PAGE_COLORS.muted}
+															onClick={() =>
+																printInvoice(invoice.id, invoice.kind)
+															}
+														/>
+														<IconButton
+															size="xs"
+															variant="ghost"
+															aria-label={t(
+																'components.sellingInvoices.actions.download',
+															)}
+															isDisabled={isExporting}
+															icon={
+																<Icon
+																	as={AsDownloadIcon}
+																	color={PAGE_COLORS.primary}
+																	boxSize={5}
+																/>
+															}
+															color={PAGE_COLORS.muted}
+															onClick={() =>
+																downloadInvoice(invoice.id, invoice.kind)
+															}
+														/>
 														<Menu>
 															<MenuButton
 																as={IconButton}
@@ -965,6 +1008,26 @@ const InvoiceTableSection = ({
 																>
 																	{t(
 																		'components.sellingInvoices.actions.delete',
+																	)}
+																</MenuItem>
+																<MenuItem
+																	isDisabled={isExporting}
+																	onClick={() =>
+																		printInvoice(invoice.id, invoice.kind)
+																	}
+																>
+																	{t(
+																		'components.sellingInvoices.actions.print',
+																	)}
+																</MenuItem>
+																<MenuItem
+																	isDisabled={isExporting}
+																	onClick={() =>
+																		downloadInvoice(invoice.id, invoice.kind)
+																	}
+																>
+																	{t(
+																		'components.sellingInvoices.actions.download',
 																	)}
 																</MenuItem>
 															</MenuList>

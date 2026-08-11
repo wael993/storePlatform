@@ -438,6 +438,7 @@ const CurrenciesSettings = ({
 							'components.currenciesSettings.defaultInvoiceCurrencyPlaceholder',
 						)}
 						isSingle
+						isDisabled={displayCurrencyOptions.length === 1}
 						isSearchable={false}
 						customStyles={{
 							dropdownContainer: { width: '100%' },
