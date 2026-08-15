@@ -12,15 +12,17 @@ export interface RoleFrontendResourcePermission {
 	allowedActions?: string[]
 }
 
-export interface IRole extends Document {
+export interface RoleRecord {
 	_id: string
 	name: string
 	resources: Record<string, Record<string, RoleMethodPermission>>
 	include: string[]
 	frontendResources: Record<string, RoleFrontendResourcePermission>
-	createdAt: Date
-	updatedAt: Date
+	createdAt?: Date
+	updatedAt?: Date
 }
+
+export interface IRole extends Document<string>, Omit<RoleRecord, '_id'> {}
 
 const MethodPermissionSchema = new Schema<RoleMethodPermission>(
 	{

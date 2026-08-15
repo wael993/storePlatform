@@ -1,8 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
-export interface IExpense extends Document {
-	_id: string
+export interface IExpense extends Document<string> {
 	expenseId: string
 	tenantId: string
 	name: string
@@ -10,15 +9,15 @@ export interface IExpense extends Document {
 	createdBy: {
 		_id: string
 		displayName: string
+		role?: string
 		createdAt: Date
 	}
 	updatedBy?: {
 		_id: string
 		displayName: string
+		role?: string
 		updatedAt: Date
 	}
-	createdAt: Date
-	updatedAt: Date
 }
 
 const ExpenseSchema = new Schema<IExpense>(
@@ -27,16 +26,6 @@ const ExpenseSchema = new Schema<IExpense>(
 		expenseId: { type: String, required: true, index: true },
 		name: { type: String, required: true, trim: true, index: true },
 		internalCode: { type: String, index: true, uppercase: true },
-		createdBy: {
-			_id: String,
-			displayName: String,
-			createdAt: Date,
-		},
-		updatedBy: {
-			_id: String,
-			displayName: String,
-			updatedAt: Date,
-		},
 	},
 	{ timestamps: true },
 )

@@ -4,8 +4,9 @@ import {
 	BusinessLogicError,
 } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
-import Role, { IRole, RoleMethodPermission } from '../models/Role'
+import Role, { RoleMethodPermission, RoleRecord } from '../models/Role'
 import { COLLECTION_NAMES } from './general'
+import logger, { EntityType } from './logger/logger'
 
 export const TENANT_ROLES = [
 	'owner',
@@ -163,7 +164,7 @@ const mergeFrontendResources = (
 
 const resolveRoleTree = (
 	roleId: string,
-	rolesById: Record<string, IRole>,
+	rolesById: Record<string, RoleRecord>,
 	visited: Set<string>,
 ): { resources: RoleResources; frontendResources: FrontendResources } => {
 	if (visited.has(roleId)) {
@@ -207,8 +208,8 @@ const resolveRoleTree = (
 	}
 }
 
-const buildDynamicMatrixFromRoles = (
-	rolesById: Record<string, IRole>,
+export const buildDynamicMatrixFromRoles = (
+	rolesById: Record<string, RoleRecord>,
 ): {
 	matrix: Record<TenantRole, TenantPermissionMap>
 	frontendResources: Partial<Record<TenantRole, FrontendResources>>
@@ -261,7 +262,7 @@ const getDynamicRoleEngine = async (): Promise<{
 	}
 
 	try {
-		const roles = (await Role.find().lean()) as IRole[]
+		const roles = await Role.find().lean<RoleRecord[]>()
 
 		if (roles.length === 0) {
 			dynamicRoleCache = {
@@ -276,7 +277,7 @@ const getDynamicRoleEngine = async (): Promise<{
 			}
 		}
 
-		const rolesById: Record<string, IRole> = {}
+		const rolesById: Record<string, RoleRecord> = {}
 
 		for (const role of roles) {
 			rolesById[String(role._id).toUpperCase()] = role
@@ -291,7 +292,12 @@ const getDynamicRoleEngine = async (): Promise<{
 		}
 
 		return built
-	} catch {
+	} catch (error) {
+		logger.error('Failed to load tenant role matrix', {
+			entity: EntityType.AUTHORIZATION,
+			error: error instanceof Error ? error.message : String(error),
+		})
+
 		dynamicRoleCache = {
 			expiresAt: Date.now() + 5_000,
 			matrix: null,

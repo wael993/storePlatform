@@ -53,7 +53,7 @@ const attachTenantFilter = function <ResultType, DocType>(
 	next()
 }
 
-export const tenantScopedSchema = <T extends mongoose.Document>(
+export const tenantScopedSchema = <T extends mongoose.Document<any>>(
 	schema: Schema<T>,
 ) => {
 	schema.add({
