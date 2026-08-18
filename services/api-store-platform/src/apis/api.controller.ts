@@ -43,16 +43,14 @@ import {
 	normalizeProductPatchRequest,
 } from './productHelper/productPatchNormalize'
 import {
-	filterCustomerRelatedActions,
 	filterPartnerRelatedActions,
 	filterProductRelatedActions,
-	mapCustomer,
-	mapCustomers,
 	mapPartners,
 	mapProductAction,
 	mapSuppliers,
 	mapTenantSummary,
 } from './mappings/mapper'
+import CustomerController from './customer/api.controller'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -76,8 +74,6 @@ import {
 	CreateSupplierResponse,
 	SupplierDocument,
 	CustomerRequestBody,
-	CreateCustomerResponse,
-	CustomerDocument,
 	ExpenseRequestBody,
 	CreateExpenseResponse,
 	ExpenseDocument,
@@ -120,8 +116,6 @@ import {
 import {
 	CreateDailyActionResponse,
 	CurrenciesResponse,
-	CustomerResponse,
-	CustomersResponse,
 	DailyActionRequestBody,
 	DailyActionResponse,
 	EntryType,
@@ -293,10 +287,24 @@ type BudgetOverviewResponse = {
 }
 
 export default class ProductController {
+	private customerController?: CustomerController
+
 	constructor(
 		private productsMapper: ProductsMapper,
 		private mongoDbClient: MongodbController,
 	) {}
+
+	public setCustomerController(customerController: CustomerController): void {
+		this.customerController = customerController
+	}
+
+	private requireCustomerController(): CustomerController {
+		if (!this.customerController) {
+			throw new Error('CustomerController is not set')
+		}
+
+		return this.customerController
+	}
 
 	private getTenantId(requestContext: RequestContext): string {
 		return requestContext.tenantId || 'global'
@@ -2414,7 +2422,7 @@ export default class ProductController {
 		}
 	}
 
-	private buildCustomerInvoiceSummary(
+	public buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, any>>,
 		customerEntries: DailyActionResponse['data'] = [],
 	): CustomerInvoiceSummary {
@@ -6155,190 +6163,6 @@ export default class ProductController {
 		}
 	}
 
-	public async getCustomers(
-		requestContext: RequestContext,
-	): Promise<CustomersResponse> {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildCustomerListKey(tenantId)
-		const cachedCustomers =
-			await redisCache.getJson<CustomersResponse>(cacheKey)
-
-		if (cachedCustomers) {
-			return cachedCustomers
-		}
-
-		const customers = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.CUSTOMERS,
-			model: Customer,
-			sort: { createdAt: 'desc' },
-		})
-
-		const dailyActions = await this.getDailyActions(requestContext)
-		const { documents: sellingInvoices } =
-			await this.mongoDbClient.getDocuments({
-				requestContext,
-				collectionName: COLLECTION_NAMES.INVOICES,
-				model: Invoice,
-				sort: { createdAt: 'desc' },
-			})
-
-		const invoicesByCustomerId = new Map<string, Array<Record<string, any>>>()
-
-		for (const invoice of sellingInvoices) {
-			const customerId = String(invoice.customerId ?? '')
-
-			if (!customerId) continue
-
-			const existing = invoicesByCustomerId.get(customerId)
-
-			if (existing) {
-				existing.push(invoice)
-			} else {
-				invoicesByCustomerId.set(customerId, [invoice])
-			}
-		}
-
-		const data = customers.documents.map((customer: CustomerDocument) => {
-			const relatedActions = filterCustomerRelatedActions(
-				dailyActions.data,
-				customer,
-			)
-			const { totalReceivable } = this.buildCustomerInvoiceSummary(
-				invoicesByCustomerId.get(customer.customerId) ?? [],
-				relatedActions,
-			)
-
-			return {
-				customerId: customer.customerId,
-				name: customer.name,
-				internalCode: customer.internalCode,
-				createdAt: customer.createdAt?.toISOString(),
-				updatedAt: customer.updatedAt?.toISOString(),
-				totalReceivable,
-				createdBy: customer.createdBy as any,
-				updatedBy: customer.updatedBy
-					? {
-							...customer.updatedBy,
-							updatedAt: customer.updatedBy.updatedAt.toISOString(),
-						}
-					: undefined,
-				relatedActions,
-			}
-		})
-
-		const mappedCustomers = mapCustomers(data)
-		const response: CustomersResponse = {
-			data: mappedCustomers,
-			totalCount: mappedCustomers.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
-
-		return response
-	}
-
-	public async getCustomer(
-		customerId: string,
-		requestContext: RequestContext,
-	): Promise<CustomerResponse | null> {
-		const customer =
-			await this.mongoDbClient.getDocumentByField<CustomerDocument>(
-				requestContext,
-				COLLECTION_NAMES.CUSTOMERS,
-				Customer,
-				{ fieldName: 'customerId', fieldValue: customerId },
-			)
-
-		if (!customer) {
-			return null
-		}
-
-		const dailyActions = await this.getDailyActions(requestContext)
-
-		return mapCustomer(
-			customer,
-			filterCustomerRelatedActions(dailyActions.data, customer),
-		)
-	}
-
-	public async postCustomer(
-		requestContext: RequestContext,
-		requestBody: CustomerRequestBody,
-	): Promise<CreateCustomerResponse | null> {
-		const { name, internalCode } = requestBody
-		const tenantContext = getTenantContext(requestContext)
-
-		if (!name || !name.trim()) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Customer name is required',
-			)
-		}
-
-		const existing = await withTenantScope(
-			Customer.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
-
-		if (existing) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Customer already exists in this tenant.',
-			)
-		}
-
-		const customerId = this.resolveSyncClientId(requestBody.customerId)
-
-		const existingById = await withTenantScope(
-			Customer.findOne({ customerId }).lean(),
-			tenantContext.tenantId,
-		)
-
-		if (existingById) {
-			return {
-				_id: String(existingById._id),
-				customerId: existingById.customerId,
-			}
-		}
-
-		const customerData: CustomerDocument = {
-			customerId,
-			internalCode: internalCode?.trim() || undefined,
-			name,
-		} as CustomerDocument
-
-		logger.info('Saving customer to database.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			customerId: customerData.customerId,
-			name,
-		})
-
-		const createCustomerResponse = await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.CUSTOMERS, data: customerData },
-			Customer,
-			requestContext,
-		)
-
-		logger.info('Customer created successfully.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			customerId: customerData.customerId,
-			name,
-		})
-
-		await redisCache.del(
-			redisCache.buildCustomerListKey(tenantContext.tenantId),
-		)
-
-		return {
-			_id: createCustomerResponse._id,
-		}
-	}
-
 	public async getExpenses(
 		requestContext: RequestContext,
 	): Promise<ExpensesResponse> {
@@ -7375,7 +7199,7 @@ export default class ProductController {
 			offlineBuyingInvoices,
 		] = await Promise.all([
 			this.getInventory(requestContext),
-			this.getCustomers(requestContext),
+			this.requireCustomerController().getCustomers(requestContext),
 			this.getSuppliers(requestContext),
 			this.getPartners(requestContext),
 			this.getCategories(requestContext),
@@ -7909,7 +7733,7 @@ export default class ProductController {
 					data,
 				)
 			} else if (entry.entity === 'customer' && entry.method === 'POST') {
-				data = (await this.postCustomer(
+				data = (await this.requireCustomerController().postCustomer(
 					requestContext,
 					payload as CustomerRequestBody,
 				)) as Record<string, unknown>

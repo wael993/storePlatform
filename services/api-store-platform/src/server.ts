@@ -5,6 +5,8 @@ import connectDB from './db/db'
 import { config } from './config/config'
 import { errorHandler } from './middleware/errorHandler'
 import ProductController from './apis/api.controller'
+import CustomerController from './apis/customer/api.controller'
+import CustomerRoutes from './apis/customer/api.routes'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
@@ -16,6 +18,14 @@ const mongoDbClient = new MongodbController()
 const productsMapper = new ProductsMapper()
 
 const productController = new ProductController(productsMapper, mongoDbClient)
+const customerController = new CustomerController(
+	mongoDbClient,
+	productController,
+)
+
+productController.setCustomerController(customerController)
+
+const customerRoutes = new CustomerRoutes(customerController, productController)
 const storeRoutes = new StoreRoutes(productController)
 const app = express()
 
@@ -52,6 +62,7 @@ cacheMetricsInterval.unref()
 
 startTokenCleanupCron()
 
+customerRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 
 app.use(errorHandler)

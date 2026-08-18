@@ -18,7 +18,6 @@ import {
 	UpdateTenantRequestBody,
 	UpdateTenantUserRequestBody,
 	SupplierRequestBody,
-	CustomerRequestBody,
 	CurrencyRequestBody,
 	ExpenseRequestBody,
 	UnitRequestBody,
@@ -661,30 +660,6 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
-			.route(`${baseRoute}/customers`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCustomers.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postCustomer.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/customers/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCustomer.bind(this),
-			)
-
-		app
 			.route(`${baseRoute}/partners`)
 			.get(
 				this.startCalc.bind(this),
@@ -1261,64 +1236,6 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getSupplier(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getCustomers(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getCustomers(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postCustomer(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-		const requestBody: CustomerRequestBody = request.body
-
-		try {
-			const resp = await this.productController.postCustomer(
-				requestContext,
-				requestBody,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getCustomer(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getCustomer(
 				request.params.id,
 				requestContext,
 			)
