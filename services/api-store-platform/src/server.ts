@@ -15,6 +15,8 @@ import PartnerController from './apis/partner/api.controller'
 import PartnerRoutes from './apis/partner/api.routes'
 import SettingController from './apis/setting/api.controller'
 import SettingRoutes from './apis/setting/api.routes'
+import TenantController from './apis/tenant/api.controller'
+import TenantRoutes from './apis/tenant/api.routes'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
@@ -55,11 +57,14 @@ const settingController = new SettingController(productController)
 
 productController.setSettingController(settingController)
 
+const tenantController = new TenantController(mongoDbClient)
+
 const customerRoutes = new CustomerRoutes(customerController, productController)
 const supplierRoutes = new SupplierRoutes(supplierController, productController)
 const categoryRoutes = new CategoryRoutes(categoryController, productController)
 const partnerRoutes = new PartnerRoutes(partnerController, productController)
 const settingRoutes = new SettingRoutes(settingController, productController)
+const tenantRoutes = new TenantRoutes(tenantController, productController)
 const storeRoutes = new StoreRoutes(productController)
 const app = express()
 
@@ -102,6 +107,7 @@ categoryRoutes.setRoutes(app)
 partnerRoutes.setRoutes(app)
 settingRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
+tenantRoutes.setRoutes(app)
 
 app.use(errorHandler)
 

@@ -6,8 +6,6 @@ import { logIncomingRequests } from '../shared/middleware'
 import ActivityAuthorization from './api.authorize'
 import { handleError } from '../middleware/errorHandler'
 import {
-	AddTenantRequestBody,
-	InviteTenantUserRequestBody,
 	InventoryRequestBody,
 	InvoiceRequestBody,
 	BuyingInvoiceRequestBody,
@@ -15,8 +13,6 @@ import {
 	ProductRequestBody,
 	ReportRequestBody,
 	RequestContext,
-	UpdateTenantRequestBody,
-	UpdateTenantUserRequestBody,
 	CurrencyRequestBody,
 	ExpenseRequestBody,
 	UnitRequestBody,
@@ -464,75 +460,12 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
-			.route(`${baseRoute}/users`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getTenantUsers.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/users/invite`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.inviteTenantUser.bind(this),
-			)
-
-		app
 			.route(`${baseRoute}/users/me/password`)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.changePassword.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/users/:id`)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchTenantUser.bind(this),
-			)
-			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.deleteTenantUser.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/tenants`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getTenants.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.addTenant.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/tenants/:id`)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchTenant.bind(this),
-			)
-			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.deleteTenant.bind(this),
 			)
 
 		app.route(`${baseRoute}/login`).post(
@@ -858,63 +791,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(result)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 401, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getTenants(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getTenants(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 403, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchTenant(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: UpdateTenantRequestBody = request.body
-		const tenantId = request.params.id
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.patchTenant(
-				tenantId,
-				requestBody,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 400, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async deleteTenant(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const tenantId = request.params.id
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.deleteTenant(tenantId, requestContext)
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 400, response)
 		} finally {
 			this.stopCalc()
 		}
@@ -2112,23 +1988,6 @@ export default class StoreRoutes extends PlatformValidator {
 		}
 	}
 
-	private async getTenantUsers(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getTenantUsers(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
 	private async getUserFrontendResources(
 		request: any,
 		response: express.Response,
@@ -2149,69 +2008,6 @@ export default class StoreRoutes extends PlatformValidator {
 		}
 	}
 
-	private async inviteTenantUser(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: InviteTenantUserRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.inviteTenantUser(
-				requestBody,
-				requestContext,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchTenantUser(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: UpdateTenantUserRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.patchTenantUser(
-				request.params.id,
-				requestBody,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async deleteTenantUser(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.deleteTenantUser(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
 	private async changePassword(
 		request: any,
 		response: express.Response,
@@ -2222,27 +2018,6 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			await this.productController.changePassword(requestBody, requestContext)
 			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async addTenant(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: AddTenantRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.addTenant(
-				requestBody,
-				requestContext,
-			)
-
-			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {
