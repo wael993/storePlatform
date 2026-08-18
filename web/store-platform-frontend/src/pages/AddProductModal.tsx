@@ -21,7 +21,6 @@ import {
 	useGetCategoriesQuery,
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
-	useGetCurrenciesQuery,
 	useGetCurrencySettingsQuery,
 } from '../api/apiStore'
 import { useTranslation } from 'react-i18next'
@@ -149,13 +148,15 @@ const AddProductModal = ({
 		{},
 		{ skip: !isOpen },
 	)
-	const { data: currencies = [], isLoading: isCurrenciesLoading } =
-		useGetCurrenciesQuery({}, { skip: !isOpen })
 	const { defaultInvoiceCurrencyId } = useSettings()
-	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
-		skip: !isOpen,
-		refetchOnMountOrArgChange: false,
-	})
+	const { data: currencySettings, isLoading: isCurrenciesLoading } =
+		useGetCurrencySettingsQuery(undefined, {
+			skip: !isOpen,
+		})
+	const displayCurrencyOptions = useMemo(
+		() => buildDisplayCurrencyOptions(currencySettings),
+		[currencySettings],
+	)
 
 	const categoryOptions = useMemo(
 		() =>
@@ -184,12 +185,14 @@ const AddProductModal = ({
 		[units],
 	)
 
-	const currencyOptions = useMemo(() => {
-		return currencies.map(currency => ({
-			value: currency.internalCode || currency.name,
-			label: currency.name,
-		}))
-	}, [currencies])
+	const currencyOptions = useMemo(
+		() =>
+			displayCurrencyOptions.map(option => ({
+				value: option.label,
+				label: option.name,
+			})),
+		[displayCurrencyOptions],
+	)
 
 	const { data: brands = [], isLoading: isBrandsLoading } = useGetBrandsQuery(
 		undefined,
@@ -197,31 +200,16 @@ const AddProductModal = ({
 	)
 
 	const defaultCurrencyCode = useMemo(() => {
-		const options = buildDisplayCurrencyOptions(currencySettings)
 		const currencyId = resolveDefaultDisplayCurrencyId(
-			options,
+			displayCurrencyOptions,
 			defaultInvoiceCurrencyId,
 		)
-
-		if (!currencyId) {
-			return ''
-		}
-
-		const match = currencies.find(
-			currency => currency.currencyId === currencyId,
+		const match = displayCurrencyOptions.find(
+			option => option.currencyId === currencyId,
 		)
 
-		if (match) {
-			return match.internalCode || match.name
-		}
-
-		const settingsItem = [
-			currencySettings?.primaryCurrency,
-			...(currencySettings?.secondaryCurrencies ?? []),
-		].find(currency => currency?.currencyId === currencyId)
-
-		return settingsItem ? settingsItem.internalCode || settingsItem.name : ''
-	}, [currencySettings, defaultInvoiceCurrencyId, currencies])
+		return match?.label ?? ''
+	}, [displayCurrencyOptions, defaultInvoiceCurrencyId])
 
 	const brandOptions = useMemo(
 		() =>

@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
-	useGetCurrenciesQuery,
+	useGetCurrencySettingsQuery,
 	useGetExpensesQuery,
 	useGetPartnersQuery,
 	usePostDailyActionMutation,
@@ -29,6 +29,7 @@ import InputLabel from '../common/InputLabel'
 import useCustomToast from '../common/CustomToast'
 import DropdownLabel from '../DropdownLabel'
 import { PAGE_COLORS } from './constants'
+import { buildDisplayCurrencyOptions } from './currencyDisplay'
 import {
 	getDailyActionId,
 	mapDailyActionToQuickEntryForm,
@@ -102,8 +103,16 @@ const QuickEntryModal = ({
 
 	const isSaving = isCreating || isUpdating
 
-	const { data: currencies = [], isLoading: isCurrenciesLoading } =
-		useGetCurrenciesQuery({}, { skip: !isOpen })
+	const { data: currencySettings, isLoading: isCurrenciesLoading } =
+		useGetCurrencySettingsQuery(undefined, { skip: !isOpen })
+	const currencyOptions = useMemo(
+		() =>
+			buildDisplayCurrencyOptions(currencySettings).map(option => ({
+				value: option.currencyId,
+				label: option.name,
+			})),
+		[currencySettings],
+	)
 	const { data: expenses = [], isLoading: isExpensesLoading } =
 		useGetExpensesQuery(undefined, { skip: !isOpen })
 	const { data: partners = [], isLoading: isPartnersLoading } =
@@ -138,19 +147,19 @@ const QuickEntryModal = ({
 			!isOpen ||
 			mode !== 'create' ||
 			hasInitializedCurrency.current ||
-			!currencies.length
+			!currencyOptions.length
 		) {
 			return
 		}
 
-		const defaultCurrency = currencies[0]
+		const defaultCurrency = currencyOptions[0]
 		setForm(current => ({
 			...current,
-			currencyId: defaultCurrency.currencyId,
-			currencyName: defaultCurrency.name,
+			currencyId: defaultCurrency.value,
+			currencyName: defaultCurrency.label,
 		}))
 		hasInitializedCurrency.current = true
-	}, [currencies, isOpen, mode])
+	}, [currencyOptions, isOpen, mode])
 
 	const modalTitle = useMemo(() => {
 		if (mode === 'view') {
@@ -250,15 +259,6 @@ const QuickEntryModal = ({
 				? entityOptions.filter(option => option.value === form.entityId)
 				: [],
 		[entityOptions, form.entityId],
-	)
-
-	const currencyOptions = useMemo(
-		() =>
-			currencies.map(currency => ({
-				value: currency.currencyId,
-				label: currency.name,
-			})),
-		[currencies],
 	)
 
 	const selectedCurrencyOption = useMemo(

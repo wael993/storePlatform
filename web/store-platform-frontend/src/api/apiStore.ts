@@ -697,19 +697,6 @@ const getQuery = (
 			providesTags: ['budget-overview'],
 		}),
 
-		getCurrencies: builder.query({
-			query: () => {
-				return {
-					url: 'currencies',
-					method: 'GET',
-				}
-			},
-			transformResponse: (response: CurrenciesAPIResponse) => {
-				return response.data
-			},
-			providesTags: ['currencies'],
-		}),
-
 		getUnits: builder.query({
 			query: () => {
 				return {
@@ -856,18 +843,6 @@ const getQuery = (
 				body: newPartner,
 			}),
 			invalidatesTags: ['partners'],
-		}),
-
-		createCurrency: builder.mutation<
-			CreateCurrencyAPIResponse,
-			Omit<Currency, 'currencyId'>
-		>({
-			query: (newCurrency: Omit<Currency, 'currencyId'>) => ({
-				url: 'currencies',
-				method: 'POST',
-				body: newCurrency,
-			}),
-			invalidatesTags: ['currencies'],
 		}),
 
 		createUnit: builder.mutation<CreateUnitAPIResponse, Omit<Unit, 'unitId'>>({
@@ -1065,7 +1040,7 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: ['currency-settings', 'currencies'],
+			invalidatesTags: ['currency-settings'],
 		}),
 
 		getInvoiceSettings: builder.query<InvoiceSettings, void>({
@@ -1434,7 +1409,6 @@ export const {
 	useGetPartnersQuery,
 	useGetSinglePartnerQuery,
 	useGetBudgetOverviewQuery,
-	useGetCurrenciesQuery,
 	useGetUnitsQuery,
 	useGetSingleProductQuery,
 	useEditProductMutation,
@@ -1443,7 +1417,6 @@ export const {
 	useCreateSupplierMutation,
 	useCreateCustomerMutation,
 	useCreatePartnerMutation,
-	useCreateCurrencyMutation,
 	useCreateUnitMutation,
 	useLoginMutation,
 	useLogoutCurrentMutation,

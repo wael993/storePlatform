@@ -37,7 +37,6 @@ type BrandsAPIResponse = APIResponse<Brand>
 type ShelvesAPIResponse = APIResponse<Shelf>
 type WarehousesAPIResponse = APIResponse<Warehouse>
 type CreateExpenseAPIResponse = CreateAPIResponse
-type CreateCurrencyAPIResponse = CreateAPIResponse
 type CreateUnitAPIResponse = CreateAPIResponse
 type UpdateExpenseAPIResponse = CreateAPIResponse
 
@@ -47,7 +46,6 @@ type PartnersAPIResponse = APIResponse<Partner>
 type CustomersAPIResponse = APIResponse<Customer>
 type CategoriesAPIResponse = APIResponse<Category>
 type ExpensesAPIResponse = APIResponse<Expense>
-type CurrenciesAPIResponse = APIResponse<Currency>
 type UnitsAPIResponse = APIResponse<Unit>
 type DailyActionsAPIResponse = APIResponse<DailyAction>
 type SavedFiltersAPIResponse = APIResponse<SavedFilters>

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import {
 	usePostDailyActionMutation,
-	useGetCurrenciesQuery,
+	useGetCurrencySettingsQuery,
 	useGetCustomersQuery,
 	useGetProductsQuery,
 	useGetSuppliersQuery,
@@ -70,8 +70,8 @@ export const useDailyActionHandlers = ({
 	const { data: customersResponse = [], isLoading: isCustomersLoading } =
 		useGetCustomersQuery(undefined, { skip: !shouldLoadOptions })
 
-	const { data: currenciesResponse = [], isLoading: isCurrenciesLoading } =
-		useGetCurrenciesQuery({}, { skip: !shouldLoadOptions })
+	const { data: currencySettings, isLoading: isCurrenciesLoading } =
+		useGetCurrencySettingsQuery(undefined, { skip: !shouldLoadOptions })
 
 	const { data: unitsResponse = [], isLoading: isUnitsLoading } =
 		useGetUnitsQuery({}, { skip: !shouldLoadOptions })
@@ -96,7 +96,16 @@ export const useDailyActionHandlers = ({
 	)
 	const suppliers = useMemo(() => suppliersResponse ?? [], [suppliersResponse])
 	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
-	const currency = useMemo(() => currenciesResponse ?? [], [currenciesResponse])
+	const currency = useMemo(() => {
+		if (!currencySettings?.primaryCurrency) {
+			return []
+		}
+
+		return [
+			currencySettings.primaryCurrency,
+			...currencySettings.secondaryCurrencies,
+		]
+	}, [currencySettings])
 	const unit = useMemo(() => unitsResponse ?? [], [unitsResponse])
 	const expenses = useMemo(() => expensesResponse ?? [], [expensesResponse])
 	const partners = useMemo(() => partnersResponse ?? [], [partnersResponse])
