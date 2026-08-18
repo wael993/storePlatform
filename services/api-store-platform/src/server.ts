@@ -19,6 +19,8 @@ import TenantController from './apis/tenant/api.controller'
 import TenantRoutes from './apis/tenant/api.routes'
 import SellingInvoiceController from './apis/selling-invoice/api.controller'
 import SellingInvoiceRoutes from './apis/selling-invoice/api.routes'
+import BuyingInvoiceController from './apis/buying-invoice/api.controller'
+import BuyingInvoiceRoutes from './apis/buying-invoice/api.routes'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
@@ -68,6 +70,13 @@ const sellingInvoiceController = new SellingInvoiceController(
 
 productController.setSellingInvoiceController(sellingInvoiceController)
 
+const buyingInvoiceController = new BuyingInvoiceController(
+	mongoDbClient,
+	productController,
+)
+
+productController.setBuyingInvoiceController(buyingInvoiceController)
+
 const customerRoutes = new CustomerRoutes(customerController, productController)
 const supplierRoutes = new SupplierRoutes(supplierController, productController)
 const categoryRoutes = new CategoryRoutes(categoryController, productController)
@@ -76,6 +85,10 @@ const settingRoutes = new SettingRoutes(settingController, productController)
 const tenantRoutes = new TenantRoutes(tenantController, productController)
 const sellingInvoiceRoutes = new SellingInvoiceRoutes(
 	sellingInvoiceController,
+	productController,
+)
+const buyingInvoiceRoutes = new BuyingInvoiceRoutes(
+	buyingInvoiceController,
 	productController,
 )
 const storeRoutes = new StoreRoutes(productController)
@@ -120,6 +133,7 @@ categoryRoutes.setRoutes(app)
 partnerRoutes.setRoutes(app)
 settingRoutes.setRoutes(app)
 sellingInvoiceRoutes.setRoutes(app)
+buyingInvoiceRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 tenantRoutes.setRoutes(app)
 
