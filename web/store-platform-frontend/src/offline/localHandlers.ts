@@ -751,6 +751,7 @@ const getLocalInvoiceSettings = async (): Promise<InvoiceSettings> => {
 		email: '',
 		taxNumber: '',
 		logoUrl: '',
+		qrUrl: '',
 		footerNote: '',
 	}
 }

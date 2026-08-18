@@ -635,6 +635,8 @@
 			"taxNumber": "Steuer-/USt-IdNr.",
 			"logoUrl": "Logo-URL",
 			"logoUrlHint": "Öffentliche Bild-URL für das Rechnungslogo einfügen.",
+			"qrUrl": "QR-Code-URL",
+			"qrUrlHint": "Öffentliche Bild-URL des QR-Codes einfügen. Er erscheint rechts neben den Rechnungssummen.",
 			"footerNote": "Fußzeilennotiz"
 		},
 		"productsSettings": {

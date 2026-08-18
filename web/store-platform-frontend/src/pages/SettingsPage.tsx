@@ -72,6 +72,7 @@ const emptyInvoiceBrand = (): InvoiceBrandFormValues => ({
 	email: '',
 	taxNumber: '',
 	logoUrl: '',
+	qrUrl: '',
 	footerNote: '',
 })
 
@@ -196,6 +197,7 @@ const SettingsPage = () => {
 			email: invoiceSettingsData.email ?? '',
 			taxNumber: invoiceSettingsData.taxNumber ?? '',
 			logoUrl: invoiceSettingsData.logoUrl ?? '',
+			qrUrl: invoiceSettingsData.qrUrl ?? '',
 			footerNote: invoiceSettingsData.footerNote ?? '',
 		})
 		setHasInvoiceChanges(false)
@@ -371,6 +373,7 @@ const SettingsPage = () => {
 					email: invoiceBrand.email.trim(),
 					taxNumber: invoiceBrand.taxNumber.trim(),
 					logoUrl: invoiceBrand.logoUrl.trim(),
+					qrUrl: invoiceBrand.qrUrl.trim(),
 					footerNote: invoiceBrand.footerNote.trim(),
 				}).unwrap()
 				setHasInvoiceChanges(false)

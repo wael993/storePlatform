@@ -1,5 +1,6 @@
 import {
 	Checkbox,
+	Divider,
 	FormControl,
 	FormLabel,
 	Input,
@@ -16,6 +17,7 @@ export interface InvoiceBrandFormValues {
 	email: string
 	taxNumber: string
 	logoUrl: string
+	qrUrl: string
 	footerNote: string
 }
 
@@ -52,6 +54,14 @@ const InvoiceSettings = ({
 					{t('components.invoiceSettings.noMergeInvoiceLines')}
 				</Checkbox>
 			</FormControl>
+			<Divider
+				sx={{
+					my: 4,
+					height: '0.2rem',
+					border: 'none',
+					backgroundColor: '#376288',
+				}}
+			/>
 
 			<FormControl>
 				<FormLabel fontWeight={600} mb={2}>
@@ -125,6 +135,19 @@ const InvoiceSettings = ({
 						/>
 						<Text fontSize="xs" color="gray.500" mt={1}>
 							{t('components.invoiceSettings.logoUrlHint')}
+						</Text>
+					</FormControl>
+					<FormControl>
+						<FormLabel fontSize="sm">
+							{t('components.invoiceSettings.qrUrl')}
+						</FormLabel>
+						<Input
+							value={brand.qrUrl}
+							onChange={event => onBrandChange('qrUrl', event.target.value)}
+							placeholder="https://"
+						/>
+						<Text fontSize="xs" color="gray.500" mt={1}>
+							{t('components.invoiceSettings.qrUrlHint')}
 						</Text>
 					</FormControl>
 					<FormControl>

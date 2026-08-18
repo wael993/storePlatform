@@ -77,6 +77,7 @@ export interface InvoiceSettings {
 	email?: string
 	taxNumber?: string
 	logoUrl?: string
+	qrUrl?: string
 	footerNote?: string
 	createdAt?: string
 	updatedAt?: string
@@ -91,6 +92,7 @@ export type InvoiceSettingsUpdate = Pick<
 	| 'email'
 	| 'taxNumber'
 	| 'logoUrl'
+	| 'qrUrl'
 	| 'footerNote'
 >
 

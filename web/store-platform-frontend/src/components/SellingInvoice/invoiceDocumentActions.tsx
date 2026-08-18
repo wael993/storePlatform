@@ -13,21 +13,34 @@ const isLikelyLogoRenderError = (error: unknown) => {
 
 const renderInvoicePdfBlob = async (model: InvoiceDocumentModel) => {
 	ensureInvoicePdfFonts()
+	const render = (brand: InvoiceDocumentModel['brand']) =>
+		pdf(<InvoicePdfDocument model={{ ...model, brand }} />).toBlob()
+
 	try {
-		return await pdf(<InvoicePdfDocument model={model} />).toBlob()
+		return await render(model.brand)
 	} catch (error) {
-		// Bad/CORS logo URLs can fail the whole render — retry without logo only then.
-		if (!model.brand.logoUrl || !isLikelyLogoRenderError(error)) {
+		// Bad/CORS image URLs can fail the whole render — retry without each image.
+		if (!isLikelyLogoRenderError(error)) {
 			throw error
 		}
-		return pdf(
-			<InvoicePdfDocument
-				model={{
-					...model,
-					brand: { ...model.brand, logoUrl: undefined },
-				}}
-			/>,
-		).toBlob()
+		const { logoUrl, qrUrl } = model.brand
+		const fallbacks = [
+			...(qrUrl ? [{ ...model.brand, qrUrl: undefined }] : []),
+			...(logoUrl ? [{ ...model.brand, logoUrl: undefined }] : []),
+			...(logoUrl && qrUrl
+				? [{ ...model.brand, logoUrl: undefined, qrUrl: undefined }]
+				: []),
+		]
+		for (const brand of fallbacks) {
+			try {
+				return await render(brand)
+			} catch (retryError) {
+				if (!isLikelyLogoRenderError(retryError)) {
+					throw retryError
+				}
+			}
+		}
+		throw error
 	}
 }
 

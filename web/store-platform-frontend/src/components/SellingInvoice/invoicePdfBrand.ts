@@ -7,6 +7,7 @@ export interface ResolvedInvoiceBrand {
 	email?: string
 	taxNumber?: string
 	logoUrl?: string
+	qrUrl?: string
 	footerNote?: string
 }
 
@@ -29,6 +30,7 @@ export const resolveInvoiceBrand = (
 	email: trimOrUndefined(settings?.email),
 	taxNumber: trimOrUndefined(settings?.taxNumber),
 	logoUrl: trimOrUndefined(settings?.logoUrl),
+	qrUrl: trimOrUndefined(settings?.qrUrl),
 	footerNote: trimOrUndefined(settings?.footerNote),
 })
 

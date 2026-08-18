@@ -651,6 +651,8 @@
 			"taxNumber": "Tax / VAT number",
 			"logoUrl": "Logo URL",
 			"logoUrlHint": "Paste a public image URL for the invoice logo.",
+			"qrUrl": "QR code URL",
+			"qrUrlHint": "Paste a public image URL of the QR code. It appears to the right of the invoice totals.",
 			"footerNote": "Footer note"
 		},
 		"productsSettings": {

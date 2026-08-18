@@ -5603,6 +5603,7 @@ export default class ProductController {
 			email?: string
 			taxNumber?: string
 			logoUrl?: string
+			qrUrl?: string
 			footerNote?: string
 		},
 	): Promise<IInvoiceSettings> {
@@ -5620,6 +5621,7 @@ export default class ProductController {
 			'email',
 			'taxNumber',
 			'logoUrl',
+			'qrUrl',
 			'footerNote',
 		] as const
 
@@ -7466,6 +7468,7 @@ export default class ProductController {
 				email: '',
 				taxNumber: '',
 				logoUrl: '',
+				qrUrl: '',
 				footerNote: '',
 			}) as Record<string, unknown>,
 			userSettings: userSettings as Record<string, unknown> | undefined,
@@ -7878,6 +7881,7 @@ export default class ProductController {
 						email?: string
 						taxNumber?: string
 						logoUrl?: string
+						qrUrl?: string
 						footerNote?: string
 					},
 				)

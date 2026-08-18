@@ -9,6 +9,7 @@ export interface IInvoiceSettings extends Document {
 	email?: string
 	taxNumber?: string
 	logoUrl?: string
+	qrUrl?: string
 	footerNote?: string
 	createdAt: Date
 	updatedAt: Date
@@ -53,6 +54,11 @@ const InvoiceSettingsSchema = new Schema<IInvoiceSettings>(
 			default: '',
 		},
 		logoUrl: {
+			type: String,
+			trim: true,
+			default: '',
+		},
+		qrUrl: {
 			type: String,
 			trim: true,
 			default: '',

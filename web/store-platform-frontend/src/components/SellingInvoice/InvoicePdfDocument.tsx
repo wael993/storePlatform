@@ -210,9 +210,15 @@ const createStyles = (rtl: boolean) =>
 		colDiscount: { width: '14%' },
 		colTotal: { width: '20%' },
 		num: { textAlign: rtl ? 'left' : 'right' },
+		totalsRow: {
+			flexDirection: 'row',
+			justifyContent: 'flex-end',
+			alignItems: 'center',
+			gap: 12,
+			direction: 'ltr',
+		},
 		totals: {
 			width: '42%',
-			alignSelf: rtl ? 'flex-start' : 'flex-end',
 			backgroundColor: colors.panel,
 			borderWidth: 1,
 			borderColor: colors.line,
@@ -252,6 +258,11 @@ const createStyles = (rtl: boolean) =>
 		totalValueGrand: {
 			fontSize: 11,
 			fontWeight: 700,
+		},
+		qr: {
+			width: 96,
+			height: 96,
+			objectFit: 'contain',
 		},
 		notes: {
 			marginTop: 16,
@@ -443,42 +454,46 @@ export const InvoicePdfDocument = ({
 						</View>
 					) : null}
 				</View>
-
-				<View style={styles.totals}>
-					<View style={styles.totalRow}>
-						<Text style={styles.totalLabel}>{model.labels.subtotal}</Text>
-						<Text style={styles.totalValue}>{money(model.subtotal)}</Text>
-					</View>
-					{model.discount > 0 ? (
+				<View style={{ ...styles.totalsRow, justifyContent: 'space-between' }}>
+					<View style={styles.totals}>
 						<View style={styles.totalRow}>
-							<Text style={styles.totalLabel}>
-								{model.labels.invoiceDiscount}
+							<Text style={styles.totalLabel}>{model.labels.subtotal}</Text>
+							<Text style={styles.totalValue}>{money(model.subtotal)}</Text>
+						</View>
+						{model.discount > 0 ? (
+							<View style={styles.totalRow}>
+								<Text style={styles.totalLabel}>
+									{model.labels.invoiceDiscount}
+								</Text>
+								<Text style={styles.totalValue}>{money(model.discount)}</Text>
+							</View>
+						) : null}
+						{model.tax > 0 ? (
+							<View style={styles.totalRow}>
+								<Text style={styles.totalLabel}>{model.labels.tax}</Text>
+								<Text style={styles.totalValue}>{money(model.tax)}</Text>
+							</View>
+						) : null}
+						<View style={[styles.totalRow, styles.totalRowGrand]}>
+							<Text style={[styles.totalLabel, styles.totalLabelGrand]}>
+								{model.labels.grandTotal}
 							</Text>
-							<Text style={styles.totalValue}>{money(model.discount)}</Text>
+							<Text style={[styles.totalValue, styles.totalValueGrand]}>
+								{money(model.grandTotal)}
+							</Text>
 						</View>
-					) : null}
-					{model.tax > 0 ? (
 						<View style={styles.totalRow}>
-							<Text style={styles.totalLabel}>{model.labels.tax}</Text>
-							<Text style={styles.totalValue}>{money(model.tax)}</Text>
+							<Text style={styles.totalLabel}>{model.labels.paid}</Text>
+							<Text style={styles.totalValue}>{money(model.paid)}</Text>
 						</View>
+						<View style={styles.totalRow}>
+							<Text style={styles.totalLabel}>{model.labels.due}</Text>
+							<Text style={styles.totalValue}>{money(model.due)}</Text>
+						</View>
+					</View>
+					{model.brand.qrUrl ? (
+						<Image src={model.brand.qrUrl} style={styles.qr} />
 					) : null}
-					<View style={[styles.totalRow, styles.totalRowGrand]}>
-						<Text style={[styles.totalLabel, styles.totalLabelGrand]}>
-							{model.labels.grandTotal}
-						</Text>
-						<Text style={[styles.totalValue, styles.totalValueGrand]}>
-							{money(model.grandTotal)}
-						</Text>
-					</View>
-					<View style={styles.totalRow}>
-						<Text style={styles.totalLabel}>{model.labels.paid}</Text>
-						<Text style={styles.totalValue}>{money(model.paid)}</Text>
-					</View>
-					<View style={styles.totalRow}>
-						<Text style={styles.totalLabel}>{model.labels.due}</Text>
-						<Text style={styles.totalValue}>{money(model.due)}</Text>
-					</View>
 				</View>
 
 				{model.notes ? (
