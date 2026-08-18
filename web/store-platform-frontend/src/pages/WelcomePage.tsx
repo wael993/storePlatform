@@ -8,6 +8,16 @@ import {
 	Text,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { Link as RouterLink } from 'react-router-dom'
+import { useUser } from '../shared/hooks/useUser'
+import { ArrowForwardIcon } from '../shared/icons/ArrowForward'
+import {
+	compareLanguage,
+	getEnabledActions,
+	getTenantActions,
+} from '../shared/utils'
+import { getRouteLabel, RoutePaths } from '../shared/routes'
+import { TENANT_PAGE_DESCRIPTION_KEYS } from '../shared/tenantAccessiblePages'
 import { pageContentMinHeight } from '../theme/layout'
 
 const infoItems = [
@@ -24,6 +34,14 @@ const infoItems = [
 		descriptionKey: 'welcome.cards.control.description',
 	},
 ]
+
+const cardItem = {
+	border: '1px solid',
+	borderColor: 'gray.100',
+	borderRadius: '1.25rem',
+	p: 5,
+	bg: 'gray.50',
+} as const
 
 const styles = {
 	wrapper: {
@@ -64,17 +82,91 @@ const styles = {
 		px: { base: 6, md: 10 },
 		py: { base: 8, md: 10 },
 	},
-	infoItem: {
-		border: '1px solid',
-		borderColor: 'gray.100',
-		borderRadius: '1.25rem',
-		p: 5,
-		bg: 'gray.50',
+	infoItem: cardItem,
+	quickLink: {
+		...cardItem,
+		h: '100%',
+		textDecoration: 'none',
+		color: 'inherit',
+		_hover: {
+			bg: 'white',
+			borderColor: 'blue.200',
+			boxShadow: '0 12px 28px rgba(49, 130, 206, 0.12)',
+		},
 	},
 } satisfies StylesObject
 
 const WelcomePage = () => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
+	const { isOwnerOrAdmin, user } = useUser()
+	const enabledActions = getEnabledActions()
+	const tenantActions = getTenantActions(user?.accessiblePages)
+
+	const {
+		isProductsEnabled,
+		isInvoicesEnabled,
+		isDailyEnabled,
+		isCustomersEnabled,
+		isSellingInvoicesEnabled,
+		isCategoriesEnabled,
+		isSuppliersEnabled,
+	} = enabledActions
+
+	const {
+		isTenantProductsEnabled,
+		isTenantInvoicesEnabled,
+		isTenantDailyEnabled,
+		isTenantCustomersEnabled,
+		isTenantSellingInvoicesEnabled,
+		isTenantCategoriesEnabled,
+		isTenantSuppliersEnabled,
+	} = tenantActions
+
+	const quickLinks = [
+		isDailyEnabled && isTenantDailyEnabled
+			? {
+					path: RoutePaths.DAILY,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.DAILY,
+				}
+			: null,
+		isProductsEnabled && isTenantProductsEnabled
+			? {
+					path: RoutePaths.PRODUCTS,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.PRODUCTS,
+				}
+			: null,
+		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
+			? {
+					path: RoutePaths.INVOICES,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.INVOICE,
+				}
+			: null,
+		isCustomersEnabled && isTenantCustomersEnabled
+			? {
+					path: RoutePaths.CUSTOMERS,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.CUSTOMERS,
+				}
+			: null,
+		isSuppliersEnabled && isTenantSuppliersEnabled
+			? {
+					path: RoutePaths.SUPPLIERS,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.SUPPLIERS,
+				}
+			: null,
+		isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled
+			? {
+					path: RoutePaths.SELLING_INVOICES,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.SELLING_INVOICES,
+				}
+			: null,
+		isCategoriesEnabled && isTenantCategoriesEnabled
+			? {
+					path: RoutePaths.CATEGORIES,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.CATEGORIES,
+				}
+			: null,
+	].filter(Boolean) as { path: string; descriptionKey: string }[]
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -117,18 +209,53 @@ const WelcomePage = () => {
 				</Flex>
 
 				<Box sx={styles.infoPanel}>
-					<SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-						{infoItems.map(item => (
-							<Stack key={item.titleKey} sx={styles.infoItem} gap={2}>
+					<Stack gap={8}>
+						{quickLinks.length > 0 && (
+							<Stack gap={4}>
 								<Text color="gray.900" fontWeight={800}>
-									{t(item.titleKey)}
+									{t('welcome.quickLinks')}
 								</Text>
-								<Text color="gray.600" fontSize="sm" lineHeight="1.6">
-									{t(item.descriptionKey)}
-								</Text>
+								<SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+									{quickLinks.map(item => (
+										<Stack
+											key={item.path}
+											as={RouterLink}
+											to={item.path}
+											sx={styles.quickLink}
+											gap={2}
+										>
+											<Flex align="center" justify="space-between" gap={3}>
+												<Text color="gray.900" fontWeight={800}>
+													{getRouteLabel(item.path)}
+												</Text>
+												<ArrowForwardIcon
+													boxSize={4}
+													color="blue.500"
+													flexShrink={0}
+													transform={isArabic ? 'scaleX(-1)' : undefined}
+												/>
+											</Flex>
+											<Text color="gray.600" fontSize="sm" lineHeight="1.6">
+												{t(item.descriptionKey)}
+											</Text>
+										</Stack>
+									))}
+								</SimpleGrid>
 							</Stack>
-						))}
-					</SimpleGrid>
+						)}
+						<SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+							{infoItems.map(item => (
+								<Stack key={item.titleKey} sx={styles.infoItem} gap={2}>
+									<Text color="gray.900" fontWeight={800}>
+										{t(item.titleKey)}
+									</Text>
+									<Text color="gray.600" fontSize="sm" lineHeight="1.6">
+										{t(item.descriptionKey)}
+									</Text>
+								</Stack>
+							))}
+						</SimpleGrid>
+					</Stack>
 				</Box>
 			</Stack>
 		</Flex>

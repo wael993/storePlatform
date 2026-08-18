@@ -13,6 +13,7 @@
 	"welcome": {
 		"title": "Welcome to your store workspace",
 		"subtitle": "Start your day with the tools you need to manage stock, sales, customers, suppliers, and store operations.",
+		"quickLinks": "Quick links",
 		"cards": {
 			"manage": {
 				"title": "Manage your store",
