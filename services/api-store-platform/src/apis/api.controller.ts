@@ -10,7 +10,6 @@ import { config } from '../config/config'
 import {
 	BusinessLogicError,
 	AuthenticationError,
-	AuthorizationError,
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
 import { Supplier } from '../models/Supplier'
@@ -24,9 +23,8 @@ import Tenant, { ITenant } from '../models/Tenant'
 import UserSettings, { IUserSettings } from '../models/UserSettings'
 import CurrencySettings, {
 	ICurrencySettingItem,
-	ICurrencySettings,
 } from '../models/CurrencySettings'
-import InvoiceSettings, { IInvoiceSettings } from '../models/InvoiceSettings'
+import InvoiceSettings from '../models/InvoiceSettings'
 import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { BuyingInvoice } from '../models/BuyingInvoices'
@@ -43,15 +41,15 @@ import {
 	normalizeProductPatchRequest,
 } from './productHelper/productPatchNormalize'
 import {
-	filterPartnerRelatedActions,
 	filterProductRelatedActions,
-	mapPartners,
 	mapProductAction,
 	mapTenantSummary,
 } from './mappings/mapper'
 import CustomerController from './customer/api.controller'
 import SupplierController from './supplier/api.controller'
 import CategoryController from './category/api.controller'
+import PartnerController from './partner/api.controller'
+import SettingController from './setting/api.controller'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -83,8 +81,6 @@ import {
 	UnitDocument,
 	CreateUnitResponse,
 	PartnerRequestBody,
-	PartnerDocument,
-	CreatePartnerResponse,
 	InventoryDocument,
 	CategoryRequestBody,
 	CategoryDocument,
@@ -119,7 +115,6 @@ import {
 	EntryType,
 	ExpensesResponse,
 	LoginData,
-	PartnersResponse,
 	UnitsResponse,
 	BrandsResponse,
 	ShelvesResponse,
@@ -169,23 +164,6 @@ import { SyncMutation } from '../models/SyncMutation'
 import { OfflineSyncState } from '../models/OfflineSyncState'
 
 const OFFLINE_INVOICE_NUMBER_BLOCK = 500
-
-/** Clients in offline work mode must not mutate settings (header set by FE). */
-const assertSettingsMutableWhileOnline = (request: {
-	headers?: Record<string, unknown>
-}): void => {
-	const raw = request.headers?.['x-work-mode']
-	const workMode = String(Array.isArray(raw) ? raw[0] : (raw ?? ''))
-		.trim()
-		.toLowerCase()
-
-	if (workMode === 'offline') {
-		throw new AuthorizationError(
-			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-			'Settings cannot be changed while the client is in offline work mode',
-		)
-	}
-}
 
 type TokenPayload = {
 	userId: string
@@ -287,6 +265,8 @@ export default class ProductController {
 	private customerController?: CustomerController
 	private supplierController?: SupplierController
 	private categoryController?: CategoryController
+	private partnerController?: PartnerController
+	private settingController?: SettingController
 
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -303,6 +283,14 @@ export default class ProductController {
 
 	public setCategoryController(categoryController: CategoryController): void {
 		this.categoryController = categoryController
+	}
+
+	public setPartnerController(partnerController: PartnerController): void {
+		this.partnerController = partnerController
+	}
+
+	public setSettingController(settingController: SettingController): void {
+		this.settingController = settingController
 	}
 
 	private requireCustomerController(): CustomerController {
@@ -327,6 +315,22 @@ export default class ProductController {
 		}
 
 		return this.categoryController
+	}
+
+	private requirePartnerController(): PartnerController {
+		if (!this.partnerController) {
+			throw new Error('PartnerController is not set')
+		}
+
+		return this.partnerController
+	}
+
+	private requireSettingController(): SettingController {
+		if (!this.settingController) {
+			throw new Error('SettingController is not set')
+		}
+
+		return this.settingController
 	}
 
 	private getTenantId(requestContext: RequestContext): string {
@@ -5177,682 +5181,6 @@ export default class ProductController {
 		}
 	}
 
-	public async getUserSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			const { tenantId, userId } = request.user
-
-			if (!tenantId || !userId) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Missing tenantId or userId',
-				)
-			}
-
-			let userSettings = await UserSettings.findOne({
-				tenantId,
-				userId,
-			})
-
-			if (!userSettings) {
-				userSettings = await UserSettings.create({
-					tenantId,
-					userId,
-					productsPerPage: 20,
-					displayLanguage: 'en',
-				})
-			}
-
-			response.status(200).json(userSettings)
-		} catch (error: any) {
-			logger.error('Error fetching user settings', error)
-
-			throw error
-		}
-	}
-
-	public async patchUserSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			assertSettingsMutableWhileOnline(request)
-
-			const { tenantId, userId } = request.user
-			const { productsPerPage, displayLanguage, defaultInvoiceCurrencyId } =
-				request.body
-
-			if (!tenantId || !userId) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Missing tenantId or userId',
-				)
-			}
-
-			const updateData: Partial<IUserSettings> = {}
-
-			if (productsPerPage !== undefined) {
-				updateData.productsPerPage = productsPerPage
-			}
-
-			if (displayLanguage !== undefined) {
-				updateData.displayLanguage = displayLanguage
-			}
-
-			if (defaultInvoiceCurrencyId !== undefined) {
-				updateData.defaultInvoiceCurrencyId =
-					defaultInvoiceCurrencyId?.trim() || undefined
-			}
-
-			const userSettings = await UserSettings.findOneAndUpdate(
-				{ tenantId, userId },
-				updateData,
-				{ new: true, upsert: true },
-			)
-
-			response.status(200).json(userSettings)
-		} catch (error: any) {
-			logger.error('Error updating user settings', error)
-
-			throw error
-		}
-	}
-
-	public async getCurrencySettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			const { tenantId } = request.user
-
-			if (!tenantId) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Missing tenantId',
-				)
-			}
-
-			let currencySettings = await CurrencySettings.findOne({ tenantId })
-
-			if (!currencySettings) {
-				currencySettings = await CurrencySettings.create({
-					tenantId,
-					primaryCurrency: null,
-					secondaryCurrencies: [],
-				})
-			}
-
-			response.status(200).json(currencySettings)
-		} catch (error: any) {
-			logger.error('Error fetching currency settings', error)
-
-			throw error
-		}
-	}
-
-	public async patchCurrencySettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			assertSettingsMutableWhileOnline(request)
-
-			const { tenantId, userId } = request.user
-			const { primaryCurrency, secondaryCurrencies } = request.body
-
-			if (!tenantId || !userId) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Missing tenantId or userId',
-				)
-			}
-
-			const requestContext: RequestContext = {
-				userId,
-				tenantId,
-				tenantName: request.user?.tenantName,
-				role: request.user?.role,
-				user: request.user,
-				allowedFields: request.allowedFields || [],
-			}
-
-			const currencySettings = await this.applyCurrencySettingsUpdate(
-				requestContext,
-				{ primaryCurrency, secondaryCurrencies },
-			)
-
-			response.status(200).json(currencySettings)
-		} catch (error: any) {
-			logger.error('Error updating currency settings', error)
-
-			throw error
-		}
-	}
-
-	private async applyCurrencySettingsUpdate(
-		requestContext: RequestContext,
-		body: {
-			primaryCurrency?: ICurrencySettingItem | null
-			secondaryCurrencies?: ICurrencySettingItem[]
-		},
-	): Promise<ICurrencySettings> {
-		const tenantId = this.getTenantId(requestContext)
-		const { primaryCurrency, secondaryCurrencies } = body
-
-		if (primaryCurrency && !primaryCurrency.name?.trim()) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-				'Primary currency name is required',
-			)
-		}
-
-		const normalizedPrimary: ICurrencySettingItem | null = primaryCurrency
-			? {
-					currencyId: this.resolveSyncClientId(primaryCurrency.currencyId),
-					name: primaryCurrency.name.trim(),
-					internalCode: primaryCurrency.internalCode?.trim() || undefined,
-				}
-			: null
-
-		const normalizedSecondary: ICurrencySettingItem[] = Array.isArray(
-			secondaryCurrencies,
-		)
-			? secondaryCurrencies
-					.filter(
-						(item: ICurrencySettingItem) =>
-							item?.name?.trim() && Number(item.exchangeRate) > 0,
-					)
-					.map((item: ICurrencySettingItem) => ({
-						currencyId: this.resolveSyncClientId(item.currencyId),
-						name: item.name.trim(),
-						internalCode: item.internalCode?.trim() || undefined,
-						exchangeRate: Number(item.exchangeRate),
-						exchangeRateUnitCurrencyId:
-							item.exchangeRateUnitCurrencyId?.trim() || undefined,
-					}))
-			: []
-
-		const existingSettings = await CurrencySettings.findOne({ tenantId })
-
-		let resolvedPrimary: ICurrencySettingItem | null = null
-
-		if (normalizedPrimary) {
-			resolvedPrimary = await this.syncCurrencyFromSettings(
-				requestContext,
-				normalizedPrimary,
-			)
-		}
-
-		const resolvedSecondary: ICurrencySettingItem[] = await Promise.all(
-			normalizedSecondary.map(async item => {
-				const resolved = await this.syncCurrencyFromSettings(
-					requestContext,
-					item,
-				)
-
-				return {
-					...resolved,
-					exchangeRate: item.exchangeRate,
-					exchangeRateUnitCurrencyId: item.exchangeRateUnitCurrencyId,
-				}
-			}),
-		)
-
-		const previousSecondaryIds =
-			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ?? []
-		const nextSecondaryIds = new Set(
-			resolvedSecondary.map(item => item.currencyId),
-		)
-		const removedSecondaryIds = previousSecondaryIds.filter(
-			currencyId => !nextSecondaryIds.has(currencyId),
-		)
-
-		if (removedSecondaryIds.length > 0) {
-			await this.deleteCurrenciesByIds(requestContext, removedSecondaryIds)
-		}
-
-		const updateData: Partial<ICurrencySettings> = {
-			primaryCurrency: resolvedPrimary,
-			secondaryCurrencies: resolvedSecondary,
-		}
-
-		const currencySettings = await CurrencySettings.findOneAndUpdate(
-			{ tenantId },
-			updateData,
-			{ new: true, upsert: true },
-		)
-
-		await redisCache.del(redisCache.buildCurrencyListKey(tenantId))
-
-		return currencySettings!
-	}
-
-	public async getInvoiceSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			const { tenantId } = request.user
-
-			if (!tenantId) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Missing tenantId',
-				)
-			}
-
-			let invoiceSettings = await InvoiceSettings.findOne({ tenantId })
-
-			if (!invoiceSettings) {
-				invoiceSettings = await InvoiceSettings.create({
-					tenantId,
-					noMergeInvoiceLines: false,
-				})
-			}
-
-			response.status(200).json(invoiceSettings)
-		} catch (error: any) {
-			logger.error('Error fetching invoice settings', error)
-
-			throw error
-		}
-	}
-
-	public async patchInvoiceSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			assertSettingsMutableWhileOnline(request)
-
-			const { tenantId, userId } = request.user
-
-			if (!tenantId || !userId) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-					'Missing tenantId or userId',
-				)
-			}
-
-			const requestContext: RequestContext = {
-				userId,
-				tenantId,
-				tenantName: request.user?.tenantName,
-				role: request.user?.role,
-				user: request.user,
-				allowedFields: request.allowedFields || [],
-			}
-
-			const invoiceSettings = await this.applyInvoiceSettingsUpdate(
-				requestContext,
-				request.body,
-			)
-
-			response.status(200).json(invoiceSettings)
-		} catch (error: any) {
-			logger.error('Error updating invoice settings', error)
-
-			throw error
-		}
-	}
-
-	private async applyInvoiceSettingsUpdate(
-		requestContext: RequestContext,
-		body: {
-			noMergeInvoiceLines?: boolean
-			displayName?: string
-			address?: string
-			phone?: string
-			email?: string
-			taxNumber?: string
-			logoUrl?: string
-			qrUrl?: string
-			footerNote?: string
-		},
-	): Promise<IInvoiceSettings> {
-		const tenantId = this.getTenantId(requestContext)
-		const updateData: Partial<IInvoiceSettings> = {}
-
-		if (body.noMergeInvoiceLines !== undefined) {
-			updateData.noMergeInvoiceLines = Boolean(body.noMergeInvoiceLines)
-		}
-
-		const stringFields = [
-			'displayName',
-			'address',
-			'phone',
-			'email',
-			'taxNumber',
-			'logoUrl',
-			'qrUrl',
-			'footerNote',
-		] as const
-
-		for (const field of stringFields) {
-			if (body[field] !== undefined) {
-				updateData[field] = String(body[field]).trim()
-			}
-		}
-
-		const invoiceSettings = await InvoiceSettings.findOneAndUpdate(
-			{ tenantId },
-			updateData,
-			{ new: true, upsert: true },
-		)
-
-		return invoiceSettings!
-	}
-
-	private async syncCurrencyFromSettings(
-		requestContext: RequestContext,
-		currency: Pick<
-			ICurrencySettingItem,
-			'currencyId' | 'name' | 'internalCode'
-		>,
-	): Promise<
-		Pick<ICurrencySettingItem, 'currencyId' | 'name' | 'internalCode'>
-	> {
-		const tenantContext = getTenantContext(requestContext)
-		const normalizedName = currency.name.trim()
-		const normalizedCode =
-			currency.internalCode?.trim().toUpperCase() || undefined
-
-		const existing =
-			(await this.findCurrencyForSettings(
-				tenantContext.tenantId,
-				currency.currencyId,
-				normalizedCode,
-				normalizedName,
-			)) ?? null
-
-		if (existing) {
-			const nameChanged = existing.name !== normalizedName
-			const codeChanged =
-				(existing.internalCode ?? undefined) !== normalizedCode
-
-			if (nameChanged || codeChanged) {
-				if (normalizedCode) {
-					const conflictingCode = await withTenantScope(
-						Currency.findOne({
-							internalCode: normalizedCode,
-							currencyId: { $ne: existing.currencyId },
-						}).lean(),
-						tenantContext.tenantId,
-					)
-
-					if (conflictingCode) {
-						throw new BusinessLogicError(
-							ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-							'Currency code already exists in this tenant.',
-						)
-					}
-				}
-
-				await withTenantScope(
-					Currency.findOneAndUpdate(
-						{ currencyId: existing.currencyId },
-						{
-							$set: {
-								name: normalizedName,
-								internalCode: normalizedCode,
-								updatedBy: {
-									_id: requestContext.userId as string,
-									displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-									updatedAt: new Date(),
-								},
-							},
-						},
-						{ new: true, runValidators: true },
-					),
-					tenantContext.tenantId,
-				)
-			}
-
-			return {
-				currencyId: existing.currencyId,
-				name: normalizedName,
-				internalCode: normalizedCode,
-			}
-		}
-
-		await this.postCurrency(requestContext, {
-			currencyId: currency.currencyId,
-			name: normalizedName,
-			internalCode: normalizedCode,
-		})
-
-		return {
-			currencyId: currency.currencyId,
-			name: normalizedName,
-			internalCode: normalizedCode,
-		}
-	}
-
-	private async findCurrencyForSettings(
-		tenantId: string,
-		currencyId: string,
-		internalCode?: string,
-		name?: string,
-	) {
-		const existingById = await withTenantScope(
-			Currency.findOne({ currencyId }).lean(),
-			tenantId,
-		)
-
-		if (existingById) {
-			return existingById
-		}
-
-		if (internalCode) {
-			const existingByCode = await withTenantScope(
-				Currency.findOne({ internalCode }).lean(),
-				tenantId,
-			)
-
-			if (existingByCode) {
-				return existingByCode
-			}
-		}
-
-		if (name) {
-			const existingByName = await withTenantScope(
-				Currency.findOne({
-					name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-				}).lean(),
-				tenantId,
-			)
-
-			if (existingByName) {
-				return existingByName
-			}
-		}
-
-		return null
-	}
-
-	private async deleteCurrenciesByIds(
-		requestContext: RequestContext,
-		currencyIds: string[],
-	): Promise<void> {
-		const tenantContext = getTenantContext(requestContext)
-
-		await Currency.deleteMany({
-			tenantId: tenantContext.tenantId,
-			currencyId: { $in: currencyIds },
-		})
-	}
-
-	public async getPartners(
-		requestContext: RequestContext,
-	): Promise<PartnersResponse> {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildPartnerListKey(tenantId)
-		const cachedPartners = await redisCache.getJson<PartnersResponse>(cacheKey)
-
-		if (cachedPartners) {
-			return cachedPartners
-		}
-
-		const partners = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.PARTNERS,
-			model: Partner,
-			sort: { createdAt: 'desc' },
-		})
-		const dailyActions = await this.getDailyActions(requestContext)
-
-		const data = partners.documents.map((partner: PartnerDocument) => ({
-			partnerId: partner.partnerId,
-			name: partner.name,
-			internalCode: partner.internalCode,
-			createdAt: partner.createdAt?.toISOString(),
-			updatedAt: partner.updatedAt?.toISOString(),
-			createdBy: partner.createdBy as any,
-			updatedBy: partner.updatedBy
-				? {
-						...partner.updatedBy,
-						updatedAt: partner.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-			relatedActions: filterPartnerRelatedActions(dailyActions.data, partner),
-		}))
-
-		const mappedPartners = mapPartners(data)
-		const response: PartnersResponse = {
-			data: mappedPartners,
-			totalCount: mappedPartners.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
-
-		return response
-	}
-
-	public async getPartner(
-		partnerId: string,
-		requestContext: RequestContext,
-	): Promise<PartnersResponse['data'][number] | null> {
-		const partner =
-			await this.mongoDbClient.getDocumentByField<PartnerDocument>(
-				requestContext,
-				COLLECTION_NAMES.PARTNERS,
-				Partner,
-				{ fieldName: 'partnerId', fieldValue: partnerId },
-			)
-
-		if (!partner) {
-			return null
-		}
-
-		const dailyActions = await this.getDailyActions(requestContext)
-
-		const mappedPartners = mapPartners([
-			{
-				partnerId: partner.partnerId,
-				name: partner.name,
-				internalCode: partner.internalCode,
-				createdAt: partner.createdAt?.toISOString(),
-				updatedAt: partner.updatedAt?.toISOString(),
-				createdBy: partner.createdBy as any,
-				updatedBy: partner.updatedBy
-					? {
-							...partner.updatedBy,
-							updatedAt: partner.updatedBy.updatedAt.toISOString(),
-						}
-					: undefined,
-				relatedActions: filterPartnerRelatedActions(dailyActions.data, partner),
-			},
-		])
-
-		return mappedPartners[0]
-	}
-
-	public async postPartner(
-		requestContext: RequestContext,
-		requestBody: PartnerRequestBody,
-	): Promise<CreatePartnerResponse | null> {
-		const { name, internalCode } = requestBody
-		const tenantContext = getTenantContext(requestContext)
-
-		if (!name || !name.trim()) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Partner name is required',
-			)
-		}
-
-		const existing = await withTenantScope(
-			Partner.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
-
-		if (existing) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'partner already exists in this tenant.',
-			)
-		}
-
-		const partnerId = this.resolveSyncClientId(requestBody.partnerId)
-
-		const existingById = await withTenantScope(
-			Partner.findOne({ partnerId }).lean(),
-			tenantContext.tenantId,
-		)
-
-		if (existingById) {
-			return {
-				_id: String(existingById._id),
-				partnerId: existingById.partnerId,
-			}
-		}
-
-		const partnerData: PartnerDocument = {
-			tenantId: tenantContext.tenantId,
-			_id: uuidv4(),
-			partnerId,
-			name: name,
-			internalCode: internalCode?.trim() || undefined,
-			createdBy: {
-				_id: requestContext.userId as string,
-				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
-				role: requestContext.user?.role as TenantRole,
-			},
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		}
-
-		logger.info('Saving partner to database.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			partnerId: partnerData._id,
-			name,
-		})
-
-		const createPartnerResponse = await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.PARTNERS, data: partnerData },
-			Partner,
-			requestContext,
-		)
-
-		logger.info('Partner created successfully.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			partnerId: partnerData._id,
-			name,
-		})
-
-		await redisCache.del(redisCache.buildPartnerListKey(tenantContext.tenantId))
-
-		return {
-			_id: createPartnerResponse._id,
-		}
-	}
-
 	public async getExpenses(
 		requestContext: RequestContext,
 	): Promise<ExpensesResponse> {
@@ -6891,7 +6219,7 @@ export default class ProductController {
 			this.getInventory(requestContext),
 			this.requireCustomerController().getCustomers(requestContext),
 			this.requireSupplierController().getSuppliers(requestContext),
-			this.getPartners(requestContext),
+			this.requirePartnerController().getPartners(requestContext),
 			this.requireCategoryController().getCategories(requestContext),
 			this.getBrands(requestContext),
 			this.getShelves(requestContext),
@@ -7078,43 +6406,6 @@ export default class ProductController {
 		const segments = path.split('/')
 
 		return segments.length > 1 ? segments[segments.length - 1] : ''
-	}
-
-	private async updateUserSettingsFromSync(
-		requestContext: RequestContext,
-		payload: Partial<
-			Pick<
-				IUserSettings,
-				'productsPerPage' | 'displayLanguage' | 'defaultInvoiceCurrencyId'
-			>
-		>,
-	): Promise<Record<string, unknown>> {
-		const tenantContext = getTenantContext(requestContext)
-		const updateData: Partial<IUserSettings> = {}
-
-		if (payload.productsPerPage !== undefined) {
-			updateData.productsPerPage = payload.productsPerPage
-		}
-
-		if (payload.displayLanguage !== undefined) {
-			updateData.displayLanguage = payload.displayLanguage
-		}
-
-		if (payload.defaultInvoiceCurrencyId !== undefined) {
-			updateData.defaultInvoiceCurrencyId =
-				payload.defaultInvoiceCurrencyId?.trim() || undefined
-		}
-
-		const userSettings = await withTenantScope(
-			UserSettings.findOneAndUpdate(
-				{ userId: requestContext.userId },
-				updateData,
-				{ new: true, upsert: true },
-			).lean(),
-			tenantContext.tenantId,
-		)
-
-		return (userSettings ?? {}) as Record<string, unknown>
 	}
 
 	public async getSyncChanges(
@@ -7364,7 +6655,8 @@ export default class ProductController {
 				entry.entity === 'currencySettings' &&
 				entry.method === 'PATCH'
 			) {
-				const currencySettings = await this.applyCurrencySettingsUpdate(
+				const currencySettings =
+					await this.requireSettingController().applyCurrencySettingsUpdate(
 					requestContext,
 					payload as {
 						primaryCurrency?: ICurrencySettingItem | null
@@ -7385,7 +6677,8 @@ export default class ProductController {
 				entry.entity === 'invoiceSettings' &&
 				entry.method === 'PATCH'
 			) {
-				const invoiceSettings = await this.applyInvoiceSettingsUpdate(
+				const invoiceSettings =
+					await this.requireSettingController().applyInvoiceSettingsUpdate(
 					requestContext,
 					payload as {
 						noMergeInvoiceLines?: boolean
@@ -7449,7 +6742,7 @@ export default class ProductController {
 					data,
 				)
 			} else if (entry.entity === 'partner' && entry.method === 'POST') {
-				data = (await this.postPartner(
+				data = (await this.requirePartnerController().postPartner(
 					requestContext,
 					payload as PartnerRequestBody,
 				)) as Record<string, unknown>
@@ -7649,7 +6942,7 @@ export default class ProductController {
 					data,
 				)
 			} else if (entry.entity === 'userSettings' && entry.method === 'PATCH') {
-				data = await this.updateUserSettingsFromSync(
+				data = await this.requireSettingController().updateUserSettingsFromSync(
 					requestContext,
 					payload as Partial<
 						Pick<

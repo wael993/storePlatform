@@ -11,6 +11,10 @@ import SupplierController from './apis/supplier/api.controller'
 import SupplierRoutes from './apis/supplier/api.routes'
 import CategoryController from './apis/category/api.controller'
 import CategoryRoutes from './apis/category/api.routes'
+import PartnerController from './apis/partner/api.controller'
+import PartnerRoutes from './apis/partner/api.routes'
+import SettingController from './apis/setting/api.controller'
+import SettingRoutes from './apis/setting/api.routes'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
@@ -40,9 +44,22 @@ const categoryController = new CategoryController(mongoDbClient)
 
 productController.setCategoryController(categoryController)
 
+const partnerController = new PartnerController(
+	mongoDbClient,
+	productController,
+)
+
+productController.setPartnerController(partnerController)
+
+const settingController = new SettingController(productController)
+
+productController.setSettingController(settingController)
+
 const customerRoutes = new CustomerRoutes(customerController, productController)
 const supplierRoutes = new SupplierRoutes(supplierController, productController)
 const categoryRoutes = new CategoryRoutes(categoryController, productController)
+const partnerRoutes = new PartnerRoutes(partnerController, productController)
+const settingRoutes = new SettingRoutes(settingController, productController)
 const storeRoutes = new StoreRoutes(productController)
 const app = express()
 
@@ -82,6 +99,8 @@ startTokenCleanupCron()
 customerRoutes.setRoutes(app)
 supplierRoutes.setRoutes(app)
 categoryRoutes.setRoutes(app)
+partnerRoutes.setRoutes(app)
+settingRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 
 app.use(errorHandler)

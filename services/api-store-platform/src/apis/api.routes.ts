@@ -20,7 +20,6 @@ import {
 	CurrencyRequestBody,
 	ExpenseRequestBody,
 	UnitRequestBody,
-	PartnerRequestBody,
 	BrandRequestBody,
 	ShelfRequestBody,
 	WarehouseRequestBody,
@@ -558,51 +557,6 @@ export default class StoreRoutes extends PlatformValidator {
 			.post(this.startCalc.bind(this), this.logoutAll.bind(this))
 
 		app
-			.route(`${baseRoute}/user-settings`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getUserSettings.bind(this),
-			)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchUserSettings.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/currency-settings`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCurrencySettings.bind(this),
-			)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchCurrencySettings.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/invoice-settings`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getInvoiceSettings.bind(this),
-			)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchInvoiceSettings.bind(this),
-			)
-
-		app
 			.route(`${baseRoute}/sync/bootstrap`)
 			.get(
 				this.startCalc.bind(this),
@@ -632,30 +586,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app.get('/test', (req, res) => {
 			res.send('OK')
 		})
-
-		app
-			.route(`${baseRoute}/partners`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getPartners.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postPartner.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/partners/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getPartner.bind(this),
-			)
 
 		app
 			.route(`${baseRoute}/expenses`)
@@ -1074,63 +1004,6 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const resp =
 				await this.productController.getProductFilterValues(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getPartners(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getPartners(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postPartner(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-		const requestBody: PartnerRequestBody = request.body
-
-		try {
-			const resp = await this.productController.postPartner(
-				requestContext,
-				requestBody,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-	private async getPartner(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getPartner(
-				request.params.id,
-				requestContext,
-			)
 
 			response.status(200).json(resp)
 		} catch (error: any) {
@@ -2370,84 +2243,6 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getUserSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			await this.productController.getUserSettings(request, response)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchUserSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			await this.productController.patchUserSettings(request, response)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getCurrencySettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			await this.productController.getCurrencySettings(request, response)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchCurrencySettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			await this.productController.patchCurrencySettings(request, response)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getInvoiceSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			await this.productController.getInvoiceSettings(request, response)
-		} catch (error: any) {
-			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchInvoiceSettings(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		try {
-			await this.productController.patchInvoiceSettings(request, response)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
 		} finally {
