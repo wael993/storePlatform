@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 
 import { generateId } from '../../offline/utils'
+import { InvoicePaymentType } from '../../shared/globalEnums'
 import type { SellingInvoiceDraft, SellingInvoicePaymentType } from './types'
 
 export const WALK_IN_CUSTOMER_ID = 'walk-in'
@@ -34,7 +35,7 @@ export const createInvoiceDraft = (
 	salesPerson,
 	customerId: WALK_IN_CUSTOMER_ID,
 	customerName: options?.customerName ?? 'Walk-in Customer',
-	paymentType: options?.paymentType ?? 'cash',
+	paymentType: options?.paymentType ?? InvoicePaymentType.CASH,
 	lineItems: [],
 	note: '',
 	paidAmount: 0,

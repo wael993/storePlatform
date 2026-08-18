@@ -127,6 +127,7 @@ import {
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
 import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
+import { mapInvoiceFiltersToUiStatus } from '../shared/constants'
 import {
 	formatInvoiceNumber,
 	isPrefixedInvoiceNumber,
@@ -136,7 +137,14 @@ import {
 import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
 import { Partner } from '../models/Partner'
-import { DailyActionType, TargetType } from '../shared/globalEnums'
+import {
+	DailyActionType,
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+	InvoiceUiStatus,
+	TargetType,
+} from '../shared/globalEnums'
 import { Category } from '../models/Category'
 import { Brand } from '../models/Brand'
 import { Shelf } from '../models/Shelf'
@@ -1174,7 +1182,13 @@ export default class ProductController {
 			{
 				$match: {
 					tenantId,
-					status: { $nin: ['draft', 'cancelled', 'void'] },
+					status: {
+						$nin: [
+							InvoiceStatus.DRAFT,
+							InvoiceStatus.CANCELLED,
+							InvoiceStatus.VOID,
+						],
+					},
 				},
 			},
 			{ $sort: { issuedAt: -1 } },
@@ -1209,7 +1223,13 @@ export default class ProductController {
 			{
 				$match: {
 					tenantId,
-					status: { $nin: ['draft', 'cancelled', 'void'] },
+					status: {
+						$nin: [
+							InvoiceStatus.DRAFT,
+							InvoiceStatus.CANCELLED,
+							InvoiceStatus.VOID,
+						],
+					},
 				},
 			},
 			{ $sort: { issuedAt: -1 } },
@@ -2136,24 +2156,6 @@ export default class ProductController {
 		}
 	}
 
-	private mapInvoiceFiltersToUiStatus(invoice: Record<string, unknown>): string {
-		if (invoice.status === 'draft') return 'draft'
-
-		if (invoice.status === 'cancelled') return 'cancelled'
-
-		if (invoice.status === 'paid') return 'paid'
-
-		if (invoice.status === 'partial') return 'partial'
-
-		if (invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid') {
-			return 'credit'
-		}
-
-		if (invoice.paymentStatus === 'partial') return 'partial'
-
-		return String(invoice.status ?? 'confirmed')
-	}
-
 	public buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, any>>,
 		customerEntries: DailyActionResponse['data'] = [],
@@ -2164,9 +2166,14 @@ export default class ProductController {
 		let unpaidCount = 0
 
 		for (const invoice of invoices) {
-			const status = String(invoice.status ?? 'confirmed')
+			const status = String(invoice.status ?? InvoiceStatus.CONFIRMED)
+			const excluded: string[] = [
+				InvoiceStatus.DRAFT,
+				InvoiceStatus.CANCELLED,
+				InvoiceStatus.VOID,
+			]
 
-			if (['draft', 'cancelled', 'void'].includes(status)) continue
+			if (excluded.includes(status)) continue
 
 			const { grandTotal, paidAmount } =
 				getPrimaryInvoiceCurrencyAmounts(invoice)
@@ -2174,11 +2181,14 @@ export default class ProductController {
 			totalInvoiced += grandTotal
 			totalPaid += paidAmount
 
-			const uiStatus = this.mapInvoiceFiltersToUiStatus(invoice)
+			const uiStatus = mapInvoiceFiltersToUiStatus(invoice)
 
-			if (uiStatus === 'paid') {
+			if (uiStatus === InvoiceUiStatus.PAID) {
 				paidCount += 1
-			} else if (uiStatus === 'credit' || uiStatus === 'partial') {
+			} else if (
+				uiStatus === InvoiceUiStatus.CREDIT ||
+				uiStatus === InvoiceUiStatus.PARTIAL
+			) {
 				unpaidCount += 1
 			}
 		}
@@ -2214,9 +2224,14 @@ export default class ProductController {
 		let unpaidCount = 0
 
 		for (const invoice of invoices) {
-			const status = String(invoice.status ?? 'confirmed')
+			const status = String(invoice.status ?? InvoiceStatus.CONFIRMED)
+			const excluded: string[] = [
+				InvoiceStatus.DRAFT,
+				InvoiceStatus.CANCELLED,
+				InvoiceStatus.VOID,
+			]
 
-			if (['draft', 'cancelled', 'void'].includes(status)) continue
+			if (excluded.includes(status)) continue
 
 			const { grandTotal, paidAmount } =
 				getPrimaryInvoiceCurrencyAmounts(invoice)
@@ -2224,11 +2239,14 @@ export default class ProductController {
 			totalInvoiced += grandTotal
 			totalPaid += paidAmount
 
-			const uiStatus = this.mapBuyingInvoiceFiltersToUiStatus(invoice)
+			const uiStatus = mapInvoiceFiltersToUiStatus(invoice)
 
-			if (uiStatus === 'paid') {
+			if (uiStatus === InvoiceUiStatus.PAID) {
 				paidCount += 1
-			} else if (uiStatus === 'credit' || uiStatus === 'partial') {
+			} else if (
+				uiStatus === InvoiceUiStatus.CREDIT ||
+				uiStatus === InvoiceUiStatus.PARTIAL
+			) {
 				unpaidCount += 1
 			}
 		}
@@ -2311,26 +2329,6 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<number> {
 		return this.resolveLatestBuyingInvoiceNumber(requestContext)
-	}
-
-	private mapBuyingInvoiceFiltersToUiStatus(
-		invoice: Record<string, any>,
-	): string {
-		if (invoice.status === 'draft') return 'draft'
-
-		if (invoice.status === 'cancelled') return 'cancelled'
-
-		if (invoice.status === 'paid') return 'paid'
-
-		if (invoice.status === 'partial') return 'partial'
-
-		if (invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid') {
-			return 'credit'
-		}
-
-		if (invoice.paymentStatus === 'partial') return 'partial'
-
-		return String(invoice.status ?? 'confirmed')
 	}
 
 	public async getInventory(
@@ -4123,8 +4121,13 @@ export default class ProductController {
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
 					{
-						paymentType: 'credit',
-						paymentStatus: { $in: ['unpaid', 'partial'] },
+						paymentType: InvoicePaymentType.CREDIT,
+						paymentStatus: {
+							$in: [
+								InvoicePaymentStatus.UNPAID,
+								InvoicePaymentStatus.PARTIAL,
+							],
+						},
 					},
 				],
 			})
@@ -4145,8 +4148,13 @@ export default class ProductController {
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
 					{
-						paymentType: 'credit',
-						paymentStatus: { $in: ['unpaid', 'partial'] },
+						paymentType: InvoicePaymentType.CREDIT,
+						paymentStatus: {
+							$in: [
+								InvoicePaymentStatus.UNPAID,
+								InvoicePaymentStatus.PARTIAL,
+							],
+						},
 					},
 				],
 			})

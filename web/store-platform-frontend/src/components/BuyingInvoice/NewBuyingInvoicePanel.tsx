@@ -51,6 +51,7 @@ import {
 	parseDateInputValue,
 } from '../../shared/dateUtils'
 import { useUser } from '../../shared/hooks/useUser'
+import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import {
 	buildBuyingInvoiceRequestBody,
 	mapApiBuyingInvoiceToDraft,
@@ -113,8 +114,16 @@ const PaymentTypeButton = ({
 	onClick: (type: BuyingInvoicePaymentType) => void
 }) => {
 	const activeStyles = {
-		cash: { bg: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC' },
-		credit: { bg: '#FFEDD5', color: '#C2410C', borderColor: '#FDBA74' },
+		[InvoicePaymentType.CASH]: {
+			bg: '#DCFCE7',
+			color: '#15803D',
+			borderColor: '#86EFAC',
+		},
+		[InvoicePaymentType.CREDIT]: {
+			bg: '#FFEDD5',
+			color: '#C2410C',
+			borderColor: '#FDBA74',
+		},
 	}[type]
 
 	return (
@@ -180,7 +189,7 @@ const NewBuyingInvoicePanel = ({
 	onRequestEdit,
 	nextInvoiceNumber = 1,
 	initialProductSearch = '',
-	initialPaymentType = 'cash',
+	initialPaymentType = InvoicePaymentType.CASH,
 	draft: controlledDraft,
 	onDraftChange,
 	showNote: controlledShowNote,
@@ -309,7 +318,7 @@ const NewBuyingInvoicePanel = ({
 	)
 
 	useEffect(() => {
-		if (isReadOnly || draft.paymentType !== 'cash') return
+		if (isReadOnly || draft.paymentType !== InvoicePaymentType.CASH) return
 
 		setDraft(current => ({
 			...current,
@@ -411,14 +420,15 @@ const NewBuyingInvoicePanel = ({
 		setDraft(current => ({
 			...current,
 			paymentType,
-			paidAmount: paymentType === 'cash' ? totals.grandTotal : 0,
+			paidAmount:
+				paymentType === InvoicePaymentType.CASH ? totals.grandTotal : 0,
 		}))
 	}
 
 	const canSave = draft.lineItems.length > 0 && hasSupplier && hasSalesPerson
 
 	const handleSaveInvoice = async (
-		status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
+		status: InvoiceStatus,
 	) => {
 		if (!canSave) return
 
@@ -727,18 +737,18 @@ const NewBuyingInvoicePanel = ({
 					</Text>
 					<HStack spacing={2}>
 						<PaymentTypeButton
-							type="cash"
+							type={InvoicePaymentType.CASH}
 							label={t('components.buyingInvoices.paymentType.cash')}
 							icon={<AsDollarSignIcon fill="none" />}
-							isActive={draft.paymentType === 'cash'}
+							isActive={draft.paymentType === InvoicePaymentType.CASH}
 							isDisabled={isReadOnly}
 							onClick={handlePaymentTypeChange}
 						/>
 						<PaymentTypeButton
-							type="credit"
+							type={InvoicePaymentType.CREDIT}
 							label={t('components.buyingInvoices.paymentType.credit')}
 							icon={<AsPriceTagIcon fill="none" />}
-							isActive={draft.paymentType === 'credit'}
+							isActive={draft.paymentType === InvoicePaymentType.CREDIT}
 							isDisabled={isReadOnly}
 							onClick={handlePaymentTypeChange}
 						/>
@@ -957,7 +967,7 @@ const NewBuyingInvoicePanel = ({
 									fontSize="xl"
 									fontWeight={700}
 									onEdit={
-										draft.paymentType === 'credit'
+										draft.paymentType === InvoicePaymentType.CREDIT
 											? undefined
 											: paidAmount =>
 													setDraft(current => ({
@@ -1016,7 +1026,7 @@ const NewBuyingInvoicePanel = ({
 							borderRadius="lg"
 							borderColor={PAGE_COLORS.border}
 							flex={{ base: 1, sm: 'none' }}
-							onClick={() => handleSaveInvoice('draft')}
+							onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}
 							isLoading={isSaving}
 							isDisabled={!canSave}
 						>
@@ -1034,7 +1044,7 @@ const NewBuyingInvoicePanel = ({
 							borderRadius="lg"
 							borderColor={PAGE_COLORS.border}
 							flex={{ base: 1, sm: 'none' }}
-							onClick={() => handleSaveInvoice('draft')}
+							onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}
 							isLoading={isSaving}
 							isDisabled={!canSave}
 						>
@@ -1060,10 +1070,10 @@ const NewBuyingInvoicePanel = ({
 									<ChevronDownIcon />
 								</MenuButton>
 								<MenuList>
-									<MenuItem onClick={() => handleSaveInvoice('draft')}>
+									<MenuItem onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}>
 										{t('components.buyingInvoices.drawer.saveDraft')}
 									</MenuItem>
-									<MenuItem onClick={() => handleSaveInvoice('draft')}>
+									<MenuItem onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}>
 										{t('components.buyingInvoices.drawer.holdInvoice')}
 									</MenuItem>
 								</MenuList>
@@ -1089,19 +1099,19 @@ const NewBuyingInvoicePanel = ({
 								isDisabled={!canSave}
 								isLoading={isSaving}
 								onClick={() => {
-									if (draft.paymentType === 'credit') {
-										handleSaveInvoice('confirmed')
+									if (draft.paymentType === InvoicePaymentType.CREDIT) {
+										handleSaveInvoice(InvoiceStatus.CONFIRMED)
 										return
 									}
 
 									handleSaveInvoice(
 										draft.paidAmount + 0.009 >= totals.grandTotal
-											? 'paid'
-											: 'partial',
+											? InvoiceStatus.PAID
+											: InvoiceStatus.PARTIAL,
 									)
 								}}
 							>
-								{draft.paymentType === 'cash'
+								{draft.paymentType === InvoicePaymentType.CASH
 									? t('components.buyingInvoices.drawer.payCashAndSave')
 									: t('components.buyingInvoices.drawer.saveCreditInvoice')}
 							</Button>

@@ -16,6 +16,12 @@ import {
 	type InvoiceAmountSource,
 	type InvoiceCurrencyAmount,
 } from '../../shared/invoiceCurrency'
+import { mapInvoiceFiltersToUiStatus } from '../../shared/constants'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
 import { getTenantContext } from '../../shared/tenant'
 import {
@@ -230,7 +236,7 @@ export default class SellingInvoiceController {
 		items: Array<{ productId: string }>,
 	) {
 		const tenantContext = getTenantContext(requestContext)
-		const requestedProductIds = items.map(item => item.productId)
+		const requestedProductIds = [...new Set(items.map(item => item.productId))]
 		const products = await withTenantScope(
 			Product.find({ productId: { $in: requestedProductIds } }),
 			tenantContext.tenantId,
@@ -247,36 +253,46 @@ export default class SellingInvoiceController {
 	private deriveInvoicePaymentStatus(
 		grandTotal: number,
 		paidAmount: number,
-	): 'unpaid' | 'partial' | 'paid' {
-		if (paidAmount <= 0) return 'unpaid'
+	): InvoicePaymentStatus {
+		if (paidAmount <= 0) return InvoicePaymentStatus.UNPAID
 
-		if (paidAmount + 0.009 >= grandTotal) return 'paid'
+		if (paidAmount + 0.009 >= grandTotal) return InvoicePaymentStatus.PAID
 
-		return 'partial'
+		return InvoicePaymentStatus.PARTIAL
 	}
 
 	private deriveInvoiceStatus(
 		requestStatus: InvoiceRequestBody['status'],
-		paymentStatus: 'unpaid' | 'partial' | 'paid',
+		paymentStatus: InvoicePaymentStatus | `${InvoicePaymentStatus}`,
 		paymentType?: InvoiceRequestBody['paymentType'],
 	): NonNullable<InvoiceRequestBody['status']> {
-		if (requestStatus === 'draft' || requestStatus === 'cancelled') {
+		if (
+			requestStatus === InvoiceStatus.DRAFT ||
+			requestStatus === InvoiceStatus.CANCELLED
+		) {
 			return requestStatus
 		}
 
-		if (paymentStatus === 'paid') return 'paid'
+		if (paymentStatus === InvoicePaymentStatus.PAID) return InvoiceStatus.PAID
 
-		if (paymentStatus === 'partial') return 'partial'
+		if (paymentStatus === InvoicePaymentStatus.PARTIAL) {
+			return InvoiceStatus.PARTIAL
+		}
 
-		if (paymentType === 'credit') return 'confirmed'
+		if (paymentType === InvoicePaymentType.CREDIT) return InvoiceStatus.CONFIRMED
 
-		return requestStatus ?? 'confirmed'
+		return requestStatus ?? InvoiceStatus.CONFIRMED
 	}
 
 	private shouldAdjustInventoryForInvoice(status: unknown): boolean {
-		return !['draft', 'cancelled', 'void', 'pending'].includes(
-			String(status ?? ''),
-		)
+		const excluded: string[] = [
+			InvoiceStatus.DRAFT,
+			InvoiceStatus.CANCELLED,
+			InvoiceStatus.VOID,
+			InvoiceStatus.PENDING,
+		]
+
+		return !excluded.includes(String(status ?? ''))
 	}
 
 	private parseSummaryDateRange(filters: SellingInvoicesQueryParams = {}): {
@@ -319,7 +335,9 @@ export default class SellingInvoiceController {
 	}
 
 	private isPeriodSummaryInvoice(invoice: Record<string, unknown>): boolean {
-		return this.shouldAdjustInventoryForInvoice(invoice.status ?? 'confirmed')
+		return this.shouldAdjustInventoryForInvoice(
+			invoice.status ?? InvoiceStatus.CONFIRMED,
+		)
 	}
 
 	private getInvoiceLineRevenue(item: {
@@ -535,12 +553,13 @@ export default class SellingInvoiceController {
 		}, 0)
 
 		const paidInvoices = invoices.filter(
-			invoice => invoice.status === 'paid',
+			invoice => invoice.status === InvoiceStatus.PAID,
 		).length
 
 		const creditInvoices = invoices.filter(
 			invoice =>
-				invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid',
+				invoice.paymentType === InvoicePaymentType.CREDIT &&
+				invoice.paymentStatus !== InvoicePaymentStatus.PAID,
 		).length
 
 		const totalReceivable = invoices.reduce((total, invoice) => {
@@ -578,24 +597,6 @@ export default class SellingInvoiceController {
 			bestSeller: this.pickBestSellerSummaryProduct(productAggregates),
 			topProfitProduct: this.pickTopProfitSummaryProduct(productAggregates),
 		}
-	}
-
-	private mapInvoiceFiltersToUiStatus(invoice: Record<string, unknown>): string {
-		if (invoice.status === 'draft') return 'draft'
-
-		if (invoice.status === 'cancelled') return 'cancelled'
-
-		if (invoice.status === 'paid') return 'paid'
-
-		if (invoice.status === 'partial') return 'partial'
-
-		if (invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid') {
-			return 'credit'
-		}
-
-		if (invoice.paymentStatus === 'partial') return 'partial'
-
-		return String(invoice.status ?? 'confirmed')
 	}
 
 	private async validateSaleInventory(
@@ -835,7 +836,7 @@ export default class SellingInvoiceController {
 				return false
 			}
 
-			const uiStatus = this.mapInvoiceFiltersToUiStatus(invoice)
+			const uiStatus = mapInvoiceFiltersToUiStatus(invoice)
 
 			if (
 				filters.status &&
@@ -1185,6 +1186,13 @@ export default class SellingInvoiceController {
 			hasPatchItems && requestBody.items
 				? requestBody.items
 				: asInvoiceLines(existingInvoice?.items)
+
+		if (itemsToApply.length) {
+			await this.ensureInvoiceProductsBelongToTenant(
+				requestContext,
+				itemsToApply,
+			)
+		}
 
 		const { updateResponse, touchedInventoryIds } = await this.ops.runInTransaction(
 			async session => {

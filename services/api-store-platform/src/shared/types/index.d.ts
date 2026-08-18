@@ -1,6 +1,11 @@
 import { AuthorizedUser } from './authorization'
 import { TenantRole } from '../tenant'
 import { CustomerDailyAction, ProductDailyAction } from './api'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../globalEnums'
 
 interface RequestContext {
 	authorization?: string
@@ -149,7 +154,7 @@ export type InvoiceRequestBody = {
 	customerId?: string
 	customerName?: string
 	salesPerson?: string
-	paymentType?: 'cash' | 'card' | 'credit'
+	paymentType?: `${InvoicePaymentType}`
 	items?: Array<{
 		productId: string
 		name: string
@@ -162,15 +167,8 @@ export type InvoiceRequestBody = {
 		taxRate?: number
 		lineTotal?: number
 	}>
-	status?:
-		| 'draft'
-		| 'confirmed'
-		| 'partial'
-		| 'paid'
-		| 'cancelled'
-		| 'pending'
-		| 'void'
-	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	status?: `${InvoiceStatus}`
+	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts: Array<{
 		currencyId: string
 		name: string
@@ -241,7 +239,7 @@ export type BuyingInvoiceRequestBody = {
 	invoiceNumber?: string
 	supplierId?: string
 	supplierName?: string
-	paymentType?: 'cash' | 'credit'
+	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
 	items?: Array<{
 		productId: string
 		name: string
@@ -254,15 +252,8 @@ export type BuyingInvoiceRequestBody = {
 		taxRate?: number
 		lineTotal?: number
 	}>
-	status?:
-		| 'draft'
-		| 'confirmed'
-		| 'partial'
-		| 'paid'
-		| 'cancelled'
-		| 'pending'
-		| 'void'
-	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	status?: `${InvoiceStatus}`
+	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts: Array<{
 		currencyId: string
 		name: string

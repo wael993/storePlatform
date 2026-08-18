@@ -1,13 +1,12 @@
 import type { InvoiceCurrencyAmount } from './currencyDisplay'
+import type {
+	InvoicePaymentType,
+	InvoiceUiStatus,
+} from '../../shared/globalEnums'
 
-export type SellingInvoiceStatus =
-	| 'paid'
-	| 'credit'
-	| 'partial'
-	| 'draft'
-	| 'cancelled'
+export type SellingInvoiceStatus = `${InvoiceUiStatus}`
 
-export type SellingInvoicePaymentType = 'cash' | 'credit' | 'card'
+export type SellingInvoicePaymentType = `${InvoicePaymentType}`
 
 export interface SellingInvoice {
 	id: string

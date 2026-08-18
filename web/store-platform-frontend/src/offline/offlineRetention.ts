@@ -1,4 +1,5 @@
 import { offlineDb } from './db'
+import { InvoicePaymentStatus, InvoicePaymentType } from '../shared/globalEnums'
 import type {
 	LocalBuyingInvoice,
 	LocalDailyAction,
@@ -21,7 +22,8 @@ export const getRetentionCutoffIso = (
 ): string => getRetentionCutoffDate(retentionDays).toISOString()
 
 export const isOpenCreditInvoice = (invoice: LocalInvoice): boolean =>
-	invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid'
+	invoice.paymentType === InvoicePaymentType.CREDIT &&
+	invoice.paymentStatus !== InvoicePaymentStatus.PAID
 
 export const shouldRetainInvoice = (
 	invoice: LocalInvoice,
@@ -39,7 +41,8 @@ export const shouldRetainInvoice = (
 export const isOpenCreditBuyingInvoice = (
 	invoice: LocalBuyingInvoice,
 ): boolean =>
-	invoice.paymentType === 'credit' && invoice.paymentStatus !== 'paid'
+	invoice.paymentType === InvoicePaymentType.CREDIT &&
+	invoice.paymentStatus !== InvoicePaymentStatus.PAID
 
 export const shouldRetainBuyingInvoice = (
 	invoice: LocalBuyingInvoice,

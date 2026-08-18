@@ -21,15 +21,13 @@ import { useTranslation } from 'react-i18next'
 
 import { useGetSellingInvoicesQuery } from '../../api/apiStore'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
-import { AsCashIcon } from '../../icons/Cash'
-import { AsCreditCardIcon } from '../../icons/CreditCard'
-import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import CurrencyAmountTooltip from '../SellingInvoice/CurrencyAmountTooltip'
 import InvoiceDetailModal from '../SellingInvoice/InvoiceDetailModal'
 import {
 	INVOICES_PER_PAGE,
 	PAGE_COLORS,
 	PAYMENT_TYPE_CONFIG,
+	PaymentTypeIcon,
 	STATUS_CONFIG,
 } from '../SellingInvoice/constants'
 import { formatInvoiceAmountForDisplay } from '../SellingInvoice/currencyDisplay'
@@ -37,39 +35,16 @@ import {
 	mapApiInvoiceToSellingInvoice,
 	type ApiSellingInvoice,
 } from '../SellingInvoice/invoiceApiMappers'
-import type {
-	SellingInvoice,
-	SellingInvoicePaymentType,
-	SellingInvoiceStatus,
-} from '../SellingInvoice/types'
+import { InvoiceUiStatus } from '../../shared/globalEnums'
+import type { SellingInvoice, SellingInvoiceStatus } from '../SellingInvoice/types'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
 
 const CUSTOMER_STATUS_FILTER_TABS = [
 	'all',
-	'paid',
-	'credit',
-	'partial',
+	InvoiceUiStatus.PAID,
+	InvoiceUiStatus.CREDIT,
+	InvoiceUiStatus.PARTIAL,
 ] as const
-
-const PaymentTypeIcon = ({ type }: { type: SellingInvoicePaymentType }) => {
-	switch (type) {
-		case 'cash':
-			return <Icon as={AsCashIcon} color={PAGE_COLORS.success} boxSize={5} />
-		case 'credit':
-			return (
-				<Icon
-					as={AsPriceTagIcon}
-					fill="none"
-					color={PAGE_COLORS.danger}
-					boxSize={5}
-				/>
-			)
-		case 'card':
-			return (
-				<Icon as={AsCreditCardIcon} color={PAGE_COLORS.warning} boxSize={5} />
-			)
-	}
-}
 
 const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {
 	const { t } = useTranslation()

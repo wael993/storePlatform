@@ -43,6 +43,12 @@ import {
 	formatBuyingInvoiceNumber,
 } from '../shared/invoiceNumbering'
 import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+	InvoiceUiStatus,
+} from '../shared/globalEnums'
+import {
 	generateId,
 	nowIso,
 	parseUrlPath,
@@ -134,17 +140,19 @@ const validateLocalSaleInventory = async (
 }
 
 const mapInvoiceStatus = (status?: string) => {
-	if (status === 'draft' || status === 'cancelled') return status
-	if (status === 'paid') return 'paid'
-	if (status === 'partial') return 'partial'
-	return status ?? 'confirmed'
+	if (status === InvoiceStatus.DRAFT || status === InvoiceStatus.CANCELLED) {
+		return status
+	}
+	if (status === InvoiceStatus.PAID) return InvoiceStatus.PAID
+	if (status === InvoiceStatus.PARTIAL) return InvoiceStatus.PARTIAL
+	return status ?? InvoiceStatus.CONFIRMED
 }
 
-const PERIOD_EXCLUDED_STATUSES = new Set([
-	'draft',
-	'cancelled',
-	'void',
-	'pending',
+const PERIOD_EXCLUDED_STATUSES = new Set<string>([
+	InvoiceStatus.DRAFT,
+	InvoiceStatus.CANCELLED,
+	InvoiceStatus.VOID,
+	InvoiceStatus.PENDING,
 ])
 
 const getInvoiceLineRevenue = (item: {
@@ -184,7 +192,7 @@ const parseSummaryDateRange = (params: URLSearchParams) => {
 }
 
 const isPeriodSummaryInvoice = (invoice: LocalInvoice) =>
-	!PERIOD_EXCLUDED_STATUSES.has(String(invoice.status ?? 'confirmed'))
+	!PERIOD_EXCLUDED_STATUSES.has(String(invoice.status ?? InvoiceStatus.CONFIRMED))
 
 const buildSellingInvoicesSummary = (
 	invoices: LocalInvoice[],
@@ -326,9 +334,12 @@ const buildSellingInvoicesSummary = (
 
 	return {
 		todaySales,
-		paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
+		paidInvoices: invoices.filter(inv => inv.status === InvoiceStatus.PAID)
+			.length,
 		creditInvoices: invoices.filter(
-			inv => inv.paymentType === 'credit' && inv.paymentStatus !== 'paid',
+			inv =>
+				inv.paymentType === InvoicePaymentType.CREDIT &&
+				inv.paymentStatus !== InvoicePaymentStatus.PAID,
 		).length,
 		totalReceivable: invoices.reduce((total, inv) => {
 			const { remainingAmount } = getPrimaryInvoiceCurrencyAmounts(inv)
@@ -399,8 +410,11 @@ const filterInvoices = (invoices: LocalInvoice[], params: URLSearchParams) => {
 	const status = params.get('status')
 	if (status && status !== 'all') {
 		filtered = filtered.filter(inv => {
-			if (status === 'credit') {
-				return inv.paymentType === 'credit' && inv.paymentStatus !== 'paid'
+			if (status === InvoiceUiStatus.CREDIT) {
+				return (
+					inv.paymentType === InvoicePaymentType.CREDIT &&
+					inv.paymentStatus !== InvoicePaymentStatus.PAID
+				)
 			}
 			return inv.status === status || inv.paymentStatus === status
 		})
@@ -443,12 +457,23 @@ const filterBuyingInvoices = (
 	const status = params.get('status')
 	if (status && status !== 'all') {
 		filtered = filtered.filter(inv => {
-			if (status === 'draft') return inv.status === 'draft'
-			if (status === 'cancelled') return inv.status === 'cancelled'
-			if (status === 'paid') return inv.status === 'paid'
-			if (status === 'partial') return inv.status === 'partial'
-			if (status === 'credit') {
-				return inv.paymentType === 'credit' && inv.paymentStatus !== 'paid'
+			if (status === InvoiceUiStatus.DRAFT) {
+				return inv.status === InvoiceStatus.DRAFT
+			}
+			if (status === InvoiceUiStatus.CANCELLED) {
+				return inv.status === InvoiceStatus.CANCELLED
+			}
+			if (status === InvoiceUiStatus.PAID) {
+				return inv.status === InvoiceStatus.PAID
+			}
+			if (status === InvoiceUiStatus.PARTIAL) {
+				return inv.status === InvoiceStatus.PARTIAL
+			}
+			if (status === InvoiceUiStatus.CREDIT) {
+				return (
+					inv.paymentType === InvoicePaymentType.CREDIT &&
+					inv.paymentStatus !== InvoicePaymentStatus.PAID
+				)
 			}
 			return true
 		})
@@ -500,9 +525,12 @@ const buildBuyingInvoicesSummary = (invoices: LocalBuyingInvoice[]) => {
 
 	return {
 		todayPurchases,
-		paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
+		paidInvoices: invoices.filter(inv => inv.status === InvoiceStatus.PAID)
+			.length,
 		creditInvoices: invoices.filter(
-			inv => inv.paymentType === 'credit' && inv.paymentStatus !== 'paid',
+			inv =>
+				inv.paymentType === InvoicePaymentType.CREDIT &&
+				inv.paymentStatus !== InvoicePaymentStatus.PAID,
 		).length,
 		totalPayable: invoices.reduce((total, inv) => {
 			const { remainingAmount } = getPrimaryInvoiceCurrencyAmounts(inv)
@@ -591,7 +619,11 @@ const handlePostInvoice = async (
 	const clientMutationId = body.clientMutationId ?? generateId()
 	const status = mapInvoiceStatus(body.status)
 
-	if (status !== 'draft' && status !== 'cancelled' && body.items?.length) {
+	if (
+		status !== InvoiceStatus.DRAFT &&
+		status !== InvoiceStatus.CANCELLED &&
+		body.items?.length
+	) {
 		await validateLocalSaleInventory(body.items)
 	}
 

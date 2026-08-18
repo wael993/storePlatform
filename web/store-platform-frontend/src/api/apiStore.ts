@@ -4,6 +4,10 @@ import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+} from '../shared/globalEnums'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
 import {
@@ -179,7 +183,7 @@ export interface PostSellingInvoiceBody {
 	customerId?: string
 	customerName?: string
 	salesPerson?: string
-	paymentType?: 'cash' | 'card' | 'credit'
+	paymentType?: `${InvoicePaymentType}`
 	items: Array<{
 		productId: string
 		name: string
@@ -193,7 +197,7 @@ export interface PostSellingInvoiceBody {
 		lineTotal?: number
 	}>
 	status?: string
-	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts: Array<{
 		currencyId: string
 		name: string
@@ -261,7 +265,7 @@ export interface PostBuyingInvoiceBody {
 	invoiceNumber?: string
 	supplierId?: string
 	supplierName?: string
-	paymentType?: 'cash' | 'credit'
+	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
 	items: Array<{
 		productId: string
 		name: string
@@ -275,7 +279,7 @@ export interface PostBuyingInvoiceBody {
 		lineTotal?: number
 	}>
 	status?: string
-	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts: Array<{
 		currencyId: string
 		name: string

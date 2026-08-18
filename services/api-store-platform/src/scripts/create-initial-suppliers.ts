@@ -4,6 +4,11 @@ import { config } from '../config/config'
 import { Supplier } from '../models/Supplier'
 import { Currency } from '../models/Currency'
 import { BuyingInvoice } from '../models/BuyingInvoices'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../shared/globalEnums'
 import { Product } from '../models/Products'
 import { Unit } from '../models/Unit'
 import Tenant from '../models/Tenant'
@@ -145,9 +150,9 @@ async function createInitialSuppliers() {
 					invoiceNumber: `BI-OPEN-${String(n).padStart(3, '0')}`,
 					supplierId: supplier.supplierId,
 					supplierName: supplier.name,
-					paymentType: 'credit' as const,
-					status: 'confirmed' as const,
-					paymentStatus: 'unpaid' as const,
+					paymentType: InvoicePaymentType.CREDIT,
+					status: InvoiceStatus.CONFIRMED,
+					paymentStatus: InvoicePaymentStatus.UNPAID,
 					items: [
 						{
 							productId: openingProductId,

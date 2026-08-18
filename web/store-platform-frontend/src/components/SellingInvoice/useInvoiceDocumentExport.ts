@@ -12,6 +12,8 @@ import {
 	useLazyGetSellingInvoiceQuery,
 } from '../../api/apiStore'
 import { formatNumber } from '../../shared/utils'
+import { mapApiInvoiceStatusToUi } from '../../shared/globalConstant'
+import { InvoicePaymentType } from '../../shared/globalEnums'
 import type { RootState } from '../../store/store'
 import type { ApiBuyingInvoice } from '../BuyingInvoice/buyingInvoiceApiMappers'
 import {
@@ -37,21 +39,6 @@ import {
 } from './currencyDisplay'
 import type { ApiSellingInvoice } from './invoiceApiMappers'
 import { resolveInvoiceBrand } from './invoicePdfBrand'
-import type { SellingInvoiceStatus } from './types'
-
-const mapStatus = (
-	invoice: ApiSellingInvoice | ApiBuyingInvoice,
-): SellingInvoiceStatus => {
-	if (invoice.status === 'draft') return 'draft'
-	if (invoice.status === 'cancelled') return 'cancelled'
-	if (invoice.status === 'paid' || invoice.paymentStatus === 'paid')
-		return 'paid'
-	if (invoice.status === 'partial' || invoice.paymentStatus === 'partial') {
-		return 'partial'
-	}
-	if (invoice.paymentType === 'credit') return 'credit'
-	return 'paid'
-}
 
 const buildLabels = (t: (key: string) => string): InvoiceDocumentLabels => ({
 	invoiceTitle: t('components.sellingInvoices.invoiceKind.selling'),
@@ -119,9 +106,9 @@ const toDocumentModel = ({
 	const convertAmount = (amount: number) =>
 		roundDisplayAmount(amount * pdfAmounts.exchangeRate)
 	const currencyLabel = getCurrencyLabel(pdfCurrencyId, currencyOptions, '')
-	const status = mapStatus(invoice)
+	const status = mapApiInvoiceStatusToUi(invoice)
 	const issuedAt = invoice.issuedAt ?? invoice.createdAt
-	const paymentType = invoice.paymentType ?? 'cash'
+	const paymentType = invoice.paymentType ?? InvoicePaymentType.CASH
 	const partyName =
 		kind === 'buying'
 			? ((invoice as ApiBuyingInvoice).supplierName ?? '—')

@@ -1,6 +1,11 @@
 import dayjs from 'dayjs'
 
-import { DailyActionType } from '../../shared/globalEnums'
+import {
+	DailyActionType,
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../../shared/globalEnums'
 import type { ApiBuyingInvoice } from '../BuyingInvoice/buyingInvoiceApiMappers'
 import {
 	convertEntryAmountToPrimary,
@@ -12,7 +17,10 @@ import type { ApiSellingInvoice } from './invoiceApiMappers'
 
 export const CASH_BALANCE_ALL_TIME_FROM = '2026-06-30'
 
-const CASH_INFLOW_PAYMENT_TYPES = new Set(['cash', 'card'])
+const CASH_INFLOW_PAYMENT_TYPES = new Set<string>([
+	InvoicePaymentType.CASH,
+	InvoicePaymentType.CARD,
+])
 
 export interface CashBalanceDateRange {
 	dateFrom?: string
@@ -26,7 +34,7 @@ const parseDailyActionAmount = (dailyAction: DailyAction) => {
 }
 
 const isExcludedInvoiceStatus = (status?: string) =>
-	status === 'draft' || status === 'cancelled'
+	status === InvoiceStatus.DRAFT || status === InvoiceStatus.CANCELLED
 
 const isInvoiceInRange = (
 	issuedAt: string | undefined,
@@ -57,11 +65,11 @@ const isIncludedInvoiceStatus = (invoice: {
 	if (isExcludedInvoiceStatus(invoice.status)) return false
 
 	return (
-		invoice.status === 'paid' ||
-		invoice.status === 'partial' ||
-		invoice.status === 'confirmed' ||
-		invoice.paymentStatus === 'paid' ||
-		invoice.paymentStatus === 'partial'
+		invoice.status === InvoiceStatus.PAID ||
+		invoice.status === InvoiceStatus.PARTIAL ||
+		invoice.status === InvoiceStatus.CONFIRMED ||
+		invoice.paymentStatus === InvoicePaymentStatus.PAID ||
+		invoice.paymentStatus === InvoicePaymentStatus.PARTIAL
 	)
 }
 
@@ -73,7 +81,10 @@ const getInvoiceCashAmount = (
 	grandTotal: number,
 	paidAmount: number,
 ) => {
-	if (invoice.status === 'partial' || invoice.paymentStatus === 'partial') {
+	if (
+		invoice.status === InvoiceStatus.PARTIAL ||
+		invoice.paymentStatus === InvoicePaymentStatus.PARTIAL
+	) {
 		return paidAmount
 	}
 
@@ -85,8 +96,8 @@ const getSellingCashImpact = (
 	options: DisplayCurrencyOption[],
 ) => {
 	if (!isIncludedInvoiceStatus(invoice)) return 0
-	if (invoice.paymentType === 'credit') return 0
-	if (!CASH_INFLOW_PAYMENT_TYPES.has(invoice.paymentType ?? 'cash')) return 0
+	if (invoice.paymentType === InvoicePaymentType.CREDIT) return 0
+	if (!CASH_INFLOW_PAYMENT_TYPES.has(invoice.paymentType ?? InvoicePaymentType.CASH)) return 0
 
 	const { grandTotal, paidAmount, currencyId } =
 		getPrimaryInvoiceCurrencyAmounts(invoice)
@@ -102,8 +113,8 @@ const getBuyingCashImpact = (
 	options: DisplayCurrencyOption[],
 ) => {
 	if (!isIncludedInvoiceStatus(invoice)) return 0
-	if (invoice.paymentType === 'credit') return 0
-	if ((invoice.paymentType ?? 'cash') !== 'cash') return 0
+	if (invoice.paymentType === InvoicePaymentType.CREDIT) return 0
+	if ((invoice.paymentType ?? InvoicePaymentType.CASH) !== InvoicePaymentType.CASH) return 0
 
 	const { grandTotal, paidAmount, currencyId } =
 		getPrimaryInvoiceCurrencyAmounts(invoice)

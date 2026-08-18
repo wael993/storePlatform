@@ -1,5 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../shared/globalEnums'
 
 export interface IInvoiceItem {
 	productId: string
@@ -36,17 +41,10 @@ export interface IInvoice extends Document {
 	customerId?: string
 	customerName?: string
 	salesPerson?: string
-	paymentType?: 'cash' | 'card' | 'credit'
+	paymentType?: `${InvoicePaymentType}`
 	items?: IInvoiceItem[]
-	status:
-		| 'draft'
-		| 'confirmed'
-		| 'partial'
-		| 'paid'
-		| 'cancelled'
-		| 'pending'
-		| 'void'
-	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	status: `${InvoiceStatus}`
+	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts: IInvoiceCurrencyAmount[]
 	notes?: string
 	invoiceDiscount?: number
@@ -132,7 +130,7 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 		},
 		paymentType: {
 			type: String,
-			enum: ['cash', 'card', 'credit'],
+			enum: Object.values(InvoicePaymentType),
 		},
 		items: {
 			type: [InvoiceItemSchema],
@@ -140,21 +138,13 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			enum: [
-				'draft',
-				'confirmed',
-				'partial',
-				'paid',
-				'cancelled',
-				'pending',
-				'void',
-			],
-			default: 'draft',
+			enum: Object.values(InvoiceStatus),
+			default: InvoiceStatus.DRAFT,
 		},
 		paymentStatus: {
 			type: String,
-			enum: ['unpaid', 'partial', 'paid'],
-			default: 'unpaid',
+			enum: Object.values(InvoicePaymentStatus),
+			default: InvoicePaymentStatus.UNPAID,
 		},
 		currencyAmounts: {
 			type: [InvoiceCurrencyAmountSchema],

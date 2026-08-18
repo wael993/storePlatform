@@ -10,6 +10,7 @@ import {
 
 import type { InvoiceDocumentModel } from './invoiceDocumentModel'
 import { compareLanguage } from '../../shared/utils'
+import { InvoiceUiStatus } from '../../shared/globalEnums'
 import i18n from '../../i18n'
 
 declare const process: {
@@ -321,7 +322,9 @@ export const InvoicePdfDocument = ({
 			: model.labels.invoiceTitle
 	const partyLabel =
 		model.kind === 'buying' ? model.labels.supplier : model.labels.billTo
-	const showWatermark = model.status === 'draft' || model.status === 'cancelled'
+	const showWatermark =
+		model.status === InvoiceUiStatus.DRAFT ||
+		model.status === InvoiceUiStatus.CANCELLED
 	const money = (amount: number) =>
 		`${model.formatAmount(amount)}${
 			model.currencyLabel ? ` ${model.currencyLabel}` : ''

@@ -27,6 +27,7 @@ import {
 	useUpdateSellingInvoiceMutation,
 } from '../../api/apiStore'
 import { useUser } from '../../shared/hooks/useUser'
+import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import useCustomToast from '../common/CustomToast'
 import { PAGE_COLORS } from './constants'
 import { calculateInvoiceTotals } from './invoiceCalculations'
@@ -119,9 +120,21 @@ const PaymentTypeButton = ({
 	isDisabled?: boolean
 }) => {
 	const activeStyles = {
-		cash: { bg: '#DCFCE7', color: '#15803D', borderColor: '#86EFAC' },
-		card: { bg: '#DBEAFE', color: '#2563EB', borderColor: '#93C5FD' },
-		credit: { bg: '#FFEDD5', color: '#C2410C', borderColor: '#FDBA74' },
+		[InvoicePaymentType.CASH]: {
+			bg: '#DCFCE7',
+			color: '#15803D',
+			borderColor: '#86EFAC',
+		},
+		[InvoicePaymentType.CARD]: {
+			bg: '#DBEAFE',
+			color: '#2563EB',
+			borderColor: '#93C5FD',
+		},
+		[InvoicePaymentType.CREDIT]: {
+			bg: '#FFEDD5',
+			color: '#C2410C',
+			borderColor: '#FDBA74',
+		},
 	}[type]
 
 	return (
@@ -184,7 +197,7 @@ const NewSellingInvoicePanel = ({
 	onSaved,
 	nextInvoiceNumber = 1,
 	initialProductSearch = '',
-	initialPaymentType = 'cash',
+	initialPaymentType = InvoicePaymentType.CASH,
 	mode = 'create',
 	invoiceId,
 	onRequestEdit,
@@ -332,7 +345,7 @@ const NewSellingInvoicePanel = ({
 	)
 
 	useEffect(() => {
-		if (isReadOnly || draft.paymentType !== 'cash') return
+		if (isReadOnly || draft.paymentType !== InvoicePaymentType.CASH) return
 
 		setDraft(current => ({
 			...current,
@@ -437,12 +450,13 @@ const NewSellingInvoicePanel = ({
 		setDraft(current => ({
 			...current,
 			paymentType,
-			paidAmount: paymentType === 'cash' ? totals.grandTotal : 0,
+			paidAmount:
+				paymentType === InvoicePaymentType.CASH ? totals.grandTotal : 0,
 		}))
 	}
 
 	const handleSaveInvoice = async (
-		status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
+		status: InvoiceStatus,
 	) => {
 		if (draft.lineItems.length === 0 || isReadOnly) return
 
@@ -751,25 +765,25 @@ const NewSellingInvoicePanel = ({
 					</Text>
 					<HStack spacing={2}>
 						<PaymentTypeButton
-							type="cash"
+							type={InvoicePaymentType.CASH}
 							label={t('components.sellingInvoices.paymentType.cash')}
 							icon={<AsDollarSignIcon fill="none" />}
-							isActive={draft.paymentType === 'cash'}
+							isActive={draft.paymentType === InvoicePaymentType.CASH}
 							onClick={handlePaymentTypeChange}
 							isDisabled={isReadOnly}
 						/>
 						{/* <PaymentTypeButton
-							type="card"
+							type={InvoicePaymentType.CARD}
 							label={t('components.sellingInvoices.paymentType.card')}
 							icon={<AsCreditCardIcon />}
-							isActive={draft.paymentType === 'card'}
+							isActive={draft.paymentType === InvoicePaymentType.CARD}
 							onClick={handlePaymentTypeChange}
 						/> */}
 						<PaymentTypeButton
-							type="credit"
+							type={InvoicePaymentType.CREDIT}
 							label={t('components.sellingInvoices.paymentType.credit')}
 							icon={<AsPriceTagIcon fill="none" />}
-							isActive={draft.paymentType === 'credit'}
+							isActive={draft.paymentType === InvoicePaymentType.CREDIT}
 							onClick={handlePaymentTypeChange}
 							isDisabled={isReadOnly}
 						/>
@@ -990,7 +1004,7 @@ const NewSellingInvoicePanel = ({
 									fontSize="xl"
 									fontWeight={700}
 									onEdit={
-										isReadOnly || draft.paymentType === 'credit'
+										isReadOnly || draft.paymentType === InvoicePaymentType.CREDIT
 											? undefined
 											: paidAmount =>
 													setDraft(current => ({
@@ -1065,20 +1079,20 @@ const NewSellingInvoicePanel = ({
 									_hover={{ bg: '#1D4ED8' }}
 									isDisabled={
 										draft.lineItems.length === 0 ||
-										(draft.paymentType === 'credit' &&
+										(draft.paymentType === InvoicePaymentType.CREDIT &&
 											draft.customerId === WALK_IN_CUSTOMER_ID)
 									}
 									isLoading={isSaving}
 									onClick={() => {
-										if (draft.paymentType === 'credit') {
-											handleSaveInvoice('confirmed')
+										if (draft.paymentType === InvoicePaymentType.CREDIT) {
+											handleSaveInvoice(InvoiceStatus.CONFIRMED)
 											return
 										}
 
 										handleSaveInvoice(
 											draft.paidAmount + 0.009 >= totals.grandTotal
-												? 'paid'
-												: 'partial',
+												? InvoiceStatus.PAID
+												: InvoiceStatus.PARTIAL,
 										)
 									}}
 								>
@@ -1099,7 +1113,7 @@ const NewSellingInvoicePanel = ({
 									borderRadius="lg"
 									borderColor={PAGE_COLORS.border}
 									flex={{ base: 1, sm: 'none' }}
-									onClick={() => handleSaveInvoice('draft')}
+									onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}
 									isLoading={isSaving}
 									isDisabled={draft.lineItems.length === 0}
 								>
@@ -1117,7 +1131,7 @@ const NewSellingInvoicePanel = ({
 									borderRadius="lg"
 									borderColor={PAGE_COLORS.border}
 									flex={{ base: 1, sm: 'none' }}
-									onClick={() => handleSaveInvoice('draft')}
+									onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}
 									isLoading={isSaving}
 									isDisabled={draft.lineItems.length === 0}
 								>
@@ -1140,7 +1154,7 @@ const NewSellingInvoicePanel = ({
 											_hover={{ bg: '#1D4ED8' }}
 											isDisabled={
 												draft.lineItems.length === 0 ||
-												(draft.paymentType === 'credit' &&
+												(draft.paymentType === InvoicePaymentType.CREDIT &&
 													draft.customerId === WALK_IN_CUSTOMER_ID)
 											}
 										>
@@ -1175,26 +1189,26 @@ const NewSellingInvoicePanel = ({
 										_hover={{ bg: '#1D4ED8' }}
 										isDisabled={
 											draft.lineItems.length === 0 ||
-											(draft.paymentType === 'credit' &&
+											(draft.paymentType === InvoicePaymentType.CREDIT &&
 												draft.customerId === WALK_IN_CUSTOMER_ID)
 										}
 										isLoading={isSaving}
 										onClick={() => {
-											if (draft.paymentType === 'credit') {
-												handleSaveInvoice('confirmed')
+											if (draft.paymentType === InvoicePaymentType.CREDIT) {
+												handleSaveInvoice(InvoiceStatus.CONFIRMED)
 												return
 											}
 
 											handleSaveInvoice(
 												draft.paidAmount + 0.009 >= totals.grandTotal
-													? 'paid'
-													: 'partial',
+													? InvoiceStatus.PAID
+													: InvoiceStatus.PARTIAL,
 											)
 										}}
 									>
-										{draft.paymentType === 'cash'
+										{draft.paymentType === InvoicePaymentType.CASH
 											? t('components.sellingInvoices.drawer.payCashAndSave')
-											: draft.paymentType === 'card'
+											: draft.paymentType === InvoicePaymentType.CARD
 												? t('components.sellingInvoices.drawer.payCardAndSave')
 												: t(
 														'components.sellingInvoices.drawer.saveCreditInvoice',

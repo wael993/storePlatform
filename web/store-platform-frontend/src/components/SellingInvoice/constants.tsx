@@ -1,41 +1,50 @@
-import type { SellingInvoiceStatus } from './types'
+import { Icon } from '@chakra-ui/react'
+
+import {
+	InvoicePaymentType,
+	InvoiceUiStatus,
+} from '../../shared/globalEnums'
+import { AsCashIcon } from '../../icons/Cash'
+import { AsCreditCardIcon } from '../../icons/CreditCard'
+import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
+import type { SellingInvoicePaymentType, SellingInvoiceStatus } from './types'
 
 export const INVOICES_PER_PAGE = 10
 
 export const STATUS_FILTER_TABS = [
 	'all',
-	'paid',
-	'credit',
-	'partial',
-	'draft',
-	'cancelled',
+	InvoiceUiStatus.PAID,
+	InvoiceUiStatus.CREDIT,
+	InvoiceUiStatus.PARTIAL,
+	InvoiceUiStatus.DRAFT,
+	InvoiceUiStatus.CANCELLED,
 ] as const
 
 export const STATUS_CONFIG: Record<
 	SellingInvoiceStatus,
 	{ bg: string; color: string; labelKey: string }
 > = {
-	paid: {
+	[InvoiceUiStatus.PAID]: {
 		bg: '#DCFCE7',
 		color: '#15803D',
 		labelKey: 'components.sellingInvoices.status.paid',
 	},
-	credit: {
+	[InvoiceUiStatus.CREDIT]: {
 		bg: '#FEE2E2',
 		color: '#DC2626',
 		labelKey: 'components.sellingInvoices.status.credit',
 	},
-	partial: {
+	[InvoiceUiStatus.PARTIAL]: {
 		bg: '#FFEDD5',
 		color: '#C2410C',
 		labelKey: 'components.sellingInvoices.status.partial',
 	},
-	draft: {
+	[InvoiceUiStatus.DRAFT]: {
 		bg: '#F3F4F6',
 		color: '#4B5563',
 		labelKey: 'components.sellingInvoices.status.draft',
 	},
-	cancelled: {
+	[InvoiceUiStatus.CANCELLED]: {
 		bg: '#F3F4F6',
 		color: '#6B7280',
 		labelKey: 'components.sellingInvoices.status.cancelled',
@@ -84,16 +93,29 @@ export const ENTRY_KIND_BADGE = {
 } as const
 
 export const PAYMENT_TYPE_CONFIG = {
-	cash: {
+	[InvoicePaymentType.CASH]: {
+		icon: AsCashIcon,
 		color: PAGE_COLORS.success,
 		labelKey: 'components.sellingInvoices.paymentType.cash',
 	},
-	credit: {
+	[InvoicePaymentType.CREDIT]: {
+		icon: AsPriceTagIcon,
 		color: PAGE_COLORS.danger,
 		labelKey: 'components.sellingInvoices.paymentType.credit',
 	},
-	card: {
+	[InvoicePaymentType.CARD]: {
+		icon: AsCreditCardIcon,
 		color: PAGE_COLORS.warning,
 		labelKey: 'components.sellingInvoices.paymentType.card',
 	},
 } as const
+
+export const PaymentTypeIcon = ({
+	type,
+}: {
+	type: SellingInvoicePaymentType
+}) => {
+	const config = PAYMENT_TYPE_CONFIG[type]
+
+	return <Icon as={config.icon} fill="none" color={config.color} boxSize={5} />
+}

@@ -1,4 +1,10 @@
-import { AddQuickStateEnum } from './globalEnums'
+import {
+	AddQuickStateEnum,
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+	InvoiceUiStatus,
+} from './globalEnums'
 
 export const ENTRY_TYPE_LABELS_MAP: Record<string, string> = {
 	BUYING_ENTRY: 'common.buyingEntry',
@@ -100,3 +106,36 @@ export const MODAL_CONFIG = {
 		buttonText: 'components.quickAdd.addWarehouse',
 	},
 }
+
+export const mapApiInvoiceStatusToUi = (invoice: {
+	status?: string
+	paymentType?: string
+	paymentStatus?: string
+}): InvoiceUiStatus => {
+	if (invoice.status === InvoiceStatus.DRAFT) return InvoiceUiStatus.DRAFT
+
+	if (invoice.status === InvoiceStatus.CANCELLED) {
+		return InvoiceUiStatus.CANCELLED
+	}
+
+	if (
+		invoice.status === InvoiceStatus.PAID ||
+		invoice.paymentStatus === InvoicePaymentStatus.PAID
+	) {
+		return InvoiceUiStatus.PAID
+	}
+
+	if (
+		invoice.status === InvoiceStatus.PARTIAL ||
+		invoice.paymentStatus === InvoicePaymentStatus.PARTIAL
+	) {
+		return InvoiceUiStatus.PARTIAL
+	}
+
+	if (invoice.paymentType === InvoicePaymentType.CREDIT) {
+		return InvoiceUiStatus.CREDIT
+	}
+
+	return InvoiceUiStatus.PAID
+}
+

@@ -26,6 +26,7 @@ import {
 	withLocalMeta,
 	normalizeBootstrapRecords,
 } from './utils'
+import { InvoiceStatus } from '../shared/globalEnums'
 
 const INVOICE_NUMBER_BLOCK_SIZE = 500
 
@@ -613,7 +614,10 @@ export const saveLocalInvoice = async (
 
 	if (invoice.items?.length) {
 		for (const item of invoice.items) {
-			if (invoice.status !== 'draft' && invoice.status !== 'cancelled') {
+			if (
+				invoice.status !== InvoiceStatus.DRAFT &&
+				invoice.status !== InvoiceStatus.CANCELLED
+			) {
 				await decrementLocalInventory(item.productId, item.quantity)
 			}
 		}
@@ -621,7 +625,7 @@ export const saveLocalInvoice = async (
 }
 
 const shouldAdjustBuyingInventory = (status?: string): boolean =>
-	status !== 'draft' && status !== 'cancelled'
+	status !== InvoiceStatus.DRAFT && status !== InvoiceStatus.CANCELLED
 
 export const saveLocalBuyingInvoice = async (
 	invoice: LocalBuyingInvoice,

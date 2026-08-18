@@ -43,6 +43,7 @@ import {
 	INVOICE_KIND_BADGE,
 	PAGE_COLORS,
 	PAYMENT_TYPE_CONFIG,
+	PaymentTypeIcon,
 	STATUS_CONFIG,
 	STATUS_FILTER_TABS,
 } from './constants'
@@ -57,7 +58,6 @@ import {
 } from './invoiceApiMappers'
 import { normalizeSearchQuery } from './productSearch'
 import type {
-	SellingInvoicePaymentType,
 	SellingInvoiceSortKey,
 	SellingInvoiceStatus,
 	SortDirection,
@@ -67,10 +67,7 @@ import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import { AsSearchIcon } from '../../icons/Search'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
 import { AsThreeDotsIcon } from '../../shared/icons/ThreeDots'
-import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsEditIcon } from '../../shared/icons/Edit'
-import { AsCashIcon } from '../../icons/Cash'
-import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsTrashIcon } from '../../icons/Trash'
 import { AsPrintIcon } from '../../icons/Print'
 import { AsDownloadIcon } from '../../icons/Download'
@@ -93,26 +90,6 @@ interface InvoiceTableSectionProps {
 	onViewEntry?: (entry: DailyAction) => void
 	onEditEntry?: (entry: DailyAction) => void
 	showBuyingInvoices?: boolean
-}
-
-const PaymentTypeIcon = ({ type }: { type: SellingInvoicePaymentType }) => {
-	switch (type) {
-		case 'cash':
-			return <Icon as={AsCashIcon} color={PAGE_COLORS.success} boxSize={5} />
-		case 'credit':
-			return (
-				<Icon
-					as={AsPriceTagIcon}
-					fill="none"
-					color={PAGE_COLORS.danger}
-					boxSize={5}
-				/>
-			)
-		case 'card':
-			return (
-				<Icon as={AsCreditCardIcon} color={PAGE_COLORS.warning} boxSize={5} />
-			)
-	}
 }
 
 const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {

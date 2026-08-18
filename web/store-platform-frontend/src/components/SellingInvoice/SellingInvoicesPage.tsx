@@ -36,7 +36,7 @@ import type { ApiSellingInvoice } from './invoiceApiMappers'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
-import { BreadCrumbItem } from '../../shared/globalEnums'
+import { BreadCrumbItem, InvoicePaymentType } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
@@ -449,7 +449,7 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleNewCreditInvoice = () => {
-		openNewInvoicePanel({ paymentType: 'credit' })
+		openNewInvoicePanel({ paymentType: InvoicePaymentType.CREDIT })
 	}
 
 	const handleBarcodeSearchSubmit = (value: string) => {

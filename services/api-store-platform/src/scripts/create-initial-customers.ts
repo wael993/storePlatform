@@ -4,6 +4,11 @@ import { config } from '../config/config'
 import { Customer } from '../models/Customer'
 import { Currency } from '../models/Currency'
 import { Invoice } from '../models/Invoice'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../shared/globalEnums'
 import { Product } from '../models/Products'
 import { Unit } from '../models/Unit'
 import Tenant from '../models/Tenant'
@@ -145,9 +150,9 @@ async function createInitialCustomers() {
 					invoiceNumber: `SI-OPEN-${String(n).padStart(3, '0')}`,
 					customerId: customer.customerId,
 					customerName: customer.name,
-					paymentType: 'credit' as const,
-					status: 'confirmed' as const,
-					paymentStatus: 'unpaid' as const,
+					paymentType: InvoicePaymentType.CREDIT,
+					status: InvoiceStatus.CONFIRMED,
+					paymentStatus: InvoicePaymentStatus.UNPAID,
 					items: [
 						{
 							productId: openingProductId,

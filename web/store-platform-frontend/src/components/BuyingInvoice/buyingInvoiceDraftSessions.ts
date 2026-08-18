@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 
 import { generateId } from '../../offline/utils'
+import { InvoicePaymentType } from '../../shared/globalEnums'
 import type { BuyingInvoiceDraft, BuyingInvoicePaymentType } from './types'
 
 const STORAGE_KEY = 'store-platform:buying-invoice-drafts'
@@ -31,7 +32,7 @@ export const createBuyingInvoiceDraft = (
 	salesPerson,
 	supplierId: '',
 	supplierName: '',
-	paymentType: options?.paymentType ?? 'cash',
+	paymentType: options?.paymentType ?? InvoicePaymentType.CASH,
 	lineItems: [],
 	note: '',
 	paidAmount: 0,

@@ -4,15 +4,16 @@ import type {
 	InvoiceTotals,
 	SellingInvoiceLineItem,
 } from '../SellingInvoice/types'
+import type {
+	InvoicePaymentType,
+	InvoiceUiStatus,
+} from '../../shared/globalEnums'
 
-export type BuyingInvoiceStatus =
-	| 'paid'
-	| 'credit'
-	| 'partial'
-	| 'draft'
-	| 'cancelled'
+export type BuyingInvoiceStatus = `${InvoiceUiStatus}`
 
-export type BuyingInvoicePaymentType = 'cash' | 'credit'
+export type BuyingInvoicePaymentType =
+	| `${InvoicePaymentType.CASH}`
+	| `${InvoicePaymentType.CREDIT}`
 
 /** Line items share the exact same shape as selling invoices (product/qty/price/discount/tax). */
 export type BuyingInvoiceLineItem = SellingInvoiceLineItem

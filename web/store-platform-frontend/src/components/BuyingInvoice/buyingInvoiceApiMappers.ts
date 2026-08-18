@@ -11,15 +11,17 @@ import {
 	getPrimaryInvoiceCurrencyAmounts,
 	type InvoiceCurrencyAmount,
 } from '../SellingInvoice/currencyDisplay'
-import type {
-	SellingInvoice,
-	SellingInvoicePaymentType,
-	SellingInvoiceStatus,
-} from '../SellingInvoice/types'
-import type { BuyingInvoiceDraft } from './types'
+import type { SellingInvoice } from '../SellingInvoice/types'
+import type { BuyingInvoiceDraft, BuyingInvoicePaymentType } from './types'
 import type { CurrencySettings } from '../../api/apiStore'
 import { parseInvoiceSequence } from '../../shared/invoiceNumbering'
+import { mapApiInvoiceStatusToUi } from '../../shared/globalConstant'
 import { buildInvoiceIssuedAtIso } from '../../shared/dateUtils'
+import {
+	InvoicePaymentStatus,
+	InvoicePaymentType,
+	InvoiceStatus,
+} from '../../shared/globalEnums'
 
 export type { InvoiceCurrencyAmount }
 
@@ -28,7 +30,7 @@ export interface ApiBuyingInvoice {
 	invoiceNumber: string
 	supplierId?: string
 	supplierName?: string
-	paymentType?: 'cash' | 'credit'
+	paymentType?: BuyingInvoicePaymentType
 	items?: Array<{
 		productId: string
 		name: string
@@ -42,27 +44,13 @@ export interface ApiBuyingInvoice {
 		lineTotal?: number
 	}>
 	status?: string
-	paymentStatus?: 'unpaid' | 'partial' | 'paid'
+	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts?: InvoiceCurrencyAmount[]
 	notes?: string
 	issuedAt?: string
 	createdAt?: string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
-}
-
-const mapApiBuyingStatusToUi = (
-	invoice: ApiBuyingInvoice,
-): SellingInvoiceStatus => {
-	if (invoice.status === 'draft') return 'draft'
-	if (invoice.status === 'cancelled') return 'cancelled'
-	if (invoice.status === 'paid' || invoice.paymentStatus === 'paid')
-		return 'paid'
-	if (invoice.status === 'partial' || invoice.paymentStatus === 'partial') {
-		return 'partial'
-	}
-	if (invoice.paymentType === 'credit') return 'credit'
-	return 'paid'
 }
 
 const formatInvoiceTime = (issuedAt?: string, createdAt?: string) => {
@@ -83,8 +71,8 @@ export const mapApiBuyingInvoiceToTableRow = (
 		invoiceNumber: parseInvoiceSequence(invoice.invoiceNumber),
 		time: formatInvoiceTime(invoice.issuedAt, invoice.createdAt),
 		customerName: invoice.supplierName ?? '—',
-		status: mapApiBuyingStatusToUi(invoice),
-		paymentType: (invoice.paymentType ?? 'cash') as SellingInvoicePaymentType,
+		status: mapApiInvoiceStatusToUi(invoice),
+		paymentType: invoice.paymentType ?? InvoicePaymentType.CASH,
 		itemCount: invoice.items?.length ?? 0,
 		total: grandTotal,
 		paid: paidAmount,
@@ -111,7 +99,7 @@ export const mapApiBuyingInvoiceToDraft = (
 		salesPerson: '',
 		supplierId: invoice.supplierId ?? '',
 		supplierName: invoice.supplierName ?? '—',
-		paymentType: invoice.paymentType ?? 'cash',
+		paymentType: invoice.paymentType ?? InvoicePaymentType.CASH,
 		lineItems: (invoice.items ?? []).map(item => ({
 			id: generateId(),
 			productId: item.productId,
@@ -134,7 +122,7 @@ export const mapApiBuyingInvoiceToDraft = (
 
 export const buildBuyingInvoiceRequestBody = (
 	draft: BuyingInvoiceDraft,
-	status: 'draft' | 'partial' | 'paid' | 'cancelled' | 'confirmed',
+	status: InvoiceStatus,
 	currencySettings?: CurrencySettings | null,
 ) => {
 	const totals = calculateInvoiceTotals(
@@ -154,10 +142,11 @@ export const buildBuyingInvoiceRequestBody = (
 		throw new Error('Currency settings are required to save a buying invoice.')
 	}
 
-	let paymentStatus: 'unpaid' | 'partial' | 'paid' = 'unpaid'
-	if (paidAmount <= 0) paymentStatus = 'unpaid'
-	else if (paidAmount + 0.009 >= totals.grandTotal) paymentStatus = 'paid'
-	else paymentStatus = 'partial'
+	let paymentStatus: InvoicePaymentStatus = InvoicePaymentStatus.UNPAID
+	if (paidAmount <= 0) paymentStatus = InvoicePaymentStatus.UNPAID
+	else if (paidAmount + 0.009 >= totals.grandTotal) {
+		paymentStatus = InvoicePaymentStatus.PAID
+	} else paymentStatus = InvoicePaymentStatus.PARTIAL
 
 	const issuedAt = buildInvoiceIssuedAtIso(draft.invoiceDate, draft.invoiceTime)
 

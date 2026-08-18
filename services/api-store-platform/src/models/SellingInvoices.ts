@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
+import { InvoicePaymentStatus, InvoiceStatus } from '../shared/globalEnums'
 
 export interface ISellingInvoiceItem extends Document {
 	tenantId: string
@@ -12,8 +13,8 @@ export interface ISellingInvoiceItem extends Document {
 		quantity: number
 		unitPrice: number
 	}>
-	status: 'draft' | 'confirmed' | 'partial' | 'paid' | 'cancelled'
-	paymentStatus: 'unpaid' | 'partial' | 'paid'
+	status: `${InvoiceStatus}`
+	paymentStatus: `${InvoicePaymentStatus}`
 	paidAmount?: number
 	remainingAmount?: number
 	totalAmount: number

@@ -21,8 +21,6 @@ import { useTranslation } from 'react-i18next'
 
 import { useGetBuyingInvoicesQuery } from '../../api/apiStore'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
-import { AsCashIcon } from '../../icons/Cash'
-import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import BuyingInvoiceDetailModal from '../BuyingInvoice/BuyingInvoiceDetailModal'
 import {
 	mapApiBuyingInvoiceToTableRow,
@@ -33,37 +31,20 @@ import {
 	INVOICES_PER_PAGE,
 	PAGE_COLORS,
 	PAYMENT_TYPE_CONFIG,
+	PaymentTypeIcon,
 	STATUS_CONFIG,
 } from '../SellingInvoice/constants'
 import { formatInvoiceAmountForDisplay } from '../SellingInvoice/currencyDisplay'
-import type {
-	SellingInvoice,
-	SellingInvoicePaymentType,
-	SellingInvoiceStatus,
-} from '../SellingInvoice/types'
+import { InvoicePaymentType, InvoiceUiStatus } from '../../shared/globalEnums'
+import type { SellingInvoice, SellingInvoiceStatus } from '../SellingInvoice/types'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
 
 const SUPPLIER_STATUS_FILTER_TABS = [
 	'all',
-	'paid',
-	'credit',
-	'partial',
+	InvoiceUiStatus.PAID,
+	InvoiceUiStatus.CREDIT,
+	InvoiceUiStatus.PARTIAL,
 ] as const
-
-const PaymentTypeIcon = ({ type }: { type: SellingInvoicePaymentType }) => {
-	if (type === 'credit') {
-		return (
-			<Icon
-				as={AsPriceTagIcon}
-				fill="none"
-				color={PAGE_COLORS.danger}
-				boxSize={5}
-			/>
-		)
-	}
-
-	return <Icon as={AsCashIcon} color={PAGE_COLORS.success} boxSize={5} />
-}
 
 const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {
 	const { t } = useTranslation()
@@ -281,7 +262,9 @@ const SupplierInvoicesTab = ({ supplierId }: SupplierInvoicesTabProps) => {
 										paginatedInvoices.map(invoice => {
 											const paymentConfig =
 												PAYMENT_TYPE_CONFIG[
-													invoice.paymentType === 'credit' ? 'credit' : 'cash'
+													invoice.paymentType === InvoicePaymentType.CREDIT
+														? InvoicePaymentType.CREDIT
+														: InvoicePaymentType.CASH
 												]
 
 											return (
