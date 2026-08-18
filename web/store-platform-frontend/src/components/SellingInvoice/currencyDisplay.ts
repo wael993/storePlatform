@@ -69,7 +69,8 @@ export const getExchangeRateDisplayValue = (
 		return canonicalRate
 	}
 
-	return roundPrimaryAmount(1 / canonicalRate)
+	// note: 4dp; 8dp money rounding of 1/14 is 0.07142857, and 1/that is 14.00000028 in the input.
+	return Math.round((1 / canonicalRate) * 1e4) / 1e4
 }
 
 export const normalizeExchangeRateInput = (
@@ -85,7 +86,7 @@ export const normalizeExchangeRateInput = (
 		return inputValue
 	}
 
-	return roundPrimaryAmount(1 / inputValue)
+	return 1 / inputValue
 }
 
 export const resolveDefaultDisplayCurrencyId = (
