@@ -7,7 +7,6 @@ import ActivityAuthorization from './api.authorize'
 import { handleError } from '../middleware/errorHandler'
 import {
 	InventoryRequestBody,
-	InvoiceRequestBody,
 	BuyingInvoiceRequestBody,
 	OrderRequestBody,
 	ProductRequestBody,
@@ -232,42 +231,6 @@ export default class StoreRoutes extends PlatformValidator {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteOrder.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/selling-invoices`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getInvoices.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postInvoice.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/selling-invoices/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getInvoice.bind(this),
-			)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchInvoice.bind(this),
-			)
-			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.deleteInvoice.bind(this),
 			)
 
 		app
@@ -1413,112 +1376,6 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			await this.productController.deleteOrder(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getInvoices(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getInvoices(requestContext, {
-				searchText: request.query.searchText,
-				status: request.query.status,
-				issuedDate: request.query.issuedDate,
-				dateFrom: request.query.dateFrom,
-				dateTo: request.query.dateTo,
-				customerId: request.query.customerId,
-			})
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getInvoice(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getInvoice(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postInvoice(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: InvoiceRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.postInvoice(
-				requestBody,
-				requestContext,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchInvoice(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.patchInvoice(
-				request.params.id,
-				request.body,
-				requestContext,
-			)
-
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async deleteInvoice(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.deleteInvoice(
 				request.params.id,
 				requestContext,
 			)
