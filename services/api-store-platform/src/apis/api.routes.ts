@@ -17,7 +17,6 @@ import {
 	RequestContext,
 	UpdateTenantRequestBody,
 	UpdateTenantUserRequestBody,
-	SupplierRequestBody,
 	CurrencyRequestBody,
 	ExpenseRequestBody,
 	UnitRequestBody,
@@ -636,30 +635,6 @@ export default class StoreRoutes extends PlatformValidator {
 		})
 
 		app
-			.route(`${baseRoute}/suppliers`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getSuppliers.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postSupplier.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/suppliers/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getSupplier.bind(this),
-			)
-
-		app
 			.route(`${baseRoute}/partners`)
 			.get(
 				this.startCalc.bind(this),
@@ -1178,64 +1153,6 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			const resp = await this.productController.getPartner(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getSuppliers(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getSuppliers(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postSupplier(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-		const requestBody: SupplierRequestBody = request.body
-
-		try {
-			const resp = await this.productController.postSupplier(
-				requestContext,
-				requestBody,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getSupplier(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getSupplier(
 				request.params.id,
 				requestContext,
 			)

@@ -47,10 +47,10 @@ import {
 	filterProductRelatedActions,
 	mapPartners,
 	mapProductAction,
-	mapSuppliers,
 	mapTenantSummary,
 } from './mappings/mapper'
 import CustomerController from './customer/api.controller'
+import SupplierController from './supplier/api.controller'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -71,8 +71,6 @@ import {
 	UpdateTenantUserRequestBody,
 	ProductAPI,
 	SupplierRequestBody,
-	CreateSupplierResponse,
-	SupplierDocument,
 	CustomerRequestBody,
 	ExpenseRequestBody,
 	CreateExpenseResponse,
@@ -122,7 +120,6 @@ import {
 	ExpensesResponse,
 	LoginData,
 	PartnersResponse,
-	SuppliersResponse,
 	UnitsResponse,
 	BrandsResponse,
 	ShelvesResponse,
@@ -288,6 +285,7 @@ type BudgetOverviewResponse = {
 
 export default class ProductController {
 	private customerController?: CustomerController
+	private supplierController?: SupplierController
 
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -298,12 +296,24 @@ export default class ProductController {
 		this.customerController = customerController
 	}
 
+	public setSupplierController(supplierController: SupplierController): void {
+		this.supplierController = supplierController
+	}
+
 	private requireCustomerController(): CustomerController {
 		if (!this.customerController) {
 			throw new Error('CustomerController is not set')
 		}
 
 		return this.customerController
+	}
+
+	private requireSupplierController(): SupplierController {
+		if (!this.supplierController) {
+			throw new Error('SupplierController is not set')
+		}
+
+		return this.supplierController
 	}
 
 	private getTenantId(requestContext: RequestContext): string {
@@ -321,7 +331,7 @@ export default class ProductController {
 			warehousesResponse,
 		] = await Promise.all([
 			this.getCategories(requestContext),
-			this.getSuppliers(requestContext),
+			this.requireSupplierController().getSuppliers(requestContext),
 			this.getBrands(requestContext),
 			this.getShelves(requestContext),
 			this.getWarehouses(requestContext),
@@ -2472,7 +2482,7 @@ export default class ProductController {
 		}
 	}
 
-	private buildSupplierInvoiceSummary(
+	public buildSupplierInvoiceSummary(
 		invoices: Array<Record<string, any>>,
 		supplierEntries: DailyActionResponse['data'] = [],
 	): SupplierInvoiceSummary {
@@ -5956,213 +5966,6 @@ export default class ProductController {
 		}
 	}
 
-	public async getSuppliers(
-		requestContext: RequestContext,
-	): Promise<SuppliersResponse> {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildSupplierListKey(tenantId)
-		const cachedSuppliers =
-			await redisCache.getJson<SuppliersResponse>(cacheKey)
-
-		if (cachedSuppliers) {
-			return cachedSuppliers
-		}
-
-		const suppliers = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.SUPPLIERS,
-			model: Supplier,
-			sort: { createdAt: 'desc' },
-		})
-
-		const dailyActions = await this.getDailyActions(requestContext)
-		const { documents: buyingInvoices } = await this.mongoDbClient.getDocuments(
-			{
-				requestContext,
-				collectionName: COLLECTION_NAMES.BUYING_INVOICES,
-				model: BuyingInvoice,
-				sort: { createdAt: 'desc' },
-			},
-		)
-
-		const invoicesBySupplierId = new Map<string, Array<Record<string, any>>>()
-
-		for (const invoice of buyingInvoices) {
-			const supplierId = String(invoice.supplierId ?? '')
-
-			if (!supplierId) continue
-
-			const existing = invoicesBySupplierId.get(supplierId)
-
-			if (existing) {
-				existing.push(invoice)
-			} else {
-				invoicesBySupplierId.set(supplierId, [invoice])
-			}
-		}
-
-		const data = suppliers.documents.map((supplier: SupplierDocument) => {
-			const actions = dailyActions.data.filter(
-				action =>
-					action.supplierId === supplier.supplierId ||
-					action.supplierId === supplier.internalCode,
-			)
-			const { totalPayable } = this.buildSupplierInvoiceSummary(
-				invoicesBySupplierId.get(supplier.supplierId) ?? [],
-				actions,
-			)
-
-			return {
-				supplierId: supplier.supplierId,
-				name: supplier.name,
-				internalCode: supplier.internalCode,
-				createdAt: supplier.createdAt?.toISOString(),
-				updatedAt: supplier.updatedAt?.toISOString(),
-				totalPayable,
-				createdBy: supplier.createdBy as any,
-				updatedBy: supplier.updatedBy
-					? {
-							...supplier.updatedBy,
-							updatedAt: supplier.updatedBy.updatedAt.toISOString(),
-						}
-					: undefined,
-				actions,
-			}
-		})
-
-		const mappedSuppliers = mapSuppliers(data)
-
-		const response: SuppliersResponse = {
-			data: mappedSuppliers,
-			totalCount: mappedSuppliers.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
-
-		return response
-	}
-
-	public async getSupplier(
-		supplierId: string,
-		requestContext: RequestContext,
-	): Promise<SuppliersResponse['data'][number] | null> {
-		const supplier =
-			await this.mongoDbClient.getDocumentByField<SupplierDocument>(
-				requestContext,
-				COLLECTION_NAMES.SUPPLIERS,
-				Supplier,
-				{ fieldName: 'supplierId', fieldValue: supplierId },
-			)
-
-		if (!supplier) {
-			return null
-		}
-
-		const dailyActions = await this.getDailyActions(requestContext)
-		const actions = dailyActions.data.filter(
-			action =>
-				action.supplierId === supplier.supplierId ||
-				action.supplierId === supplier.internalCode,
-		)
-
-		const mappedSuppliers = mapSuppliers([
-			{
-				supplierId: supplier.supplierId,
-				name: supplier.name,
-				internalCode: supplier.internalCode,
-				createdAt: supplier.createdAt?.toISOString(),
-				updatedAt: supplier.updatedAt?.toISOString(),
-				createdBy: supplier.createdBy as any,
-				updatedBy: supplier.updatedBy
-					? {
-							...supplier.updatedBy,
-							updatedAt: supplier.updatedBy.updatedAt.toISOString(),
-						}
-					: undefined,
-				actions,
-			},
-		])
-
-		return mappedSuppliers[0]
-	}
-
-	public async postSupplier(
-		requestContext: RequestContext,
-		requestBody: SupplierRequestBody,
-	): Promise<CreateSupplierResponse | null> {
-		const { name, internalCode } = requestBody
-		const tenantContext = getTenantContext(requestContext)
-
-		if (!name || !name.trim()) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Supplier name is required',
-			)
-		}
-
-		const existing = await withTenantScope(
-			Supplier.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
-
-		if (existing) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'supplier already exists in this tenant.',
-			)
-		}
-
-		const supplierId = this.resolveSyncClientId(requestBody.supplierId)
-
-		const existingById = await withTenantScope(
-			Supplier.findOne({ supplierId }).lean(),
-			tenantContext.tenantId,
-		)
-
-		if (existingById) {
-			return {
-				_id: String(existingById._id),
-				supplierId: existingById.supplierId,
-			}
-		}
-
-		const supplierData: SupplierDocument = {
-			supplierId,
-			name: name,
-			internalCode: internalCode?.trim() || undefined,
-		} as SupplierDocument
-
-		logger.info('Saving supplier to database.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			supplierId: supplierData.supplierId,
-			name,
-		})
-
-		const createSupplierResponse = await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.SUPPLIERS, data: supplierData },
-			Supplier,
-			requestContext,
-		)
-
-		logger.info('Supplier created successfully.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			supplierId: supplierData.supplierId,
-			name,
-		})
-
-		await redisCache.del(
-			redisCache.buildSupplierListKey(tenantContext.tenantId),
-		)
-
-		return {
-			_id: createSupplierResponse._id,
-		}
-	}
-
 	public async getExpenses(
 		requestContext: RequestContext,
 	): Promise<ExpensesResponse> {
@@ -7200,7 +7003,7 @@ export default class ProductController {
 		] = await Promise.all([
 			this.getInventory(requestContext),
 			this.requireCustomerController().getCustomers(requestContext),
-			this.getSuppliers(requestContext),
+			this.requireSupplierController().getSuppliers(requestContext),
 			this.getPartners(requestContext),
 			this.getCategories(requestContext),
 			this.getBrands(requestContext),
@@ -7746,7 +7549,7 @@ export default class ProductController {
 					data,
 				)
 			} else if (entry.entity === 'supplier' && entry.method === 'POST') {
-				data = (await this.postSupplier(
+				data = (await this.requireSupplierController().postSupplier(
 					requestContext,
 					payload as SupplierRequestBody,
 				)) as Record<string, unknown>

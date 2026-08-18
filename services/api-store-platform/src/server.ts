@@ -7,6 +7,8 @@ import { errorHandler } from './middleware/errorHandler'
 import ProductController from './apis/api.controller'
 import CustomerController from './apis/customer/api.controller'
 import CustomerRoutes from './apis/customer/api.routes'
+import SupplierController from './apis/supplier/api.controller'
+import SupplierRoutes from './apis/supplier/api.routes'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
@@ -25,7 +27,15 @@ const customerController = new CustomerController(
 
 productController.setCustomerController(customerController)
 
+const supplierController = new SupplierController(
+	mongoDbClient,
+	productController,
+)
+
+productController.setSupplierController(supplierController)
+
 const customerRoutes = new CustomerRoutes(customerController, productController)
+const supplierRoutes = new SupplierRoutes(supplierController, productController)
 const storeRoutes = new StoreRoutes(productController)
 const app = express()
 
@@ -63,6 +73,7 @@ cacheMetricsInterval.unref()
 startTokenCleanupCron()
 
 customerRoutes.setRoutes(app)
+supplierRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 
 app.use(errorHandler)
