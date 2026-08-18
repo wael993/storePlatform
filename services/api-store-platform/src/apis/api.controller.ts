@@ -51,6 +51,7 @@ import {
 } from './mappings/mapper'
 import CustomerController from './customer/api.controller'
 import SupplierController from './supplier/api.controller'
+import CategoryController from './category/api.controller'
 import {
 	AddTenantRequestBody,
 	AddTenantResponse,
@@ -95,7 +96,6 @@ import {
 	BuyingInvoicesListResponse,
 	BuyingInvoicesQueryParams,
 	BuyingInvoicesSummary,
-	CategoriesResponse,
 	BrandRequestBody,
 	ShelfRequestBody,
 	WarehouseRequestBody,
@@ -286,6 +286,7 @@ type BudgetOverviewResponse = {
 export default class ProductController {
 	private customerController?: CustomerController
 	private supplierController?: SupplierController
+	private categoryController?: CategoryController
 
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -298,6 +299,10 @@ export default class ProductController {
 
 	public setSupplierController(supplierController: SupplierController): void {
 		this.supplierController = supplierController
+	}
+
+	public setCategoryController(categoryController: CategoryController): void {
+		this.categoryController = categoryController
 	}
 
 	private requireCustomerController(): CustomerController {
@@ -316,6 +321,14 @@ export default class ProductController {
 		return this.supplierController
 	}
 
+	private requireCategoryController(): CategoryController {
+		if (!this.categoryController) {
+			throw new Error('CategoryController is not set')
+		}
+
+		return this.categoryController
+	}
+
 	private getTenantId(requestContext: RequestContext): string {
 		return requestContext.tenantId || 'global'
 	}
@@ -330,7 +343,7 @@ export default class ProductController {
 			shelvesResponse,
 			warehousesResponse,
 		] = await Promise.all([
-			this.getCategories(requestContext),
+			this.requireCategoryController().getCategories(requestContext),
 			this.requireSupplierController().getSuppliers(requestContext),
 			this.getBrands(requestContext),
 			this.getShelves(requestContext),
@@ -3984,132 +3997,6 @@ export default class ProductController {
 
 		return inventoryItem
 	}
-	public async postCategory(
-		requestBody: CategoryRequestBody,
-		requestContext: RequestContext,
-	) {
-		const tenantContext = getTenantContext(requestContext)
-
-		if (!requestBody.name?.trim()) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Category name is required',
-			)
-		}
-
-		const existing = await withTenantScope(
-			Category.findOne({
-				name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
-
-		if (existing) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Category already exists in this tenant.',
-			)
-		}
-
-		const categoryId = this.resolveSyncClientId(requestBody.categoryId)
-
-		const existingById = await withTenantScope(
-			Category.findOne({ categoryId }).lean(),
-			tenantContext.tenantId,
-		)
-
-		if (existingById) {
-			return {
-				_id: String(existingById._id),
-				categoryId: existingById.categoryId,
-			}
-		}
-
-		const categoryData: CategoryDocument = {
-			categoryId,
-			name: requestBody.name.trim(),
-			description: requestBody.description?.trim(),
-			parentCategoryId: requestBody.parentCategoryId,
-		}
-
-		logger.info('saving category to database.....', {
-			entity: EntityType.MONGODB,
-			categoryId: categoryData.categoryId,
-			name: categoryData.name,
-		})
-
-		await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.CATEGORIES, data: categoryData },
-			Category,
-			requestContext,
-		)
-
-		logger.info('category created successfully.....', {
-			entity: EntityType.MONGODB,
-			categoryId: categoryData.categoryId,
-			name: categoryData.name,
-		})
-
-		await this.invalidateEntityCache(
-			'categories',
-			requestContext,
-			categoryData.categoryId,
-		)
-
-		return { _id: categoryData.categoryId }
-	}
-
-	public async getCategories(
-		requestContext: RequestContext,
-	): Promise<CategoriesResponse> {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildCategoryListKey(tenantId)
-		const cachedCategories =
-			await redisCache.getJson<CategoriesResponse>(cacheKey)
-
-		if (cachedCategories) {
-			return cachedCategories
-		}
-
-		const categories = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.CATEGORIES,
-			model: Category,
-			sort: { name: 1 },
-		})
-
-		const data = categories.documents.map((category: CategoryDocument) => ({
-			categoryId: category.categoryId,
-			name: category.name,
-			description: category.description,
-			parentCategoryId: category.parentCategoryId,
-			createdAt: category.createdAt?.toISOString?.(),
-			updatedAt: category.updatedAt?.toISOString?.(),
-			createdBy: category.createdBy,
-			updatedBy: category.updatedBy,
-		}))
-
-		const response = {
-			data,
-			totalCount: data.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
-
-		return response
-	}
-
-	public async getCategory(
-		categoryId: string,
-		requestContext: RequestContext,
-	): Promise<CategoryDocument | null> {
-		return this.mongoDbClient.getDocumentByField<CategoryDocument>(
-			requestContext,
-			COLLECTION_NAMES.CATEGORIES,
-			Category,
-			{ fieldName: 'categoryId', fieldValue: categoryId },
-		)
-	}
 
 	public async postInventory(
 		requestBody: InventoryRequestBody,
@@ -7005,7 +6892,7 @@ export default class ProductController {
 			this.requireCustomerController().getCustomers(requestContext),
 			this.requireSupplierController().getSuppliers(requestContext),
 			this.getPartners(requestContext),
-			this.getCategories(requestContext),
+			this.requireCategoryController().getCategories(requestContext),
 			this.getBrands(requestContext),
 			this.getShelves(requestContext),
 			this.getWarehouses(requestContext),
@@ -7601,7 +7488,7 @@ export default class ProductController {
 					data,
 				)
 			} else if (entry.entity === 'category' && entry.method === 'POST') {
-				data = (await this.postCategory(
+				data = (await this.requireCategoryController().postCategory(
 					payload as CategoryRequestBody,
 					requestContext,
 				)) as Record<string, unknown>

@@ -21,7 +21,6 @@ import {
 	ExpenseRequestBody,
 	UnitRequestBody,
 	PartnerRequestBody,
-	CategoryRequestBody,
 	BrandRequestBody,
 	ShelfRequestBody,
 	WarehouseRequestBody,
@@ -656,30 +655,6 @@ export default class StoreRoutes extends PlatformValidator {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getPartner.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/categories`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCategories.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postCategory.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/categories/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCategory.bind(this),
 			)
 
 		app
@@ -1944,64 +1919,6 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getCategories(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getCategories(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getCategory(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getCategory(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postCategory(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: CategoryRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.postCategory(
-				requestBody,
-				requestContext,
-			)
-
-			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

@@ -9,6 +9,8 @@ import CustomerController from './apis/customer/api.controller'
 import CustomerRoutes from './apis/customer/api.routes'
 import SupplierController from './apis/supplier/api.controller'
 import SupplierRoutes from './apis/supplier/api.routes'
+import CategoryController from './apis/category/api.controller'
+import CategoryRoutes from './apis/category/api.routes'
 import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
@@ -34,8 +36,13 @@ const supplierController = new SupplierController(
 
 productController.setSupplierController(supplierController)
 
+const categoryController = new CategoryController(mongoDbClient)
+
+productController.setCategoryController(categoryController)
+
 const customerRoutes = new CustomerRoutes(customerController, productController)
 const supplierRoutes = new SupplierRoutes(supplierController, productController)
+const categoryRoutes = new CategoryRoutes(categoryController, productController)
 const storeRoutes = new StoreRoutes(productController)
 const app = express()
 
@@ -74,6 +81,7 @@ startTokenCleanupCron()
 
 customerRoutes.setRoutes(app)
 supplierRoutes.setRoutes(app)
+categoryRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 
 app.use(errorHandler)
