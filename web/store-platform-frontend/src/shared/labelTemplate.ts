@@ -111,16 +111,14 @@ export const SYSTEM_LABEL_LAYOUT: LabelLayout = {
 export const cloneLabelLayout = (layout: LabelLayout): LabelLayout =>
 	JSON.parse(JSON.stringify(layout)) as LabelLayout
 
-export const isVerticalLayout = (layout: Pick<LabelLayout, 'width' | 'height'>) =>
-	layout.height > layout.width
+export const isVerticalLayout = (
+	layout: Pick<LabelLayout, 'width' | 'height'>,
+) => layout.height > layout.width
 
 export const clampLabelFields = (layout: LabelLayout): LabelLayout => ({
 	...layout,
 	fields: layout.fields.map(field => {
-		const width = Math.min(
-			Math.max(4, field.width),
-			Math.max(4, layout.width),
-		)
+		const width = Math.min(Math.max(4, field.width), Math.max(4, layout.width))
 		const height = Math.min(
 			Math.max(3, field.height),
 			Math.max(3, layout.height),
@@ -149,7 +147,10 @@ const rotateFieldCw = (field: LabelField, canvasWidth: number): LabelField => ({
 	height: field.width,
 })
 
-const rotateFieldCcw = (field: LabelField, canvasHeight: number): LabelField => ({
+const rotateFieldCcw = (
+	field: LabelField,
+	canvasHeight: number,
+): LabelField => ({
 	...field,
 	x: canvasHeight - field.y - field.height,
 	y: field.x,
@@ -179,9 +180,7 @@ export const setLabelOrientation = (
 			return clampLabelFields({
 				width: layout.height,
 				height: layout.width,
-				fields: layout.fields.map(field =>
-					rotateFieldCw(field, layout.width),
-				),
+				fields: layout.fields.map(field => rotateFieldCw(field, layout.width)),
 			})
 		}
 
@@ -192,9 +191,7 @@ export const setLabelOrientation = (
 		return clampLabelFields({
 			width: layout.height,
 			height: layout.width,
-			fields: layout.fields.map(field =>
-				rotateFieldCcw(field, layout.height),
-			),
+			fields: layout.fields.map(field => rotateFieldCcw(field, layout.height)),
 		})
 	}
 

@@ -149,9 +149,7 @@ const LabelTemplateEditor = ({
 											setLayout(current =>
 												clampLabelFields({
 													...current,
-													width: Number.isNaN(value)
-														? current.width
-														: value,
+													width: Number.isNaN(value) ? current.width : value,
 												}),
 											)
 										}
@@ -170,9 +168,7 @@ const LabelTemplateEditor = ({
 											setLayout(current =>
 												clampLabelFields({
 													...current,
-													height: Number.isNaN(value)
-														? current.height
-														: value,
+													height: Number.isNaN(value) ? current.height : value,
 												}),
 											)
 										}
@@ -186,9 +182,7 @@ const LabelTemplateEditor = ({
 									{t('components.labelTemplates.orientation')}
 								</FormLabel>
 								<Select
-									value={
-										isVerticalLayout(layout) ? 'vertical' : 'horizontal'
-									}
+									value={isVerticalLayout(layout) ? 'vertical' : 'horizontal'}
 									onChange={event =>
 										setLayout(current =>
 											setLabelOrientation(
