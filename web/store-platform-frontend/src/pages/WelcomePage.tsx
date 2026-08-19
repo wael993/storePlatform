@@ -111,6 +111,7 @@ const WelcomePage = () => {
 		isSellingInvoicesEnabled,
 		isCategoriesEnabled,
 		isSuppliersEnabled,
+		isEmployeesEnabled,
 	} = enabledActions
 
 	const {
@@ -121,6 +122,7 @@ const WelcomePage = () => {
 		isTenantSellingInvoicesEnabled,
 		isTenantCategoriesEnabled,
 		isTenantSuppliersEnabled,
+		isTenantEmployeesEnabled,
 	} = tenantActions
 
 	const quickLinks = [
@@ -152,6 +154,12 @@ const WelcomePage = () => {
 			? {
 					path: RoutePaths.SUPPLIERS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.SUPPLIERS,
+				}
+			: null,
+		isOwnerOrAdmin && isEmployeesEnabled && isTenantEmployeesEnabled
+			? {
+					path: RoutePaths.EMPLOYEES,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.EMPLOYEES,
 				}
 			: null,
 		isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled

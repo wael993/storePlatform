@@ -13,6 +13,7 @@ export const TENANT_ACCESSIBLE_PAGE = {
 	REPORTS: 'REPORTS',
 	BARCODE: 'BARCODE',
 	SETTINGS: 'SETTINGS',
+	EMPLOYEES: 'EMPLOYEES',
 } as const
 
 export type TenantAccessiblePage =
@@ -31,6 +32,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 	TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES,
 	TENANT_ACCESSIBLE_PAGE.BARCODE,
 	TENANT_ACCESSIBLE_PAGE.SETTINGS,
+	TENANT_ACCESSIBLE_PAGE.EMPLOYEES,
 ]
 
 export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
@@ -49,6 +51,7 @@ export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
 	[TENANT_ACCESSIBLE_PAGE.REPORTS]: 'tenants.accessiblePages.reports',
 	[TENANT_ACCESSIBLE_PAGE.BARCODE]: 'navigation.barcode',
 	[TENANT_ACCESSIBLE_PAGE.SETTINGS]: 'components.pageHeaders.settings',
+	[TENANT_ACCESSIBLE_PAGE.EMPLOYEES]: 'components.pageHeaders.employees',
 }
 
 export const TENANT_PAGE_DESCRIPTION_KEYS: Record<
@@ -80,4 +83,6 @@ export const TENANT_PAGE_DESCRIPTION_KEYS: Record<
 		'tenants.accessiblePages.barcodeDescription',
 	[TENANT_ACCESSIBLE_PAGE.SETTINGS]:
 		'tenants.accessiblePages.settingsDescription',
+	[TENANT_ACCESSIBLE_PAGE.EMPLOYEES]:
+		'tenants.accessiblePages.employeesDescription',
 }

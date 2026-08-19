@@ -2033,6 +2033,7 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	if (unsupported.has(path)) return false
 	if (path.startsWith('tenants')) return false
 	if (path.startsWith('users')) return false
+	if (path.startsWith('employees')) return false
 	if (path.startsWith('user/')) return true
 	return true
 }

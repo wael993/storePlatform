@@ -24,6 +24,8 @@ export const RoutePaths = {
 	PARTNERS: withBasePath('/partners'),
 	SINGLE_PARTNER: withBasePath('/partners/:partnerId'),
 	USERS: withBasePath('/users'),
+	EMPLOYEES: withBasePath('/employees'),
+	SINGLE_EMPLOYEE: withBasePath('/employees/:employeeId'),
 	SETTINGS: withBasePath('/settings'),
 	ADD_NEW_TENANT: withBasePath('/add-new-tenant'),
 	TENANTS_LIST: withBasePath('/tenants-list'),
@@ -38,6 +40,8 @@ export const buildRoutePath = {
 	supplierById: (supplierId: string) =>
 		withBasePath(`/suppliers/${supplierId}`),
 	partnerById: (partnerId: string) => withBasePath(`/partners/${partnerId}`),
+	employeeById: (employeeId: string) =>
+		withBasePath(`/employees/${employeeId}`),
 }
 
 export const fullPaths = {
@@ -53,6 +57,7 @@ export const fullPaths = {
 	SUPPLIERS: RoutePaths.SUPPLIERS,
 	PARTNERS: RoutePaths.PARTNERS,
 	USERS: RoutePaths.USERS,
+	EMPLOYEES: RoutePaths.EMPLOYEES,
 	ADD_NEW_TENANT: RoutePaths.ADD_NEW_TENANT,
 	TENANTS_LIST: RoutePaths.TENANTS_LIST,
 	SETTINGS: RoutePaths.SETTINGS,
@@ -77,6 +82,8 @@ export const routeLabelKeys = {
 	PARTNERS: 'components.pageHeaders.partners',
 	PARTNER: 'components.pageHeaders.partner',
 	USERS: 'components.pageHeaders.users',
+	EMPLOYEES: 'components.pageHeaders.employees',
+	EMPLOYEE: 'components.pageHeaders.employee',
 	SETTINGS: 'components.pageHeaders.settings',
 	ADD_NEW_TENANT: 'navigation.addTenant',
 	TENANTS_LIST: 'tenants.title',
@@ -97,6 +104,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.SUPPLIERS]: routeLabelKeys.SUPPLIERS,
 		[RoutePaths.PARTNERS]: routeLabelKeys.PARTNERS,
 		[RoutePaths.USERS]: routeLabelKeys.USERS,
+		[RoutePaths.EMPLOYEES]: routeLabelKeys.EMPLOYEES,
 		[RoutePaths.SETTINGS]: routeLabelKeys.SETTINGS,
 		[RoutePaths.ADD_NEW_TENANT]: routeLabelKeys.ADD_NEW_TENANT,
 		[RoutePaths.TENANTS_LIST]: routeLabelKeys.TENANTS_LIST,
@@ -361,6 +369,40 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
+	const employees: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'employees',
+			name: t(routeLabelKeys.EMPLOYEES),
+			href: RoutePaths.EMPLOYEES,
+			isCurrentPage: true,
+		},
+	]
+	const employee: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'employees',
+			name: t(routeLabelKeys.EMPLOYEES),
+			href: RoutePaths.EMPLOYEES,
+			isCurrentPage: false,
+		},
+		{
+			id: 'employee',
+			name: name ?? '',
+			href: id ? buildRoutePath.employeeById(id) : '',
+			isCurrentPage: true,
+		},
+	]
 	const addNewTenant: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -427,6 +469,8 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		partners,
 		partner,
 		users,
+		employees,
+		employee,
 		addNewTenant,
 		tenantsList,
 		product,

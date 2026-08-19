@@ -124,6 +124,8 @@ export enum BreadCrumbItem {
 	SUPPLIER = 'supplier',
 	PARTNERS = 'partners',
 	PARTNER = 'partner',
+	EMPLOYEES = 'employees',
+	EMPLOYEE = 'employee',
 }
 
 export enum FilterAttribute {

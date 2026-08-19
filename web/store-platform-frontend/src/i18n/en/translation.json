@@ -84,7 +84,8 @@
 			"reportsDescription": "Business reports and analytics.",
 			"barcodeDescription": "Barcode scanning workflow.",
 			"settingsDescription": "Tenant settings and preferences.",
-			"sellingInvoicesDescription": "Selling invoice management."
+			"sellingInvoicesDescription": "Selling invoice management.",
+			"employeesDescription": "Employee profiles, schedules, and salary."
 		}
 	},
 	"login": {
@@ -130,6 +131,76 @@
 		"invoiceNumber": "Invoice #",
 		"amount": "Amount (€)",
 		"issued": "Issued"
+	},
+	"employees": {
+		"add": "Add employee",
+		"search": "Search name, phone, or ID",
+		"currentTab": "Current",
+		"terminatedTab": "Terminated",
+		"empty": "No employees found.",
+		"name": "Name",
+		"phone": "Phone",
+		"address": "Address",
+		"employeeId": "Employee ID",
+		"employmentType": "Employment type",
+		"status": "Status",
+		"startDate": "Start date",
+		"endDate": "End date",
+		"currentSalary": "Current salary",
+		"workingDays": "Working days",
+		"workStart": "Start time",
+		"workEnd": "End time",
+		"rateHistory": "Salary history",
+		"salaryType": "Pay type",
+		"amount": "Amount",
+		"currency": "Currency",
+		"effectiveDate": "Effective date",
+		"overtimeRate": "Overtime rate",
+		"addSalary": "Add salary",
+		"payouts": "Payouts",
+		"payoutDate": "Date",
+		"note": "Note",
+		"addPayout": "Add payout",
+		"updatePayout": "Update payout",
+		"edit": "Edit",
+		"delete": "Delete",
+		"saveSuccess": "Saved.",
+		"saveFailed": "Could not save.",
+		"notFound": "Employee not found.",
+		"backToList": "Back to employees",
+		"placeholder": "Coming in a later story.",
+		"tabs": {
+			"overview": "Overview",
+			"schedule": "Work schedule",
+			"salary": "Salary",
+			"attendance": "Attendance",
+			"leave": "Leave"
+		},
+		"types": {
+			"full_time": "Full-time",
+			"part_time": "Part-time",
+			"hourly": "Hourly",
+			"other": "Other"
+		},
+		"statuses": {
+			"active": "Active",
+			"inactive": "Inactive",
+			"on_leave": "On leave",
+			"terminated": "Terminated"
+		},
+		"salaryTypes": {
+			"monthly": "Monthly",
+			"hourly": "Hourly"
+		},
+		"days": {
+			"sun": "Sunday",
+			"mon": "Monday",
+			"tue": "Tuesday",
+			"wed": "Wednesday",
+			"thu": "Thursday",
+			"fri": "Friday",
+			"sat": "Saturday"
+		}
 	},
 	"users": {
 		"title": "Tenant Users",
@@ -601,7 +672,9 @@
 			"categories": "Categories",
 			"suppliers": "Suppliers",
 			"partners": "Partners",
-			"partner": "Partner"
+			"partner": "Partner",
+			"employees": "Employees",
+			"employee": "Employee"
 		},
 		"activitySettingsSection": {
 			"title": "Products Per Page"

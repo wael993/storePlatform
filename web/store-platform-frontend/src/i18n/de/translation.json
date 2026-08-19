@@ -83,7 +83,8 @@
 			"reportsDescription": "Geschäftsberichte und Analysen.",
 			"barcodeDescription": "Barcode-Scan-Workflow.",
 			"settingsDescription": "Mandanteneinstellungen und Präferenzen.",
-			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung."
+			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung.",
+			"employeesDescription": "Mitarbeiterprofile, Arbeitszeiten und Gehalt."
 		}
 	},
 	"login": {
@@ -129,6 +130,76 @@
 		"invoiceNumber": "Rechnungsnr.",
 		"amount": "Betrag (€)",
 		"issued": "Ausgestellt"
+	},
+	"employees": {
+		"add": "Mitarbeiter hinzufügen",
+		"search": "Name, Telefon oder ID suchen",
+		"currentTab": "Aktuell",
+		"terminatedTab": "Beendet",
+		"empty": "Keine Mitarbeiter gefunden.",
+		"name": "Name",
+		"phone": "Telefon",
+		"address": "Adresse",
+		"employeeId": "Mitarbeiter-ID",
+		"employmentType": "Beschäftigungsart",
+		"status": "Status",
+		"startDate": "Startdatum",
+		"endDate": "Enddatum",
+		"currentSalary": "Aktuelles Gehalt",
+		"workingDays": "Arbeitstage",
+		"workStart": "Beginn",
+		"workEnd": "Ende",
+		"rateHistory": "Gehaltsverlauf",
+		"salaryType": "Zahlungsart",
+		"amount": "Betrag",
+		"currency": "Währung",
+		"effectiveDate": "Gültig ab",
+		"overtimeRate": "Überstundensatz",
+		"addSalary": "Gehalt hinzufügen",
+		"payouts": "Auszahlungen",
+		"payoutDate": "Datum",
+		"note": "Notiz",
+		"addPayout": "Auszahlung hinzufügen",
+		"updatePayout": "Auszahlung aktualisieren",
+		"edit": "Bearbeiten",
+		"delete": "Löschen",
+		"saveSuccess": "Gespeichert.",
+		"saveFailed": "Speichern fehlgeschlagen.",
+		"notFound": "Mitarbeiter nicht gefunden.",
+		"backToList": "Zurück zur Liste",
+		"placeholder": "Folgt in einer späteren Story.",
+		"tabs": {
+			"overview": "Übersicht",
+			"schedule": "Arbeitszeiten",
+			"salary": "Gehalt",
+			"attendance": "Anwesenheit",
+			"leave": "Urlaub"
+		},
+		"types": {
+			"full_time": "Vollzeit",
+			"part_time": "Teilzeit",
+			"hourly": "Stundenweise",
+			"other": "Sonstiges"
+		},
+		"statuses": {
+			"active": "Aktiv",
+			"inactive": "Inaktiv",
+			"on_leave": "Beurlaubt",
+			"terminated": "Beendet"
+		},
+		"salaryTypes": {
+			"monthly": "Monatlich",
+			"hourly": "Stundenweise"
+		},
+		"days": {
+			"sun": "Sonntag",
+			"mon": "Montag",
+			"tue": "Dienstag",
+			"wed": "Mittwoch",
+			"thu": "Donnerstag",
+			"fri": "Freitag",
+			"sat": "Samstag"
+		}
 	},
 	"users": {
 		"title": "Mandantenbenutzer",
@@ -585,7 +656,9 @@
 			"customers": "Kunden",
 			"suppliers": "Lieferanten",
 			"partners": "Partner",
-			"partner": "Partner"
+			"partner": "Partner",
+			"employees": "Mitarbeiter",
+			"employee": "Mitarbeiter"
 		},
 		"activitySettingsSection": {
 			"title": "Produkte pro Seite"

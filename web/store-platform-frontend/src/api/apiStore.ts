@@ -18,6 +18,13 @@ import { isOfflineCapableForTenant } from '../offline/localStore'
 import { RootState } from '../store/store'
 import { LabelLayout, LabelTemplate } from '../shared/labelTemplate'
 import {
+	Employee,
+	EmployeePayout,
+	EmploymentType,
+	SalaryType,
+	Weekday,
+} from '../shared/employee'
+import {
 	applyOptimisticInventoryPatch,
 	applyOptimisticProductPatch,
 	runOptimistic,
@@ -939,6 +946,113 @@ const getQuery = (
 			invalidatesTags: ['customers'],
 		}),
 
+		getEmployees: builder.query<Employee[], void>({
+			query: () => ({ url: 'employees', method: 'GET' }),
+			transformResponse: (response: { data: Employee[] }) => response.data,
+			providesTags: ['employees'],
+		}),
+		getEmployee: builder.query<Employee, string>({
+			query: employeeId => ({ url: `employees/${employeeId}`, method: 'GET' }),
+			providesTags: ['employee'],
+		}),
+		createEmployee: builder.mutation<
+			{ employeeId: string },
+			{
+				name: string
+				employmentType: string
+				startDate: string
+				phone?: string
+				address?: string
+			}
+		>({
+			query: body => ({ url: 'employees', method: 'POST', body }),
+			invalidatesTags: ['employees'],
+		}),
+		updateEmployee: builder.mutation<
+			Employee,
+			{
+				employeeId: string
+				body: Partial<{
+					name: string
+					phone: string
+					address: string
+					status: string
+					employmentType: EmploymentType | string
+					startDate: string
+					endDate: string
+					workingDays: Weekday[] | string[]
+					workStart: string
+					workEnd: string
+				}>
+			}
+		>({
+			query: ({ employeeId, body }) => ({
+				url: `employees/${employeeId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['employees', 'employee'],
+		}),
+		addEmployeeSalary: builder.mutation<
+			Employee,
+			{
+				employeeId: string
+				body: {
+					type: SalaryType | string
+					amount: number
+					currencyId: string
+					effectiveDate: string
+					overtimeRate?: number
+				}
+			}
+		>({
+			query: ({ employeeId, body }) => ({
+				url: `employees/${employeeId}/salaries`,
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['employees', 'employee'],
+		}),
+		addEmployeePayout: builder.mutation<
+			Employee,
+			{
+				employeeId: string
+				body: Omit<EmployeePayout, 'payoutId' | 'currencyName'>
+			}
+		>({
+			query: ({ employeeId, body }) => ({
+				url: `employees/${employeeId}/payouts`,
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['employees', 'employee'],
+		}),
+		updateEmployeePayout: builder.mutation<
+			Employee,
+			{
+				employeeId: string
+				payoutId: string
+				body: Omit<EmployeePayout, 'payoutId' | 'currencyName'>
+			}
+		>({
+			query: ({ employeeId, payoutId, body }) => ({
+				url: `employees/${employeeId}/payouts/${payoutId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['employees', 'employee'],
+		}),
+		deleteEmployeePayout: builder.mutation<
+			Employee,
+			{ employeeId: string; payoutId: string }
+		>({
+			query: ({ employeeId, payoutId }) => ({
+				url: `employees/${employeeId}/payouts/${payoutId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['employees', 'employee'],
+		}),
+
 		createPartner: builder.mutation<
 			CreatePartnerAPIResponse,
 			Omit<Partner, 'partnerId'>
@@ -1694,6 +1808,14 @@ export const {
 	usePostProductMutation,
 	useCreateSupplierMutation,
 	useCreateCustomerMutation,
+	useGetEmployeesQuery,
+	useGetEmployeeQuery,
+	useCreateEmployeeMutation,
+	useUpdateEmployeeMutation,
+	useAddEmployeeSalaryMutation,
+	useAddEmployeePayoutMutation,
+	useUpdateEmployeePayoutMutation,
+	useDeleteEmployeePayoutMutation,
 	useCreatePartnerMutation,
 	useCreateUnitMutation,
 	useLoginMutation,

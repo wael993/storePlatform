@@ -21,4 +21,5 @@ export const COLLECTION_NAMES = {
 	WAREHOUSES: 'warehouses',
 	STOCK_MOVINGS: 'stockMovings',
 	SYNC_MUTATIONS: 'syncMutations',
+	EMPLOYEES: 'employees',
 } as const

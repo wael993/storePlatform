@@ -45,6 +45,7 @@ const TenantLayout = () => {
 		isCategoriesEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
+		isEmployeesEnabled,
 	} = enabledActions
 
 	const {
@@ -59,6 +60,7 @@ const TenantLayout = () => {
 		isTenantCategoriesEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
+		isTenantEmployeesEnabled,
 	} = tenantActions
 
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
@@ -94,6 +96,9 @@ const TenantLayout = () => {
 			: null,
 		isPartnersEnabled && isTenantPartnersEnabled
 			? { label: 'Partners', path: RoutePaths.PARTNERS }
+			: null,
+		isOwnerOrAdmin && isEmployeesEnabled && isTenantEmployeesEnabled
+			? { label: 'Employees', path: RoutePaths.EMPLOYEES }
 			: null,
 		isAdmin && isUsersEnabled && isTenantUsersEnabled
 			? { label: 'Users', path: RoutePaths.USERS }

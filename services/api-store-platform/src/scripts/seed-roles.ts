@@ -51,10 +51,12 @@ const OWNER_READ_ONLY_RESOURCES = [
 ] as const
 
 const OWNER_CREATE_RESOURCES = ['/brands', '/shelves', '/warehouses'] as const
+const OWNER_FULL_ACCESS_RESOURCES = ['/employees'] as const
 
 const ADMIN_FULL_ACCESS_RESOURCES = [
 	'/users',
 	...OWNER_READ_ONLY_RESOURCES,
+	...OWNER_FULL_ACCESS_RESOURCES,
 ] as const
 
 const ROLE_MOCKS = [
@@ -69,6 +71,12 @@ const ROLE_MOCKS = [
 					(OWNER_CREATE_RESOURCES as readonly string[]).includes(resource)
 						? createOnlyResource
 						: readOnlyResource,
+				]),
+			),
+			...Object.fromEntries(
+				OWNER_FULL_ACCESS_RESOURCES.map(resource => [
+					resource,
+					fullAccessResource,
 				]),
 			),
 		},
@@ -111,6 +119,7 @@ const ROLE_MOCKS = [
 				access: true,
 				allowedActions: ['seeCategory'],
 			},
+			'/services/store_platform/employees': { access: true },
 		},
 	},
 	{
@@ -210,6 +219,7 @@ const ROLE_MOCKS = [
 					'canDeleteCategory',
 				],
 			},
+			'/services/store_platform/employees': { access: true },
 		},
 	},
 	{

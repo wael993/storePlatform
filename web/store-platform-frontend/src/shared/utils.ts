@@ -60,6 +60,7 @@ export const getEnabledActions = () => {
 		isSuppliersEnabled: enabledActions.has('SUPPLIERS'),
 		isPartnersEnabled: enabledActions.has('PARTNERS'),
 		isUsersEnabled: enabledActions.has('USERS'),
+		isEmployeesEnabled: enabledActions.has('EMPLOYEES'),
 		isSettingsEnabled: enabledActions.has('SETTINGS'),
 		isChangePasswordEnabled: enabledActions.has('CHANGE_PASSWORD'),
 	}
@@ -70,6 +71,7 @@ export const getGloballyEnabledTenantPages = (
 ): TenantAccessiblePage[] => {
 	const pageFlags: Record<TenantAccessiblePage, boolean> = {
 		USERS: enabledActions.isUsersEnabled,
+		EMPLOYEES: enabledActions.isEmployeesEnabled,
 		PRODUCTS: enabledActions.isProductsEnabled,
 		DAILY: enabledActions.isDailyEnabled,
 		SUPPLIERS: enabledActions.isSuppliersEnabled,
@@ -103,6 +105,7 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantOrdersEnabled: tenantPages.has('ORDERS'),
 		isTenantInvoicesEnabled: tenantPages.has('INVOICE'),
 		isTenantUsersEnabled: tenantPages.has('USERS'),
+		isTenantEmployeesEnabled: tenantPages.has('EMPLOYEES'),
 		isTenantSettingsEnabled: tenantPages.has('SETTINGS'),
 		isTenantSellingInvoicesEnabled: tenantPages.has('SELLING_INVOICES'),
 		isTenantCustomersEnabled: tenantPages.has('CUSTOMERS'),
@@ -177,6 +180,11 @@ export const isTenantRouteAllowed = (
 		[
 			RoutePaths.USERS,
 			globalActions.isUsersEnabled && tenantActions.isTenantUsersEnabled,
+		],
+		[
+			RoutePaths.EMPLOYEES,
+			globalActions.isEmployeesEnabled &&
+				tenantActions.isTenantEmployeesEnabled,
 		],
 		[
 			RoutePaths.SETTINGS,

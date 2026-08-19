@@ -32,6 +32,8 @@ import SupplierModal from './components/supplier/SupplierModal'
 import PartnerModal from './components/partner/PartnerModal'
 import ProductModal from './components/product/ProductModal'
 import SellingInvoicesPage from './components/SellingInvoice/SellingInvoicesPage'
+import EmployeesPage from './components/employee/EmployeesPage'
+import EmployeeProfilePage from './components/employee/EmployeeProfilePage'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -41,7 +43,7 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const { userRole, user } = useUser()
+	const { userRole, user, isOwnerOrAdmin } = useUser()
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()
@@ -58,6 +60,7 @@ const App = () => {
 		isOrdersEnabled,
 		isSellingInvoicesEnabled,
 		isUsersEnabled,
+		isEmployeesEnabled,
 		isSettingsEnabled,
 		isCustomersEnabled,
 		isCategoriesEnabled,
@@ -74,6 +77,7 @@ const App = () => {
 		isTenantOrdersEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantUsersEnabled,
+		isTenantEmployeesEnabled,
 		isTenantSettingsEnabled,
 		isTenantCustomersEnabled,
 		isTenantCategoriesEnabled,
@@ -176,6 +180,20 @@ const App = () => {
 								/>
 							</>
 						)}
+						{isOwnerOrAdmin &&
+							isEmployeesEnabled &&
+							isTenantEmployeesEnabled && (
+								<>
+									<Route
+										path={RoutePaths.EMPLOYEES}
+										element={<EmployeesPage />}
+									/>
+									<Route
+										path={RoutePaths.SINGLE_EMPLOYEE}
+										element={<EmployeeProfilePage />}
+									/>
+								</>
+							)}
 					</Route>
 				</Route>
 

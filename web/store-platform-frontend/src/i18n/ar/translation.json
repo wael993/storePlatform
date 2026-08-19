@@ -84,7 +84,8 @@
 			"reportsDescription": "تقارير وتحليلات الأعمال.",
 			"barcodeDescription": "سير عمل مسح الباركود.",
 			"settingsDescription": "إعدادات وتفضيلات المستأجر.",
-			"sellingInvoicesDescription": "إدارة الفواتير المباعة."
+			"sellingInvoicesDescription": "إدارة الفواتير المباعة.",
+			"employeesDescription": "ملفات الموظفين وجداول العمل والراتب."
 		}
 	},
 	"login": {
@@ -130,6 +131,76 @@
 		"invoiceNumber": "رقم الفاتورة",
 		"amount": "المبلغ (€)",
 		"issued": "تاريخ الإصدار"
+	},
+	"employees": {
+		"add": "إضافة موظف",
+		"search": "بحث بالاسم أو الهاتف أو المعرّف",
+		"currentTab": "الحاليون",
+		"terminatedTab": "المنتهون",
+		"empty": "لا يوجد موظفون.",
+		"name": "الاسم",
+		"phone": "الهاتف",
+		"address": "العنوان",
+		"employeeId": "معرّف الموظف",
+		"employmentType": "نوع التوظيف",
+		"status": "الحالة",
+		"startDate": "تاريخ البدء",
+		"endDate": "تاريخ الانتهاء",
+		"currentSalary": "الراتب الحالي",
+		"workingDays": "أيام العمل",
+		"workStart": "وقت البدء",
+		"workEnd": "وقت الانتهاء",
+		"rateHistory": "سجل الراتب",
+		"salaryType": "نوع الدفع",
+		"amount": "المبلغ",
+		"currency": "العملة",
+		"effectiveDate": "تاريخ السريان",
+		"overtimeRate": "أجر الإضافي",
+		"addSalary": "إضافة راتب",
+		"payouts": "المدفوعات",
+		"payoutDate": "التاريخ",
+		"note": "ملاحظة",
+		"addPayout": "إضافة دفعة",
+		"updatePayout": "تحديث الدفعة",
+		"edit": "تعديل",
+		"delete": "حذف",
+		"saveSuccess": "تم الحفظ.",
+		"saveFailed": "تعذر الحفظ.",
+		"notFound": "الموظف غير موجود.",
+		"backToList": "العودة إلى الموظفين",
+		"placeholder": "سيأتي في قصة لاحقة.",
+		"tabs": {
+			"overview": "نظرة عامة",
+			"schedule": "جدول العمل",
+			"salary": "الراتب",
+			"attendance": "الحضور",
+			"leave": "الإجازات"
+		},
+		"types": {
+			"full_time": "دوام كامل",
+			"part_time": "دوام جزئي",
+			"hourly": "بالساعة",
+			"other": "أخرى"
+		},
+		"statuses": {
+			"active": "نشط",
+			"inactive": "غير نشط",
+			"on_leave": "في إجازة",
+			"terminated": "منتهٍ"
+		},
+		"salaryTypes": {
+			"monthly": "شهري",
+			"hourly": "بالساعة"
+		},
+		"days": {
+			"sun": "الأحد",
+			"mon": "الاثنين",
+			"tue": "الثلاثاء",
+			"wed": "الأربعاء",
+			"thu": "الخميس",
+			"fri": "الجمعة",
+			"sat": "السبت"
+		}
 	},
 	"users": {
 		"title": "مستخدمو المستأجر",
@@ -604,7 +675,9 @@
 			"suppliers": "الموردون",
 			"partners": "الشركاء",
 			"partner": "الشريك",
-			"product": "المنتج"
+			"product": "المنتج",
+			"employees": "الموظفون",
+			"employee": "موظف"
 		},
 		"activitySettingsSection": {
 			"title": "المنتجات لكل صفحة"

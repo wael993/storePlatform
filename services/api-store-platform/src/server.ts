@@ -22,6 +22,8 @@ import SellingInvoiceRoutes from './apis/selling-invoice/api.routes'
 import BuyingInvoiceController from './apis/buying-invoice/api.controller'
 import BuyingInvoiceRoutes from './apis/buying-invoice/api.routes'
 import StoreRoutes from './apis/api.routes'
+import EmployeeController from './apis/employee/api.controller'
+import EmployeeRoutes from './apis/employee/api.routes'
 import NotificationController from './apis/notification/api.controller'
 import NotificationRoutes from './apis/notification/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
@@ -80,6 +82,8 @@ const buyingInvoiceController = new BuyingInvoiceController(
 
 productController.setBuyingInvoiceController(buyingInvoiceController)
 
+const employeeController = new EmployeeController()
+const employeeRoutes = new EmployeeRoutes(employeeController, productController)
 const customerRoutes = new CustomerRoutes(customerController, productController)
 const supplierRoutes = new SupplierRoutes(supplierController, productController)
 const categoryRoutes = new CategoryRoutes(categoryController, productController)
@@ -136,6 +140,7 @@ cacheMetricsInterval.unref()
 startTokenCleanupCron()
 startNegativeQuantitySnapshotCron()
 
+employeeRoutes.setRoutes(app)
 customerRoutes.setRoutes(app)
 supplierRoutes.setRoutes(app)
 categoryRoutes.setRoutes(app)
