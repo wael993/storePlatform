@@ -50,17 +50,19 @@ export const useProductInlineEdit = (productData: Product) => {
 
 		try {
 			if (patch.persist === 'product') {
+				const { body } = patch
 				await enqueueProductWrite(productData.productId, () =>
 					editProduct({
 						id: productData.productId,
-						body: patch.body,
+						body,
 					}).unwrap(),
 				)
 			} else {
-				await enqueueProductWrite(patch.productId, () =>
+				const { productId, body } = patch
+				await enqueueProductWrite(productId, () =>
 					editInventory({
-						id: patch.productId,
-						body: patch.body,
+						id: productId,
+						body,
 					}).unwrap(),
 				)
 			}
