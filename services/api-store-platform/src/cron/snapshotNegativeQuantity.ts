@@ -4,9 +4,11 @@ import { config } from '../config/config'
 import { Inventory } from '../models/Inventory'
 import {
 	MISSING_PURCHASE_PRICE_DIGEST,
+	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
 	NegativeQuantitySnapshot,
 	ProductDigestType,
+	RETAIL_BELOW_PURCHASE_DIGEST,
 } from '../models/NegativeQuantitySnapshot'
 import { NotificationRead } from '../models/NotificationRead'
 import { Product } from '../models/Products'
@@ -141,6 +143,24 @@ const persistDigestSnapshot = async (
 	return { tenantId, type, count: productIds.length, productIds }
 }
 
+const persistProductDigestSnapshot = async (
+	tenantId: string,
+	runAt: Date,
+	type: ProductDigestType,
+	filter: Record<string, unknown>,
+) => {
+	const rows = await Product.find({ tenantId, ...filter })
+		.select({ productId: 1, _id: 0 })
+		.lean<Array<{ productId?: string }>>()
+
+	return persistDigestSnapshot(
+		tenantId,
+		runAt,
+		type,
+		uniqueProductIds(rows.map(row => row.productId)),
+	)
+}
+
 const persistNegativeQuantitySnapshot = async (
 	tenantId: string,
 	runAt: Date,
@@ -157,23 +177,32 @@ const persistNegativeQuantitySnapshot = async (
 	)
 }
 
-const persistMissingPurchasePriceSnapshot = async (
-	tenantId: string,
-	runAt: Date,
-) => {
-	const rows = await Product.find({
-		tenantId,
-		$nor: [{ 'price.purchasePrice': { $gt: 0 } }],
-	})
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
-
-	return persistDigestSnapshot(
-		tenantId,
-		runAt,
-		MISSING_PURCHASE_PRICE_DIGEST,
-		uniqueProductIds(rows.map(row => row.productId)),
-	)
+const persistTenantDigests = async (tenantId: string, runAt: Date) => {
+	for (const persist of [
+		persistNegativeQuantitySnapshot,
+		(id: string, at: Date) =>
+			persistProductDigestSnapshot(id, at, MISSING_PURCHASE_PRICE_DIGEST, {
+				$nor: [{ 'price.purchasePrice': { $gt: 0 } }],
+			}),
+		(id: string, at: Date) =>
+			persistProductDigestSnapshot(id, at, MISSING_RETAIL_PRICE_DIGEST, {
+				$nor: [{ 'price.retailPrice': { $gt: 0 } }],
+			}),
+		(id: string, at: Date) =>
+			persistProductDigestSnapshot(id, at, RETAIL_BELOW_PURCHASE_DIGEST, {
+				'price.purchasePrice': { $gt: 0 },
+				'price.retailPrice': { $gt: 0 },
+				$expr: { $lt: ['$price.retailPrice', '$price.purchasePrice'] },
+			}),
+	]) {
+		try {
+			logSnapshotResult(await persist(tenantId, runAt))
+		} catch (error) {
+			logger.error(
+				`Cron: product digest snapshot failed for tenant ${tenantId}: ${error}`,
+			)
+		}
+	}
 }
 
 const logSnapshotResult = (result: {
@@ -203,25 +232,7 @@ export const runNegativeQuantitySnapshot = async (
 	)
 
 	for (const tenant of tenants) {
-		try {
-			logSnapshotResult(
-				await persistNegativeQuantitySnapshot(tenant.tenantId, runAt),
-			)
-		} catch (error) {
-			logger.error(
-				`Cron: ${NEGATIVE_QUANTITY_DIGEST} snapshot failed for tenant ${tenant.tenantId}: ${error}`,
-			)
-		}
-
-		try {
-			logSnapshotResult(
-				await persistMissingPurchasePriceSnapshot(tenant.tenantId, runAt),
-			)
-		} catch (error) {
-			logger.error(
-				`Cron: ${MISSING_PURCHASE_PRICE_DIGEST} snapshot failed for tenant ${tenant.tenantId}: ${error}`,
-			)
-		}
+		await persistTenantDigests(tenant.tenantId, runAt)
 	}
 }
 

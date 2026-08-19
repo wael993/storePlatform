@@ -2,7 +2,9 @@ import type { FetchArgs } from '@reduxjs/toolkit/query'
 
 import {
 	MISSING_PURCHASE_PRICE_DIGEST,
+	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
+	RETAIL_BELOW_PURCHASE_DIGEST,
 	type PostSellingInvoiceBody,
 	type PostBuyingInvoiceBody,
 	type ProductsResponse,
@@ -1510,6 +1512,41 @@ const buildOfflineDigest = async (
 							product.price.purchasePrice > 0
 						),
 				)
+				.map(hydrate),
+		}
+	}
+
+	if (digestType === MISSING_RETAIL_PRICE_DIGEST) {
+		return {
+			runAt,
+			products: products
+				.filter(
+					product =>
+						!(
+							typeof product.price?.retailPrice === 'number' &&
+							product.price.retailPrice > 0
+						),
+				)
+				.map(hydrate),
+		}
+	}
+
+	if (digestType === RETAIL_BELOW_PURCHASE_DIGEST) {
+		return {
+			runAt,
+			products: products
+				.filter(product => {
+					const purchasePrice = product.price?.purchasePrice
+					const retailPrice = product.price?.retailPrice
+
+					return (
+						typeof purchasePrice === 'number' &&
+						purchasePrice > 0 &&
+						typeof retailPrice === 'number' &&
+						retailPrice > 0 &&
+						retailPrice < purchasePrice
+					)
+				})
 				.map(hydrate),
 		}
 	}

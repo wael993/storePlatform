@@ -47,7 +47,7 @@ import { AsDragGripIcon } from '../shared/icons/DragGrip'
 import {
 	useGetProductNotificationsQuery,
 	useMarkProductNotificationsReadMutation,
-	MISSING_PURCHASE_PRICE_DIGEST,
+	PRODUCT_DIGEST_I18N,
 	ProductDigestType,
 } from '../api/apiStore'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
@@ -368,9 +368,7 @@ const TopBar = ({
 														}}
 													>
 														{t(
-															item.type === MISSING_PURCHASE_PRICE_DIGEST
-																? 'components.topBar.missingPurchasePriceDigest'
-																: 'components.topBar.negativeQuantityDigest',
+															`components.topBar.${PRODUCT_DIGEST_I18N[item.type]}`,
 															{ count: item.count },
 														)}
 													</Box>

@@ -1,8 +1,10 @@
 import {
 	MISSING_PURCHASE_PRICE_DIGEST,
+	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
 	NegativeQuantitySnapshot,
 	ProductDigestType,
+	RETAIL_BELOW_PURCHASE_DIGEST,
 	isProductDigestType,
 } from '../../models/NegativeQuantitySnapshot'
 import { NotificationRead } from '../../models/NotificationRead'
@@ -29,7 +31,9 @@ import {
 export const SEE_NOTIFICATIONS = 'seeNotifications'
 export {
 	MISSING_PURCHASE_PRICE_DIGEST,
+	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
+	RETAIL_BELOW_PURCHASE_DIGEST,
 	isProductDigestType,
 }
 export type { ProductDigestType }
