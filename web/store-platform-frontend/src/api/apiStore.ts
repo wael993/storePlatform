@@ -108,6 +108,18 @@ export interface ProductFiltersQueryParams {
 	category?: string[]
 }
 
+export const NEGATIVE_QUANTITY_DIGEST = 'NEGATIVE_QUANTITY_DIGEST'
+
+export type ProductNotification = {
+	type: typeof NEGATIVE_QUANTITY_DIGEST
+	runAt: string
+	count: number
+}
+
+export type ProductNotificationsResponse = {
+	items: ProductNotification[]
+}
+
 export interface DailyActionFiltersQueryParams {
 	searchText?: string
 	entryType?: string[]
@@ -1369,6 +1381,30 @@ const getQuery = (
 			}),
 			providesTags: ['inventory'],
 		}),
+		getProductNotifications: builder.query<ProductNotificationsResponse, void>(
+			{
+				query: () => ({
+					url: 'products/notifications',
+				}),
+				providesTags: ['notifications'],
+				async onQueryStarted(_arg, { queryFulfilled, getState }) {
+					try {
+						const { data } = await queryFulfilled
+						const tenantId = (getState() as RootState).user?.user?.tenantId
+						if (!tenantId) return
+						const { setSyncMeta, SYNC_META_KEYS } = await import(
+							'../offline/db'
+						)
+						await setSyncMeta(
+							`${SYNC_META_KEYS.productNotifications}:${tenantId}`,
+							JSON.stringify(data),
+						)
+					} catch {
+						// offline cache is best-effort
+					}
+				},
+			},
+		),
 		editInventory: builder.mutation<void, EditInventoryQueryArgument>({
 			query: ({ id, body }: EditInventoryQueryArgument) => ({
 				url: `inventory/by-product/${id}`,
@@ -1463,4 +1499,5 @@ export const {
 	useDeleteBuyingInvoiceMutation,
 	useGetInventoryQuery,
 	useEditInventoryMutation,
+	useGetProductNotificationsQuery,
 } = storeApi

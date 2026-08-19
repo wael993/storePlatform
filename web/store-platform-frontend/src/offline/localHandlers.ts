@@ -1,13 +1,15 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
-import type {
-	PostSellingInvoiceBody,
-	PostBuyingInvoiceBody,
-	ProductsResponse,
-	CurrencySettings,
-	CurrencySettingItem,
-	InvoiceSettings,
-	InvoiceSettingsUpdate,
+import {
+	NEGATIVE_QUANTITY_DIGEST,
+	type PostSellingInvoiceBody,
+	type PostBuyingInvoiceBody,
+	type ProductsResponse,
+	type CurrencySettings,
+	type CurrencySettingItem,
+	type InvoiceSettings,
+	type InvoiceSettingsUpdate,
+	type ProductNotificationsResponse,
 } from '../api/apiStore'
 import { getWorkMode } from './workMode'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
@@ -1481,6 +1483,51 @@ export const handleOfflineQuery = async (
 						products: catalogProducts,
 						totalCount: catalogProducts.length,
 					},
+				}
+			}
+
+			if (path === 'products/notifications') {
+				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
+				const cached = tenantId
+					? await getSyncMeta(
+							`${SYNC_META_KEYS.productNotifications}:${tenantId}`,
+						)
+					: null
+
+				if (cached) {
+					return {
+						data: JSON.parse(cached) as ProductNotificationsResponse,
+					}
+				}
+
+				const inventory = await offlineDb.inventory.toArray()
+				const productIds = [
+					...new Set(
+						inventory
+							.filter(
+								row =>
+									typeof row.quantity === 'number' &&
+									row.quantity < 0 &&
+									row.productId,
+							)
+							.map(row => row.productId),
+					),
+				]
+				const lastSyncedAt = await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)
+
+				return {
+					data: {
+						items:
+							productIds.length === 0
+								? []
+								: [
+										{
+											type: NEGATIVE_QUANTITY_DIGEST,
+											runAt: lastSyncedAt || new Date(0).toISOString(),
+											count: productIds.length,
+										},
+									],
+					} satisfies ProductNotificationsResponse,
 				}
 			}
 

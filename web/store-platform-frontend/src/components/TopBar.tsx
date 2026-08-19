@@ -16,6 +16,10 @@ import {
 	MenuButton,
 	MenuItem,
 	MenuList,
+	Popover,
+	PopoverBody,
+	PopoverContent,
+	PopoverTrigger,
 	Select,
 	Text,
 	useDisclosure,
@@ -37,6 +41,10 @@ import { config } from '../config'
 import { useOfflineSync } from '../shared/hooks/useOfflineSync'
 import { useUser } from '../shared/hooks/useUser'
 import { AsDragGripIcon } from '../shared/icons/DragGrip'
+import {
+	useGetProductNotificationsQuery,
+	NEGATIVE_QUANTITY_DIGEST,
+} from '../api/apiStore'
 
 interface TopBarProps {
 	navItems: {
@@ -68,6 +76,32 @@ const styles = {
 		_hover: { bg: 'gray.50' },
 		_focus: { bg: 'gray.50' },
 	},
+	notificationBadge: {
+		position: 'absolute',
+		top: '-0.25rem',
+		right: '-0.25rem',
+		minW: '1rem',
+		h: '1rem',
+		px: '0.2rem',
+		borderRadius: 'full',
+		bg: '#F6655B',
+		color: 'white',
+		fontSize: '0.625rem',
+		fontWeight: 700,
+		lineHeight: '1rem',
+		textAlign: 'center',
+	},
+	notificationRow: {
+		w: '100%',
+		textAlign: 'start',
+		px: 4,
+		py: 3,
+		fontSize: 'sm',
+		fontWeight: 700,
+		color: '#353535',
+		bg: 'transparent',
+		_hover: { bg: 'gray.50' },
+	},
 } satisfies StylesObject
 
 const TopBar = ({
@@ -98,6 +132,10 @@ const TopBar = ({
 		onClose: onCloseAddQuickModal,
 	} = useDisclosure()
 	const { user } = useUser()
+	const { data: notifications } = useGetProductNotificationsQuery()
+	const notificationItems = notifications?.items ?? []
+	const unreadCount = notificationItems.length
+	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
 	const { offlineEnabled, isOnline, syncState, sync } = useOfflineSync(
 		user?.tenantId,
 	)
@@ -198,14 +236,50 @@ const TopBar = ({
 				</Flex>
 
 				<Flex align="center" gap={2}>
-					<IconButton
-						aria-label={t('components.topBar.notifications')}
-						icon={<AsBellIcon />}
-						sx={styles.iconButton}
-						onClick={e => {
-							e.stopPropagation()
-						}}
-					/>
+					<Box position="relative">
+						<Popover placement="bottom-end" isLazy>
+							<PopoverTrigger>
+								<IconButton
+									aria-label={t('components.topBar.notifications')}
+									icon={<AsBellIcon />}
+									sx={styles.iconButton}
+								/>
+							</PopoverTrigger>
+							<PopoverContent width="18rem">
+								<PopoverBody p={0}>
+									{notificationItems.length === 0 ? (
+										<Text sx={styles.notificationRow}>
+											{t('components.topBar.noNotifications')}
+										</Text>
+									) : (
+										notificationItems.map(item => (
+											<Box
+												key={`${item.type}-${item.runAt}`}
+												as="button"
+												type="button"
+												sx={styles.notificationRow}
+												onClick={() => {
+													if (item.type !== NEGATIVE_QUANTITY_DIGEST) {
+														return
+													}
+													// MP-D3: open negative-quantity products modal
+												}}
+											>
+												{t('components.topBar.negativeQuantityDigest', {
+													count: item.count,
+												})}
+											</Box>
+										))
+									)}
+								</PopoverBody>
+							</PopoverContent>
+						</Popover>
+						{unreadCount > 0 && (
+							<Box sx={styles.notificationBadge} pointerEvents="none">
+								{badgeLabel}
+							</Box>
+						)}
+					</Box>
 
 					{!isMobile && (
 						<>

@@ -735,6 +735,8 @@
 			"logoAlt": "شعار منصة المتجر",
 			"welcome": "مرحبًا",
 			"notifications": "الإشعارات",
+			"noNotifications": "لا توجد إشعارات",
+			"negativeQuantityDigest": "{{count}} منتجات بكمية سالبة",
 			"icons": "إضافة سريعة",
 			"sync": "مزامنة البيانات",
 			"releaseNotes": "ملاحظات الإصدار",

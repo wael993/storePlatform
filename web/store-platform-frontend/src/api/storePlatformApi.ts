@@ -49,6 +49,7 @@ export type TagType =
 	| 'selling-invoices'
 	| 'buying-invoices'
 	| 'inventory'
+	| 'notifications'
 	| 'frontend-resources'
 
 const tagTypes: TagType[] = [
@@ -80,6 +81,7 @@ const tagTypes: TagType[] = [
 	'selling-invoices',
 	'buying-invoices',
 	'inventory',
+	'notifications',
 	'frontend-resources',
 ]
 

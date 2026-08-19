@@ -22,6 +22,8 @@ import SellingInvoiceRoutes from './apis/selling-invoice/api.routes'
 import BuyingInvoiceController from './apis/buying-invoice/api.controller'
 import BuyingInvoiceRoutes from './apis/buying-invoice/api.routes'
 import StoreRoutes from './apis/api.routes'
+import NotificationController from './apis/notification/api.controller'
+import NotificationRoutes from './apis/notification/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
 import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
@@ -93,6 +95,11 @@ const buyingInvoiceRoutes = new BuyingInvoiceRoutes(
 	productController,
 )
 const storeRoutes = new StoreRoutes(productController)
+const notificationController = new NotificationController()
+const notificationRoutes = new NotificationRoutes(
+	notificationController,
+	productController,
+)
 const app = express()
 
 app.use(express.json())
@@ -136,6 +143,7 @@ partnerRoutes.setRoutes(app)
 settingRoutes.setRoutes(app)
 sellingInvoiceRoutes.setRoutes(app)
 buyingInvoiceRoutes.setRoutes(app)
+notificationRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 tenantRoutes.setRoutes(app)
 

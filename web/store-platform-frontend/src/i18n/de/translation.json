@@ -715,6 +715,8 @@
 			"logoAlt": "Store Platform Logo",
 			"welcome": "Willkommen",
 			"notifications": "Benachrichtigungen",
+			"noNotifications": "Keine Benachrichtigungen",
+			"negativeQuantityDigest": "{{count}} Produkte mit negativer Menge",
 			"icons": "Schnell hinzufügen",
 			"sync": "Daten synchronisieren",
 			"releaseNotes": "Versionshinweise",

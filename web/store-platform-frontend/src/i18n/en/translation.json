@@ -732,6 +732,8 @@
 			"logoAlt": "Store Platform Logo",
 			"welcome": "Welcome",
 			"notifications": "Notifications",
+			"noNotifications": "No notifications",
+			"negativeQuantityDigest": "{{count}} products with negative quantity",
 			"releaseNotes": "Release Notes",
 			"settings": "Settings",
 			"menu": "Menu",
