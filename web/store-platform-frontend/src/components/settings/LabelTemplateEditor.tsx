@@ -24,13 +24,17 @@ import { useTranslation } from 'react-i18next'
 import LabelPreview from '../product/LabelPreview'
 import {
 	cloneLabelLayout,
+	clampLabelFields,
 	defaultField,
+	ensureVerticalFields,
+	isVerticalLayout,
 	LABEL_FIELD_TYPES,
 	LabelField,
 	LabelFieldType,
 	LabelLayout,
 	LabelTemplate,
 	LabelTextAlign,
+	setLabelOrientation,
 	SYSTEM_LABEL_LAYOUT,
 } from '../../shared/labelTemplate'
 
@@ -71,7 +75,9 @@ const LabelTemplateEditor = ({
 			return
 		}
 
-		const nextLayout = cloneLabelLayout(template?.layout ?? SYSTEM_LABEL_LAYOUT)
+		const nextLayout = ensureVerticalFields(
+			cloneLabelLayout(template?.layout ?? SYSTEM_LABEL_LAYOUT),
+		)
 		setName(template?.name ?? '')
 		setLayout(nextLayout)
 		setSelectedId(nextLayout.fields[0]?.id)
@@ -92,7 +98,7 @@ const LabelTemplateEditor = ({
 	}
 
 	const addField = (type: LabelFieldType) => {
-		const field = defaultField(type)
+		const field = defaultField(type, layout)
 		setLayout(current => ({ ...current, fields: [...current.fields, field] }))
 		setSelectedId(field.id)
 	}
@@ -140,10 +146,14 @@ const LabelTemplateEditor = ({
 										min={20}
 										value={layout.width}
 										onChange={(_, value) =>
-											setLayout(current => ({
-												...current,
-												width: Number.isNaN(value) ? current.width : value,
-											}))
+											setLayout(current =>
+												clampLabelFields({
+													...current,
+													width: Number.isNaN(value)
+														? current.width
+														: value,
+												}),
+											)
 										}
 									>
 										<NumberInputField />
@@ -157,16 +167,45 @@ const LabelTemplateEditor = ({
 										min={15}
 										value={layout.height}
 										onChange={(_, value) =>
-											setLayout(current => ({
-												...current,
-												height: Number.isNaN(value) ? current.height : value,
-											}))
+											setLayout(current =>
+												clampLabelFields({
+													...current,
+													height: Number.isNaN(value)
+														? current.height
+														: value,
+												}),
+											)
 										}
 									>
 										<NumberInputField />
 									</NumberInput>
 								</FormControl>
 							</HStack>
+							<FormControl>
+								<FormLabel fontSize="sm">
+									{t('components.labelTemplates.orientation')}
+								</FormLabel>
+								<Select
+									value={
+										isVerticalLayout(layout) ? 'vertical' : 'horizontal'
+									}
+									onChange={event =>
+										setLayout(current =>
+											setLabelOrientation(
+												current,
+												event.target.value === 'vertical',
+											),
+										)
+									}
+								>
+									<option value="horizontal">
+										{t('components.labelTemplates.horizontal')}
+									</option>
+									<option value="vertical">
+										{t('components.labelTemplates.vertical')}
+									</option>
+								</Select>
+							</FormControl>
 							{unusedTypes.length > 0 ? (
 								<FormControl>
 									<FormLabel fontSize="sm">

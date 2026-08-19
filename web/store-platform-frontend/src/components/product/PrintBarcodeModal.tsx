@@ -113,7 +113,7 @@ const PrintBarcodeModal = ({
 		iframe.srcdoc = `<!DOCTYPE html><html><head><title>${title}</title><style>
 html,body{margin:0;width:${widthMm}mm;height:${heightMm}mm}
 svg{width:100%;height:100%;display:block}
-@page{size:${widthMm}mm ${heightMm}mm;margin:0}
+@page{size:${widthMm}mm ${heightMm}mm ${widthMm >= heightMm ? 'landscape' : 'portrait'};margin:0}
 </style></head><body>${markup}</body></html>`
 
 		printFrameRef.current = iframe

@@ -111,16 +111,125 @@ export const SYSTEM_LABEL_LAYOUT: LabelLayout = {
 export const cloneLabelLayout = (layout: LabelLayout): LabelLayout =>
 	JSON.parse(JSON.stringify(layout)) as LabelLayout
 
-export const defaultField = (type: LabelFieldType): LabelField => ({
-	id: type,
-	type,
-	x: 2,
-	y: 2,
-	width: 46,
-	height: type === 'barcode' || type === 'storeLogo' ? 12 : 4,
-	fontSize: 8,
-	align: 'center',
+export const isVerticalLayout = (layout: Pick<LabelLayout, 'width' | 'height'>) =>
+	layout.height > layout.width
+
+export const clampLabelFields = (layout: LabelLayout): LabelLayout => ({
+	...layout,
+	fields: layout.fields.map(field => {
+		const width = Math.min(
+			Math.max(4, field.width),
+			Math.max(4, layout.width),
+		)
+		const height = Math.min(
+			Math.max(3, field.height),
+			Math.max(3, layout.height),
+		)
+
+		return {
+			...field,
+			width,
+			height,
+			x: Math.min(Math.max(0, field.x), Math.max(0, layout.width - width)),
+			y: Math.min(Math.max(0, field.y), Math.max(0, layout.height - height)),
+		}
+	}),
 })
+
+const fieldsAreLandscape = (layout: LabelLayout) => {
+	const landscape = layout.fields.filter(field => field.width >= field.height)
+	return landscape.length >= layout.fields.length - landscape.length
+}
+
+const rotateFieldCw = (field: LabelField, canvasWidth: number): LabelField => ({
+	...field,
+	x: field.y,
+	y: canvasWidth - field.x - field.width,
+	width: field.height,
+	height: field.width,
+})
+
+const rotateFieldCcw = (field: LabelField, canvasHeight: number): LabelField => ({
+	...field,
+	x: canvasHeight - field.y - field.height,
+	y: field.x,
+	width: field.height,
+	height: field.width,
+})
+
+export const ensureVerticalFields = (layout: LabelLayout): LabelLayout => {
+	if (!isVerticalLayout(layout) || !fieldsAreLandscape(layout)) {
+		return clampLabelFields(layout)
+	}
+
+	return clampLabelFields({
+		...layout,
+		fields: layout.fields.map(field => rotateFieldCw(field, layout.width)),
+	})
+}
+
+export const setLabelOrientation = (
+	layout: LabelLayout,
+	vertical: boolean,
+): LabelLayout => {
+	const portrait = isVerticalLayout(layout)
+
+	if (vertical) {
+		if (!portrait) {
+			return clampLabelFields({
+				width: layout.height,
+				height: layout.width,
+				fields: layout.fields.map(field =>
+					rotateFieldCw(field, layout.width),
+				),
+			})
+		}
+
+		return ensureVerticalFields(layout)
+	}
+
+	if (portrait && !fieldsAreLandscape(layout)) {
+		return clampLabelFields({
+			width: layout.height,
+			height: layout.width,
+			fields: layout.fields.map(field =>
+				rotateFieldCcw(field, layout.height),
+			),
+		})
+	}
+
+	if (portrait) {
+		return clampLabelFields({
+			...layout,
+			width: layout.height,
+			height: layout.width,
+		})
+	}
+
+	return clampLabelFields(layout)
+}
+
+export const defaultField = (
+	type: LabelFieldType,
+	layout?: Pick<LabelLayout, 'width' | 'height'>,
+): LabelField => {
+	const canvasWidth = layout?.width ?? 50
+	const canvasHeight = layout?.height ?? 30
+	const vertical = canvasHeight > canvasWidth
+	const along = Math.max(4, (vertical ? canvasHeight : canvasWidth) - 4)
+	const across = type === 'barcode' || type === 'storeLogo' ? 12 : 4
+
+	return {
+		id: type,
+		type,
+		x: 2,
+		y: 2,
+		width: vertical ? Math.min(across, canvasWidth - 4) : along,
+		height: vertical ? along : Math.min(across, canvasHeight - 4),
+		fontSize: 8,
+		align: 'center',
+	}
+}
 
 export const formatLabelPrice = (
 	amount?: number,

@@ -1,8 +1,11 @@
+import { ReactNode } from 'react'
 import {
 	LabelField,
 	LabelFieldValues,
 	LabelLayout,
 	MM_TO_PX,
+	ensureVerticalFields,
+	isVerticalLayout,
 	renderBarcodeSvg,
 } from '../../shared/labelTemplate'
 
@@ -25,6 +28,50 @@ const fieldText = (field: LabelField, values: LabelFieldValues): string => {
 
 const mm = (value: number) => `${value}mm`
 
+const RotatedContent = ({
+	field,
+	rotate,
+	children,
+}: {
+	field: LabelField
+	rotate: boolean
+	children: ReactNode
+}) => {
+	if (!rotate) {
+		return (
+			<div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+				{children}
+			</div>
+		)
+	}
+
+	return (
+		<div
+			style={{
+				position: 'relative',
+				width: '100%',
+				height: '100%',
+				overflow: 'hidden',
+				pointerEvents: 'none',
+			}}
+		>
+			<div
+				style={{
+					position: 'absolute',
+					width: mm(field.height),
+					height: mm(field.width),
+					left: '50%',
+					top: '50%',
+					transform: 'translate(-50%, -50%) rotate(90deg)',
+					overflow: 'hidden',
+				}}
+			>
+				{children}
+			</div>
+		</div>
+	)
+}
+
 const scaleFromLabel = (fieldEl: HTMLElement, layoutWidth: number) => {
 	const width = fieldEl.parentElement?.getBoundingClientRect().width ?? 0
 	return layoutWidth > 0 && width > 0 ? width / layoutWidth : MM_TO_PX
@@ -39,13 +86,15 @@ const LabelPreview = ({
 	onResize,
 }: LabelPreviewProps) => {
 	const editable = Boolean(onMove)
+	const viewLayout = editable ? layout : ensureVerticalFields(layout)
+	const rotateContent = isVerticalLayout(viewLayout)
 
 	return (
 		<div
 			style={{
 				position: 'relative',
-				width: mm(layout.width),
-				height: mm(layout.height),
+				width: mm(viewLayout.width),
+				height: mm(viewLayout.height),
 				background: '#ffffff',
 				border: editable ? '1px solid #D0D5DD' : 'none',
 				overflow: 'hidden',
@@ -53,7 +102,7 @@ const LabelPreview = ({
 				boxSizing: 'border-box',
 			}}
 		>
-			{layout.fields.map(field => (
+			{viewLayout.fields.map(field => (
 				<div
 					key={field.id}
 					style={{
@@ -64,9 +113,9 @@ const LabelPreview = ({
 						height: mm(field.height),
 						padding: mm(field.padding ?? 0),
 						border:
-							selectedId === field.id
+							editable && selectedId === field.id
 								? '1px solid #376288'
-								: '1px solid transparent',
+								: 'none',
 						boxSizing: 'border-box',
 						cursor: editable ? 'move' : 'default',
 						overflow: 'hidden',
@@ -86,9 +135,9 @@ const LabelPreview = ({
 						const originY = event.clientY
 						const startX = field.x
 						const startY = field.y
-						const scale = scaleFromLabel(event.currentTarget, layout.width)
-						const maxX = Math.max(0, layout.width - field.width)
-						const maxY = Math.max(0, layout.height - field.height)
+						const scale = scaleFromLabel(event.currentTarget, viewLayout.width)
+						const maxX = Math.max(0, viewLayout.width - field.width)
+						const maxY = Math.max(0, viewLayout.height - field.height)
 						const pointerId = event.pointerId
 						const target = event.currentTarget
 						target.setPointerCapture(pointerId)
@@ -120,37 +169,42 @@ const LabelPreview = ({
 					}}
 				>
 					{field.type === 'barcode' && values.barcode ? (
-						<div
-							dangerouslySetInnerHTML={{
-								__html: renderBarcodeSvg(values.barcode),
-							}}
-							style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
-						/>
+						<RotatedContent field={field} rotate={rotateContent}>
+							<div
+								dangerouslySetInnerHTML={{
+									__html: renderBarcodeSvg(values.barcode),
+								}}
+								style={{ width: '100%', height: '100%' }}
+							/>
+						</RotatedContent>
 					) : field.type === 'storeLogo' && values.storeLogo ? (
-						<img
-							src={values.storeLogo}
-							alt=""
-							style={{
-								width: '100%',
-								height: '100%',
-								objectFit: 'contain',
-								pointerEvents: 'none',
-							}}
-						/>
+						<RotatedContent field={field} rotate={rotateContent}>
+							<img
+								src={values.storeLogo}
+								alt=""
+								style={{
+									width: '100%',
+									height: '100%',
+									objectFit: 'contain',
+								}}
+							/>
+						</RotatedContent>
 					) : (
-						<div
-							style={{
-								fontSize: `${field.fontSize ?? 8}pt`,
-								textAlign: field.align ?? 'left',
-								lineHeight: 1.1,
-								width: '100%',
-								height: '100%',
-								overflow: 'hidden',
-								fontFamily: 'sans-serif',
-							}}
-						>
-							{fieldText(field, values)}
-						</div>
+						<RotatedContent field={field} rotate={rotateContent}>
+							<div
+								style={{
+									fontSize: `${field.fontSize ?? 8}pt`,
+									textAlign: field.align ?? 'left',
+									lineHeight: 1.1,
+									width: '100%',
+									height: '100%',
+									overflow: 'hidden',
+									fontFamily: 'sans-serif',
+								}}
+							>
+								{fieldText(field, values)}
+							</div>
+						</RotatedContent>
 					)}
 					{editable && onResize && selectedId === field.id ? (
 						<div
@@ -175,9 +229,9 @@ const LabelPreview = ({
 								const originY = event.clientY
 								const startW = field.width
 								const startH = field.height
-								const scale = scaleFromLabel(fieldEl, layout.width)
-								const maxW = Math.max(4, layout.width - field.x)
-								const maxH = Math.max(3, layout.height - field.y)
+								const scale = scaleFromLabel(fieldEl, viewLayout.width)
+								const maxW = Math.max(4, viewLayout.width - field.x)
+								const maxH = Math.max(3, viewLayout.height - field.y)
 								const pointerId = event.pointerId
 								const target = event.currentTarget
 								target.setPointerCapture(pointerId)
