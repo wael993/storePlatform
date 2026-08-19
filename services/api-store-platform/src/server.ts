@@ -25,6 +25,7 @@ import StoreRoutes from './apis/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
 import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
+import { startNegativeQuantitySnapshotCron } from './cron/snapshotNegativeQuantity'
 import { redisCache } from './shared/cache/redisCache'
 import logger, { EntityType } from './shared/logger/logger'
 
@@ -126,6 +127,7 @@ const cacheMetricsInterval = setInterval(() => {
 cacheMetricsInterval.unref()
 
 startTokenCleanupCron()
+startNegativeQuantitySnapshotCron()
 
 customerRoutes.setRoutes(app)
 supplierRoutes.setRoutes(app)

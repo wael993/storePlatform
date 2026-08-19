@@ -47,4 +47,8 @@ export const config = {
 		process.env.OFFLINE_SYNC_RETENTION_DAYS || '90',
 		10,
 	),
+	cron: {
+		dailySchedule: process.env.CRON_DAILY_SCHEDULE || '0 3 * * *',
+		timezone: process.env.CRON_TIMEZONE || 'Asia/Amman',
+	},
 }
