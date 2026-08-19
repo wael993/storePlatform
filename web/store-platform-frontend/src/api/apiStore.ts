@@ -16,6 +16,7 @@ import { filterDailyActionsByParams } from '../offline/dailyActionFilters'
 import { offlineDb } from '../offline/db'
 import { isOfflineCapableForTenant } from '../offline/localStore'
 import { RootState } from '../store/store'
+import { LabelLayout, LabelTemplate } from '../shared/labelTemplate'
 import {
 	applyOptimisticInventoryPatch,
 	applyOptimisticProductPatch,
@@ -1165,6 +1166,60 @@ const getQuery = (
 			invalidatesTags: ['invoice-settings'],
 		}),
 
+		getLabelTemplates: builder.query<{ templates: LabelTemplate[] }, void>({
+			query: () => ({
+				url: 'label-templates',
+				method: 'GET',
+			}),
+			providesTags: ['label-templates'],
+		}),
+		createLabelTemplate: builder.mutation<
+			LabelTemplate,
+			{ name: string; layout: LabelLayout }
+		>({
+			query: body => ({
+				url: 'label-templates',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['label-templates'],
+		}),
+		updateLabelTemplate: builder.mutation<
+			LabelTemplate,
+			{ templateId: string; name?: string; layout?: LabelLayout }
+		>({
+			query: ({ templateId, ...body }) => ({
+				url: `label-templates/${templateId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['label-templates'],
+		}),
+		deleteLabelTemplate: builder.mutation<void, string>({
+			query: templateId => ({
+				url: `label-templates/${templateId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['label-templates'],
+		}),
+		duplicateLabelTemplate: builder.mutation<LabelTemplate, string>({
+			query: templateId => ({
+				url: `label-templates/${templateId}/duplicate`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['label-templates'],
+		}),
+		setDefaultLabelTemplate: builder.mutation<
+			{ templates: LabelTemplate[] },
+			string
+		>({
+			query: templateId => ({
+				url: `label-templates/${templateId}/default`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['label-templates'],
+		}),
+
 		getDailyActions: builder.query<
 			DailyAction[],
 			DailyActionFiltersQueryParams | void
@@ -1655,6 +1710,12 @@ export const {
 	useUpdateCurrencySettingsMutation,
 	useGetInvoiceSettingsQuery,
 	useUpdateInvoiceSettingsMutation,
+	useGetLabelTemplatesQuery,
+	useCreateLabelTemplateMutation,
+	useUpdateLabelTemplateMutation,
+	useDeleteLabelTemplateMutation,
+	useDuplicateLabelTemplateMutation,
+	useSetDefaultLabelTemplateMutation,
 	useGetDailyActionsQuery,
 	useGetDailyActionFilterValuesQuery,
 	useGetSingleDailyActionQuery,

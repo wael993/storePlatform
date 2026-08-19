@@ -347,6 +347,7 @@ const ProductTableMobil = ({
 			</Accordion>
 			{isOwnerOrAdmin && (
 				<PrintBarcodeModal
+					product={product}
 					barcode={barcode}
 					isOpen={preview.isOpen}
 					onClose={preview.onClose}

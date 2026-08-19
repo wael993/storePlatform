@@ -8,6 +8,7 @@ import {
 	Stack,
 	VStack,
 } from '@chakra-ui/react'
+import LabelTemplatesSettings from './LabelTemplatesSettings'
 
 interface ProductsSettingsProps {
 	productsPerPage: number
@@ -40,6 +41,7 @@ const ProductsSettings = ({
 					</Stack>
 				</RadioGroup>
 			</FormControl>
+			<LabelTemplatesSettings />
 		</VStack>
 	)
 }

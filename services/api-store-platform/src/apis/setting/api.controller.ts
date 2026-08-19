@@ -10,6 +10,17 @@ import CurrencySettings, {
 	ICurrencySettings,
 } from '../../models/CurrencySettings'
 import InvoiceSettings, { IInvoiceSettings } from '../../models/InvoiceSettings'
+import {
+	cloneLabelLayout,
+	ILabelTemplate,
+	LabelTemplate,
+	LabelTemplateDto,
+	SYSTEM_LABEL_LAYOUT,
+	SYSTEM_LABEL_TEMPLATE_ID,
+	systemLabelTemplateDto,
+	toLabelTemplateDto,
+	validateLabelLayout,
+} from '../../models/LabelTemplate'
 import UserSettings, { IUserSettings } from '../../models/UserSettings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger from '../../shared/logger/logger'
@@ -612,6 +623,325 @@ export default class SettingController {
 		await Currency.deleteMany({
 			tenantId: tenantContext.tenantId,
 			currencyId: { $in: currencyIds },
+		})
+	}
+
+	private assertOwnerOrAdmin(request: SettingsHttpRequest): void {
+		const role = request.user?.role
+
+		if (role !== 'owner' && role !== 'admin') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Only owner or admin can manage label templates',
+			)
+		}
+	}
+
+	private actor(request: SettingsHttpRequest) {
+		return {
+			_id: request.user?.userId ?? '',
+			displayName:
+				`${request.user?.firstName ?? ''} ${request.user?.lastName ?? ''}`.trim() ||
+				'user',
+			role: request.user?.role,
+			createdAt: new Date(),
+		}
+	}
+
+	private async listCustomTemplates(
+		tenantId: string,
+	): Promise<ILabelTemplate[]> {
+		return LabelTemplate.find({ tenantId }).sort({ createdAt: 1 })
+	}
+
+	private async requireCustomTemplate(
+		tenantId: string,
+		templateId: string,
+	): Promise<ILabelTemplate> {
+		const template = await LabelTemplate.findOne({ tenantId, templateId })
+
+		if (!template) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_READ_ERROR,
+				'Label template not found',
+			)
+		}
+
+		return template
+	}
+
+	public async getLabelTemplates(
+		request: SettingsHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const { tenantId } = request.user ?? {}
+
+		if (!tenantId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Missing tenantId',
+			)
+		}
+
+		const custom = await this.listCustomTemplates(tenantId)
+		const hasCustomDefault = custom.some(template => template.isDefault)
+
+		response.status(200).json({
+			templates: [
+				systemLabelTemplateDto(!hasCustomDefault),
+				...custom.map(toLabelTemplateDto),
+			],
+		})
+	}
+
+	public async createLabelTemplate(
+		request: SettingsHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		assertSettingsMutableWhileOnline(request)
+		this.assertOwnerOrAdmin(request)
+
+		const { tenantId } = request.user ?? {}
+
+		if (!tenantId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Missing tenantId',
+			)
+		}
+
+		const name = String(request.body?.name ?? '').trim()
+
+		if (!name) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Template name is required',
+			)
+		}
+
+		let layout: ReturnType<typeof validateLabelLayout>
+
+		try {
+			layout = validateLabelLayout(
+				request.body?.layout ?? cloneLabelLayout(SYSTEM_LABEL_LAYOUT),
+			)
+		} catch (error: unknown) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				error instanceof Error ? error.message : 'Invalid layout',
+			)
+		}
+
+		const template = await LabelTemplate.create({
+			tenantId,
+			templateId: uuidv4(),
+			name,
+			isDefault: false,
+			layout,
+			createdBy: this.actor(request),
+		})
+
+		response.status(201).json(toLabelTemplateDto(template))
+	}
+
+	public async patchLabelTemplate(
+		request: SettingsHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		assertSettingsMutableWhileOnline(request)
+		this.assertOwnerOrAdmin(request)
+
+		const { tenantId } = request.user ?? {}
+		const templateId = String(request.params.templateId ?? '')
+
+		if (!tenantId || !templateId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Missing tenantId or templateId',
+			)
+		}
+
+		if (templateId === SYSTEM_LABEL_TEMPLATE_ID) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'System default template cannot be edited',
+			)
+		}
+
+		const template = await this.requireCustomTemplate(tenantId, templateId)
+		const name =
+			request.body?.name !== undefined
+				? String(request.body.name).trim()
+				: template.name
+
+		if (!name) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Template name is required',
+			)
+		}
+
+		let layout = template.layout
+
+		if (request.body?.layout !== undefined) {
+			try {
+				layout = validateLabelLayout(request.body.layout)
+			} catch (error: unknown) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+					error instanceof Error ? error.message : 'Invalid layout',
+				)
+			}
+		}
+
+		template.name = name
+		template.layout = layout
+		template.updatedBy = {
+			_id: request.user?.userId ?? '',
+			displayName: this.actor(request).displayName,
+			role: request.user?.role,
+			updatedAt: new Date(),
+		}
+
+		await template.save()
+
+		response.status(200).json(toLabelTemplateDto(template))
+	}
+
+	public async deleteLabelTemplate(
+		request: SettingsHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		assertSettingsMutableWhileOnline(request)
+		this.assertOwnerOrAdmin(request)
+
+		const { tenantId } = request.user ?? {}
+		const templateId = String(request.params.templateId ?? '')
+
+		if (!tenantId || !templateId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Missing tenantId or templateId',
+			)
+		}
+
+		if (templateId === SYSTEM_LABEL_TEMPLATE_ID) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'System default template cannot be deleted',
+			)
+		}
+
+		const template = await this.requireCustomTemplate(tenantId, templateId)
+
+		if (template.isDefault) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Default template cannot be deleted',
+			)
+		}
+
+		await template.deleteOne()
+
+		response.status(204).send()
+	}
+
+	public async duplicateLabelTemplate(
+		request: SettingsHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		assertSettingsMutableWhileOnline(request)
+		this.assertOwnerOrAdmin(request)
+
+		const { tenantId } = request.user ?? {}
+		const templateId = String(request.params.templateId ?? '')
+
+		if (!tenantId || !templateId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Missing tenantId or templateId',
+			)
+		}
+
+		const source: LabelTemplateDto =
+			templateId === SYSTEM_LABEL_TEMPLATE_ID
+				? systemLabelTemplateDto(false)
+				: toLabelTemplateDto(
+						await this.requireCustomTemplate(tenantId, templateId),
+					)
+
+		const template = await LabelTemplate.create({
+			tenantId,
+			templateId: uuidv4(),
+			name: `${source.name} copy`,
+			isDefault: false,
+			layout: cloneLabelLayout(source.layout),
+			createdBy: this.actor(request),
+		})
+
+		response.status(201).json(toLabelTemplateDto(template))
+	}
+
+	public async setDefaultLabelTemplate(
+		request: SettingsHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		assertSettingsMutableWhileOnline(request)
+		this.assertOwnerOrAdmin(request)
+
+		const { tenantId } = request.user ?? {}
+		const templateId = String(request.params.templateId ?? '')
+
+		if (!tenantId || !templateId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'Missing tenantId or templateId',
+			)
+		}
+
+		if (templateId === SYSTEM_LABEL_TEMPLATE_ID) {
+			await LabelTemplate.updateMany(
+				{ tenantId },
+				{ $set: { isDefault: false } },
+			)
+		} else {
+			await this.requireCustomTemplate(tenantId, templateId)
+			await LabelTemplate.updateMany(
+				{ tenantId },
+				{ $set: { isDefault: false } },
+			)
+
+			try {
+				await LabelTemplate.updateOne(
+					{ tenantId, templateId },
+					{ $set: { isDefault: true } },
+				)
+			} catch (error: unknown) {
+				const duplicateKey =
+					typeof error === 'object' &&
+					error !== null &&
+					'code' in error &&
+					error.code === 11000
+
+				if (duplicateKey) {
+					throw new BusinessLogicError(
+						ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+						'Another template is already the default',
+					)
+				}
+
+				throw error
+			}
+		}
+
+		const templates = await this.listCustomTemplates(tenantId)
+		const hasCustomDefault = templates.some(template => template.isDefault)
+
+		response.status(200).json({
+			templates: [
+				systemLabelTemplateDto(!hasCustomDefault),
+				...templates.map(toLabelTemplateDto),
+			],
 		})
 	}
 }

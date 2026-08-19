@@ -59,6 +59,11 @@ const API_SEGMENT_TO_PAGES: Record<string, TenantAccessiblePage[]> = {
 	'currency-settings': [TENANT_ACCESSIBLE_PAGE.SETTINGS],
 	units: [TENANT_ACCESSIBLE_PAGE.SETTINGS],
 	'user-settings': [TENANT_ACCESSIBLE_PAGE.SETTINGS],
+	'invoice-settings': [TENANT_ACCESSIBLE_PAGE.SETTINGS],
+	'label-templates': [
+		TENANT_ACCESSIBLE_PAGE.SETTINGS,
+		TENANT_ACCESSIBLE_PAGE.PRODUCTS,
+	],
 	tenants: [
 		TENANT_ACCESSIBLE_PAGE.TENANTS_LIST,
 		TENANT_ACCESSIBLE_PAGE.ADD_NEW_TENANT,
@@ -113,6 +118,16 @@ export const getRequiredAccessiblePages = (
 		const entityPage = ENTITY_TYPE_TO_PAGE[secondSegment?.toLowerCase() ?? '']
 
 		return entityPage ? [entityPage] : null
+	}
+
+	if (
+		firstSegment === 'invoice-settings' &&
+		method.toUpperCase() === 'GET'
+	) {
+		return [
+			TENANT_ACCESSIBLE_PAGE.SETTINGS,
+			TENANT_ACCESSIBLE_PAGE.PRODUCTS,
+		]
 	}
 
 	if (firstSegment === 'tenants' && method === 'POST') {

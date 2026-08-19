@@ -490,6 +490,7 @@ const ProductTableItem = memo(
 				</Td>
 				{isOwnerOrAdmin && (
 					<PrintBarcodeModal
+						product={productData}
 						barcode={barcode}
 						isOpen={preview.isOpen}
 						onClose={preview.onClose}

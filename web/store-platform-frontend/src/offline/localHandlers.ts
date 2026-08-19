@@ -1442,6 +1442,7 @@ const SETTINGS_MUTATION_PATHS = new Set([
 	'user-settings',
 	'currency-settings',
 	'invoice-settings',
+	'label-templates',
 ])
 
 const settingsLockedOfflineError = () =>
@@ -1581,7 +1582,7 @@ export const handleOfflineQuery = async (
 
 	if (
 		['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) &&
-		SETTINGS_MUTATION_PATHS.has(path) &&
+		SETTINGS_MUTATION_PATHS.has(path.split('/')[0]) &&
 		getWorkMode() === 'offline'
 	) {
 		return settingsLockedOfflineError()

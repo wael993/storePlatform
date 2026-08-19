@@ -136,6 +136,54 @@ export default class SettingRoutes {
 				this.authorizationValidator.bind(this),
 				this.patchInvoiceSettings.bind(this),
 			)
+
+		app
+			.route(`${baseRoute}/label-templates`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getLabelTemplates.bind(this),
+			)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.createLabelTemplate.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/label-templates/:templateId/duplicate`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.duplicateLabelTemplate.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/label-templates/:templateId/default`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.setDefaultLabelTemplate.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/label-templates/:templateId`)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchLabelTemplate.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteLabelTemplate.bind(this),
+			)
 	}
 
 	private async getUserSettings(
@@ -209,6 +257,84 @@ export default class SettingRoutes {
 	): Promise<void> {
 		try {
 			await this.settingController.patchInvoiceSettings(request, response)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getLabelTemplates(
+		request: SettingHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.settingController.getLabelTemplates(request, response)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async createLabelTemplate(
+		request: SettingHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.settingController.createLabelTemplate(request, response)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchLabelTemplate(
+		request: SettingHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.settingController.patchLabelTemplate(request, response)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteLabelTemplate(
+		request: SettingHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.settingController.deleteLabelTemplate(request, response)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async duplicateLabelTemplate(
+		request: SettingHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.settingController.duplicateLabelTemplate(request, response)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async setDefaultLabelTemplate(
+		request: SettingHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			await this.settingController.setDefaultLabelTemplate(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {
