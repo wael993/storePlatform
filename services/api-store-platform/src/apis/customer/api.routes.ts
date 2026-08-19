@@ -5,7 +5,11 @@ import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
 import logger from '../../shared/logger/logger'
 import { logIncomingRequests } from '../../shared/middleware'
-import { CustomerRequestBody, HttpError, RequestContext } from '../../shared/types'
+import {
+	CustomerRequestBody,
+	HttpError,
+	RequestContext,
+} from '../../shared/types'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import CustomerController from './api.controller'
 

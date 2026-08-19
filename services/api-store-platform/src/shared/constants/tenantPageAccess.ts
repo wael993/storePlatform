@@ -120,14 +120,8 @@ export const getRequiredAccessiblePages = (
 		return entityPage ? [entityPage] : null
 	}
 
-	if (
-		firstSegment === 'invoice-settings' &&
-		method.toUpperCase() === 'GET'
-	) {
-		return [
-			TENANT_ACCESSIBLE_PAGE.SETTINGS,
-			TENANT_ACCESSIBLE_PAGE.PRODUCTS,
-		]
+	if (firstSegment === 'invoice-settings' && method.toUpperCase() === 'GET') {
+		return [TENANT_ACCESSIBLE_PAGE.SETTINGS, TENANT_ACCESSIBLE_PAGE.PRODUCTS]
 	}
 
 	if (firstSegment === 'tenants' && method === 'POST') {

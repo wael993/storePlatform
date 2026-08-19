@@ -97,7 +97,12 @@ const getSellingCashImpact = (
 ) => {
 	if (!isIncludedInvoiceStatus(invoice)) return 0
 	if (invoice.paymentType === InvoicePaymentType.CREDIT) return 0
-	if (!CASH_INFLOW_PAYMENT_TYPES.has(invoice.paymentType ?? InvoicePaymentType.CASH)) return 0
+	if (
+		!CASH_INFLOW_PAYMENT_TYPES.has(
+			invoice.paymentType ?? InvoicePaymentType.CASH,
+		)
+	)
+		return 0
 
 	const { grandTotal, paidAmount, currencyId } =
 		getPrimaryInvoiceCurrencyAmounts(invoice)
@@ -114,7 +119,10 @@ const getBuyingCashImpact = (
 ) => {
 	if (!isIncludedInvoiceStatus(invoice)) return 0
 	if (invoice.paymentType === InvoicePaymentType.CREDIT) return 0
-	if ((invoice.paymentType ?? InvoicePaymentType.CASH) !== InvoicePaymentType.CASH) return 0
+	if (
+		(invoice.paymentType ?? InvoicePaymentType.CASH) !== InvoicePaymentType.CASH
+	)
+		return 0
 
 	const { grandTotal, paidAmount, currencyId } =
 		getPrimaryInvoiceCurrencyAmounts(invoice)

@@ -44,9 +44,7 @@ export default class CategoryController {
 		const tenantId = this.getTenantId(requestContext)
 
 		await redisCache.del(redisCache.buildCategoryListKey(tenantId))
-		await redisCache.del(
-			redisCache.buildProductDetailKey(tenantId, categoryId),
-		)
+		await redisCache.del(redisCache.buildProductDetailKey(tenantId, categoryId))
 
 		await redisCache.delByPattern(
 			redisCache.buildEntityDetailPatternKey('categories', tenantId),

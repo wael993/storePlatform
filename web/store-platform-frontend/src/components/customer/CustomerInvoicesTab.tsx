@@ -36,7 +36,10 @@ import {
 	type ApiSellingInvoice,
 } from '../SellingInvoice/invoiceApiMappers'
 import { InvoiceUiStatus } from '../../shared/globalEnums'
-import type { SellingInvoice, SellingInvoiceStatus } from '../SellingInvoice/types'
+import type {
+	SellingInvoice,
+	SellingInvoiceStatus,
+} from '../SellingInvoice/types'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
 
 const CUSTOMER_STATUS_FILTER_TABS = [

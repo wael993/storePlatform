@@ -455,9 +455,7 @@ const NewSellingInvoicePanel = ({
 		}))
 	}
 
-	const handleSaveInvoice = async (
-		status: InvoiceStatus,
-	) => {
+	const handleSaveInvoice = async (status: InvoiceStatus) => {
 		if (draft.lineItems.length === 0 || isReadOnly) return
 
 		setSaveError(null)
@@ -1004,7 +1002,8 @@ const NewSellingInvoicePanel = ({
 									fontSize="xl"
 									fontWeight={700}
 									onEdit={
-										isReadOnly || draft.paymentType === InvoicePaymentType.CREDIT
+										isReadOnly ||
+										draft.paymentType === InvoicePaymentType.CREDIT
 											? undefined
 											: paidAmount =>
 													setDraft(current => ({

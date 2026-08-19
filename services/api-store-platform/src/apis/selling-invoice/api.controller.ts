@@ -149,8 +149,7 @@ const asInvoiceLines = (
 			quantity: Number(item.quantity ?? 0),
 			unit: typeof item.unit === 'string' ? item.unit : undefined,
 			unitPrice: Number(item.unitPrice ?? 0),
-			discount:
-				typeof item.discount === 'number' ? item.discount : undefined,
+			discount: typeof item.discount === 'number' ? item.discount : undefined,
 			discountIsPercent:
 				typeof item.discountIsPercent === 'boolean'
 					? item.discountIsPercent
@@ -209,7 +208,9 @@ const asInvoiceAmountSource = (
 		: undefined,
 })
 
-const toStoredSellingInvoice = (value: unknown): StoredSellingInvoice | null => {
+const toStoredSellingInvoice = (
+	value: unknown,
+): StoredSellingInvoice | null => {
 	if (!isPlainRecord(value)) {
 		return null
 	}
@@ -279,7 +280,8 @@ export default class SellingInvoiceController {
 			return InvoiceStatus.PARTIAL
 		}
 
-		if (paymentType === InvoicePaymentType.CREDIT) return InvoiceStatus.CONFIRMED
+		if (paymentType === InvoicePaymentType.CREDIT)
+			return InvoiceStatus.CONFIRMED
 
 		return requestStatus ?? InvoiceStatus.CONFIRMED
 	}
@@ -828,48 +830,50 @@ export default class SellingInvoiceController {
 
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
-		const filteredInvoices = invoices.filter((invoice: Record<string, unknown>) => {
-			if (
-				filters.customerId &&
-				String(invoice.customerId ?? '') !== filters.customerId
-			) {
-				return false
-			}
+		const filteredInvoices = invoices.filter(
+			(invoice: Record<string, unknown>) => {
+				if (
+					filters.customerId &&
+					String(invoice.customerId ?? '') !== filters.customerId
+				) {
+					return false
+				}
 
-			const uiStatus = mapInvoiceFiltersToUiStatus(invoice)
+				const uiStatus = mapInvoiceFiltersToUiStatus(invoice)
 
-			if (
-				filters.status &&
-				filters.status !== 'all' &&
-				uiStatus !== filters.status
-			) {
-				return false
-			}
+				if (
+					filters.status &&
+					filters.status !== 'all' &&
+					uiStatus !== filters.status
+				) {
+					return false
+				}
 
-			if (filters.issuedDate) {
-				const issuedAt = toDate(invoice.issuedAt)
-				const filterDate = new Date(filters.issuedDate)
+				if (filters.issuedDate) {
+					const issuedAt = toDate(invoice.issuedAt)
+					const filterDate = new Date(filters.issuedDate)
 
-				if (!issuedAt) return false
+					if (!issuedAt) return false
 
-				const sameDay =
-					issuedAt.getFullYear() === filterDate.getFullYear() &&
-					issuedAt.getMonth() === filterDate.getMonth() &&
-					issuedAt.getDate() === filterDate.getDate()
+					const sameDay =
+						issuedAt.getFullYear() === filterDate.getFullYear() &&
+						issuedAt.getMonth() === filterDate.getMonth() &&
+						issuedAt.getDate() === filterDate.getDate()
 
-				if (!sameDay) return false
-			}
+					if (!sameDay) return false
+				}
 
-			if (!normalizedSearch) return true
+				if (!normalizedSearch) return true
 
-			const invoiceNumber = String(invoice.invoiceNumber ?? '').toLowerCase()
-			const customerName = String(invoice.customerName ?? '').toLowerCase()
+				const invoiceNumber = String(invoice.invoiceNumber ?? '').toLowerCase()
+				const customerName = String(invoice.customerName ?? '').toLowerCase()
 
-			return (
-				invoiceNumber.includes(normalizedSearch) ||
-				customerName.includes(normalizedSearch)
-			)
-		})
+				return (
+					invoiceNumber.includes(normalizedSearch) ||
+					customerName.includes(normalizedSearch)
+				)
+			},
+		)
 
 		const scopedInvoices = filters.customerId
 			? invoices.filter(
@@ -1112,7 +1116,11 @@ export default class SellingInvoiceController {
 		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
 
 		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache('inventory', requestContext, inventoryId)
+			await this.ops.invalidateEntityCache(
+				'inventory',
+				requestContext,
+				inventoryId,
+			)
 		}
 
 		await redisCache.del(
@@ -1164,7 +1172,10 @@ export default class SellingInvoiceController {
 		requestBody: Partial<InvoiceRequestBody>,
 		requestContext: RequestContext,
 	) {
-		await this.ops.ensureOrderBelongsToTenant(requestContext, requestBody.orderId)
+		await this.ops.ensureOrderBelongsToTenant(
+			requestContext,
+			requestBody.orderId,
+		)
 
 		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
 		const wasStockAffecting = Boolean(
@@ -1194,8 +1205,8 @@ export default class SellingInvoiceController {
 			)
 		}
 
-		const { updateResponse, touchedInventoryIds } = await this.ops.runInTransaction(
-			async session => {
+		const { updateResponse, touchedInventoryIds } =
+			await this.ops.runInTransaction(async session => {
 				let inventoryIds: string[] = []
 
 				if (shouldReverse && existingInvoice) {
@@ -1235,13 +1246,16 @@ export default class SellingInvoiceController {
 				)
 
 				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
-			},
-		)
+			})
 
 		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
 
 		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache('inventory', requestContext, inventoryId)
+			await this.ops.invalidateEntityCache(
+				'inventory',
+				requestContext,
+				inventoryId,
+			)
 		}
 
 		await redisCache.del(
@@ -1283,7 +1297,11 @@ export default class SellingInvoiceController {
 		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
 
 		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache('inventory', requestContext, inventoryId)
+			await this.ops.invalidateEntityCache(
+				'inventory',
+				requestContext,
+				inventoryId,
+			)
 		}
 
 		await redisCache.del(
@@ -1292,5 +1310,4 @@ export default class SellingInvoiceController {
 
 		return deleteResponse
 	}
-
 }

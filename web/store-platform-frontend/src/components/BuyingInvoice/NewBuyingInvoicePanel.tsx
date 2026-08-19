@@ -427,9 +427,7 @@ const NewBuyingInvoicePanel = ({
 
 	const canSave = draft.lineItems.length > 0 && hasSupplier && hasSalesPerson
 
-	const handleSaveInvoice = async (
-		status: InvoiceStatus,
-	) => {
+	const handleSaveInvoice = async (status: InvoiceStatus) => {
 		if (!canSave) return
 
 		setSaveError(null)
@@ -1070,10 +1068,14 @@ const NewBuyingInvoicePanel = ({
 									<ChevronDownIcon />
 								</MenuButton>
 								<MenuList>
-									<MenuItem onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}>
+									<MenuItem
+										onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}
+									>
 										{t('components.buyingInvoices.drawer.saveDraft')}
 									</MenuItem>
-									<MenuItem onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}>
+									<MenuItem
+										onClick={() => handleSaveInvoice(InvoiceStatus.DRAFT)}
+									>
 										{t('components.buyingInvoices.drawer.holdInvoice')}
 									</MenuItem>
 								</MenuList>

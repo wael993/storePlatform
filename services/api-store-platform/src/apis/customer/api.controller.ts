@@ -29,9 +29,7 @@ import {
 } from '../mappings/mapper'
 
 export type CustomerInvoiceCollaborator = {
-	getDailyActions(
-		requestContext: RequestContext,
-	): Promise<DailyActionResponse>
+	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
 	buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		customerEntries?: DailyActionResponse['data'],
@@ -95,7 +93,10 @@ export default class CustomerController {
 			})
 		).documents
 
-		const invoicesByCustomerId = new Map<string, Array<Record<string, unknown>>>()
+		const invoicesByCustomerId = new Map<
+			string,
+			Array<Record<string, unknown>>
+		>()
 
 		for (const invoice of sellingInvoices) {
 			if (!isPlainRecord(invoice)) continue

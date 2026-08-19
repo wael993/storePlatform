@@ -827,7 +827,10 @@ const getQuery = (
 					body,
 				}
 			},
-			async onQueryStarted({ id, body }, { dispatch, queryFulfilled, getState }) {
+			async onQueryStarted(
+				{ id, body },
+				{ dispatch, queryFulfilled, getState },
+			) {
 				await runOptimistic(
 					applyOptimisticProductPatch(dispatch, getState, id, body),
 					queryFulfilled,
@@ -1642,7 +1645,10 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			async onQueryStarted({ id, body }, { dispatch, queryFulfilled, getState }) {
+			async onQueryStarted(
+				{ id, body },
+				{ dispatch, queryFulfilled, getState },
+			) {
 				await runOptimistic(
 					applyOptimisticInventoryPatch(dispatch, getState, id, body),
 					queryFulfilled,

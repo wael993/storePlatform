@@ -174,6 +174,7 @@ export const cloneLabelLayout = (layout: LabelLayout): LabelLayout =>
 
 const asFiniteNumber = (value: unknown): number | undefined => {
 	const parsed = Number(value)
+
 	return Number.isFinite(parsed) ? parsed : undefined
 }
 
@@ -186,7 +187,12 @@ export const validateLabelLayout = (layout: unknown): LabelLayout => {
 	const width = asFiniteNumber(candidate.width)
 	const height = asFiniteNumber(candidate.height)
 
-	if (width === undefined || height === undefined || width <= 0 || height <= 0) {
+	if (
+		width === undefined ||
+		height === undefined ||
+		width <= 0 ||
+		height <= 0
+	) {
 		throw new Error('layout width and height must be positive')
 	}
 
@@ -260,7 +266,10 @@ export const systemLabelTemplateDto = (
 })
 
 export const toLabelTemplateDto = (
-	template: Pick<ILabelTemplate, 'templateId' | 'name' | 'isDefault' | 'layout'>,
+	template: Pick<
+		ILabelTemplate,
+		'templateId' | 'name' | 'isDefault' | 'layout'
+	>,
 ): LabelTemplateDto => ({
 	templateId: template.templateId,
 	name: template.name,

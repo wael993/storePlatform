@@ -92,7 +92,9 @@ export default class SellingInvoiceRoutes {
 		logger.info(`(end-to-end): ${duration}ms`)
 	}
 
-	private getRequestContext(request: SellingInvoiceHttpRequest): RequestContext {
+	private getRequestContext(
+		request: SellingInvoiceHttpRequest,
+	): RequestContext {
 		return {
 			authorization: request.headers.authorization,
 			cookie: request.headers.cookie,

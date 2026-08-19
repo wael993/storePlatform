@@ -138,4 +138,3 @@ export const mapApiInvoiceStatusToUi = (invoice: {
 
 	return InvoiceUiStatus.PAID
 }
-

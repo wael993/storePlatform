@@ -36,7 +36,10 @@ import {
 } from '../SellingInvoice/constants'
 import { formatInvoiceAmountForDisplay } from '../SellingInvoice/currencyDisplay'
 import { InvoicePaymentType, InvoiceUiStatus } from '../../shared/globalEnums'
-import type { SellingInvoice, SellingInvoiceStatus } from '../SellingInvoice/types'
+import type {
+	SellingInvoice,
+	SellingInvoiceStatus,
+} from '../SellingInvoice/types'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
 
 const SUPPLIER_STATUS_FILTER_TABS = [

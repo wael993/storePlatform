@@ -218,7 +218,9 @@ export default class TenantController {
 	): Promise<TenantSummary[]> {
 		ensureSuperAdmin(requestContext)
 
-		const tenants = await Tenant.find().sort({ createdAt: -1 }).lean<ITenant[]>()
+		const tenants = await Tenant.find()
+			.sort({ createdAt: -1 })
+			.lean<ITenant[]>()
 
 		return tenants.map(tenant => mapTenantSummary(tenant))
 	}

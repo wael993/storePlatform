@@ -46,9 +46,7 @@ const assignProductFields = (
 	target: { price?: Product['price'] },
 	body: ProductPatchBody,
 ) => {
-	const nextPrice = body.price
-		? { ...target.price, ...body.price }
-		: undefined
+	const nextPrice = body.price ? { ...target.price, ...body.price } : undefined
 
 	Object.assign(target, body)
 

@@ -1,9 +1,6 @@
 import { Icon } from '@chakra-ui/react'
 
-import {
-	InvoicePaymentType,
-	InvoiceUiStatus,
-} from '../../shared/globalEnums'
+import { InvoicePaymentType, InvoiceUiStatus } from '../../shared/globalEnums'
 import { AsCashIcon } from '../../icons/Cash'
 import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'

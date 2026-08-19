@@ -71,9 +71,7 @@ const LabelTemplateEditor = ({
 			return
 		}
 
-		const nextLayout = cloneLabelLayout(
-			template?.layout ?? SYSTEM_LABEL_LAYOUT,
-		)
+		const nextLayout = cloneLabelLayout(template?.layout ?? SYSTEM_LABEL_LAYOUT)
 		setName(template?.name ?? '')
 		setLayout(nextLayout)
 		setSelectedId(nextLayout.fields[0]?.id)

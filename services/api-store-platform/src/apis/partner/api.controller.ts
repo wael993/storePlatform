@@ -19,9 +19,7 @@ import { DailyActionResponse, PartnersResponse } from '../../shared/types/api'
 import { filterPartnerRelatedActions, mapPartners } from '../mappings/mapper'
 
 export type PartnerDailyActionCollaborator = {
-	getDailyActions(
-		requestContext: RequestContext,
-	): Promise<DailyActionResponse>
+	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
 }
 
 export default class PartnerController {
@@ -106,12 +104,13 @@ export default class PartnerController {
 		partnerId: string,
 		requestContext: RequestContext,
 	): Promise<PartnersResponse['data'][number] | null> {
-		const partner = await this.mongoDbClient.getDocumentByField<PartnerDocument>(
-			requestContext,
-			COLLECTION_NAMES.PARTNERS,
-			Partner,
-			{ fieldName: 'partnerId', fieldValue: partnerId },
-		)
+		const partner =
+			await this.mongoDbClient.getDocumentByField<PartnerDocument>(
+				requestContext,
+				COLLECTION_NAMES.PARTNERS,
+				Partner,
+				{ fieldName: 'partnerId', fieldValue: partnerId },
+			)
 
 		if (!partner) {
 			return null

@@ -157,10 +157,7 @@ const LabelTemplatesSettings = () => {
 					</Flex>
 				))}
 				{isOwnerOrAdmin ? (
-					<Button
-						alignSelf="flex-start"
-						onClick={() => setEditor('create')}
-					>
+					<Button alignSelf="flex-start" onClick={() => setEditor('create')}>
 						{t('components.labelTemplates.create')}
 					</Button>
 				) : null}

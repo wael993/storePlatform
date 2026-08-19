@@ -785,8 +785,8 @@ export default class BuyingInvoiceController {
 			)
 		}
 
-		const { updateResponse, touchedInventoryIds } = await this.ops.runInTransaction(
-			async session => {
+		const { updateResponse, touchedInventoryIds } =
+			await this.ops.runInTransaction(async session => {
 				let inventoryIds: string[] = []
 
 				if (shouldReverse && existingInvoice) {
@@ -825,8 +825,7 @@ export default class BuyingInvoiceController {
 				)
 
 				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
-			},
-		)
+			})
 
 		for (const inventoryId of touchedInventoryIds) {
 			await this.ops.invalidateEntityCache(

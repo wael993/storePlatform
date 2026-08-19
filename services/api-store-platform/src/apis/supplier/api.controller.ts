@@ -17,16 +17,11 @@ import {
 	SupplierRequestBody,
 	RequestContext,
 } from '../../shared/types'
-import {
-	DailyActionResponse,
-	SuppliersResponse,
-} from '../../shared/types/api'
+import { DailyActionResponse, SuppliersResponse } from '../../shared/types/api'
 import { mapSuppliers } from '../mappings/mapper'
 
 export type SupplierInvoiceCollaborator = {
-	getDailyActions(
-		requestContext: RequestContext,
-	): Promise<DailyActionResponse>
+	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
 	buildSupplierInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		supplierEntries?: DailyActionResponse['data'],
