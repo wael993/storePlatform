@@ -3,7 +3,10 @@ import { NotificationRead } from '../../models/NotificationRead'
 import { Product } from '../../models/Products'
 import { Inventory } from '../../models/Inventory'
 import ProductsMapper from '../mappings/ProductsMapper'
-import { AuthorizationError } from '../../middleware/errorHandler'
+import {
+	AuthorizationError,
+	BusinessLogicError,
+} from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import {
 	getFrontendResourcesForRole,
@@ -36,11 +39,16 @@ export type ProductNotificationDigestResponse = {
 	products: ProductRequestBody[]
 }
 
+export type MarkProductNotificationsReadBody = {
+	all?: boolean
+	type?: string
+}
+
 const productsMapper = new ProductsMapper()
 
 const assertCanSeeNotifications = async (
 	requestContext: RequestContext,
-): Promise<void> => {
+): Promise<string> => {
 	if (!requestContext.userId) {
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
@@ -59,6 +67,8 @@ const assertCanSeeNotifications = async (
 			'Missing seeNotifications permission.',
 		)
 	}
+
+	return requestContext.userId
 }
 
 export default class NotificationController {
@@ -148,6 +158,49 @@ export default class NotificationController {
 					),
 				]
 			}),
+		}
+	}
+
+	public async markProductNotificationsRead(
+		requestContext: RequestContext,
+		body: MarkProductNotificationsReadBody,
+	): Promise<void> {
+		const userId = await assertCanSeeNotifications(requestContext)
+		const markAll = body?.all === true
+		const markDigest = body?.type === NEGATIVE_QUANTITY_DIGEST
+
+		if (!markAll && !markDigest) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invalid mark-read body.',
+			)
+		}
+
+		const { tenantId } = getTenantContext(requestContext)
+		const snapshot = await NegativeQuantitySnapshot.findOne({ tenantId })
+			.select({ runAt: 1, _id: 0 })
+			.lean()
+
+		if (!snapshot) {
+			return
+		}
+
+		try {
+			await NotificationRead.updateOne(
+				{ tenantId, userId, runAt: snapshot.runAt },
+				{ $setOnInsert: { tenantId, userId, runAt: snapshot.runAt } },
+				{ upsert: true },
+			)
+		} catch (error: unknown) {
+			const duplicateKey =
+				typeof error === 'object' &&
+				error !== null &&
+				'code' in error &&
+				error.code === 11000
+
+			if (!duplicateKey) {
+				throw error
+			}
 		}
 	}
 }

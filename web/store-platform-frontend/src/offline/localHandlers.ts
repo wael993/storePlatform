@@ -1863,6 +1863,15 @@ export const handleOfflineQuery = async (
 			}
 		}
 
+		if (method === 'POST' && path === 'products/notifications/read') {
+			return {
+				error: {
+					status: 503,
+					data: { message: 'Offline data unavailable' },
+				},
+			}
+		}
+
 		if (
 			method === 'POST' &&
 			(path === 'selling-invoices' || path === 'invoices')

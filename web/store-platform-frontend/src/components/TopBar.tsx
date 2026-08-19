@@ -1,5 +1,7 @@
 import {
 	ArrowForwardIcon,
+	CheckIcon,
+	CloseIcon,
 	HamburgerIcon,
 	RepeatIcon,
 	SettingsIcon,
@@ -43,6 +45,7 @@ import { useUser } from '../shared/hooks/useUser'
 import { AsDragGripIcon } from '../shared/icons/DragGrip'
 import {
 	useGetProductNotificationsQuery,
+	useMarkProductNotificationsReadMutation,
 	NEGATIVE_QUANTITY_DIGEST,
 } from '../api/apiStore'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
@@ -93,6 +96,34 @@ const styles = {
 		lineHeight: '1rem',
 		textAlign: 'center',
 	},
+	notificationPanelBadge: {
+		minW: '1.25rem',
+		h: '1.25rem',
+		px: '0.3rem',
+		borderRadius: 'full',
+		bg: '#1A365D',
+		color: 'white',
+		fontSize: '0.75rem',
+		fontWeight: 700,
+		lineHeight: '1.25rem',
+		textAlign: 'center',
+	},
+	notificationHeader: {
+		px: 4,
+		py: 3,
+		gap: 2,
+	},
+	markAllButton: {
+		display: 'flex',
+		alignItems: 'center',
+		gap: 1,
+		fontSize: 'sm',
+		fontWeight: 600,
+		color: '#4A5568',
+		bg: 'transparent',
+		whiteSpace: 'nowrap',
+		_hover: { color: '#2D3748' },
+	},
 	notificationRow: {
 		w: '100%',
 		textAlign: 'start',
@@ -103,6 +134,13 @@ const styles = {
 		color: '#353535',
 		bg: 'transparent',
 		_hover: { bg: 'gray.50' },
+	},
+	markReadButton: {
+		bg: 'transparent',
+		minW: '2rem',
+		h: '2rem',
+		color: '#4A5568',
+		_hover: { bg: 'gray.100', color: '#2D3748' },
 	},
 } satisfies StylesObject
 
@@ -140,6 +178,8 @@ const TopBar = ({
 	const { data: notifications } = useGetProductNotificationsQuery(undefined, {
 		skip: !seeNotifications,
 	})
+	const [markProductNotificationsRead, { isLoading: isMarkingRead }] =
+		useMarkProductNotificationsReadMutation()
 	const notificationItems = notifications?.items ?? []
 	const unreadCount = notificationItems.length
 	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
@@ -259,7 +299,48 @@ const TopBar = ({
 										sx={styles.iconButton}
 									/>
 								</PopoverTrigger>
-								<PopoverContent width="18rem">
+								<PopoverContent width="28rem" maxW="90vw">
+									<Flex
+										align="center"
+										justify="space-between"
+										sx={styles.notificationHeader}
+									>
+										<Flex align="center" gap={2}>
+											<Text fontWeight={700}>
+												{t('components.topBar.notifications')}
+											</Text>
+											{unreadCount > 0 && (
+												<Box sx={styles.notificationPanelBadge}>
+													{unreadCount}
+												</Box>
+											)}
+										</Flex>
+										<Flex align="center" gap={2}>
+											{unreadCount > 0 && (
+												<Box
+													as="button"
+													type="button"
+													sx={styles.markAllButton}
+													disabled={isMarkingRead}
+													onClick={() => {
+														void markProductNotificationsRead({ all: true })
+													}}
+												>
+													<CheckIcon boxSize={2.5} />
+													<CheckIcon boxSize={2.5} ml="-0.35rem" />
+													{t('components.topBar.markAllAsRead')}
+												</Box>
+											)}
+											<IconButton
+												aria-label={t('components.topBar.closeNotifications')}
+												icon={<CloseIcon boxSize={2.5} />}
+												size="sm"
+												variant="ghost"
+												onClick={notificationPopover.onClose}
+											/>
+										</Flex>
+									</Flex>
+									<Divider />
 									<PopoverBody p={0}>
 										{notificationItems.length === 0 ? (
 											<Text sx={styles.notificationRow}>
@@ -267,23 +348,41 @@ const TopBar = ({
 											</Text>
 										) : (
 											notificationItems.map(item => (
-												<Box
+												<Flex
 													key={`${item.type}-${item.runAt}`}
-													as="button"
-													type="button"
-													sx={styles.notificationRow}
-												onClick={() => {
-													if (item.type !== NEGATIVE_QUANTITY_DIGEST) {
-														return
-													}
-													notificationPopover.onClose()
-													digestModal.onOpen()
-												}}
+													align="center"
+													borderBottom="1px solid #ECECEC"
 												>
-													{t('components.topBar.negativeQuantityDigest', {
-														count: item.count,
-													})}
-												</Box>
+													<Box
+														as="button"
+														type="button"
+														flex="1"
+														sx={styles.notificationRow}
+														onClick={() => {
+															if (item.type !== NEGATIVE_QUANTITY_DIGEST) {
+																return
+															}
+															notificationPopover.onClose()
+															digestModal.onOpen()
+														}}
+													>
+														{t('components.topBar.negativeQuantityDigest', {
+															count: item.count,
+														})}
+													</Box>
+													<IconButton
+														aria-label={t('components.topBar.markAsRead')}
+														icon={<CheckIcon boxSize={3} />}
+														sx={styles.markReadButton}
+														me={2}
+														isDisabled={isMarkingRead}
+														onClick={() => {
+															void markProductNotificationsRead({
+																type: item.type,
+															})
+														}}
+													/>
+												</Flex>
 											))
 										)}
 									</PopoverBody>

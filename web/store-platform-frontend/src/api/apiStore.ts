@@ -4,10 +4,7 @@ import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { storePlatformApi, TagType } from './storePlatformApi'
 import { config } from '../config'
-import {
-	InvoicePaymentStatus,
-	InvoicePaymentType,
-} from '../shared/globalEnums'
+import { InvoicePaymentStatus, InvoicePaymentType } from '../shared/globalEnums'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
 import {
@@ -19,6 +16,19 @@ import { filterDailyActionsByParams } from '../offline/dailyActionFilters'
 import { offlineDb } from '../offline/db'
 import { isOfflineCapableForTenant } from '../offline/localStore'
 import { RootState } from '../store/store'
+
+const persistProductNotificationsCache = async (
+	getState: () => unknown,
+	data: ProductNotificationsResponse,
+) => {
+	const tenantId = (getState() as RootState).user?.user?.tenantId
+	if (!tenantId) return
+	const { setSyncMeta, SYNC_META_KEYS } = await import('../offline/db')
+	await setSyncMeta(
+		`${SYNC_META_KEYS.productNotifications}:${tenantId}`,
+		JSON.stringify(data),
+	)
+}
 
 const syncProductCatalogFromNetwork = async (api: {
 	getState: () => unknown
@@ -123,6 +133,41 @@ export type ProductNotificationsResponse = {
 export type ProductNotificationDigestResponse = {
 	runAt: string | null
 	products: Product[]
+}
+
+export type MarkProductNotificationsReadBody =
+	| { all: true }
+	| { type: typeof NEGATIVE_QUANTITY_DIGEST }
+
+const dismissedNotificationRunAts = new Set<string>()
+
+const nextNotificationItems = (
+	items: ProductNotification[],
+	body: MarkProductNotificationsReadBody,
+): ProductNotification[] =>
+	'type' in body ? items.filter(item => item.type !== body.type) : []
+
+const rememberDismissedNotifications = (
+	previous: ProductNotification[],
+	next: ProductNotification[],
+) => {
+	const nextRunAts = new Set(next.map(item => item.runAt))
+	for (const item of previous) {
+		if (!nextRunAts.has(item.runAt)) {
+			dismissedNotificationRunAts.add(item.runAt)
+		}
+	}
+}
+
+const forgetAcknowledgedNotificationReads = (
+	serverItems: ProductNotification[],
+) => {
+	const serverRunAts = new Set(serverItems.map(item => item.runAt))
+	for (const runAt of [...dismissedNotificationRunAts]) {
+		if (!serverRunAts.has(runAt)) {
+			dismissedNotificationRunAts.delete(runAt)
+		}
+	}
 }
 
 export interface DailyActionFiltersQueryParams {
@@ -1386,30 +1431,84 @@ const getQuery = (
 			}),
 			providesTags: ['inventory'],
 		}),
-		getProductNotifications: builder.query<ProductNotificationsResponse, void>(
-			{
-				query: () => ({
-					url: 'products/notifications',
-				}),
-				providesTags: ['notifications'],
-				async onQueryStarted(_arg, { queryFulfilled, getState }) {
+		getProductNotifications: builder.query<ProductNotificationsResponse, void>({
+			query: () => ({
+				url: 'products/notifications',
+			}),
+			providesTags: ['notifications'],
+			async onQueryStarted(_arg, { dispatch, queryFulfilled, getState }) {
+				try {
+					const { data } = await queryFulfilled
+					dispatch(
+						storeApi.util.updateQueryData(
+							'getProductNotifications',
+							undefined,
+							draft => {
+								draft.items = draft.items.filter(
+									item => !dismissedNotificationRunAts.has(item.runAt),
+								)
+							},
+						),
+					)
+					forgetAcknowledgedNotificationReads(data.items)
+					const current = storeApi.endpoints.getProductNotifications.select()(
+						getState() as RootState,
+					).data ?? { items: [] }
+					await persistProductNotificationsCache(getState, current)
+				} catch {
+					// offline cache is best-effort
+				}
+			},
+		}),
+		markProductNotificationsRead: builder.mutation<
+			void,
+			MarkProductNotificationsReadBody
+		>({
+			query: body => ({
+				url: 'products/notifications/read',
+				method: 'POST',
+				body,
+			}),
+			async onQueryStarted(body, { dispatch, queryFulfilled, getState }) {
+				const previousItems =
+					storeApi.endpoints.getProductNotifications.select()(
+						getState() as RootState,
+					).data?.items ?? []
+				const nextItems = nextNotificationItems(previousItems, body)
+				const patchResult = dispatch(
+					storeApi.util.updateQueryData(
+						'getProductNotifications',
+						undefined,
+						draft => {
+							draft.items = nextItems
+						},
+					),
+				)
+
+				try {
+					await queryFulfilled
+					rememberDismissedNotifications(previousItems, nextItems)
+					dispatch(
+						storeApi.util.updateQueryData(
+							'getProductNotifications',
+							undefined,
+							draft => {
+								draft.items = nextItems
+							},
+						),
+					)
 					try {
-						const { data } = await queryFulfilled
-						const tenantId = (getState() as RootState).user?.user?.tenantId
-						if (!tenantId) return
-						const { setSyncMeta, SYNC_META_KEYS } = await import(
-							'../offline/db'
-						)
-						await setSyncMeta(
-							`${SYNC_META_KEYS.productNotifications}:${tenantId}`,
-							JSON.stringify(data),
-						)
+						await persistProductNotificationsCache(getState, {
+							items: nextItems,
+						})
 					} catch {
 						// offline cache is best-effort
 					}
-				},
+				} catch {
+					patchResult.undo()
+				}
 			},
-		),
+		}),
 		getProductNotificationDigest: builder.query<
 			ProductNotificationDigestResponse,
 			void
@@ -1528,5 +1627,6 @@ export const {
 	useGetInventoryQuery,
 	useEditInventoryMutation,
 	useGetProductNotificationsQuery,
+	useMarkProductNotificationsReadMutation,
 	useGetProductNotificationDigestQuery,
 } = storeApi

@@ -108,6 +108,15 @@ export default class NotificationRoutes {
 			)
 
 		app
+			.route(`${this.baseRoute}/products/notifications/read`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.markProductNotificationsRead.bind(this),
+			)
+
+		app
 			.route(`${this.baseRoute}/products/notifications`)
 			.get(
 				this.startCalc.bind(this),
@@ -150,6 +159,26 @@ export default class NotificationRoutes {
 				)
 
 			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 500, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async markProductNotificationsRead(
+		request: NotificationHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.notificationController.markProductNotificationsRead(
+				requestContext,
+				request.body ?? {},
+			)
+
+			response.status(200).json({})
 		} catch (error: unknown) {
 			this.handleRouteError(error, 500, response)
 		} finally {
