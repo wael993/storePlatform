@@ -26,6 +26,7 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/react'
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getRouteLabel, RoutePaths } from '../shared/routes'
@@ -46,7 +47,8 @@ import { AsDragGripIcon } from '../shared/icons/DragGrip'
 import {
 	useGetProductNotificationsQuery,
 	useMarkProductNotificationsReadMutation,
-	NEGATIVE_QUANTITY_DIGEST,
+	MISSING_PURCHASE_PRICE_DIGEST,
+	ProductDigestType,
 } from '../api/apiStore'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
 import NegativeQuantityDigestModal from './NegativeQuantityDigestModal'
@@ -174,6 +176,7 @@ const TopBar = ({
 	const { user } = useUser()
 	const { seeNotifications } = useAllowedActions(RoutePaths.PRODUCTS)
 	const digestModal = useDisclosure()
+	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
 	const notificationPopover = useDisclosure()
 	const { data: notifications } = useGetProductNotificationsQuery(undefined, {
 		skip: !seeNotifications,
@@ -321,7 +324,7 @@ const TopBar = ({
 													as="button"
 													type="button"
 													sx={styles.markAllButton}
-													disabled={isMarkingRead}
+													disabled={isMarkingRead || !isOnline}
 													onClick={() => {
 														void markProductNotificationsRead({ all: true })
 													}}
@@ -359,23 +362,24 @@ const TopBar = ({
 														flex="1"
 														sx={styles.notificationRow}
 														onClick={() => {
-															if (item.type !== NEGATIVE_QUANTITY_DIGEST) {
-																return
-															}
+															setDigestType(item.type)
 															notificationPopover.onClose()
 															digestModal.onOpen()
 														}}
 													>
-														{t('components.topBar.negativeQuantityDigest', {
-															count: item.count,
-														})}
+														{t(
+															item.type === MISSING_PURCHASE_PRICE_DIGEST
+																? 'components.topBar.missingPurchasePriceDigest'
+																: 'components.topBar.negativeQuantityDigest',
+															{ count: item.count },
+														)}
 													</Box>
 													<IconButton
 														aria-label={t('components.topBar.markAsRead')}
 														icon={<CheckIcon boxSize={3} />}
 														sx={styles.markReadButton}
 														me={2}
-														isDisabled={isMarkingRead}
+														isDisabled={isMarkingRead || !isOnline}
 														onClick={() => {
 															void markProductNotificationsRead({
 																type: item.type,
@@ -508,6 +512,7 @@ const TopBar = ({
 
 			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
 			<NegativeQuantityDigestModal
+				digestType={digestType}
 				isOpen={digestModal.isOpen}
 				onClose={digestModal.onClose}
 			/>

@@ -1,6 +1,7 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
 import {
+	MISSING_PURCHASE_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
 	type PostSellingInvoiceBody,
 	type PostBuyingInvoiceBody,
@@ -35,7 +36,12 @@ import {
 	saveLocalInvoice,
 	saveLocalBuyingInvoice,
 } from './localStore'
-import type { LocalBuyingInvoice, LocalInvoice, OutboxEntity } from './types'
+import type {
+	LocalBuyingInvoice,
+	LocalInvoice,
+	LocalInventoryItem,
+	OutboxEntity,
+} from './types'
 import {
 	InsufficientStockCancelledError,
 	requestInsufficientStockConfirmation,
@@ -195,7 +201,9 @@ const parseSummaryDateRange = (params: URLSearchParams) => {
 }
 
 const isPeriodSummaryInvoice = (invoice: LocalInvoice) =>
-	!PERIOD_EXCLUDED_STATUSES.has(String(invoice.status ?? InvoiceStatus.CONFIRMED))
+	!PERIOD_EXCLUDED_STATUSES.has(
+		String(invoice.status ?? InvoiceStatus.CONFIRMED),
+	)
 
 const buildSellingInvoicesSummary = (
 	invoices: LocalInvoice[],
@@ -1446,6 +1454,80 @@ const settingsLockedOfflineError = () =>
 		},
 	}) as const
 
+const withLocalInventory = (
+	product: Product,
+	inventoryByProductId: Map<string, LocalInventoryItem>,
+): Product => {
+	const row = inventoryByProductId.get(product.productId)
+
+	return row
+		? { ...product, inventory: { ...product.inventory, ...row } }
+		: product
+}
+
+const buildOfflineDigest = async (
+	digestType: string,
+	cached: ProductNotificationDigestResponse | null,
+): Promise<ProductNotificationDigestResponse> => {
+	const [products, inventory] = await Promise.all([
+		offlineDb.products.toArray(),
+		offlineDb.inventory.toArray(),
+	])
+	const inventoryByProductId = new Map(
+		inventory.map(row => [row.productId, row]),
+	)
+	const hydrate = (product: Product) =>
+		withLocalInventory(product, inventoryByProductId)
+
+	if (cached) {
+		const localById = new Map(
+			products.map(product => [product.productId, product]),
+		)
+
+		return {
+			runAt: cached.runAt,
+			products: cached.products.flatMap(product => {
+				const local = localById.get(product.productId)
+
+				return local ? [hydrate(local)] : [hydrate(product)]
+			}),
+		}
+	}
+
+	// ponytail: no cached 03:00 snapshot IDs offline; live local qty/price. Online digest cache pins the snapshot.
+	const runAt =
+		(await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)) ||
+		new Date(0).toISOString()
+
+	if (digestType === MISSING_PURCHASE_PRICE_DIGEST) {
+		return {
+			runAt,
+			products: products
+				.filter(
+					product =>
+						!(
+							typeof product.price?.purchasePrice === 'number' &&
+							product.price.purchasePrice > 0
+						),
+				)
+				.map(hydrate),
+		}
+	}
+
+	return {
+		runAt,
+		products: products
+			.filter(product => {
+				const quantity =
+					inventoryByProductId.get(product.productId)?.quantity ??
+					product.inventory?.quantity
+
+				return typeof quantity === 'number' && quantity < 0
+			})
+			.map(hydrate),
+	}
+}
+
 export const handleOfflineQuery = async (
 	args: string | FetchArgs,
 ): Promise<
@@ -1489,24 +1571,22 @@ export const handleOfflineQuery = async (
 
 			if (path === 'products/notifications/digest') {
 				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
-				const cached = tenantId
-					? await getSyncMeta(
-							`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}`,
-						)
+				const digestType = params.get('type') || NEGATIVE_QUANTITY_DIGEST
+				const cachedRaw = tenantId
+					? (await getSyncMeta(
+							`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}:${digestType}`,
+						)) ||
+						(digestType === NEGATIVE_QUANTITY_DIGEST
+							? await getSyncMeta(
+									`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}`,
+								)
+							: null)
+					: null
+				const cached = cachedRaw
+					? (JSON.parse(cachedRaw) as ProductNotificationDigestResponse)
 					: null
 
-				if (cached) {
-					return {
-						data: JSON.parse(cached) as ProductNotificationDigestResponse,
-					}
-				}
-
-				return {
-					error: {
-						status: 503,
-						data: { message: 'Offline data unavailable' },
-					},
-				}
+				return { data: await buildOfflineDigest(digestType, cached) }
 			}
 
 			if (path === 'products/notifications') {
@@ -1523,34 +1603,11 @@ export const handleOfflineQuery = async (
 					}
 				}
 
-				const inventory = await offlineDb.inventory.toArray()
-				const productIds = [
-					...new Set(
-						inventory
-							.filter(
-								row =>
-									typeof row.quantity === 'number' &&
-									row.quantity < 0 &&
-									row.productId,
-							)
-							.map(row => row.productId),
-					),
-				]
-				const lastSyncedAt = await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)
-
 				return {
-					data: {
-						items:
-							productIds.length === 0
-								? []
-								: [
-										{
-											type: NEGATIVE_QUANTITY_DIGEST,
-											runAt: lastSyncedAt || new Date(0).toISOString(),
-											count: productIds.length,
-										},
-									],
-					} satisfies ProductNotificationsResponse,
+					error: {
+						status: 503,
+						data: { message: 'Offline data unavailable' },
+					},
 				}
 			}
 

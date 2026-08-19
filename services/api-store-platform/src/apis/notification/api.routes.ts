@@ -156,6 +156,9 @@ export default class NotificationRoutes {
 			const resp =
 				await this.notificationController.getProductNotificationDigest(
 					requestContext,
+					typeof request.query.type === 'string'
+						? request.query.type
+						: undefined,
 				)
 
 			response.status(200).json(resp)

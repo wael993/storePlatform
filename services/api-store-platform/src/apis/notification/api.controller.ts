@@ -1,7 +1,14 @@
-import { NegativeQuantitySnapshot } from '../../models/NegativeQuantitySnapshot'
+import {
+	MISSING_PURCHASE_PRICE_DIGEST,
+	NEGATIVE_QUANTITY_DIGEST,
+	NegativeQuantitySnapshot,
+	ProductDigestType,
+	isProductDigestType,
+} from '../../models/NegativeQuantitySnapshot'
 import { NotificationRead } from '../../models/NotificationRead'
 import { Product } from '../../models/Products'
 import { Inventory } from '../../models/Inventory'
+import { ensureProductDigestIndexes } from '../../cron/snapshotNegativeQuantity'
 import ProductsMapper from '../mappings/ProductsMapper'
 import {
 	AuthorizationError,
@@ -19,13 +26,18 @@ import {
 	RequestContext,
 } from '../../shared/types'
 
-export const NEGATIVE_QUANTITY_DIGEST = 'NEGATIVE_QUANTITY_DIGEST'
 export const SEE_NOTIFICATIONS = 'seeNotifications'
+export {
+	MISSING_PURCHASE_PRICE_DIGEST,
+	NEGATIVE_QUANTITY_DIGEST,
+	isProductDigestType,
+}
+export type { ProductDigestType }
 
 const PRODUCTS_FRONTEND_PATH = '/services/store_platform/products'
 
 export type ProductNotification = {
-	type: typeof NEGATIVE_QUANTITY_DIGEST
+	type: ProductDigestType
 	runAt: string
 	count: number
 }
@@ -45,6 +57,45 @@ export type MarkProductNotificationsReadBody = {
 }
 
 const productsMapper = new ProductsMapper()
+
+const digestTypeOf = (type?: string): ProductDigestType =>
+	isProductDigestType(type) ? type : NEGATIVE_QUANTITY_DIGEST
+
+const upsertRead = async (
+	tenantId: string,
+	userId: string,
+	runAt: Date,
+	type: ProductDigestType,
+) => {
+	await ensureProductDigestIndexes()
+
+	try {
+		await NotificationRead.updateOne(
+			{ tenantId, userId, runAt, type },
+			{ $setOnInsert: { tenantId, userId, runAt, type } },
+			{ upsert: true },
+		)
+	} catch (error: unknown) {
+		const duplicateKey =
+			typeof error === 'object' &&
+			error !== null &&
+			'code' in error &&
+			error.code === 11000
+
+		const keyPattern =
+			typeof error === 'object' &&
+			error !== null &&
+			'keyPattern' in error &&
+			typeof error.keyPattern === 'object' &&
+			error.keyPattern !== null
+				? error.keyPattern
+				: null
+
+		if (!duplicateKey || !keyPattern || !('type' in keyPattern)) {
+			throw error
+		}
+	}
+}
 
 const assertCanSeeNotifications = async (
 	requestContext: RequestContext,
@@ -71,93 +122,134 @@ const assertCanSeeNotifications = async (
 	return requestContext.userId
 }
 
+const hydrateDigestProducts = async (
+	tenantId: string,
+	productIds: string[],
+	requestContext: RequestContext,
+): Promise<ProductRequestBody[]> => {
+	const [products, inventory] = await Promise.all([
+		Product.find({
+			tenantId,
+			productId: { $in: productIds },
+		}).lean<ProductAPI[]>(),
+		Inventory.find({
+			tenantId,
+			productId: { $in: productIds },
+		}).lean<InventoryDocument[]>(),
+	])
+
+	const productById = new Map(
+		products.map(product => [product.productId, product]),
+	)
+	const inventoryByProductId = new Map(
+		inventory.map(item => [item.productId, item]),
+	)
+
+	return productIds.flatMap(productId => {
+		const product = productById.get(productId)
+
+		if (!product) {
+			return []
+		}
+
+		return [
+			productsMapper.mapProduct(
+				product,
+				inventoryByProductId.get(productId),
+				requestContext,
+			),
+		]
+	})
+}
+
 export default class NotificationController {
 	public async getProductNotifications(
 		requestContext: RequestContext,
 	): Promise<ProductNotificationsResponse> {
-		await assertCanSeeNotifications(requestContext)
-
+		const userId = await assertCanSeeNotifications(requestContext)
 		const { tenantId } = getTenantContext(requestContext)
-		const snapshot = await NegativeQuantitySnapshot.findOne({ tenantId })
-			.select({ runAt: 1, count: 1, _id: 0 })
+		const snapshots = await NegativeQuantitySnapshot.find({ tenantId })
+			.select({ type: 1, runAt: 1, count: 1, _id: 0 })
 			.lean()
 
-		if (!snapshot) {
+		if (snapshots.length === 0) {
 			return { items: [] }
 		}
 
-		const read = await NotificationRead.findOne({
+		const reads = await NotificationRead.find({
 			tenantId,
-			userId: requestContext.userId,
-			runAt: snapshot.runAt,
+			userId,
+			runAt: { $in: snapshots.map(snapshot => snapshot.runAt) },
 		})
-			.select({ _id: 1 })
+			.select({ runAt: 1, type: 1, _id: 0 })
 			.lean()
 
-		if (read) {
-			return { items: [] }
-		}
+		const readKeys = new Set(
+			reads.map(read => `${digestTypeOf(read.type)}:${read.runAt.getTime()}`),
+		)
 
 		return {
-			items: [
-				{
-					type: NEGATIVE_QUANTITY_DIGEST,
-					runAt: snapshot.runAt.toISOString(),
-					count: snapshot.count,
-				},
-			],
+			items: snapshots.flatMap(snapshot => {
+				const type = digestTypeOf(snapshot.type)
+
+				if (readKeys.has(`${type}:${snapshot.runAt.getTime()}`)) {
+					return []
+				}
+
+				return [
+					{
+						type,
+						runAt: snapshot.runAt.toISOString(),
+						count: snapshot.count,
+					},
+				]
+			}),
 		}
 	}
 
 	public async getProductNotificationDigest(
 		requestContext: RequestContext,
+		type: string | undefined,
 	): Promise<ProductNotificationDigestResponse> {
 		await assertCanSeeNotifications(requestContext)
 
+		const digestType = type ?? NEGATIVE_QUANTITY_DIGEST
+
+		if (!isProductDigestType(digestType)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invalid digest type.',
+			)
+		}
+
 		const { tenantId } = getTenantContext(requestContext)
-		const snapshot = await NegativeQuantitySnapshot.findOne({ tenantId })
-			.select({ runAt: 1, productIds: 1, _id: 0 })
-			.lean()
+		const snapshot =
+			(await NegativeQuantitySnapshot.findOne({
+				tenantId,
+				type: digestType,
+			})
+				.select({ runAt: 1, productIds: 1, _id: 0 })
+				.lean()) ||
+			(digestType === NEGATIVE_QUANTITY_DIGEST
+				? await NegativeQuantitySnapshot.findOne({
+						tenantId,
+						type: { $exists: false },
+					})
+						.select({ runAt: 1, productIds: 1, _id: 0 })
+						.lean()
+				: null)
 
 		if (!snapshot) {
 			return { runAt: null, products: [] }
 		}
 
-		const [products, inventory] = await Promise.all([
-			Product.find({
-				tenantId,
-				productId: { $in: snapshot.productIds },
-			}).lean<ProductAPI[]>(),
-			Inventory.find({
-				tenantId,
-				productId: { $in: snapshot.productIds },
-			}).lean<InventoryDocument[]>(),
-		])
-
-		const productById = new Map(
-			products.map(product => [product.productId, product]),
-		)
-		const inventoryByProductId = new Map(
-			inventory.map(item => [item.productId, item]),
-		)
-
 		return {
 			runAt: snapshot.runAt.toISOString(),
-			products: snapshot.productIds.flatMap(productId => {
-				const product = productById.get(productId)
-
-				if (!product) {
-					return []
-				}
-
-				return [
-					productsMapper.mapProduct(
-						product,
-						inventoryByProductId.get(productId),
-						requestContext,
-					),
-				]
-			}),
+			products: await hydrateDigestProducts(
+				tenantId,
+				snapshot.productIds,
+				requestContext,
+			),
 		}
 	}
 
@@ -167,9 +259,9 @@ export default class NotificationController {
 	): Promise<void> {
 		const userId = await assertCanSeeNotifications(requestContext)
 		const markAll = body?.all === true
-		const markDigest = body?.type === NEGATIVE_QUANTITY_DIGEST
+		const markType = isProductDigestType(body?.type) ? body.type : null
 
-		if (!markAll && !markDigest) {
+		if (!markAll && !markType) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
 				'Invalid mark-read body.',
@@ -177,30 +269,26 @@ export default class NotificationController {
 		}
 
 		const { tenantId } = getTenantContext(requestContext)
-		const snapshot = await NegativeQuantitySnapshot.findOne({ tenantId })
-			.select({ runAt: 1, _id: 0 })
+		const snapshots = await NegativeQuantitySnapshot.find({
+			tenantId,
+			...(markAll
+				? {}
+				: markType === NEGATIVE_QUANTITY_DIGEST
+					? {
+							$or: [{ type: markType }, { type: { $exists: false } }],
+						}
+					: { type: markType }),
+		})
+			.select({ type: 1, runAt: 1, _id: 0 })
 			.lean()
 
-		if (!snapshot) {
-			return
-		}
-
-		try {
-			await NotificationRead.updateOne(
-				{ tenantId, userId, runAt: snapshot.runAt },
-				{ $setOnInsert: { tenantId, userId, runAt: snapshot.runAt } },
-				{ upsert: true },
+		for (const snapshot of snapshots) {
+			await upsertRead(
+				tenantId,
+				userId,
+				snapshot.runAt,
+				digestTypeOf(snapshot.type),
 			)
-		} catch (error: unknown) {
-			const duplicateKey =
-				typeof error === 'object' &&
-				error !== null &&
-				'code' in error &&
-				error.code === 11000
-
-			if (!duplicateKey) {
-				throw error
-			}
 		}
 	}
 }

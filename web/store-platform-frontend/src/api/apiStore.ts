@@ -119,9 +119,17 @@ export interface ProductFiltersQueryParams {
 }
 
 export const NEGATIVE_QUANTITY_DIGEST = 'NEGATIVE_QUANTITY_DIGEST'
+export const MISSING_PURCHASE_PRICE_DIGEST = 'MISSING_PURCHASE_PRICE_DIGEST'
+
+export const PRODUCT_DIGEST_TYPES = [
+	NEGATIVE_QUANTITY_DIGEST,
+	MISSING_PURCHASE_PRICE_DIGEST,
+] as const
+
+export type ProductDigestType = (typeof PRODUCT_DIGEST_TYPES)[number]
 
 export type ProductNotification = {
-	type: typeof NEGATIVE_QUANTITY_DIGEST
+	type: ProductDigestType
 	runAt: string
 	count: number
 }
@@ -137,9 +145,14 @@ export type ProductNotificationDigestResponse = {
 
 export type MarkProductNotificationsReadBody =
 	| { all: true }
-	| { type: typeof NEGATIVE_QUANTITY_DIGEST }
+	| { type: ProductDigestType }
 
-const dismissedNotificationRunAts = new Set<string>()
+const notificationKey = (
+	tenantId: string,
+	item: Pick<ProductNotification, 'type' | 'runAt'>,
+) => `${tenantId}:${item.type}:${item.runAt}`
+
+const dismissedNotificationKeys = new Set<string>()
 
 const nextNotificationItems = (
 	items: ProductNotification[],
@@ -148,24 +161,29 @@ const nextNotificationItems = (
 	'type' in body ? items.filter(item => item.type !== body.type) : []
 
 const rememberDismissedNotifications = (
+	tenantId: string,
 	previous: ProductNotification[],
 	next: ProductNotification[],
 ) => {
-	const nextRunAts = new Set(next.map(item => item.runAt))
+	const nextKeys = new Set(next.map(item => notificationKey(tenantId, item)))
 	for (const item of previous) {
-		if (!nextRunAts.has(item.runAt)) {
-			dismissedNotificationRunAts.add(item.runAt)
+		if (!nextKeys.has(notificationKey(tenantId, item))) {
+			dismissedNotificationKeys.add(notificationKey(tenantId, item))
 		}
 	}
 }
 
 const forgetAcknowledgedNotificationReads = (
+	tenantId: string,
 	serverItems: ProductNotification[],
 ) => {
-	const serverRunAts = new Set(serverItems.map(item => item.runAt))
-	for (const runAt of [...dismissedNotificationRunAts]) {
-		if (!serverRunAts.has(runAt)) {
-			dismissedNotificationRunAts.delete(runAt)
+	const prefix = `${tenantId}:`
+	const serverKeys = new Set(
+		serverItems.map(item => notificationKey(tenantId, item)),
+	)
+	for (const key of [...dismissedNotificationKeys]) {
+		if (key.startsWith(prefix) && !serverKeys.has(key)) {
+			dismissedNotificationKeys.delete(key)
 		}
 	}
 }
@@ -1439,18 +1457,23 @@ const getQuery = (
 			async onQueryStarted(_arg, { dispatch, queryFulfilled, getState }) {
 				try {
 					const { data } = await queryFulfilled
+					const tenantId = (getState() as RootState).user?.user?.tenantId
+					if (!tenantId) return
 					dispatch(
 						storeApi.util.updateQueryData(
 							'getProductNotifications',
 							undefined,
 							draft => {
 								draft.items = draft.items.filter(
-									item => !dismissedNotificationRunAts.has(item.runAt),
+									item =>
+										!dismissedNotificationKeys.has(
+											notificationKey(tenantId, item),
+										),
 								)
 							},
 						),
 					)
-					forgetAcknowledgedNotificationReads(data.items)
+					forgetAcknowledgedNotificationReads(tenantId, data.items)
 					const current = storeApi.endpoints.getProductNotifications.select()(
 						getState() as RootState,
 					).data ?? { items: [] }
@@ -1487,7 +1510,10 @@ const getQuery = (
 
 				try {
 					await queryFulfilled
-					rememberDismissedNotifications(previousItems, nextItems)
+					const tenantId = (getState() as RootState).user?.user?.tenantId
+					if (tenantId) {
+						rememberDismissedNotifications(tenantId, previousItems, nextItems)
+					}
 					dispatch(
 						storeApi.util.updateQueryData(
 							'getProductNotifications',
@@ -1511,20 +1537,21 @@ const getQuery = (
 		}),
 		getProductNotificationDigest: builder.query<
 			ProductNotificationDigestResponse,
-			void
+			ProductDigestType
 		>({
-			query: () => ({
+			query: type => ({
 				url: 'products/notifications/digest',
+				params: { type },
 			}),
 			providesTags: ['notifications', 'product'],
-			async onQueryStarted(_arg, { queryFulfilled, getState }) {
+			async onQueryStarted(type, { queryFulfilled, getState }) {
 				try {
 					const { data } = await queryFulfilled
 					const tenantId = (getState() as RootState).user?.user?.tenantId
 					if (!tenantId) return
 					const { setSyncMeta, SYNC_META_KEYS } = await import('../offline/db')
 					await setSyncMeta(
-						`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}`,
+						`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}:${type}`,
 						JSON.stringify(data),
 					)
 				} catch {

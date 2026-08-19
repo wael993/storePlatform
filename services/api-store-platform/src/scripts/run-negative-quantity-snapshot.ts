@@ -14,11 +14,28 @@ const run = async () => {
 
 	await runNegativeQuantitySnapshot()
 
-	const docs = await NegativeQuantitySnapshot.collection
-		.find({}, { projection: { tenantId: 1, runAt: 1, count: 1, productIds: 1, _id: 0 } })
-		.toArray()
-
-	console.log('stored snapshots:', JSON.stringify(docs, null, 2))
+	console.log(
+		'stored snapshots:',
+		JSON.stringify(
+			await NegativeQuantitySnapshot.collection
+				.find(
+					{},
+					{
+						projection: {
+							tenantId: 1,
+							type: 1,
+							runAt: 1,
+							count: 1,
+							productIds: 1,
+							_id: 0,
+						},
+					},
+				)
+				.toArray(),
+			null,
+			2,
+		),
+	)
 }
 
 run()
