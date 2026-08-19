@@ -99,6 +99,15 @@ export default class NotificationRoutes {
 
 	public setRoutes(app: express.Application): void {
 		app
+			.route(`${this.baseRoute}/products/notifications/digest`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getProductNotificationDigest.bind(this),
+			)
+
+		app
 			.route(`${this.baseRoute}/products/notifications`)
 			.get(
 				this.startCalc.bind(this),
@@ -117,6 +126,26 @@ export default class NotificationRoutes {
 		try {
 			const resp =
 				await this.notificationController.getProductNotifications(
+					requestContext,
+				)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 500, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getProductNotificationDigest(
+		request: NotificationHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.notificationController.getProductNotificationDigest(
 					requestContext,
 				)
 

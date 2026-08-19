@@ -9,6 +9,7 @@ interface AllowedActionsMap {
 	// STOCK QUANTITY
 	seeStockQuantity: boolean
 	canEditStockQuantity: boolean
+	seeNotifications: boolean
 
 	// MIN STOCK QUANTITY
 	seeMinStockQuantity: boolean
@@ -57,6 +58,7 @@ const useAllowedActions = (overriddenPath?: string): AllowedActionsMap => {
 		canEditStockQuantity: isActionAllowed(
 			AllowedActions.CAN_EDIT_STOCK_QUANTITY,
 		),
+		seeNotifications: isActionAllowed(AllowedActions.SEE_NOTIFICATIONS),
 
 		// MIN STOCK QUANTITY
 		seeMinStockQuantity: isActionAllowed(AllowedActions.SEE_MIN_STOCK_QUANTITY),

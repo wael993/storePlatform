@@ -1,9 +1,25 @@
 import { NegativeQuantitySnapshot } from '../../models/NegativeQuantitySnapshot'
 import { NotificationRead } from '../../models/NotificationRead'
-import { getTenantContext } from '../../shared/tenant'
-import { RequestContext } from '../../shared/types'
+import { Product } from '../../models/Products'
+import { Inventory } from '../../models/Inventory'
+import ProductsMapper from '../mappings/ProductsMapper'
+import { AuthorizationError } from '../../middleware/errorHandler'
+import { ERROR_CODES } from '../../shared/errorCodes'
+import {
+	getFrontendResourcesForRole,
+	getTenantContext,
+} from '../../shared/tenant'
+import {
+	InventoryDocument,
+	ProductAPI,
+	ProductRequestBody,
+	RequestContext,
+} from '../../shared/types'
 
 export const NEGATIVE_QUANTITY_DIGEST = 'NEGATIVE_QUANTITY_DIGEST'
+export const SEE_NOTIFICATIONS = 'seeNotifications'
+
+const PRODUCTS_FRONTEND_PATH = '/services/store_platform/products'
 
 export type ProductNotification = {
 	type: typeof NEGATIVE_QUANTITY_DIGEST
@@ -15,10 +31,42 @@ export type ProductNotificationsResponse = {
 	items: ProductNotification[]
 }
 
+export type ProductNotificationDigestResponse = {
+	runAt: string | null
+	products: ProductRequestBody[]
+}
+
+const productsMapper = new ProductsMapper()
+
+const assertCanSeeNotifications = async (
+	requestContext: RequestContext,
+): Promise<void> => {
+	if (!requestContext.userId) {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Missing seeNotifications permission.',
+		)
+	}
+
+	const { role } = getTenantContext(requestContext)
+	const frontendResources = await getFrontendResourcesForRole(role)
+	const allowedActions =
+		frontendResources?.[PRODUCTS_FRONTEND_PATH]?.allowedActions ?? []
+
+	if (!allowedActions.includes(SEE_NOTIFICATIONS)) {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Missing seeNotifications permission.',
+		)
+	}
+}
+
 export default class NotificationController {
 	public async getProductNotifications(
 		requestContext: RequestContext,
 	): Promise<ProductNotificationsResponse> {
+		await assertCanSeeNotifications(requestContext)
+
 		const { tenantId } = getTenantContext(requestContext)
 		const snapshot = await NegativeQuantitySnapshot.findOne({ tenantId })
 			.select({ runAt: 1, count: 1, _id: 0 })
@@ -28,20 +76,16 @@ export default class NotificationController {
 			return { items: [] }
 		}
 
-		const userId = requestContext.userId
+		const read = await NotificationRead.findOne({
+			tenantId,
+			userId: requestContext.userId,
+			runAt: snapshot.runAt,
+		})
+			.select({ _id: 1 })
+			.lean()
 
-		if (userId) {
-			const read = await NotificationRead.findOne({
-				tenantId,
-				userId,
-				runAt: snapshot.runAt,
-			})
-				.select({ _id: 1 })
-				.lean()
-
-			if (read) {
-				return { items: [] }
-			}
+		if (read) {
+			return { items: [] }
 		}
 
 		return {
@@ -52,6 +96,58 @@ export default class NotificationController {
 					count: snapshot.count,
 				},
 			],
+		}
+	}
+
+	public async getProductNotificationDigest(
+		requestContext: RequestContext,
+	): Promise<ProductNotificationDigestResponse> {
+		await assertCanSeeNotifications(requestContext)
+
+		const { tenantId } = getTenantContext(requestContext)
+		const snapshot = await NegativeQuantitySnapshot.findOne({ tenantId })
+			.select({ runAt: 1, productIds: 1, _id: 0 })
+			.lean()
+
+		if (!snapshot) {
+			return { runAt: null, products: [] }
+		}
+
+		const [products, inventory] = await Promise.all([
+			Product.find({
+				tenantId,
+				productId: { $in: snapshot.productIds },
+			}).lean<ProductAPI[]>(),
+			Inventory.find({
+				tenantId,
+				productId: { $in: snapshot.productIds },
+			}).lean<InventoryDocument[]>(),
+		])
+
+		const productById = new Map(
+			products.map(product => [product.productId, product]),
+		)
+		const inventoryByProductId = new Map(
+			inventory.map(item => [item.productId, item]),
+		)
+
+		return {
+			runAt: snapshot.runAt.toISOString(),
+			products: snapshot.productIds.flatMap(productId => {
+				const product = productById.get(productId)
+
+				if (!product) {
+					return []
+				}
+
+				return [
+					productsMapper.mapProduct(
+						product,
+						inventoryByProductId.get(productId),
+						requestContext,
+					),
+				]
+			}),
 		}
 	}
 }

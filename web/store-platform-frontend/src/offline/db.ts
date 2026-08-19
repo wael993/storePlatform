@@ -126,6 +126,7 @@ export const SYNC_META_KEYS = {
 	workModePreference: 'workModePreference',
 	catalogLastSyncedAt: 'catalogLastSyncedAt',
 	productNotifications: 'productNotifications',
+	productNotificationDigest: 'productNotificationDigest',
 } as const
 
 export const getSyncMeta = async (key: string): Promise<string | null> => {

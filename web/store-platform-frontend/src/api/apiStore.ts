@@ -120,6 +120,11 @@ export type ProductNotificationsResponse = {
 	items: ProductNotification[]
 }
 
+export type ProductNotificationDigestResponse = {
+	runAt: string | null
+	products: Product[]
+}
+
 export interface DailyActionFiltersQueryParams {
 	searchText?: string
 	entryType?: string[]
@@ -1405,6 +1410,29 @@ const getQuery = (
 				},
 			},
 		),
+		getProductNotificationDigest: builder.query<
+			ProductNotificationDigestResponse,
+			void
+		>({
+			query: () => ({
+				url: 'products/notifications/digest',
+			}),
+			providesTags: ['notifications', 'product'],
+			async onQueryStarted(_arg, { queryFulfilled, getState }) {
+				try {
+					const { data } = await queryFulfilled
+					const tenantId = (getState() as RootState).user?.user?.tenantId
+					if (!tenantId) return
+					const { setSyncMeta, SYNC_META_KEYS } = await import('../offline/db')
+					await setSyncMeta(
+						`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}`,
+						JSON.stringify(data),
+					)
+				} catch {
+					// offline cache is best-effort
+				}
+			},
+		}),
 		editInventory: builder.mutation<void, EditInventoryQueryArgument>({
 			query: ({ id, body }: EditInventoryQueryArgument) => ({
 				url: `inventory/by-product/${id}`,
@@ -1500,4 +1528,5 @@ export const {
 	useGetInventoryQuery,
 	useEditInventoryMutation,
 	useGetProductNotificationsQuery,
+	useGetProductNotificationDigestQuery,
 } = storeApi

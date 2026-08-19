@@ -124,6 +124,7 @@
 				"seeDiscount",
 				"seeStockQuantity",
 				"seeMinStockQuantity",
+				"seeNotifications",
 				"seeReport",
 				"seeLocationShelf",
 				"seeLocationWarehouse"

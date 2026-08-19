@@ -45,6 +45,8 @@ import {
 	useGetProductNotificationsQuery,
 	NEGATIVE_QUANTITY_DIGEST,
 } from '../api/apiStore'
+import useAllowedActions from '../shared/hooks/useAllowedActions'
+import NegativeQuantityDigestModal from './NegativeQuantityDigestModal'
 
 interface TopBarProps {
 	navItems: {
@@ -132,7 +134,12 @@ const TopBar = ({
 		onClose: onCloseAddQuickModal,
 	} = useDisclosure()
 	const { user } = useUser()
-	const { data: notifications } = useGetProductNotificationsQuery()
+	const { seeNotifications } = useAllowedActions(RoutePaths.PRODUCTS)
+	const digestModal = useDisclosure()
+	const notificationPopover = useDisclosure()
+	const { data: notifications } = useGetProductNotificationsQuery(undefined, {
+		skip: !seeNotifications,
+	})
 	const notificationItems = notifications?.items ?? []
 	const unreadCount = notificationItems.length
 	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
@@ -236,50 +243,59 @@ const TopBar = ({
 				</Flex>
 
 				<Flex align="center" gap={2}>
-					<Box position="relative">
-						<Popover placement="bottom-end" isLazy>
-							<PopoverTrigger>
-								<IconButton
-									aria-label={t('components.topBar.notifications')}
-									icon={<AsBellIcon />}
-									sx={styles.iconButton}
-								/>
-							</PopoverTrigger>
-							<PopoverContent width="18rem">
-								<PopoverBody p={0}>
-									{notificationItems.length === 0 ? (
-										<Text sx={styles.notificationRow}>
-											{t('components.topBar.noNotifications')}
-										</Text>
-									) : (
-										notificationItems.map(item => (
-											<Box
-												key={`${item.type}-${item.runAt}`}
-												as="button"
-												type="button"
-												sx={styles.notificationRow}
+					{seeNotifications && (
+						<Box position="relative">
+							<Popover
+								placement="bottom-end"
+								isLazy
+								isOpen={notificationPopover.isOpen}
+								onOpen={notificationPopover.onOpen}
+								onClose={notificationPopover.onClose}
+							>
+								<PopoverTrigger>
+									<IconButton
+										aria-label={t('components.topBar.notifications')}
+										icon={<AsBellIcon />}
+										sx={styles.iconButton}
+									/>
+								</PopoverTrigger>
+								<PopoverContent width="18rem">
+									<PopoverBody p={0}>
+										{notificationItems.length === 0 ? (
+											<Text sx={styles.notificationRow}>
+												{t('components.topBar.noNotifications')}
+											</Text>
+										) : (
+											notificationItems.map(item => (
+												<Box
+													key={`${item.type}-${item.runAt}`}
+													as="button"
+													type="button"
+													sx={styles.notificationRow}
 												onClick={() => {
 													if (item.type !== NEGATIVE_QUANTITY_DIGEST) {
 														return
 													}
-													// MP-D3: open negative-quantity products modal
+													notificationPopover.onClose()
+													digestModal.onOpen()
 												}}
-											>
-												{t('components.topBar.negativeQuantityDigest', {
-													count: item.count,
-												})}
-											</Box>
-										))
-									)}
-								</PopoverBody>
-							</PopoverContent>
-						</Popover>
-						{unreadCount > 0 && (
-							<Box sx={styles.notificationBadge} pointerEvents="none">
-								{badgeLabel}
-							</Box>
-						)}
-					</Box>
+												>
+													{t('components.topBar.negativeQuantityDigest', {
+														count: item.count,
+													})}
+												</Box>
+											))
+										)}
+									</PopoverBody>
+								</PopoverContent>
+							</Popover>
+							{unreadCount > 0 && (
+								<Box sx={styles.notificationBadge} pointerEvents="none">
+									{badgeLabel}
+								</Box>
+							)}
+						</Box>
+					)}
 
 					{!isMobile && (
 						<>
@@ -392,6 +408,10 @@ const TopBar = ({
 			)}
 
 			<ChangePasswordModal isOpen={isPwOpen} onClose={onPwClose} />
+			<NegativeQuantityDigestModal
+				isOpen={digestModal.isOpen}
+				onClose={digestModal.onClose}
+			/>
 			<IconsViewer isOpen={isIconsViewerOpen} onClose={onCloseIconsViewer} />
 			<AddQuickNewEntryModal
 				isOpen={isAddQuickModalOpen}

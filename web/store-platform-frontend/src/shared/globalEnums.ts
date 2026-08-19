@@ -31,6 +31,7 @@ export enum AllowedActions {
 	// STOCK QUANTITY
 	SEE_STOCK_QUANTITY = 'seeStockQuantity',
 	CAN_EDIT_STOCK_QUANTITY = 'canEditStockQuantity',
+	SEE_NOTIFICATIONS = 'seeNotifications',
 
 	// MIN STOCK QUANTITY
 	SEE_MIN_STOCK_QUANTITY = 'seeMinStockQuantity',

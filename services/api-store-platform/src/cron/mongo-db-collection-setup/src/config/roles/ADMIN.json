@@ -146,6 +146,7 @@
 				"canEditDiscount",
 				"seeStockQuantity",
 				"canEditStockQuantity",
+				"seeNotifications",
 				"seeMinStockQuantity",
 				"canEditMinStockQuantity",
 				"seeReport",

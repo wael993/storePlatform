@@ -10,6 +10,7 @@ import {
 	type InvoiceSettings,
 	type InvoiceSettingsUpdate,
 	type ProductNotificationsResponse,
+	type ProductNotificationDigestResponse,
 } from '../api/apiStore'
 import { getWorkMode } from './workMode'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
@@ -1482,6 +1483,28 @@ export const handleOfflineQuery = async (
 					data: {
 						products: catalogProducts,
 						totalCount: catalogProducts.length,
+					},
+				}
+			}
+
+			if (path === 'products/notifications/digest') {
+				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
+				const cached = tenantId
+					? await getSyncMeta(
+							`${SYNC_META_KEYS.productNotificationDigest}:${tenantId}`,
+						)
+					: null
+
+				if (cached) {
+					return {
+						data: JSON.parse(cached) as ProductNotificationDigestResponse,
+					}
+				}
+
+				return {
+					error: {
+						status: 503,
+						data: { message: 'Offline data unavailable' },
 					},
 				}
 			}
