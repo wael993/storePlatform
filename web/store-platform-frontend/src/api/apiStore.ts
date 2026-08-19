@@ -16,6 +16,11 @@ import { filterDailyActionsByParams } from '../offline/dailyActionFilters'
 import { offlineDb } from '../offline/db'
 import { isOfflineCapableForTenant } from '../offline/localStore'
 import { RootState } from '../store/store'
+import {
+	applyOptimisticInventoryPatch,
+	applyOptimisticProductPatch,
+	runOptimistic,
+} from './optimisticData'
 
 const persistProductNotificationsCache = async (
 	getState: () => unknown,
@@ -820,7 +825,12 @@ const getQuery = (
 					body,
 				}
 			},
-			invalidatesTags: ['products', 'product'],
+			async onQueryStarted({ id, body }, { dispatch, queryFulfilled, getState }) {
+				await runOptimistic(
+					applyOptimisticProductPatch(dispatch, getState, id, body),
+					queryFulfilled,
+				)
+			},
 		}),
 		deleteProduct: builder.mutation<void, string>({
 			query: (productId: string) => {
@@ -1576,7 +1586,12 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
-			invalidatesTags: ['inventory', 'products', 'product'],
+			async onQueryStarted({ id, body }, { dispatch, queryFulfilled, getState }) {
+				await runOptimistic(
+					applyOptimisticInventoryPatch(dispatch, getState, id, body),
+					queryFulfilled,
+				)
+			},
 		}),
 	}
 }

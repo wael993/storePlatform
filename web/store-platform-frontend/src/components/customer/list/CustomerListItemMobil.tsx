@@ -202,7 +202,7 @@ const CustomerListItemMobil = ({
 						</Skeleton>
 
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover offer="offer" />
+							<OptionsPopover />
 						</Skeleton>
 					</Flex>
 				</AccordionPanel>

@@ -714,7 +714,10 @@
 				"inactive": "غير نشط",
 				"outOfStock": "نفد المخزون"
 			},
-			"noProducts": "لم يتم العثور على منتجات"
+			"noProducts": "لم يتم العثور على منتجات",
+			"printBarcode": "طباعة الباركود",
+			"print": "طباعة",
+			"barcodeCaption": "الباركود: {{value}}"
 		},
 		"filters": {
 			"clearFilter": "مسح المرشح",

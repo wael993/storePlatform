@@ -202,7 +202,7 @@ const CategoryListItem = ({
 					</Flex>
 					<Flex sx={styles.cellContentWrapperSticky}>
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover offer={'offer'} />
+							<OptionsPopover />
 						</Skeleton>
 					</Flex>
 				</Flex>

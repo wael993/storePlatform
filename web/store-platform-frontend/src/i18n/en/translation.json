@@ -711,7 +711,10 @@
 				"inactive": "Inactive",
 				"outOfStock": "Out of Stock"
 			},
-			"noProducts": "No products found"
+			"noProducts": "No products found",
+			"printBarcode": "Print barcode",
+			"print": "Print",
+			"barcodeCaption": "Barcode: {{value}}"
 		},
 		"filters": {
 			"clearFilter": "Clear filter",

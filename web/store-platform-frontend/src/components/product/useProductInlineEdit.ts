@@ -4,6 +4,7 @@ import {
 	useEditInventoryMutation,
 	useEditProductMutation,
 } from '../../api/apiStore'
+import { enqueueProductWrite } from '../../api/optimisticData'
 import useCustomToast from '../common/CustomToast'
 import {
 	PRODUCT_INLINE_FIELD_CONFIG,
@@ -49,15 +50,19 @@ export const useProductInlineEdit = (productData: Product) => {
 
 		try {
 			if (patch.persist === 'product') {
-				await editProduct({
-					id: productData.productId,
-					body: patch.body,
-				}).unwrap()
+				await enqueueProductWrite(productData.productId, () =>
+					editProduct({
+						id: productData.productId,
+						body: patch.body,
+					}).unwrap(),
+				)
 			} else {
-				await editInventory({
-					id: patch.productId,
-					body: patch.body,
-				}).unwrap()
+				await enqueueProductWrite(patch.productId, () =>
+					editInventory({
+						id: patch.productId,
+						body: patch.body,
+					}).unwrap(),
+				)
 			}
 		} catch {
 			showToastMessage({

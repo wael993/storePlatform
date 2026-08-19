@@ -16,6 +16,8 @@ import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import { withNoValueFallback } from '../../../shared/utils'
 import { useProductInlineEdit } from '../useProductInlineEdit'
+import { usePrintProductBarcode } from '../usePrintProductBarcode'
+import PrintBarcodeModal from '../PrintBarcodeModal'
 
 interface ProductTableItemProps {
 	product: Product
@@ -33,6 +35,8 @@ const ProductTableItem = memo(
 		isLoading,
 	}: ProductTableItemProps) => {
 		const { editField, isFieldInProgress } = useProductInlineEdit(productData)
+		const { printBarcode, isEnsuringBarcode, barcode, preview } =
+			usePrintProductBarcode(productData)
 
 		const productState = PRODUCT_STATE_CONFIG[productData.status]
 
@@ -447,6 +451,7 @@ const ProductTableItem = memo(
 
 				<Td
 					sx={{ ...styles.tableRow, ...styles.rightStickyContainer, right: 1 }}
+					onClick={event => event.stopPropagation()}
 				>
 					<Flex sx={styles.rightStickyContainerContent}>
 						{/* Notification Circle & State Circle */}
@@ -471,11 +476,25 @@ const ProductTableItem = memo(
 						</Flex>
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
-								<OptionsPopover offer={'offer'} />
+								{isOwnerOrAdmin && (
+									<OptionsPopover
+										onPrintBarcode={() => {
+											void printBarcode()
+										}}
+										isPrintLoading={isEnsuringBarcode}
+									/>
+								)}
 							</Skeleton>
 						</Flex>
 					</Flex>
 				</Td>
+				{isOwnerOrAdmin && (
+					<PrintBarcodeModal
+						barcode={barcode}
+						isOpen={preview.isOpen}
+						onClose={preview.onClose}
+					/>
+				)}
 			</>
 		)
 	},
