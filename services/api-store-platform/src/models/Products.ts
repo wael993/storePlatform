@@ -127,6 +127,8 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 tenantScopedSchema(ProductSchema)
 
 ProductSchema.index({ tenantId: 1, productId: 1 }, { unique: true })
+ProductSchema.index({ tenantId: 1, name: 1 })
+ProductSchema.index({ tenantId: 1, status: 1, name: 1 })
 ProductSchema.index(
 	{ tenantId: 1, barcode: 1 },
 	{

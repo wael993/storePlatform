@@ -27,7 +27,7 @@ const ProductsSettings = ({
 					{t('components.productsSettings.productsPerPage')}
 				</FormLabel>
 				<RadioGroup
-					value={productsPerPage === 1000 ? 'all' : productsPerPage.toString()}
+					value={productsPerPage.toString()}
 					onChange={handleProductsPerPageChange}
 				>
 					<Stack spacing={3}>
@@ -36,9 +36,6 @@ const ProductsSettings = ({
 						</Radio>
 						<Radio value="100">
 							{t('components.productsSettings.hundredPerPage')}
-						</Radio>
-						<Radio value="all">
-							{t('components.productsSettings.showAllProducts')}
 						</Radio>
 					</Stack>
 				</RadioGroup>

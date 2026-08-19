@@ -584,6 +584,7 @@ const getQuery = (
 				return response
 			},
 			providesTags: ['products'],
+			keepUnusedDataFor: 3600,
 		}),
 
 		getProductCatalog: builder.query<ProductCatalogResponse, void>({

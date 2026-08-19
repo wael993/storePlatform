@@ -104,16 +104,15 @@ const App = () => {
 							<Route path={RoutePaths.BARCODE} element={<BarcodePage />} />
 						)}
 						{isProductsEnabled && isTenantProductsEnabled && (
-							<>
+							<Route
+								path={RoutePaths.PRODUCTS}
+								element={<ProductsPage targetType={TargetType.PRODUCT} />}
+							>
 								<Route
-									path={RoutePaths.PRODUCTS}
-									element={<ProductsPage targetType={TargetType.PRODUCT} />}
-								/>
-								<Route
-									path={RoutePaths.SINGLE_PRODUCT}
+									path=":productId"
 									element={<ProductModal targetType={TargetType.PRODUCT} />}
 								/>
-							</>
+							</Route>
 						)}
 						{isOrdersEnabled && isTenantOrdersEnabled && (
 							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />

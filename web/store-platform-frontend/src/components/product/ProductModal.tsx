@@ -44,7 +44,7 @@ const ProductModal = ({ targetType }: ProductModalProps) => {
 			return
 		}
 
-		navigate(fullPaths.CUSTOMERS)
+		navigate(fullPaths.PRODUCTS)
 	}
 
 	return (

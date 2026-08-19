@@ -658,8 +658,7 @@
 		"productsSettings": {
 			"productsPerPage": "Products Per Page",
 			"twentyPerPage": "20 products per page",
-			"hundredPerPage": "100 products per page",
-			"showAllProducts": "Show all products"
+			"hundredPerPage": "100 products per page"
 		},
 		"currenciesSettings": {
 			"primaryTitle": "Primary Currency",

@@ -1011,30 +1011,8 @@ export default class ProductController {
 		pagination?: { limit?: number; offset?: number },
 	) {
 		const tenantId = this.getTenantId(requestContext)
-		const limit = pagination?.limit || 20
+		const limit = Math.min(pagination?.limit || 20, 100)
 		const offset = pagination?.offset || 0
-
-		const hasFilters =
-			Boolean(filters.searchText?.trim()) ||
-			Boolean(filters.supplier?.length) ||
-			Boolean(filters.brand?.length) ||
-			Boolean(filters.state?.length) ||
-			Boolean(filters.category?.length)
-		const cacheKey = redisCache.buildProductListKey(tenantId)
-
-		if (!hasFilters) {
-			const cachedProducts =
-				await redisCache.getJson<ProductRequestBody[]>(cacheKey)
-
-			if (cachedProducts) {
-				const paginatedCached = cachedProducts.slice(offset, offset + limit)
-
-				return {
-					products: paginatedCached,
-					totalCount: cachedProducts.length,
-				}
-			}
-		}
 
 		const searchText = filters.searchText?.trim()
 		const supplierRegexList = this.buildCaseInsensitiveRegexList(
@@ -1044,13 +1022,14 @@ export default class ProductController {
 		const categoryRegexList = this.buildCaseInsensitiveRegexList(
 			filters.category,
 		)
-		const stateFilterSet = new Set(
-			(filters.state ?? []).map(state => state.trim()),
-		)
+		const statuses = (filters.state ?? [])
+			.map(state => state.trim())
+			.filter(Boolean)
 
 		const productQueryClauses: Record<string, unknown>[] = []
 
 		if (searchText) {
+			// note: unanchored name regex cannot use { tenantId, name } at 100k; upgrade to prefix / text index / Atlas Search
 			const searchRegex = new RegExp(this.escapeRegex(searchText), 'i')
 
 			productQueryClauses.push({
@@ -1083,22 +1062,38 @@ export default class ProductController {
 			})
 		}
 
+		if (statuses.length > 0) {
+			productQueryClauses.push({
+				status: { $in: statuses },
+			})
+		}
+
 		const mongoQuery =
 			productQueryClauses.length > 0 ? { $and: productQueryClauses } : {}
 
-		const products = await withTenantScope(
-			Product.find(mongoQuery).sort({ name: 1 }),
-			tenantId,
-		).lean<ProductAPI[]>()
+		const [products, totalCount, relationLookups] = await Promise.all([
+			withTenantScope(
+				Product.find(mongoQuery).sort({ name: 1 }).skip(offset).limit(limit),
+				tenantId,
+			).lean<ProductAPI[]>(),
+			Product.countDocuments({ tenantId, ...mongoQuery }),
+			this.getProductRelationLookups(requestContext),
+		])
 
-		const inventory = await this.getInventory(requestContext)
+		const productIds = products.map(product => product.productId)
+		const inventory =
+			productIds.length === 0
+				? []
+				: await withTenantScope(
+						Inventory.find({ productId: { $in: productIds } }),
+						tenantId,
+					).lean<InventoryDocument[]>()
 		const inventoryByProductId = new Map(
 			inventory.map(inventoryItem => [inventoryItem.productId, inventoryItem]),
 		)
-		const relationLookups = await this.getProductRelationLookups(requestContext)
 
 		const mappedProducts = products
-			?.map(product =>
+			.map(product =>
 				this.productsMapper.mapProduct(
 					product,
 					inventoryByProductId.get(product.productId),
@@ -1108,30 +1103,15 @@ export default class ProductController {
 			)
 			.filter(Boolean) as ProductRequestBody[]
 
-		const filteredProductsByState =
-			stateFilterSet.size > 0
-				? mappedProducts.filter(product => stateFilterSet.has(product.status))
-				: mappedProducts
-
-		const totalCount = filteredProductsByState.length
-		const paginatedProducts = filteredProductsByState.slice(
-			offset,
-			offset + limit,
-		)
-
 		logger.debug(
-			`Finally ${paginatedProducts.length} products (of ${totalCount} total) after mappings and filters. Page: offset=${offset}, limit=${limit}`,
+			`Finally ${mappedProducts.length} products (of ${totalCount} total) after mappings and filters. Page: offset=${offset}, limit=${limit}`,
 			{
 				entity: EntityType.PRODUCTS,
 			},
 		)
 
-		if (!hasFilters) {
-			await redisCache.setJson(cacheKey, mappedProducts)
-		}
-
 		return {
-			products: paginatedProducts,
+			products: mappedProducts,
 			totalCount,
 		}
 	}
@@ -1145,15 +1125,32 @@ export default class ProductController {
 		let fullProducts = await redisCache.getJson<ProductRequestBody[]>(cacheKey)
 
 		if (!fullProducts) {
-			const result = await this.getProducts(
-				requestContext,
-				{},
-				{ limit: Number.MAX_SAFE_INTEGER, offset: 0 },
+			const [products, inventory, relationLookups] = await Promise.all([
+				withTenantScope(Product.find({}).sort({ name: 1 }), tenantId).lean<
+					ProductAPI[]
+				>(),
+				this.getInventory(requestContext),
+				this.getProductRelationLookups(requestContext),
+			])
+			const inventoryByProductId = new Map(
+				inventory.map(inventoryItem => [
+					inventoryItem.productId,
+					inventoryItem,
+				]),
 			)
 
-			fullProducts =
-				(await redisCache.getJson<ProductRequestBody[]>(cacheKey)) ??
-				result.products
+			fullProducts = products
+				.map(product =>
+					this.productsMapper.mapProduct(
+						product,
+						inventoryByProductId.get(product.productId),
+						requestContext,
+						relationLookups,
+					),
+				)
+				.filter(Boolean) as ProductRequestBody[]
+
+			await redisCache.setJson(cacheKey, fullProducts)
 		}
 
 		const lastSellingByProductId =
@@ -4123,10 +4120,7 @@ export default class ProductController {
 					{
 						paymentType: InvoicePaymentType.CREDIT,
 						paymentStatus: {
-							$in: [
-								InvoicePaymentStatus.UNPAID,
-								InvoicePaymentStatus.PARTIAL,
-							],
+							$in: [InvoicePaymentStatus.UNPAID, InvoicePaymentStatus.PARTIAL],
 						},
 					},
 				],
@@ -4150,10 +4144,7 @@ export default class ProductController {
 					{
 						paymentType: InvoicePaymentType.CREDIT,
 						paymentStatus: {
-							$in: [
-								InvoicePaymentStatus.UNPAID,
-								InvoicePaymentStatus.PARTIAL,
-							],
+							$in: [InvoicePaymentStatus.UNPAID, InvoicePaymentStatus.PARTIAL],
 						},
 					},
 				],
@@ -4595,7 +4586,11 @@ export default class ProductController {
 			} else if (entry.entity === 'invoice' && entry.method === 'DELETE') {
 				const invoiceId = this.extractSyncPathId(entry.url)
 
-				await this.requireSellingInvoiceController().deleteInvoice(invoiceId, requestContext)
+				await this.requireSellingInvoiceController().deleteInvoice(
+					invoiceId,
+					requestContext,
+				)
+
 				data = { success: true, invoiceId }
 
 				await this.recordSyncMutation(
@@ -4655,12 +4650,12 @@ export default class ProductController {
 			) {
 				const currencySettings =
 					await this.requireSettingController().applyCurrencySettingsUpdate(
-					requestContext,
-					payload as {
-						primaryCurrency?: ICurrencySettingItem | null
-						secondaryCurrencies?: ICurrencySettingItem[]
-					},
-				)
+						requestContext,
+						payload as {
+							primaryCurrency?: ICurrencySettingItem | null
+							secondaryCurrencies?: ICurrencySettingItem[]
+						},
+					)
 
 				data = currencySettings as unknown as Record<string, unknown>
 
@@ -4677,19 +4672,19 @@ export default class ProductController {
 			) {
 				const invoiceSettings =
 					await this.requireSettingController().applyInvoiceSettingsUpdate(
-					requestContext,
-					payload as {
-						noMergeInvoiceLines?: boolean
-						displayName?: string
-						address?: string
-						phone?: string
-						email?: string
-						taxNumber?: string
-						logoUrl?: string
-						qrUrl?: string
-						footerNote?: string
-					},
-				)
+						requestContext,
+						payload as {
+							noMergeInvoiceLines?: boolean
+							displayName?: string
+							address?: string
+							phone?: string
+							email?: string
+							taxNumber?: string
+							logoUrl?: string
+							qrUrl?: string
+							footerNote?: string
+						},
+					)
 
 				data = invoiceSettings as unknown as Record<string, unknown>
 

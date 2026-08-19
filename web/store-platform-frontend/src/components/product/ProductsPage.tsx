@@ -9,6 +9,7 @@ import {
 	Flex,
 	useDisclosure,
 } from '@chakra-ui/react'
+import { Outlet } from 'react-router-dom'
 import {
 	useGetProductsQuery,
 	useGetFilterValuesQuery,
@@ -96,15 +97,14 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	)
 	const [currentPage, setCurrentPage] = useState(0)
 
-	const {
-		data: response,
-		isLoading,
-		isFetching,
-	} = useGetProductsQuery({
-		...productFilters,
-		// limit: productsPerPage,
-		offset: currentPage * productsPerPage,
-	})
+	const { data: response, isLoading } = useGetProductsQuery(
+		{
+			...productFilters,
+			limit: productsPerPage,
+			offset: currentPage * productsPerPage,
+		},
+		{ refetchOnMountOrArgChange: false },
+	)
 
 	const { data: filterValuesResponse } = useGetFilterValuesQuery()
 
@@ -128,8 +128,6 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 		setProductFilters(EMPTY_PRODUCT_FILTERS)
 		setCurrentPage(0)
 	}
-
-	const isGetProductsInProgress = isLoading || isFetching
 
 	const supplierOptions: FilterSelectOption[] =
 		filterValuesResponse?.supplier ?? []
@@ -161,7 +159,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
-				{!isGetProductsInProgress && (
+				{!isLoading && (
 					<CustomBreadcrumb
 						marginTop="2rem"
 						items={breadCrumbItems[BreadCrumbItem.PRODUCTS]}
@@ -192,7 +190,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 				)}
 			</HStack>
 
-			{isGetProductsInProgress && <Spinner />}
+			{isLoading && <Spinner />}
 
 			<Box sx={styles.divider} />
 
@@ -207,16 +205,16 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 				showSupplierFilter={isOwnerOrAdmin}
 			/>
 
-			{!isGetProductsInProgress && products.length === 0 && (
+			{!isLoading && products.length === 0 && (
 				<Text color="gray.500">{t('components.product.noProducts')}</Text>
 			)}
 
 			<TableWithActionBar
 				products={products as Product[]}
-				isLoading={isLoading || isFetching}
+				isLoading={isLoading}
 			/>
 
-			{!isGetProductsInProgress && totalPages > 1 && (
+			{!isLoading && totalPages > 1 && (
 				<HStack justify="center" mt="2rem" gap="1rem">
 					<Button
 						onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
@@ -247,6 +245,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 				barcode={''}
 				onSuccess={onAddProductModalClose}
 			/>
+			<Outlet />
 		</Flex>
 	)
 }

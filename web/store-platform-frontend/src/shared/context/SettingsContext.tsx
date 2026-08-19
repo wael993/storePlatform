@@ -35,7 +35,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	// Initialize from fetched settings
 	useEffect(() => {
 		if (userSettings) {
-			setProductsPerPageState(userSettings.productsPerPage || 20)
+			setProductsPerPageState(
+				Math.min(userSettings.productsPerPage || 20, 100),
+			)
 			setDisplayLanguageState(userSettings.displayLanguage || 'en')
 			setDefaultInvoiceCurrencyIdState(
 				userSettings.defaultInvoiceCurrencyId || '',
@@ -47,7 +49,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, [userSettings])
 
 	const setProductsPerPage = (value: number) => {
-		setProductsPerPageState(value)
+		setProductsPerPageState(Math.min(value || 20, 100))
 		setHasChanges(true)
 	}
 

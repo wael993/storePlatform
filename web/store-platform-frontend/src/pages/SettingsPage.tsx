@@ -204,8 +204,7 @@ const SettingsPage = () => {
 	}, [invoiceSettingsData])
 
 	const handleProductsPerPageChange = (value: string) => {
-		const numValue = value === 'all' ? 1000 : parseInt(value, 10)
-		setProductsPerPage(numValue)
+		setProductsPerPage(parseInt(value, 10))
 	}
 
 	const handleLanguageChange = (value: string) => {
