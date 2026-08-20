@@ -9,6 +9,8 @@ export interface ISupplier extends Document {
 	email?: string
 	phone?: string
 	country?: string
+	vatId?: string
+	aliases?: string[]
 	createdBy: {
 		_id: string
 		displayName: string
@@ -28,6 +30,8 @@ const SupplierSchema = new Schema<ISupplier>({
 	email: { type: String },
 	phone: { type: String },
 	country: { type: String },
+	vatId: { type: String, trim: true },
+	aliases: [{ type: String, trim: true, maxlength: 100 }],
 })
 
 tenantScopedSchema(SupplierSchema)

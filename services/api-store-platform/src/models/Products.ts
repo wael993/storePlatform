@@ -35,6 +35,7 @@ export interface IProduct extends Document {
 	}
 	images?: string[]
 	description?: string
+	aliases?: string[]
 	createdBy: {
 		_id: string
 		displayName: string
@@ -120,6 +121,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 			expiryDate: { type: String },
 		},
 		images: [{ type: String }],
+		aliases: [{ type: String, trim: true, maxlength: 100 }],
 	},
 	{ timestamps: true },
 )

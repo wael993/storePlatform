@@ -652,6 +652,49 @@
 				"closeDraftBody": "This invoice has unsaved changes. Discard it?",
 				"discardDraft": "Discard"
 			},
+			"extract": {
+				"upload": "Upload invoice",
+				"readInvoice": "Read with AI",
+				"preview": "Invoice preview",
+				"reread": "Re-read",
+				"rereading": "Reading selected area…",
+				"cropHint": "Draw a box on the invoice to read that area again.",
+				"cropPdfHint": "Area re-read works on images. Upload a photo of the page to select a region.",
+				"cancelReread": "Cancel",
+				"couldNotRead": "Could not confidently read this field",
+				"needsConfirmation": "{{percent}} confidence — tap the marker to confirm or edit the value",
+				"highConfidence": "{{percent}} confidence",
+				"supplierInvoiceNumber": "Supplier invoice #",
+				"matchProduct": "Match this line to a catalog product",
+				"extractedVatLabel": "Extracted VAT",
+				"extractedTotal": "Extracted total: {{amount}}",
+				"unresolved": "Confirm or correct highlighted fields before approval. Missing values were not guessed.",
+				"failed": "Could not read this invoice. Try a clearer photo or a different file.",
+				"approve": "Approve Invoice",
+				"reject": "Reject import",
+				"approveSuccess": "Invoice imported successfully.",
+				"aliasFailed": "Invoice saved, but catalog aliases could not be stored.",
+				"importStatus": {
+					"processing": "PROCESSING",
+					"review_required": "REVIEW REQUIRED",
+					"ready_for_approval": "READY FOR APPROVAL",
+					"rejected": "REJECTED",
+					"failed": "FAILED"
+				},
+				"match": {
+					"linkedProduct": "Product: {{name}} — {{percent}}",
+					"linkedSupplier": "Supplier: {{name}} — {{percent}}",
+					"possibleProduct": "Possible match: {{name}} — {{percent}} confidence",
+					"possibleSupplier": "Possible supplier match: {{name}} — {{percent}} confidence",
+					"newProduct": "New product detected",
+					"newSupplier": "New supplier detected",
+					"confirm": "Confirm match",
+					"createProduct": "Create new product",
+					"createSupplier": "Create new supplier",
+					"findInProducts": "Find in products",
+					"rawName": "Invoice: {{name}}"
+				}
+			},
 			"paymentType": {
 				"cash": "Cash",
 				"credit": "Credit (Pay Later)"

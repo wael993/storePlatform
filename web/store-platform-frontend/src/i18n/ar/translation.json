@@ -654,6 +654,49 @@
 				"closeDraftBody": "هذه الفاتورة تحتوي على تغييرات غير محفوظة. هل تريد تجاهلها؟",
 				"discardDraft": "تجاهل"
 			},
+			"extract": {
+				"upload": "رفع فاتورة",
+				"readInvoice": "قراءة بالذكاء الاصطناعي",
+				"preview": "معاينة الفاتورة",
+				"reread": "إعادة القراءة",
+				"rereading": "جاري قراءة المنطقة المحددة…",
+				"cropHint": "ارسم مربعاً على الفاتورة لإعادة قراءة هذه المنطقة.",
+				"cropPdfHint": "إعادة قراءة المنطقة تعمل على الصور. ارفع صورة للصفحة لتحديد منطقة.",
+				"cancelReread": "إلغاء",
+				"couldNotRead": "تعذر قراءة هذا الحقل بثقة",
+				"needsConfirmation": "ثقة {{percent}} — اضغط العلامة للتأكيد أو عدّل القيمة",
+				"highConfidence": "ثقة {{percent}}",
+				"supplierInvoiceNumber": "رقم فاتورة المورد",
+				"matchProduct": "اربط هذا السطر بمنتج من الكتالوج",
+				"extractedVatLabel": "الضريبة المستخرجة",
+				"extractedTotal": "الإجمالي المستخرج: {{amount}}",
+				"unresolved": "أكد أو صحح الحقول المميزة قبل الاعتماد. لم يتم تخمين القيم الناقصة.",
+				"failed": "تعذر قراءة هذه الفاتورة. جرّب صورة أوضح أو ملفاً آخر.",
+				"approve": "اعتماد الفاتورة",
+				"reject": "رفض الاستيراد",
+				"approveSuccess": "تم استيراد الفاتورة بنجاح.",
+				"aliasFailed": "تم حفظ الفاتورة، لكن تعذر حفظ الأسماء البديلة في الكتالوج.",
+				"importStatus": {
+					"processing": "قيد المعالجة",
+					"review_required": "يتطلب مراجعة",
+					"ready_for_approval": "جاهز للاعتماد",
+					"rejected": "مرفوض",
+					"failed": "فشل"
+				},
+				"match": {
+					"linkedProduct": "المنتج: {{name}} — {{percent}}",
+					"linkedSupplier": "المورد: {{name}} — {{percent}}",
+					"possibleProduct": "تطابق محتمل: {{name}} — ثقة {{percent}}",
+					"possibleSupplier": "مورد محتمل: {{name}} — ثقة {{percent}}",
+					"newProduct": "تم اكتشاف منتج جديد",
+					"newSupplier": "تم اكتشاف مورد جديد",
+					"confirm": "تأكيد التطابق",
+					"createProduct": "إنشاء منتج جديد",
+					"createSupplier": "إنشاء مورد جديد",
+					"findInProducts": "بحث في المنتجات",
+					"rawName": "الفاتورة: {{name}}"
+				}
+			},
 			"paymentType": {
 				"cash": "نقداً",
 				"credit": "آجل (ادفع لاحقاً)"

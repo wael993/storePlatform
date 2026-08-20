@@ -8,6 +8,7 @@ import type {
 	InvoicePaymentType,
 	InvoiceUiStatus,
 } from '../../shared/globalEnums'
+import type { InvoiceExtractionReview } from '../../shared/invoiceExtraction'
 
 export type BuyingInvoiceStatus = `${InvoiceUiStatus}`
 
@@ -30,6 +31,10 @@ export interface BuyingInvoiceDraft extends InvoiceDiscountDraftFields {
 	lineItems: BuyingInvoiceLineItem[]
 	note: string
 	paidAmount: number
+	supplierInvoiceNumber?: string
+	/** Original supplier name printed on the invoice, when this draft came from extraction. */
+	sourceSupplierName?: string
+	extraction?: InvoiceExtractionReview | null
 }
 
 export type { InvoiceCurrencyAmount, InvoiceTotals }

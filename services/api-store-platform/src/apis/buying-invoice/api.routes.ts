@@ -124,6 +124,33 @@ export default class BuyingInvoiceRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/buying-invoices/extract`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.extractBuyingInvoice.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/buying-invoices/extract-region`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.extractBuyingInvoiceRegion.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/buying-invoices/confirm-match`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.confirmBuyingInvoiceMatch.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/buying-invoices/:id`)
 			.get(
 				this.startCalc.bind(this),
@@ -246,6 +273,67 @@ export default class BuyingInvoiceRoutes {
 			)
 
 			response.status(204).send()
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async extractBuyingInvoice(
+		request: BuyingInvoiceHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.buyingInvoiceController.extractBuyingInvoice(
+				request.body,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async extractBuyingInvoiceRegion(
+		request: BuyingInvoiceHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.buyingInvoiceController.extractBuyingInvoiceRegion(
+					request.body,
+					requestContext,
+				)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async confirmBuyingInvoiceMatch(
+		request: BuyingInvoiceHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.buyingInvoiceController.confirmBuyingInvoiceMatch(
+				request.body,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {

@@ -51,4 +51,23 @@ export const config = {
 		dailySchedule: process.env.CRON_DAILY_SCHEDULE || '0 3 * * *',
 		timezone: process.env.CRON_TIMEZONE || 'Asia/Amman',
 	},
+	aiInvoice: {
+		provider: (
+			process.env.AI_PROVIDER ||
+			process.env.AI_INVOICE_PROVIDER ||
+			'mock'
+		).toLowerCase(),
+		azure: {
+			endpoint: process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT?.trim() || '',
+			key: process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY || '',
+		},
+		openai: {
+			apiKey: process.env.OPENAI_API_KEY || '',
+			model: process.env.OPENAI_INVOICE_MODEL || 'gpt-4o',
+		},
+		gemini: {
+			apiKey: process.env.GEMINI_API_KEY || '',
+			model: process.env.GEMINI_INVOICE_MODEL || 'gemini-3.0-flash',
+		},
+	},
 }

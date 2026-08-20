@@ -124,14 +124,20 @@ interface AddProductModalProps {
 	isOpen: boolean
 	onClose: () => void
 	barcode: string
+	initialName?: string
+	initialPurchasePrice?: number
 	onSuccess?: () => void
+	onCreated?: (productId: string) => void
 }
 
 const AddProductModal = ({
 	isOpen,
 	onClose,
 	barcode,
+	initialName,
+	initialPurchasePrice,
 	onSuccess,
+	onCreated,
 }: AddProductModalProps) => {
 	const { t } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -248,13 +254,18 @@ const AddProductModal = ({
 
 		setForm(prev => ({
 			...prev,
+			name: initialName || prev.name,
 			barcode: barcode || prev.barcode,
 			price: {
 				...prev.price,
+				purchasePrice:
+					initialPurchasePrice != null
+						? String(initialPurchasePrice)
+						: prev.price.purchasePrice,
 				currency: prev.price.currency || defaultCurrencyCode,
 			},
 		}))
-	}, [isOpen, barcode, defaultCurrencyCode])
+	}, [isOpen, barcode, defaultCurrencyCode, initialName, initialPurchasePrice])
 
 	const handleFieldChange = (key: keyof typeof INITIAL_FORM, value: string) => {
 		setForm(prev => ({ ...prev, [key]: value }))
@@ -351,8 +362,7 @@ const AddProductModal = ({
 		}
 
 		try {
-			console.log('form', form.price.currency)
-			await postNewProduct({
+			const created = await postNewProduct({
 				name: form.name.trim() || form.latinName.trim(),
 				latinName: form.latinName.trim() || undefined,
 				productFactoryCode: form.productFactoryCode.trim() || undefined,
@@ -401,6 +411,7 @@ const AddProductModal = ({
 				status: form.status,
 				description: form.description.trim() || undefined,
 			}).unwrap()
+			if (created._id) onCreated?.(created._id)
 		} catch (submitError) {
 			const err = submitError as { data?: { message?: string } }
 			setError(err?.data?.message || t('productModal.createFailed'))

@@ -14,7 +14,7 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PAGE_COLORS } from './constants'
 import {
@@ -29,6 +29,8 @@ import TextLabel from '../common/TextLabel'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
 import EditableDiscountField from './EditableDiscountField'
 import EditableNumberField from './EditableNumberField'
+import ConfidenceMark from '../BuyingInvoice/ConfidenceMark'
+import type { LineExtractReview } from '../../shared/invoiceExtraction'
 import {
 	roundPrimaryAmount,
 	type DisplayCurrencyOption,
@@ -43,6 +45,16 @@ interface InvoiceLineItemsTableProps {
 	currencyOptions: DisplayCurrencyOption[]
 	isReadOnly?: boolean
 	invoiceKind?: 'selling' | 'buying'
+	extractionLines?: Record<string, LineExtractReview>
+	onConfirmLineField?: (
+		lineId: string,
+		field: 'name' | 'quantity' | 'unitPrice',
+	) => void
+	onRereadLineField?: (
+		lineId: string,
+		field: 'item.name' | 'item.quantity' | 'item.unitPrice',
+	) => void
+	productCaption?: (item: SellingInvoiceLineItem) => ReactNode
 }
 
 const ProductThumbnail = ({
@@ -89,6 +101,10 @@ const InvoiceLineItemsTable = ({
 	currencyOptions,
 	isReadOnly = false,
 	invoiceKind = 'selling',
+	extractionLines,
+	onConfirmLineField,
+	onRereadLineField,
+	productCaption,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
 	const editStartRefs = useRef(new Map<string, () => void>())
@@ -207,9 +223,34 @@ const InvoiceLineItemsTable = ({
 								<Flex align="center" gap={3}>
 									<ProductThumbnail name={item.name} imageUrl={item.imageUrl} />
 									<Box minW={0}>
-										<Text fontWeight={600} fontSize="sm" noOfLines={1}>
-											{item.name}
-										</Text>
+										<Flex align="center" gap={1} minW={0}>
+											<Text fontWeight={600} fontSize="sm" noOfLines={1}>
+												{item.name ||
+													t('components.buyingInvoices.extract.couldNotRead')}
+											</Text>
+											<ConfidenceMark
+												review={extractionLines?.[item.id]?.name}
+												onConfirm={() => onConfirmLineField?.(item.id, 'name')}
+												onReread={() =>
+													onRereadLineField?.(item.id, 'item.name')
+												}
+											/>
+										</Flex>
+										{productCaption?.(item)}
+										{invoiceKind === 'buying' &&
+											item.sourceName &&
+											item.sourceName !== item.name && (
+												<Text
+													fontSize="xs"
+													color={PAGE_COLORS.muted}
+													noOfLines={1}
+												>
+													{t(
+														'components.buyingInvoices.extract.match.rawName',
+														{ name: item.sourceName },
+													)}
+												</Text>
+											)}
 										{item.modelCode && (
 											<Text
 												fontSize="xs"
@@ -226,54 +267,72 @@ const InvoiceLineItemsTable = ({
 								{item.barcode ?? '-'}
 							</Td> */}
 							<Td>
-								{isReadOnly ? (
-									<TextLabel label="" value={item.quantity.toString()} />
-								) : (
-									<EditableNumberField
-										value={item.quantity}
-										isEditable
-										fontSize="sm"
-										fontWeight={600}
-										fieldId={lineItemFieldId(item.id, 'quantity')}
-										registerEditStart={registerEditStart}
-										onEnterCommit={() => focusNextField(index, 'quantity')}
-										onSave={quantity => handleQuantityEdit(item, quantity)}
+								<Flex align="center" gap={1}>
+									{isReadOnly ? (
+										<TextLabel label="" value={item.quantity.toString()} />
+									) : (
+										<EditableNumberField
+											value={item.quantity}
+											isEditable
+											fontSize="sm"
+											fontWeight={600}
+											fieldId={lineItemFieldId(item.id, 'quantity')}
+											registerEditStart={registerEditStart}
+											onEnterCommit={() => focusNextField(index, 'quantity')}
+											onSave={quantity => handleQuantityEdit(item, quantity)}
+										/>
+									)}
+									<ConfidenceMark
+										review={extractionLines?.[item.id]?.quantity}
+										onConfirm={() => onConfirmLineField?.(item.id, 'quantity')}
+										onReread={() =>
+											onRereadLineField?.(item.id, 'item.quantity')
+										}
 									/>
-								)}
+								</Flex>
 							</Td>
 							<Td>
-								<CurrencyAmountTooltip
-									amount={item.unitPrice ?? '0'}
-									displayText={formatAmount(item.unitPrice ?? '0')}
-									options={currencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									fieldId={lineItemFieldId(item.id, 'unitPrice')}
-									registerEditStart={registerEditStart}
-									onEnterCommit={() => focusNextField(index, 'unitPrice')}
-									onEdit={
-										isReadOnly
-											? undefined
-											: unitPrice => handleUnitPriceEdit(item, unitPrice)
-									}
-									costReference={
-										invoiceKind === 'selling'
-											? {
-													averageBuying:
-														item.averageCost != null
-															? formatAmount(item.averageCost)
-															: '-',
-													lastBuying:
-														item.lastBuyingPrice != null
-															? formatAmount(item.lastBuyingPrice)
-															: '-',
-													lastSelling:
-														item.lastSellingPrice != null
-															? formatAmount(item.lastSellingPrice)
-															: '-',
-												}
-											: undefined
-									}
-								/>
+								<Flex align="center" gap={1}>
+									<CurrencyAmountTooltip
+										amount={item.unitPrice ?? '0'}
+										displayText={formatAmount(item.unitPrice ?? '0')}
+										options={currencyOptions}
+										displayCurrencyId={displayCurrencyId}
+										fieldId={lineItemFieldId(item.id, 'unitPrice')}
+										registerEditStart={registerEditStart}
+										onEnterCommit={() => focusNextField(index, 'unitPrice')}
+										onEdit={
+											isReadOnly
+												? undefined
+												: unitPrice => handleUnitPriceEdit(item, unitPrice)
+										}
+										costReference={
+											invoiceKind === 'selling'
+												? {
+														averageBuying:
+															item.averageCost != null
+																? formatAmount(item.averageCost)
+																: '-',
+														lastBuying:
+															item.lastBuyingPrice != null
+																? formatAmount(item.lastBuyingPrice)
+																: '-',
+														lastSelling:
+															item.lastSellingPrice != null
+																? formatAmount(item.lastSellingPrice)
+																: '-',
+													}
+												: undefined
+										}
+									/>
+									<ConfidenceMark
+										review={extractionLines?.[item.id]?.unitPrice}
+										onConfirm={() => onConfirmLineField?.(item.id, 'unitPrice')}
+										onReread={() =>
+											onRereadLineField?.(item.id, 'item.unitPrice')
+										}
+									/>
+								</Flex>
 							</Td>
 							<Td>
 								{isReadOnly ? (

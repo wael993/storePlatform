@@ -7,6 +7,11 @@ import { config } from '../config'
 import { InvoicePaymentStatus, InvoicePaymentType } from '../shared/globalEnums'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
+import type {
+	InvoiceExtractFieldPath,
+	ScoredField,
+	ScoredInvoiceExtraction,
+} from '../shared/invoiceExtraction'
 import {
 	getIsOnline,
 	markOnline,
@@ -369,6 +374,8 @@ export interface PostBuyingInvoiceBody {
 	invoiceNumber?: string
 	supplierId?: string
 	supplierName?: string
+	supplierInvoiceNumber?: string
+	sourceSupplierName?: string
 	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
 	items: Array<{
 		productId: string
@@ -381,6 +388,7 @@ export interface PostBuyingInvoiceBody {
 		discountIsPercent?: boolean
 		taxRate?: number
 		lineTotal?: number
+		sourceName?: string
 	}>
 	status?: string
 	paymentStatus?: `${InvoicePaymentStatus}`
@@ -1637,6 +1645,44 @@ const getQuery = (
 			},
 		}),
 
+		extractBuyingInvoice: builder.mutation<
+			ScoredInvoiceExtraction,
+			{ fileBase64: string; mimeType: string; fileName?: string }
+		>({
+			query: body => ({
+				url: 'buying-invoices/extract',
+				method: 'POST',
+				body,
+			}),
+		}),
+
+		extractBuyingInvoiceRegion: builder.mutation<
+			ScoredField<string | number>,
+			{
+				fileBase64: string
+				mimeType: string
+				fileName?: string
+				field: InvoiceExtractFieldPath
+			}
+		>({
+			query: body => ({
+				url: 'buying-invoices/extract-region',
+				method: 'POST',
+				body,
+			}),
+		}),
+
+		confirmBuyingInvoiceMatch: builder.mutation<
+			{ ok: boolean },
+			{ kind: 'product' | 'supplier'; id: string; alias: string }
+		>({
+			query: body => ({
+				url: 'buying-invoices/confirm-match',
+				method: 'POST',
+				body,
+			}),
+		}),
+
 		getInventory: builder.query<InventoryItem[], void>({
 			query: () => ({
 				url: 'inventory',
@@ -1867,6 +1913,9 @@ export const {
 	usePostBuyingInvoiceMutation,
 	useUpdateBuyingInvoiceMutation,
 	useDeleteBuyingInvoiceMutation,
+	useExtractBuyingInvoiceMutation,
+	useExtractBuyingInvoiceRegionMutation,
+	useConfirmBuyingInvoiceMatchMutation,
 	useGetInventoryQuery,
 	useEditInventoryMutation,
 	useGetProductNotificationsQuery,

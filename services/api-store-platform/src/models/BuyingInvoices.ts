@@ -17,6 +17,7 @@ export interface IBuyingInvoiceItem {
 	discountIsPercent?: boolean
 	taxRate?: number
 	lineTotal?: number
+	sourceName?: string
 }
 
 export interface IBuyingInvoiceCurrencyAmount {
@@ -39,6 +40,8 @@ export interface IBuyingInvoice extends Document {
 	invoiceNumber: string
 	supplierId?: string
 	supplierName?: string
+	supplierInvoiceNumber?: string
+	sourceSupplierName?: string
 	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
 	items?: IBuyingInvoiceItem[]
 	status: `${InvoiceStatus}`
@@ -75,6 +78,7 @@ const BuyingInvoiceItemSchema = new Schema<IBuyingInvoiceItem>(
 		discountIsPercent: { type: Boolean, default: true },
 		taxRate: { type: Number, min: 0, default: 0 },
 		lineTotal: { type: Number, min: 0 },
+		sourceName: { type: String, trim: true },
 	},
 	{ _id: false },
 )
@@ -115,6 +119,14 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 			trim: true,
 		},
 		supplierName: {
+			type: String,
+			trim: true,
+		},
+		supplierInvoiceNumber: {
+			type: String,
+			trim: true,
+		},
+		sourceSupplierName: {
 			type: String,
 			trim: true,
 		},

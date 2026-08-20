@@ -106,7 +106,17 @@ const notificationRoutes = new NotificationRoutes(
 )
 const app = express()
 
-app.use(express.json())
+const jsonParser = express.json({ limit: '100kb' })
+const extractJsonParser = express.json({ limit: '12mb' })
+
+app.use((req, res, next) => {
+	if (req.path.includes('/buying-invoices/extract')) {
+		return extractJsonParser(req, res, next)
+	}
+
+	return jsonParser(req, res, next)
+})
+
 app.use(cookieParser())
 
 app.use(

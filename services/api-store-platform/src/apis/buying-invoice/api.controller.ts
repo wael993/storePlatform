@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Product } from '../../models/Products'
+import { Supplier } from '../../models/Supplier'
 import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
@@ -22,7 +23,15 @@ import {
 	InvoiceStatus,
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
-import { getTenantContext } from '../../shared/tenant'
+import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
+import {
+	decodeInvoiceUpload,
+	extractInvoice,
+	extractInvoiceRegion,
+} from '../../shared/invoiceAi/extract'
+import { matchExtractedInvoice } from '../../shared/invoiceAi/match'
+import { getInvoiceAiProvider } from '../../shared/invoiceAi/providers'
+import { InvoiceExtractFieldPath } from '../../shared/invoiceAi/types'
 import {
 	BuyingInvoiceRequestBody,
 	BuyingInvoicesListResponse,
@@ -165,6 +174,10 @@ const asInvoiceLines = (
 			taxRate: typeof item.taxRate === 'number' ? item.taxRate : undefined,
 			lineTotal:
 				typeof item.lineTotal === 'number' ? item.lineTotal : undefined,
+			sourceName:
+				typeof item.sourceName === 'string' && item.sourceName.trim()
+					? item.sourceName.trim()
+					: undefined,
 		})
 	}
 
@@ -680,6 +693,8 @@ export default class BuyingInvoiceController {
 							invoiceNumber: allocatedNumber,
 							supplierId: requestBody.supplierId,
 							supplierName: requestBody.supplierName,
+							supplierInvoiceNumber: requestBody.supplierInvoiceNumber,
+							sourceSupplierName: requestBody.sourceSupplierName,
 							paymentType: requestBody.paymentType,
 							items: requestBody.items,
 							status,
@@ -887,5 +902,194 @@ export default class BuyingInvoiceController {
 		)
 
 		return deleteResponse
+	}
+
+	public async extractBuyingInvoice(
+		requestBody: Record<string, unknown>,
+		requestContext: RequestContext,
+	) {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.BUYING_INVOICES,
+			'create',
+		)
+
+		const input = decodeInvoiceUpload(requestBody)
+		const extraction = await extractInvoice(input)
+		const tenantId = getTenantContext(requestContext).tenantId
+		// ponytail: full live catalog into RAM per extract (O(n) scan). Upgrade: candidate prefilter / indexed lookup if catalogs grow.
+		const products = await withTenantScope(
+			Product.find({ status: { $ne: 'discontinued' } })
+				.select(
+					'productId name latinName barcode internalCode productFactoryCode aliases unitId categoryId supplierId',
+				)
+				.lean(),
+			tenantId,
+		)
+		const suppliers = await withTenantScope(
+			Supplier.find({})
+				.select('supplierId name internalCode email vatId aliases')
+				.lean(),
+			tenantId,
+		)
+
+		return matchExtractedInvoice(extraction, products, suppliers, rankInput =>
+			getInvoiceAiProvider().rankMatch(rankInput),
+		)
+	}
+
+	public async confirmBuyingInvoiceMatch(
+		requestBody: Record<string, unknown>,
+		requestContext: RequestContext,
+	) {
+		if (requestBody.kind !== 'product' && requestBody.kind !== 'supplier') {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'kind must be product or supplier.',
+			)
+		}
+
+		const kind = requestBody.kind
+
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.BUYING_INVOICES,
+			'create',
+		)
+
+		await ensureTenantAccess(
+			requestContext,
+			kind === 'product'
+				? COLLECTION_NAMES.PRODUCTS
+				: COLLECTION_NAMES.SUPPLIERS,
+			'update',
+		)
+
+		const id = typeof requestBody.id === 'string' ? requestBody.id.trim() : ''
+		const alias =
+			typeof requestBody.alias === 'string' ? requestBody.alias.trim() : ''
+
+		if (!id || !alias) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'id and alias are required.',
+			)
+		}
+
+		if (alias.length > 100) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'alias must be 100 characters or fewer.',
+			)
+		}
+
+		const tenantId = getTenantContext(requestContext).tenantId
+		const normalizedAlias = alias.toLowerCase()
+
+		if (kind === 'product') {
+			const product = await withTenantScope(
+				Product.findOne({ productId: id }).lean(),
+				tenantId,
+			)
+
+			if (!product) {
+				throw new BusinessLogicError(
+					ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+					'Product not found.',
+				)
+			}
+
+			if (
+				product.name.trim().toLowerCase() === normalizedAlias ||
+				(product.aliases ?? []).some(
+					value => value.trim().toLowerCase() === normalizedAlias,
+				)
+			) {
+				return { ok: true }
+			}
+
+			await withTenantScope(
+				Product.findOneAndUpdate(
+					{ productId: id },
+					{ $addToSet: { aliases: alias } },
+				),
+				tenantId,
+			)
+
+			await this.ops.invalidateEntityCache('products', requestContext, id)
+
+			return { ok: true }
+		}
+
+		const supplier = await withTenantScope(
+			Supplier.findOne({ supplierId: id }).lean(),
+			tenantId,
+		)
+
+		if (!supplier) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Supplier not found.',
+			)
+		}
+
+		if (
+			supplier.name.trim().toLowerCase() === normalizedAlias ||
+			(supplier.aliases ?? []).some(
+				value => value.trim().toLowerCase() === normalizedAlias,
+			)
+		) {
+			return { ok: true }
+		}
+
+		await withTenantScope(
+			Supplier.findOneAndUpdate(
+				{ supplierId: id },
+				{ $addToSet: { aliases: alias } },
+			),
+			tenantId,
+		)
+
+		await redisCache.del(redisCache.buildSupplierListKey(tenantId))
+
+		return { ok: true }
+	}
+
+	public async extractBuyingInvoiceRegion(
+		requestBody: Record<string, unknown>,
+		requestContext: RequestContext,
+	) {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.BUYING_INVOICES,
+			'create',
+		)
+
+		const input = decodeInvoiceUpload(requestBody)
+		const field =
+			typeof requestBody.field === 'string' ? requestBody.field.trim() : ''
+		const allowed: InvoiceExtractFieldPath[] = [
+			'supplierName',
+			'invoiceNumber',
+			'invoiceDate',
+			'vat',
+			'total',
+			'item.name',
+			'item.quantity',
+			'item.unit',
+			'item.unitPrice',
+		]
+
+		if (!allowed.includes(field as InvoiceExtractFieldPath)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'field must be an extractable invoice path.',
+			)
+		}
+
+		return extractInvoiceRegion({
+			...input,
+			field: field as InvoiceExtractFieldPath,
+		})
 	}
 }

@@ -26,7 +26,7 @@ interface CreateAPIResponse {
 }
 
 type CreateProductAPIResponse = CreateAPIResponse
-type CreateSupplierAPIResponse = CreateAPIResponse
+type CreateSupplierAPIResponse = CreateAPIResponse & { supplierId?: string }
 type CreatePartnerAPIResponse = CreateAPIResponse
 type CreateCustomerAPIResponse = CreateAPIResponse
 type CreateCategoryAPIResponse = CreateAPIResponse

@@ -245,7 +245,7 @@ export default class SupplierController {
 
 		if (existingById) {
 			return {
-				_id: String(existingById._id),
+				_id: existingById.supplierId,
 				supplierId: existingById.supplierId,
 			}
 		}
@@ -263,7 +263,7 @@ export default class SupplierController {
 			name,
 		})
 
-		const createSupplierResponse = await this.mongoDbClient.createDocument(
+		await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.SUPPLIERS, data: supplierData },
 			Supplier,
 			requestContext,
@@ -281,7 +281,8 @@ export default class SupplierController {
 		)
 
 		return {
-			_id: createSupplierResponse._id,
+			_id: supplierId,
+			supplierId,
 		}
 	}
 }

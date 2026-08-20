@@ -239,6 +239,8 @@ export type BuyingInvoiceRequestBody = {
 	invoiceNumber?: string
 	supplierId?: string
 	supplierName?: string
+	supplierInvoiceNumber?: string
+	sourceSupplierName?: string
 	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
 	items?: Array<{
 		productId: string
@@ -251,6 +253,7 @@ export type BuyingInvoiceRequestBody = {
 		discountIsPercent?: boolean
 		taxRate?: number
 		lineTotal?: number
+		sourceName?: string
 	}>
 	status?: `${InvoiceStatus}`
 	paymentStatus?: `${InvoicePaymentStatus}`

@@ -637,6 +637,49 @@
 				"closeDraftBody": "Diese Rechnung hat ungespeicherte Änderungen. Verwerfen?",
 				"discardDraft": "Verwerfen"
 			},
+			"extract": {
+				"upload": "Rechnung hochladen",
+				"readInvoice": "Mit KI lesen",
+				"preview": "Rechnungsvorschau",
+				"reread": "Erneut lesen",
+				"rereading": "Markierten Bereich wird gelesen…",
+				"cropHint": "Zeichnen Sie ein Rechteck auf der Rechnung, um diesen Bereich erneut zu lesen.",
+				"cropPdfHint": "Bereichslese funktioniert bei Bildern. Laden Sie ein Foto der Seite hoch, um einen Bereich zu wählen.",
+				"cancelReread": "Abbrechen",
+				"couldNotRead": "Dieses Feld konnte nicht zuverlässig gelesen werden",
+				"needsConfirmation": "{{percent}} Sicherheit — Markierung tippen zum Bestätigen oder Wert ändern",
+				"highConfidence": "{{percent}} Sicherheit",
+				"supplierInvoiceNumber": "Lieferanten-Rechnungsnr.",
+				"matchProduct": "Diese Zeile einem Katalogprodukt zuordnen",
+				"extractedVatLabel": "Ausgelesene MwSt.",
+				"extractedTotal": "Ausgelesener Betrag: {{amount}}",
+				"unresolved": "Markierte Felder vor der Freigabe bestätigen oder korrigieren. Fehlende Werte wurden nicht erraten.",
+				"failed": "Rechnung konnte nicht gelesen werden. Bitte ein schärferes Foto oder eine andere Datei versuchen.",
+				"approve": "Rechnung freigeben",
+				"reject": "Import ablehnen",
+				"approveSuccess": "Rechnung erfolgreich importiert.",
+				"aliasFailed": "Rechnung gespeichert, Katalog-Aliase konnten nicht gespeichert werden.",
+				"importStatus": {
+					"processing": "VERARBEITUNG",
+					"review_required": "PRÜFUNG ERFORDERLICH",
+					"ready_for_approval": "BEREIT ZUR FREIGABE",
+					"rejected": "ABGELEHNT",
+					"failed": "FEHLGESCHLAGEN"
+				},
+				"match": {
+					"linkedProduct": "Produkt: {{name}} — {{percent}}",
+					"linkedSupplier": "Lieferant: {{name}} — {{percent}}",
+					"possibleProduct": "Möglicher Treffer: {{name}} — {{percent}} Sicherheit",
+					"possibleSupplier": "Möglicher Lieferant: {{name}} — {{percent}} Sicherheit",
+					"newProduct": "Neues Produkt erkannt",
+					"newSupplier": "Neuer Lieferant erkannt",
+					"confirm": "Treffer bestätigen",
+					"createProduct": "Neues Produkt anlegen",
+					"createSupplier": "Neuen Lieferanten anlegen",
+					"findInProducts": "In Produkten suchen",
+					"rawName": "Rechnung: {{name}}"
+				}
+			},
 			"paymentType": {
 				"cash": "Bar",
 				"credit": "Kredit (Später zahlen)"

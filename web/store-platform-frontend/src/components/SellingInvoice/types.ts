@@ -67,6 +67,8 @@ export interface SellingInvoiceLineItem {
 	averageCost?: number
 	lastBuyingPrice?: number
 	lastSellingPrice?: number
+	/** Original name printed on the supplier invoice, when this line came from extraction. */
+	sourceName?: string
 }
 
 export interface InvoiceDiscountDraftFields {

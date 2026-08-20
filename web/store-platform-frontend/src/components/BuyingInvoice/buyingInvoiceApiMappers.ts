@@ -30,6 +30,8 @@ export interface ApiBuyingInvoice {
 	invoiceNumber: string
 	supplierId?: string
 	supplierName?: string
+	supplierInvoiceNumber?: string
+	sourceSupplierName?: string
 	paymentType?: BuyingInvoicePaymentType
 	items?: Array<{
 		productId: string
@@ -42,6 +44,7 @@ export interface ApiBuyingInvoice {
 		discountIsPercent?: boolean
 		taxRate?: number
 		lineTotal?: number
+		sourceName?: string
 	}>
 	status?: string
 	paymentStatus?: `${InvoicePaymentStatus}`
@@ -99,6 +102,8 @@ export const mapApiBuyingInvoiceToDraft = (
 		salesPerson: '',
 		supplierId: invoice.supplierId ?? '',
 		supplierName: invoice.supplierName ?? '—',
+		supplierInvoiceNumber: invoice.supplierInvoiceNumber ?? '',
+		sourceSupplierName: invoice.sourceSupplierName,
 		paymentType: invoice.paymentType ?? InvoicePaymentType.CASH,
 		lineItems: (invoice.items ?? []).map(item => ({
 			id: generateId(),
@@ -111,6 +116,7 @@ export const mapApiBuyingInvoiceToDraft = (
 			discount: item.discount ?? 0,
 			discountIsPercent: item.discountIsPercent ?? true,
 			taxRate: item.taxRate ?? 0,
+			sourceName: item.sourceName,
 		})),
 		note: invoice.notes ?? '',
 		paidAmount,
@@ -156,6 +162,8 @@ export const buildBuyingInvoiceRequestBody = (
 		// Server allocates BI-000001; draft number is display-only preview.
 		supplierId: draft.supplierId || undefined,
 		supplierName: draft.supplierName,
+		supplierInvoiceNumber: draft.supplierInvoiceNumber || undefined,
+		sourceSupplierName: draft.sourceSupplierName || undefined,
 		paymentType: draft.paymentType,
 		items: draft.lineItems.map(item => ({
 			productId: item.productId,
@@ -168,6 +176,7 @@ export const buildBuyingInvoiceRequestBody = (
 			discountIsPercent: item.discountIsPercent,
 			taxRate: item.taxRate,
 			lineTotal: calculateLineItemTotal(item),
+			sourceName: item.sourceName || undefined,
 		})),
 		status,
 		paymentStatus,

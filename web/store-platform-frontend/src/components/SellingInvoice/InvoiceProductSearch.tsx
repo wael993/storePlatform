@@ -32,12 +32,14 @@ interface InvoiceProductSearchProps {
 	onAddProduct: (product: Product) => void
 	initialSearch?: string
 	autoFocus?: boolean
+	focusNonce?: number
 }
 
 const InvoiceProductSearch = ({
 	onAddProduct,
 	initialSearch = '',
 	autoFocus = true,
+	focusNonce,
 }: InvoiceProductSearchProps) => {
 	const { t } = useTranslation()
 	const inputRef = useRef<HTMLInputElement>(null)
@@ -182,6 +184,12 @@ const InvoiceProductSearch = ({
 
 		return () => clearTimeout(timer)
 	}, [autoFocus])
+
+	useEffect(() => {
+		if (!focusNonce) return
+		containerRef.current?.scrollIntoView({ block: 'center' })
+		inputRef.current?.focus()
+	}, [focusNonce])
 
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
 		if (showSuggestions && suggestions.length > 0) {
