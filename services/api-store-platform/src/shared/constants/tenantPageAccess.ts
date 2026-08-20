@@ -128,7 +128,6 @@ export const getRequiredAccessiblePages = (
 	if (
 		firstSegment === 'buying-invoices' &&
 		(secondSegment === 'extract' ||
-			secondSegment === 'extract-region' ||
 			secondSegment === 'confirm-match' ||
 			secondSegment === 'invoice-ai-usage')
 	) {

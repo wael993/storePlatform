@@ -50,10 +50,6 @@ interface InvoiceLineItemsTableProps {
 		lineId: string,
 		field: 'name' | 'quantity' | 'unitPrice',
 	) => void
-	onRereadLineField?: (
-		lineId: string,
-		field: 'item.name' | 'item.quantity' | 'item.unitPrice',
-	) => void
 	productCaption?: (item: SellingInvoiceLineItem) => ReactNode
 }
 
@@ -103,7 +99,6 @@ const InvoiceLineItemsTable = ({
 	invoiceKind = 'selling',
 	extractionLines,
 	onConfirmLineField,
-	onRereadLineField,
 	productCaption,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
@@ -231,9 +226,6 @@ const InvoiceLineItemsTable = ({
 											<ConfidenceMark
 												review={extractionLines?.[item.id]?.name}
 												onConfirm={() => onConfirmLineField?.(item.id, 'name')}
-												onReread={() =>
-													onRereadLineField?.(item.id, 'item.name')
-												}
 											/>
 										</Flex>
 										{productCaption?.(item)}
@@ -285,9 +277,6 @@ const InvoiceLineItemsTable = ({
 									<ConfidenceMark
 										review={extractionLines?.[item.id]?.quantity}
 										onConfirm={() => onConfirmLineField?.(item.id, 'quantity')}
-										onReread={() =>
-											onRereadLineField?.(item.id, 'item.quantity')
-										}
 									/>
 								</Flex>
 							</Td>
@@ -328,9 +317,6 @@ const InvoiceLineItemsTable = ({
 									<ConfidenceMark
 										review={extractionLines?.[item.id]?.unitPrice}
 										onConfirm={() => onConfirmLineField?.(item.id, 'unitPrice')}
-										onReread={() =>
-											onRereadLineField?.(item.id, 'item.unitPrice')
-										}
 									/>
 								</Flex>
 							</Td>

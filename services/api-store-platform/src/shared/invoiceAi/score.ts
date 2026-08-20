@@ -135,28 +135,3 @@ export const scoreInvoiceExtraction = (
 
 	return scored
 }
-
-export const scoreRegionField = (
-	field: RawExtractedField<string>,
-	asNumber: boolean,
-): ScoredField<string | number> => {
-	if (!asNumber) return scoreField(field, HIGH)
-
-	const parsed =
-		field.value == null
-			? null
-			: Number(
-					String(field.value)
-						.replace(/[^\d.,-]/g, '')
-						.replace(',', '.'),
-				)
-
-	return scoreField(
-		{
-			value: Number.isFinite(parsed as number) ? parsed : null,
-			confidence: field.confidence,
-			isHandwritten: field.isHandwritten,
-		},
-		AMOUNT_HIGH,
-	)
-}

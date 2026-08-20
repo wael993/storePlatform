@@ -7,17 +7,6 @@ export type InvoiceImportStatus =
 
 export type ConfidenceBand = 'high' | 'review' | 'missing'
 
-export type InvoiceExtractFieldPath =
-	| 'supplierName'
-	| 'invoiceNumber'
-	| 'invoiceDate'
-	| 'vat'
-	| 'total'
-	| 'item.name'
-	| 'item.quantity'
-	| 'item.unit'
-	| 'item.unitPrice'
-
 export interface ScoredField<T> {
 	value: T | null
 	confidence: number | null

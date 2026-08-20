@@ -27,11 +27,9 @@ import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	decodeInvoiceUpload,
 	extractInvoice,
-	extractInvoiceRegion,
 } from '../../shared/invoiceAi/extract'
 import { matchExtractedInvoice } from '../../shared/invoiceAi/match'
 import { getInvoiceAiProvider } from '../../shared/invoiceAi/providers'
-import { InvoiceExtractFieldPath } from '../../shared/invoiceAi/types'
 import {
 	getInvoiceAiUsage,
 	refundInvoiceAiCredit,
@@ -1094,43 +1092,5 @@ export default class BuyingInvoiceController {
 		await redisCache.del(redisCache.buildSupplierListKey(tenantId))
 
 		return { ok: true }
-	}
-
-	public async extractBuyingInvoiceRegion(
-		requestBody: Record<string, unknown>,
-		requestContext: RequestContext,
-	) {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.BUYING_INVOICES,
-			'create',
-		)
-
-		const input = decodeInvoiceUpload(requestBody)
-		const field =
-			typeof requestBody.field === 'string' ? requestBody.field.trim() : ''
-		const allowed: InvoiceExtractFieldPath[] = [
-			'supplierName',
-			'invoiceNumber',
-			'invoiceDate',
-			'vat',
-			'total',
-			'item.name',
-			'item.quantity',
-			'item.unit',
-			'item.unitPrice',
-		]
-
-		if (!allowed.includes(field as InvoiceExtractFieldPath)) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
-				'field must be an extractable invoice path.',
-			)
-		}
-
-		return extractInvoiceRegion({
-			...input,
-			field: field as InvoiceExtractFieldPath,
-		})
 	}
 }

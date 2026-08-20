@@ -62,11 +62,7 @@ export const config = {
 		timezone: process.env.CRON_TIMEZONE || 'Asia/Amman',
 	},
 	aiInvoice: {
-		provider: (
-			process.env.AI_PROVIDER ||
-			process.env.AI_INVOICE_PROVIDER ||
-			'mock'
-		).toLowerCase(),
+		provider: (process.env.AI_INVOICE_PROVIDER || 'mock').toLowerCase(),
 		azure: {
 			endpoint: process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT?.trim() || '',
 			key: process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY || '',

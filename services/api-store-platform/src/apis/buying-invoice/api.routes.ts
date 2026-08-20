@@ -142,15 +142,6 @@ export default class BuyingInvoiceRoutes {
 			)
 
 		app
-			.route(`${baseRoute}/buying-invoices/extract-region`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.extractBuyingInvoiceRegion.bind(this),
-			)
-
-		app
 			.route(`${baseRoute}/buying-invoices/confirm-match`)
 			.post(
 				this.startCalc.bind(this),
@@ -318,27 +309,6 @@ export default class BuyingInvoiceRoutes {
 				request.body,
 				requestContext,
 			)
-
-			response.status(200).json(resp)
-		} catch (error: unknown) {
-			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async extractBuyingInvoiceRegion(
-		request: BuyingInvoiceHttpRequest,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp =
-				await this.buyingInvoiceController.extractBuyingInvoiceRegion(
-					request.body,
-					requestContext,
-				)
 
 			response.status(200).json(resp)
 		} catch (error: unknown) {

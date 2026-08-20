@@ -9,17 +9,6 @@ export type InvoiceAiProviderName = (typeof INVOICE_AI_PROVIDERS)[number]
 
 export type ConfidenceBand = 'high' | 'review' | 'missing'
 
-export type InvoiceExtractFieldPath =
-	| 'supplierName'
-	| 'invoiceNumber'
-	| 'invoiceDate'
-	| 'vat'
-	| 'total'
-	| 'item.name'
-	| 'item.quantity'
-	| 'item.unit'
-	| 'item.unitPrice'
-
 export interface RawExtractedField<T> {
 	value: T | null
 	confidence: number | null
@@ -123,12 +112,7 @@ export interface InvoiceDocumentInput {
 	fileName?: string
 }
 
-export interface InvoiceRegionInput extends InvoiceDocumentInput {
-	field: InvoiceExtractFieldPath
-}
-
 export interface InvoiceAiProvider {
 	extract(input: InvoiceDocumentInput): Promise<RawInvoiceExtraction>
-	extractRegion(input: InvoiceRegionInput): Promise<RawExtractedField<string>>
 	rankMatch(input: RankMatchInput): Promise<RankMatchHit[]>
 }

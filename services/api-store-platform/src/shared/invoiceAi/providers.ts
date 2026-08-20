@@ -272,9 +272,6 @@ const mockProvider = (): InvoiceAiProvider => ({
 			],
 		}
 	},
-	async extractRegion() {
-		return { value: '12', confidence: 0.72, isHandwritten: true }
-	},
 	async rankMatch(input) {
 		const allowed = new Set(input.candidates.map(candidate => candidate.id))
 
@@ -342,14 +339,13 @@ const azureProvider = (): InvoiceAiProvider => {
 
 	const analyze = async (
 		input: InvoiceDocumentInput,
-		modelId: string,
 	): Promise<Record<string, unknown>> => {
 		requireConfig(
 			Boolean(endpoint && key),
 			'AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT and AZURE_DOCUMENT_INTELLIGENCE_KEY are required.',
 		)
 
-		const analyzeUrl = `${endpoint}/documentintelligence/documentModels/${modelId}:analyze?api-version=${apiVersion}`
+		const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-invoice:analyze?api-version=${apiVersion}`
 		const started = await fetch(analyzeUrl, {
 			method: 'POST',
 			headers: {
@@ -480,24 +476,7 @@ const azureProvider = (): InvoiceAiProvider => {
 
 	return {
 		async extract(input) {
-			return fromInvoiceResult(await analyze(input, 'prebuilt-invoice'))
-		},
-		async extractRegion(input) {
-			const result = await analyze(input, 'prebuilt-read')
-			const content = asString(result.content)
-
-			if (content) {
-				return { value: content, confidence: 0.8 }
-			}
-
-			const pages = Array.isArray(result.pages) ? result.pages : []
-			const lines = asRecord(pages[0])?.lines
-			const firstLine = Array.isArray(lines) ? asRecord(lines[0]) : null
-
-			return {
-				value: asString(firstLine?.content),
-				confidence: asConfidence(firstLine?.confidence),
-			}
+			return fromInvoiceResult(await analyze(input))
 		},
 		async rankMatch() {
 			// note: Azure Document Intelligence has no entity-ranking API; match.ts still does identifier + fuzzy matching.
@@ -610,16 +589,6 @@ const openaiProvider = (): InvoiceAiProvider => {
 				),
 			)
 		},
-		async extractRegion(input) {
-			const parsed = asRecord(
-				await complete(
-					input,
-					`Read only this cropped region for field "${input.field}". Return JSON {"value": string|null, "confidence": number, "isHandwritten": boolean}. Null if unreadable.`,
-				),
-			)
-
-			return parseRawField(parsed, asString)
-		},
 		async rankMatch(input) {
 			if (!input.candidates.length) return []
 
@@ -731,16 +700,6 @@ const geminiProvider = (): InvoiceAiProvider => {
 					`Extract the invoice. Use this shape:\n${EXTRACTION_JSON_SHAPE}`,
 				),
 			)
-		},
-		async extractRegion(input) {
-			const parsed = asRecord(
-				await generate(
-					input,
-					`Read only this cropped region for field "${input.field}". Return JSON {"value": string|null, "confidence": number, "isHandwritten": boolean}. Null if unreadable.`,
-				),
-			)
-
-			return parseRawField(parsed, asString)
 		},
 		async rankMatch(input) {
 			if (!input.candidates.length) return []

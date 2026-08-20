@@ -32,7 +32,6 @@ import {
 	usePostBuyingInvoiceMutation,
 	useUpdateBuyingInvoiceMutation,
 	useExtractBuyingInvoiceMutation,
-	useExtractBuyingInvoiceRegionMutation,
 	useGetInvoiceAiUsageQuery,
 	useConfirmBuyingInvoiceMatchMutation,
 	useCreateSupplierMutation,
@@ -83,9 +82,7 @@ import type {
 } from './types'
 import ConfidenceMark from './ConfidenceMark'
 import MatchBanner from './MatchBanner'
-import InvoiceExtractPreview, {
-	type ExtractRereadTarget,
-} from './InvoiceExtractPreview'
+import InvoiceExtractPreview from './InvoiceExtractPreview'
 import {
 	applyScoredExtraction,
 	draftHasUnresolvedExtraction,
@@ -95,7 +92,6 @@ import {
 	confirmReview,
 	isPendingProductId,
 	reviewAfterEdit,
-	type ExtractFieldReview,
 	type InvoiceImportStatus,
 } from '../../shared/invoiceExtraction'
 
@@ -280,8 +276,6 @@ const NewBuyingInvoicePanel = ({
 		useUpdateBuyingInvoiceMutation()
 	const [extractBuyingInvoice, { isLoading: isExtracting }] =
 		useExtractBuyingInvoiceMutation()
-	const [extractBuyingInvoiceRegion, { isLoading: isRereading }] =
-		useExtractBuyingInvoiceRegionMutation()
 	const {
 		data: invoiceAiUsage,
 		refetch: refetchInvoiceAiUsage,
@@ -306,9 +300,6 @@ const NewBuyingInvoicePanel = ({
 	const [saveError, setSaveError] = useState<string | null>(null)
 	const [extractFile, setExtractFile] = useState<File | null>(null)
 	const [previewUrl, setPreviewUrl] = useState<string | undefined>()
-	const [rereadTarget, setRereadTarget] = useState<ExtractRereadTarget | null>(
-		null,
-	)
 	const [extractFailed, setExtractFailed] = useState(false)
 	const [importRejected, setImportRejected] = useState(false)
 	const [isRefreshingUsage, setIsRefreshingUsage] = useState(false)
@@ -739,163 +730,6 @@ const NewBuyingInvoicePanel = ({
 		}
 	}
 
-	const handleExtractRegion = async (file: File) => {
-		if (!rereadTarget) return
-		setSaveError(null)
-		try {
-			const scored = await extractBuyingInvoiceRegion({
-				fileBase64: await fileToBase64(file),
-				mimeType: file.type || 'image/png',
-				fileName: file.name,
-				field: rereadTarget.field,
-			}).unwrap()
-			setDraft(current => {
-				if (!current.extraction) return current
-				const review: ExtractFieldReview = {
-					band: scored.band,
-					confidence: scored.confidence,
-					isHandwritten: scored.isHandwritten,
-					confirmed: scored.band === 'high',
-					value: scored.value,
-				}
-				if (rereadTarget.lineId) {
-					const line = current.extraction.lines[rereadTarget.lineId]
-					if (!line) return current
-					const key =
-						rereadTarget.field === 'item.quantity'
-							? 'quantity'
-							: rereadTarget.field === 'item.unitPrice'
-								? 'unitPrice'
-								: 'name'
-					const lineItems = current.lineItems.map(item => {
-						if (item.id !== rereadTarget.lineId) return item
-						if (key === 'quantity' && typeof scored.value === 'number') {
-							return { ...item, quantity: scored.value }
-						}
-						if (key === 'unitPrice' && typeof scored.value === 'number') {
-							return { ...item, unitPrice: scored.value }
-						}
-						if (key === 'name' && typeof scored.value === 'string') {
-							const pending = isPendingProductId(item.productId)
-							return {
-								...item,
-								name: pending ? scored.value : item.name,
-								sourceName: scored.value,
-							}
-						}
-						return item
-					})
-					const pending = current.lineItems.some(
-						item =>
-							item.id === rereadTarget.lineId &&
-							isPendingProductId(item.productId),
-					)
-					const lineMatch =
-						current.extraction.lineMatches?.[rereadTarget.lineId]
-					const nextNameMatch =
-						key === 'name' && typeof scored.value === 'string'
-							? pending
-								? {
-										id: null,
-										name: null,
-										confidence: null,
-										band: 'missing' as const,
-										reason: 'none' as const,
-										autoLink: false,
-										invoiceName: scored.value,
-										confirmed: false,
-									}
-								: lineMatch
-									? { ...lineMatch, invoiceName: scored.value }
-									: undefined
-							: undefined
-					return {
-						...current,
-						lineItems,
-						extraction: {
-							...current.extraction,
-							lines: {
-								...current.extraction.lines,
-								[rereadTarget.lineId]: { ...line, [key]: review },
-							},
-							lineMatches: nextNameMatch
-								? {
-										...current.extraction.lineMatches,
-										[rereadTarget.lineId]: nextNameMatch,
-									}
-								: current.extraction.lineMatches,
-						},
-					}
-				}
-
-				const headerKey =
-					rereadTarget.field === 'invoiceNumber'
-						? 'invoiceNumber'
-						: rereadTarget.field === 'invoiceDate'
-							? 'invoiceDate'
-							: rereadTarget.field === 'vat'
-								? 'vat'
-								: rereadTarget.field === 'total'
-									? 'total'
-									: 'supplierName'
-
-				const supplierNameValue =
-					headerKey === 'supplierName' && typeof scored.value === 'string'
-						? scored.value
-						: null
-				const existingSupplierMatch = current.extraction.supplierMatch
-				const nextSupplierMatch =
-					supplierNameValue == null
-						? existingSupplierMatch
-						: current.supplierId
-							? existingSupplierMatch
-								? {
-										...existingSupplierMatch,
-										invoiceName: supplierNameValue,
-									}
-								: existingSupplierMatch
-							: {
-									id: null,
-									name: null,
-									confidence: null,
-									band: 'missing' as const,
-									reason: 'none' as const,
-									autoLink: false,
-									invoiceName: supplierNameValue,
-									confirmed: false,
-								}
-
-				return {
-					...current,
-					supplierName:
-						supplierNameValue != null && !current.supplierId
-							? supplierNameValue
-							: current.supplierName,
-					sourceSupplierName: supplierNameValue ?? current.sourceSupplierName,
-					supplierInvoiceNumber:
-						headerKey === 'invoiceNumber' && typeof scored.value === 'string'
-							? scored.value
-							: current.supplierInvoiceNumber,
-					invoiceDate:
-						headerKey === 'invoiceDate' && typeof scored.value === 'string'
-							? scored.value
-							: current.invoiceDate,
-					extraction: {
-						...current.extraction,
-						[headerKey]: review,
-						supplierMatch: nextSupplierMatch,
-					},
-				}
-			})
-			setRereadTarget(null)
-		} catch (error) {
-			const apiError = error as { data?: { message?: string } }
-			setSaveError(
-				apiError.data?.message ?? t('components.buyingInvoices.extract.failed'),
-			)
-		}
-	}
-
 	const handleSaveInvoice = async (status: InvoiceStatus) => {
 		if (!canSave) return
 
@@ -1136,14 +970,10 @@ const NewBuyingInvoicePanel = ({
 					{!isReadOnly && mode === 'create' && canUseInvoiceAi && (
 						<InvoiceExtractPreview
 							isExtracting={isExtracting || isRefreshingUsage}
-							isRereading={isRereading}
 							previewUrl={previewUrl}
 							previewMimeType={extractFile?.type}
-							rereadTarget={rereadTarget}
-							onCancelReread={() => setRereadTarget(null)}
 							onFileChosen={setExtractFile}
 							onExtract={handleExtractInvoice}
-							onCroppedRegion={handleExtractRegion}
 							availableCount={invoiceAiUsage?.available}
 							nextPeriodStartsAt={invoiceAiUsage?.nextPeriodStartsAt}
 							isUsageLoading={isInvoiceAiUsageLoading}
@@ -1180,11 +1010,6 @@ const NewBuyingInvoicePanel = ({
 								<ConfidenceMark
 									review={draft.extraction?.invoiceDate}
 									onConfirm={() => confirmHeaderReview('invoiceDate')}
-									onReread={
-										canUseInvoiceAi
-											? () => setRereadTarget({ field: 'invoiceDate' })
-											: undefined
-									}
 								/>
 							</Flex>
 							<DatePickerLabel
@@ -1280,11 +1105,6 @@ const NewBuyingInvoicePanel = ({
 								<ConfidenceMark
 									review={draft.extraction?.supplierName}
 									onConfirm={() => confirmHeaderReview('supplierName')}
-									onReread={
-										canUseInvoiceAi
-											? () => setRereadTarget({ field: 'supplierName' })
-											: undefined
-									}
 								/>
 							</Flex>
 							<DropdownLabel
@@ -1353,11 +1173,6 @@ const NewBuyingInvoicePanel = ({
 								<ConfidenceMark
 									review={draft.extraction?.invoiceNumber}
 									onConfirm={() => confirmHeaderReview('invoiceNumber')}
-									onReread={
-										canUseInvoiceAi
-											? () => setRereadTarget({ field: 'invoiceNumber' })
-											: undefined
-									}
 								/>
 							</Flex>
 							<Input
@@ -1460,11 +1275,6 @@ const NewBuyingInvoicePanel = ({
 									},
 								}
 							})
-						}
-						onRereadLineField={
-							canUseInvoiceAi
-								? (lineId, field) => setRereadTarget({ field, lineId })
-								: undefined
 						}
 						productCaption={item => {
 							const match = draft.extraction?.lineMatches?.[item.id]
@@ -1639,11 +1449,6 @@ const NewBuyingInvoicePanel = ({
 										<ConfidenceMark
 											review={draft.extraction?.vat}
 											onConfirm={() => confirmHeaderReview('vat')}
-											onReread={
-												canUseInvoiceAi
-													? () => setRereadTarget({ field: 'vat' })
-													: undefined
-											}
 										/>
 									</HStack>
 									<Text fontSize="sm" fontWeight={500}>
@@ -1665,11 +1470,6 @@ const NewBuyingInvoicePanel = ({
 											<ConfidenceMark
 												review={draft.extraction?.total}
 												onConfirm={() => confirmHeaderReview('total')}
-												onReread={
-													canUseInvoiceAi
-														? () => setRereadTarget({ field: 'total' })
-														: undefined
-												}
 											/>
 										</HStack>
 										<CurrencyAmountTooltip

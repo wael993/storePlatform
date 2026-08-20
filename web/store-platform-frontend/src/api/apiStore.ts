@@ -7,11 +7,7 @@ import { config } from '../config'
 import { InvoicePaymentStatus, InvoicePaymentType } from '../shared/globalEnums'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
-import type {
-	InvoiceExtractFieldPath,
-	ScoredField,
-	ScoredInvoiceExtraction,
-} from '../shared/invoiceExtraction'
+import type { ScoredInvoiceExtraction } from '../shared/invoiceExtraction'
 import {
 	getIsOnline,
 	markOnline,
@@ -1662,22 +1658,6 @@ const getQuery = (
 			}),
 		}),
 
-		extractBuyingInvoiceRegion: builder.mutation<
-			ScoredField<string | number>,
-			{
-				fileBase64: string
-				mimeType: string
-				fileName?: string
-				field: InvoiceExtractFieldPath
-			}
-		>({
-			query: body => ({
-				url: 'buying-invoices/extract-region',
-				method: 'POST',
-				body,
-			}),
-		}),
-
 		confirmBuyingInvoiceMatch: builder.mutation<
 			{ ok: boolean },
 			{ kind: 'product' | 'supplier'; id: string; alias: string }
@@ -1920,7 +1900,6 @@ export const {
 	useUpdateBuyingInvoiceMutation,
 	useDeleteBuyingInvoiceMutation,
 	useExtractBuyingInvoiceMutation,
-	useExtractBuyingInvoiceRegionMutation,
 	useGetInvoiceAiUsageQuery,
 	useConfirmBuyingInvoiceMatchMutation,
 	useGetInventoryQuery,

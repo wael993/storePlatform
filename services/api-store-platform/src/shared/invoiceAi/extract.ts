@@ -1,12 +1,9 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import { getInvoiceAiProvider } from './providers'
-import { scoreInvoiceExtraction, scoreRegionField } from './score'
+import { scoreInvoiceExtraction } from './score'
 import {
 	InvoiceDocumentInput,
-	InvoiceExtractFieldPath,
-	InvoiceRegionInput,
-	ScoredField,
 	ScoredInvoiceExtraction,
 } from './types'
 
@@ -19,13 +16,6 @@ const ALLOWED_MIME = new Set([
 	'image/webp',
 	'image/tiff',
 	'image/bmp',
-])
-
-const NUMERIC_FIELDS = new Set<InvoiceExtractFieldPath>([
-	'vat',
-	'total',
-	'item.quantity',
-	'item.unitPrice',
 ])
 
 export const decodeInvoiceUpload = (body: {
@@ -82,12 +72,4 @@ export const extractInvoice = async (
 	const raw = await getInvoiceAiProvider().extract(input)
 
 	return scoreInvoiceExtraction(raw)
-}
-
-export const extractInvoiceRegion = async (
-	input: InvoiceRegionInput,
-): Promise<ScoredField<string | number>> => {
-	const raw = await getInvoiceAiProvider().extractRegion(input)
-
-	return scoreRegionField(raw, NUMERIC_FIELDS.has(input.field))
 }
