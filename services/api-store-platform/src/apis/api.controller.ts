@@ -558,7 +558,7 @@ export default class ProductController {
 				tenantId: user.tenantId,
 				tenantName,
 			},
-			config.jwtSecure as string,
+			config.jwtSecret,
 			{ expiresIn: '15m' },
 		)
 	}
@@ -715,7 +715,7 @@ export default class ProductController {
 	public async validateUser(request: any, token: string) {
 		const decoded = jwt.verify(
 			token,
-			config.jwtSecure as string,
+			config.jwtSecret,
 		) as TokenPayload
 
 		const user = (await withTenantScope(
@@ -809,13 +809,6 @@ export default class ProductController {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
 				'Invalid email or password.',
-			)
-		}
-
-		if (!config.jwtSecure || !config.refreshSecret) {
-			throw new AuthenticationError(
-				ERROR_CODES.AUTHORIZATION.NO_BEARER_TOKEN,
-				'Server configuration error.',
 			)
 		}
 
