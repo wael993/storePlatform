@@ -34,6 +34,7 @@ import ProductModal from './components/product/ProductModal'
 import SellingInvoicesPage from './components/SellingInvoice/SellingInvoicesPage'
 import EmployeesPage from './components/employee/EmployeesPage'
 import EmployeeProfilePage from './components/employee/EmployeeProfilePage'
+import ReportPage from './pages/ReportPage'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -59,6 +60,7 @@ const App = () => {
 		isProductsEnabled,
 		isOrdersEnabled,
 		isSellingInvoicesEnabled,
+		isReportsEnabled,
 		isUsersEnabled,
 		isEmployeesEnabled,
 		isSettingsEnabled,
@@ -76,6 +78,7 @@ const App = () => {
 		isTenantDailyEnabled,
 		isTenantOrdersEnabled,
 		isTenantSellingInvoicesEnabled,
+		isTenantReportsEnabled,
 		isTenantUsersEnabled,
 		isTenantEmployeesEnabled,
 		isTenantSettingsEnabled,
@@ -134,6 +137,9 @@ const App = () => {
 								path={RoutePaths.SELLING_INVOICES}
 								element={<SellingInvoicesPage />}
 							/>
+						)}
+						{isReportsEnabled && isTenantReportsEnabled && (
+							<Route path={RoutePaths.REPORTS} element={<ReportPage />} />
 						)}
 						{isSettingsEnabled && isTenantSettingsEnabled && (
 							<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />

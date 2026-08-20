@@ -21,6 +21,8 @@ import SellingInvoiceController from './apis/selling-invoice/api.controller'
 import SellingInvoiceRoutes from './apis/selling-invoice/api.routes'
 import BuyingInvoiceController from './apis/buying-invoice/api.controller'
 import BuyingInvoiceRoutes from './apis/buying-invoice/api.routes'
+import ReportController from './apis/report/api.controller'
+import ReportRoutes from './apis/report/api.routes'
 import StoreRoutes from './apis/api.routes'
 import EmployeeController from './apis/employee/api.controller'
 import EmployeeRoutes from './apis/employee/api.routes'
@@ -99,6 +101,8 @@ const buyingInvoiceRoutes = new BuyingInvoiceRoutes(
 	buyingInvoiceController,
 	productController,
 )
+const reportController = new ReportController(mongoDbClient)
+const reportRoutes = new ReportRoutes(reportController, productController)
 const storeRoutes = new StoreRoutes(productController)
 const notificationController = new NotificationController()
 const notificationRoutes = new NotificationRoutes(
@@ -160,6 +164,7 @@ partnerRoutes.setRoutes(app)
 settingRoutes.setRoutes(app)
 sellingInvoiceRoutes.setRoutes(app)
 buyingInvoiceRoutes.setRoutes(app)
+reportRoutes.setRoutes(app)
 notificationRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 tenantRoutes.setRoutes(app)

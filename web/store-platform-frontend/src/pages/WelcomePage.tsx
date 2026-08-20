@@ -109,6 +109,7 @@ const WelcomePage = () => {
 		isDailyEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
+		isReportsEnabled,
 		isCategoriesEnabled,
 		isSuppliersEnabled,
 		isEmployeesEnabled,
@@ -120,6 +121,7 @@ const WelcomePage = () => {
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
 		isTenantSellingInvoicesEnabled,
+		isTenantReportsEnabled,
 		isTenantCategoriesEnabled,
 		isTenantSuppliersEnabled,
 		isTenantEmployeesEnabled,
@@ -166,6 +168,12 @@ const WelcomePage = () => {
 			? {
 					path: RoutePaths.SELLING_INVOICES,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.SELLING_INVOICES,
+				}
+			: null,
+		isReportsEnabled && isTenantReportsEnabled
+			? {
+					path: RoutePaths.REPORTS,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.REPORTS,
 				}
 			: null,
 		isCategoriesEnabled && isTenantCategoriesEnabled

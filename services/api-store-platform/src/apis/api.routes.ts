@@ -9,7 +9,6 @@ import {
 	InventoryRequestBody,
 	OrderRequestBody,
 	ProductRequestBody,
-	ReportRequestBody,
 	RequestContext,
 	CurrencyRequestBody,
 	ExpenseRequestBody,
@@ -275,42 +274,6 @@ export default class StoreRoutes extends PlatformValidator {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteInventory.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/reports`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getReports.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postReport.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/reports/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getReport.bind(this),
-			)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchReport.bind(this),
-			)
-			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.deleteReport.bind(this),
 			)
 
 		app
@@ -1459,105 +1422,6 @@ export default class StoreRoutes extends PlatformValidator {
 
 		try {
 			await this.productController.deleteInventory(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getReports(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getReports(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getReport(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getReport(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postReport(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: ReportRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.postReport(
-				requestBody,
-				requestContext,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchReport(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.patchReport(
-				request.params.id,
-				request.body,
-				requestContext,
-			)
-
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async deleteReport(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.deleteReport(
 				request.params.id,
 				requestContext,
 			)

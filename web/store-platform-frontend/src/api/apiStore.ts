@@ -1658,6 +1658,17 @@ const getQuery = (
 			}),
 		}),
 
+		postReportChat: builder.mutation<
+			{ reply: string },
+			{ messages: Array<{ role: 'user' | 'assistant'; content: string }> }
+		>({
+			query: body => ({
+				url: 'reports/chat',
+				method: 'POST',
+				body,
+			}),
+		}),
+
 		confirmBuyingInvoiceMatch: builder.mutation<
 			{ ok: boolean },
 			{ kind: 'product' | 'supplier'; id: string; alias: string }
@@ -1901,6 +1912,7 @@ export const {
 	useDeleteBuyingInvoiceMutation,
 	useExtractBuyingInvoiceMutation,
 	useGetInvoiceAiUsageQuery,
+	usePostReportChatMutation,
 	useConfirmBuyingInvoiceMatchMutation,
 	useGetInventoryQuery,
 	useEditInventoryMutation,

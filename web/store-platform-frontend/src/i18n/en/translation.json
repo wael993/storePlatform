@@ -29,6 +29,24 @@
 			}
 		}
 	},
+	"report": {
+		"chat": {
+			"title": "AI Business Assistant",
+			"subtitle": "Ask questions about your sales, products, suppliers, invoices, and profit.",
+			"placeholder": "Ask anything about your business...",
+			"send": "Send",
+			"empty": "Start a conversation",
+			"emptyHint": "The assistant answers from this tenant's records only. Try a question below or type your own.",
+			"thinking": "Looking up your business data...",
+			"error": "Could not get an answer. Try again.",
+			"examples": {
+				"bestSeller": "What was my best-selling product last month?",
+				"salesRange": "What were my sales from January to March?",
+				"profit": "What was my profit last month?",
+				"topSuppliers": "Which supplier did I buy the most from this year?"
+			}
+		}
+	},
 	"tenants": {
 		"title": "Tenants List",
 		"description": "Review tenants, switch their status, edit names, or delete them.",
@@ -83,7 +101,7 @@
 			"ordersDescription": "Order management.",
 			"invoicesDescription": "Invoice management.",
 			"inventoryDescription": "Stock and inventory tracking.",
-			"reportsDescription": "Business reports and analytics.",
+			"reportsDescription": "Ask the AI assistant about sales, products, suppliers, and invoices.",
 			"barcodeDescription": "Barcode scanning workflow.",
 			"settingsDescription": "Tenant settings and preferences.",
 			"sellingInvoicesDescription": "Selling invoice management.",
@@ -718,7 +736,8 @@
 			"partners": "Partners",
 			"partner": "Partner",
 			"employees": "Employees",
-			"employee": "Employee"
+			"employee": "Employee",
+			"reports": "Reports"
 		},
 		"activitySettingsSection": {
 			"title": "Products Per Page"

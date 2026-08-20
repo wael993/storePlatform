@@ -29,6 +29,24 @@
 			}
 		}
 	},
+	"report": {
+		"chat": {
+			"title": "KI-Geschäftsassistent",
+			"subtitle": "Stellen Sie Fragen zu Umsatz, Produkten, Lieferanten, Rechnungen und Gewinn.",
+			"placeholder": "Fragen Sie etwas zu Ihrem Geschäft...",
+			"send": "Senden",
+			"empty": "Unterhaltung starten",
+			"emptyHint": "Der Assistent antwortet nur mit Daten dieses Mandanten. Wählen Sie eine Frage oder schreiben Sie selbst.",
+			"thinking": "Geschäftsdaten werden gelesen...",
+			"error": "Antwort nicht möglich. Bitte erneut versuchen.",
+			"examples": {
+				"bestSeller": "Was war mein meistverkauftes Produkt im letzten Monat?",
+				"salesRange": "Wie hoch war mein Umsatz von Januar bis März?",
+				"profit": "Wie hoch war mein Gewinn im letzten Monat?",
+				"topSuppliers": "Bei welchem Lieferanten habe ich dieses Jahr am meisten eingekauft?"
+			}
+		}
+	},
 	"tenants": {
 		"title": "Mandantenliste",
 		"description": "Mandanten prüfen, Status ändern, Namen bearbeiten oder löschen.",
@@ -82,7 +100,7 @@
 			"ordersDescription": "Auftragsverwaltung.",
 			"invoicesDescription": "Rechnungsverwaltung.",
 			"inventoryDescription": "Bestands- und Inventarverfolgung.",
-			"reportsDescription": "Geschäftsberichte und Analysen.",
+			"reportsDescription": "Fragen Sie den KI-Assistenten zu Umsatz, Produkten, Lieferanten und Rechnungen.",
 			"barcodeDescription": "Barcode-Scan-Workflow.",
 			"settingsDescription": "Mandanteneinstellungen und Präferenzen.",
 			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung.",
@@ -702,7 +720,8 @@
 			"partners": "Partner",
 			"partner": "Partner",
 			"employees": "Mitarbeiter",
-			"employee": "Mitarbeiter"
+			"employee": "Mitarbeiter",
+			"reports": "Berichte"
 		},
 		"activitySettingsSection": {
 			"title": "Produkte pro Seite"

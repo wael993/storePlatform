@@ -76,4 +76,15 @@ export const config = {
 			model: process.env.GEMINI_INVOICE_MODEL || 'gemini-3.5-flash-lite',
 		},
 	},
+	aiReport: {
+		provider: (process.env.AI_REPORT_PROVIDER || 'mock').toLowerCase(),
+		openai: {
+			apiKey: process.env.OPENAI_API_KEY || '',
+			model: process.env.OPENAI_REPORT_MODEL || 'gpt-4o-mini',
+		},
+		gemini: {
+			apiKey: process.env.GEMINI_REPORT_API_KEY || '',
+			model: process.env.GEMINI_REPORT_MODEL || 'gemini-3.5-flash-lite',
+		},
+	},
 }

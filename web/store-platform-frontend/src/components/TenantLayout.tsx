@@ -42,6 +42,7 @@ const TenantLayout = () => {
 		isDailyEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
+		isReportsEnabled,
 		isCategoriesEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
@@ -57,6 +58,7 @@ const TenantLayout = () => {
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
 		isTenantSellingInvoicesEnabled,
+		isTenantReportsEnabled,
 		isTenantCategoriesEnabled,
 		isTenantSuppliersEnabled,
 		isTenantPartnersEnabled,
@@ -90,6 +92,9 @@ const TenantLayout = () => {
 			: null,
 		isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled
 			? { label: 'Selling Invoices', path: RoutePaths.SELLING_INVOICES }
+			: null,
+		isReportsEnabled && isTenantReportsEnabled
+			? { label: 'Reports', path: RoutePaths.REPORTS }
 			: null,
 		isCategoriesEnabled && isTenantCategoriesEnabled
 			? { label: 'Categories', path: RoutePaths.CATEGORIES }

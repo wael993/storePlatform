@@ -29,7 +29,6 @@ import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { BuyingInvoice } from '../models/BuyingInvoices'
 import { Inventory } from '../models/Inventory'
-import { Report } from '../models/Report'
 import { DailyAction } from '../models/DailyAction'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
@@ -60,7 +59,6 @@ import {
 	ProductRequestBody,
 	ProductCatalogItem,
 	ProductCatalogResponse,
-	ReportRequestBody,
 	RequestContext,
 	ProductAPI,
 	SupplierRequestBody,
@@ -2478,68 +2476,6 @@ export default class ProductController {
 		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
 
 		return deleteResponse
-	}
-
-	public async getReports(requestContext: RequestContext) {
-		const reports = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.REPORTS,
-			model: Report,
-			sort: { createdAt: 'desc' },
-		})
-
-		return reports.documents
-	}
-
-	public async getReport(reportId: string, requestContext: RequestContext) {
-		return this.mongoDbClient.getDocumentByField(
-			requestContext,
-			COLLECTION_NAMES.REPORTS,
-			Report,
-			{ fieldName: 'reportId', fieldValue: reportId },
-		)
-	}
-
-	public async postReport(
-		requestBody: ReportRequestBody,
-		requestContext: RequestContext,
-	) {
-		const reportData = {
-			reportId: uuidv4(),
-			name: requestBody.name,
-			type: requestBody.type,
-			periodStart: requestBody.periodStart,
-			periodEnd: requestBody.periodEnd,
-			data: requestBody.data,
-		}
-		const createReportResponse = await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.REPORTS, data: reportData },
-			Report,
-			requestContext,
-		)
-
-		return { _id: createReportResponse._id }
-	}
-
-	public async patchReport(
-		reportId: string,
-		requestBody: Partial<ReportRequestBody>,
-		requestContext: RequestContext,
-	) {
-		return this.mongoDbClient.updateDocument(
-			{ collectionName: COLLECTION_NAMES.REPORTS, id: reportId },
-			requestContext,
-			Report,
-			requestBody,
-		)
-	}
-
-	public async deleteReport(reportId: string, requestContext: RequestContext) {
-		return this.mongoDbClient.deleteDocument(
-			{ collectionName: COLLECTION_NAMES.REPORTS, id: reportId },
-			requestContext,
-			Report,
-		)
 	}
 
 	public async getDailyActions(
