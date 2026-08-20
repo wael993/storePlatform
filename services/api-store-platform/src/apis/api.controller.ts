@@ -713,10 +713,7 @@ export default class ProductController {
 	}
 
 	public async validateUser(request: any, token: string) {
-		const decoded = jwt.verify(
-			token,
-			config.jwtSecret,
-		) as TokenPayload
+		const decoded = jwt.verify(token, config.jwtSecret) as TokenPayload
 
 		const user = (await withTenantScope(
 			User.findOne({ userId: decoded.userId }),

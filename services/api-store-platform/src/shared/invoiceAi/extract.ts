@@ -2,10 +2,7 @@ import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import { getInvoiceAiProvider } from './providers'
 import { scoreInvoiceExtraction } from './score'
-import {
-	InvoiceDocumentInput,
-	ScoredInvoiceExtraction,
-} from './types'
+import { InvoiceDocumentInput, ScoredInvoiceExtraction } from './types'
 
 const MAX_BYTES = 8 * 1024 * 1024
 const ALLOWED_MIME = new Set([

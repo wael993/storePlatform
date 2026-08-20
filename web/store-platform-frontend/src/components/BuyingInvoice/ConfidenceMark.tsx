@@ -35,19 +35,13 @@ const ConfidenceMark = ({ review, onConfirm }: ConfidenceMarkProps) => {
 				fontSize="sm"
 				lineHeight={1}
 				onClick={
-					review.band === 'review' && !review.confirmed
-						? onConfirm
-						: undefined
+					review.band === 'review' && !review.confirmed ? onConfirm : undefined
 				}
 				cursor={
 					review.band === 'review' && !review.confirmed ? 'pointer' : 'help'
 				}
 			>
-				{review.band === 'high'
-					? '🟢'
-					: review.band === 'review'
-						? '🟡'
-						: '🔴'}
+				{review.band === 'high' ? '🟢' : review.band === 'review' ? '🟡' : '🔴'}
 			</Text>
 		</Tooltip>
 	)

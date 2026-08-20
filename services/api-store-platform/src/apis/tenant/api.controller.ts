@@ -317,8 +317,7 @@ export default class TenantController {
 			const monthlyLimit =
 				requestBody.invoiceAiMonthlyLimit !== undefined
 					? parseInvoiceAiMonthlyLimit(requestBody.invoiceAiMonthlyLimit)
-					: (tenant.invoiceAi?.monthlyLimit ??
-						DEFAULT_INVOICE_AI_MONTHLY_LIMIT)
+					: (tenant.invoiceAi?.monthlyLimit ?? DEFAULT_INVOICE_AI_MONTHLY_LIMIT)
 
 			updates.invoiceAi = newInvoiceAiUsage(monthlyLimit, new Date())
 		} else if (

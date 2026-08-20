@@ -282,9 +282,9 @@ const NewBuyingInvoicePanel = ({
 		isLoading: isInvoiceAiUsageLoading,
 		isError: isInvoiceAiUsageError,
 	} = useGetInvoiceAiUsageQuery(undefined, {
-			skip: !canUseInvoiceAi,
-			refetchOnFocus: true,
-		})
+		skip: !canUseInvoiceAi,
+		refetchOnFocus: true,
+	})
 	const [confirmBuyingInvoiceMatch] = useConfirmBuyingInvoiceMatchMutation()
 	const [createSupplier, { isLoading: isCreatingSupplier }] =
 		useCreateSupplierMutation()
@@ -350,9 +350,12 @@ const NewBuyingInvoicePanel = ({
 			new Date(invoiceAiUsage.nextPeriodStartsAt).getTime() - Date.now()
 		if (delay <= 0) return
 
-		const timer = window.setTimeout(() => {
-			void refetchInvoiceAiUsage()
-		}, Math.min(delay, 2_147_483_647))
+		const timer = window.setTimeout(
+			() => {
+				void refetchInvoiceAiUsage()
+			},
+			Math.min(delay, 2_147_483_647),
+		)
 
 		return () => window.clearTimeout(timer)
 	}, [
