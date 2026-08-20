@@ -114,12 +114,6 @@ export const reviewAfterEdit = (
 	confirmed: true,
 })
 
-export const isReviewBlocking = (review?: ExtractFieldReview) => {
-	if (!review) return false
-	if (review.confirmed && review.band !== 'missing') return false
-	return review.band !== 'high'
-}
-
 export const formatConfidencePercent = (confidence: number | null) => {
 	if (confidence == null) return null
 	return `${Math.round(confidence * 100)}%`

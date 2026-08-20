@@ -27,7 +27,7 @@ const hasValue = <T>(field: RawExtractedField<T>): boolean => {
 	return true
 }
 
-export const bandForField = (
+const bandForField = (
 	field: RawExtractedField<unknown>,
 	highThreshold = HIGH,
 ): ConfidenceBand => {

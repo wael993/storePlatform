@@ -20,7 +20,7 @@ const FUZZY_GAP = 0.12
 const CANDIDATE_LIMIT = 8
 const RANK_CONCURRENCY = 4
 
-export interface CatalogProduct {
+interface CatalogProduct {
 	productId: string
 	name: string
 	latinName?: string
@@ -33,7 +33,7 @@ export interface CatalogProduct {
 	supplierId?: string
 }
 
-export interface CatalogSupplier {
+interface CatalogSupplier {
 	supplierId: string
 	name: string
 	internalCode?: string
@@ -42,20 +42,20 @@ export interface CatalogSupplier {
 	aliases?: string[]
 }
 
-export interface InvoiceProductQuery {
+interface InvoiceProductQuery {
 	name: string | null
 	barcode?: string | null
 	sku?: string | null
 	unit?: string | null
 }
 
-export interface InvoiceSupplierQuery {
+interface InvoiceSupplierQuery {
 	name: string | null
 	vatId?: string | null
 	email?: string | null
 }
 
-export type RankMatchFn = (input: RankMatchInput) => Promise<RankMatchHit[]>
+type RankMatchFn = (input: RankMatchInput) => Promise<RankMatchHit[]>
 
 const missing = (invoiceName: string | null): EntityMatch => ({
 	id: null,
@@ -83,7 +83,7 @@ const hit = (
 	invoiceName,
 })
 
-export const bandForConfidence = (confidence: number): ConfidenceBand => {
+const bandForConfidence = (confidence: number): ConfidenceBand => {
 	if (confidence >= HIGH) return 'high'
 
 	if (confidence >= REVIEW) return 'review'
@@ -91,7 +91,7 @@ export const bandForConfidence = (confidence: number): ConfidenceBand => {
 	return 'missing'
 }
 
-export const normalizeText = (value: string): string =>
+const normalizeText = (value: string): string =>
 	expandPackageSize(value)
 		.toLowerCase()
 		.replace(/[^a-zA-Z0-9\u0600-\u06FF]+/g, ' ')
@@ -112,7 +112,7 @@ const expandPackageSize = (value: string): string =>
 		)
 		.replace(/\b(\d+(?:[.,]\d+)?)\s*ml\b/gi, '$1ml')
 
-export const normalizeCode = (value: string): string =>
+const normalizeCode = (value: string): string =>
 	value.replace(/[\s-]/g, '').toUpperCase()
 
 const tokens = (value: string): string[] =>
@@ -205,7 +205,7 @@ const emailDomain = (email: string): string | null => {
 	return domain
 }
 
-export const matchProductDeterministic = (
+const matchProductDeterministic = (
 	query: InvoiceProductQuery,
 	catalog: CatalogProduct[],
 ): EntityMatch => {
@@ -320,7 +320,7 @@ export const matchProductDeterministic = (
 	)
 }
 
-export const matchSupplierDeterministic = (
+const matchSupplierDeterministic = (
 	query: InvoiceSupplierQuery,
 	catalog: CatalogSupplier[],
 ): EntityMatch => {
@@ -437,7 +437,7 @@ export const matchSupplierDeterministic = (
 	)
 }
 
-export const blockProductCandidates = (
+const blockProductCandidates = (
 	query: InvoiceProductQuery,
 	catalog: CatalogProduct[],
 	limit = CANDIDATE_LIMIT,
@@ -469,7 +469,7 @@ export const blockProductCandidates = (
 		.map(row => row.product)
 }
 
-export const blockSupplierCandidates = (
+const blockSupplierCandidates = (
 	query: InvoiceSupplierQuery,
 	catalog: CatalogSupplier[],
 	limit = CANDIDATE_LIMIT,
@@ -547,7 +547,7 @@ const withAiRank = async (
 	return hit({ id: best.id, name }, best.confidence, 'ai', false, invoiceName)
 }
 
-export const matchProduct = async (
+const matchProduct = async (
 	query: InvoiceProductQuery,
 	catalog: CatalogProduct[],
 	rankMatch: RankMatchFn,
@@ -588,7 +588,7 @@ export const matchProduct = async (
 	)
 }
 
-export const matchSupplier = async (
+const matchSupplier = async (
 	query: InvoiceSupplierQuery,
 	catalog: CatalogSupplier[],
 	rankMatch: RankMatchFn,
