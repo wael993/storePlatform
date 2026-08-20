@@ -10,6 +10,7 @@ import { config } from '../config/config'
 import {
 	BusinessLogicError,
 	AuthenticationError,
+	AuthorizationError,
 } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
 import { Supplier } from '../models/Supplier'
@@ -124,6 +125,7 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
+import { syncTenantSubscription } from '../shared/subscription/persist'
 import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
 import { mapInvoiceFiltersToUiStatus } from '../shared/constants'
 import {
@@ -596,14 +598,16 @@ export default class ProductController {
 			)
 		}
 
-		if (tenant.status !== 'active') {
+		const { tenant: synced } = await syncTenantSubscription(tenant)
+
+		if (synced.status !== 'active') {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',
 			)
 		}
 
-		return tenant
+		return synced
 	}
 
 	private resolveAccessiblePagesForAuth(tenant: ITenant): string[] {
@@ -633,7 +637,6 @@ export default class ProductController {
 	): Promise<TenantAccessiblePage[]> {
 		const tenant = (await Tenant.findOne({
 			tenantId,
-			status: 'active',
 		}).lean()) as ITenant | null
 
 		if (!tenant) {
@@ -643,7 +646,16 @@ export default class ProductController {
 			)
 		}
 
-		return resolveAccessiblePagesForTenant(tenant)
+		const { tenant: synced } = await syncTenantSubscription(tenant)
+
+		if (synced.status !== 'active') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Tenant is not active.',
+			)
+		}
+
+		return resolveAccessiblePagesForTenant(synced)
 	}
 
 	private async ensureProductsBelongToTenant(
@@ -900,7 +912,9 @@ export default class ProductController {
 			)
 		}
 
-		if (tenant.status !== 'active') {
+		const { tenant: synced } = await syncTenantSubscription(tenant)
+
+		if (synced.status !== 'active') {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',

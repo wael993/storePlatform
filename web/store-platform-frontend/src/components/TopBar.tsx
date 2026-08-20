@@ -5,6 +5,7 @@ import {
 	HamburgerIcon,
 	RepeatIcon,
 	SettingsIcon,
+	WarningIcon,
 } from '@chakra-ui/icons'
 import {
 	Avatar,
@@ -46,12 +47,15 @@ import { useUser } from '../shared/hooks/useUser'
 import { AsDragGripIcon } from '../shared/icons/DragGrip'
 import {
 	useGetProductNotificationsQuery,
+	useGetSubscriptionQuery,
 	useMarkProductNotificationsReadMutation,
 	PRODUCT_DIGEST_I18N,
 	ProductDigestType,
 } from '../api/apiStore'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
 import NegativeQuantityDigestModal from './NegativeQuantityDigestModal'
+import { formatRenewalDate } from './SubscriptionRenewalBanner'
+import { UserRole } from '../shared/globalEnums'
 
 interface TopBarProps {
 	navItems: {
@@ -137,6 +141,26 @@ const styles = {
 		bg: 'transparent',
 		_hover: { bg: 'gray.50' },
 	},
+	subscriptionRow: {
+		w: '100%',
+		textAlign: 'start',
+		px: 4,
+		py: 3,
+		fontSize: 'sm',
+		fontWeight: 700,
+		color: '#9B2C2C',
+		bg: '#FFFAF0',
+	},
+	subscriptionRowUrgent: {
+		w: '100%',
+		textAlign: 'start',
+		px: 4,
+		py: 3,
+		fontSize: 'sm',
+		fontWeight: 700,
+		color: '#9B2C2C',
+		bg: '#FFF5F5',
+	},
 	markReadButton: {
 		bg: 'transparent',
 		minW: '2rem',
@@ -178,13 +202,23 @@ const TopBar = ({
 	const digestModal = useDisclosure()
 	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
 	const notificationPopover = useDisclosure()
+	const skipSubscription = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
+	const { data: subscriptionData } = useGetSubscriptionQuery(undefined, {
+		skip: skipSubscription,
+	})
+	const subscription = subscriptionData?.subscription
+	const showSubscriptionWarning = Boolean(
+		subscription && (subscription.warning || subscription.expired),
+	)
 	const { data: notifications } = useGetProductNotificationsQuery(undefined, {
 		skip: !seeNotifications,
 	})
 	const [markProductNotificationsRead, { isLoading: isMarkingRead }] =
 		useMarkProductNotificationsReadMutation()
 	const notificationItems = notifications?.items ?? []
-	const unreadCount = notificationItems.length
+	const unreadCount =
+		notificationItems.length + (showSubscriptionWarning ? 1 : 0)
+	const showBell = seeNotifications || showSubscriptionWarning
 	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
 	const { offlineEnabled, isOnline, syncState, sync } = useOfflineSync(
 		user?.tenantId,
@@ -286,7 +320,7 @@ const TopBar = ({
 				</Flex>
 
 				<Flex align="center" gap={2}>
-					{seeNotifications && (
+					{showBell && (
 						<Box position="relative">
 							<Popover
 								placement="bottom-end"
@@ -319,7 +353,7 @@ const TopBar = ({
 											)}
 										</Flex>
 										<Flex align="center" gap={2}>
-											{unreadCount > 0 && (
+											{notificationItems.length > 0 && (
 												<Box
 													as="button"
 													type="button"
@@ -345,47 +379,101 @@ const TopBar = ({
 									</Flex>
 									<Divider />
 									<PopoverBody p={0}>
-										{notificationItems.length === 0 ? (
+										{unreadCount === 0 ? (
 											<Text sx={styles.notificationRow}>
 												{t('components.topBar.noNotifications')}
 											</Text>
 										) : (
-											notificationItems.map(item => (
-												<Flex
-													key={`${item.type}-${item.runAt}`}
-													align="center"
-													borderBottom="1px solid #ECECEC"
-												>
-													<Box
-														as="button"
-														type="button"
-														flex="1"
-														sx={styles.notificationRow}
-														onClick={() => {
-															setDigestType(item.type)
-															notificationPopover.onClose()
-															digestModal.onOpen()
-														}}
+											<>
+												{showSubscriptionWarning && subscription ? (
+													<Flex
+														align="flex-start"
+														gap={2}
+														sx={
+															subscription.urgent || subscription.expired
+																? styles.subscriptionRowUrgent
+																: styles.subscriptionRow
+														}
+														borderBottom="1px solid #ECECEC"
 													>
-														{t(
-															`components.topBar.${PRODUCT_DIGEST_I18N[item.type]}`,
-															{ count: item.count },
-														)}
-													</Box>
-													<IconButton
-														aria-label={t('components.topBar.markAsRead')}
-														icon={<CheckIcon boxSize={3} />}
-														sx={styles.markReadButton}
-														me={2}
-														isDisabled={isMarkingRead || !isOnline}
-														onClick={() => {
-															void markProductNotificationsRead({
-																type: item.type,
-															})
-														}}
-													/>
-												</Flex>
-											))
+														<WarningIcon
+															boxSize={4}
+															mt="0.15rem"
+															color={
+																subscription.urgent || subscription.expired
+																	? 'red.500'
+																	: 'orange.500'
+															}
+														/>
+														<Box>
+															<Text>
+																{subscription.remainingDays < 0
+																	? t(
+																			'components.topBar.subscriptionExpired',
+																		)
+																	: subscription.remainingDays === 0
+																		? t(
+																				'components.topBar.subscriptionExpiresToday',
+																			)
+																		: subscription.remainingDays === 1
+																			? t(
+																					'components.topBar.subscriptionExpiresInOneDay',
+																				)
+																			: t(
+																					'components.topBar.subscriptionExpiresInDays',
+																					{
+																						count: subscription.remainingDays,
+																					},
+																				)}
+															</Text>
+															<Text fontWeight={500} fontSize="xs" mt={1}>
+																{t('components.topBar.subscriptionRenewBefore', {
+																	date: formatRenewalDate(
+																		subscription.renewalDate,
+																		i18n.language,
+																	),
+																})}
+															</Text>
+														</Box>
+													</Flex>
+												) : null}
+												{notificationItems.map(item => (
+													<Flex
+														key={`${item.type}-${item.runAt}`}
+														align="center"
+														borderBottom="1px solid #ECECEC"
+													>
+														<Box
+															as="button"
+															type="button"
+															flex="1"
+															sx={styles.notificationRow}
+															onClick={() => {
+																setDigestType(item.type)
+																notificationPopover.onClose()
+																digestModal.onOpen()
+															}}
+														>
+															{t(
+																`components.topBar.${PRODUCT_DIGEST_I18N[item.type]}`,
+																{ count: item.count },
+															)}
+														</Box>
+														<IconButton
+															aria-label={t('components.topBar.markAsRead')}
+															icon={<CheckIcon boxSize={3} />}
+															sx={styles.markReadButton}
+															me={2}
+															isDisabled={isMarkingRead || !isOnline}
+															onClick={() => {
+																void markProductNotificationsRead({
+																	type: item.type,
+																})
+															}}
+														/>
+													</Flex>
+												))}
+											</>
 										)}
 									</PopoverBody>
 								</PopoverContent>

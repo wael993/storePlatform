@@ -88,6 +88,10 @@
 		"offlineModeDescription": "Allow this tenant to work offline and sync changes later.",
 		"offlineEnabled": "Offline enabled",
 		"onlineOnly": "Online only",
+		"renewalDate": "Renewal date",
+		"renewSubscription": "Renew subscription",
+		"renewed": "Subscription renewed.",
+		"renewFailed": "Failed to renew subscription.",
 		"accessiblePages": {
 			"inventory": "Inventory",
 			"reports": "Reports",
@@ -934,8 +938,23 @@
 			"logout": "Logout",
 			"icons": "Quick Add",
 			"sync": "Sync data",
-			"noNavigationItems": "No navigation items available."
+			"noNavigationItems": "No navigation items available.",
+			"subscriptionExpiresInDays": "Subscription expires in {{count}} days.",
+			"subscriptionExpiresInOneDay": "Subscription expires in 1 day.",
+			"subscriptionExpiresToday": "Subscription expires today.",
+			"subscriptionExpired": "Subscription expired.",
+			"subscriptionRenewBefore": "Please renew before {{date}} to keep your tenant active."
 		}
+	},
+	"subscription": {
+		"renewalTitle": "Subscription Renewal",
+		"expiresInDays": "Your subscription expires in {{count}} days.",
+		"expiresInOneDay": "Your subscription expires in 1 day.",
+		"expiresToday": "Your subscription expires today.",
+		"expired": "Your subscription expired on {{date}}.",
+		"renewBefore": "Please renew your subscription before {{date}} to keep your tenant account active.",
+		"renew": "Renew Subscription",
+		"dismiss": "Dismiss"
 	},
 	"common": {
 		"note": "Note",

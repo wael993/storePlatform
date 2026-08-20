@@ -14,7 +14,10 @@ import User, { IUser } from '../../models/User'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
-import { getTenantPermissions } from '../../shared/Permissions'
+import {
+	getTenantPermissions,
+	isSuperAdminTenant,
+} from '../../shared/Permissions'
 import {
 	DEFAULT_TENANT_ACCESSIBLE_PAGES,
 	sanitizeAccessiblePages,
@@ -50,6 +53,13 @@ import {
 	UpdateTenantRequestBody,
 	UpdateTenantUserRequestBody,
 } from '../../shared/types'
+import { createSubscription } from '../../shared/subscription/lifecycle'
+import {
+	applySubscriptionRenewal,
+	getSubscriptionConfig,
+	syncTenantSubscription,
+	toView,
+} from '../../shared/subscription/persist'
 
 type TenantUserLean = {
 	readonly _id: { toString(): string } | string
@@ -229,7 +239,11 @@ export default class TenantController {
 			.sort({ createdAt: -1 })
 			.lean<ITenant[]>()
 
-		return tenants.map(tenant => mapTenantSummary(tenant))
+		const synced = await Promise.all(
+			tenants.map(async tenant => (await syncTenantSubscription(tenant)).tenant),
+		)
+
+		return synced.map(tenant => mapTenantSummary(tenant))
 	}
 
 	public async patchTenant(
@@ -371,6 +385,17 @@ export default class TenantController {
 		}
 
 		if (requestBody.status) {
+			if (requestBody.status === 'active' && tenant.subscription) {
+				const subscriptionView = toView(tenant.subscription)
+
+				if (subscriptionView.remainingDays <= 0) {
+					throw new BusinessLogicError(
+						ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+						'Renew the subscription before activating this tenant.',
+					)
+				}
+			}
+
 			updates.status = requestBody.status
 		}
 
@@ -512,13 +537,14 @@ export default class TenantController {
 		}
 
 		const hashedPassword = await bcrypt.hash(ownerPassword, 10)
-
+		const now = new Date()
 		const tenant = await Tenant.create({
 			tenantId,
 			name: tenantName.trim(),
 			domain: normalizedDomain,
 			status: 'active',
 			accessiblePages: [...DEFAULT_TENANT_ACCESSIBLE_PAGES],
+			subscription: createSubscription(now, now, getSubscriptionConfig()),
 		})
 
 		const owner = await User.create({
@@ -547,5 +573,73 @@ export default class TenantController {
 			tenantDomain: tenant.domain,
 			ownerUserId: owner.userId,
 		}
+	}
+
+	public async getOwnSubscription(requestContext: RequestContext) {
+		const tenantContext = getTenantContext(requestContext)
+		const tenant = await Tenant.findOne({
+			tenantId: tenantContext.tenantId,
+		}).lean<ITenant | null>()
+
+		if (!tenant) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_READ_ERROR,
+				'Tenant not found.',
+			)
+		}
+
+		const { view } = await syncTenantSubscription(tenant)
+		const canRenew =
+			tenantContext.role === 'owner' || tenantContext.role === 'admin'
+
+		return {
+			subscription: view ? { ...view, canRenew } : null,
+		}
+	}
+
+	public async renewOwnSubscription(requestContext: RequestContext) {
+		const tenantContext = getTenantContext(requestContext)
+
+		if (tenantContext.role !== 'owner' && tenantContext.role !== 'admin') {
+			throw new BusinessLogicError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Only owner or admin can renew the subscription.',
+			)
+		}
+
+		const tenant = await Tenant.findOne({
+			tenantId: tenantContext.tenantId,
+		}).lean<ITenant | null>()
+
+		if (!tenant || isSuperAdminTenant(tenant)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Tenant subscription not found.',
+			)
+		}
+
+		const { view } = await applySubscriptionRenewal(tenant)
+
+		return { subscription: { ...view, canRenew: true } }
+	}
+
+	public async renewTenantSubscription(
+		tenantId: string,
+		requestContext: RequestContext,
+	) {
+		ensureSuperAdmin(requestContext)
+
+		const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
+
+		if (!tenant || isSuperAdminTenant(tenant)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Tenant subscription not found.',
+			)
+		}
+
+		const { tenant: updated } = await applySubscriptionRenewal(tenant)
+
+		return mapTenantSummary(updated)
 	}
 }

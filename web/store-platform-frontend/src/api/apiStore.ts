@@ -1189,6 +1189,35 @@ const getQuery = (
 			invalidatesTags: ['tenants'],
 		}),
 
+		getSubscription: builder.query<
+			{ subscription: (TenantSubscriptionView & { canRenew: boolean }) | null },
+			void
+		>({
+			query: () => ({
+				url: 'subscription',
+			}),
+			providesTags: ['subscription'],
+		}),
+
+		renewSubscription: builder.mutation<
+			{ subscription: TenantSubscriptionView & { canRenew: boolean } },
+			void
+		>({
+			query: () => ({
+				url: 'subscription/renew',
+				method: 'POST',
+			}),
+			invalidatesTags: ['subscription'],
+		}),
+
+		renewTenantSubscription: builder.mutation<TenantSummary, string>({
+			query: tenantId => ({
+				url: `tenants/${tenantId}/subscription/renew`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['tenants'],
+		}),
+
 		getUser: builder.query<User, void>({
 			async queryFn(_arg, api, extraOptions, _baseQuery) {
 				const result = await persistenceBaseQuery(
@@ -1874,6 +1903,9 @@ export const {
 	useGetUserFrontendResourcesQuery,
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
+	useGetSubscriptionQuery,
+	useRenewSubscriptionMutation,
+	useRenewTenantSubscriptionMutation,
 	useChangePasswordMutation,
 	useGetUserSettingsQuery,
 	useUpdateUserSettingsMutation,

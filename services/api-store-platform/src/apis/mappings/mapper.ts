@@ -19,6 +19,7 @@ import {
 import { ITenant } from '../../models/Tenant'
 import { resolveTenantAccessiblePages } from '../../shared/constants/tenantAccessiblePages'
 import { getTenantPermissions } from '../../shared/Permissions'
+import { toView } from '../../shared/subscription/persist'
 
 export const filterProductRelatedActions = (
 	actions: DailyAction[],
@@ -254,6 +255,7 @@ export const mapTenantSummary = (tenant: ITenant): TenantSummary => {
 		accessiblePages: resolveTenantAccessiblePages(tenant),
 		offlineEnabled: tenant.offlineEnabled !== false,
 		invoiceAiMonthlyLimit: tenant.invoiceAi?.monthlyLimit ?? null,
+		subscription: tenant.subscription ? toView(tenant.subscription) : null,
 		createdAt: tenant.createdAt,
 		updatedAt: tenant.updatedAt,
 		permissions: getTenantPermissions(tenant),

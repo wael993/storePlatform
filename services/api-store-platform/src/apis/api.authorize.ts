@@ -1,7 +1,10 @@
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import ProductController from './api.controller'
-import { AuthenticationError } from '../middleware/errorHandler'
+import {
+	AuthenticationError,
+	AuthorizationError,
+} from '../middleware/errorHandler'
 import { ERROR_CODES } from '../shared/errorCodes'
 import {
 	getRequiredAccessiblePages,
@@ -64,7 +67,10 @@ export default class ActivityAuthorization {
 
 			next()
 		} catch (error) {
-			if (error instanceof AuthenticationError) {
+			if (
+				error instanceof AuthenticationError ||
+				error instanceof AuthorizationError
+			) {
 				response.status(error.httpStatus).json({
 					message: error.message,
 					errorCode: error.errorCode,

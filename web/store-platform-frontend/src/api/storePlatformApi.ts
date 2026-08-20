@@ -54,6 +54,7 @@ export type TagType =
 	| 'frontend-resources'
 	| 'employees'
 	| 'employee'
+	| 'subscription'
 
 const tagTypes: TagType[] = [
 	'products',
@@ -89,6 +90,7 @@ const tagTypes: TagType[] = [
 	'frontend-resources',
 	'employees',
 	'employee',
+	'subscription',
 ]
 
 const baseQuery = fetchBaseQuery({

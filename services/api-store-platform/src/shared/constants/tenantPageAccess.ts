@@ -134,7 +134,11 @@ export const getRequiredAccessiblePages = (
 		return [TENANT_ACCESSIBLE_PAGE.INVOICE_AI]
 	}
 
-	if (firstSegment === 'tenants' && method === 'POST') {
+	if (firstSegment === 'subscription') {
+		return null
+	}
+
+	if (firstSegment === 'tenants' && method === 'POST' && !secondSegment) {
 		return [TENANT_ACCESSIBLE_PAGE.ADD_NEW_TENANT]
 	}
 

@@ -512,6 +512,17 @@ export type TenantSummary = {
 	accessiblePages: string[]
 	offlineEnabled: boolean
 	invoiceAiMonthlyLimit: number | null
+	subscription: {
+		startDate: string
+		renewalDate: string
+		lastRenewalDate: string | null
+		status: 'active' | 'expired'
+		renewalEnabled: boolean
+		remainingDays: number
+		warning: boolean
+		urgent: boolean
+		expired: boolean
+	} | null
 	createdAt: Date
 	updatedAt: Date
 	permissions: {

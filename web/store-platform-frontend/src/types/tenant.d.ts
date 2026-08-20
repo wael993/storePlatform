@@ -6,6 +6,7 @@ interface TenantSummary {
 	accessiblePages: string[]
 	offlineEnabled: boolean
 	invoiceAiMonthlyLimit?: number | null
+	subscription?: TenantSubscriptionView | null
 	createdAt: string
 	updatedAt: string
 	permissions: {
@@ -15,6 +16,19 @@ interface TenantSummary {
 		canToggleStatus: boolean
 		reason?: string
 	}
+}
+
+interface TenantSubscriptionView {
+	startDate: string
+	renewalDate: string
+	lastRenewalDate: string | null
+	status: 'active' | 'expired'
+	renewalEnabled: boolean
+	remainingDays: number
+	warning: boolean
+	urgent: boolean
+	expired: boolean
+	canRenew?: boolean
 }
 
 interface UpdateTenantRequest {

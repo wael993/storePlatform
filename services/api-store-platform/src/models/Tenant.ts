@@ -8,6 +8,10 @@ import {
 	TenantAccessiblePage,
 } from '../shared/constants/tenantAccessiblePages'
 import { MAX_INVOICE_AI_MONTHLY_LIMIT } from '../shared/constants/invoiceAi'
+import {
+	SUBSCRIPTION_STATUS,
+	TenantSubscription,
+} from '../shared/subscription/lifecycle'
 
 export type InvoiceAiUsageState = {
 	monthlyLimit: number
@@ -25,6 +29,7 @@ export interface ITenant {
 	accessiblePages: TenantAccessiblePage[]
 	offlineEnabled: boolean
 	invoiceAi?: InvoiceAiUsageState
+	subscription?: TenantSubscription
 	createdAt: Date
 	updatedAt: Date
 }
@@ -77,6 +82,19 @@ const tenantSchema = new Schema<ITenant>(
 			periodStart: { type: Date },
 			usedInPeriod: { type: Number, min: 0, default: 0 },
 			carryOver: { type: Number, min: 0, default: 0 },
+		},
+		subscription: {
+			startDate: { type: Date },
+			renewalDate: { type: Date },
+			status: {
+				type: String,
+				enum: Object.values(SUBSCRIPTION_STATUS),
+			},
+			renewalEnabled: { type: Boolean, default: true },
+			lastRenewalDate: { type: Date, default: null },
+			notifiedForDate: { type: String, default: null },
+			createdAt: { type: Date },
+			updatedAt: { type: Date },
 		},
 	},
 	{

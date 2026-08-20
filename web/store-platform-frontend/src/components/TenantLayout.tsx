@@ -14,6 +14,7 @@ import { useProductCatalogSync } from '../shared/hooks/useProductCatalogSync'
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths } from '../shared/routes'
 import OfflineSyncBanner from './OfflineSyncBanner'
+import SubscriptionRenewalBanner from './SubscriptionRenewalBanner'
 import { getOfflineState } from '../offline/syncService'
 
 const TenantLayout = () => {
@@ -140,6 +141,7 @@ const TenantLayout = () => {
 					isLogoutLoading={isLoading}
 					isSettingsVisible={isSettingsVisible}
 				/>
+				<SubscriptionRenewalBanner />
 				<OfflineSyncBanner />
 				<Box
 					px={layout.contentPaddingX}

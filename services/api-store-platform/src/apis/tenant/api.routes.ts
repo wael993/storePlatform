@@ -150,6 +150,33 @@ export default class TenantRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/subscription`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getOwnSubscription.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/subscription/renew`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.renewOwnSubscription.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/tenants/:id/subscription/renew`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.renewTenantSubscription.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/tenants`)
 			.get(
 				this.startCalc.bind(this),
@@ -293,6 +320,62 @@ export default class TenantRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getOwnSubscription(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.tenantController.getOwnSubscription(requestContext)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async renewOwnSubscription(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.tenantController.renewOwnSubscription(requestContext)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async renewTenantSubscription(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.tenantController.renewTenantSubscription(
+				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
 		} finally {
 			this.stopCalc()
 		}

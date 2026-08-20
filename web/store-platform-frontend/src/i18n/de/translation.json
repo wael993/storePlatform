@@ -88,6 +88,10 @@
 		"offlineModeDescription": "Erlaubt diesem Mandanten, offline zu arbeiten und Änderungen später zu synchronisieren.",
 		"offlineEnabled": "Offline aktiviert",
 		"onlineOnly": "Nur online",
+		"renewalDate": "Verlängerungsdatum",
+		"renewSubscription": "Abo verlängern",
+		"renewed": "Abo wurde verlängert.",
+		"renewFailed": "Abo konnte nicht verlängert werden.",
 		"accessiblePages": {
 			"inventory": "Inventar",
 			"reports": "Berichte",
@@ -917,8 +921,23 @@
 			"menu": "Menü",
 			"greeting": "Hallo, {{userName}}",
 			"logout": "Abmelden",
-			"noNavigationItems": "Keine Navigationselemente verfügbar."
+			"noNavigationItems": "Keine Navigationselemente verfügbar.",
+			"subscriptionExpiresInDays": "Abo läuft in {{count}} Tagen ab.",
+			"subscriptionExpiresInOneDay": "Abo läuft in 1 Tag ab.",
+			"subscriptionExpiresToday": "Abo läuft heute ab.",
+			"subscriptionExpired": "Abo ist abgelaufen.",
+			"subscriptionRenewBefore": "Bitte vor dem {{date}} verlängern, damit der Mandant aktiv bleibt."
 		}
+	},
+	"subscription": {
+		"renewalTitle": "Abo-Verlängerung",
+		"expiresInDays": "Ihr Abo läuft in {{count}} Tagen ab.",
+		"expiresInOneDay": "Ihr Abo läuft in 1 Tag ab.",
+		"expiresToday": "Ihr Abo läuft heute ab.",
+		"expired": "Ihr Abo ist am {{date}} abgelaufen.",
+		"renewBefore": "Bitte verlängern Sie Ihr Abo vor dem {{date}}, damit Ihr Mandantenkonto aktiv bleibt.",
+		"renew": "Abo verlängern",
+		"dismiss": "Schließen"
 	},
 	"common": {
 		"note": "Notiz",

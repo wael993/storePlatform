@@ -88,6 +88,10 @@
 		"offlineModeDescription": "السماح لهذا المستأجر بالعمل بدون اتصال ومزامنة التغييرات لاحقًا.",
 		"offlineEnabled": "وضع عدم الاتصال مفعّل",
 		"onlineOnly": "متصل فقط",
+		"renewalDate": "تاريخ التجديد",
+		"renewSubscription": "تجديد الاشتراك",
+		"renewed": "تم تجديد الاشتراك.",
+		"renewFailed": "فشل تجديد الاشتراك.",
 		"accessiblePages": {
 			"inventory": "المخزون",
 			"reports": "التقارير",
@@ -937,8 +941,23 @@
 			"menu": "القائمة",
 			"greeting": "مرحبًا، {{userName}}",
 			"logout": "تسجيل الخروج",
-			"noNavigationItems": "لا توجد عناصر تنقل متاحة."
+			"noNavigationItems": "لا توجد عناصر تنقل متاحة.",
+			"subscriptionExpiresInDays": "ينتهي الاشتراك خلال {{count}} أيام.",
+			"subscriptionExpiresInOneDay": "ينتهي الاشتراك خلال يوم واحد.",
+			"subscriptionExpiresToday": "ينتهي الاشتراك اليوم.",
+			"subscriptionExpired": "انتهى الاشتراك.",
+			"subscriptionRenewBefore": "يرجى التجديد قبل {{date}} لإبقاء المؤسسة نشطة."
 		}
+	},
+	"subscription": {
+		"renewalTitle": "تجديد الاشتراك",
+		"expiresInDays": "ينتهي اشتراكك خلال {{count}} أيام.",
+		"expiresInOneDay": "ينتهي اشتراكك خلال يوم واحد.",
+		"expiresToday": "ينتهي اشتراكك اليوم.",
+		"expired": "انتهى اشتراكك في {{date}}.",
+		"renewBefore": "يرجى تجديد اشتراكك قبل {{date}} لإبقاء حساب المؤسسة نشطًا.",
+		"renew": "تجديد الاشتراك",
+		"dismiss": "تجاهل"
 	},
 	"common": {
 		"note": "الملاحظة",

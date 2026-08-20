@@ -21,6 +21,15 @@ if (!refreshSecret) {
 	throw new Error('Missing REFRESH_TOKEN_SECRET.')
 }
 
+const subscriptionPeriodDays = parseInt(
+	process.env.SUBSCRIPTION_PERIOD_DAYS || '365',
+	10,
+)
+const subscriptionWarningDays = parseInt(
+	process.env.SUBSCRIPTION_WARNING_DAYS || '30',
+	10,
+)
+
 export const config = {
 	environment: process.env.NODE_ENV || 'dev',
 	logLevel: process.env.LOG_LEVEL ?? 'DEBUG',
@@ -60,6 +69,16 @@ export const config = {
 	cron: {
 		dailySchedule: process.env.CRON_DAILY_SCHEDULE || '0 3 * * *',
 		timezone: process.env.CRON_TIMEZONE || 'Asia/Amman',
+	},
+	subscription: {
+		periodDays:
+			Number.isInteger(subscriptionPeriodDays) && subscriptionPeriodDays >= 1
+				? subscriptionPeriodDays
+				: 365,
+		warningDays:
+			Number.isInteger(subscriptionWarningDays) && subscriptionWarningDays >= 1
+				? subscriptionWarningDays
+				: 30,
 	},
 	aiInvoice: {
 		provider: (process.env.AI_INVOICE_PROVIDER || 'mock').toLowerCase(),

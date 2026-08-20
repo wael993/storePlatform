@@ -20,7 +20,8 @@
 		"seed:super-admin": "ts-node src/scripts/create-super-admin-user.ts",
 		"migrate:drop-stale-indexes": "ts-node src/scripts/drop-stale-indexes.ts",
 		"self-check:tenant-roles": "ts-node src/shared/tenant.self-check.ts",
-		"cron:negative-quantity-snapshot": "ts-node src/scripts/run-negative-quantity-snapshot.ts"
+		"cron:negative-quantity-snapshot": "ts-node src/scripts/run-negative-quantity-snapshot.ts",
+		"cron:subscription-lifecycle": "ts-node src/scripts/run-subscription-lifecycle.ts"
 	},
 	"keywords": [],
 	"author": "",
