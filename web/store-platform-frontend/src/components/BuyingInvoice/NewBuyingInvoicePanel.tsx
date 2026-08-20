@@ -67,6 +67,7 @@ import {
 	parseDateInputValue,
 } from '../../shared/dateUtils'
 import { useUser } from '../../shared/hooks/useUser'
+import { getEnabledActions, getTenantActions } from '../../shared/utils'
 import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import {
 	buildBuyingInvoiceRequestBody,
@@ -250,6 +251,9 @@ const NewBuyingInvoicePanel = ({
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { user } = useUser()
+	const canUseInvoiceAi =
+		getEnabledActions().isInvoiceAiEnabled &&
+		getTenantActions(user?.accessiblePages).isTenantInvoiceAiEnabled
 	const isReadOnly = mode === 'view'
 	const isExistingInvoice = mode === 'view' || mode === 'edit'
 	const { data: fetchedSuppliers = [] } = useGetSuppliersQuery(
@@ -1096,7 +1100,7 @@ const NewBuyingInvoicePanel = ({
 				)}
 
 				<Box sx={panelStyles.body}>
-					{!isReadOnly && mode === 'create' && (
+					{!isReadOnly && mode === 'create' && canUseInvoiceAi && (
 						<InvoiceExtractPreview
 							isExtracting={isExtracting}
 							isRereading={isRereading}
@@ -1139,7 +1143,11 @@ const NewBuyingInvoicePanel = ({
 								<ConfidenceMark
 									review={draft.extraction?.invoiceDate}
 									onConfirm={() => confirmHeaderReview('invoiceDate')}
-									onReread={() => setRereadTarget({ field: 'invoiceDate' })}
+									onReread={
+										canUseInvoiceAi
+											? () => setRereadTarget({ field: 'invoiceDate' })
+											: undefined
+									}
 								/>
 							</Flex>
 							<DatePickerLabel
@@ -1235,7 +1243,11 @@ const NewBuyingInvoicePanel = ({
 								<ConfidenceMark
 									review={draft.extraction?.supplierName}
 									onConfirm={() => confirmHeaderReview('supplierName')}
-									onReread={() => setRereadTarget({ field: 'supplierName' })}
+									onReread={
+										canUseInvoiceAi
+											? () => setRereadTarget({ field: 'supplierName' })
+											: undefined
+									}
 								/>
 							</Flex>
 							<DropdownLabel
@@ -1304,7 +1316,11 @@ const NewBuyingInvoicePanel = ({
 								<ConfidenceMark
 									review={draft.extraction?.invoiceNumber}
 									onConfirm={() => confirmHeaderReview('invoiceNumber')}
-									onReread={() => setRereadTarget({ field: 'invoiceNumber' })}
+									onReread={
+										canUseInvoiceAi
+											? () => setRereadTarget({ field: 'invoiceNumber' })
+											: undefined
+									}
 								/>
 							</Flex>
 							<Input
@@ -1408,8 +1424,10 @@ const NewBuyingInvoicePanel = ({
 								}
 							})
 						}
-						onRereadLineField={(lineId, field) =>
-							setRereadTarget({ field, lineId })
+						onRereadLineField={
+							canUseInvoiceAi
+								? (lineId, field) => setRereadTarget({ field, lineId })
+								: undefined
 						}
 						productCaption={item => {
 							const match = draft.extraction?.lineMatches?.[item.id]
@@ -1584,7 +1602,11 @@ const NewBuyingInvoicePanel = ({
 										<ConfidenceMark
 											review={draft.extraction?.vat}
 											onConfirm={() => confirmHeaderReview('vat')}
-											onReread={() => setRereadTarget({ field: 'vat' })}
+											onReread={
+												canUseInvoiceAi
+													? () => setRereadTarget({ field: 'vat' })
+													: undefined
+											}
 										/>
 									</HStack>
 									<Text fontSize="sm" fontWeight={500}>
@@ -1606,7 +1628,11 @@ const NewBuyingInvoicePanel = ({
 											<ConfidenceMark
 												review={draft.extraction?.total}
 												onConfirm={() => confirmHeaderReview('total')}
-												onReread={() => setRereadTarget({ field: 'total' })}
+												onReread={
+													canUseInvoiceAi
+														? () => setRereadTarget({ field: 'total' })
+														: undefined
+												}
 											/>
 										</HStack>
 										<CurrencyAmountTooltip

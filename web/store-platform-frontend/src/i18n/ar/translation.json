@@ -85,6 +85,8 @@
 			"barcodeDescription": "سير عمل مسح الباركود.",
 			"settingsDescription": "إعدادات وتفضيلات المستأجر.",
 			"sellingInvoicesDescription": "إدارة الفواتير المباعة.",
+			"invoiceAi": "استيراد الفواتير بالذكاء الاصطناعي",
+			"invoiceAiDescription": "قراءة فواتير الموردين ومطابقة المنتجات بالذكاء الاصطناعي.",
 			"employeesDescription": "ملفات الموظفين وجداول العمل والراتب."
 		}
 	},

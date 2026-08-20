@@ -147,10 +147,11 @@ const parseJsonObject = (text: string): unknown => {
 	return JSON.parse(body)
 }
 
-const RANK_INSTRUCTIONS = `Rank which catalog candidate matches the invoice entity.
+const RANK_INSTRUCTIONS = `Rank which catalog candidate is the same product or supplier as the invoice entity.
+Same brand with a different size, pack, unit, or variant is not a match.
 Return JSON {"matches":[{"id":string,"confidence":number}]}.
 Only use candidate ids from the list. confidence is 0-1.
-Omit candidates that are not the same entity. Never invent ids.`
+If none are the same entity, return {"matches":[]}. Never invent ids.`
 
 const parseRankMatches = (
 	value: unknown,

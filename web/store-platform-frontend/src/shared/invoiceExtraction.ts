@@ -43,6 +43,7 @@ export type MatchReason =
 	| 'vatId'
 	| 'email'
 	| 'contains'
+	| 'fuzzy'
 	| 'ai'
 	| 'none'
 

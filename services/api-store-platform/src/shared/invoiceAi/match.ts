@@ -1,3 +1,4 @@
+import { config } from '../../config/config'
 import logger, { EntityType } from '../logger/logger'
 import {
 	ConfidenceBand,
@@ -15,6 +16,7 @@ const EXACT_NAME = 0.95
 const EXACT_ALIAS = 0.97
 const CONTAINS = 0.82
 const CONTAINS_MIN_LEN = 4
+const FUZZY_GAP = 0.12
 const CANDIDATE_LIMIT = 8
 const RANK_CONCURRENCY = 4
 
@@ -97,11 +99,18 @@ export const normalizeText = (value: string): string =>
 		.trim()
 
 const expandPackageSize = (value: string): string =>
-	value.replace(
-		/\b(\d+(?:[.,]\d+)?)\s*(l|ltr|liter|litre|liters|litres)\b/gi,
-		(_all, raw: string) =>
-			`${Math.round(Number(raw.replace(',', '.')) * 1000)}ml`,
-	)
+	value
+		.replace(
+			/\b(\d+(?:[.,]\d+)?)\s*(l|ltr|liter|litre|liters|litres)\b/gi,
+			(_all, raw: string) =>
+				`${Math.round(Number(raw.replace(',', '.')) * 1000)}ml`,
+		)
+		.replace(
+			/\b(\d+(?:[.,]\d+)?)\s*cl\b/gi,
+			(_all, raw: string) =>
+				`${Math.round(Number(raw.replace(',', '.')) * 10)}ml`,
+		)
+		.replace(/\b(\d+(?:[.,]\d+)?)\s*ml\b/gi, '$1ml')
 
 export const normalizeCode = (value: string): string =>
 	value.replace(/[\s-]/g, '').toUpperCase()
@@ -147,6 +156,42 @@ const uniqueContains = (needle: string, hay: string) =>
 	needle.length >= CONTAINS_MIN_LEN &&
 	hay.length >= CONTAINS_MIN_LEN &&
 	(hay.includes(needle) || needle.includes(hay))
+
+const uniqueFuzzyHit = (
+	invoiceName: string,
+	catalog: Array<{ id: string; name: string; names: string[] }>,
+): EntityMatch | null => {
+	const scored = catalog
+		.map(row => ({
+			id: row.id,
+			name: row.name,
+			score: row.names.length
+				? Math.max(
+						0,
+						...row.names.map(name =>
+							jaccard(tokens(invoiceName), tokens(name)),
+						),
+					)
+				: 0,
+		}))
+		.filter(row => row.score >= REVIEW)
+		.sort((left, right) => right.score - left.score)
+
+	if (scored[0] && scored[0].score - (scored[1]?.score ?? 0) >= FUZZY_GAP) {
+		return hit(
+			scored[0],
+			Math.min(0.88, scored[0].score),
+			'fuzzy',
+			false,
+			invoiceName,
+		)
+	}
+
+	return null
+}
+
+const skipAiRank = (match: EntityMatch) =>
+	match.autoLink || match.reason === 'fuzzy'
 
 const emailDomain = (email: string): string | null => {
 	const at = email.trim().toLowerCase().lastIndexOf('@')
@@ -263,30 +308,16 @@ export const matchProductDeterministic = (
 		return hit(containsFound[0], CONTAINS, 'contains', false, invoiceName)
 	}
 
-	const scored = catalog
-		.map(product => ({
-			id: product.productId,
-			name: product.name,
-			score: Math.max(
-				...productNames(product).map(name =>
-					jaccard(tokens(invoiceName), tokens(name)),
-				),
-			),
-		}))
-		.filter(row => row.score >= REVIEW)
-		.sort((left, right) => right.score - left.score)
-
-	if (scored[0] && scored[0].score - (scored[1]?.score ?? 0) >= 0.12) {
-		return hit(
-			scored[0],
-			Math.min(0.88, scored[0].score),
-			'contains',
-			false,
+	return (
+		uniqueFuzzyHit(
 			invoiceName,
-		)
-	}
-
-	return missing(invoiceName)
+			catalog.map(product => ({
+				id: product.productId,
+				name: product.name,
+				names: productNames(product),
+			})),
+		) ?? missing(invoiceName)
+	)
 }
 
 export const matchSupplierDeterministic = (
@@ -394,7 +425,16 @@ export const matchSupplierDeterministic = (
 		return hit(containsFound[0], CONTAINS, 'contains', false, invoiceName)
 	}
 
-	return missing(invoiceName)
+	return (
+		uniqueFuzzyHit(
+			invoiceName,
+			catalog.map(supplier => ({
+				id: supplier.supplierId,
+				name: supplier.name,
+				names: supplierNames(supplier),
+			})),
+		) ?? missing(invoiceName)
+	)
 }
 
 export const blockProductCandidates = (
@@ -463,9 +503,9 @@ const withAiRank = async (
 	namesById: Map<string, string>,
 	rankMatch: RankMatchFn,
 ): Promise<EntityMatch> => {
-	if (deterministic.autoLink) return deterministic
-
-	if (!input.candidates.length) return deterministic
+	if (skipAiRank(deterministic) || !input.candidates.length) {
+		return deterministic
+	}
 
 	let ranked: RankMatchHit[] = []
 
@@ -483,20 +523,26 @@ const withAiRank = async (
 	}
 
 	const allowed = new Set(input.candidates.map(candidate => candidate.id))
-	const best = ranked.find(
+	const eligible = ranked.filter(
 		row =>
 			allowed.has(row.id) &&
 			Number.isFinite(row.confidence) &&
 			row.confidence >= REVIEW,
 	)
+	const best = eligible[0]
+	const runnerUp = eligible[1]
 
 	if (!best) return deterministic
+
+	if (runnerUp && best.confidence - runnerUp.confidence < FUZZY_GAP) {
+		return deterministic
+	}
+
+	if ((deterministic.confidence ?? 0) >= best.confidence) return deterministic
 
 	const name = namesById.get(best.id)
 
 	if (!name) return deterministic
-
-	if ((deterministic.confidence ?? 0) >= best.confidence) return deterministic
 
 	return hit({ id: best.id, name }, best.confidence, 'ai', false, invoiceName)
 }
@@ -507,6 +553,9 @@ export const matchProduct = async (
 	rankMatch: RankMatchFn,
 ): Promise<EntityMatch> => {
 	const deterministic = matchProductDeterministic(query, catalog)
+
+	if (skipAiRank(deterministic)) return deterministic
+
 	const candidates = blockProductCandidates(query, catalog)
 
 	return withAiRank(
@@ -545,6 +594,9 @@ export const matchSupplier = async (
 	rankMatch: RankMatchFn,
 ): Promise<EntityMatch> => {
 	const deterministic = matchSupplierDeterministic(query, catalog)
+
+	if (skipAiRank(deterministic)) return deterministic
+
 	const candidates = blockSupplierCandidates(query, catalog)
 
 	return withAiRank(
@@ -579,13 +631,20 @@ export const matchExtractedInvoice = async (
 	suppliers: CatalogSupplier[],
 	rankMatch: RankMatchFn,
 ): Promise<ScoredInvoiceExtraction> => {
+	let rankMatchCalls = 0
+	const countedRankMatch: RankMatchFn = async input => {
+		rankMatchCalls += 1
+
+		return rankMatch(input)
+	}
+
 	const supplierMatch = await matchSupplier(
 		{
 			name: extraction.supplierName.value,
 			vatId: extraction.supplierVatId,
 		},
 		suppliers,
-		rankMatch,
+		countedRankMatch,
 	)
 	const itemMatches: EntityMatch[] = []
 
@@ -603,12 +662,18 @@ export const matchExtractedInvoice = async (
 							unit: item.unit.value,
 						},
 						products,
-						rankMatch,
+						countedRankMatch,
 					),
 				),
 			)),
 		)
 	}
 
-	return { ...extraction, supplierMatch, itemMatches }
+	const aiUsage = { rankMatchCalls }
+
+	logger.info(
+		`invoice AI usage provider=${config.aiInvoice.provider} rankMatch=${aiUsage.rankMatchCalls} items=${extraction.items.length}`,
+	)
+
+	return { ...extraction, supplierMatch, itemMatches, aiUsage }
 }

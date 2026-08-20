@@ -85,6 +85,8 @@
 			"barcodeDescription": "Barcode scanning workflow.",
 			"settingsDescription": "Tenant settings and preferences.",
 			"sellingInvoicesDescription": "Selling invoice management.",
+			"invoiceAi": "Invoice AI import",
+			"invoiceAiDescription": "Read supplier invoices and match products with AI.",
 			"employeesDescription": "Employee profiles, schedules, and salary."
 		}
 	},

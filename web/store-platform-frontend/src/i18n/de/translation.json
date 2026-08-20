@@ -84,6 +84,8 @@
 			"barcodeDescription": "Barcode-Scan-Workflow.",
 			"settingsDescription": "Mandanteneinstellungen und Präferenzen.",
 			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung.",
+			"invoiceAi": "KI-Rechnungimport",
+			"invoiceAiDescription": "Lieferantenrechnungen lesen und Produkte per KI zuordnen.",
 			"employeesDescription": "Mitarbeiterprofile, Arbeitszeiten und Gehalt."
 		}
 	},

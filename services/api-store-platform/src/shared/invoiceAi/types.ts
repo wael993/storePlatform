@@ -61,6 +61,10 @@ export interface ScoredInvoiceLine {
 	sku: string | null
 }
 
+export interface InvoiceAiUsage {
+	rankMatchCalls: number
+}
+
 export interface ScoredInvoiceExtraction {
 	supplierName: ScoredField<string>
 	invoiceNumber: ScoredField<string>
@@ -71,6 +75,7 @@ export interface ScoredInvoiceExtraction {
 	items: ScoredInvoiceLine[]
 	supplierMatch?: EntityMatch
 	itemMatches?: EntityMatch[]
+	aiUsage?: InvoiceAiUsage
 }
 
 export type MatchReason =
@@ -82,6 +87,7 @@ export type MatchReason =
 	| 'vatId'
 	| 'email'
 	| 'contains'
+	| 'fuzzy'
 	| 'ai'
 	| 'none'
 

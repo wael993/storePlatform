@@ -125,6 +125,15 @@ export const getRequiredAccessiblePages = (
 		return [TENANT_ACCESSIBLE_PAGE.SETTINGS, TENANT_ACCESSIBLE_PAGE.PRODUCTS]
 	}
 
+	if (
+		firstSegment === 'buying-invoices' &&
+		(secondSegment === 'extract' ||
+			secondSegment === 'extract-region' ||
+			secondSegment === 'confirm-match')
+	) {
+		return [TENANT_ACCESSIBLE_PAGE.INVOICE_AI]
+	}
+
 	if (firstSegment === 'tenants' && method === 'POST') {
 		return [TENANT_ACCESSIBLE_PAGE.ADD_NEW_TENANT]
 	}
