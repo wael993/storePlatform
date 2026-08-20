@@ -426,6 +426,7 @@ export type UpdateTenantRequestBody = {
 	status?: 'active' | 'inactive'
 	accessiblePages?: string[]
 	offlineEnabled?: boolean
+	invoiceAiMonthlyLimit?: number
 }
 export type CreateProductResponse = {
 	_id: string
@@ -510,6 +511,7 @@ export type TenantSummary = {
 	status: 'active' | 'inactive'
 	accessiblePages: string[]
 	offlineEnabled: boolean
+	invoiceAiMonthlyLimit: number | null
 	createdAt: Date
 	updatedAt: Date
 	permissions: {
@@ -519,6 +521,11 @@ export type TenantSummary = {
 		canToggleStatus: boolean
 		reason?: string
 	}
+}
+export type InvoiceAiUsageResponse = {
+	available: number
+	monthlyLimit: number
+	nextPeriodStartsAt: string
 }
 interface CustomerDocument {
 	tenantId: string

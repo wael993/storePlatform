@@ -5,6 +5,7 @@ import {
 	HStack,
 	Input,
 	Text,
+	Tooltip,
 	VStack,
 } from '@chakra-ui/react'
 import { useEffect, useRef } from 'react'
@@ -33,6 +34,10 @@ interface InvoiceExtractPreviewProps {
 	onCroppedRegion: (file: File) => void
 	importStatus?: InvoiceImportStatus | null
 	onReject?: () => void
+	availableCount?: number
+	nextPeriodStartsAt?: string
+	isUsageLoading?: boolean
+	isUsageError?: boolean
 }
 
 const cropFromImage = (
@@ -81,8 +86,12 @@ const InvoiceExtractPreview = ({
 	onCroppedRegion,
 	importStatus,
 	onReject,
+	availableCount,
+	nextPeriodStartsAt,
+	isUsageLoading,
+	isUsageError,
 }: InvoiceExtractPreviewProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const inputRef = useRef<HTMLInputElement>(null)
 	const imageRef = useRef<HTMLImageElement>(null)
 	const originRef = useRef<{ x: number; y: number } | null>(null)
@@ -91,6 +100,20 @@ const InvoiceExtractPreview = ({
 	)
 	const isPdf = previewMimeType === 'application/pdf'
 	const canCrop = Boolean(previewUrl && !isPdf && rereadTarget)
+	const atLimit = availableCount === 0
+	const uploadDisabled =
+		isReadOnly ||
+		atLimit ||
+		isUsageError ||
+		(isUsageLoading && availableCount == null)
+	const nextAllowanceDate = nextPeriodStartsAt
+		? new Date(nextPeriodStartsAt).toLocaleDateString(i18n.language, {
+				day: 'numeric',
+				month: 'long',
+				year: 'numeric',
+				timeZone: 'UTC',
+			})
+		: ''
 
 	useEffect(() => {
 		originRef.current = null
@@ -124,24 +147,41 @@ const InvoiceExtractPreview = ({
 						event.target.value = ''
 					}}
 				/>
-				<Button
-					size="sm"
-					variant="outline"
-					isDisabled={isReadOnly}
-					onClick={() => inputRef.current?.click()}
+				<Tooltip
+					label={t('components.buyingInvoices.extract.limitReached', {
+						date: nextAllowanceDate,
+					})}
+					isDisabled={!atLimit || isUsageError}
+					hasArrow
 				>
-					{t('components.buyingInvoices.extract.upload')}
-				</Button>
+					<Box>
+						<Button
+							size="sm"
+							variant="outline"
+							isDisabled={uploadDisabled}
+							onClick={() => inputRef.current?.click()}
+						>
+							{t('components.buyingInvoices.extract.upload')}
+						</Button>
+					</Box>
+				</Tooltip>
 				<Button
 					size="sm"
 					bg={PAGE_COLORS.primary}
 					color="white"
-					isDisabled={isReadOnly || !previewUrl}
+					isDisabled={isReadOnly || !previewUrl || atLimit || isUsageError}
 					isLoading={isExtracting}
 					onClick={onExtract}
 				>
 					{t('components.buyingInvoices.extract.readInvoice')}
 				</Button>
+				{availableCount != null ? (
+					<Text fontSize="sm" color={atLimit ? 'gray.500' : 'gray.600'}>
+						{t('components.buyingInvoices.extract.available', {
+							count: availableCount,
+						})}
+					</Text>
+				) : null}
 				{importStatus && (
 					<Text
 						fontSize="xs"

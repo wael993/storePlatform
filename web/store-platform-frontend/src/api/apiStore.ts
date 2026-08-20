@@ -1656,6 +1656,12 @@ const getQuery = (
 			}),
 		}),
 
+		getInvoiceAiUsage: builder.query<InvoiceAiUsage, void>({
+			query: () => ({
+				url: 'buying-invoices/invoice-ai-usage',
+			}),
+		}),
+
 		extractBuyingInvoiceRegion: builder.mutation<
 			ScoredField<string | number>,
 			{
@@ -1915,6 +1921,7 @@ export const {
 	useDeleteBuyingInvoiceMutation,
 	useExtractBuyingInvoiceMutation,
 	useExtractBuyingInvoiceRegionMutation,
+	useGetInvoiceAiUsageQuery,
 	useConfirmBuyingInvoiceMatchMutation,
 	useGetInventoryQuery,
 	useEditInventoryMutation,

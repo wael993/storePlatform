@@ -2032,6 +2032,7 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	])
 	if (unsupported.has(path)) return false
 	if (path.startsWith('buying-invoices/extract')) return false
+	if (path.startsWith('buying-invoices/invoice-ai-usage')) return false
 	if (path.startsWith('buying-invoices/confirm-match')) return false
 	if (path.startsWith('tenants')) return false
 	if (path.startsWith('users')) return false

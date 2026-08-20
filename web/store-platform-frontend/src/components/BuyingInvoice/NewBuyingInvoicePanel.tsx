@@ -33,6 +33,7 @@ import {
 	useUpdateBuyingInvoiceMutation,
 	useExtractBuyingInvoiceMutation,
 	useExtractBuyingInvoiceRegionMutation,
+	useGetInvoiceAiUsageQuery,
 	useConfirmBuyingInvoiceMatchMutation,
 	useCreateSupplierMutation,
 } from '../../api/apiStore'
@@ -281,6 +282,15 @@ const NewBuyingInvoicePanel = ({
 		useExtractBuyingInvoiceMutation()
 	const [extractBuyingInvoiceRegion, { isLoading: isRereading }] =
 		useExtractBuyingInvoiceRegionMutation()
+	const {
+		data: invoiceAiUsage,
+		refetch: refetchInvoiceAiUsage,
+		isLoading: isInvoiceAiUsageLoading,
+		isError: isInvoiceAiUsageError,
+	} = useGetInvoiceAiUsageQuery(undefined, {
+			skip: !canUseInvoiceAi,
+			refetchOnFocus: true,
+		})
 	const [confirmBuyingInvoiceMatch] = useConfirmBuyingInvoiceMatchMutation()
 	const [createSupplier, { isLoading: isCreatingSupplier }] =
 		useCreateSupplierMutation()
@@ -301,6 +311,7 @@ const NewBuyingInvoicePanel = ({
 	)
 	const [extractFailed, setExtractFailed] = useState(false)
 	const [importRejected, setImportRejected] = useState(false)
+	const [isRefreshingUsage, setIsRefreshingUsage] = useState(false)
 	const supplierBeforeExtractRef = useRef<{
 		supplierId: string
 		supplierName: string
@@ -340,6 +351,24 @@ const NewBuyingInvoicePanel = ({
 		setPreviewUrl(url)
 		return () => URL.revokeObjectURL(url)
 	}, [extractFile])
+
+	useEffect(() => {
+		if (!canUseInvoiceAi || !invoiceAiUsage?.nextPeriodStartsAt) return
+
+		const delay =
+			new Date(invoiceAiUsage.nextPeriodStartsAt).getTime() - Date.now()
+		if (delay <= 0) return
+
+		const timer = window.setTimeout(() => {
+			void refetchInvoiceAiUsage()
+		}, Math.min(delay, 2_147_483_647))
+
+		return () => window.clearTimeout(timer)
+	}, [
+		canUseInvoiceAi,
+		invoiceAiUsage?.nextPeriodStartsAt,
+		refetchInvoiceAiUsage,
+	])
 
 	const {
 		options: displayCurrencyOptions,
@@ -673,10 +702,11 @@ const NewBuyingInvoicePanel = ({
 						: 'review_required'
 
 	const handleExtractInvoice = async () => {
-		if (!extractFile) return
+		if (!extractFile || invoiceAiUsage?.available === 0) return
 		setSaveError(null)
 		setExtractFailed(false)
 		setImportRejected(false)
+		setIsRefreshingUsage(true)
 		try {
 			const extraction = await extractBuyingInvoice({
 				fileBase64: await fileToBase64(extractFile),
@@ -692,6 +722,7 @@ const NewBuyingInvoicePanel = ({
 			setDraft(current =>
 				applyScoredExtraction(current, extraction, supplierOptions, products),
 			)
+			await refetchInvoiceAiUsage()
 		} catch (error) {
 			const apiError = error as { data?: { message?: string } }
 			setExtractFailed(true)
@@ -703,6 +734,8 @@ const NewBuyingInvoicePanel = ({
 			setSaveError(
 				apiError.data?.message ?? t('components.buyingInvoices.extract.failed'),
 			)
+		} finally {
+			setIsRefreshingUsage(false)
 		}
 	}
 
@@ -1102,7 +1135,7 @@ const NewBuyingInvoicePanel = ({
 				<Box sx={panelStyles.body}>
 					{!isReadOnly && mode === 'create' && canUseInvoiceAi && (
 						<InvoiceExtractPreview
-							isExtracting={isExtracting}
+							isExtracting={isExtracting || isRefreshingUsage}
 							isRereading={isRereading}
 							previewUrl={previewUrl}
 							previewMimeType={extractFile?.type}
@@ -1111,6 +1144,10 @@ const NewBuyingInvoicePanel = ({
 							onFileChosen={setExtractFile}
 							onExtract={handleExtractInvoice}
 							onCroppedRegion={handleExtractRegion}
+							availableCount={invoiceAiUsage?.available}
+							nextPeriodStartsAt={invoiceAiUsage?.nextPeriodStartsAt}
+							isUsageLoading={isInvoiceAiUsageLoading}
+							isUsageError={isInvoiceAiUsageError}
 							importStatus={importStatus}
 							onReject={() => {
 								setDraft(current =>

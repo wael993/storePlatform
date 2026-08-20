@@ -5,6 +5,7 @@ interface TenantSummary {
 	status: 'active' | 'inactive'
 	accessiblePages: string[]
 	offlineEnabled: boolean
+	invoiceAiMonthlyLimit?: number | null
 	createdAt: string
 	updatedAt: string
 	permissions: {
@@ -20,4 +21,12 @@ interface UpdateTenantRequest {
 	tenantName?: string
 	status?: 'active' | 'inactive'
 	accessiblePages?: string[]
+	offlineEnabled?: boolean
+	invoiceAiMonthlyLimit?: number
+}
+
+interface InvoiceAiUsage {
+	available: number
+	monthlyLimit: number
+	nextPeriodStartsAt: string
 }

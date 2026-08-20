@@ -64,6 +64,8 @@
 		"accessiblePagesSaveSuccess": "تم تحديث الصفحات المتاحة بنجاح.",
 		"accessiblePagesSaveFailed": "فشل تحديث الصفحات المتاحة.",
 		"accessiblePagesSummary": "نظرة عامة على المستأجر",
+		"invoiceAiMonthlyLimit": "حد الفواتير الشهري بالذكاء الاصطناعي:",
+		"invoiceAiMonthlyLimitInvalid": "يجب أن يكون الحد الشهري لفواتير الذكاء الاصطناعي عدداً صحيحاً بين 1 و {{max}}.",
 		"offlineMode": "وضع عدم الاتصال",
 		"offlineModeDescription": "السماح لهذا المستأجر بالعمل بدون اتصال ومزامنة التغييرات لاحقًا.",
 		"offlineEnabled": "وضع عدم الاتصال مفعّل",
@@ -659,6 +661,8 @@
 			"extract": {
 				"upload": "رفع فاتورة",
 				"readInvoice": "قراءة بالذكاء الاصطناعي",
+				"available": "{{count}} متاح",
+				"limitReached": "لقد استخدمت جميع فواتير الذكاء الاصطناعي المتاحة. سيُتاح الرصيد التالي في {{date}}.",
 				"preview": "معاينة الفاتورة",
 				"reread": "إعادة القراءة",
 				"rereading": "جاري قراءة المنطقة المحددة…",

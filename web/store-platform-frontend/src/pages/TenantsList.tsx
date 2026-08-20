@@ -49,10 +49,15 @@ import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
 import {
+	TENANT_ACCESSIBLE_PAGE,
 	TENANT_PAGE_DESCRIPTION_KEYS,
 	TENANT_PAGE_LABEL_KEYS,
 	TenantAccessiblePage,
 } from '../shared/tenantAccessiblePages'
+import {
+	DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
+	MAX_INVOICE_AI_MONTHLY_LIMIT,
+} from '../shared/invoiceAi'
 import {
 	getEnabledActions,
 	getGloballyEnabledTenantPages,
@@ -73,6 +78,9 @@ const TenantsList = () => {
 	const [accessibleTenant, setAccessibleTenant] =
 		useState<TenantSummary | null>(null)
 	const [selectedPages, setSelectedPages] = useState<TenantAccessiblePage[]>([])
+	const [invoiceAiMonthlyLimit, setInvoiceAiMonthlyLimit] = useState(
+		DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
+	)
 	const [tenantName, setTenantName] = useState('')
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const {
@@ -125,6 +133,9 @@ const TenantsList = () => {
 				configurablePages.includes(page as TenantAccessiblePage),
 			),
 		)
+		setInvoiceAiMonthlyLimit(
+			tenant.invoiceAiMonthlyLimit ?? DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
+		)
 		setFeedback('')
 		onOpenEditAccessibleModal()
 	}
@@ -161,10 +172,31 @@ const TenantsList = () => {
 			return
 		}
 
+		const invoiceAiEnabled = selectedPages.includes(
+			TENANT_ACCESSIBLE_PAGE.INVOICE_AI,
+		)
+
+		if (
+			invoiceAiEnabled &&
+			(!Number.isInteger(invoiceAiMonthlyLimit) ||
+				invoiceAiMonthlyLimit < 1 ||
+				invoiceAiMonthlyLimit > MAX_INVOICE_AI_MONTHLY_LIMIT)
+		) {
+			setFeedback(
+				t('tenants.invoiceAiMonthlyLimitInvalid', {
+					max: MAX_INVOICE_AI_MONTHLY_LIMIT,
+				}),
+			)
+			return
+		}
+
 		try {
 			await updateTenant({
 				tenantId: accessibleTenant.tenantId,
-				body: { accessiblePages: selectedPages },
+				body: {
+					accessiblePages: selectedPages,
+					...(invoiceAiEnabled ? { invoiceAiMonthlyLimit } : {}),
+				},
 			}).unwrap()
 			setFeedback(t('tenants.accessiblePagesSaveSuccess'))
 			closeAccessibleModal()
@@ -629,6 +661,37 @@ const TenantsList = () => {
 											</Text>
 										</Flex>
 									</Stack>
+
+									{selectedPages.includes(TENANT_ACCESSIBLE_PAGE.INVOICE_AI) ? (
+										<>
+											<Divider />
+											<FormControl>
+												<FormLabel mb={1}>
+													{t('tenants.accessiblePages.invoiceAi')}
+												</FormLabel>
+												<Flex align="center" gap={3}>
+													<Text fontSize="sm" color="gray.600">
+														{t('tenants.invoiceAiMonthlyLimit')}
+													</Text>
+													<Input
+														type="number"
+														min={1}
+														max={MAX_INVOICE_AI_MONTHLY_LIMIT}
+														step={1}
+														w="5.5rem"
+														size="sm"
+														bg="white"
+														value={invoiceAiMonthlyLimit}
+														onChange={event =>
+															setInvoiceAiMonthlyLimit(
+																Number(event.target.value),
+															)
+														}
+													/>
+												</Flex>
+											</FormControl>
+										</>
+									) : null}
 
 									<Divider />
 

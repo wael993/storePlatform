@@ -7,6 +7,15 @@ import {
 	DEFAULT_TENANT_ACCESSIBLE_PAGES,
 	TenantAccessiblePage,
 } from '../shared/constants/tenantAccessiblePages'
+import { MAX_INVOICE_AI_MONTHLY_LIMIT } from '../shared/constants/invoiceAi'
+
+export type InvoiceAiUsageState = {
+	monthlyLimit: number
+	activatedAt: Date
+	periodStart: Date
+	usedInPeriod: number
+	carryOver: number
+}
 
 export interface ITenant {
 	tenantId: string
@@ -15,6 +24,7 @@ export interface ITenant {
 	status: TenantStatus
 	accessiblePages: TenantAccessiblePage[]
 	offlineEnabled: boolean
+	invoiceAi?: InvoiceAiUsageState
 	createdAt: Date
 	updatedAt: Date
 }
@@ -60,6 +70,13 @@ const tenantSchema = new Schema<ITenant>(
 		offlineEnabled: {
 			type: Boolean,
 			default: true,
+		},
+		invoiceAi: {
+			monthlyLimit: { type: Number, min: 1, max: MAX_INVOICE_AI_MONTHLY_LIMIT },
+			activatedAt: { type: Date },
+			periodStart: { type: Date },
+			usedInPeriod: { type: Number, min: 0, default: 0 },
+			carryOver: { type: Number, min: 0, default: 0 },
 		},
 	},
 	{

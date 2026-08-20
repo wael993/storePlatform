@@ -64,6 +64,8 @@
 		"accessiblePagesSaveSuccess": "Accessible pages updated successfully.",
 		"accessiblePagesSaveFailed": "Failed to update accessible pages.",
 		"accessiblePagesSummary": "Tenant overview",
+		"invoiceAiMonthlyLimit": "Monthly Invoice AI limit:",
+		"invoiceAiMonthlyLimitInvalid": "Invoice AI monthly limit must be a whole number between 1 and {{max}}.",
 		"offlineMode": "Offline mode",
 		"offlineModeDescription": "Allow this tenant to work offline and sync changes later.",
 		"offlineEnabled": "Offline enabled",
@@ -657,6 +659,8 @@
 			"extract": {
 				"upload": "Upload invoice",
 				"readInvoice": "Read with AI",
+				"available": "{{count}} available",
+				"limitReached": "You have used all available Invoice AI invoices. Your next allowance will be available on {{date}}.",
 				"preview": "Invoice preview",
 				"reread": "Re-read",
 				"rereading": "Reading selected area…",

@@ -64,6 +64,8 @@
 		"accessiblePagesSaveSuccess": "Zugängliche Seiten erfolgreich aktualisiert.",
 		"accessiblePagesSaveFailed": "Aktualisierung der zugänglichen Seiten fehlgeschlagen.",
 		"accessiblePagesSummary": "Mandantenübersicht",
+		"invoiceAiMonthlyLimit": "Monatliches KI-Rechnungslimit:",
+		"invoiceAiMonthlyLimitInvalid": "Das monatliche KI-Rechnungslimit muss eine ganze Zahl zwischen 1 und {{max}} sein.",
 		"offlineMode": "Offline-Modus",
 		"offlineModeDescription": "Erlaubt diesem Mandanten, offline zu arbeiten und Änderungen später zu synchronisieren.",
 		"offlineEnabled": "Offline aktiviert",
@@ -642,6 +644,8 @@
 			"extract": {
 				"upload": "Rechnung hochladen",
 				"readInvoice": "Mit KI lesen",
+				"available": "{{count}} verfügbar",
+				"limitReached": "Sie haben alle verfügbaren KI-Rechnungen aufgebraucht. Ihr nächstes Kontingent ist am {{date}} verfügbar.",
 				"preview": "Rechnungsvorschau",
 				"reread": "Erneut lesen",
 				"rereading": "Markierten Bereich wird gelesen…",

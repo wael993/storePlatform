@@ -33,11 +33,17 @@ import { matchExtractedInvoice } from '../../shared/invoiceAi/match'
 import { getInvoiceAiProvider } from '../../shared/invoiceAi/providers'
 import { InvoiceExtractFieldPath } from '../../shared/invoiceAi/types'
 import {
+	getInvoiceAiUsage,
+	refundInvoiceAiCredit,
+	reserveInvoiceAiCredit,
+} from '../../shared/invoiceAi/usage'
+import {
 	BuyingInvoiceRequestBody,
 	BuyingInvoicesListResponse,
 	BuyingInvoicesQueryParams,
 	BuyingInvoicesSummary,
 	InventoryDocument,
+	InvoiceAiUsageResponse,
 	RequestContext,
 	SupplierInvoiceSummary,
 } from '../../shared/types'
@@ -904,6 +910,26 @@ export default class BuyingInvoiceController {
 		return deleteResponse
 	}
 
+	public async getInvoiceAiUsage(
+		requestContext: RequestContext,
+	): Promise<InvoiceAiUsageResponse> {
+		await ensureTenantAccess(
+			requestContext,
+			COLLECTION_NAMES.BUYING_INVOICES,
+			'create',
+		)
+
+		const usage = await getInvoiceAiUsage(
+			getTenantContext(requestContext).tenantId,
+		)
+
+		return {
+			available: usage.available,
+			monthlyLimit: usage.monthlyLimit,
+			nextPeriodStartsAt: usage.nextPeriodStartsAt.toISOString(),
+		}
+	}
+
 	public async extractBuyingInvoice(
 		requestBody: Record<string, unknown>,
 		requestContext: RequestContext,
@@ -914,28 +940,43 @@ export default class BuyingInvoiceController {
 			'create',
 		)
 
-		const input = decodeInvoiceUpload(requestBody)
-		const extraction = await extractInvoice(input)
 		const tenantId = getTenantContext(requestContext).tenantId
-		// ponytail: full live catalog into RAM per extract (O(n) scan). Upgrade: candidate prefilter / indexed lookup if catalogs grow.
-		const products = await withTenantScope(
-			Product.find({ status: { $ne: 'discontinued' } })
-				.select(
-					'productId name latinName barcode internalCode productFactoryCode aliases unitId categoryId supplierId',
-				)
-				.lean(),
-			tenantId,
-		)
-		const suppliers = await withTenantScope(
-			Supplier.find({})
-				.select('supplierId name internalCode email vatId aliases')
-				.lean(),
-			tenantId,
-		)
+		const input = decodeInvoiceUpload(requestBody)
+		const reserved = await reserveInvoiceAiCredit(tenantId)
 
-		return matchExtractedInvoice(extraction, products, suppliers, rankInput =>
-			getInvoiceAiProvider().rankMatch(rankInput),
-		)
+		try {
+			const extraction = await extractInvoice(input)
+			// ponytail: full live catalog into RAM per extract (O(n) scan). Upgrade: candidate prefilter / indexed lookup if catalogs grow.
+			const products = await withTenantScope(
+				Product.find({ status: { $ne: 'discontinued' } })
+					.select(
+						'productId name latinName barcode internalCode productFactoryCode aliases unitId categoryId supplierId',
+					)
+					.lean(),
+				tenantId,
+			)
+			const suppliers = await withTenantScope(
+				Supplier.find({})
+					.select('supplierId name internalCode email vatId aliases')
+					.lean(),
+				tenantId,
+			)
+
+			return await matchExtractedInvoice(
+				extraction,
+				products,
+				suppliers,
+				rankInput => getInvoiceAiProvider().rankMatch(rankInput),
+			)
+		} catch (error) {
+			try {
+				await refundInvoiceAiCredit(tenantId, reserved.periodStart)
+			} catch {
+				// keep the extract error
+			}
+
+			throw error
+		}
 	}
 
 	public async confirmBuyingInvoiceMatch(

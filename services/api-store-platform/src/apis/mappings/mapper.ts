@@ -253,6 +253,7 @@ export const mapTenantSummary = (tenant: ITenant): TenantSummary => {
 		status: tenant.status,
 		accessiblePages: resolveTenantAccessiblePages(tenant),
 		offlineEnabled: tenant.offlineEnabled !== false,
+		invoiceAiMonthlyLimit: tenant.invoiceAi?.monthlyLimit ?? null,
 		createdAt: tenant.createdAt,
 		updatedAt: tenant.updatedAt,
 		permissions: getTenantPermissions(tenant),

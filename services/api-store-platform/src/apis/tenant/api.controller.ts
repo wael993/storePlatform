@@ -18,7 +18,14 @@ import { getTenantPermissions } from '../../shared/Permissions'
 import {
 	DEFAULT_TENANT_ACCESSIBLE_PAGES,
 	sanitizeAccessiblePages,
+	TENANT_ACCESSIBLE_PAGE,
 } from '../../shared/constants/tenantAccessiblePages'
+import { DEFAULT_INVOICE_AI_MONTHLY_LIMIT } from '../../shared/constants/invoiceAi'
+import {
+	newInvoiceAiUsage,
+	parseInvoiceAiMonthlyLimit,
+	tenantHasInvoiceAi,
+} from '../../shared/invoiceAi/usage'
 import {
 	ensureSuperAdmin,
 	ensureTenantAccess,
@@ -283,6 +290,57 @@ export default class TenantController {
 			}
 
 			updates.accessiblePages = sanitizedPages
+		}
+
+		const hasInvoiceAi = Array.isArray(updates.accessiblePages)
+			? (updates.accessiblePages as ITenant['accessiblePages']).includes(
+					TENANT_ACCESSIBLE_PAGE.INVOICE_AI,
+				)
+			: tenantHasInvoiceAi(tenant)
+		const hadInvoiceAi = tenantHasInvoiceAi(tenant)
+
+		if (requestBody.invoiceAiMonthlyLimit !== undefined && !hasInvoiceAi) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invoice AI monthly limit can only be set when Invoice AI is enabled.',
+			)
+		}
+
+		if (hasInvoiceAi && !hadInvoiceAi) {
+			if (!permissions.canChangeTenantSettings) {
+				throw new BusinessLogicError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					permissions.reason || 'Tenant settings cannot be modified.',
+				)
+			}
+
+			const monthlyLimit =
+				requestBody.invoiceAiMonthlyLimit !== undefined
+					? parseInvoiceAiMonthlyLimit(requestBody.invoiceAiMonthlyLimit)
+					: (tenant.invoiceAi?.monthlyLimit ??
+						DEFAULT_INVOICE_AI_MONTHLY_LIMIT)
+
+			updates.invoiceAi = newInvoiceAiUsage(monthlyLimit, new Date())
+		} else if (
+			hasInvoiceAi &&
+			requestBody.invoiceAiMonthlyLimit !== undefined
+		) {
+			if (!permissions.canChangeTenantSettings) {
+				throw new BusinessLogicError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					permissions.reason || 'Tenant settings cannot be modified.',
+				)
+			}
+
+			const monthlyLimit = parseInvoiceAiMonthlyLimit(
+				requestBody.invoiceAiMonthlyLimit,
+			)
+
+			if (!tenant.invoiceAi?.activatedAt) {
+				updates.invoiceAi = newInvoiceAiUsage(monthlyLimit, new Date())
+			} else {
+				updates['invoiceAi.monthlyLimit'] = monthlyLimit
+			}
 		}
 
 		if (requestBody.offlineEnabled !== undefined) {

@@ -129,7 +129,8 @@ export const getRequiredAccessiblePages = (
 		firstSegment === 'buying-invoices' &&
 		(secondSegment === 'extract' ||
 			secondSegment === 'extract-region' ||
-			secondSegment === 'confirm-match')
+			secondSegment === 'confirm-match' ||
+			secondSegment === 'invoice-ai-usage')
 	) {
 		return [TENANT_ACCESSIBLE_PAGE.INVOICE_AI]
 	}

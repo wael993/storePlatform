@@ -30,6 +30,7 @@ import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
 import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
 import { startNegativeQuantitySnapshotCron } from './cron/snapshotNegativeQuantity'
+import { startInvoiceAiUsageRollCron } from './cron/rollInvoiceAiUsage'
 import { redisCache } from './shared/cache/redisCache'
 import logger, { EntityType } from './shared/logger/logger'
 
@@ -149,6 +150,7 @@ cacheMetricsInterval.unref()
 
 startTokenCleanupCron()
 startNegativeQuantitySnapshotCron()
+startInvoiceAiUsageRollCron()
 
 employeeRoutes.setRoutes(app)
 customerRoutes.setRoutes(app)
