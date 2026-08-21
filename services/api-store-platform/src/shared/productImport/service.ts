@@ -432,7 +432,10 @@ const rowProductIds = (
 	uuidv5(`${row.fileName}:${row.rowNumber}`, sessionId),
 ]
 
-const foreignBarcodes = async (tenantId: string, sessionProductIds: string[]) => {
+const foreignBarcodes = async (
+	tenantId: string,
+	sessionProductIds: string[],
+) => {
 	const existing = await withTenantScope(
 		Product.find({ barcode: { $gt: '' } })
 			.select({ barcode: 1, productId: 1 })
@@ -568,9 +571,7 @@ export const commitProductImport = async (
 	const offset = readBatchOffset(offsetRaw)
 	const limit = readBatchLimit(limitRaw)
 	const batch = valid.slice(offset, offset + limit)
-	const productIds = batch.map(row =>
-		importProductId(session.sessionId, row),
-	)
+	const productIds = batch.map(row => importProductId(session.sessionId, row))
 	const alreadyImported = new Set(
 		productIds.length
 			? (
@@ -600,7 +601,9 @@ export const commitProductImport = async (
 	const products = batch.flatMap((row, index) => {
 		const productId = productIds[index]
 
-		if (rowProductIds(session.sessionId, row).some(id => alreadyImported.has(id))) {
+		if (
+			rowProductIds(session.sessionId, row).some(id => alreadyImported.has(id))
+		) {
 			return []
 		}
 

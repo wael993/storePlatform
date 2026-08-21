@@ -45,7 +45,9 @@ const requireConfig = (ok: boolean, message: string) => {
 	}
 }
 
-const heuristicSuggestions = (headers: string[]): ImportAiHeaderSuggestion[] => {
+const heuristicSuggestions = (
+	headers: string[],
+): ImportAiHeaderSuggestion[] => {
 	const mapping = suggestHeaderMapping(headers)
 
 	return PRODUCT_IMPORT_FIELDS.flatMap(field => {
@@ -167,7 +169,9 @@ const geminiProvider = (): ImportAiProvider => {
 		}
 
 		const payload = (await response.json()) as Record<string, unknown>
-		const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
+		const candidates = Array.isArray(payload.candidates)
+			? payload.candidates
+			: []
 		const content = asRecord(asRecord(candidates[0])?.content)
 		const responseParts = Array.isArray(content?.parts) ? content.parts : []
 		const text = asString(asRecord(responseParts[0])?.text) ?? '{}'

@@ -1,5 +1,8 @@
 import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
-import { PRODUCT_IMPORT_STATUS, ProductImportStatus } from '../shared/constants/productImport'
+import {
+	PRODUCT_IMPORT_STATUS,
+	ProductImportStatus,
+} from '../shared/constants/productImport'
 import { HeaderMapping, SourceRow } from '../shared/productImport/mapRows'
 
 export type ProductImportSessionFile = {
@@ -19,7 +22,8 @@ export interface IProductImportSession {
 	updatedAt: Date
 }
 
-export type ProductImportSessionDocument = HydratedDocument<IProductImportSession>
+export type ProductImportSessionDocument =
+	HydratedDocument<IProductImportSession>
 
 const productImportSessionSchema = new Schema<IProductImportSession>(
 	{

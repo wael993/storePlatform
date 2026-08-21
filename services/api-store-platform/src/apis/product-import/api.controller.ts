@@ -56,6 +56,7 @@ export default class ProductImportController {
 					'products',
 					requestContext,
 				)
+
 				await this.productController.invalidateEntityCache(
 					'inventory',
 					requestContext,

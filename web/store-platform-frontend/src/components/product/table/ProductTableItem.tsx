@@ -1,4 +1,11 @@
-import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import {
+	Td,
+	Checkbox,
+	Flex,
+	Text,
+	Skeleton,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 // import { formatDate } from '../../../shared/dateUtils'
@@ -62,9 +69,13 @@ const ProductTableItem = memo(
 			seeBuyCost,
 			canDeleteProduct,
 		} = useAllowedActions()
-		const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } =
-			useDisclosure()
-		const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
+		const {
+			isOpen: isDeleteOpen,
+			onOpen: onDeleteOpen,
+			onClose: onDeleteClose,
+		} = useDisclosure()
+		const [deleteProduct, { isLoading: isDeleting }] =
+			useDeleteProductMutation()
 		const showToast = useCustomToast()
 
 		const styles = {

@@ -76,7 +76,8 @@ const formatDuration = (ms: number) => {
 	return `${minutes} min ${seconds} sec`
 }
 
-type WizardStep = 'upload' | 'mapping' | 'confirm' | 'preview' | 'committing' | 'result'
+type WizardStep =
+	'upload' | 'mapping' | 'confirm' | 'preview' | 'committing' | 'result'
 
 type CommitProgress = {
 	processed: number
@@ -192,8 +193,7 @@ const ProductImportWizardModal = ({
 
 			showToast({
 				status: 'error',
-				description:
-					err.data?.message || t('productImport.parseFailed'),
+				description: err.data?.message || t('productImport.parseFailed'),
 			})
 		}
 	}
@@ -214,8 +214,7 @@ const ProductImportWizardModal = ({
 
 			showToast({
 				status: 'error',
-				description:
-					err.data?.message || t('productImport.previewFailed'),
+				description: err.data?.message || t('productImport.previewFailed'),
 			})
 		}
 	}
@@ -259,10 +258,7 @@ const ProductImportWizardModal = ({
 						break
 					} catch (error) {
 						lastError = error
-						if (
-							attempt < COMMIT_RETRIES - 1 &&
-							isRetryableCommitError(error)
-						) {
+						if (attempt < COMMIT_RETRIES - 1 && isRetryableCommitError(error)) {
 							await wait(400 * (attempt + 1))
 							continue
 						}
@@ -302,22 +298,18 @@ const ProductImportWizardModal = ({
 			setStep('preview')
 			showToast({
 				status: 'error',
-				description:
-					err.data?.message || t('productImport.commitFailed'),
+				description: err.data?.message || t('productImport.commitFailed'),
 			})
 		}
 	}
 
-	const hasExistingProducts =
-		(status?.productCount ?? 0) > 0 && !status?.resume
+	const hasExistingProducts = (status?.productCount ?? 0) > 0 && !status?.resume
 	const elapsedMs = commitProgress ? now - commitProgress.startedAt : 0
 	const percent =
 		commitProgress && commitProgress.total > 0
 			? Math.min(
 					100,
-					Math.round(
-						(commitProgress.processed / commitProgress.total) * 100,
-					),
+					Math.round((commitProgress.processed / commitProgress.total) * 100),
 				)
 			: 0
 	const remainingMs =
@@ -340,7 +332,11 @@ const ProductImportWizardModal = ({
 				<ModalHeader>{t('productImport.title')}</ModalHeader>
 				<ModalBody>
 					{hasExistingProducts ? (
-						<Text>{t('productImport.existingProducts', { count: status?.productCount })}</Text>
+						<Text>
+							{t('productImport.existingProducts', {
+								count: status?.productCount,
+							})}
+						</Text>
 					) : step === 'upload' ? (
 						<VStack align="stretch" gap={4}>
 							<Text color="gray.600">{t('productImport.uploadHint')}</Text>
@@ -353,7 +349,9 @@ const ProductImportWizardModal = ({
 								onChange={event => {
 									const selected = Array.from(event.target.files ?? [])
 
-									if (selected.some(file => !isExcelImportFileName(file.name))) {
+									if (
+										selected.some(file => !isExcelImportFileName(file.name))
+									) {
 										rejectNonExcel()
 										event.target.value = ''
 										setFiles([])
@@ -378,7 +376,11 @@ const ProductImportWizardModal = ({
 							{(status?.fields ?? []).map(field => (
 								<Flex key={field.key} align="center" gap={4}>
 									<Text minW="12rem" fontWeight={700}>
-										{t(PRODUCT_IMPORT_FIELD_LABEL_KEYS[field.key as ProductImportFieldKey])}
+										{t(
+											PRODUCT_IMPORT_FIELD_LABEL_KEYS[
+												field.key as ProductImportFieldKey
+											],
+										)}
 										{field.required ? ' *' : ''}
 									</Text>
 									<Select
@@ -413,7 +415,11 @@ const ProductImportWizardModal = ({
 								.filter(field => mapping[field.key])
 								.map(field => (
 									<Text key={field.key}>
-										{t(PRODUCT_IMPORT_FIELD_LABEL_KEYS[field.key as ProductImportFieldKey])}
+										{t(
+											PRODUCT_IMPORT_FIELD_LABEL_KEYS[
+												field.key as ProductImportFieldKey
+											],
+										)}
 										{' → '}
 										{mapping[field.key]}
 									</Text>
@@ -456,7 +462,10 @@ const ProductImportWizardModal = ({
 								<VStack align="stretch" gap={1}>
 									<Text fontWeight={700}>{t('productImport.viewErrors')}</Text>
 									{preview.errors.map(error => (
-										<Text key={`${error.fileName}-${error.rowNumber}`} fontSize="sm">
+										<Text
+											key={`${error.fileName}-${error.rowNumber}`}
+											fontSize="sm"
+										>
 											{t('productImport.rowError', {
 												row: error.rowNumber,
 												message: error.errors.join(' '),
@@ -498,7 +507,9 @@ const ProductImportWizardModal = ({
 								</Text>
 							) : null}
 							<Text color="gray.500">
-								{t('productImport.elapsed', { time: formatDuration(elapsedMs) })}
+								{t('productImport.elapsed', {
+									time: formatDuration(elapsedMs),
+								})}
 							</Text>
 						</VStack>
 					) : null}
@@ -509,7 +520,9 @@ const ProductImportWizardModal = ({
 								{t('productImport.resultImported', { count: result.imported })}
 							</Text>
 							<Text>
-								{t('productImport.resultDuplicates', { count: result.duplicates })}
+								{t('productImport.resultDuplicates', {
+									count: result.duplicates,
+								})}
 							</Text>
 							<Text>
 								{t('productImport.resultInvalid', { count: result.invalid })}
@@ -519,7 +532,7 @@ const ProductImportWizardModal = ({
 				</ModalBody>
 				<ModalFooter gap={3}>
 					{hasExistingProducts || step === 'result' ? (
-								<Button onClick={handleClose}>{t('productImport.done')}</Button>
+						<Button onClick={handleClose}>{t('productImport.done')}</Button>
 					) : isCommitting ? null : (
 						<>
 							<Button

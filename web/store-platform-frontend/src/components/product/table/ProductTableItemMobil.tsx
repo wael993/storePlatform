@@ -107,8 +107,11 @@ const ProductTableMobil = ({
 		seeDiscount,
 		canDeleteProduct,
 	} = useAllowedActions()
-	const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } =
-		useDisclosure()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
 	const showToast = useCustomToast()
 	const productState = PRODUCT_STATE_CONFIG[product.status]

@@ -97,40 +97,50 @@ export default class ProductImportRoutes {
 	public setRoutes(app: express.Application): void {
 		const base = `${this.baseRoute}/product-import`
 
-		app.route(`${base}/status`).get(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-			this.getStatus.bind(this),
-		)
+		app
+			.route(`${base}/status`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getStatus.bind(this),
+			)
 
-		app.route(`${base}/skip`).post(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-			this.skip.bind(this),
-		)
+		app
+			.route(`${base}/skip`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.skip.bind(this),
+			)
 
-		app.route(`${base}/parse`).post(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-			this.parse.bind(this),
-		)
+		app
+			.route(`${base}/parse`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.parse.bind(this),
+			)
 
-		app.route(`${base}/preview`).post(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-			this.preview.bind(this),
-		)
+		app
+			.route(`${base}/preview`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.preview.bind(this),
+			)
 
-		app.route(`${base}/commit`).post(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-			this.commit.bind(this),
-		)
+		app
+			.route(`${base}/commit`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.commit.bind(this),
+			)
 	}
 
 	private async getStatus(

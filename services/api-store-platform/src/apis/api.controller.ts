@@ -1645,6 +1645,7 @@ export default class ProductController {
 
 			if (reason) {
 				blockedRows.push({ productId, reason })
+
 				continue
 			}
 
@@ -1654,6 +1655,7 @@ export default class ProductController {
 					requestContext,
 					Product,
 				)
+
 				deleted.push(productId)
 			} catch {
 				blockedRows.push({
