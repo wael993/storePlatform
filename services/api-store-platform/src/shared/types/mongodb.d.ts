@@ -1,4 +1,4 @@
-import { TenantRole } from '../tenant'
+import { UserRole } from '../tenant'
 
 interface DocumentReadOperationResponse {
 	id?: string[]
@@ -20,5 +20,5 @@ interface UserAPIFormat {
 	_id: string
 	displayName: string
 	avatarColorId?: number
-	role: TenantRole
+	role: UserRole
 }

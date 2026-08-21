@@ -149,7 +149,9 @@ const RenewalRequestsPage = () => {
 				/>
 				<Box>
 					<Heading size="lg">{t('tenants.renewalRequests')}</Heading>
-					<Text color="gray.600">{t('tenants.renewalRequestsDescription')}</Text>
+					<Text color="gray.600">
+						{t('tenants.renewalRequestsDescription')}
+					</Text>
 				</Box>
 
 				{feedback ? (
@@ -203,7 +205,9 @@ const RenewalRequestsPage = () => {
 						</FormControl>
 						<Divider />
 						<Flex align="center" justify="space-between">
-							<Text fontWeight="semibold">{t('subscription.paymentMethods')}</Text>
+							<Text fontWeight="semibold">
+								{t('subscription.paymentMethods')}
+							</Text>
 							<Button
 								size="sm"
 								leftIcon={<AddIcon />}
@@ -226,12 +230,7 @@ const RenewalRequestsPage = () => {
 							</Button>
 						</Flex>
 						{settings.methods.map((method, index) => (
-							<Box
-								key={method.id}
-								borderWidth="1px"
-								borderRadius="md"
-								p={4}
-							>
+							<Box key={method.id} borderWidth="1px" borderRadius="md" p={4}>
 								<Flex justify="space-between" mb={3}>
 									<Text fontWeight="medium">
 										{method.name || t('tenants.methodName')}
@@ -341,7 +340,9 @@ const RenewalRequestsPage = () => {
 									<Td>{new Date(request.requestedAt).toLocaleString()}</Td>
 									<Td>
 										<Badge colorScheme={statusColor(request.status)}>
-											{t(`subscription.status${request.status[0].toUpperCase()}${request.status.slice(1)}`)}
+											{t(
+												`subscription.status${request.status[0].toUpperCase()}${request.status.slice(1)}`,
+											)}
 										</Badge>
 									</Td>
 									<Td textAlign="right">
@@ -356,7 +357,9 @@ const RenewalRequestsPage = () => {
 							{!isLoading && requests.length === 0 ? (
 								<Tr>
 									<Td colSpan={4}>
-										<Text color="gray.500">{t('tenants.noRenewalRequests')}</Text>
+										<Text color="gray.500">
+											{t('tenants.noRenewalRequests')}
+										</Text>
 									</Td>
 								</Tr>
 							) : null}

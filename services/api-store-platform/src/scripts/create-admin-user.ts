@@ -30,15 +30,6 @@ const INITIAL_USERS = [
 		role: 'admin',
 		avatarColorId: 321522,
 	},
-	{
-		userId: '654987654987654987ss',
-		displayName: 'Wael Zobani super_admin',
-		user: { firstName: 'wael', lastName: 'Super' },
-		email: 'super_admin@example.com',
-		password: 'super123', // Minimum 6 chars
-		role: 'super_admin',
-		avatarColorId: 3215223,
-	},
 ]
 
 async function createInitialUsers() {

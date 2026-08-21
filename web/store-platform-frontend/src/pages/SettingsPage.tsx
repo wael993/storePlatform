@@ -226,10 +226,7 @@ const SettingsPage = () => {
 	const handleSecondaryChange = (
 		index: number,
 		field:
-			| 'name'
-			| 'internalCode'
-			| 'exchangeRate'
-			| 'exchangeRateUnitCurrencyId',
+			'name' | 'internalCode' | 'exchangeRate' | 'exchangeRateUnitCurrencyId',
 		value: string,
 	) => {
 		setSecondaryCurrencies(current =>

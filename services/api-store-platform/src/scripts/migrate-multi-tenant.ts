@@ -5,7 +5,7 @@ import {
 	DEFAULT_TENANT_DOMAIN,
 	DEFAULT_TENANT_ID,
 	DEFAULT_TENANT_NAME,
-	TENANT_ROLES,
+	USER_ROLES,
 } from '../shared/tenant'
 
 const COLLECTIONS = [
@@ -54,7 +54,7 @@ async function migrateMultiTenant() {
 
 		await mongoose.connection
 			.collection('users')
-			.updateMany({ role: { $nin: TENANT_ROLES } }, [
+			.updateMany({ role: { $nin: USER_ROLES } }, [
 				{
 					$set: {
 						role: {

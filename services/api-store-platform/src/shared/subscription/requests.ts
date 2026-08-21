@@ -18,7 +18,12 @@ import {
 import { ERROR_CODES } from '../errorCodes'
 import { RequestContext } from '../types'
 import { isSuperAdminTenant } from '../Permissions'
-import { applySubscriptionRenewal, getSubscriptionConfig, syncTenantSubscription, toView } from './persist'
+import {
+	applySubscriptionRenewal,
+	getSubscriptionConfig,
+	syncTenantSubscription,
+	toView,
+} from './persist'
 import { calendarDateInTimeZone, SubscriptionView } from './lifecycle'
 
 const actorOf = (requestContext: RequestContext): RenewalRequestActor => {
@@ -215,6 +220,7 @@ export const approveRenewalRequest = async (
 
 	if (!tenant) {
 		await revertClaim()
+
 		throw new BusinessLogicError(
 			ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
 			'Tenant not found.',
@@ -225,6 +231,7 @@ export const approveRenewalRequest = async (
 		await applySubscriptionRenewal(tenant, now, claimed.currentExpirationDate)
 	} catch (error) {
 		await revertClaim()
+
 		throw error
 	}
 

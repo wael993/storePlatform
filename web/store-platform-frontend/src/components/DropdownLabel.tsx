@@ -2,10 +2,7 @@ import { SystemStyleObject, VStack, Text } from '@chakra-ui/react'
 import { Dropdown } from './dropdown/Dropdown'
 
 type DropdownStylesKeys =
-	| 'labelText'
-	| 'dropdownContainer'
-	| 'dropdownMenu'
-	| 'dropdownPlaceholder'
+	'labelText' | 'dropdownContainer' | 'dropdownMenu' | 'dropdownPlaceholder'
 type DropdownStylesObject = {
 	[key in DropdownStylesKeys]?: SystemStyleObject
 }

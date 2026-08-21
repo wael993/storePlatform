@@ -1,9 +1,16 @@
 import User, { IUser } from '../../models/User'
 import RefreshToken from '../../models/RefreshToken'
 import { RequestContext, UpdateTenantUserRequestBody } from '../types'
-import { ensureTenantAccess, getTenantContext } from '../tenant'
+import {
+	assertAssignableTenantRole,
+	ensureTenantAccess,
+	getTenantContext,
+} from '../tenant'
 import { withTenantScope } from './tenantScopedModel'
-import { BusinessLogicError } from '../../middleware/errorHandler'
+import {
+	AuthorizationError,
+	BusinessLogicError,
+} from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 
 export const updateTenantUser = async (
@@ -13,6 +20,13 @@ export const updateTenantUser = async (
 ): Promise<IUser> => {
 	await ensureTenantAccess(requestContext, 'users', 'update')
 	const tenantContext = getTenantContext(requestContext)
+
+	if (Object.prototype.hasOwnProperty.call(requestBody, 'tenantId')) {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Tenant assignment cannot be changed.',
+		)
+	}
 
 	const updates: Record<string, unknown> = {}
 
@@ -28,6 +42,7 @@ export const updateTenantUser = async (
 	// 	updates['user.isInternal'] = requestBody.isInternal
 	// }
 	if (requestBody.role) {
+		assertAssignableTenantRole(requestBody.role)
 		updates.role = requestBody.role
 	}
 

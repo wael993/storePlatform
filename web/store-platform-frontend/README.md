@@ -44,39 +44,3 @@ You don’t have to ever use `eject`. The curated feature set is suitable for sm
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
 To learn React, check out the [React documentation](https://reactjs.org/).
-
-Email: wael@superadmin.de
-Password: S-uAboMHDZain010203
-
-Email: abd@zobanifood.sy
-Password: Abd321zo
-
-Email: ibrahem.zobani@zobani.sy
-Password: i120600Z
-
-Neutral 0 = #000000
-Neutral 100 = #1E1E1E
-Neutral 400 = #707070
-Neutral 500 = #929494
-Neutral 600 = #B2B2B2
-Neutral 700 = #D8D8D8
-Neutral 800 = #EAEAEA
-Neutral 900 = #F4F4F4
-Neutral 1000 = #FFFFFF
-Accent 300 = #85B5DF
-Accent 500 = #366085
-Accent 600 = #6189AC
-Blue = #608FD6
-Blue.100 = #DEE7F6
-Teal = #55D7C5
-Green = #35CE4C
-Green.100 = #CEEDD8
-Yellow = #EFBA33
-Yellow.100 = #FCF1D9
-Orange = #F4833D
-Red = #E45252
-Red.100 = #F9DBDB
-Pink = #E782D6
-Purple = #8641AD
-Gray = #C6C6C6
-Gray.100 = #C6C6C6

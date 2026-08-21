@@ -37,8 +37,7 @@ export interface EntryTableRow {
 }
 
 export type InvoiceTableRow =
-	| (SellingInvoice & { kind: 'selling' | 'buying' })
-	| EntryTableRow
+	(SellingInvoice & { kind: 'selling' | 'buying' }) | EntryTableRow
 
 const ENTRY_TYPE_MAP: Record<string, EntrySubType | undefined> = {
 	[DailyActionType.RECEIPT_ENTRY]: 'receipt',

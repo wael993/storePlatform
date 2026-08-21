@@ -216,11 +216,10 @@ const TopBar = ({
 	})
 	const subscription = subscriptionData?.subscription
 	const pendingRenewalRequests =
-		renewalRequestsData?.requests.filter(request => request.status === 'pending') ??
-		[]
-	const renewalBellKey = user?.userId
-		? `renewal-bell-read:${user.userId}`
-		: ''
+		renewalRequestsData?.requests.filter(
+			request => request.status === 'pending',
+		) ?? []
+	const renewalBellKey = user?.userId ? `renewal-bell-read:${user.userId}` : ''
 	const [readRenewalIds, setReadRenewalIds] = useState<string[]>([])
 
 	useEffect(() => {
@@ -456,40 +455,39 @@ const TopBar = ({
 										) : (
 											<>
 												{unreadRenewalRequests.map(request => (
-																<Flex
-																	key={request.requestId}
-																	align="flex-start"
-																	gap={2}
-																	sx={styles.subscriptionRow}
-																	borderBottom="1px solid #ECECEC"
-																	as="button"
-																	type="button"
-																	w="full"
-																	textAlign="start"
-																	onClick={() => {
-																		markRenewalRequestsRead([request.requestId])
-																		notificationPopover.onClose()
-																		navigate(RoutePaths.RENEWAL_REQUESTS)
-																	}}
-																>
-																	<WarningIcon
-																		boxSize={4}
-																		mt="0.15rem"
-																		color="orange.500"
-																	/>
-																	<Box>
-																		<Text>
-																			{t(
-																				'components.topBar.newRenewalRequest',
-																				{ tenant: request.tenantName },
-																			)}
-																		</Text>
-																		<Text fontWeight={500} fontSize="xs" mt={1}>
-																			{t('components.topBar.reviewRequest')}
-																		</Text>
-																	</Box>
-																</Flex>
-															))}
+													<Flex
+														key={request.requestId}
+														align="flex-start"
+														gap={2}
+														sx={styles.subscriptionRow}
+														borderBottom="1px solid #ECECEC"
+														as="button"
+														type="button"
+														w="full"
+														textAlign="start"
+														onClick={() => {
+															markRenewalRequestsRead([request.requestId])
+															notificationPopover.onClose()
+															navigate(RoutePaths.RENEWAL_REQUESTS)
+														}}
+													>
+														<WarningIcon
+															boxSize={4}
+															mt="0.15rem"
+															color="orange.500"
+														/>
+														<Box>
+															<Text>
+																{t('components.topBar.newRenewalRequest', {
+																	tenant: request.tenantName,
+																})}
+															</Text>
+															<Text fontWeight={500} fontSize="xs" mt={1}>
+																{t('components.topBar.reviewRequest')}
+															</Text>
+														</Box>
+													</Flex>
+												))}
 												{showSubscriptionWarning && subscription ? (
 													<Flex
 														align="flex-start"

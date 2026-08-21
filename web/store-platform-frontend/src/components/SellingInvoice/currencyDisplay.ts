@@ -278,9 +278,7 @@ export interface InvoiceAmountSource {
 }
 
 export type SavedCurrencyAmountField =
-	| 'amount'
-	| 'paidAmount'
-	| 'remainingAmount'
+	'amount' | 'paidAmount' | 'remainingAmount'
 
 export const formatSavedCurrencyAmount = (
 	currencyAmounts: InvoiceCurrencyAmount[] | undefined,

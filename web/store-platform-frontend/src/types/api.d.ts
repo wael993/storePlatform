@@ -73,11 +73,7 @@ type Access =
 	| 'admin-logging-stats'
 
 type ActivityStatusAPI =
-	| 'new'
-	| 'preparation'
-	| 'execution'
-	| 'done'
-	| 'rejected'
+	'new' | 'preparation' | 'execution' | 'done' | 'rejected'
 
 // type ActivityType = 'PA' | 'PA1' | 'PA2' | 'PA3' | 'PO' | 'ALL'
 type accessLevel = 'admin' | 'editor' | 'customer'
@@ -375,11 +371,13 @@ interface TenantUser {
 	updatedAt: string
 }
 
+type TenantUserRole = 'owner' | 'admin' | 'cashier' | 'employee'
+
 interface InviteTenantUserRequest {
 	firstName: string
 	lastName: string
 	email: string
-	role: UserRole
+	role: TenantUserRole
 }
 
 interface InviteTenantUserResponse {

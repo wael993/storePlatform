@@ -78,10 +78,7 @@ const addCalendarYears = (ymd: string, years: number): string => {
 	return `${year + years}-${String(month).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`
 }
 
-const addSubscriptionPeriod = (
-	ymd: string,
-	periodDays: number,
-): string =>
+const addSubscriptionPeriod = (ymd: string, periodDays: number): string =>
 	periodDays % 365 === 0
 		? addCalendarYears(ymd, periodDays / 365)
 		: addCalendarDays(ymd, periodDays)

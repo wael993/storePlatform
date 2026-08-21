@@ -1,5 +1,5 @@
 import { AuthorizedUser } from './authorization'
-import { TenantRole } from '../tenant'
+import { TenantRole, UserRole } from '../tenant'
 import { CustomerDailyAction, ProductDailyAction } from './api'
 import {
 	InvoicePaymentStatus,
@@ -13,7 +13,7 @@ interface RequestContext {
 	userId?: string
 	tenantId?: string
 	tenantName?: string
-	role?: TenantRole
+	role?: UserRole
 	user?: AuthorizedUser
 	allowedFields: string[]
 }
@@ -494,7 +494,7 @@ export type TenantUserSummary = {
 	userId: string
 	displayName: string
 	email: string
-	role: TenantRole
+	role: UserRole
 	firstName: string
 	lastName: string
 }

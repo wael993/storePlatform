@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
-import { TENANT_ROLES, TenantRole } from '../shared/tenant'
+import { USER_ROLES, UserRole } from '../shared/tenant'
 
 export interface IUser extends Document {
 	tenantId: string
@@ -9,7 +9,7 @@ export interface IUser extends Document {
 	user: UserData
 	email: string
 	password: string
-	role: TenantRole
+	role: UserRole
 	tokenVersion: number
 	avatarColorId: number
 	createdBy: {
@@ -74,7 +74,7 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
 		},
 		role: {
 			type: String,
-			enum: TENANT_ROLES,
+			enum: USER_ROLES,
 			default: 'employee',
 		},
 		tokenVersion: {

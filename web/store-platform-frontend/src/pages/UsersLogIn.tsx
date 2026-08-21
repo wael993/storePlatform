@@ -41,22 +41,29 @@ import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
 import { useTranslation } from 'react-i18next'
 
-const createInviteUserSchema = (t: (key: string) => string) =>
-	z.object({
-		firstName: z.string().min(1, t('addTenant.validation.firstNameRequired')),
-		lastName: z.string().min(1, t('addTenant.validation.lastNameRequired')),
-		email: z.string().email(t('addTenant.validation.emailInvalid')),
-		role: z.nativeEnum(UserRole),
-	})
-
-type InviteUserFormData = z.infer<ReturnType<typeof createInviteUserSchema>>
-
-const USER_ROLE_OPTIONS: UserRole[] = [
+const TENANT_USER_ROLES = [
 	UserRole.OWNER,
 	UserRole.ADMIN,
 	UserRole.CASHIER,
 	UserRole.EMPLOYEE,
-]
+] as const
+
+const createInviteUserSchema = (t: (key: string) => string) =>
+	z.object({
+		firstName: z.string().min(1, t('addTenant.validation.firstNameRequired')),
+		lastName: z.string().min(1, t('addTenant.validation.lastNameRequired')),
+		email: z.email(t('addTenant.validation.emailInvalid')),
+		role: z.union([
+			z.literal('owner'),
+			z.literal('admin'),
+			z.literal('cashier'),
+			z.literal('employee'),
+		]),
+	})
+
+type InviteUserFormData = z.infer<ReturnType<typeof createInviteUserSchema>>
+
+const USER_ROLE_OPTIONS: TenantUserRole[] = [...TENANT_USER_ROLES]
 
 const UsersLogIn = () => {
 	const { t } = useTranslation()
@@ -107,7 +114,7 @@ const UsersLogIn = () => {
 		}
 	}
 
-	const onRoleChange = async (userId: string, nextRole: UserRole) => {
+	const onRoleChange = async (userId: string, nextRole: TenantUserRole) => {
 		setFeedback('')
 		setTempPassword('')
 
@@ -246,7 +253,7 @@ const UsersLogIn = () => {
 											onChange={event =>
 												onRoleChange(
 													user.userId,
-													event.target.value as UserRole,
+													event.target.value as TenantUserRole,
 												)
 											}
 										>

@@ -28,11 +28,13 @@ import {
 	tenantHasInvoiceAi,
 } from '../../shared/invoiceAi/usage'
 import {
+	assertAssignableTenantRole,
 	ensureSuperAdmin,
 	ensureTenantAccess,
 	getEmailDomain,
+	getSuperAdminTenantId,
 	getTenantContext,
-	TenantRole,
+	UserRole,
 } from '../../shared/tenant'
 import { COLLECTION_NAMES } from '../../shared/general'
 import {
@@ -75,7 +77,7 @@ type TenantUserLean = {
 	readonly userId: string
 	readonly displayName: string
 	readonly email: string
-	readonly role: TenantRole
+	readonly role: UserRole
 	readonly user: {
 		readonly firstName: string
 		readonly lastName: string
@@ -164,12 +166,7 @@ export default class TenantController {
 			)
 		}
 
-		if (role === 'super_admin') {
-			throw new BusinessLogicError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'super_admin role can only be created from super-admin controls.',
-			)
-		}
+		assertAssignableTenantRole(role)
 
 		const tenant = await this.requireTenantById(tenantContext.tenantId)
 
@@ -213,7 +210,7 @@ export default class TenantController {
 			_id: created.id,
 			email: created.email,
 			tenantId: tenantContext.tenantId,
-			role: created.role,
+			role,
 			temporaryPassword,
 		}
 	}
@@ -242,14 +239,16 @@ export default class TenantController {
 	public async getTenants(
 		requestContext: RequestContext,
 	): Promise<TenantSummary[]> {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		const tenants = await Tenant.find()
 			.sort({ createdAt: -1 })
 			.lean<ITenant[]>()
 
 		const synced = await Promise.all(
-			tenants.map(async tenant => (await syncTenantSubscription(tenant)).tenant),
+			tenants.map(
+				async tenant => (await syncTenantSubscription(tenant)).tenant,
+			),
 		)
 
 		return synced.map(tenant => mapTenantSummary(tenant))
@@ -260,7 +259,7 @@ export default class TenantController {
 		requestBody: UpdateTenantRequestBody,
 		requestContext: RequestContext,
 	): Promise<TenantSummary> {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
 
@@ -435,7 +434,7 @@ export default class TenantController {
 		tenantId: string,
 		requestContext: RequestContext,
 	): Promise<void> {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
 
@@ -473,7 +472,7 @@ export default class TenantController {
 		requestBody: AddTenantRequestBody,
 		requestContext: RequestContext,
 	): Promise<AddTenantResponse> {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 		const {
 			tenantName,
 			tenantDomain,
@@ -528,6 +527,14 @@ export default class TenantController {
 		}
 
 		const tenantId = this.createTenantIdFromDomain(normalizedDomain)
+
+		if (tenantId === getSuperAdminTenantId()) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Tenant ID conflict detected. Choose a different domain.',
+			)
+		}
+
 		const tenantIdConflict = await Tenant.findOne({ tenantId }).lean()
 
 		if (tenantIdConflict) {
@@ -606,9 +613,7 @@ export default class TenantController {
 			getLatestRequest(tenantContext.tenantId),
 		])
 		const canRequestRenewal =
-			canRole &&
-			!pending &&
-			Boolean(view && (view.warning || view.expired))
+			canRole && !pending && Boolean(view && (view.warning || view.expired))
 
 		return {
 			subscription: view ? { ...view, canRequestRenewal } : null,
@@ -643,7 +648,7 @@ export default class TenantController {
 	}
 
 	public async listRenewalRequests(requestContext: RequestContext) {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		const requests = await listAllRenewalRequests()
 
@@ -654,7 +659,7 @@ export default class TenantController {
 		requestId: string,
 		requestContext: RequestContext,
 	) {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		const request = await approveRenewalRequest(requestId, requestContext)
 
@@ -666,7 +671,7 @@ export default class TenantController {
 		reason: string,
 		requestContext: RequestContext,
 	) {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		const request = await rejectRenewalRequest(
 			requestId,
@@ -678,7 +683,7 @@ export default class TenantController {
 	}
 
 	public async getSubscriptionPaymentSettings(requestContext: RequestContext) {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		return getPaymentSettings()
 	}
@@ -687,7 +692,7 @@ export default class TenantController {
 		body: Parameters<typeof savePaymentSettings>[0],
 		requestContext: RequestContext,
 	) {
-		ensureSuperAdmin(requestContext)
+		await ensureSuperAdmin(requestContext)
 
 		return savePaymentSettings(body)
 	}

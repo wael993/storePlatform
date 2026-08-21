@@ -13,8 +13,7 @@ import type { InvoiceExtractionReview } from '../../shared/invoiceExtraction'
 export type BuyingInvoiceStatus = `${InvoiceUiStatus}`
 
 export type BuyingInvoicePaymentType =
-	| `${InvoicePaymentType.CASH}`
-	| `${InvoicePaymentType.CREDIT}`
+	`${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
 
 /** Line items share the exact same shape as selling invoices (product/qty/price/discount/tax). */
 export type BuyingInvoiceLineItem = SellingInvoiceLineItem

@@ -237,11 +237,7 @@ export const useDailyActionHandlers = ({
 
 	const handleInputChange = (
 		field:
-			| 'weight'
-			| 'singleUnitPrice'
-			| 'invoiceNumber'
-			| 'invoiceDate'
-			| 'note',
+			'weight' | 'singleUnitPrice' | 'invoiceNumber' | 'invoiceDate' | 'note',
 		value: string,
 	) => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

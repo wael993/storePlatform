@@ -145,7 +145,8 @@ const SubscriptionRenewalBanner = () => {
 	const { user } = useUser()
 	const skip = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
 	const { data } = useGetSubscriptionQuery(undefined, { skip })
-	const [createRenewalRequest, { isLoading }] = useCreateRenewalRequestMutation()
+	const [createRenewalRequest, { isLoading }] =
+		useCreateRenewalRequestMutation()
 	const [dismissed, setDismissed] = useState(false)
 	const [dismissedApproved, setDismissedApproved] = useState(false)
 	const [requestError, setRequestError] = useState('')
@@ -300,7 +301,12 @@ const SubscriptionRenewalBanner = () => {
 						</AlertDescription>
 					) : null}
 					{canSubmit || pendingRequest ? (
-						<Button mt={2} size="sm" colorScheme="orange" onClick={modal.onOpen}>
+						<Button
+							mt={2}
+							size="sm"
+							colorScheme="orange"
+							onClick={modal.onOpen}
+						>
 							{pendingRequest
 								? t('subscription.viewPaymentInfo')
 								: t('subscription.requestRenewal')}

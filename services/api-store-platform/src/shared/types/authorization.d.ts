@@ -1,4 +1,4 @@
-import { TenantRole } from '../tenant'
+import { UserRole } from '../tenant'
 
 interface AuthorizedUser {
 	userId: string
@@ -7,7 +7,7 @@ interface AuthorizedUser {
 	firstName: string
 	lastName: string
 	email: string
-	role: TenantRole
+	role: UserRole
 	permissions: Resources
 	// services: Service[]
 	// isInternal: boolean

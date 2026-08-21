@@ -505,8 +505,7 @@ const TenantsList = () => {
 													? {
 															...prev,
 															status: event.target.value as
-																| 'active'
-																| 'inactive',
+																'active' | 'inactive',
 														}
 													: prev,
 											)

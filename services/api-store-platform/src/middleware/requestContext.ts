@@ -1,5 +1,5 @@
 // import { Request, Response, NextFunction } from 'express'
-import { TenantRole } from '../shared/tenant'
+import { UserRole } from '../shared/tenant'
 
 interface Operation {
 	fields: string[]
@@ -20,7 +20,7 @@ interface AuthorizedUser {
 	firstName: string
 	lastName: string
 	email: string
-	role: TenantRole
+	role: UserRole
 	permissions: Resources
 	// services: Service[]
 	// businessPartner?: BusinessPartner
@@ -33,7 +33,7 @@ interface RequestContext {
 	userId?: string
 	tenantId?: string
 	tenantName?: string
-	role?: TenantRole
+	role?: UserRole
 	user?: AuthorizedUser
 }
 

@@ -30,10 +30,7 @@ interface CurrenciesSettingsProps {
 	onSecondaryChange: (
 		index: number,
 		field:
-			| 'name'
-			| 'internalCode'
-			| 'exchangeRate'
-			| 'exchangeRateUnitCurrencyId',
+			'name' | 'internalCode' | 'exchangeRate' | 'exchangeRateUnitCurrencyId',
 		value: string,
 	) => void
 	onAddSecondary: () => void

@@ -1,20 +1,21 @@
 import { RequestContext } from './types'
 import {
+	AuthenticationError,
 	AuthorizationError,
 	BusinessLogicError,
 } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
 import Role, { RoleMethodPermission, RoleRecord } from '../models/Role'
+import Tenant from '../models/Tenant'
 import { COLLECTION_NAMES } from './general'
+import { TENANT_STATUS } from './constants/tenant.constants'
 import logger, { EntityType } from './logger/logger'
 
-export const TENANT_ROLES = [
-	'owner',
-	'admin',
-	'cashier',
-	'employee',
-	'super_admin',
-] as const
+export const TENANT_ROLES = ['owner', 'admin', 'cashier', 'employee'] as const
+
+export const SUPER_ADMIN_ROLE = 'super_admin' as const
+export const PLATFORM_ROLES = [SUPER_ADMIN_ROLE] as const
+export const USER_ROLES = [...TENANT_ROLES, ...PLATFORM_ROLES] as const
 
 export const TENANT_RESOURCES = Object.values(
 	COLLECTION_NAMES,
@@ -26,7 +27,27 @@ export type TenantResource =
 export const TENANT_ACTIONS = ['read', 'create', 'update', 'delete'] as const
 
 export type TenantRole = (typeof TENANT_ROLES)[number]
+export type PlatformRole = (typeof PLATFORM_ROLES)[number]
+export type UserRole = (typeof USER_ROLES)[number]
 export type TenantAction = (typeof TENANT_ACTIONS)[number]
+
+export const isTenantRole = (role: string): role is TenantRole =>
+	(TENANT_ROLES as readonly string[]).includes(role)
+
+export const getSuperAdminTenantId = (): string => {
+	const tenantId = process.env.SUPER_ADMIN_TENANT_ID?.trim()
+
+	if (!tenantId) {
+		throw new Error('Missing SUPER_ADMIN_TENANT_ID.')
+	}
+
+	return tenantId
+}
+
+export const isPlatformSuperAdmin = (
+	role?: string,
+	tenantId?: string,
+): boolean => role === SUPER_ADMIN_ROLE && tenantId === getSuperAdminTenantId()
 
 type TenantPermissionMap = Record<TenantResource, TenantAction[]>
 
@@ -64,7 +85,7 @@ const IMPLICIT_WRITE_SOURCES: Partial<
 let dynamicRoleCache: {
 	expiresAt: number
 	matrix: Record<TenantRole, TenantPermissionMap> | null
-	frontendResources: Partial<Record<TenantRole, FrontendResources>>
+	frontendResources: Partial<Record<UserRole, FrontendResources>>
 } = {
 	expiresAt: 0,
 	matrix: null,
@@ -101,7 +122,6 @@ const createEmptyRoleMatrix = (): Record<TenantRole, TenantPermissionMap> => ({
 	admin: createEmptyPermissionMap(),
 	cashier: createEmptyPermissionMap(),
 	employee: createEmptyPermissionMap(),
-	super_admin: createEmptyPermissionMap(),
 })
 
 const isMethodAllowed = (
@@ -213,12 +233,11 @@ export const buildDynamicMatrixFromRoles = (
 	rolesById: Record<string, RoleRecord>,
 ): {
 	matrix: Record<TenantRole, TenantPermissionMap>
-	frontendResources: Partial<Record<TenantRole, FrontendResources>>
+	frontendResources: Partial<Record<UserRole, FrontendResources>>
 } => {
 	const matrix = createEmptyRoleMatrix()
-	const frontendResourcesByRole: Partial<
-		Record<TenantRole, FrontendResources>
-	> = {}
+	const frontendResourcesByRole: Partial<Record<UserRole, FrontendResources>> =
+		{}
 
 	for (const role of TENANT_ROLES) {
 		const resolved = resolveRoleTree(role.toUpperCase(), rolesById, new Set())
@@ -244,12 +263,18 @@ export const buildDynamicMatrixFromRoles = (
 		frontendResourcesByRole[role] = resolved.frontendResources
 	}
 
+	for (const role of PLATFORM_ROLES) {
+		const resolved = resolveRoleTree(role.toUpperCase(), rolesById, new Set())
+
+		frontendResourcesByRole[role] = resolved.frontendResources
+	}
+
 	return { matrix, frontendResources: frontendResourcesByRole }
 }
 
 const getDynamicRoleEngine = async (): Promise<{
 	matrix: Record<TenantRole, TenantPermissionMap>
-	frontendResources: Partial<Record<TenantRole, FrontendResources>>
+	frontendResources: Partial<Record<UserRole, FrontendResources>>
 } | null> => {
 	if (dynamicRoleCache.expiresAt > Date.now()) {
 		if (!dynamicRoleCache.matrix) {
@@ -336,7 +361,7 @@ export const getTenantContext = (
 		)
 	}
 
-	if (!TENANT_ROLES.includes(requestContext.role)) {
+	if (!isTenantRole(requestContext.role)) {
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 			'Invalid tenant role.',
@@ -388,7 +413,7 @@ export const ensureTenantAccess = async (
 }
 
 export const getFrontendResourcesForRole = async (
-	role: TenantRole,
+	role: UserRole,
 ): Promise<FrontendResources | null> => {
 	const dynamicEngine = await getDynamicRoleEngine()
 
@@ -399,10 +424,49 @@ export const getFrontendResourcesForRole = async (
 	return dynamicEngine.frontendResources[role] || null
 }
 
-export const ensureSuperAdmin = (requestContext: RequestContext): void => {
-	const tenantContext = getTenantContext(requestContext)
+export const assertPersistedUserMayAuthenticate = (user: {
+	role: string
+	tenantId: string
+}): void => {
+	if (user.role !== SUPER_ADMIN_ROLE) {
+		return
+	}
 
-	if (tenantContext.role !== 'super_admin') {
+	if (user.tenantId === getSuperAdminTenantId()) {
+		return
+	}
+
+	throw new AuthenticationError(
+		ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+		'Invalid email or password.',
+	)
+}
+
+export const assertAssignableTenantRole = (role: string): void => {
+	if (!isTenantRole(role)) {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'super_admin role can only be created from super-admin controls.',
+		)
+	}
+}
+
+export const ensureSuperAdmin = async (
+	requestContext: RequestContext,
+): Promise<void> => {
+	if (!isPlatformSuperAdmin(requestContext.role, requestContext.tenantId)) {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Only super admin can perform this action.',
+		)
+	}
+
+	const tenant = await Tenant.findOne({
+		tenantId: requestContext.tenantId,
+		status: TENANT_STATUS.ACTIVE,
+	}).lean()
+
+	if (!tenant) {
 		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 			'Only super admin can perform this action.',

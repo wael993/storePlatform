@@ -509,11 +509,10 @@ export default class TenantRoutes {
 		const requestContext = this.getRequestContext(request)
 
 		try {
-			const resp =
-				await this.tenantController.saveSubscriptionPaymentSettings(
-					request.body,
-					requestContext,
-				)
+			const resp = await this.tenantController.saveSubscriptionPaymentSettings(
+				request.body,
+				requestContext,
+			)
 
 			response.status(200).json(resp)
 		} catch (error: unknown) {

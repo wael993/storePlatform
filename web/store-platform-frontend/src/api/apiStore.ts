@@ -169,8 +169,7 @@ export type ProductNotificationDigestResponse = {
 }
 
 export type MarkProductNotificationsReadBody =
-	| { all: true }
-	| { type: ProductDigestType }
+	{ all: true } | { type: ProductDigestType }
 
 const notificationKey = (
 	tenantId: string,

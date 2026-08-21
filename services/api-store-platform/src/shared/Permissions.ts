@@ -1,9 +1,9 @@
-import { DEFAULT_TENANT_ID } from './tenant'
+import { getSuperAdminTenantId } from './tenant'
 
 type TenantLike = {
 	tenantId: string
-	name: string
-	domain: string
+	name?: string
+	domain?: string
 }
 
 export type TenantPermissions = {
@@ -14,13 +14,8 @@ export type TenantPermissions = {
 	reason?: string
 }
 
-export const isSuperAdminTenant = (tenant: TenantLike): boolean => {
-	return (
-		tenant.tenantId === DEFAULT_TENANT_ID ||
-		tenant.domain === 'superadmin.de' ||
-		tenant.name.toLowerCase().includes('super admin')
-	)
-}
+export const isSuperAdminTenant = (tenant: TenantLike): boolean =>
+	tenant.tenantId === getSuperAdminTenantId()
 
 export const getTenantPermissions = (tenant: TenantLike): TenantPermissions => {
 	if (isSuperAdminTenant(tenant)) {

@@ -121,11 +121,15 @@ import {
 	getFrontendResourcesForRole,
 	getEmailDomain,
 	getTenantContext,
+	assertPersistedUserMayAuthenticate,
 	TenantRole,
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
-import { syncTenantSubscription, tenantMaySignIn } from '../shared/subscription/persist'
+import {
+	syncTenantSubscription,
+	tenantMaySignIn,
+} from '../shared/subscription/persist'
 import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
 import { mapInvoiceFiltersToUiStatus } from '../shared/constants'
 import {
@@ -744,6 +748,8 @@ export default class ProductController {
 			)
 		}
 
+		assertPersistedUserMayAuthenticate(user)
+
 		request.user = {
 			userId: user.userId,
 			tenantId: user.tenantId,
@@ -818,6 +824,8 @@ export default class ProductController {
 				'Invalid email or password.',
 			)
 		}
+
+		assertPersistedUserMayAuthenticate(user)
 
 		const accessToken = this.generateAccessToken(user, tenant.name)
 		const refreshToken = await this.createAndStoreRefreshToken(
@@ -900,6 +908,8 @@ export default class ProductController {
 				'User not found.',
 			)
 		}
+
+		assertPersistedUserMayAuthenticate(user)
 
 		const tenant = (await Tenant.findOne({
 			tenantId: storedToken.tenantId,

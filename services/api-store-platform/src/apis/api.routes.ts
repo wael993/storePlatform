@@ -21,7 +21,7 @@ import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
 import { format } from 'date-fns'
 import { TargetType } from '../shared/globalEnums'
-// import { loginRateLimiter, refreshRateLimiter } from '../middleware/rateLimiter'
+import { loginRateLimiter } from '../middleware/rateLimiter'
 
 type ProductFilterQuery = {
 	searchText?: string
@@ -357,12 +357,14 @@ export default class StoreRoutes extends PlatformValidator {
 				this.changePassword.bind(this),
 			)
 
-		app.route(`${baseRoute}/login`).post(
-			// loginRateLimiter,
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.login.bind(this),
-		)
+		app
+			.route(`${baseRoute}/login`)
+			.post(
+				loginRateLimiter,
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.login.bind(this),
+			)
 
 		app.route(`${baseRoute}/refresh`).post(
 			// refreshRateLimiter,

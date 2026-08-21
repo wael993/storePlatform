@@ -4,23 +4,41 @@ import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
 import User from '../models/User'
 import Tenant from '../models/Tenant'
+import { SUPER_ADMIN_ROLE, getSuperAdminTenantId } from '../shared/tenant'
+import {
+	validateEmail,
+	validatePasswordStrength,
+} from '../utils/authValidation'
 
-const SUPER_ADMIN_TENANT = {
-	tenantId: 'super-admin',
-	name: 'Super Admin Control',
-	domain: 'superadmin.de',
-	status: 'active' as const,
-}
-
-const SUPER_ADMIN_USER = {
-	email: 'wael@superadmin.de',
-	password: 'S-uAboMHDZain010203',
-	firstName: 'Wael',
-	lastName: 'SuperAdmin',
-	role: 'super_admin' as const,
-}
+const CONTROL_PLANE_TENANT_NAME = 'Super Admin Control'
 
 async function createSuperAdminUser() {
+	const email = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase()
+	const password = process.env.SUPER_ADMIN_PASSWORD
+
+	if (!email) {
+		throw new Error('Missing SUPER_ADMIN_EMAIL.')
+	}
+
+	if (!password) {
+		throw new Error('Missing SUPER_ADMIN_PASSWORD.')
+	}
+
+	const emailError = validateEmail(email)
+
+	if (emailError) {
+		throw new Error(emailError)
+	}
+
+	const passwordError = validatePasswordStrength(password)
+
+	if (passwordError) {
+		throw new Error(passwordError)
+	}
+
+	const domain = email.split('@')[1]
+	const tenantId = getSuperAdminTenantId()
+
 	try {
 		await mongoose.connect(config.mongoDB.connectionString, {
 			dbName: config.mongoDB.databaseName,
@@ -30,37 +48,58 @@ async function createSuperAdminUser() {
 		await User.syncIndexes()
 
 		await Tenant.updateOne(
-			{ tenantId: SUPER_ADMIN_TENANT.tenantId },
-			{ $set: SUPER_ADMIN_TENANT },
+			{ tenantId },
+			{
+				$set: {
+					tenantId,
+					name: CONTROL_PLANE_TENANT_NAME,
+					domain,
+					status: 'active',
+				},
+			},
 			{ upsert: true },
 		)
 
-		await User.deleteMany({
-			tenantId: SUPER_ADMIN_TENANT.tenantId,
-			email: SUPER_ADMIN_USER.email,
-		} as any)
+		const hashedPassword = await bcrypt.hash(password, 10)
+		const existing = await User.findOne({ tenantId, email })
 
-		const hashedPassword = await bcrypt.hash(SUPER_ADMIN_USER.password, 10)
+		if (existing) {
+			existing.role = SUPER_ADMIN_ROLE
+			existing.password = hashedPassword
+			existing.tokenVersion = (existing.tokenVersion ?? 0) + 1
+			await existing.save()
+			console.log('Super admin user updated')
+		} else {
+			await User.create({
+				tenantId,
+				userId: uuidv4(),
+				displayName: 'Wael Zobani',
+				user: {
+					firstName: 'Wael',
+					lastName: 'Zobani',
+				},
+				email,
+				password: hashedPassword,
+				role: SUPER_ADMIN_ROLE,
+				avatarColorId: Math.floor(Math.random() * 1000000),
+				createdBy: {
+					_id: 'seed',
+					displayName: 'seed',
+					createdAt: new Date(),
+				},
+			})
 
-		const user = await User.create({
-			tenantId: SUPER_ADMIN_TENANT.tenantId,
-			userId: uuidv4(),
-			displayName: `${SUPER_ADMIN_USER.firstName} ${SUPER_ADMIN_USER.lastName}`,
-			user: {
-				firstName: SUPER_ADMIN_USER.firstName,
-				lastName: SUPER_ADMIN_USER.lastName,
-				// isInternal: true,
-			},
-			email: SUPER_ADMIN_USER.email,
-			password: hashedPassword,
-			role: SUPER_ADMIN_USER.role,
-			avatarColorId: Math.floor(Math.random() * 1000000),
-		})
+			console.log('Super admin user created')
+		}
 
-		console.log('Super admin user created')
-		console.log('Email:', user.email)
-		console.log('Password:', SUPER_ADMIN_USER.password)
-		console.log('Login URL: POST http://localhost:3001/api/data/login')
+		const revoked = await User.collection.updateMany(
+			{ role: SUPER_ADMIN_ROLE, tenantId: { $ne: tenantId } },
+			{ $set: { role: 'employee' } },
+		)
+
+		console.log('Email:', email)
+		console.log('Tenant:', tenantId)
+		console.log(`Revoked stray super_admin users: ${revoked.modifiedCount}`)
 	} catch (error) {
 		console.error('Failed to create super admin user:', error)
 		process.exit(1)

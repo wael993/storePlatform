@@ -161,12 +161,7 @@ export interface SyncPushRequestPayload {
 }
 
 export type OfflineSyncState =
-	| 'idle'
-	| 'bootstrapping'
-	| 'syncing'
-	| 'offline'
-	| 'error'
-	| 'success'
+	'idle' | 'bootstrapping' | 'syncing' | 'offline' | 'error' | 'success'
 
 export type SyncPushResultType = 'success' | 'partial' | 'failed'
 

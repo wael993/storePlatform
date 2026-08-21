@@ -141,6 +141,7 @@ const SuperAdminLayout = () => {
 					userName={userName || user?.email || 'User'}
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
+					isSettingsVisible={true}
 				/>
 				<Box
 					px={layout.contentPaddingX}
