@@ -1,18 +1,14 @@
 /* eslint-disable no-restricted-globals */
 
-const SHELL_CACHE = 'store-platform-shell-v5'
-const RUNTIME_CACHE = 'store-platform-runtime-v5'
+const SHELL_CACHE = 'store-platform-shell-v6'
+const RUNTIME_CACHE = 'store-platform-runtime-v6'
 
 const SHELL_ASSETS = ['/index.html']
 
-const RUNTIME_ASSETS = [
-	'/static/js/bundle.js',
-	'/static/css/main.css',
-]
-
 const isStaticAsset = pathname =>
-	pathname.startsWith('/static/') ||
-	/\.(js|css|map|woff2?|png|jpe?g|svg|ico|json)$/.test(pathname)
+	pathname.startsWith('/assets/') ||
+	pathname.startsWith('/fonts/') ||
+	/\.(woff2?|png|jpe?g|svg|ico)$/.test(pathname)
 
 const offlineResponse = (body, contentType = 'text/plain') =>
 	new Response(body, {
@@ -49,22 +45,20 @@ const cacheAsset = async (cache, request, response) => {
 	}
 }
 
-const warmRuntimeAssets = async () => {
-	const runtimeCache = await caches.open(RUNTIME_CACHE)
+const jsSrcsFromHtml = html =>
+	[...html.matchAll(/<script[^>]+src="([^"]+)"/gi)].map(match => {
+		const src = match[1]
+		return src.startsWith('http') ? new URL(src).pathname : src
+	})
 
-	for (const assetPath of RUNTIME_ASSETS) {
-		const cached = await runtimeCache.match(assetPath)
-		if (cached) continue
-
-		try {
-			const response = await fetch(assetPath)
-			if (response.ok) {
-				await cacheAsset(runtimeCache, assetPath, response)
-			}
-		} catch {
-			// Ignore while offline
-		}
-	}
+const cacheHasJs = async (cache, indexHtml) => {
+	if (!indexHtml) return false
+	const srcs = jsSrcsFromHtml(await indexHtml.clone().text())
+	if (!srcs.length) return false
+	const cached = new Set(
+		(await cache.keys()).map(key => new URL(key.url).pathname),
+	)
+	return srcs.every(src => cached.has(src))
 }
 
 self.addEventListener('install', event => {
@@ -72,7 +66,6 @@ self.addEventListener('install', event => {
 		(async () => {
 			const shellCache = await caches.open(SHELL_CACHE)
 			await shellCache.addAll(SHELL_ASSETS).catch(() => undefined)
-			await warmRuntimeAssets()
 		})(),
 	)
 	self.skipWaiting()
@@ -89,16 +82,9 @@ self.addEventListener('activate', event => {
 					)
 					.map(key => caches.delete(key)),
 			)
-			await warmRuntimeAssets()
 			await self.clients.claim()
 		})(),
 	)
-})
-
-self.addEventListener('message', event => {
-	if (event.data?.type === 'WARM_RUNTIME_CACHE') {
-		event.waitUntil(warmRuntimeAssets())
-	}
 })
 
 self.addEventListener('fetch', event => {
@@ -138,12 +124,9 @@ self.addEventListener('fetch', event => {
 		(async () => {
 			const shellCache = await caches.open(SHELL_CACHE)
 			const runtimeCache = await caches.open(RUNTIME_CACHE)
+			const cachedIndex = await shellCache.match('/index.html')
 			const hasOfflineShell =
-				(await shellCache.match('/index.html')) &&
-				(await matchCachedAsset(
-					runtimeCache,
-					'/static/js/bundle.js',
-				))
+				Boolean(cachedIndex) && (await cacheHasJs(runtimeCache, cachedIndex))
 
 			if (!hasOfflineShell) {
 				try {
@@ -172,8 +155,7 @@ self.addEventListener('fetch', event => {
 			const cachedRoute = await shellCache.match(event.request)
 			if (cachedRoute) return cachedRoute
 
-			const indexHtml = await shellCache.match('/index.html')
-			if (indexHtml) return indexHtml
+			if (cachedIndex) return cachedIndex
 
 			return offlineHtml()
 		})(),

@@ -10,11 +10,6 @@
 		"@hookform/resolvers": "^5.4.0",
 		"@react-pdf/renderer": "^4.6.0",
 		"@reduxjs/toolkit": "2.6.1",
-		"@testing-library/dom": "^10.4.0",
-		"@testing-library/jest-dom": "^6.6.3",
-		"@testing-library/react": "^16.1.0",
-		"@testing-library/user-event": "^13.2.1",
-		"@types/jest": "^27.0.1",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
 		"axios": "^1.7.9",
@@ -34,19 +29,16 @@
 		"react-icons": "^5.6.0",
 		"react-redux": "^9.2.0",
 		"react-router-dom": "^7.2.0",
-		"react-scripts": "5.0.1",
 		"react-virtuoso": "4.12.3",
 		"redux-persist": "6.0.0",
 		"typescript": "5.8.3",
 		"use-context-selector": "^2.0.0",
-		"web-vitals": "^2.1.0",
 		"zod": "^4.4.3"
 	},
 	"scripts": {
-		"start": "react-scripts start",
-		"build": "react-scripts build",
-		"test": "react-scripts test",
-		"eject": "react-scripts eject",
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
 		"format": "prettier --log-level warn --config ../../.prettierrc --write src",
 		"lint": "eslint src --fix",
 		"format-and-lint": "npm run lint && npm run format"
@@ -68,10 +60,12 @@
 		"@types/uuid": "^10.0.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
+		"@vitejs/plugin-react": "^4.7.0",
 		"eslint": "^8.57.1",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-react": "^7.37.5",
 		"eslint-plugin-unused-imports": "^4.1.4",
-		"prettier": "^3.6.2"
+		"prettier": "^3.6.2",
+		"vite": "^6.3.5"
 	}
 }

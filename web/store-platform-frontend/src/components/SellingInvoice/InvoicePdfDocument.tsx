@@ -13,12 +13,9 @@ import { compareLanguage } from '../../shared/utils'
 import { InvoiceUiStatus } from '../../shared/globalEnums'
 import i18n from '../../i18n'
 
-declare const process: {
-	env: Record<string, string | undefined>
-}
-
 const publicFontUrl = (fileName: string) =>
-	`${window.location.origin}${process.env.PUBLIC_URL || ''}/fonts/${fileName}`
+	new URL(`fonts/${fileName}`, `${window.location.origin}${import.meta.env.BASE_URL}`)
+		.href
 
 let fontsRegistered = false
 

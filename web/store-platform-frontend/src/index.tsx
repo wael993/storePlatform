@@ -27,7 +27,17 @@ const warmOfflineSessionBeforeRender = async (): Promise<void> => {
 const warmServiceWorkerRuntimeCache = async (): Promise<void> => {
 	if (!navigator.onLine) return
 
-	const assets = ['/static/js/bundle.js', '/static/css/main.css']
+	const assets = [
+		...[...document.querySelectorAll('script[src]')].map(
+			el => (el as HTMLScriptElement).src,
+		),
+		...[
+			...document.querySelectorAll(
+				'link[rel="stylesheet"], link[rel="modulepreload"]',
+			),
+		].map(el => (el as HTMLLinkElement).href),
+	].filter(url => url.startsWith(window.location.origin))
+
 	for (const asset of assets) {
 		try {
 			await fetch(asset)
@@ -35,12 +45,18 @@ const warmServiceWorkerRuntimeCache = async (): Promise<void> => {
 			// Ignore while offline
 		}
 	}
-
-	const controller = navigator.serviceWorker.controller
-	controller?.postMessage({ type: 'WARM_RUNTIME_CACHE' })
 }
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !import.meta.env.PROD) {
+	void navigator.serviceWorker.getRegistrations().then(registrations => {
+		if (!registrations.length) return
+		void Promise.all(
+			registrations.map(registration => registration.unregister()),
+		).then(() => window.location.reload())
+	})
+}
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
 	void navigator.serviceWorker
 		.register('/sw.js', { updateViaCache: 'none' })
 		.then(registration => {
@@ -97,7 +113,3 @@ root.render(
 		</Provider>
 	</ChakraProvider>,
 )
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
