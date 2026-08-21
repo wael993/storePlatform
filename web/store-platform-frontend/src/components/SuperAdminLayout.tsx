@@ -54,6 +54,12 @@ const SuperAdminLayout = () => {
 		isTenantsListEnabled && isTenantTenantsListEnabled
 			? { label: t(routeLabelKeys.TENANTS_LIST), path: RoutePaths.TENANTS_LIST }
 			: null,
+		isTenantsListEnabled && isTenantTenantsListEnabled
+			? {
+					label: t(routeLabelKeys.RENEWAL_REQUESTS),
+					path: RoutePaths.RENEWAL_REQUESTS,
+				}
+			: null,
 	].filter(Boolean) as { label: string; path: string }[]
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
@@ -103,6 +109,11 @@ const SuperAdminLayout = () => {
 					{isTenantsListEnabled && isTenantTenantsListEnabled && (
 						<Box as={NavLink} to={RoutePaths.TENANTS_LIST} style={navStyle}>
 							{t(routeLabelKeys.TENANTS_LIST)}
+						</Box>
+					)}
+					{isTenantsListEnabled && isTenantTenantsListEnabled && (
+						<Box as={NavLink} to={RoutePaths.RENEWAL_REQUESTS} style={navStyle}>
+							{t(routeLabelKeys.RENEWAL_REQUESTS)}
 						</Box>
 					)}
 				</Stack>

@@ -11,13 +11,11 @@ import { Report } from '../../models/Report'
 import RefreshToken from '../../models/RefreshToken'
 import Tenant, { ITenant } from '../../models/Tenant'
 import User, { IUser } from '../../models/User'
+import SubscriptionRenewalRequest from '../../models/SubscriptionRenewalRequest'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
-import {
-	getTenantPermissions,
-	isSuperAdminTenant,
-} from '../../shared/Permissions'
+import { getTenantPermissions } from '../../shared/Permissions'
 import {
 	DEFAULT_TENANT_ACCESSIBLE_PAGES,
 	sanitizeAccessiblePages,
@@ -55,11 +53,22 @@ import {
 } from '../../shared/types'
 import { createSubscription } from '../../shared/subscription/lifecycle'
 import {
-	applySubscriptionRenewal,
 	getSubscriptionConfig,
 	syncTenantSubscription,
 	toView,
 } from '../../shared/subscription/persist'
+import {
+	approveRenewalRequest,
+	assertCanRequestRenewal,
+	createRenewalRequest,
+	getLatestRequest,
+	getPaymentSettings,
+	getPendingRequest,
+	listAllRenewalRequests,
+	rejectRenewalRequest,
+	savePaymentSettings,
+	toRenewalRequestView,
+} from '../../shared/subscription/requests'
 
 type TenantUserLean = {
 	readonly _id: { toString(): string } | string
@@ -391,7 +400,7 @@ export default class TenantController {
 				if (subscriptionView.remainingDays <= 0) {
 					throw new BusinessLogicError(
 						ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-						'Renew the subscription before activating this tenant.',
+						'Approve a renewal request before activating this tenant.',
 					)
 				}
 			}
@@ -454,6 +463,7 @@ export default class TenantController {
 			Invoice.deleteMany({ tenantId }),
 			Inventory.deleteMany({ tenantId }),
 			Report.deleteMany({ tenantId }),
+			SubscriptionRenewalRequest.deleteMany({ tenantId }),
 		])
 
 		await Tenant.deleteOne({ tenantId })
@@ -589,57 +599,96 @@ export default class TenantController {
 		}
 
 		const { view } = await syncTenantSubscription(tenant)
-		const canRenew =
+		const canRole =
 			tenantContext.role === 'owner' || tenantContext.role === 'admin'
+		const [pending, latest] = await Promise.all([
+			getPendingRequest(tenantContext.tenantId),
+			getLatestRequest(tenantContext.tenantId),
+		])
+		const canRequestRenewal =
+			canRole &&
+			!pending &&
+			Boolean(view && (view.warning || view.expired))
 
 		return {
-			subscription: view ? { ...view, canRenew } : null,
+			subscription: view ? { ...view, canRequestRenewal } : null,
+			pendingRequest: pending ? toRenewalRequestView(pending) : null,
+			latestRequest: latest ? toRenewalRequestView(latest) : null,
 		}
 	}
 
-	public async renewOwnSubscription(requestContext: RequestContext) {
+	public async getSubscriptionPaymentInfo(_requestContext: RequestContext) {
+		getTenantContext(_requestContext)
+
+		return getPaymentSettings()
+	}
+
+	public async createOwnRenewalRequest(requestContext: RequestContext) {
+		assertCanRequestRenewal(requestContext)
 		const tenantContext = getTenantContext(requestContext)
-
-		if (tenantContext.role !== 'owner' && tenantContext.role !== 'admin') {
-			throw new BusinessLogicError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'Only owner or admin can renew the subscription.',
-			)
-		}
-
 		const tenant = await Tenant.findOne({
 			tenantId: tenantContext.tenantId,
 		}).lean<ITenant | null>()
 
-		if (!tenant || isSuperAdminTenant(tenant)) {
+		if (!tenant) {
 			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
-				'Tenant subscription not found.',
+				ERROR_CODES.DOCUMENTS.DOCUMENT_CREATE_ERROR,
+				'Tenant not found.',
 			)
 		}
 
-		const { view } = await applySubscriptionRenewal(tenant)
+		const request = await createRenewalRequest(tenant, requestContext)
 
-		return { subscription: { ...view, canRenew: true } }
+		return { request }
 	}
 
-	public async renewTenantSubscription(
-		tenantId: string,
+	public async listRenewalRequests(requestContext: RequestContext) {
+		ensureSuperAdmin(requestContext)
+
+		const requests = await listAllRenewalRequests()
+
+		return { requests }
+	}
+
+	public async approveTenantRenewalRequest(
+		requestId: string,
 		requestContext: RequestContext,
 	) {
 		ensureSuperAdmin(requestContext)
 
-		const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
+		const request = await approveRenewalRequest(requestId, requestContext)
 
-		if (!tenant || isSuperAdminTenant(tenant)) {
-			throw new BusinessLogicError(
-				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
-				'Tenant subscription not found.',
-			)
-		}
+		return { request }
+	}
 
-		const { tenant: updated } = await applySubscriptionRenewal(tenant)
+	public async rejectTenantRenewalRequest(
+		requestId: string,
+		reason: string,
+		requestContext: RequestContext,
+	) {
+		ensureSuperAdmin(requestContext)
 
-		return mapTenantSummary(updated)
+		const request = await rejectRenewalRequest(
+			requestId,
+			reason,
+			requestContext,
+		)
+
+		return { request }
+	}
+
+	public async getSubscriptionPaymentSettings(requestContext: RequestContext) {
+		ensureSuperAdmin(requestContext)
+
+		return getPaymentSettings()
+	}
+
+	public async saveSubscriptionPaymentSettings(
+		body: Parameters<typeof savePaymentSettings>[0],
+		requestContext: RequestContext,
+	) {
+		ensureSuperAdmin(requestContext)
+
+		return savePaymentSettings(body)
 	}
 }

@@ -209,6 +209,11 @@ export const isTenantRouteAllowed = (
 			globalActions.isTenantsListEnabled &&
 				tenantActions.isTenantTenantsListEnabled,
 		],
+		[
+			RoutePaths.RENEWAL_REQUESTS,
+			globalActions.isTenantsListEnabled &&
+				tenantActions.isTenantTenantsListEnabled,
+		],
 	]
 
 	for (const [routePath, isAllowed] of routeChecks) {

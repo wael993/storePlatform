@@ -13,6 +13,7 @@ import AddNewTenant from './pages/AddNewTenant'
 import SuperAdminLayout from './components/SuperAdminLayout'
 import TenantLayout from './components/TenantLayout'
 import TenantsList from './pages/TenantsList'
+import RenewalRequestsPage from './pages/RenewalRequestsPage'
 import ProductsPage from './components/product/ProductsPage'
 import OrdersPage from './pages/OrdersPage'
 import SettingsPage from './pages/SettingsPage'
@@ -240,7 +241,16 @@ const App = () => {
 							/>
 						)}
 						{isTenantsListEnabled && isTenantTenantsListEnabled && (
-							<Route path={RoutePaths.TENANTS_LIST} element={<TenantsList />} />
+							<>
+								<Route
+									path={RoutePaths.TENANTS_LIST}
+									element={<TenantsList />}
+								/>
+								<Route
+									path={RoutePaths.RENEWAL_REQUESTS}
+									element={<RenewalRequestsPage />}
+								/>
+							</>
 						)}
 					</Route>
 				</Route>

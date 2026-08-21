@@ -5,6 +5,7 @@ import { ERROR_CODES } from '../errorCodes'
 import { TENANT_STATUS } from '../constants/tenant.constants'
 import { isSuperAdminTenant } from '../Permissions'
 import {
+	calendarDateInTimeZone,
 	createSubscription,
 	renewSubscription,
 	SubscriptionLifecycleConfig,
@@ -92,9 +93,22 @@ export const syncTenantSubscription = async (
 	}
 }
 
+export const tenantMaySignIn = (tenant: ITenant, now = new Date()): boolean => {
+	if (tenant.status === TENANT_STATUS.ACTIVE) {
+		return true
+	}
+
+	if (!tenant.subscription) {
+		return false
+	}
+
+	return toView(tenant.subscription, now).expired
+}
+
 export const applySubscriptionRenewal = async (
 	tenant: ITenant,
 	now = new Date(),
+	expectedRenewalDate?: Date,
 ): Promise<{ tenant: ITenant; view: SubscriptionView }> => {
 	const synced = await syncTenantSubscription(tenant, now)
 	const current = synced.tenant.subscription
@@ -107,9 +121,32 @@ export const applySubscriptionRenewal = async (
 	}
 
 	const cfg = getSubscriptionConfig()
+	const currentYmd = calendarDateInTimeZone(current.renewalDate, cfg.timeZone)
+
+	if (expectedRenewalDate) {
+		const expectedYmd = calendarDateInTimeZone(
+			expectedRenewalDate,
+			cfg.timeZone,
+		)
+
+		if (currentYmd > expectedYmd) {
+			return { tenant: synced.tenant, view: toView(current, now) }
+		}
+
+		if (currentYmd !== expectedYmd) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Tenant subscription not found.',
+			)
+		}
+	}
+
 	const renewed = renewSubscription(current, now, cfg)
 	const updated = await Tenant.findOneAndUpdate(
-		{ tenantId: tenant.tenantId },
+		{
+			tenantId: tenant.tenantId,
+			'subscription.renewalDate': current.renewalDate,
+		},
 		{
 			$set: {
 				subscription: renewed,

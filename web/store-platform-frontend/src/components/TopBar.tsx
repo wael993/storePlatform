@@ -27,7 +27,7 @@ import {
 	Text,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getRouteLabel, RoutePaths } from '../shared/routes'
@@ -47,6 +47,7 @@ import { useUser } from '../shared/hooks/useUser'
 import { AsDragGripIcon } from '../shared/icons/DragGrip'
 import {
 	useGetProductNotificationsQuery,
+	useGetRenewalRequestsQuery,
 	useGetSubscriptionQuery,
 	useMarkProductNotificationsReadMutation,
 	PRODUCT_DIGEST_I18N,
@@ -54,7 +55,10 @@ import {
 } from '../api/apiStore'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
 import NegativeQuantityDigestModal from './NegativeQuantityDigestModal'
-import { formatRenewalDate } from './SubscriptionRenewalBanner'
+import {
+	formatRenewalDate,
+	subscriptionRemainingMessage,
+} from './SubscriptionRenewalBanner'
 import { UserRole } from '../shared/globalEnums'
 
 interface TopBarProps {
@@ -203,10 +207,56 @@ const TopBar = ({
 	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
 	const notificationPopover = useDisclosure()
 	const skipSubscription = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
+	const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN
 	const { data: subscriptionData } = useGetSubscriptionQuery(undefined, {
 		skip: skipSubscription,
 	})
+	const { data: renewalRequestsData } = useGetRenewalRequestsQuery(undefined, {
+		skip: !isSuperAdmin,
+	})
 	const subscription = subscriptionData?.subscription
+	const pendingRenewalRequests =
+		renewalRequestsData?.requests.filter(request => request.status === 'pending') ??
+		[]
+	const renewalBellKey = user?.userId
+		? `renewal-bell-read:${user.userId}`
+		: ''
+	const [readRenewalIds, setReadRenewalIds] = useState<string[]>([])
+
+	useEffect(() => {
+		if (!renewalBellKey) {
+			return
+		}
+
+		try {
+			const stored = JSON.parse(localStorage.getItem(renewalBellKey) || '[]')
+			setReadRenewalIds(Array.isArray(stored) ? stored.map(String) : [])
+		} catch {
+			setReadRenewalIds([])
+		}
+	}, [renewalBellKey])
+
+	const markRenewalRequestsRead = (requestIds: string[]) => {
+		if (!renewalBellKey || requestIds.length === 0) {
+			return
+		}
+
+		setReadRenewalIds(current => {
+			const next = [...new Set([...current, ...requestIds])]
+			localStorage.setItem(renewalBellKey, JSON.stringify(next))
+			return next
+		})
+	}
+
+	const unreadRenewalRequests = pendingRenewalRequests.filter(
+		request => !readRenewalIds.includes(request.requestId),
+	)
+	const pendingRenewalCount = unreadRenewalRequests.length
+	const pendingRequest = subscriptionData?.pendingRequest
+	const rejectedRequest =
+		subscriptionData?.latestRequest?.status === 'rejected'
+			? subscriptionData.latestRequest
+			: null
 	const showSubscriptionWarning = Boolean(
 		subscription && (subscription.warning || subscription.expired),
 	)
@@ -217,8 +267,15 @@ const TopBar = ({
 		useMarkProductNotificationsReadMutation()
 	const notificationItems = notifications?.items ?? []
 	const unreadCount =
-		notificationItems.length + (showSubscriptionWarning ? 1 : 0)
-	const showBell = seeNotifications || showSubscriptionWarning
+		notificationItems.length +
+		(showSubscriptionWarning ? 1 : 0) +
+		(pendingRequest && !showSubscriptionWarning ? 1 : 0) +
+		pendingRenewalCount
+	const showBell =
+		seeNotifications ||
+		showSubscriptionWarning ||
+		Boolean(pendingRequest) ||
+		pendingRenewalCount > 0
 	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
 	const { offlineEnabled, isOnline, syncState, sync } = useOfflineSync(
 		user?.tenantId,
@@ -353,14 +410,27 @@ const TopBar = ({
 											)}
 										</Flex>
 										<Flex align="center" gap={2}>
-											{notificationItems.length > 0 && (
+											{(notificationItems.length > 0 ||
+												unreadRenewalRequests.length > 0) && (
 												<Box
 													as="button"
 													type="button"
 													sx={styles.markAllButton}
-													disabled={isMarkingRead || !isOnline}
+													disabled={
+														notificationItems.length > 0
+															? isMarkingRead || !isOnline
+															: false
+													}
 													onClick={() => {
-														void markProductNotificationsRead({ all: true })
+														if (notificationItems.length > 0) {
+															void markProductNotificationsRead({ all: true })
+														}
+
+														markRenewalRequestsRead(
+															unreadRenewalRequests.map(
+																request => request.requestId,
+															),
+														)
 													}}
 												>
 													<CheckIcon boxSize={2.5} />
@@ -385,6 +455,41 @@ const TopBar = ({
 											</Text>
 										) : (
 											<>
+												{unreadRenewalRequests.map(request => (
+																<Flex
+																	key={request.requestId}
+																	align="flex-start"
+																	gap={2}
+																	sx={styles.subscriptionRow}
+																	borderBottom="1px solid #ECECEC"
+																	as="button"
+																	type="button"
+																	w="full"
+																	textAlign="start"
+																	onClick={() => {
+																		markRenewalRequestsRead([request.requestId])
+																		notificationPopover.onClose()
+																		navigate(RoutePaths.RENEWAL_REQUESTS)
+																	}}
+																>
+																	<WarningIcon
+																		boxSize={4}
+																		mt="0.15rem"
+																		color="orange.500"
+																	/>
+																	<Box>
+																		<Text>
+																			{t(
+																				'components.topBar.newRenewalRequest',
+																				{ tenant: request.tenantName },
+																			)}
+																		</Text>
+																		<Text fontWeight={500} fontSize="xs" mt={1}>
+																			{t('components.topBar.reviewRequest')}
+																		</Text>
+																	</Box>
+																</Flex>
+															))}
 												{showSubscriptionWarning && subscription ? (
 													<Flex
 														align="flex-start"
@@ -407,33 +512,46 @@ const TopBar = ({
 														/>
 														<Box>
 															<Text>
-																{subscription.remainingDays < 0
-																	? t(
-																			'components.topBar.subscriptionExpired',
-																		)
-																	: subscription.remainingDays === 0
-																		? t(
-																				'components.topBar.subscriptionExpiresToday',
-																			)
-																		: subscription.remainingDays === 1
-																			? t(
-																					'components.topBar.subscriptionExpiresInOneDay',
-																				)
-																			: t(
-																					'components.topBar.subscriptionExpiresInDays',
-																					{
-																						count: subscription.remainingDays,
-																					},
-																				)}
-															</Text>
-															<Text fontWeight={500} fontSize="xs" mt={1}>
-																{t('components.topBar.subscriptionRenewBefore', {
-																	date: formatRenewalDate(
+																{subscriptionRemainingMessage(
+																	t,
+																	subscription.remainingDays,
+																	formatRenewalDate(
 																		subscription.renewalDate,
 																		i18n.language,
 																	),
-																})}
+																)}
 															</Text>
+															<Text fontWeight={500} fontSize="xs" mt={1}>
+																{pendingRequest
+																	? t('subscription.pendingBody')
+																	: rejectedRequest?.rejectionReason
+																		? `${t('subscription.rejectedBody')} ${rejectedRequest.rejectionReason}`
+																		: t(
+																				'components.topBar.subscriptionRenewBefore',
+																				{
+																					date: formatRenewalDate(
+																						subscription.renewalDate,
+																						i18n.language,
+																					),
+																				},
+																			)}
+															</Text>
+														</Box>
+													</Flex>
+												) : pendingRequest ? (
+													<Flex
+														align="flex-start"
+														gap={2}
+														sx={styles.subscriptionRow}
+														borderBottom="1px solid #ECECEC"
+													>
+														<WarningIcon
+															boxSize={4}
+															mt="0.15rem"
+															color="orange.500"
+														/>
+														<Box>
+															<Text>{t('subscription.pendingBody')}</Text>
 														</Box>
 													</Flex>
 												) : null}

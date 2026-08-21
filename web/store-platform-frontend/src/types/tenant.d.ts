@@ -28,7 +28,47 @@ interface TenantSubscriptionView {
 	warning: boolean
 	urgent: boolean
 	expired: boolean
-	canRenew?: boolean
+	canRequestRenewal?: boolean
+}
+
+interface RenewalRequestActor {
+	userId: string
+	displayName: string
+}
+
+interface RenewalRequestView {
+	requestId: string
+	tenantId: string
+	tenantName: string
+	requestedBy: RenewalRequestActor
+	currentExpirationDate: string
+	status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+	requestedAt: string
+	reviewedAt: string | null
+	reviewedBy: RenewalRequestActor | null
+	rejectionReason: string | null
+	tenantStatus?: string | null
+	subscription?: TenantSubscriptionView | null
+}
+
+interface SubscriptionPaymentMethod {
+	id: string
+	name: string
+	details: string
+	qrUrl: string
+}
+
+interface SubscriptionPaymentSettings {
+	contactName: string
+	contactEmail: string
+	contactPhone: string
+	methods: SubscriptionPaymentMethod[]
+}
+
+interface SubscriptionResponse {
+	subscription: TenantSubscriptionView | null
+	pendingRequest: RenewalRequestView | null
+	latestRequest: RenewalRequestView | null
 }
 
 interface UpdateTenantRequest {

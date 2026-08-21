@@ -30,6 +30,7 @@ export const RoutePaths = {
 	SETTINGS: withBasePath('/settings'),
 	ADD_NEW_TENANT: withBasePath('/add-new-tenant'),
 	TENANTS_LIST: withBasePath('/tenants-list'),
+	RENEWAL_REQUESTS: withBasePath('/renewal-requests'),
 	CUSTOMER_MODAL: withBasePath('/customer-modal'),
 	WILDCARD: '*',
 }
@@ -61,6 +62,7 @@ export const fullPaths = {
 	EMPLOYEES: RoutePaths.EMPLOYEES,
 	ADD_NEW_TENANT: RoutePaths.ADD_NEW_TENANT,
 	TENANTS_LIST: RoutePaths.TENANTS_LIST,
+	RENEWAL_REQUESTS: RoutePaths.RENEWAL_REQUESTS,
 	SETTINGS: RoutePaths.SETTINGS,
 	CUSTOMER_MODAL: RoutePaths.CUSTOMER_MODAL,
 	SELLING_INVOICES: RoutePaths.SELLING_INVOICES,
@@ -89,6 +91,7 @@ export const routeLabelKeys = {
 	SETTINGS: 'components.pageHeaders.settings',
 	ADD_NEW_TENANT: 'navigation.addTenant',
 	TENANTS_LIST: 'tenants.title',
+	RENEWAL_REQUESTS: 'tenants.renewalRequests',
 	STORE_PLATFORM: 'appTitle',
 	SELLING_INVOICES: 'components.pageHeaders.sellingInvoices',
 	REPORTS: 'components.pageHeaders.reports',
@@ -111,6 +114,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.SETTINGS]: routeLabelKeys.SETTINGS,
 		[RoutePaths.ADD_NEW_TENANT]: routeLabelKeys.ADD_NEW_TENANT,
 		[RoutePaths.TENANTS_LIST]: routeLabelKeys.TENANTS_LIST,
+		[RoutePaths.RENEWAL_REQUESTS]: routeLabelKeys.RENEWAL_REQUESTS,
 		[RoutePaths.SELLING_INVOICES]: routeLabelKeys.SELLING_INVOICES,
 		[RoutePaths.REPORTS]: routeLabelKeys.REPORTS,
 	}
@@ -435,6 +439,20 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
+	const renewalRequests: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ADD_NEW_TENANT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'renewal-requests',
+			name: t(routeLabelKeys.RENEWAL_REQUESTS),
+			href: fullPaths.RENEWAL_REQUESTS,
+			isCurrentPage: true,
+		},
+	]
 	const product: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -491,6 +509,7 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		employee,
 		addNewTenant,
 		tenantsList,
+		renewalRequests,
 		product,
 		sellingInvoices,
 		reports,

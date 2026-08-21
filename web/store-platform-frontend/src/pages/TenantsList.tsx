@@ -38,11 +38,10 @@ import {
 	Tr,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { DeleteIcon, EditIcon, LockIcon, RepeatIcon, UnlockIcon } from '@chakra-ui/icons'
+import { DeleteIcon, EditIcon, LockIcon, UnlockIcon } from '@chakra-ui/icons'
 import {
 	useDeleteTenantMutation,
 	useGetTenantsQuery,
-	useRenewTenantSubscriptionMutation,
 	useUpdateTenantMutation,
 } from '../api/apiStore'
 import { useTranslation } from 'react-i18next'
@@ -76,8 +75,6 @@ const TenantsList = () => {
 	const { data: tenants = [], isLoading, isFetching } = useGetTenantsQuery()
 	const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation()
 	const [deleteTenant, { isLoading: isDeleting }] = useDeleteTenantMutation()
-	const [renewTenantSubscription, { isLoading: isRenewing }] =
-		useRenewTenantSubscriptionMutation()
 	const [feedback, setFeedback] = useState('')
 	const [selectedTenant, setSelectedTenant] = useState<TenantSummary | null>(
 		null,
@@ -108,8 +105,7 @@ const TenantsList = () => {
 		)
 	}, [tenants])
 
-	const isBusy =
-		isLoading || isFetching || isUpdating || isDeleting || isRenewing
+	const isBusy = isLoading || isFetching || isUpdating || isDeleting
 
 	const openEditModal = (tenant: TenantSummary) => {
 		if (!tenant.permissions.canUpdate) {
@@ -261,20 +257,6 @@ const TenantsList = () => {
 		}
 	}
 
-	const renewTenant = async (tenant: TenantSummary) => {
-		if (!tenant.subscription) {
-			return
-		}
-
-		try {
-			await renewTenantSubscription(tenant.tenantId).unwrap()
-			setFeedback(t('tenants.renewed'))
-		} catch (error) {
-			const err = error as { data?: { message?: string } }
-			setFeedback(err?.data?.message || t('tenants.renewFailed'))
-		}
-	}
-
 	const removeTenant = async (tenant: TenantSummary) => {
 		if (!tenant.permissions.canDelete) {
 			setFeedback(tenant.permissions.reason || t('tenants.cannotDelete'))
@@ -403,8 +385,7 @@ const TenantsList = () => {
 											{!permissions.canUpdate &&
 											!permissions.canToggleStatus &&
 											!permissions.canDelete &&
-											!permissions.canChangeTenantSettings &&
-											!tenant.subscription ? (
+											!permissions.canChangeTenantSettings ? (
 												<Text fontSize="sm" color="gray.500" textAlign="right">
 													{permissions.reason ||
 														t('tenants.noActionsAvailable')}
@@ -415,19 +396,6 @@ const TenantsList = () => {
 													justifyContent="flex-end"
 													display="flex"
 												>
-													{tenant.subscription ? (
-														<Tooltip
-															label={t('tenants.renewSubscription')}
-															hasArrow
-														>
-															<IconButton
-																aria-label={t('tenants.renewSubscription')}
-																onClick={() => void renewTenant(tenant)}
-																icon={<RepeatIcon />}
-															/>
-														</Tooltip>
-													) : null}
-
 													{permissions.canChangeTenantSettings ? (
 														<Tooltip
 															label={t('tenants.AccessibleTenantPages')}

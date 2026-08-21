@@ -1189,33 +1189,86 @@ const getQuery = (
 			invalidatesTags: ['tenants'],
 		}),
 
-		getSubscription: builder.query<
-			{ subscription: (TenantSubscriptionView & { canRenew: boolean }) | null },
-			void
-		>({
+		getSubscription: builder.query<SubscriptionResponse, void>({
 			query: () => ({
 				url: 'subscription',
 			}),
 			providesTags: ['subscription'],
 		}),
 
-		renewSubscription: builder.mutation<
-			{ subscription: TenantSubscriptionView & { canRenew: boolean } },
+		getSubscriptionPaymentInfo: builder.query<
+			SubscriptionPaymentSettings,
 			void
 		>({
 			query: () => ({
-				url: 'subscription/renew',
-				method: 'POST',
+				url: 'subscription/payment-info',
 			}),
-			invalidatesTags: ['subscription'],
+			providesTags: ['subscription-payment'],
 		}),
 
-		renewTenantSubscription: builder.mutation<TenantSummary, string>({
-			query: tenantId => ({
-				url: `tenants/${tenantId}/subscription/renew`,
+		createRenewalRequest: builder.mutation<
+			{ request: RenewalRequestView },
+			void
+		>({
+			query: () => ({
+				url: 'subscription/renewal-requests',
 				method: 'POST',
 			}),
-			invalidatesTags: ['tenants'],
+			invalidatesTags: ['subscription', 'renewal-requests'],
+		}),
+
+		getRenewalRequests: builder.query<{ requests: RenewalRequestView[] }, void>(
+			{
+				query: () => ({
+					url: 'tenants/renewal-requests',
+				}),
+				providesTags: ['renewal-requests'],
+			},
+		),
+
+		approveRenewalRequest: builder.mutation<
+			{ request: RenewalRequestView },
+			string
+		>({
+			query: requestId => ({
+				url: `tenants/renewal-requests/${requestId}/approve`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['renewal-requests', 'tenants', 'subscription'],
+		}),
+
+		rejectRenewalRequest: builder.mutation<
+			{ request: RenewalRequestView },
+			{ requestId: string; reason: string }
+		>({
+			query: ({ requestId, reason }) => ({
+				url: `tenants/renewal-requests/${requestId}/reject`,
+				method: 'POST',
+				body: { reason },
+			}),
+			invalidatesTags: ['renewal-requests', 'tenants', 'subscription'],
+		}),
+
+		getSubscriptionPaymentSettings: builder.query<
+			SubscriptionPaymentSettings,
+			void
+		>({
+			query: () => ({
+				url: 'tenants/subscription-payment',
+			}),
+			providesTags: ['subscription-payment'],
+		}),
+
+		updateSubscriptionPaymentSettings: builder.mutation<
+			SubscriptionPaymentSettings,
+			SubscriptionPaymentSettings
+		>({
+			query: body => ({
+				url: 'tenants/subscription-payment',
+				method: 'PUT',
+				body,
+			}),
+			invalidatesTags: ['subscription-payment'],
 		}),
 
 		getUser: builder.query<User, void>({
@@ -1904,8 +1957,13 @@ export const {
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
 	useGetSubscriptionQuery,
-	useRenewSubscriptionMutation,
-	useRenewTenantSubscriptionMutation,
+	useGetSubscriptionPaymentInfoQuery,
+	useCreateRenewalRequestMutation,
+	useGetRenewalRequestsQuery,
+	useApproveRenewalRequestMutation,
+	useRejectRenewalRequestMutation,
+	useGetSubscriptionPaymentSettingsQuery,
+	useUpdateSubscriptionPaymentSettingsMutation,
 	useChangePasswordMutation,
 	useGetUserSettingsQuery,
 	useUpdateUserSettingsMutation,

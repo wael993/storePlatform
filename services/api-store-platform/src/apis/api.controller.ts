@@ -125,7 +125,7 @@ import {
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
 import { redisCache } from '../shared/cache/redisCache'
-import { syncTenantSubscription } from '../shared/subscription/persist'
+import { syncTenantSubscription, tenantMaySignIn } from '../shared/subscription/persist'
 import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
 import { mapInvoiceFiltersToUiStatus } from '../shared/constants'
 import {
@@ -600,7 +600,7 @@ export default class ProductController {
 
 		const { tenant: synced } = await syncTenantSubscription(tenant)
 
-		if (synced.status !== 'active') {
+		if (!tenantMaySignIn(synced)) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',
@@ -914,7 +914,7 @@ export default class ProductController {
 
 		const { tenant: synced } = await syncTenantSubscription(tenant)
 
-		if (synced.status !== 'active') {
+		if (!tenantMaySignIn(synced)) {
 			throw new AuthenticationError(
 				ERROR_CODES.AUTHORIZATION.INACTIVE_TENANT,
 				'Tenant is inactive. Contact the platform admin.',

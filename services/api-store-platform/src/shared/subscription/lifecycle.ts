@@ -37,7 +37,7 @@ export type SubscriptionLifecycleConfig = {
 
 const MS_PER_DAY = 86_400_000
 
-const calendarDateInTimeZone = (
+export const calendarDateInTimeZone = (
 	date: Date,
 	timeZone: string,
 ): string => {

@@ -116,6 +116,7 @@ export enum BreadCrumbItem {
 	USERS = 'users',
 	ADD_NEW_TENANT = 'addNewTenant',
 	TENANTS_LIST = 'tenantsList',
+	RENEWAL_REQUESTS = 'renewalRequests',
 	ALL_PRODUCTS = 'allProducts',
 	CUSTOMERS = 'customers',
 	CUSTOMER = 'customer',

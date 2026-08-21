@@ -159,21 +159,63 @@ export default class TenantRoutes {
 			)
 
 		app
-			.route(`${baseRoute}/subscription/renew`)
-			.post(
+			.route(`${baseRoute}/subscription/payment-info`)
+			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
-				this.renewOwnSubscription.bind(this),
+				this.getSubscriptionPaymentInfo.bind(this),
 			)
 
 		app
-			.route(`${baseRoute}/tenants/:id/subscription/renew`)
+			.route(`${baseRoute}/subscription/renewal-requests`)
 			.post(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
-				this.renewTenantSubscription.bind(this),
+				this.createOwnRenewalRequest.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/tenants/subscription-payment`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getSubscriptionPaymentSettings.bind(this),
+			)
+			.put(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.saveSubscriptionPaymentSettings.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/tenants/renewal-requests`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.listRenewalRequests.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/tenants/renewal-requests/:id/approve`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.approveTenantRenewalRequest.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/tenants/renewal-requests/:id/reject`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.rejectTenantRenewalRequest.bind(this),
 			)
 
 		app
@@ -343,7 +385,7 @@ export default class TenantRoutes {
 		}
 	}
 
-	private async renewOwnSubscription(
+	private async getSubscriptionPaymentInfo(
 		request: TenantHttpRequest,
 		response: express.Response,
 	): Promise<void> {
@@ -351,7 +393,7 @@ export default class TenantRoutes {
 
 		try {
 			const resp =
-				await this.tenantController.renewOwnSubscription(requestContext)
+				await this.tenantController.getSubscriptionPaymentInfo(requestContext)
 
 			response.status(200).json(resp)
 		} catch (error: unknown) {
@@ -361,17 +403,117 @@ export default class TenantRoutes {
 		}
 	}
 
-	private async renewTenantSubscription(
+	private async createOwnRenewalRequest(
 		request: TenantHttpRequest,
 		response: express.Response,
 	): Promise<void> {
 		const requestContext = this.getRequestContext(request)
 
 		try {
-			const resp = await this.tenantController.renewTenantSubscription(
+			const resp =
+				await this.tenantController.createOwnRenewalRequest(requestContext)
+
+			response.status(201).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async listRenewalRequests(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.tenantController.listRenewalRequests(requestContext)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async approveTenantRenewalRequest(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.tenantController.approveTenantRenewalRequest(
 				request.params.id,
 				requestContext,
 			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async rejectTenantRenewalRequest(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const reason =
+			typeof request.body?.reason === 'string' ? request.body.reason : ''
+
+		try {
+			const resp = await this.tenantController.rejectTenantRenewalRequest(
+				request.params.id,
+				reason,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getSubscriptionPaymentSettings(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.tenantController.getSubscriptionPaymentSettings(
+					requestContext,
+				)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async saveSubscriptionPaymentSettings(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.tenantController.saveSubscriptionPaymentSettings(
+					request.body,
+					requestContext,
+				)
 
 			response.status(200).json(resp)
 		} catch (error: unknown) {
