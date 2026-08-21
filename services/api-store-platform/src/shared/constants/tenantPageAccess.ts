@@ -21,6 +21,7 @@ const ENTITY_TYPE_TO_PAGE: Record<string, TenantAccessiblePage> = {
 const API_SEGMENT_TO_PAGES: Record<string, TenantAccessiblePage[]> = {
 	products: [TENANT_ACCESSIBLE_PAGE.PRODUCTS],
 	product: [TENANT_ACCESSIBLE_PAGE.PRODUCTS],
+	'product-import': [TENANT_ACCESSIBLE_PAGE.PRODUCTS],
 	'filter-values': [TENANT_ACCESSIBLE_PAGE.PRODUCTS],
 	orders: [TENANT_ACCESSIBLE_PAGE.ORDERS],
 	invoices: [

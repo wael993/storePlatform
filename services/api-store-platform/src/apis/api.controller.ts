@@ -125,6 +125,11 @@ import {
 	TenantRole,
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
+import {
+	assertProductDeletable,
+	deleteProductInventory,
+	findProductDeleteBlocks,
+} from '../shared/productImport/service'
 import { redisCache } from '../shared/cache/redisCache'
 import {
 	syncTenantSubscription,
@@ -1608,16 +1613,67 @@ export default class ProductController {
 		productId: string,
 		requestContext: RequestContext,
 	) {
+		const tenantContext = getTenantContext(requestContext)
+
+		await assertProductDeletable(tenantContext.tenantId, productId)
+
 		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.PRODUCTS, id: productId },
 			requestContext,
 			Product,
 		)
 
+		await deleteProductInventory(tenantContext.tenantId, [productId])
 		await this.invalidateEntityCache('products', requestContext, productId)
 		await this.invalidateEntityCache('inventory', requestContext)
 
 		return deleteResponse
+	}
+
+	public async bulkDeleteProducts(
+		productIds: string[],
+		requestContext: RequestContext,
+	) {
+		const tenantContext = getTenantContext(requestContext)
+		const ids = [...new Set(productIds.filter(Boolean))]
+		const blocked = await findProductDeleteBlocks(tenantContext.tenantId, ids)
+		const deleted: string[] = []
+		const blockedRows: Array<{ productId: string; reason: string }> = []
+
+		for (const productId of ids) {
+			const reason = blocked.get(productId)
+
+			if (reason) {
+				blockedRows.push({ productId, reason })
+				continue
+			}
+
+			try {
+				await this.mongoDbClient.deleteDocument(
+					{ collectionName: COLLECTION_NAMES.PRODUCTS, id: productId },
+					requestContext,
+					Product,
+				)
+				deleted.push(productId)
+			} catch {
+				blockedRows.push({
+					productId,
+					reason: 'Product could not be deleted.',
+				})
+			}
+		}
+
+		if (deleted.length) {
+			await deleteProductInventory(tenantContext.tenantId, deleted)
+
+			for (const productId of deleted) {
+				await this.invalidateEntityCache('products', requestContext, productId)
+			}
+
+			await this.invalidateEntityCache('inventory', requestContext)
+		}
+
+		return { deleted, blocked: blockedRows }
 	}
 
 	public async getDailyActionsExcel(

@@ -31,12 +31,10 @@ const noAccessResource = {
 } as const
 
 const OWNER_READ_ONLY_RESOURCES = [
-	'/products',
 	'/categories',
 	'/orders',
 	'/invoices',
 	'/buyingInvoices',
-	'/inventory',
 	'/reports',
 	'/dailyActions',
 	'/suppliers',
@@ -51,7 +49,11 @@ const OWNER_READ_ONLY_RESOURCES = [
 ] as const
 
 const OWNER_CREATE_RESOURCES = ['/brands', '/shelves', '/warehouses'] as const
-const OWNER_FULL_ACCESS_RESOURCES = ['/employees'] as const
+const OWNER_FULL_ACCESS_RESOURCES = [
+	'/employees',
+	'/products',
+	'/inventory',
+] as const
 
 const ADMIN_FULL_ACCESS_RESOURCES = [
 	'/users',
@@ -86,13 +88,20 @@ const ROLE_MOCKS = [
 			'/services/store_platform/products': {
 				access: true,
 				allowedActions: [
+					'addProduct',
+					'deleteProduct',
 					'seeSupplier',
 					'seeCustomer',
 					'seeBuyCost',
+					'canEditBuyCost',
 					'seeWholesalePrice',
+					'canEditWholesalePrice',
 					'seeDiscount',
+					'canEditDiscount',
 					'seeStockQuantity',
+					'canEditStockQuantity',
 					'seeMinStockQuantity',
+					'canEditMinStockQuantity',
 					'seeNotifications',
 					'seeReport',
 					'seeLocationShelf',

@@ -29,6 +29,9 @@ export interface ITenant {
 	accessiblePages: TenantAccessiblePage[]
 	offlineEnabled: boolean
 	invoiceAi?: InvoiceAiUsageState
+	productImport?: {
+		status: 'NOT_STARTED' | 'IN_PROGRESS' | 'SKIPPED' | 'COMPLETED'
+	}
 	subscription?: TenantSubscription
 	createdAt: Date
 	updatedAt: Date
@@ -82,6 +85,13 @@ const tenantSchema = new Schema<ITenant>(
 			periodStart: { type: Date },
 			usedInPeriod: { type: Number, min: 0, default: 0 },
 			carryOver: { type: Number, min: 0, default: 0 },
+		},
+		productImport: {
+			status: {
+				type: String,
+				enum: ['NOT_STARTED', 'IN_PROGRESS', 'SKIPPED', 'COMPLETED'],
+				default: 'NOT_STARTED',
+			},
 		},
 		subscription: {
 			startDate: { type: Date },

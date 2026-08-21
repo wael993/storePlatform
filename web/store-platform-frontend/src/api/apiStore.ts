@@ -8,6 +8,13 @@ import { InvoicePaymentStatus, InvoicePaymentType } from '../shared/globalEnums'
 import { ApiSellingInvoice } from '../components/SellingInvoice/invoiceApiMappers'
 import { ApiBuyingInvoice } from '../components/BuyingInvoice/buyingInvoiceApiMappers'
 import type { ScoredInvoiceExtraction } from '../shared/invoiceExtraction'
+import type {
+	ProductImportCommitResponse,
+	ProductImportMapping,
+	ProductImportParseResponse,
+	ProductImportPreviewResponse,
+	ProductImportStatusResponse,
+} from '../shared/productImport'
 import {
 	getIsOnline,
 	markOnline,
@@ -854,7 +861,37 @@ const getQuery = (
 					method: 'DELETE',
 				}
 			},
-			invalidatesTags: ['products', 'product'],
+			invalidatesTags: ['products', 'product', 'inventory', 'product-import'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful delete
+				}
+			},
+		}),
+		bulkDeleteProducts: builder.mutation<
+			{
+				deleted: string[]
+				blocked: Array<{ productId: string; reason: string }>
+			},
+			string[]
+		>({
+			query: productIds => ({
+				url: 'products/bulk-delete',
+				method: 'POST',
+				body: { productIds },
+			}),
+			invalidatesTags: ['products', 'product', 'inventory', 'product-import'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful delete
+				}
+			},
 		}),
 		postProduct: builder.mutation<CreateProductAPIResponse, CreateProductInput>(
 			{
@@ -1750,6 +1787,77 @@ const getQuery = (
 			}),
 		}),
 
+		getProductImportStatus: builder.query<ProductImportStatusResponse, void>({
+			query: () => ({ url: 'product-import/status' }),
+			providesTags: ['product-import'],
+		}),
+
+		skipProductImport: builder.mutation<{ status: string }, void>({
+			query: () => ({
+				url: 'product-import/skip',
+				method: 'POST',
+			}),
+			invalidatesTags: ['product-import'],
+		}),
+
+		parseProductImport: builder.mutation<
+			ProductImportParseResponse,
+			{
+				files: Array<{
+					fileBase64: string
+					mimeType: string
+					fileName: string
+				}>
+			}
+		>({
+			query: body => ({
+				url: 'product-import/parse',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['product-import'],
+		}),
+
+		previewProductImport: builder.mutation<
+			ProductImportPreviewResponse,
+			{ sessionId: string; mapping: ProductImportMapping }
+		>({
+			query: body => ({
+				url: 'product-import/preview',
+				method: 'POST',
+				body,
+			}),
+		}),
+
+		commitProductImport: builder.mutation<
+			ProductImportCommitResponse,
+			{
+				sessionId: string
+				mapping: ProductImportMapping
+				offset: number
+				limit: number
+			}
+		>({
+			query: body => ({
+				url: 'product-import/commit',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: result =>
+				result?.done
+					? ['products', 'product', 'inventory', 'product-import']
+					: [],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					const { data } = await queryFulfilled
+
+					if (data.done) await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful import
+				}
+			},
+		}),
+
 		confirmBuyingInvoiceMatch: builder.mutation<
 			{ ok: boolean },
 			{ kind: 'product' | 'supplier'; id: string; alias: string }
@@ -2003,6 +2111,12 @@ export const {
 	useGetInvoiceAiUsageQuery,
 	usePostReportChatMutation,
 	useConfirmBuyingInvoiceMatchMutation,
+	useGetProductImportStatusQuery,
+	useSkipProductImportMutation,
+	useParseProductImportMutation,
+	usePreviewProductImportMutation,
+	useCommitProductImportMutation,
+	useBulkDeleteProductsMutation,
 	useGetInventoryQuery,
 	useEditInventoryMutation,
 	useGetProductNotificationsQuery,

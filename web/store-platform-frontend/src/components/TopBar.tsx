@@ -10,6 +10,7 @@ import {
 import {
 	Avatar,
 	Box,
+	Button,
 	Divider,
 	Flex,
 	FormControl,
@@ -70,6 +71,8 @@ interface TopBarProps {
 	onLogout: () => void | Promise<void>
 	isLogoutLoading?: boolean
 	isSettingsVisible?: boolean
+	showImportProducts?: boolean
+	onImportProducts?: () => void
 }
 
 const styles = {
@@ -180,6 +183,8 @@ const TopBar = ({
 	onLogout,
 	isLogoutLoading = false,
 	isSettingsVisible = false,
+	showImportProducts = false,
+	onImportProducts,
 }: TopBarProps) => {
 	const location = useLocation()
 	const navigate = useNavigate()
@@ -638,6 +643,15 @@ const TopBar = ({
 									}}
 								/>
 							) : null}
+							{showImportProducts ? (
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() => onImportProducts?.()}
+								>
+									{t('productImport.topBarButton')}
+								</Button>
+							) : null}
 							{isSettingsVisible ? (
 								<IconButton
 									aria-label={t('components.topBar.settings')}
@@ -657,6 +671,8 @@ const TopBar = ({
 							onLogout={onLogout}
 							isLogoutLoading={isLogoutLoading}
 							isSettingsVisible={isSettingsVisible}
+							showImportProducts={showImportProducts}
+							onImportProducts={onImportProducts}
 						/>
 					)}
 					{!isMobile && (

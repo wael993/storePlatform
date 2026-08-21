@@ -1,12 +1,12 @@
-import { Button, Flex, Text } from '@chakra-ui/react'
+import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
-import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
-import { AsCloseCircleIcon } from '../../../icons/CloseIconCircle'
+import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { AllowedActions } from '../../../shared/globalEnums'
 import { useResources } from '../../../shared/hooks/useResources'
-import { useUser } from '../../../shared/hooks/useUser'
-import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
-import AddRequiredDocumentButton from '../../common/AddRequiredDocumentButton'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useBulkDeleteProductsMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
+import { AsTrashIcon } from '../../../icons/Trash'
 
 const styles = {
 	mainFlexWrapper: {
@@ -36,46 +36,56 @@ const styles = {
 		background: '#EAEAEA',
 		...hoverFocusActiveButtonStyles,
 	},
-	requiredDocumentButton: {
-		backgroundColor: '#EAEAEA',
-		color: '#1E1E1E',
-		fontSize: '0.875rem',
-		fontWeight: '700',
-		height: '2rem',
-		paddingLeft: '0.625rem',
-		paddingRight: '0.625rem',
-		width: 'unset',
-	},
 } satisfies StylesObject
 
 interface ProductTableActionBarProps {
 	selectedActivities: Product[]
-	isRejectActivityInProgress: boolean
-	onAddRequiredDocument: (
-		selectedActivities: Product[],
-		data: {},
-	) => Promise<void>
-	isAddRequiredDocumentInProgress: boolean
 }
+
 const ProductTableActionBar = ({
 	selectedActivities,
-	isRejectActivityInProgress,
-	onAddRequiredDocument,
-	isAddRequiredDocumentInProgress,
 }: ProductTableActionBarProps) => {
-	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin: isInternalUser } = useUser()
-
-	const isRequiredDocumentCreationAllowed = isActionAllowed(
-		AllowedActions.ADD_PRODUCT,
-	)
-
 	const { t } = useTranslation()
+	const { isActionAllowed } = useResources()
+	const { isOpen, onOpen, onClose } = useDisclosure()
+	const showToast = useCustomToast()
+	const [bulkDelete, { isLoading: isDeleting }] =
+		useBulkDeleteProductsMutation()
+	const canDelete = isActionAllowed(AllowedActions.DELETE_PRODUCT)
 
-	const requiredDocumentCreatableOffers = true
+	const handleDelete = async () => {
+		try {
+			const result = await bulkDelete(
+				selectedActivities.map(product => product.productId),
+			).unwrap()
 
-	const handleAddRequiredDocument = async () => {
-		await onAddRequiredDocument([], {})
+			onClose()
+
+			if (result.blocked.length) {
+				showToast({
+					status: 'error',
+					description:
+						result.blocked[0]?.reason ||
+						t('components.product.deleteProductError'),
+				})
+				return
+			}
+
+			showToast({
+				status: 'success',
+				description: t('components.product.deleteSelectedSuccess', {
+					count: result.deleted.length,
+				}),
+			})
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+
+			showToast({
+				status: 'error',
+				description:
+					err.data?.message || t('components.product.deleteProductError'),
+			})
+		}
 	}
 
 	return (
@@ -84,54 +94,30 @@ const ProductTableActionBar = ({
 				{`${selectedActivities.length} 	${t('common.selected')}`}
 			</Text>
 			<Flex sx={styles.iconWrapper}>
-				{isRequiredDocumentCreationAllowed && isInternalUser && (
-					<AddRequiredDocumentButton
-						onAddDocument={handleAddRequiredDocument}
-						isLoading={isAddRequiredDocumentInProgress}
-						isDisabled={
-							!requiredDocumentCreatableOffers ||
-							isAddRequiredDocumentInProgress
-						}
-						// requiredDocumentButtonStyles={styles.requiredDocumentButton}
-						requiredDocumentIconStyles={
-							{
-								// color: '#1E1E1E',
-								// boxSize: '5',
-							}
-						}
-					/>
-				)}
-
-				{isInternalUser && (
-					<Button
+				{canDelete ? (
+					<IconButton
 						sx={styles.iconButton}
-						isDisabled={false}
-						isLoading={isRejectActivityInProgress}
-						size={'sm'}
-						rightIcon={<AsCloseCircleIcon boxSize={6} />}
-						onClick={() => {
-							console.log('modal opened')
-						}}
-						aria-label={t('common.reject')}
-					>
-						{t('common.reject')}
-					</Button>
-				)}
-				<Button
-					isDisabled={false}
-					size={'sm'}
-					rightIcon={<AsCheckmarkCircleIcon boxSize={6} />}
-					aria-label={t('common.accept')}
-					variant="primary"
-					// sx={hoverFocusActiveButtonStyles}
-					onClick={() => {
-						console.log('modal closed')
-					}}
-				>
-					{t('common.accept')}
-				</Button>
+						aria-label={t('components.product.deleteSelected')}
+						icon={<AsTrashIcon boxSize={5} />}
+						size="sm"
+						onClick={onOpen}
+					/>
+				) : null}
 			</Flex>
+			<ConfirmationDialog
+				header={t('components.product.deleteSelected')}
+				body={t('components.product.deleteSelectedConfirm', {
+					count: selectedActivities.length,
+				})}
+				isOpen={isOpen}
+				onClose={onClose}
+				onConfirm={handleDelete}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</Flex>
 	)
 }
+
 export default ProductTableActionBar

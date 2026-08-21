@@ -23,6 +23,8 @@ import BuyingInvoiceController from './apis/buying-invoice/api.controller'
 import BuyingInvoiceRoutes from './apis/buying-invoice/api.routes'
 import ReportController from './apis/report/api.controller'
 import ReportRoutes from './apis/report/api.routes'
+import ProductImportController from './apis/product-import/api.controller'
+import ProductImportRoutes from './apis/product-import/api.routes'
 import StoreRoutes from './apis/api.routes'
 import EmployeeController from './apis/employee/api.controller'
 import EmployeeRoutes from './apis/employee/api.routes'
@@ -104,6 +106,11 @@ const buyingInvoiceRoutes = new BuyingInvoiceRoutes(
 )
 const reportController = new ReportController(mongoDbClient)
 const reportRoutes = new ReportRoutes(reportController, productController)
+const productImportController = new ProductImportController(productController)
+const productImportRoutes = new ProductImportRoutes(
+	productImportController,
+	productController,
+)
 const storeRoutes = new StoreRoutes(productController)
 const notificationController = new NotificationController()
 const notificationRoutes = new NotificationRoutes(
@@ -114,10 +121,15 @@ const app = express()
 
 const jsonParser = express.json({ limit: '100kb' })
 const extractJsonParser = express.json({ limit: '12mb' })
+const productImportJsonParser = express.json({ limit: '45mb' })
 
 app.use((req, res, next) => {
 	if (req.path.includes('/buying-invoices/extract')) {
 		return extractJsonParser(req, res, next)
+	}
+
+	if (req.path.includes('/product-import/parse')) {
+		return productImportJsonParser(req, res, next)
 	}
 
 	return jsonParser(req, res, next)
@@ -167,6 +179,7 @@ settingRoutes.setRoutes(app)
 sellingInvoiceRoutes.setRoutes(app)
 buyingInvoiceRoutes.setRoutes(app)
 reportRoutes.setRoutes(app)
+productImportRoutes.setRoutes(app)
 notificationRoutes.setRoutes(app)
 storeRoutes.setRoutes(app)
 tenantRoutes.setRoutes(app)

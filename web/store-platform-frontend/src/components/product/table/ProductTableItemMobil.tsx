@@ -11,6 +11,7 @@ import {
 	GridItem,
 	Skeleton,
 	Text,
+	useDisclosure,
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,6 +30,9 @@ import {
 } from '../../../shared/utils'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
 import PrintBarcodeModal from '../PrintBarcodeModal'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteProductMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
 
 const styles = {
 	listItemGridItem: {
@@ -101,9 +105,12 @@ const ProductTableMobil = ({
 		seeBuyCost,
 		seeWholesalePrice,
 		seeDiscount,
-		// seeLocationShelf,
-		// seeLocationWarehouse,
+		canDeleteProduct,
 	} = useAllowedActions()
+	const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } =
+		useDisclosure()
+	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
+	const showToast = useCustomToast()
 	const productState = PRODUCT_STATE_CONFIG[product.status]
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -338,6 +345,13 @@ const ProductTableMobil = ({
 											void printBarcode()
 										}}
 										isPrintLoading={isEnsuringBarcode}
+										onDelete={
+											canDeleteProduct
+												? () => {
+														onDeleteOpen()
+													}
+												: undefined
+										}
 									/>
 								)}
 							</Skeleton>
@@ -353,6 +367,33 @@ const ProductTableMobil = ({
 					onClose={preview.onClose}
 				/>
 			)}
+			<ConfirmationDialog
+				header={t('components.product.deleteProduct')}
+				body={t('components.product.deleteProductConfirm')}
+				isOpen={isDeleteOpen}
+				onClose={onDeleteClose}
+				onConfirm={async () => {
+					try {
+						await deleteProduct(product.productId).unwrap()
+						onDeleteClose()
+						showToast({
+							status: 'success',
+							description: t('components.product.deleteProductSuccess'),
+						})
+					} catch (error) {
+						const err = error as { data?: { message?: string } }
+
+						showToast({
+							status: 'error',
+							description:
+								err.data?.message || t('components.product.deleteProductError'),
+						})
+					}
+				}}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</>
 	)
 }

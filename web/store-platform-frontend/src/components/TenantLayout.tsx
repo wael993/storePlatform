@@ -16,6 +16,7 @@ import { RoutePaths } from '../shared/routes'
 import OfflineSyncBanner from './OfflineSyncBanner'
 import SubscriptionRenewalBanner from './SubscriptionRenewalBanner'
 import { getOfflineState } from '../offline/syncService'
+import ProductImportGate from './productImport/ProductImportGate'
 
 const TenantLayout = () => {
 	const { t } = useTranslation()
@@ -28,6 +29,9 @@ const TenantLayout = () => {
 
 	useTenantRouteGuard(user?.accessiblePages)
 	useProductCatalogSync()
+
+	const [showImportProducts, setShowImportProducts] = useState(false)
+	const [importWizardSignal, setImportWizardSignal] = useState(0)
 
 	const enabledActions = getEnabledActions()
 	const tenantActions = getTenantActions(user?.accessiblePages)
@@ -140,6 +144,12 @@ const TenantLayout = () => {
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
 					isSettingsVisible={isSettingsVisible}
+					showImportProducts={showImportProducts}
+					onImportProducts={() => setImportWizardSignal(value => value + 1)}
+				/>
+				<ProductImportGate
+					onLaterChange={setShowImportProducts}
+					openWizardSignal={importWizardSignal}
 				/>
 				<SubscriptionRenewalBanner />
 				<OfflineSyncBanner />

@@ -106,4 +106,16 @@ export const config = {
 			model: process.env.GEMINI_REPORT_MODEL || 'gemini-3.5-flash-lite',
 		},
 	},
+	aiImport: {
+		provider: (process.env.AI_IMPORT_PROVIDER || 'mock').toLowerCase(),
+		openai: {
+			apiKey: process.env.OPENAI_API_KEY || '',
+			model: process.env.OPENAI_IMPORT_MODEL || 'gpt-4o-mini',
+		},
+		gemini: {
+			apiKey:
+				process.env.GEMINI_IMPORT_API_KEY || process.env.GEMINI_API_KEY || '',
+			model: process.env.GEMINI_IMPORT_MODEL || 'gemini-3.5-flash-lite',
+		},
+	},
 }

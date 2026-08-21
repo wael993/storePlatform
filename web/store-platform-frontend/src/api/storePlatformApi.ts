@@ -57,6 +57,7 @@ export type TagType =
 	| 'subscription'
 	| 'renewal-requests'
 	| 'subscription-payment'
+	| 'product-import'
 
 const tagTypes: TagType[] = [
 	'products',
@@ -95,6 +96,7 @@ const tagTypes: TagType[] = [
 	'subscription',
 	'renewal-requests',
 	'subscription-payment',
+	'product-import',
 ]
 
 const baseQuery = fetchBaseQuery({

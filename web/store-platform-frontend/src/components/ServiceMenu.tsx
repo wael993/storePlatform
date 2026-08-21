@@ -38,6 +38,8 @@ interface ServiceMenuProps {
 	onLogout: () => void | Promise<void>
 	isLogoutLoading?: boolean
 	isSettingsVisible?: boolean
+	showImportProducts?: boolean
+	onImportProducts?: () => void
 }
 
 const styles = {
@@ -126,6 +128,8 @@ const ServiceMenu = ({
 	onLogout,
 	isLogoutLoading = false,
 	isSettingsVisible = false,
+	showImportProducts = false,
+	onImportProducts,
 }: ServiceMenuProps) => {
 	const navigate = useNavigate()
 	const location = useLocation()
@@ -256,6 +260,19 @@ const ServiceMenu = ({
 							</Flex>
 						</Flex>
 
+						{showImportProducts ? (
+							<Box
+								as="button"
+								type="button"
+								onClick={() => {
+									onClose()
+									onImportProducts?.()
+								}}
+								sx={styles.menuItem}
+							>
+								<Text>{t('productImport.topBarButton')}</Text>
+							</Box>
+						) : null}
 						{isSettingsVisible ? (
 							<Box
 								as="button"

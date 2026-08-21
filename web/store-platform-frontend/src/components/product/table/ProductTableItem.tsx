@@ -1,4 +1,4 @@
-import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
+import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 // import { formatDate } from '../../../shared/dateUtils'
@@ -18,6 +18,9 @@ import { withNoValueFallback } from '../../../shared/utils'
 import { useProductInlineEdit } from '../useProductInlineEdit'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
 import PrintBarcodeModal from '../PrintBarcodeModal'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteProductMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
 
 interface ProductTableItemProps {
 	product: Product
@@ -57,7 +60,12 @@ const ProductTableItem = memo(
 			seeWholesalePrice,
 			seeDiscount,
 			seeBuyCost,
+			canDeleteProduct,
 		} = useAllowedActions()
+		const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } =
+			useDisclosure()
+		const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
+		const showToast = useCustomToast()
 
 		const styles = {
 			tableRow: {
@@ -482,6 +490,13 @@ const ProductTableItem = memo(
 											void printBarcode()
 										}}
 										isPrintLoading={isEnsuringBarcode}
+										onDelete={
+											canDeleteProduct
+												? () => {
+														onDeleteOpen()
+													}
+												: undefined
+										}
 									/>
 								)}
 							</Skeleton>
@@ -496,6 +511,34 @@ const ProductTableItem = memo(
 						onClose={preview.onClose}
 					/>
 				)}
+				<ConfirmationDialog
+					header={t('components.product.deleteProduct')}
+					body={t('components.product.deleteProductConfirm')}
+					isOpen={isDeleteOpen}
+					onClose={onDeleteClose}
+					onConfirm={async () => {
+						try {
+							await deleteProduct(productData.productId).unwrap()
+							onDeleteClose()
+							showToast({
+								status: 'success',
+								description: t('components.product.deleteProductSuccess'),
+							})
+						} catch (error) {
+							const err = error as { data?: { message?: string } }
+
+							showToast({
+								status: 'error',
+								description:
+									err.data?.message ||
+									t('components.product.deleteProductError'),
+							})
+						}
+					}}
+					cancelButtonText={t('common.cancel')}
+					confirmationButtonText={t('common.delete')}
+					isConfirmationButtonLoading={isDeleting}
+				/>
 			</>
 		)
 	},

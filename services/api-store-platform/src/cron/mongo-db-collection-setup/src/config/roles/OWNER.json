@@ -10,9 +10,9 @@
 		},
 		"/products": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
 		"/orders": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
@@ -34,9 +34,9 @@
 		},
 		"/inventory": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
-			"POST": { "accessLevel": "NONE", "fields": [] },
-			"PATCH": { "accessLevel": "NONE", "fields": [] },
-			"DELETE": { "accessLevel": "NONE", "fields": [] }
+			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
+			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
 		"/reports": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
@@ -117,13 +117,20 @@
 		"/services/store_platform/products": {
 			"access": true,
 			"allowedActions": [
+				"addProduct",
+				"deleteProduct",
 				"seeSupplier",
 				"seeCustomer",
 				"seeBuyCost",
+				"canEditBuyCost",
 				"seeWholesalePrice",
+				"canEditWholesalePrice",
 				"seeDiscount",
+				"canEditDiscount",
 				"seeStockQuantity",
+				"canEditStockQuantity",
 				"seeMinStockQuantity",
+				"canEditMinStockQuantity",
 				"seeNotifications",
 				"seeReport",
 				"seeLocationShelf",
