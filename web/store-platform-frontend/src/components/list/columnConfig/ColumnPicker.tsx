@@ -22,7 +22,9 @@ import {
 import { DragEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FiEdit2, FiSave, FiSettings } from 'react-icons/fi'
-import { MdDragIndicator, MdViewColumn } from 'react-icons/md'
+import { MdDragIndicator } from 'react-icons/md'
+import { CiViewColumn } from 'react-icons/ci'
+
 import { AsTrashIcon } from '../../../icons/Trash'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import ConfirmationDialog from '../../ConfirmationDialog'
@@ -148,7 +150,7 @@ const ColumnPicker = () => {
 					<PopoverTrigger>
 						<IconButton
 							aria-label={t('components.columnConfig.configureColumns')}
-							icon={<MdViewColumn size={20} />}
+							icon={<CiViewColumn size={20} />}
 							size="sm"
 							variant="ghost"
 							color="#6C6C6C"

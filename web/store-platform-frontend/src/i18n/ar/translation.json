@@ -995,7 +995,7 @@
 			"clearFilters": "مسح المرشحات",
 			"filter": "المرشحات",
 			"search": "بحث",
-			"searchPlaceholder": "الاسم، معرّف المنتج، الباركود",
+			"searchPlaceholder": "الاسم، الاسم اللاتيني، الباركود أو الرمز",
 			"nameOrCodeSearchPlaceholder": "البحث بالاسم أو الرمز",
 			"dailySearchPlaceholder": "رقم الفاتورة",
 			"saveFilterPreset": "حفظ إعدادات المرشحات",

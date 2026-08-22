@@ -125,6 +125,7 @@ import {
 	TenantRole,
 } from '../shared/tenant'
 import { COLLECTION_NAMES } from '../shared/general'
+import { searchProducts, type SearchableProduct } from '../shared/productSearch'
 import {
 	assertProductDeletable,
 	deleteProductInventory,
@@ -1050,22 +1051,6 @@ export default class ProductController {
 
 		const productQueryClauses: Record<string, unknown>[] = []
 
-		if (searchText) {
-			// note: unanchored name regex cannot use { tenantId, name } at 100k; upgrade to prefix / text index / Atlas Search
-			const searchRegex = new RegExp(this.escapeRegex(searchText), 'i')
-
-			productQueryClauses.push({
-				$or: [
-					{ name: searchRegex },
-					{ id: searchRegex },
-					{ productId: searchRegex },
-					{ barcode: searchRegex },
-					{ internalCode: searchRegex },
-					{ productFactoryCode: searchRegex },
-				],
-			})
-		}
-
 		if (supplierRegexList.length > 0) {
 			productQueryClauses.push({
 				supplierId: { $in: supplierRegexList },
@@ -1093,14 +1078,60 @@ export default class ProductController {
 		const mongoQuery =
 			productQueryClauses.length > 0 ? { $and: productQueryClauses } : {}
 
-		const [products, totalCount, relationLookups] = await Promise.all([
-			withTenantScope(
-				Product.find(mongoQuery).sort({ name: 1 }).skip(offset).limit(limit),
+		let products: ProductAPI[]
+		let totalCount: number
+		let relationLookups: ProductRelationLookups
+
+		if (searchText) {
+			// note: in-memory scan of search fields for tenant products matching other filters; upgrade to Atlas Search at 100k
+			const searchDocs = await withTenantScope(
+				Product.find(mongoQuery).select(
+					'productId name latinName barcode internalCode productFactoryCode',
+				),
 				tenantId,
-			).lean<ProductAPI[]>(),
-			Product.countDocuments({ tenantId, ...mongoQuery }),
-			this.getProductRelationLookups(requestContext),
-		])
+			).lean<SearchableProduct[]>()
+			const matched = searchProducts(searchDocs, searchText).sort((a, b) =>
+				(a.name ?? '').localeCompare(b.name ?? ''),
+			)
+			const pageIds = matched
+				.slice(offset, offset + limit)
+				.map(product => product.productId)
+				.filter((productId): productId is string => Boolean(productId))
+
+			totalCount = matched.length
+
+			const [page, lookups] = await Promise.all([
+				pageIds.length === 0
+					? Promise.resolve([] as ProductAPI[])
+					: withTenantScope(
+							Product.find({ productId: { $in: pageIds } }),
+							tenantId,
+						).lean<ProductAPI[]>(),
+				this.getProductRelationLookups(requestContext),
+			])
+			const productById = new Map(
+				page.map(product => [product.productId, product]),
+			)
+
+			products = pageIds
+				.map(productId => productById.get(productId))
+				.filter((product): product is ProductAPI => Boolean(product))
+
+			relationLookups = lookups
+		} else {
+			const [page, count, lookups] = await Promise.all([
+				withTenantScope(
+					Product.find(mongoQuery).sort({ name: 1 }).skip(offset).limit(limit),
+					tenantId,
+				).lean<ProductAPI[]>(),
+				Product.countDocuments({ tenantId, ...mongoQuery }),
+				this.getProductRelationLookups(requestContext),
+			])
+
+			products = page
+			totalCount = count
+			relationLookups = lookups
+		}
 
 		const productIds = products.map(product => product.productId)
 		const inventory =
@@ -1310,11 +1341,36 @@ export default class ProductController {
 		const canAccessSupplierFilter =
 			requestContext.role === 'owner' || requestContext.role === 'admin'
 
-		const products = await withTenantScope(
-			Product.find({})
-				.select('supplierId brandId categoryId status')
-				.lean<ProductFilterValueSource[]>(),
-			tenantId,
+		const [products, categoriesResponse, brandsResponse, suppliersResponse] =
+			await Promise.all([
+				withTenantScope(
+					Product.find({})
+						.select('supplierId brandId categoryId status')
+						.lean<ProductFilterValueSource[]>(),
+					tenantId,
+				),
+				this.requireCategoryController().getCategories(requestContext),
+				this.getBrands(requestContext),
+				canAccessSupplierFilter
+					? this.requireSupplierController().getSuppliers(requestContext)
+					: Promise.resolve({
+							data: [] as Array<{ supplierId: string; name: string }>,
+						}),
+			])
+		const supplierNameById = new Map(
+			suppliersResponse.data.map(supplier => [
+				supplier.supplierId,
+				supplier.name,
+			]),
+		)
+		const brandNameById = new Map(
+			brandsResponse.data.map(brand => [brand.brandId, brand.name]),
+		)
+		const categoryNameById = new Map(
+			categoriesResponse.data.map(category => [
+				category.categoryId,
+				category.name,
+			]),
 		)
 
 		const supplierMap = new Map<string, FilterValueOption>()
@@ -1327,13 +1383,21 @@ export default class ProductController {
 				this.addFilterOption(
 					supplierMap,
 					product.supplierId,
-					product.supplierId,
+					supplierNameById.get(product.supplierId ?? ''),
 				)
 			}
 
-			this.addFilterOption(brandMap, product.brandId, product.brandId)
+			this.addFilterOption(
+				brandMap,
+				product.brandId,
+				brandNameById.get(product.brandId ?? ''),
+			)
 
-			this.addFilterOption(categoryMap, product.categoryId, product.categoryId)
+			this.addFilterOption(
+				categoryMap,
+				product.categoryId,
+				categoryNameById.get(product.categoryId ?? ''),
+			)
 
 			this.addFilterOption(stateMap, product.status, product.status)
 		}

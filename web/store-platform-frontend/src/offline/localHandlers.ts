@@ -1910,20 +1910,53 @@ export const handleOfflineQuery = async (
 			}
 
 			if (path === 'filter-values') {
-				const products = await offlineDb.products.toArray()
+				const [products, suppliersList, brandsList, categoriesList] =
+					await Promise.all([
+						offlineDb.products.toArray(),
+						offlineDb.suppliers.toArray(),
+						offlineDb.brands.toArray(),
+						offlineDb.categories.toArray(),
+					])
+				const supplierNameById = new Map(
+					suppliersList.map(supplier => [supplier.supplierId, supplier.name]),
+				)
+				const brandNameById = new Map(
+					brandsList.map(brand => [brand.brandId, brand.name]),
+				)
+				const categoryNameById = new Map(
+					categoriesList.map(category => [
+						category.categoryId,
+						category.name,
+					]),
+				)
 				const suppliers = new Map<string, string>()
 				const brands = new Map<string, string>()
 				const categories = new Map<string, string>()
 
 				for (const product of products) {
-					if (product.supplierId && product.supplierName) {
-						suppliers.set(product.supplierId, product.supplierName)
+					if (product.supplierId) {
+						suppliers.set(
+							product.supplierId,
+							product.supplierName ||
+								supplierNameById.get(product.supplierId) ||
+								product.supplierId,
+						)
 					}
 					if (product.brandId) {
-						brands.set(product.brandId, product.brandId)
+						brands.set(
+							product.brandId,
+							product.brandName ||
+								brandNameById.get(product.brandId) ||
+								product.brandId,
+						)
 					}
-					if (product.categoryId && product.categoryName) {
-						categories.set(product.categoryId, product.categoryName)
+					if (product.categoryId) {
+						categories.set(
+							product.categoryId,
+							product.categoryName ||
+								categoryNameById.get(product.categoryId) ||
+								product.categoryId,
+						)
 					}
 				}
 
