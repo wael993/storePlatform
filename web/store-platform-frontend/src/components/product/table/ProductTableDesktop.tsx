@@ -28,6 +28,7 @@ interface VirtuosoContext {
 	listData: Product[]
 	selectedProducts: string[]
 	onSelect: (id: string) => void
+	onEditProduct: (product: Product) => void
 	isLoading: boolean
 	tableWidth: string
 }
@@ -141,7 +142,7 @@ const TableRowComponent = (props: {
 	const index = props['data-index']
 
 	const context = props.context
-	const { listData, selectedProducts, onSelect, isLoading } =
+	const { listData, selectedProducts, onSelect, onEditProduct, isLoading } =
 		context as VirtuosoContext
 
 	const product = listData[index]
@@ -153,6 +154,7 @@ const TableRowComponent = (props: {
 			isSelected={selectedProducts.includes(product.productId)}
 			tableRowProps={props}
 			onSelect={onSelect}
+			onEditProduct={onEditProduct}
 			isLoading={isLoading}
 		/>
 	)
@@ -162,6 +164,7 @@ interface ProductTableDesktopProps {
 	products?: Product[]
 	isLoading: boolean
 	onSelect: (productId: string) => void
+	onEditProduct: (product: Product) => void
 	selectedProducts: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
@@ -172,6 +175,7 @@ const ProductTableDesktop = memo(
 		products,
 		isLoading,
 		onSelect,
+		onEditProduct,
 		selectedProducts,
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
@@ -376,6 +380,7 @@ const ProductTableDesktop = memo(
 			listData,
 			selectedProducts,
 			onSelect,
+			onEditProduct,
 			isLoading,
 			tableWidth,
 		}

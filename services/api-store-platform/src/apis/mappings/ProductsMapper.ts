@@ -18,11 +18,9 @@ export default class ProductsMapper {
 	public mapProduct(
 		product: ProductAPI,
 		inventory: InventoryDocument | undefined,
-		requestContext: RequestContext,
+		_requestContext: RequestContext,
 		lookups?: ProductRelationLookups,
 	): ProductRequestBody {
-		const isOwnerUser = requestContext.user?.role === 'owner'
-
 		const mappedProduct: ProductRequestBody = {
 			productId: product.productId,
 			productFactoryCode: product.productFactoryCode,
@@ -51,7 +49,7 @@ export default class ProductsMapper {
 				? lookups?.supplierNameById.get(product.supplierId)
 				: undefined,
 			attributes: product.attributes,
-			description: isOwnerUser ? product.description : undefined,
+			description: product.description,
 			inventory,
 			warehouseName: inventory?.warehouseId
 				? lookups?.warehouseNameById.get(inventory.warehouseId)

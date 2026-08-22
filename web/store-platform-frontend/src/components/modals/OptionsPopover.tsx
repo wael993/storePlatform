@@ -33,12 +33,14 @@ const styles: StylesObject = {
 }
 
 interface OptionsPopoverProps {
+	onEdit?: () => void
 	onPrintBarcode?: () => void
 	isPrintLoading?: boolean
 	onDelete?: () => void
 }
 
 const OptionsPopover = ({
+	onEdit,
 	onPrintBarcode,
 	isPrintLoading,
 	onDelete,
@@ -68,6 +70,25 @@ const OptionsPopover = ({
 			<Portal>
 				<PopoverContent width="10rem">
 					<PopoverBody p={0}>
+						{onEdit ? (
+							<Text
+								as="button"
+								type="button"
+								sx={styles.action}
+								onMouseDown={event => {
+									event.preventDefault()
+									event.stopPropagation()
+								}}
+								onClick={event => {
+									event.preventDefault()
+									event.stopPropagation()
+									onEdit()
+									onClose()
+								}}
+							>
+								{t('components.product.editProduct')}
+							</Text>
+						) : null}
 						{onPrintBarcode ? (
 							<Text
 								as="button"

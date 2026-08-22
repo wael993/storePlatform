@@ -357,6 +357,7 @@
 	},
 	"productModal": {
 		"newProduct": "New Product",
+		"editProduct": "Edit Product",
 		"productDetails": "Product Details",
 		"notFound": "Product not found",
 		"noDescription": "No description",
@@ -369,6 +370,7 @@
 		"minQuantityInvalid": "Minimum stock quantity must be a valid number greater than or equal to 0.",
 		"requiredProductValues": "Wholesale price, retail sale price, buy cost and stock quantity are required.",
 		"createFailed": "Failed to create product.",
+		"updateFailed": "Failed to update product.",
 		"tabBasicInfo": "Basic Info",
 		"tabClassification": "Classification",
 		"tabDetails": "Details",
@@ -954,6 +956,7 @@
 			},
 			"noProducts": "No products found",
 			"printBarcode": "Print barcode",
+			"editProduct": "Edit Product",
 			"deleteProduct": "Delete product",
 			"deleteProductConfirm": "This product will be permanently deleted. This cannot be undone.",
 			"deleteProductSuccess": "Product deleted.",

@@ -17,6 +17,7 @@ interface ProductTableMobilProps {
 	products: Product[]
 	isLoading: boolean
 	onSelect: (id: string) => void
+	onEditProduct: (product: Product) => void
 	selectedProducts: string[]
 	areAllItemsSelected: boolean
 	onAllItemsSelectedChange: () => void
@@ -26,6 +27,7 @@ const ProductTableMobil = ({
 	products,
 	isLoading,
 	onSelect,
+	onEditProduct,
 	selectedProducts,
 	areAllItemsSelected,
 	onAllItemsSelectedChange,
@@ -55,6 +57,7 @@ const ProductTableMobil = ({
 						product={product}
 						isLoading={isLoading}
 						onSelect={onSelect}
+						onEditProduct={onEditProduct}
 						selectedProducts={selectedProducts}
 						isOpen={openId === product.productId}
 						onToggle={() => handleToggle(product.productId)}

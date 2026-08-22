@@ -357,6 +357,7 @@
 	},
 	"productModal": {
 		"newProduct": "منتج جديد",
+		"editProduct": "تعديل المنتج",
 		"productDetails": "تفاصيل المنتج",
 		"notFound": "لم يتم العثور على المنتج",
 		"noDescription": "لا يوجد وصف",
@@ -369,6 +370,7 @@
 		"minQuantityInvalid": "يجب أن تكون الحد الأدنى لكمية المخزون رقمًا صالحًا أكبر من أو يساوي 0.",
 		"requiredProductValues": "سعر الجملة وسعر البيع بالتجزئة وسعر الشراء وكمية المخزون مطلوبة.",
 		"createFailed": "فشل إنشاء المنتج.",
+		"updateFailed": "فشل تحديث المنتج.",
 		"tabBasicInfo": "المعلومات الأساسية",
 		"tabClassification": "التصنيف",
 		"tabDetails": "التفاصيل",
@@ -957,6 +959,7 @@
 			},
 			"noProducts": "لم يتم العثور على منتجات",
 			"printBarcode": "طباعة الباركود",
+			"editProduct": "تعديل المنتج",
 			"deleteProduct": "حذف المنتج",
 			"deleteProductConfirm": "سيتم حذف هذا المنتج نهائياً. لا يمكن التراجع عن هذا الإجراء.",
 			"deleteProductSuccess": "تم حذف المنتج.",

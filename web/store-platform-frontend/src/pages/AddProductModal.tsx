@@ -17,17 +17,25 @@ import {
 import { useState, useEffect, useMemo } from 'react'
 import {
 	usePostProductMutation,
+	useEditProductMutation,
+	useEditInventoryMutation,
 	useGetBrandsQuery,
 	useGetCategoriesQuery,
 	useGetSuppliersQuery,
 	useGetUnitsQuery,
 	useGetCurrencySettingsQuery,
+	useGetWarehousesQuery,
+	useGetShelvesQuery,
 } from '../api/apiStore'
+import { enqueueProductWrite } from '../api/optimisticData'
 import { useTranslation } from 'react-i18next'
 import InputLabel from '../components/common/InputLabel'
+import DatePickerLabel from '../components/common/DatePickerLabel'
 import DropdownLabel from '../components/DropdownLabel'
 import MultiStepper from '../components/common/MultiStepper'
-import { hoverFocusActiveButtonStyles } from '../theme/styles'
+import { datePickerStyles, hoverFocusActiveButtonStyles } from '../theme/styles'
+import { formatDateInputValue } from '../shared/dateUtils'
+import { isValid, parse } from 'date-fns'
 import { ChevronRightIcon } from '../components/icons/ChevronRight'
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon'
 import { useSettings } from '../shared/context/SettingsContext'
@@ -51,6 +59,8 @@ const INITIAL_FORM = {
 	brandId: '',
 	taxRate: '0',
 	unitId: '',
+	warehouseId: '',
+	shelfId: '',
 	quantity: '',
 	minQuantity: '',
 	price: {
@@ -74,6 +84,64 @@ const INITIAL_FORM = {
 	},
 	description: '',
 }
+
+const toFormString = (value: string | number | null | undefined) =>
+	value == null ? '' : String(value)
+
+const parseExpiryDate = (value?: string): Date | undefined => {
+	const trimmed = value?.trim()
+	if (!trimmed) return undefined
+
+	const dateOnly = trimmed.split('T')[0]
+	const isoDate = parse(dateOnly, 'yyyy-MM-dd', new Date())
+	if (isValid(isoDate)) return isoDate
+
+	const displayDate = parse(trimmed, 'dd.MM.yyyy', new Date())
+	if (isValid(displayDate)) return displayDate
+
+	const fallback = new Date(trimmed)
+	return isValid(fallback) ? fallback : undefined
+}
+
+const productToForm = (product: Product): typeof INITIAL_FORM => ({
+	name: product.name ?? '',
+	latinName: product.latinName ?? '',
+	barcode: product.barcode ?? '',
+	internalCode: product.internalCode ?? '',
+	productFactoryCode: product.productFactoryCode ?? '',
+	categoryId: product.categoryId ?? '',
+	supplierId: product.supplierId ?? '',
+	brandId: product.brandId ?? '',
+	taxRate: product.taxRate ?? '0',
+	unitId: product.unitId ?? '',
+	warehouseId: product.inventory?.warehouseId ?? '',
+	shelfId: product.inventory?.shelfId ?? '',
+	quantity: toFormString(product.inventory?.quantity),
+	minQuantity: toFormString(product.inventory?.minQuantity),
+	price: {
+		purchasePrice: toFormString(product.price?.purchasePrice),
+		retailPrice: toFormString(product.price?.retailPrice),
+		wholesalePrice: toFormString(product.price?.wholesalePrice),
+		semiWholesalePrice: toFormString(product.price?.semiWholesalePrice),
+		discount: toFormString(product.price?.discount),
+		currency: product.price?.currency ?? '',
+	},
+	status: product.status,
+	attributes: {
+		color: product.attributes?.color ?? '',
+		size: product.attributes?.size ?? '',
+		weight: product.attributes?.weight ?? '',
+		length: product.attributes?.length ?? '',
+		width: product.attributes?.width ?? '',
+		height: product.attributes?.height ?? '',
+		flavor: product.attributes?.flavor ?? '',
+		expiryDate: (() => {
+			const parsed = parseExpiryDate(product.attributes?.expiryDate)
+			return parsed ? formatDateInputValue(parsed) : ''
+		})(),
+	},
+	description: product.description ?? '',
+})
 
 const styles = {
 	header: {
@@ -124,6 +192,7 @@ interface AddProductModalProps {
 	isOpen: boolean
 	onClose: () => void
 	barcode: string
+	product?: Product
 	initialName?: string
 	initialPurchasePrice?: number
 	onSuccess?: () => void
@@ -134,6 +203,7 @@ const AddProductModal = ({
 	isOpen,
 	onClose,
 	barcode,
+	product,
 	initialName,
 	initialPurchasePrice,
 	onSuccess,
@@ -141,10 +211,21 @@ const AddProductModal = ({
 }: AddProductModalProps) => {
 	const { t } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
-	const [postNewProduct, { isLoading }] = usePostProductMutation()
+	const [postNewProduct, { isLoading: isCreating }] = usePostProductMutation()
+	const [editProduct, { isLoading: isUpdatingProduct }] =
+		useEditProductMutation()
+	const [editInventory, { isLoading: isUpdatingInventory }] =
+		useEditInventoryMutation()
 	const [error, setError] = useState('')
 	const [step, setStep] = useState(0)
 	const [form, setForm] = useState(INITIAL_FORM)
+	const [baseline, setBaseline] = useState<typeof INITIAL_FORM | null>(null)
+	const isEdit = Boolean(product)
+	const isDirty =
+		isEdit &&
+		baseline != null &&
+		JSON.stringify(form) !== JSON.stringify(baseline)
+	const isLoading = isCreating || isUpdatingProduct || isUpdatingInventory
 
 	const { data: categories = [], isLoading: isCategoriesLoading } =
 		useGetCategoriesQuery(undefined, { skip: !isOpen })
@@ -154,6 +235,10 @@ const AddProductModal = ({
 		{},
 		{ skip: !isOpen },
 	)
+	const { data: warehouses = [], isLoading: isWarehousesLoading } =
+		useGetWarehousesQuery(undefined, { skip: !isOpen })
+	const { data: shelves = [], isLoading: isShelvesLoading } =
+		useGetShelvesQuery(undefined, { skip: !isOpen })
 	const { defaultInvoiceCurrencyId } = useSettings()
 	const { data: currencySettings, isLoading: isCurrenciesLoading } =
 		useGetCurrencySettingsQuery(undefined, {
@@ -189,6 +274,24 @@ const AddProductModal = ({
 				label: unit.name,
 			})),
 		[units],
+	)
+
+	const warehouseOptions = useMemo(
+		() =>
+			warehouses.map(warehouse => ({
+				value: warehouse.warehouseId,
+				label: warehouse.name,
+			})),
+		[warehouses],
+	)
+
+	const shelfOptions = useMemo(
+		() =>
+			shelves.map(shelf => ({
+				value: shelf.shelfId,
+				label: shelf.name,
+			})),
+		[shelves],
 	)
 
 	const currencyOptions = useMemo(
@@ -244,13 +347,30 @@ const AddProductModal = ({
 		t('productModal.tabDetails'),
 	]
 
+	const expiryDateValue = useMemo(
+		() => parseExpiryDate(form.attributes.expiryDate),
+		[form.attributes.expiryDate],
+	)
+
 	useEffect(() => {
 		if (!isOpen) {
 			setError('')
 			setStep(0)
 			setForm(INITIAL_FORM)
-			return
+			setBaseline(null)
 		}
+	}, [isOpen])
+
+	useEffect(() => {
+		if (!isOpen || !product) return
+
+		const next = productToForm(product)
+		setForm(next)
+		setBaseline(next)
+	}, [isOpen, product])
+
+	useEffect(() => {
+		if (!isOpen || product) return
 
 		setForm(prev => ({
 			...prev,
@@ -265,7 +385,14 @@ const AddProductModal = ({
 				currency: prev.price.currency || defaultCurrencyCode,
 			},
 		}))
-	}, [isOpen, barcode, defaultCurrencyCode, initialName, initialPurchasePrice])
+	}, [
+		isOpen,
+		product,
+		barcode,
+		defaultCurrencyCode,
+		initialName,
+		initialPurchasePrice,
+	])
 
 	const handleFieldChange = (key: keyof typeof INITIAL_FORM, value: string) => {
 		setForm(prev => ({ ...prev, [key]: value }))
@@ -311,10 +438,11 @@ const AddProductModal = ({
 	const getSelectedOption = (
 		options: DropdownOption[],
 		value: string,
+		fallbackLabel?: string,
 	): DropdownOption[] => {
 		if (!value) return []
 		const match = options.find(option => option.value === value)
-		return match ? [match] : [{ value, label: value }]
+		return match ? [match] : [{ value, label: fallbackLabel || value }]
 	}
 
 	const validateForm = (): boolean => {
@@ -352,7 +480,54 @@ const AddProductModal = ({
 		})
 		setStep(0)
 		setError('')
+		setBaseline(null)
 	}
+
+	const buildProductBody = () => ({
+		name: form.name.trim() || form.latinName.trim(),
+		latinName: form.latinName.trim() || undefined,
+		productFactoryCode: form.productFactoryCode.trim() || undefined,
+		barcode: form.barcode.trim(),
+		internalCode: form.internalCode.trim() || undefined,
+		categoryId: form.categoryId.trim() || undefined,
+		brandId: form.brandId.trim() || undefined,
+		price: {
+			wholesalePrice: form.price.wholesalePrice
+				? Number(form.price.wholesalePrice)
+				: undefined,
+			retailPrice: Number(form.price.retailPrice),
+			semiWholesalePrice: form.price.semiWholesalePrice
+				? Number(form.price.semiWholesalePrice)
+				: undefined,
+			purchasePrice: form.price.purchasePrice
+				? Number(form.price.purchasePrice)
+				: undefined,
+			discount: form.price.discount ? Number(form.price.discount) : undefined,
+			currency:
+				form.price.currency.trim() ||
+				defaultCurrencyCode ||
+				currencyOptions[0]?.value ||
+				'',
+		},
+		unitId: form.unitId.trim() || undefined,
+		taxRate: form.taxRate.trim() || undefined,
+		supplierId: form.supplierId.trim() || undefined,
+		attributes: {
+			color: form.attributes.color.trim() || undefined,
+			size: form.attributes.size.trim() || undefined,
+			weight: form.attributes.weight.trim() || undefined,
+			length: form.attributes.length.trim() || undefined,
+			width: form.attributes.width.trim() || undefined,
+			height: form.attributes.height.trim() || undefined,
+			flavor: form.attributes.flavor.trim() || undefined,
+			expiryDate: (() => {
+				const parsed = parseExpiryDate(form.attributes.expiryDate)
+				return parsed ? formatDateInputValue(parsed) : undefined
+			})(),
+		},
+		status: form.status,
+		description: form.description.trim(),
+	})
 
 	const handleSubmit = async () => {
 		setError('')
@@ -362,59 +537,63 @@ const AddProductModal = ({
 		}
 
 		try {
-			const created = await postNewProduct({
-				name: form.name.trim() || form.latinName.trim(),
-				latinName: form.latinName.trim() || undefined,
-				productFactoryCode: form.productFactoryCode.trim() || undefined,
-				barcode: form.barcode.trim(),
-				internalCode: form.internalCode.trim() || undefined,
-				categoryId: form.categoryId.trim() || undefined,
-				brandId: form.brandId.trim() || undefined,
-				images: [],
-				price: {
-					wholesalePrice: form.price.wholesalePrice
-						? Number(form.price.wholesalePrice)
+			const productBody = buildProductBody()
+
+			if (product) {
+				await enqueueProductWrite(product.productId, async () => {
+					await editProduct({
+						id: product.productId,
+						body: productBody,
+					}).unwrap()
+
+					const inventoryChanged =
+						baseline != null &&
+						(form.quantity !== baseline.quantity ||
+							form.minQuantity !== baseline.minQuantity ||
+							form.warehouseId !== baseline.warehouseId ||
+							form.shelfId !== baseline.shelfId)
+
+					if (inventoryChanged) {
+						await editInventory({
+							id: product.productId,
+							body: {
+								quantity: Number(form.quantity),
+								minQuantity: form.minQuantity.trim()
+									? Number(form.minQuantity)
+									: undefined,
+								...(form.warehouseId.trim()
+									? { warehouseId: form.warehouseId.trim() }
+									: {}),
+								...(form.shelfId.trim()
+									? { shelfId: form.shelfId.trim() }
+									: {}),
+							},
+						}).unwrap()
+					}
+				})
+			} else {
+				const created = await postNewProduct({
+					...productBody,
+					images: [],
+					quantity: Number(form.quantity),
+					minQuantity: form.minQuantity.trim()
+						? Number(form.minQuantity)
 						: undefined,
-					retailPrice: Number(form.price.retailPrice),
-					semiWholesalePrice: form.price.semiWholesalePrice
-						? Number(form.price.semiWholesalePrice)
-						: undefined,
-					purchasePrice: form.price.purchasePrice
-						? Number(form.price.purchasePrice)
-						: undefined,
-					discount: form.price.discount
-						? Number(form.price.discount)
-						: undefined,
-					currency:
-						form.price.currency.trim() ||
-						defaultCurrencyCode ||
-						currencyOptions[0]?.value ||
-						'',
-				},
-				quantity: Number(form.quantity),
-				minQuantity: form.minQuantity.trim()
-					? Number(form.minQuantity)
-					: undefined,
-				unitId: form.unitId.trim() || undefined,
-				taxRate: form.taxRate.trim() || undefined,
-				supplierId: form.supplierId.trim() || undefined,
-				attributes: {
-					color: form.attributes.color.trim() || undefined,
-					size: form.attributes.size.trim() || undefined,
-					weight: form.attributes.weight.trim() || undefined,
-					length: form.attributes.length.trim() || undefined,
-					width: form.attributes.width.trim() || undefined,
-					height: form.attributes.height.trim() || undefined,
-					flavor: form.attributes.flavor.trim() || undefined,
-					expiryDate: form.attributes.expiryDate.trim() || undefined,
-				},
-				status: form.status,
-				description: form.description.trim() || undefined,
-			}).unwrap()
-			if (created._id) onCreated?.(created._id)
+					...(form.warehouseId.trim()
+						? { warehouseId: form.warehouseId.trim() }
+						: {}),
+					...(form.shelfId.trim() ? { shelfId: form.shelfId.trim() } : {}),
+				}).unwrap()
+				if (created._id) onCreated?.(created._id)
+			}
 		} catch (submitError) {
 			const err = submitError as { data?: { message?: string } }
-			setError(err?.data?.message || t('productModal.createFailed'))
+			setError(
+				err?.data?.message ||
+					t(
+						product ? 'productModal.updateFailed' : 'productModal.createFailed',
+					),
+			)
 			return
 		}
 
@@ -567,6 +746,34 @@ const AddProductModal = ({
 				onSelect={values => handleDropdownSelect('unitId', values)}
 				isLoading={isUnitsLoading}
 			/>
+			<DropdownLabel
+				isSearchable
+				isSingle
+				label={t('productModal.warehouse')}
+				placeholder={t('productModal.warehouse')}
+				options={warehouseOptions}
+				selectedOptions={getSelectedOption(
+					warehouseOptions,
+					form.warehouseId,
+					product?.warehouseName,
+				)}
+				onSelect={values => handleDropdownSelect('warehouseId', values)}
+				isLoading={isWarehousesLoading}
+			/>
+			<DropdownLabel
+				isSearchable
+				isSingle
+				label={t('productModal.shelf')}
+				placeholder={t('productModal.shelf')}
+				options={shelfOptions}
+				selectedOptions={getSelectedOption(
+					shelfOptions,
+					form.shelfId,
+					product?.shelfName,
+				)}
+				onSelect={values => handleDropdownSelect('shelfId', values)}
+				isLoading={isShelvesLoading}
+			/>
 			<InputLabel
 				inputType="text"
 				label={t('productModal.taxRate')}
@@ -634,11 +841,18 @@ const AddProductModal = ({
 					value={form.attributes.flavor}
 					onChange={value => handleAttributeChange('flavor', value)}
 				/>
-				<InputLabel
-					inputType="text"
+				<DatePickerLabel
 					label={t('productModal.expiryDate')}
-					value={form.attributes.expiryDate}
-					onChange={value => handleAttributeChange('expiryDate', value)}
+					defaultDate={expiryDateValue}
+					onChange={date =>
+						handleAttributeChange(
+							'expiryDate',
+							date ? formatDateInputValue(date) : '',
+						)
+					}
+					allowClear
+					usePortal
+					styles={datePickerStyles}
 				/>
 			</SimpleGrid>
 			<InputLabel
@@ -672,7 +886,11 @@ const AddProductModal = ({
 				>
 					<ModalCloseButton sx={styles.modalCloseButton} />
 					<VStack sx={styles.headerTitleStepperContainer}>
-						<Text sx={styles.headerText}>{t('productModal.newProduct')}</Text>
+						<Text sx={styles.headerText}>
+							{t(
+								isEdit ? 'productModal.editProduct' : 'productModal.newProduct',
+							)}
+						</Text>
 						<MultiStepper
 							numberOfSteps={TOTAL_STEPS}
 							currentStep={step}
@@ -740,6 +958,7 @@ const AddProductModal = ({
 								colorScheme="green"
 								onClick={handleSubmit}
 								isLoading={isLoading}
+								isDisabled={isEdit && !isDirty}
 								sx={styles.button}
 							>
 								{t('productModal.saveProduct')}

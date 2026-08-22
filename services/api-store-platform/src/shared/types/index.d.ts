@@ -107,6 +107,8 @@ export type ProductRequestBody = {
 	description?: string
 	quantity?: number
 	minQuantity?: number
+	warehouseId?: string
+	shelfId?: string
 	inventory?: InventoryDocument
 	warehouseName?: string
 	shelfName?: string

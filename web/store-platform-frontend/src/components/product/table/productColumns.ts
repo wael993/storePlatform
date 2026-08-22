@@ -6,7 +6,7 @@ import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { ProductSortHeaderKey } from '../../list/shared/globalEnums'
 
 export const useProductColumnCatalog = (): ColumnDef[] => {
-	const { isOwner, isOwnerOrAdmin } = useUser()
+	const { isOwnerOrAdmin } = useUser()
 	const {
 		seeSupplier,
 		seeStockQuantity,
@@ -177,7 +177,6 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 				labelKey: 'productModal.description',
 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.DESCRIPTION,
 				sortKey: ProductSortHeaderKey.DESCRIPTION,
-				available: isOwner,
 				defaultHidden: true,
 			},
 			{
@@ -231,7 +230,6 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 			},
 		],
 		[
-			isOwner,
 			isOwnerOrAdmin,
 			seeBuyCost,
 			seeDiscount,

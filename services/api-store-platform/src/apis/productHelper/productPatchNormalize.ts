@@ -277,10 +277,14 @@ export const normalizeProductPatchRequest = (
 	}
 
 	if (picked.description !== undefined) {
-		normalized.description = normalizeOptionalStringField(
-			picked.description,
-			'description',
-		)
+		if (typeof picked.description !== 'string') {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Invalid value for description.',
+			)
+		}
+
+		normalized.description = picked.description.trim()
 	}
 
 	if (picked.status !== undefined) {

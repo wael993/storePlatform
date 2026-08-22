@@ -1,4 +1,4 @@
-import { VStack } from '@chakra-ui/react'
+import { VStack, useDisclosure } from '@chakra-ui/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import ListActionBar from './ProductTableActionBar'
@@ -7,6 +7,7 @@ import { compareBreakpoint } from '../../../shared/utils'
 import ListDesktop from './ProductTableDesktop'
 import EmptyState from '../../common/EmptyState'
 import ListMobil from './ProductTableMobil'
+import AddProductModal from '../../../pages/AddProductModal'
 
 interface ProductTableWithActionBarProps {
 	products?: Product[]
@@ -20,6 +21,12 @@ const ProductTableWithActionBar = ({
 	const { t } = useTranslation()
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedProductsIds, setSelectedProductsIds] = useState<string[]>([])
+	const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+	const {
+		isOpen: isEditOpen,
+		onOpen: onEditOpen,
+		onClose: onEditClose,
+	} = useDisclosure()
 	const productElements: Product[] = useMemo(() => {
 		return (
 			products?.map((product: Product) => {
@@ -38,6 +45,19 @@ const ProductTableWithActionBar = ({
 				: [...prev, id],
 		)
 	}, [])
+
+	const onEditProduct = useCallback(
+		(product: Product) => {
+			setEditingProduct(product)
+			onEditOpen()
+		},
+		[onEditOpen],
+	)
+
+	const handleEditClose = useCallback(() => {
+		onEditClose()
+		setEditingProduct(null)
+	}, [onEditClose])
 	const onAllItemsSelectedChange = useCallback(() => {
 		setSelectedProductsIds(prevSelectedIds => {
 			return prevSelectedIds.length === productElements.length
@@ -83,6 +103,7 @@ const ProductTableWithActionBar = ({
 					products={productElements ?? []}
 					isLoading={isLoading}
 					onSelect={onSelect}
+					onEditProduct={onEditProduct}
 					selectedProducts={selectedProductsIds}
 					areAllItemsSelected={areAllItemsSelected}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
@@ -92,11 +113,19 @@ const ProductTableWithActionBar = ({
 					products={productElements ?? []}
 					isLoading={isLoading}
 					onSelect={onSelect}
+					onEditProduct={onEditProduct}
 					selectedProducts={selectedProductsIds}
 					areAllItemsSelected={areAllItemsSelected}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
 				/>
 			)}
+			<AddProductModal
+				isOpen={isEditOpen}
+				onClose={handleEditClose}
+				barcode={editingProduct?.barcode ?? ''}
+				product={editingProduct ?? undefined}
+				onSuccess={handleEditClose}
+			/>
 		</VStack>
 	)
 }

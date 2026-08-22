@@ -9,7 +9,10 @@ type OptimisticDispatch = (
 
 type ProductPatchBody = Partial<Omit<Product, 'id' | 'productId'>>
 type InventoryPatchBody = Partial<
-	Pick<InventoryItem, 'quantity' | 'minQuantity' | 'averageCost'>
+	Pick<
+		InventoryItem,
+		'quantity' | 'minQuantity' | 'averageCost' | 'warehouseId' | 'shelfId'
+	>
 >
 
 const productWrites = new Map<string, Promise<unknown>>()
@@ -154,6 +157,25 @@ export const applyOptimisticInventoryPatch = (
 		}
 
 		Object.assign(product.inventory, body)
+
+		const state = getState() as RootState
+		if (body.warehouseId !== undefined) {
+			const warehouseName = storeApi.endpoints.getWarehouses
+				.select()(state)
+				.data?.find(warehouse => warehouse.warehouseId === body.warehouseId)
+				?.name
+			if (warehouseName) {
+				product.warehouseName = warehouseName
+			}
+		}
+		if (body.shelfId !== undefined) {
+			const shelfName = storeApi.endpoints.getShelves
+				.select()(state)
+				.data?.find(shelf => shelf.shelfId === body.shelfId)?.name
+			if (shelfName) {
+				product.shelfName = shelfName
+			}
+		}
 	})
 
 	patches.push(

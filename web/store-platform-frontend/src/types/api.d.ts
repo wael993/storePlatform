@@ -346,6 +346,8 @@ interface Product {
 type CreateProductInput = Omit<Product, 'productId'> & {
 	quantity: number
 	minQuantity?: number
+	warehouseId?: string
+	shelfId?: string
 }
 
 interface LoginAPI {

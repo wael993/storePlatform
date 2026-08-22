@@ -101,6 +101,7 @@ interface ProductTableMobilProps {
 	product: Product
 	isLoading: boolean
 	onSelect: (id: string) => void
+	onEditProduct: (product: Product) => void
 	selectedProducts: string[]
 	isOpen: boolean
 	onToggle: () => void
@@ -110,6 +111,7 @@ const ProductTableMobil = ({
 	product,
 	isLoading,
 	onSelect,
+	onEditProduct,
 	selectedProducts,
 	isOpen,
 	onToggle,
@@ -117,7 +119,7 @@ const ProductTableMobil = ({
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
-	const { isOwner, isOwnerOrAdmin } = useUser()
+	const { isOwnerOrAdmin } = useUser()
 	const { printBarcode, isEnsuringBarcode, barcode, preview } =
 		usePrintProductBarcode(product)
 	const {
@@ -322,13 +324,11 @@ const ProductTableMobil = ({
 								label={t('productModal.taxRate')}
 								value={product.taxRate}
 							/>
-							{isOwner && (
-								<MobileField
-									isLoading={isLoading}
-									label={t('productModal.description')}
-									value={product.description}
-								/>
-							)}
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.description')}
+								value={product.description}
+							/>
 							<MobileField
 								isLoading={isLoading}
 								label={t('common.color')}
@@ -401,6 +401,7 @@ const ProductTableMobil = ({
 							<Skeleton isLoaded={!isLoading}>
 								{isOwnerOrAdmin && (
 									<OptionsPopover
+										onEdit={() => onEditProduct(product)}
 										onPrintBarcode={() => {
 											void printBarcode()
 										}}

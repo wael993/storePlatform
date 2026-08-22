@@ -1418,6 +1418,8 @@ export default class ProductController {
 			description,
 			quantity,
 			minQuantity,
+			warehouseId,
+			shelfId,
 		} = requestBody
 
 		if (!name?.trim() && !latinName?.trim()) {
@@ -1521,6 +1523,8 @@ export default class ProductController {
 		const inventoryData: InventoryDocument = {
 			inventoryId: uuidv4(),
 			productId: productData.productId,
+			warehouseId,
+			shelfId,
 			quantity,
 			minQuantity,
 		}

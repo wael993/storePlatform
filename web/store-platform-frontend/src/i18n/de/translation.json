@@ -356,6 +356,7 @@
 	},
 	"productModal": {
 		"newProduct": "Neues Produkt",
+		"editProduct": "Produkt bearbeiten",
 		"productDetails": "Produktdetails",
 		"notFound": "Produkt nicht gefunden",
 		"noDescription": "Keine Beschreibung",
@@ -368,6 +369,7 @@
 		"minQuantityInvalid": "Die minimale Lagerbestandsmenge muss eine gültige Zahl größer oder gleich 0 sein.",
 		"requiredProductValues": "Großhandelspreis, Einzelhandelspreis, Einkaufspreis und Lagerbestand sind erforderlich.",
 		"createFailed": "Produkt konnte nicht erstellt werden.",
+		"updateFailed": "Produkt konnte nicht aktualisiert werden.",
 		"tabBasicInfo": "Grundinformationen",
 		"tabClassification": "Klassifizierung",
 		"tabDetails": "Details",
@@ -938,6 +940,7 @@
 			},
 			"noProducts": "Keine Produkte gefunden",
 			"printBarcode": "Barcode drucken",
+			"editProduct": "Produkt bearbeiten",
 			"deleteProduct": "Produkt löschen",
 			"deleteProductConfirm": "Dieses Produkt wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
 			"deleteProductSuccess": "Produkt gelöscht.",

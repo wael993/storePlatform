@@ -33,6 +33,7 @@ import { useListColumnConfig } from '../../list/columnConfig/ListColumnConfigPro
 interface ProductTableItemProps {
 	product: Product
 	onSelect: (id: string) => void
+	onEditProduct: (product: Product) => void
 	isSelected: boolean
 	isHovered: boolean
 	isLoading: boolean
@@ -42,6 +43,7 @@ const ProductTableItem = memo(
 	({
 		product: productData,
 		onSelect,
+		onEditProduct,
 		isSelected,
 		isHovered,
 		isLoading,
@@ -494,6 +496,7 @@ const ProductTableItem = memo(
 							<Skeleton isLoaded={!isLoading}>
 								{isOwnerOrAdmin && (
 									<OptionsPopover
+										onEdit={() => onEditProduct(productData)}
 										onPrintBarcode={() => {
 											void printBarcode()
 										}}
