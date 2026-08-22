@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next'
 import {
 	compareLanguage,
 	mapFee,
+	formatNumber,
 	withNoValueFallback,
 } from '../../../shared/utils'
 import { ENTRY_TYPE_LABELS_MAP } from '../../../shared/globalConstant'
@@ -258,7 +259,7 @@ const ListItemMobil = ({
 									<Skeleton isLoaded={!isLoading}>
 										<Text sx={styles.valueText}>
 											{dailyAction.weight
-												? `${dailyAction.weight} ${dailyAction.unitName ?? ''}`
+												? `${formatNumber(dailyAction.weight) ?? dailyAction.weight} ${dailyAction.unitName ?? ''}`
 												: '-'}
 										</Text>
 									</Skeleton>

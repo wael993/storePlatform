@@ -15,6 +15,7 @@ import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
 import { useTranslation } from 'react-i18next'
+import { formatNumber } from '../shared/utils'
 
 // Placeholder orders data until backend orders API is wired up
 const MOCK_ORDERS: {
@@ -75,7 +76,7 @@ const OrdersPage = () => {
 										</Badge>
 									</Td>
 									<Td isNumeric>{o.items}</Td>
-									<Td isNumeric>{o.total.toFixed(2)}</Td>
+									<Td isNumeric>{formatNumber(o.total) ?? o.total}</Td>
 									<Td>{new Date(o.date).toLocaleDateString()}</Td>
 								</Tr>
 							))}

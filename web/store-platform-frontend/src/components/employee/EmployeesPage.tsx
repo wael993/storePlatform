@@ -43,6 +43,7 @@ import {
 	todayCalendarDate,
 } from '../../shared/employee'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import { formatNumber } from '../../shared/utils'
 
 const styles = {
 	wrapper: { width: '100%', flexDir: 'column', paddingBottom: '1rem' },
@@ -126,7 +127,7 @@ const EmployeesPage = () => {
 
 	const salaryLabel = (employee: Employee) => {
 		if (!employee.currentSalary) return '—'
-		return `${employee.currentSalary.amount} ${employee.currentSalary.currencyName}`
+		return `${formatNumber(employee.currentSalary.amount) ?? employee.currentSalary.amount} ${employee.currentSalary.currencyName}`
 	}
 
 	return (

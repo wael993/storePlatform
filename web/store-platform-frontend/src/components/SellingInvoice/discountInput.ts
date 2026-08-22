@@ -1,3 +1,5 @@
+import { formatNumber } from '../../shared/utils'
+
 export interface ParsedDiscountInput {
 	discount: number
 	discountIsPercent: boolean
@@ -28,4 +30,4 @@ export const parseDiscountInput = (
 export const formatDiscountEditValue = (
 	discount: number,
 	discountIsPercent: boolean,
-) => (discountIsPercent ? `${discount}%` : discount.toFixed(2))
+) => (discountIsPercent ? `${discount}%` : (formatNumber(discount) ?? '0'))

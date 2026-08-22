@@ -50,6 +50,7 @@ import {
 	WEEKDAYS,
 } from '../../shared/employee'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
+import { formatNumber } from '../../shared/utils'
 
 const tabStyles = {
 	tab: {
@@ -440,9 +441,15 @@ const EmployeeProfilePage = () => {
 											<Td>{salary.effectiveDate}</Td>
 											<Td>{t(`employees.salaryTypes.${salary.type}`)}</Td>
 											<Td>
-												{salary.amount} {salary.currencyName}
+												{formatNumber(salary.amount) ?? salary.amount}{' '}
+												{salary.currencyName}
 											</Td>
-											<Td>{salary.overtimeRate ?? '—'}</Td>
+											<Td>
+												{salary.overtimeRate != null
+													? (formatNumber(salary.overtimeRate) ??
+														salary.overtimeRate)
+													: '—'}
+											</Td>
 										</Tr>
 									))}
 							</Tbody>
@@ -535,7 +542,8 @@ const EmployeeProfilePage = () => {
 										<Tr key={payout.payoutId}>
 											<Td>{payout.date}</Td>
 											<Td>
-												{payout.amount} {payout.currencyName}
+												{formatNumber(payout.amount) ?? payout.amount}{' '}
+												{payout.currencyName}
 											</Td>
 											<Td>{payout.note || '—'}</Td>
 											<Td>

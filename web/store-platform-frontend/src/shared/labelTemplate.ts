@@ -1,4 +1,5 @@
 import JsBarcode from 'jsbarcode'
+import { formatNumber } from './utils'
 
 export const SYSTEM_LABEL_TEMPLATE_ID = 'system'
 
@@ -236,7 +237,7 @@ export const formatLabelPrice = (
 		return ''
 	}
 
-	return [amount.toLocaleString(), currency].filter(Boolean).join(' ')
+	return [formatNumber(amount), currency].filter(Boolean).join(' ')
 }
 
 export const resolveLabelValues = ({

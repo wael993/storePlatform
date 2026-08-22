@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { Breakpoints, EntryType, TargetType } from './globalEnums'
+import { parseNumberValue, toDotDecimal } from './numberParse'
 import { RoutePaths } from './routes'
 import {
 	CONFIGURABLE_TENANT_PAGES,
@@ -225,29 +226,18 @@ export const isTenantRouteAllowed = (
 	return true
 }
 
-export const mapFee = (fee?: string): string | undefined => {
-	const normalizedFee = fee?.replaceAll(',', '')
-	if (!normalizedFee || isNaN(Number(normalizedFee))) return undefined
+export const mapFee = (
+	fee?: string | number | null,
+): string | undefined => formatNumber(fee)
 
-	const feeAsNumber: number = parseFloat(normalizedFee)
-	const roundedFee: number = parseFloat(feeAsNumber.toFixed(2))
-
-	const decimalPart: string =
-		roundedFee % 1 !== 0 ? (roundedFee % 1).toFixed(2).substring(2) : ''
-
-	const formattedAmount: string =
-		Math.floor(roundedFee).toLocaleString('en-US') +
-		(decimalPart ? `.${decimalPart}` : '')
-
-	return formattedAmount
-}
+export { parseNumberValue }
 
 export const formatNumber = (
 	value: string | number | null | undefined,
 	options?: { minimumDecimals?: number; maximumDecimals?: number },
 ): string | undefined => {
 	if (typeof value === 'string') {
-		value = value.replaceAll(',', '')
+		value = toDotDecimal(value)
 	}
 	if (
 		value === undefined ||
@@ -262,38 +252,15 @@ export const formatNumber = (
 		typeof value === 'number' ? value : parseFloat(value)
 
 	const formattedAmount: string = valueAsNumber.toLocaleString('en-US', {
-		minimumFractionDigits: options?.minimumDecimals ?? 2,
+		minimumFractionDigits: options?.minimumDecimals ?? 0,
 		maximumFractionDigits: options?.maximumDecimals ?? 2,
 	})
 	return formattedAmount
 }
 
-export const withNoValueFallback = (value: string | null | undefined) =>
-	value || '-'
-
-export const parseNumberValue = (
-	value: string,
-	maximumDecimals = 2,
-): string => {
-	value = value.replace(/[^\d.]/g, '')
-
-	// Ensure there is only one dot
-	const dotIndex = value.indexOf('.')
-	if (dotIndex !== -1) {
-		value =
-			value.slice(0, dotIndex + 1) +
-			value.slice(dotIndex + 1).replace(/\./g, '')
-	}
-
-	// Limit to 2 decimal places
-	const parts = value.split('.')
-	if (parts.length > 1) {
-		parts[1] = parts[1].slice(0, maximumDecimals)
-		value = parts.join('.')
-	}
-
-	return value
-}
+export const withNoValueFallback = (
+	value: string | number | null | undefined,
+) => (value == null || value === '' ? '-' : String(value))
 
 export const formatNumberForDb = (
 	value: string | number | null | undefined,

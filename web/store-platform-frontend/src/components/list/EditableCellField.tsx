@@ -8,7 +8,7 @@ import EditableField from '../modals/EditableField'
 
 export interface EditableCellFieldProps {
 	iconLeft?: ComponentType<IconProps>
-	value?: string
+	value?: string | number | null
 	isNumberField?: boolean
 	ariaLabel: string
 	placeholder?: string

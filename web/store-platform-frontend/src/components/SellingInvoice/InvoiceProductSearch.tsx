@@ -27,6 +27,7 @@ import { useProductCatalog } from './useProductCatalog'
 import { AsSearchIcon } from '../../icons/Search'
 import { AsCirclePlusIcon } from '../../shared/icons/CirclePlus'
 import { AsQrCodeIcon } from '../../icons/QrCode'
+import { formatNumber } from '../../shared/utils'
 
 interface InvoiceProductSearchProps {
 	onAddProduct: (product: Product) => void
@@ -396,13 +397,16 @@ const InvoiceProductSearch = ({
 										</Text>
 									)}
 									<Text fontSize="xs" color={PAGE_COLORS.primary}>
-										{product.price?.retailPrice?.toFixed(2)}{' '}
+										{formatNumber(product.price?.retailPrice)}{' '}
 										{product.price?.currency}
 									</Text>
 									{stock !== undefined && (
 										<Text fontSize="xs" color={PAGE_COLORS.muted}>
 											{t('products.stockValue', {
-												stock: stock?.toLocaleString(),
+												stock: formatNumber(stock, {
+													minimumDecimals: 0,
+													maximumDecimals: 2,
+												}),
 											})}
 										</Text>
 									)}

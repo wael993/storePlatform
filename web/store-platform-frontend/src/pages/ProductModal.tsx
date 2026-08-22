@@ -16,6 +16,7 @@ import {
 	Flex,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { formatNumber } from '../shared/utils'
 
 interface ProductModalProps {
 	isOpen: boolean
@@ -42,10 +43,8 @@ const ProductModal = ({
 
 	const formatPrice = (price?: number, currency = 'EUR') => {
 		if (price == null) return '-'
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency,
-		}).format(price)
+		const formatted = formatNumber(price)
+		return formatted ? `${formatted} ${currency}` : '-'
 	}
 
 	const stockQuantity = product?.price?.purchasePrice ?? 0
@@ -106,7 +105,7 @@ const ProductModal = ({
 									<Text fontSize="sm" color="gray.500">
 										{t('common.stock')}
 									</Text>
-									<Text>{stockQuantity}</Text>
+									<Text>{formatNumber(stockQuantity) ?? stockQuantity}</Text>
 								</Box>
 							</HStack>
 

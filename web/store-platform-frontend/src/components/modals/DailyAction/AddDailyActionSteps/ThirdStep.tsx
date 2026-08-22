@@ -12,7 +12,7 @@ import InputLabel from '../../../common/InputLabel'
 import { documentNameStyles } from '../../../../theme/styles'
 import DatePickerLabel from '../../../common/DatePickerLabel'
 import { useTranslation } from 'react-i18next'
-import { mapFee } from '../../../../shared/utils'
+import { mapFee, formatNumber } from '../../../../shared/utils'
 import type { DailyActionProductLine } from '../hooks/useDailyActionHandlers'
 
 interface ThirdStepProps {
@@ -172,7 +172,10 @@ const ThirdStep = ({
 									{productLine.productName || '-'}
 								</Text>
 								<Text fontSize="0.875rem" color="#747474">
-									{t('common.weight')}: {productLine.weight || '-'}
+									{t('common.weight')}:{' '}
+									{productLine.weight
+										? (formatNumber(productLine.weight) ?? productLine.weight)
+										: '-'}
 								</Text>
 								<Text fontSize="0.875rem" color="#747474">
 									{t('common.singleUnitPrice')}:{' '}

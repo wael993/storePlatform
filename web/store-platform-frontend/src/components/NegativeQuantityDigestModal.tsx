@@ -24,7 +24,6 @@ import {
 } from '../api/apiStore'
 import { buildRoutePath, RoutePaths } from '../shared/routes'
 import { cellFieldStyles } from '../shared/styles'
-import { withNoValueFallback } from '../shared/utils'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
 import EditableCellField from './list/EditableCellField'
 import { useProductInlineEdit } from './product/useProductInlineEdit'
@@ -83,8 +82,8 @@ const DigestProductRow = ({
 			{field === 'purchasePrice'
 				? seeBuyCost && (
 						<EditableCellField
-							value={product.price?.purchasePrice?.toLocaleString() ?? ''}
-							isNumberField={false}
+							value={product.price?.purchasePrice}
+							isNumberField={true}
 							ariaLabel={t('common.buyCost')}
 							placeholder={t('common.addBuyCost')}
 							onEdit={value => editField('purchasePrice', value)}
@@ -99,8 +98,8 @@ const DigestProductRow = ({
 							<Flex align="center" gap={4}>
 								{digestType === RETAIL_BELOW_PURCHASE_DIGEST && seeBuyCost && (
 									<EditableCellField
-										value={product.price?.purchasePrice?.toLocaleString() ?? ''}
-										isNumberField={false}
+										value={product.price?.purchasePrice}
+										isNumberField={true}
 										ariaLabel={t('common.buyCost')}
 										isEditable={false}
 										customStyles={cellFieldStyles}
@@ -108,7 +107,7 @@ const DigestProductRow = ({
 								)}
 								{seeWholesalePrice && (
 									<EditableCellField
-										value={product.price?.retailPrice?.toLocaleString() ?? ''}
+										value={product.price?.retailPrice}
 										isNumberField={true}
 										ariaLabel={t('common.sellPrice')}
 										onEdit={value => editField('retailPrice', value)}
@@ -121,9 +120,7 @@ const DigestProductRow = ({
 						)
 					: seeStockQuantity && (
 							<EditableCellField
-								value={withNoValueFallback(
-									product.inventory?.quantity?.toLocaleString(),
-								)}
+								value={product.inventory?.quantity ?? 0}
 								isNumberField={true}
 								minimumDecimals={0}
 								ariaLabel={t('common.stockQuantity')}

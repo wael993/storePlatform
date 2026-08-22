@@ -35,6 +35,7 @@ import {
 	roundPrimaryAmount,
 	type DisplayCurrencyOption,
 } from './currencyDisplay'
+import { formatNumber } from '../../shared/utils'
 
 interface InvoiceLineItemsTableProps {
 	lineItems: SellingInvoiceLineItem[]
@@ -261,7 +262,10 @@ const InvoiceLineItemsTable = ({
 							<Td>
 								<Flex align="center" gap={1}>
 									{isReadOnly ? (
-										<TextLabel label="" value={item.quantity.toString()} />
+										<TextLabel
+											label=""
+											value={formatNumber(item.quantity) ?? item.quantity.toString()}
+										/>
 									) : (
 										<EditableNumberField
 											value={item.quantity}

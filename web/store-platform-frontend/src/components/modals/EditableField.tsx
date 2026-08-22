@@ -25,7 +25,7 @@ import {
 
 import LoadingSpinner from '../../icons/LoadingSpinner'
 import { formatDate } from '../../shared/dateUtils'
-import { formatNumber } from '../../shared/utils'
+import { formatNumber, parseNumberValue } from '../../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { EditIcon } from '../icons/Edit'
 import { CloseIcon } from '../icons/Close'
@@ -39,7 +39,7 @@ interface EditableFieldsProps {
 	tooltip?: string
 	isNumberField?: boolean
 	isDateField?: boolean
-	value?: string
+	value?: string | number | null
 	currency?: string
 	textWidth?: ResponsiveValue<string>
 	minWidth?: string
@@ -73,7 +73,7 @@ const EditableField = ({
 	isNumberField = false,
 	isDateField = false,
 	onFieldEdition,
-	value,
+	value: valueProp,
 	currency,
 	textWidth,
 	isLoading,
@@ -97,6 +97,7 @@ const EditableField = ({
 	// disableManualDateInput = false,
 	propsSetIsEditionEnabled,
 }: EditableFieldsProps) => {
+	const value = valueProp == null ? '' : String(valueProp)
 	const [isEditionEnabled, setIsEditionEnabled] = useState<boolean>(false)
 
 	useEffect(() => {
@@ -106,35 +107,14 @@ const EditableField = ({
 	}, [isEditionEnabled, propsSetIsEditionEnabled])
 
 	const inputRef = useRef<HTMLInputElement | null>(null)
-	const parseCustomFloat = (value?: string) => {
-		if (value) {
-			const valueFormatted = value.replaceAll(',', '')
-			return parseFloat(valueFormatted).toFixed(maximumDecimals)
-		} else {
-			return ''
-		}
+	const parseCustomFloat = (raw?: string) => {
+		if (!raw) return ''
+		const parsed = parseNumberValue(raw, maximumDecimals)
+		return parsed === '' || Number.isNaN(Number(parsed))
+			? ''
+			: Number(parsed).toFixed(maximumDecimals)
 	}
 
-	const parseNumberValue = (value: string): string => {
-		value = value.replace(/[^\d.]/g, '')
-
-		// Ensure there is only one dot
-		const dotIndex = value.indexOf('.')
-		if (dotIndex !== -1) {
-			value =
-				value.slice(0, dotIndex + 1) +
-				value.slice(dotIndex + 1).replace(/\./g, '')
-		}
-
-		// Limit to 2 decimal places
-		const parts = value.split('.')
-		if (parts.length > 1) {
-			parts[1] = parts[1].slice(0, maximumDecimals)
-			value = parts.join('.')
-		}
-
-		return value
-	}
 	const getOriginValue = () =>
 		isNumberField ? parseCustomFloat(value) : value || ''
 
@@ -243,7 +223,7 @@ const EditableField = ({
 						step={1 / 10 ** maximumDecimals}
 						value={fieldValue}
 						onChange={newValue => {
-							setFieldValue(parseNumberValue(newValue))
+							setFieldValue(parseNumberValue(newValue, maximumDecimals))
 						}}
 					>
 						<NumberInputField

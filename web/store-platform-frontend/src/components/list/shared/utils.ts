@@ -1,3 +1,4 @@
+import { toDotDecimal } from '../../../shared/numberParse'
 import { LIST_INTERNAL_ONLY_COLUMNS } from './constants'
 import { SortOrder } from './globalEnums'
 
@@ -101,8 +102,8 @@ export const parseNumberForSorting = (
 ): number | undefined => {
 	if (typeof value === 'number') return value
 	if (typeof value === 'string') {
-		const parsed = parseFloat(value.replaceAll(',', ''))
-		return isNaN(parsed) ? undefined : parsed
+		const parsed = parseFloat(toDotDecimal(value))
+		return Number.isFinite(parsed) ? parsed : undefined
 	}
 	return undefined
 }

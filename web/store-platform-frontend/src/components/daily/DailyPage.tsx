@@ -33,7 +33,7 @@ import {
 } from '../../api/apiStore'
 import { ExcelDownload } from '../ExcelDownload'
 import { BudgetOverview } from '../common/BudgetOverview'
-import { compareBreakpoint, mapFee } from '../../shared/utils'
+import { compareBreakpoint, formatNumber, mapFee } from '../../shared/utils'
 import { useBreakpoints } from '../../shared/hooks/useBreakpoints'
 
 const fullWidth = '100%'
@@ -212,16 +212,15 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			'N.SYP'
 
 		return {
-			purchases: totals.purchases.toFixed(2),
-			expenses: totals.expenses.toFixed(2),
-			costs: (totals.purchases + totals.expenses).toFixed(2),
-			sales: totals.sales.toFixed(2),
-			profit: (totals.sales - totals.purchases - totals.expenses).toFixed(2),
-			cashBalance: (
-				totals.receipts -
-				totals.payments -
-				totals.expenses
-			).toFixed(2),
+			purchases: formatNumber(totals.purchases) ?? '0',
+			expenses: formatNumber(totals.expenses) ?? '0',
+			costs: formatNumber(totals.purchases + totals.expenses) ?? '0',
+			sales: formatNumber(totals.sales) ?? '0',
+			profit:
+				formatNumber(totals.sales - totals.purchases - totals.expenses) ?? '0',
+			cashBalance:
+				formatNumber(totals.receipts - totals.payments - totals.expenses) ??
+				'0',
 			currency,
 		}
 	}, [dailyActions])

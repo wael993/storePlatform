@@ -1,3 +1,5 @@
+import { parseNumberValue } from '../../shared/utils'
+
 export type ProductInlineField =
 	| 'name'
 	| 'barcode'
@@ -35,9 +37,10 @@ export function parseInlineNumber(value?: string): number {
 		throw new Error('NO_VALUE')
 	}
 
-	const parsedValue = Number(value.replaceAll(',', '').trim())
+	const normalized = parseNumberValue(value.trim())
+	const parsedValue = Number(normalized)
 
-	if (Number.isNaN(parsedValue)) {
+	if (!normalized || Number.isNaN(parsedValue)) {
 		throw new Error('INVALID_NUMBER')
 	}
 

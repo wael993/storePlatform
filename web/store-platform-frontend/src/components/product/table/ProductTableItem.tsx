@@ -21,7 +21,7 @@ import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import { formatDate } from '../../../shared/dateUtils'
-import { withNoValueFallback } from '../../../shared/utils'
+import { formatNumber, withNoValueFallback } from '../../../shared/utils'
 import { useProductInlineEdit } from '../useProductInlineEdit'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
 import PrintBarcodeModal from '../PrintBarcodeModal'
@@ -201,11 +201,7 @@ const ProductTableItem = memo(
 			<Td key={columnId} sx={styles.tableRow}>
 				<Flex sx={styles.cellContentWrapper}>
 					<Skeleton isLoaded={!isLoading}>
-						<Text sx={styles.text}>
-							{withNoValueFallback(
-								value === undefined || value === null ? value : String(value),
-							)}
-						</Text>
+						<Text sx={styles.text}>{withNoValueFallback(value)}</Text>
 					</Skeleton>
 				</Flex>
 			</Td>
@@ -286,9 +282,7 @@ const ProductTableItem = memo(
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading}>
 									<EditableCellField
-										value={withNoValueFallback(
-											productData.inventory?.quantity?.toLocaleString(),
-										)}
+										value={productData.inventory?.quantity ?? 0}
 										isNumberField={true}
 										minimumDecimals={0}
 										ariaLabel={t('common.stockQuantity')}
@@ -314,9 +308,7 @@ const ProductTableItem = memo(
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading}>
 									<EditableCellField
-										value={withNoValueFallback(
-											productData.inventory?.minQuantity?.toLocaleString(),
-										)}
+										value={productData.inventory?.minQuantity}
 										isNumberField={true}
 										minimumDecimals={0}
 										ariaLabel={t('common.stockMinQuantity')}
@@ -342,10 +334,8 @@ const ProductTableItem = memo(
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading}>
 									<EditableCellField
-										value={
-											productData.price.purchasePrice?.toLocaleString() ?? ''
-										}
-										isNumberField={false}
+										value={productData.price.purchasePrice}
+										isNumberField={true}
 										ariaLabel={t('common.buyCost')}
 										placeholder={t('common.addBuyCost')}
 										onEdit={value => editField('purchasePrice', value)}
@@ -370,9 +360,7 @@ const ProductTableItem = memo(
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading}>
 									<EditableCellField
-										value={
-											productData.price.retailPrice?.toLocaleString() ?? ''
-										}
+										value={productData.price.retailPrice}
 										isNumberField={true}
 										ariaLabel={t('common.sellPrice')}
 										onEdit={value => editField('retailPrice', value)}
@@ -397,9 +385,7 @@ const ProductTableItem = memo(
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading}>
 									<EditableCellField
-										value={withNoValueFallback(
-											productData.price.discount?.toLocaleString(),
-										)}
+										value={productData.price.discount}
 										isNumberField={true}
 										minimumDecimals={0}
 										ariaLabel={t('common.discount')}
@@ -443,12 +429,12 @@ const ProductTableItem = memo(
 				case 'WHOLESALE_PRICE':
 					return textCell(
 						columnId,
-						productData.price.wholesalePrice?.toLocaleString(),
+						formatNumber(productData.price.wholesalePrice),
 					)
 				case 'SEMI_WHOLESALE_PRICE':
 					return textCell(
 						columnId,
-						productData.price.semiWholesalePrice?.toLocaleString(),
+						formatNumber(productData.price.semiWholesalePrice),
 					)
 				case 'CURRENCY':
 					return textCell(columnId, productData.price.currency)
