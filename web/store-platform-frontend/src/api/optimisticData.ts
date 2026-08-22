@@ -162,8 +162,9 @@ export const applyOptimisticInventoryPatch = (
 		if (body.warehouseId !== undefined) {
 			const warehouseName = storeApi.endpoints.getWarehouses
 				.select()(state)
-				.data?.find(warehouse => warehouse.warehouseId === body.warehouseId)
-				?.name
+				.data?.find(
+					warehouse => warehouse.warehouseId === body.warehouseId,
+				)?.name
 			if (warehouseName) {
 				product.warehouseName = warehouseName
 			}

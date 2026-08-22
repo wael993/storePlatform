@@ -226,9 +226,8 @@ export const isTenantRouteAllowed = (
 	return true
 }
 
-export const mapFee = (
-	fee?: string | number | null,
-): string | undefined => formatNumber(fee)
+export const mapFee = (fee?: string | number | null): string | undefined =>
+	formatNumber(fee)
 
 export { parseNumberValue }
 

@@ -14,8 +14,10 @@ import { InvoiceUiStatus } from '../../shared/globalEnums'
 import i18n from '../../i18n'
 
 const publicFontUrl = (fileName: string) =>
-	new URL(`fonts/${fileName}`, `${window.location.origin}${import.meta.env.BASE_URL}`)
-		.href
+	new URL(
+		`fonts/${fileName}`,
+		`${window.location.origin}${import.meta.env.BASE_URL}`,
+	).href
 
 let fontsRegistered = false
 

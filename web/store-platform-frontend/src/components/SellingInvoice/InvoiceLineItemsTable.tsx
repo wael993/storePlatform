@@ -264,7 +264,9 @@ const InvoiceLineItemsTable = ({
 									{isReadOnly ? (
 										<TextLabel
 											label=""
-											value={formatNumber(item.quantity) ?? item.quantity.toString()}
+											value={
+												formatNumber(item.quantity) ?? item.quantity.toString()
+											}
 										/>
 									) : (
 										<EditableNumberField

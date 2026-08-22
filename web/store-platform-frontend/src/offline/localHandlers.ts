@@ -1924,10 +1924,7 @@ export const handleOfflineQuery = async (
 					brandsList.map(brand => [brand.brandId, brand.name]),
 				)
 				const categoryNameById = new Map(
-					categoriesList.map(category => [
-						category.categoryId,
-						category.name,
-					]),
+					categoriesList.map(category => [category.categoryId, category.name]),
 				)
 				const suppliers = new Map<string, string>()
 				const brands = new Map<string, string>()
