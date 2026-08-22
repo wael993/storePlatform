@@ -127,7 +127,7 @@ const EditableField = ({
 			border: '1px solid #F4F4F4',
 			borderRadius: '0',
 			width: '100%',
-			backgroundColor: isEditionEnabled ? '#D8D8D8' : undefined,
+			backgroundColor: isEditionEnabled ? '#E5E5E5' : undefined,
 			justifyContent: 'flex-end',
 			gap: '0',
 			paddingX: '0',

@@ -93,7 +93,7 @@ const ProductTableItem = memo(
 				height: '100%',
 				width: '100%',
 				alignItems: 'center',
-				justifyContent: 'start',
+				justifyContent: 'center',
 			},
 			rightStickyContainerContent: {
 				gap: '1rem',
@@ -116,7 +116,7 @@ const ProductTableItem = memo(
 				whiteSpace: 'normal',
 				overflowWrap: 'anywhere',
 				wordBreak: 'break-word',
-				textAlign: 'start',
+				textAlign: 'center',
 			},
 			rightStickyContainer: {
 				width: `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
@@ -153,29 +153,25 @@ const ProductTableItem = memo(
 				...cellFieldStyles.mainFlexWrapper,
 				maxWidth: '100%',
 				width: '100%',
-				height: 'auto',
-				maxHeight: 'none',
-				justifyContent: 'flex-start',
+				justifyContent: 'center',
 				paddingLeft: 0,
+				alignSelf: 'center',
 			},
 			mainRow: {
 				...cellFieldStyles.mainRow,
 				maxWidth: '100%',
 				width: '100%',
-				height: 'auto',
-				justifyContent: 'flex-start',
+				justifyContent: 'center',
 			},
 			mainTextWrapper: {
 				...(cellFieldStyles.mainTextWrapper ?? {}),
 				maxWidth: '100%',
 				width: '100%',
-				height: 'auto',
-				minHeight: '1.85rem',
-				justifyContent: 'flex-start',
+				justifyContent: 'center',
 			},
 			valueText: {
 				...cellFieldStyles.valueText,
-				textAlign: 'start' as const,
+				textAlign: 'center' as const,
 				fontWeight: 500,
 				maxWidth: '100%',
 				width: '100%',
@@ -186,6 +182,14 @@ const ProductTableItem = memo(
 				wordBreak: 'break-word',
 				display: 'block',
 				WebkitLineClamp: 'unset',
+			},
+		}
+
+		const centeredFieldStyles = {
+			...cellFieldStyles,
+			valueText: {
+				...cellFieldStyles.valueText,
+				textAlign: 'center' as const,
 			},
 		}
 
@@ -220,6 +224,8 @@ const ProductTableItem = memo(
 										onEdit={value => editField('name', value)}
 										isEditable={isOwnerOrAdmin}
 										customStyles={wrappingFieldStyles}
+										inputHeight="1.85rem"
+										numberInputHeight="1.85rem"
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('name')}
 									/>
@@ -238,6 +244,8 @@ const ProductTableItem = memo(
 										onEdit={value => editField('barcode', value)}
 										isEditable={isOwnerOrAdmin}
 										customStyles={wrappingFieldStyles}
+										inputHeight="1.85rem"
+										numberInputHeight="1.85rem"
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('barcode')}
 									/>
@@ -248,14 +256,7 @@ const ProductTableItem = memo(
 				case 'CATEGORY_NAME':
 					return (
 						<Td key={columnId} sx={styles.tableRow}>
-							<Flex
-								sx={{
-									...styles.cellContentWrapper,
-									flexDirection: 'column',
-									justifyContent: 'center',
-									alignItems: 'start',
-								}}
-							>
+							<Flex sx={styles.cellContentWrapper}>
 								<Skeleton isLoaded={!isLoading}>
 									<Text sx={styles.text}>
 										{withNoValueFallback(productData.categoryName)}
@@ -288,13 +289,7 @@ const ProductTableItem = memo(
 										ariaLabel={t('common.stockQuantity')}
 										onEdit={value => editField('quantity', value)}
 										isEditable={canEditStockQuantity}
-										customStyles={{
-											...cellFieldStyles,
-											valueText: {
-												...cellFieldStyles.valueText,
-												textAlign: 'left',
-											},
-										}}
+										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('quantity')}
 									/>
@@ -314,13 +309,7 @@ const ProductTableItem = memo(
 										ariaLabel={t('common.stockMinQuantity')}
 										onEdit={value => editField('minQuantity', value)}
 										isEditable={canEditMinStockQuantity}
-										customStyles={{
-											...cellFieldStyles,
-											valueText: {
-												...cellFieldStyles.valueText,
-												textAlign: 'left',
-											},
-										}}
+										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('minQuantity')}
 									/>
@@ -340,13 +329,7 @@ const ProductTableItem = memo(
 										placeholder={t('common.addBuyCost')}
 										onEdit={value => editField('purchasePrice', value)}
 										isEditable={canEditBuyCost}
-										customStyles={{
-											...cellFieldStyles,
-											valueText: {
-												...cellFieldStyles.valueText,
-												textAlign: 'left',
-											},
-										}}
+										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('purchasePrice')}
 									/>
@@ -365,13 +348,7 @@ const ProductTableItem = memo(
 										ariaLabel={t('common.sellPrice')}
 										onEdit={value => editField('retailPrice', value)}
 										isEditable={canEditWholesalePrice}
-										customStyles={{
-											...cellFieldStyles,
-											valueText: {
-												...cellFieldStyles.valueText,
-												textAlign: 'left',
-											},
-										}}
+										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('retailPrice')}
 									/>
@@ -393,13 +370,7 @@ const ProductTableItem = memo(
 										onEdit={value => editField('discount', value)}
 										currency={'%'}
 										isEditable={canEditDiscount}
-										customStyles={{
-											...cellFieldStyles,
-											valueText: {
-												...cellFieldStyles.valueText,
-												textAlign: 'left',
-											},
-										}}
+										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('discount')}
 									/>

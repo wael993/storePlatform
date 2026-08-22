@@ -109,7 +109,7 @@ const ProductTableHeaderRow = ({
 						key={column.id}
 						sx={{
 							...styles.tableHeader,
-							textAlign: column.align === 'right' ? 'end' : 'start',
+							textAlign: 'center',
 						}}
 						width={`${column.width}rem`}
 						onMouseEnter={() => setHoveredIndex(column.id)}
@@ -118,13 +118,8 @@ const ProductTableHeaderRow = ({
 						<Flex
 							alignItems={'center'}
 							width="100%"
-							justifyContent={
-								column.align === 'right' ? 'flex-end' : 'flex-start'
-							}
-							sx={{
-								...styles.tableHeaderText,
-								...(column.align === 'right' ? { paddingRight: '1.5rem' } : {}),
-							}}
+							justifyContent="center"
+							sx={styles.tableHeaderText}
 						>
 							<Text sx={styles.tableHeaderText}>{t(column.labelKey)}</Text>
 							{(hoveredIndex === column.id || sortField === sortKey) &&

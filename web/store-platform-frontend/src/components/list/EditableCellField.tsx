@@ -101,7 +101,7 @@ const EditableCellField = ({
 				...styles.mainFlexWrapper,
 				...(customStyles.mainFlexWrapper ?? {}),
 				backgroundColor:
-					isEditingShown || alwaysShowBackground ? '#D8D8D8' : 'unset',
+					isEditingShown || alwaysShowBackground ? '#E5E5E5' : 'unset',
 			}}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
