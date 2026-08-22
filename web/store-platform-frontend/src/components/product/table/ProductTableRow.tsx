@@ -24,6 +24,7 @@ const ProductTableRow = ({
 		row: {
 			backgroundColor: isHovered ? '#F9F9F9' : '#FFFFFF',
 			cursor: 'pointer',
+			borderBottom: '1px solid #EAEAEA',
 		},
 	}
 

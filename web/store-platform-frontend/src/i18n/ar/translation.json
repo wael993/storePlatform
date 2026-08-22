@@ -967,6 +967,26 @@
 			"print": "طباعة",
 			"barcodeCaption": "الباركود: {{value}}"
 		},
+		"columnConfig": {
+			"configureColumns": "تكوين الأعمدة",
+			"columns": "الأعمدة",
+			"savedConfigurations": "إعدادات الأعمدة المحفوظة",
+			"saveCurrent": "حفظ الإعداد الحالي",
+			"namePlaceholder": "اسم الإعداد",
+			"noSavedConfigurations": "لا توجد إعدادات محفوظة بعد",
+			"saveSuccess": "تم حفظ إعداد الأعمدة.",
+			"saveError": "تعذر حفظ إعداد الأعمدة.",
+			"rename": "إعادة التسمية",
+			"renameSuccess": "تم إعادة تسمية إعداد الأعمدة.",
+			"overwrite": "استبدال بالتخطيط الحالي",
+			"overwriteConfirm": "استبدال الإعداد",
+			"overwriteConfirmBody": "هل تريد استبدال هذا الإعداد المحفوظ بتخطيط الأعمدة الحالي؟",
+			"loadSuccess": "تم تطبيق إعداد الأعمدة.",
+			"deleteConfirm": "حذف الإعداد",
+			"deleteConfirmBody": "سيتم حذف إعداد الأعمدة المحفوظ.",
+			"deleteSuccess": "تم حذف إعداد الأعمدة.",
+			"saveLimitReached": "يمكنك حفظ {{max}} إعداد أعمدة كحد أقصى."
+		},
 		"filters": {
 			"clearFilter": "مسح المرشح",
 			"clearFilters": "مسح المرشحات",

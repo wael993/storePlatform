@@ -295,8 +295,10 @@ interface Product {
 	supplierId?: string
 	supplierName?: string
 	brandId?: string
+	brandName?: string
 	taxRate?: string
 	unitId?: string
+	unitName?: string
 	price: {
 		purchasePrice?: number
 		retailPrice: number
@@ -335,6 +337,8 @@ interface Product {
 		availableQuantity?: number
 		lastCountDate?: string
 	}
+	warehouseName?: string
+	shelfName?: string
 
 	relatedActions?: DailyAction[]
 }

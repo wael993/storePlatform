@@ -23,6 +23,8 @@ import {
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
 import TableWithActionBar from './table/ProductTableWithActionBar'
+import { ListColumnConfigProvider } from '../list/columnConfig/ListColumnConfigProvider'
+import { useProductColumnCatalog } from './table/productColumns'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { useTranslation } from 'react-i18next'
 import { AddSquareIcon } from '../icons/AddSquare'
@@ -155,98 +157,106 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	}
 
 	const { t } = useTranslation()
+	const productColumnCatalog = useProductColumnCatalog()
 
 	return (
-		<Flex sx={styles.wrapper}>
-			<Flex sx={styles.header}>
-				{!isLoading && (
-					<CustomBreadcrumb
-						marginTop="2rem"
-						items={breadCrumbItems[BreadCrumbItem.PRODUCTS]}
-					/>
-				)}
-			</Flex>
+		<ListColumnConfigProvider
+			listType="products"
+			catalog={productColumnCatalog}
+		>
+			<Flex sx={styles.wrapper}>
+				<Flex sx={styles.header}>
+					{!isLoading && (
+						<CustomBreadcrumb
+							marginTop="2rem"
+							items={breadCrumbItems[BreadCrumbItem.PRODUCTS]}
+						/>
+					)}
+				</Flex>
 
-			<HStack
-				justify="space-between"
-				mb={{ base: '1.5rem', md: '4rem' }}
-				flexWrap={{ base: 'wrap', md: 'nowrap' }}
-				gap={{ base: 3, md: 0 }}
-			>
-				<Heading sx={styles.title} variant={'h5'}>
-					{t('components.pageHeaders.products')}
-				</Heading>
-				{isActionAllowed(AllowedActions.ADD_PRODUCT) && isOwnerOrAdmin && (
-					<Button
-						leftIcon={<AddSquareIcon />}
-						onClick={openAdd}
-						sx={styles.addProductButton}
-						variant="ghost"
-					>
-						<Text sx={styles.addProductButtonText}>
-							{t('common.addProduct')}
-						</Text>
-					</Button>
-				)}
-			</HStack>
-
-			{isLoading && <Spinner />}
-
-			<Box sx={styles.divider} />
-
-			<Filters
-				filters={productFilters}
-				onApplyFilters={handleApplyFilters}
-				onResetFilters={handleResetFilters}
-				supplierOptions={supplierOptions}
-				brandOptions={brandOptions}
-				stateOptions={stateOptions}
-				categoryOptions={categoryOptions}
-				showSupplierFilter={isOwnerOrAdmin}
-			/>
-
-			{!isLoading && products.length === 0 && (
-				<Text color="gray.500">{t('components.product.noProducts')}</Text>
-			)}
-
-			<TableWithActionBar
-				products={products as Product[]}
-				isLoading={isLoading}
-			/>
-
-			{!isLoading && totalPages > 1 && (
-				<HStack justify="center" mt="2rem" gap="1rem">
-					<Button
-						onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
-						isDisabled={currentPage === 0}
-						size="sm"
-					>
-						{t('pagination.previous')}
-					</Button>
-					<Text fontSize="sm">
-						{t('pagination.pageOf', {
-							currentPage: currentPage + 1,
-							totalPages,
-						})}
-					</Text>
-					<Button
-						onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
-						isDisabled={currentPage >= totalPages - 1}
-						size="sm"
-					>
-						{t('pagination.next')}
-					</Button>
+				<HStack
+					justify="space-between"
+					mb={{ base: '1.5rem', md: '4rem' }}
+					flexWrap={{ base: 'wrap', md: 'nowrap' }}
+					gap={{ base: 3, md: 0 }}
+				>
+					<Heading sx={styles.title} variant={'h5'}>
+						{t('components.pageHeaders.products')}
+					</Heading>
+					{isActionAllowed(AllowedActions.ADD_PRODUCT) && isOwnerOrAdmin && (
+						<Button
+							leftIcon={<AddSquareIcon />}
+							onClick={openAdd}
+							sx={styles.addProductButton}
+							variant="ghost"
+						>
+							<Text sx={styles.addProductButtonText}>
+								{t('common.addProduct')}
+							</Text>
+						</Button>
+					)}
 				</HStack>
-			)}
 
-			<AddProductModal
-				isOpen={isAddProductModalOpen}
-				onClose={onAddProductModalClose}
-				barcode={''}
-				onSuccess={onAddProductModalClose}
-			/>
-			<Outlet />
-		</Flex>
+				{isLoading && <Spinner />}
+
+				<Box sx={styles.divider} />
+
+				<Filters
+					filters={productFilters}
+					onApplyFilters={handleApplyFilters}
+					onResetFilters={handleResetFilters}
+					supplierOptions={supplierOptions}
+					brandOptions={brandOptions}
+					stateOptions={stateOptions}
+					categoryOptions={categoryOptions}
+					showSupplierFilter={isOwnerOrAdmin}
+				/>
+
+				{!isLoading && products.length === 0 && (
+					<Text color="gray.500">{t('components.product.noProducts')}</Text>
+				)}
+
+				<TableWithActionBar
+					products={products as Product[]}
+					isLoading={isLoading}
+				/>
+
+				{!isLoading && totalPages > 1 && (
+					<HStack justify="center" mt="2rem" gap="1rem">
+						<Button
+							onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+							isDisabled={currentPage === 0}
+							size="sm"
+						>
+							{t('pagination.previous')}
+						</Button>
+						<Text fontSize="sm">
+							{t('pagination.pageOf', {
+								currentPage: currentPage + 1,
+								totalPages,
+							})}
+						</Text>
+						<Button
+							onClick={() =>
+								setCurrentPage(p => Math.min(totalPages - 1, p + 1))
+							}
+							isDisabled={currentPage >= totalPages - 1}
+							size="sm"
+						>
+							{t('pagination.next')}
+						</Button>
+					</HStack>
+				)}
+
+				<AddProductModal
+					isOpen={isAddProductModalOpen}
+					onClose={onAddProductModalClose}
+					barcode={''}
+					onSuccess={onAddProductModalClose}
+				/>
+				<Outlet />
+			</Flex>
+		</ListColumnConfigProvider>
 	)
 }
 

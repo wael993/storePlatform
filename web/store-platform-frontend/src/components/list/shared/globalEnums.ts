@@ -4,11 +4,19 @@ export enum SortOrder {
 }
 export enum ProductSortHeaderKey {
 	NAME = 'name',
+	LATIN_NAME = 'latinName',
 	BARCODE = 'barcode',
+	INTERNAL_CODE = 'internalCode',
+	PRODUCT_FACTORY_CODE = 'productFactoryCode',
 	CATEGORY_NAME = 'categoryName',
 	BRAND_NAME = 'brandName',
+	UNIT_NAME = 'unitName',
 	PRICE_BUY_COST = 'price.buyCost',
 	PRICE_SELL = 'price.wholesale',
+	PRICE_WHOLESALE = 'price.wholesalePrice',
+	PRICE_SEMI_WHOLESALE = 'price.semiWholesalePrice',
+	CURRENCY = 'price.currency',
+	TAX_RATE = 'taxRate',
 	DISCOUNT = 'price.discount',
 	STOCK_QUANTITY = 'stock.quantity',
 	STOCK_MIN_QUANTITY = 'stock.minQuantity',
@@ -16,8 +24,16 @@ export enum ProductSortHeaderKey {
 	LOCATION_WAREHOUSE = 'location',
 	LOCATION_SHELF = 'location.shelf',
 	START_DATE = 'updatedAt',
+	EXPIRY_DATE = 'attributes.expiryDate',
 	STATUS = 'status',
 	COLOR = 'attributes.color',
+	SIZE = 'attributes.size',
+	WEIGHT = 'attributes.weight',
+	LENGTH = 'attributes.length',
+	WIDTH = 'attributes.width',
+	HEIGHT = 'attributes.height',
+	FLAVOR = 'attributes.flavor',
+	DESCRIPTION = 'description',
 }
 
 export enum SupplierSortHeaderKey {

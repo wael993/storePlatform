@@ -1,4 +1,4 @@
-import { Box, Table } from '@chakra-ui/react'
+import { Box, Flex, Table } from '@chakra-ui/react'
 import React, {
 	CSSProperties,
 	ForwardedRef,
@@ -9,17 +9,18 @@ import React, {
 	useState,
 } from 'react'
 import { TableVirtuoso } from 'react-virtuoso'
-import { useUser } from '../../../shared/hooks/useUser'
 import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { ProductSortHeaderKey, SortOrder } from '../../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
 	compareNumbersForSorting,
 	compareStringsForSorting,
-	getTableWidth,
 	parseNumberForSorting,
 } from '../../list/shared/utils'
 import DraggableScrollContainer from '../../common/DraggableScrollContainer'
+import ColumnPicker from '../../list/columnConfig/ColumnPicker'
+import { useListColumnConfig } from '../../list/columnConfig/ListColumnConfigProvider'
+import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import TableRow from './ProductTableRow'
 import TableHeaderRow from './ProductTableHeaderRow'
 
@@ -28,7 +29,7 @@ interface VirtuosoContext {
 	selectedProducts: string[]
 	onSelect: (id: string) => void
 	isLoading: boolean
-	isInternalUser: boolean
+	tableWidth: string
 }
 
 const skeletonProduct: Product = {
@@ -68,6 +69,13 @@ const styles: StylesObject = {
 		width: '100%',
 		position: 'relative',
 		height: 'max(32rem,70vh)',
+	},
+	toolbar: {
+		width: '100%',
+		justifyContent: 'flex-end',
+		flexShrink: 0,
+		paddingX: '0.5rem',
+		paddingBottom: '0.25rem',
 	},
 }
 
@@ -111,13 +119,7 @@ const TableComponent = ({
 	style?: CSSProperties
 	context?: VirtuosoContext
 }) => {
-	const { isInternalUser } = context as VirtuosoContext
-	const tableWidth = getTableWidth(
-		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
-		isInternalUser,
-		14,
-		4,
-	)
+	const { tableWidth } = context as VirtuosoContext
 
 	return (
 		<Table
@@ -174,7 +176,8 @@ const ProductTableDesktop = memo(
 		areAllItemsSelected,
 		onAllItemsSelectedChange,
 	}: ProductTableDesktopProps) => {
-		const { isOwnerOrAdmin } = useUser()
+		const { visibleColumns } = useListColumnConfig()
+		const { canDeleteProduct } = useAllowedActions()
 		const [sortField, setSortField] = useState<ProductSortHeaderKey | null>(
 			null,
 		)
@@ -189,97 +192,157 @@ const ProductTableDesktop = memo(
 
 			return clonedProducts.sort((a, b) => {
 				switch (sortField) {
-					case ProductSortHeaderKey.NAME: {
+					case ProductSortHeaderKey.NAME:
 						return compareStringsForSorting(a.name, b.name, sortOrder)
-					}
-
-					case ProductSortHeaderKey.BARCODE: {
+					case ProductSortHeaderKey.LATIN_NAME:
+						return compareStringsForSorting(a.latinName, b.latinName, sortOrder)
+					case ProductSortHeaderKey.BARCODE:
 						return compareStringsForSorting(a.barcode, b.barcode, sortOrder)
-					}
-					// case ProductSortHeaderKey.BRAND_NAME: {
-					// 	return compareStringsForSorting(a.brandId, b.brandId, sortOrder)
-					// }
-					case ProductSortHeaderKey.CATEGORY_NAME: {
+					case ProductSortHeaderKey.INTERNAL_CODE:
+						return compareStringsForSorting(
+							a.internalCode,
+							b.internalCode,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.PRODUCT_FACTORY_CODE:
+						return compareStringsForSorting(
+							a.productFactoryCode,
+							b.productFactoryCode,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.BRAND_NAME:
+						return compareStringsForSorting(a.brandName, b.brandName, sortOrder)
+					case ProductSortHeaderKey.CATEGORY_NAME:
 						return compareStringsForSorting(
 							a.categoryName,
 							b.categoryName,
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.SUPPLIER_NAME: {
+					case ProductSortHeaderKey.SUPPLIER_NAME:
 						return compareStringsForSorting(
 							a.supplierName,
 							b.supplierName,
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.STOCK_QUANTITY: {
+					case ProductSortHeaderKey.UNIT_NAME:
+						return compareStringsForSorting(a.unitName, b.unitName, sortOrder)
+					case ProductSortHeaderKey.STATUS:
+						return compareStringsForSorting(a.status, b.status, sortOrder)
+					case ProductSortHeaderKey.STOCK_QUANTITY:
 						return compareNumbersForSorting(
-							a.price?.purchasePrice,
-							b.price?.purchasePrice,
+							a.inventory?.quantity,
+							b.inventory?.quantity,
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.STOCK_MIN_QUANTITY: {
+					case ProductSortHeaderKey.STOCK_MIN_QUANTITY:
 						return compareNumbersForSorting(
-							a.price?.semiWholesalePrice,
-							b.price?.semiWholesalePrice,
+							a.inventory?.minQuantity,
+							b.inventory?.minQuantity,
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.PRICE_BUY_COST: {
+					case ProductSortHeaderKey.LOCATION_WAREHOUSE:
+						return compareStringsForSorting(
+							a.warehouseName,
+							b.warehouseName,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.LOCATION_SHELF:
+						return compareStringsForSorting(a.shelfName, b.shelfName, sortOrder)
+					case ProductSortHeaderKey.PRICE_BUY_COST:
 						return compareNumbersForSorting(
 							parseNumberForSorting(a.price?.purchasePrice),
 							parseNumberForSorting(b.price?.purchasePrice),
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.PRICE_SELL: {
+					case ProductSortHeaderKey.PRICE_SELL:
 						return compareNumbersForSorting(
 							parseNumberForSorting(a.price?.retailPrice),
 							parseNumberForSorting(b.price?.retailPrice),
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.DISCOUNT: {
+					case ProductSortHeaderKey.PRICE_WHOLESALE:
+						return compareNumbersForSorting(
+							parseNumberForSorting(a.price?.wholesalePrice),
+							parseNumberForSorting(b.price?.wholesalePrice),
+							sortOrder,
+						)
+					case ProductSortHeaderKey.PRICE_SEMI_WHOLESALE:
+						return compareNumbersForSorting(
+							parseNumberForSorting(a.price?.semiWholesalePrice),
+							parseNumberForSorting(b.price?.semiWholesalePrice),
+							sortOrder,
+						)
+					case ProductSortHeaderKey.DISCOUNT:
 						return compareNumbersForSorting(
 							parseNumberForSorting(a.price?.discount),
 							parseNumberForSorting(b.price?.discount),
 							sortOrder,
 						)
-					}
-					// case ProductSortHeaderKey.LOCATION_SHELF: {
-					// 	return compareStringsForSorting(
-					// 		a.attributes?.color,
-					// 		b.attributes?.color,
-					// 		sortOrder,
-					// 	)
-					// }
-					// case ProductSortHeaderKey.LOCATION_WAREHOUSE: {
-					// 	return compareStringsForSorting(
-					// 		a.attributes?.color,
-					// 		b.attributes?.color,
-					// 		sortOrder,
-					// 	)
-					// }
-					case ProductSortHeaderKey.COLOR: {
+					case ProductSortHeaderKey.CURRENCY:
+						return compareStringsForSorting(
+							a.price?.currency,
+							b.price?.currency,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.TAX_RATE:
+						return compareStringsForSorting(a.taxRate, b.taxRate, sortOrder)
+					case ProductSortHeaderKey.DESCRIPTION:
+						return compareStringsForSorting(
+							a.description,
+							b.description,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.COLOR:
 						return compareStringsForSorting(
 							a.attributes?.color,
 							b.attributes?.color,
 							sortOrder,
 						)
-					}
-					case ProductSortHeaderKey.START_DATE: {
+					case ProductSortHeaderKey.SIZE:
+						return compareStringsForSorting(
+							a.attributes?.size,
+							b.attributes?.size,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.WEIGHT:
+						return compareStringsForSorting(
+							a.attributes?.weight,
+							b.attributes?.weight,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.LENGTH:
+						return compareStringsForSorting(
+							a.attributes?.length,
+							b.attributes?.length,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.WIDTH:
+						return compareStringsForSorting(
+							a.attributes?.width,
+							b.attributes?.width,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.HEIGHT:
+						return compareStringsForSorting(
+							a.attributes?.height,
+							b.attributes?.height,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.FLAVOR:
+						return compareStringsForSorting(
+							a.attributes?.flavor,
+							b.attributes?.flavor,
+							sortOrder,
+						)
+					case ProductSortHeaderKey.START_DATE:
+					case ProductSortHeaderKey.EXPIRY_DATE:
 						return compareDatesForSorting(
 							a.attributes?.expiryDate?.toString(),
 							b.attributes?.expiryDate?.toString(),
 							sortOrder,
 						)
-					}
-
-					default: {
+					default:
 						return 0
-					}
 				}
 			})
 		}, [products, sortField, sortOrder])
@@ -298,16 +361,30 @@ const ProductTableDesktop = memo(
 				: sortedProducts
 		}, [sortedProducts, isLoading])
 
+		const tableWidth = useMemo(() => {
+			const dataWidth = visibleColumns.reduce(
+				(total, column) => total + column.width,
+				0,
+			)
+			const checkboxWidth = canDeleteProduct
+				? PROMOTION_LIST_WIDTHS_MAP_IN_REM.CHECKBOX
+				: 0
+			return `${checkboxWidth + dataWidth + PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT + 4}rem`
+		}, [canDeleteProduct, visibleColumns])
+
 		const context: VirtuosoContext = {
 			listData,
 			selectedProducts,
 			onSelect,
 			isLoading,
-			isInternalUser: isOwnerOrAdmin,
+			tableWidth,
 		}
 
 		return (
 			<Box sx={styles.mainBoxWrapper}>
+				<Flex sx={styles.toolbar}>
+					<ColumnPicker />
+				</Flex>
 				<TableVirtuoso
 					style={styles.virtuoso as CSSProperties}
 					data={listData}
@@ -333,6 +410,7 @@ const ProductTableDesktop = memo(
 							sortField,
 							onAllItemsSelectedChange,
 							areAllItemsSelected,
+							visibleColumns,
 						],
 					)}
 				/>

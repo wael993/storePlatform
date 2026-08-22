@@ -372,12 +372,14 @@ export default class ProductController {
 			categoriesResponse,
 			suppliersResponse,
 			brandsResponse,
+			unitsResponse,
 			shelvesResponse,
 			warehousesResponse,
 		] = await Promise.all([
 			this.requireCategoryController().getCategories(requestContext),
 			this.requireSupplierController().getSuppliers(requestContext),
 			this.getBrands(requestContext),
+			this.getUnits(requestContext),
 			this.getShelves(requestContext),
 			this.getWarehouses(requestContext),
 		])
@@ -397,6 +399,9 @@ export default class ProductController {
 			),
 			brandNameById: new Map(
 				brandsResponse.data.map(brand => [brand.brandId, brand.name]),
+			),
+			unitNameById: new Map(
+				unitsResponse.data.map(unit => [unit.unitId, unit.name]),
 			),
 			shelfNameById: new Map(
 				shelvesResponse.data.map(shelf => [shelf.shelfId, shelf.name]),

@@ -21,7 +21,11 @@ import {
 	toLabelTemplateDto,
 	validateLabelLayout,
 } from '../../models/LabelTemplate'
-import UserSettings, { IUserSettings } from '../../models/UserSettings'
+import UserSettings, {
+	COLUMN_CONFIG_LIST_TYPES,
+	IColumnConfig,
+	IUserSettings,
+} from '../../models/UserSettings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger from '../../shared/logger/logger'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
@@ -55,6 +59,102 @@ export type CurrencyCatalogCollaborator = {
 		requestContext: RequestContext,
 		requestBody: CurrencyRequestBody,
 	): Promise<CreateCurrencyResponse | null>
+}
+
+const COLUMN_CONFIG_LIST_TYPE_SET = new Set<string>(COLUMN_CONFIG_LIST_TYPES)
+const MAX_COLUMN_CONFIGS = 50
+const COLUMN_COLS_PATTERN = /^[A-Za-z0-9_,]+$/
+
+const parseColumnConfigs = (input: unknown): IColumnConfig[] => {
+	if (!Array.isArray(input)) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+			'columnConfigs must be an array',
+		)
+	}
+
+	if (input.length > MAX_COLUMN_CONFIGS) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+			'Too many column configs',
+		)
+	}
+
+	const parsed = input.map(raw => {
+		if (!raw || typeof raw !== 'object') {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invalid column config',
+			)
+		}
+
+		const item = raw as Record<string, unknown>
+		const name = String(item.name ?? '').trim()
+		const listType = String(item.listType ?? '').trim()
+		const cols = String(item.cols ?? '').trim()
+
+		if (!name || name.length > 80) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invalid column config name',
+			)
+		}
+
+		if (!COLUMN_CONFIG_LIST_TYPE_SET.has(listType)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invalid column config list type',
+			)
+		}
+
+		if (!cols || cols.length > 2000 || !COLUMN_COLS_PATTERN.test(cols)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Invalid column config cols',
+			)
+		}
+
+		const id = String(item.id ?? '').trim()
+
+		return {
+			id: id && id.length <= 80 ? id : uuidv4(),
+			listType: listType as IColumnConfig['listType'],
+			name,
+			cols,
+			isDefault: Boolean(item.isDefault),
+		}
+	})
+
+	const seenIds = new Set<string>()
+
+	for (const config of parsed) {
+		if (seenIds.has(config.id)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Duplicate column config id',
+			)
+		}
+
+		seenIds.add(config.id)
+	}
+
+	const seenDefault = new Set<string>()
+
+	for (let index = parsed.length - 1; index >= 0; index -= 1) {
+		const config = parsed[index]
+
+		if (!config.isDefault) continue
+
+		if (seenDefault.has(config.listType)) {
+			config.isDefault = false
+
+			continue
+		}
+
+		seenDefault.add(config.listType)
+	}
+
+	return parsed
 }
 
 type SettingsHttpRequest = express.Request & {
@@ -143,8 +243,12 @@ export default class SettingController {
 			assertSettingsMutableWhileOnline(request)
 
 			const { tenantId, userId } = request.user ?? {}
-			const { productsPerPage, displayLanguage, defaultInvoiceCurrencyId } =
-				request.body
+			const {
+				productsPerPage,
+				displayLanguage,
+				defaultInvoiceCurrencyId,
+				columnConfigs,
+			} = request.body
 
 			if (!tenantId || !userId) {
 				throw new BusinessLogicError(
@@ -166,6 +270,10 @@ export default class SettingController {
 			if (defaultInvoiceCurrencyId !== undefined) {
 				updateData.defaultInvoiceCurrencyId =
 					defaultInvoiceCurrencyId?.trim() || undefined
+			}
+
+			if (columnConfigs !== undefined) {
+				updateData.columnConfigs = parseColumnConfigs(columnConfigs)
 			}
 
 			const userSettings = await UserSettings.findOneAndUpdate(

@@ -28,6 +28,7 @@ import {
 	formatNumber,
 	withNoValueFallback,
 } from '../../../shared/utils'
+import { formatDate } from '../../../shared/dateUtils'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
 import PrintBarcodeModal from '../PrintBarcodeModal'
 import ConfirmationDialog from '../../ConfirmationDialog'
@@ -75,6 +76,27 @@ const styles = {
 	},
 } satisfies StylesObject
 
+const MobileField = ({
+	label,
+	value,
+	isLoading,
+}: {
+	label: string
+	value?: string | number | null
+	isLoading: boolean
+}) => (
+	<GridItem sx={styles.listItemGridItem}>
+		<Text sx={styles.titleText}>{label}</Text>
+		<Skeleton isLoaded={!isLoading}>
+			<Text sx={styles.valueText}>
+				{withNoValueFallback(
+					value === undefined || value === null ? value : String(value),
+				)}
+			</Text>
+		</Skeleton>
+	</GridItem>
+)
+
 interface ProductTableMobilProps {
 	product: Product
 	isLoading: boolean
@@ -95,7 +117,7 @@ const ProductTableMobil = ({
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
-	const { isOwnerOrAdmin } = useUser()
+	const { isOwner, isOwnerOrAdmin } = useUser()
 	const { printBarcode, isEnsuringBarcode, barcode, preview } =
 		usePrintProductBarcode(product)
 	const {
@@ -103,8 +125,9 @@ const ProductTableMobil = ({
 		seeStockQuantity,
 		seeMinStockQuantity,
 		seeBuyCost,
-		seeWholesalePrice,
 		seeDiscount,
+		seeLocationWarehouse,
+		seeLocationShelf,
 		canDeleteProduct,
 	} = useAllowedActions()
 	const {
@@ -182,140 +205,174 @@ const ProductTableMobil = ({
 						paddingRight={isArabic ? 16 : 0}
 					>
 						<Grid templateColumns="repeat(2, 1fr)" gap="6">
-							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>{t('common.brand')}</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.brandId)}
-									</Text>
-								</Skeleton>
-							</GridItem>
-
-							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>{t('common.category')}</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.categoryName)}
-									</Text>
-								</Skeleton>
-							</GridItem>
-
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.latinName')}
+								value={product.latinName}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.internalCode')}
+								value={product.internalCode}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.productFactoryCode')}
+								value={product.productFactoryCode}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.brand')}
+								value={product.brandName}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.category')}
+								value={product.categoryName}
+							/>
 							{isOwnerOrAdmin && seeSupplier && (
-								<GridItem sx={styles.listItemGridItem}>
-									<Text sx={styles.titleText}>{t('common.supplierName')}</Text>
-									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
-											{withNoValueFallback(product.supplierName)}
-										</Text>
-									</Skeleton>
-								</GridItem>
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.supplierName')}
+									value={product.supplierName}
+								/>
 							)}
-
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.unit')}
+								value={product.unitName}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.status')}
+								value={
+									productState ? t(productState.translationKey) : undefined
+								}
+							/>
 							{seeStockQuantity && (
-								<GridItem sx={styles.listItemGridItem}>
-									<Text sx={styles.titleText}>{t('common.stockQuantity')}</Text>
-									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
-											{withNoValueFallback(
-												formatNumber(product.inventory?.quantity, {
-													minimumDecimals: 0,
-													maximumDecimals: 0,
-												}),
-											)}
-										</Text>
-									</Skeleton>
-								</GridItem>
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.stockQuantity')}
+									value={formatNumber(product.inventory?.quantity, {
+										minimumDecimals: 0,
+										maximumDecimals: 0,
+									})}
+								/>
 							)}
-
 							{seeMinStockQuantity && (
-								<GridItem sx={styles.listItemGridItem}>
-									<Text sx={styles.titleText}>
-										{t('common.stockMinQuantity')}
-									</Text>
-									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
-											{withNoValueFallback(
-												formatNumber(product.inventory?.minQuantity, {
-													minimumDecimals: 0,
-													maximumDecimals: 0,
-												}),
-											)}
-										</Text>
-									</Skeleton>
-								</GridItem>
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.stockMinQuantity')}
+									value={formatNumber(product.inventory?.minQuantity, {
+										minimumDecimals: 0,
+										maximumDecimals: 0,
+									})}
+								/>
 							)}
-
+							{seeLocationWarehouse && (
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.locationWarehouse')}
+									value={product.warehouseName}
+								/>
+							)}
+							{seeLocationShelf && (
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.locationShelf')}
+									value={product.shelfName}
+								/>
+							)}
 							{isOwnerOrAdmin && seeBuyCost && (
-								<GridItem sx={styles.listItemGridItem}>
-									<Text sx={styles.titleText}>{t('common.buyCost')}</Text>
-									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
-											{withNoValueFallback(
-												formatNumber(product.price?.purchasePrice),
-											)}
-										</Text>
-									</Skeleton>
-								</GridItem>
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.buyCost')}
+									value={formatNumber(product.price?.purchasePrice)}
+								/>
 							)}
-
-							{isOwnerOrAdmin && seeWholesalePrice && (
-								<GridItem sx={styles.listItemGridItem}>
-									<Text sx={styles.titleText}>{t('common.priceSell')}</Text>
-									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
-											{withNoValueFallback(
-												formatNumber(product.price?.retailPrice),
-											)}
-										</Text>
-									</Skeleton>
-								</GridItem>
-							)}
-
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.priceSell')}
+								value={formatNumber(product.price?.retailPrice)}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.wholesalePrice')}
+								value={formatNumber(product.price?.wholesalePrice)}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.semiWholesalePrice')}
+								value={formatNumber(product.price?.semiWholesalePrice)}
+							/>
 							{seeDiscount && (
-								<GridItem sx={styles.listItemGridItem}>
-									<Text sx={styles.titleText}>{t('common.discount')}</Text>
-									<Skeleton isLoaded={!isLoading}>
-										<Text sx={styles.valueText}>
-											{withNoValueFallback(
-												formatNumber(product.price?.discount),
-											)}
-										</Text>
-									</Skeleton>
-								</GridItem>
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.discount')}
+									value={formatNumber(product.price?.discount)}
+								/>
 							)}
-							{/* 
-						{seeLocationShelf && (
-							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>{t('common.locationShelf')}</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.attributes?.color)}
-									</Text>
-								</Skeleton>
-							</GridItem>
-						)}
-
-						{seeLocationWarehouse && (
-							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>
-									{t('common.locationWarehouse')}
-								</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.attributes?.color)}
-									</Text>
-								</Skeleton>
-							</GridItem>
-						)} */}
-
-							<GridItem sx={styles.listItemGridItem}>
-								<Text sx={styles.titleText}>{t('common.color')}</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(product.attributes?.color)}
-									</Text>
-								</Skeleton>
-							</GridItem>
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.currency')}
+								value={product.price?.currency}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.taxRate')}
+								value={product.taxRate}
+							/>
+							{isOwner && (
+								<MobileField
+									isLoading={isLoading}
+									label={t('productModal.description')}
+									value={product.description}
+								/>
+							)}
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.color')}
+								value={product.attributes?.color}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.size')}
+								value={product.attributes?.size}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('common.weight')}
+								value={product.attributes?.weight}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.length')}
+								value={product.attributes?.length}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.width')}
+								value={product.attributes?.width}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.height')}
+								value={product.attributes?.height}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.flavor')}
+								value={product.attributes?.flavor}
+							/>
+							<MobileField
+								isLoading={isLoading}
+								label={t('productModal.expiryDate')}
+								value={
+									product.attributes?.expiryDate
+										? formatDate(product.attributes.expiryDate)
+										: undefined
+								}
+							/>
 						</Grid>
 
 						<Flex

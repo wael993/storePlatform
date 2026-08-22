@@ -9,6 +9,7 @@ export type ProductRelationLookups = {
 	categoryNameById: Map<string, string>
 	supplierNameById: Map<string, string>
 	brandNameById: Map<string, string>
+	unitNameById: Map<string, string>
 	shelfNameById: Map<string, string>
 	warehouseNameById: Map<string, string>
 }
@@ -34,10 +35,16 @@ export default class ProductsMapper {
 				? lookups?.categoryNameById.get(product.categoryId)
 				: undefined,
 			brandId: product.brandId,
+			brandName: product.brandId
+				? lookups?.brandNameById.get(product.brandId)
+				: undefined,
 			images: product.images,
 			status: product.status ?? 'active',
 			price: product.price,
 			unitId: product.unitId,
+			unitName: product.unitId
+				? lookups?.unitNameById.get(product.unitId)
+				: undefined,
 			taxRate: product.taxRate,
 			supplierId: product.supplierId,
 			supplierName: product.supplierId
@@ -46,6 +53,12 @@ export default class ProductsMapper {
 			attributes: product.attributes,
 			description: isOwnerUser ? product.description : undefined,
 			inventory,
+			warehouseName: inventory?.warehouseId
+				? lookups?.warehouseNameById.get(inventory.warehouseId)
+				: undefined,
+			shelfName: inventory?.shelfId
+				? lookups?.shelfNameById.get(inventory.shelfId)
+				: undefined,
 		}
 
 		return mappedProduct

@@ -78,10 +78,12 @@ export type ProductRequestBody = {
 	categoryId?: string
 	categoryName?: string
 	brandId?: string
+	brandName?: string
 	supplierId?: string
 	supplierName?: string
 	images?: string[]
 	unitId?: string
+	unitName?: string
 	taxRate?: string
 	price: {
 		purchasePrice?: number
@@ -106,6 +108,8 @@ export type ProductRequestBody = {
 	quantity?: number
 	minQuantity?: number
 	inventory?: InventoryDocument
+	warehouseName?: string
+	shelfName?: string
 	relatedActions?: ProductDailyAction[]
 }
 

@@ -6,9 +6,8 @@ import {
 	Skeleton,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { memo } from 'react'
+import { memo, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-// import { formatDate } from '../../../shared/dateUtils'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import { useUser } from '../../../shared/hooks/useUser'
 import { listStyles, cellFieldStyles } from '../../../shared/styles'
@@ -21,6 +20,7 @@ import {
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
+import { formatDate } from '../../../shared/dateUtils'
 import { withNoValueFallback } from '../../../shared/utils'
 import { useProductInlineEdit } from '../useProductInlineEdit'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
@@ -28,6 +28,7 @@ import PrintBarcodeModal from '../PrintBarcodeModal'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useDeleteProductMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
+import { useListColumnConfig } from '../../list/columnConfig/ListColumnConfigProvider'
 
 interface ProductTableItemProps {
 	product: Product
@@ -36,6 +37,7 @@ interface ProductTableItemProps {
 	isHovered: boolean
 	isLoading: boolean
 }
+
 const ProductTableItem = memo(
 	({
 		product: productData,
@@ -47,26 +49,19 @@ const ProductTableItem = memo(
 		const { editField, isFieldInProgress } = useProductInlineEdit(productData)
 		const { printBarcode, isEnsuringBarcode, barcode, preview } =
 			usePrintProductBarcode(productData)
+		const { visibleColumns } = useListColumnConfig()
 
 		const productState = PRODUCT_STATE_CONFIG[productData.status]
-
-		const showCheckbox = true
 		const isReadyForExecution = false
 
 		const { t } = useTranslation()
 		const { isOwnerOrAdmin } = useUser()
 		const {
-			seeSupplier,
 			canEditWholesalePrice,
 			canEditDiscount,
 			canEditBuyCost,
-			seeStockQuantity,
 			canEditStockQuantity,
-			seeMinStockQuantity,
 			canEditMinStockQuantity,
-			seeWholesalePrice,
-			seeDiscount,
-			seeBuyCost,
 			canDeleteProduct,
 		} = useAllowedActions()
 		const {
@@ -82,6 +77,7 @@ const ProductTableItem = memo(
 			tableRow: {
 				padding: 0,
 				height: 0,
+				borderBottom: '1px solid #EAEAEA',
 				'@-moz-document url-prefix()': {
 					height: '100%',
 				},
@@ -117,6 +113,10 @@ const ProductTableItem = memo(
 			text: {
 				...listStyles.tableCellText,
 				color: isReadyForExecution && !isHovered ? '#B2B2B2' : '#1E1E1E',
+				whiteSpace: 'normal',
+				overflowWrap: 'anywhere',
+				wordBreak: 'break-word',
+				textAlign: 'start',
 			},
 			rightStickyContainer: {
 				width: `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
@@ -147,16 +147,352 @@ const ProductTableItem = memo(
 			},
 		} satisfies StylesObject
 
+		const wrappingFieldStyles = {
+			...cellFieldStyles,
+			mainFlexWrapper: {
+				...cellFieldStyles.mainFlexWrapper,
+				maxWidth: '100%',
+				width: '100%',
+				height: 'auto',
+				maxHeight: 'none',
+				justifyContent: 'flex-start',
+				paddingLeft: 0,
+			},
+			mainRow: {
+				...cellFieldStyles.mainRow,
+				maxWidth: '100%',
+				width: '100%',
+				height: 'auto',
+				justifyContent: 'flex-start',
+			},
+			mainTextWrapper: {
+				...(cellFieldStyles.mainTextWrapper ?? {}),
+				maxWidth: '100%',
+				width: '100%',
+				height: 'auto',
+				minHeight: '1.85rem',
+				justifyContent: 'flex-start',
+			},
+			valueText: {
+				...cellFieldStyles.valueText,
+				textAlign: 'start' as const,
+				fontWeight: 500,
+				maxWidth: '100%',
+				width: '100%',
+				whiteSpace: 'normal',
+				overflow: 'visible',
+				textOverflow: 'unset',
+				overflowWrap: 'anywhere',
+				wordBreak: 'break-word',
+				display: 'block',
+				WebkitLineClamp: 'unset',
+			},
+		}
+
+		const editablePadding = {
+			...styles.cellContentWrapper,
+			padding: isLoading ? '1rem' : 0,
+		}
+
+		const textCell = (
+			columnId: string,
+			value: string | number | null | undefined,
+		) => (
+			<Td key={columnId} sx={styles.tableRow}>
+				<Flex sx={styles.cellContentWrapper}>
+					<Skeleton isLoaded={!isLoading}>
+						<Text sx={styles.text}>
+							{withNoValueFallback(
+								value === undefined || value === null ? value : String(value),
+							)}
+						</Text>
+					</Skeleton>
+				</Flex>
+			</Td>
+		)
+
+		const renderDataCell = (columnId: string): ReactNode => {
+			switch (columnId) {
+				case 'NAME':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading} width="100%">
+									<EditableCellField
+										value={productData.name}
+										ariaLabel={t('common.productName')}
+										onEdit={value => editField('name', value)}
+										isEditable={isOwnerOrAdmin}
+										customStyles={wrappingFieldStyles}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('name')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'BARCODE':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading} width="100%">
+									<EditableCellField
+										value={productData.barcode ?? ''}
+										ariaLabel={t('common.barcode')}
+										onEdit={value => editField('barcode', value)}
+										isEditable={isOwnerOrAdmin}
+										customStyles={wrappingFieldStyles}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('barcode')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'CATEGORY_NAME':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex
+								sx={{
+									...styles.cellContentWrapper,
+									flexDirection: 'column',
+									justifyContent: 'center',
+									alignItems: 'start',
+								}}
+							>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.text}>
+										{withNoValueFallback(productData.categoryName)}
+									</Text>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'SUPPLIER_NAME':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={styles.cellContentWrapper}>
+								<Skeleton isLoaded={!isLoading}>
+									<Text sx={styles.text}>
+										{withNoValueFallback(productData.supplierName)}
+									</Text>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'STOCK_QUANTITY':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={withNoValueFallback(
+											productData.inventory?.quantity?.toLocaleString(),
+										)}
+										isNumberField={true}
+										minimumDecimals={0}
+										ariaLabel={t('common.stockQuantity')}
+										onEdit={value => editField('quantity', value)}
+										isEditable={canEditStockQuantity}
+										customStyles={{
+											...cellFieldStyles,
+											valueText: {
+												...cellFieldStyles.valueText,
+												textAlign: 'left',
+											},
+										}}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('quantity')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'STOCK_MIN_QUANTITY':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={withNoValueFallback(
+											productData.inventory?.minQuantity?.toLocaleString(),
+										)}
+										isNumberField={true}
+										minimumDecimals={0}
+										ariaLabel={t('common.stockMinQuantity')}
+										onEdit={value => editField('minQuantity', value)}
+										isEditable={canEditMinStockQuantity}
+										customStyles={{
+											...cellFieldStyles,
+											valueText: {
+												...cellFieldStyles.valueText,
+												textAlign: 'left',
+											},
+										}}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('minQuantity')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'PRICE_BUY':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={
+											productData.price.purchasePrice?.toLocaleString() ?? ''
+										}
+										isNumberField={false}
+										ariaLabel={t('common.buyCost')}
+										placeholder={t('common.addBuyCost')}
+										onEdit={value => editField('purchasePrice', value)}
+										isEditable={canEditBuyCost}
+										customStyles={{
+											...cellFieldStyles,
+											valueText: {
+												...cellFieldStyles.valueText,
+												textAlign: 'left',
+											},
+										}}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('purchasePrice')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'PRICE_SELL':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={
+											productData.price.retailPrice?.toLocaleString() ?? ''
+										}
+										isNumberField={true}
+										ariaLabel={t('common.sellPrice')}
+										onEdit={value => editField('retailPrice', value)}
+										isEditable={canEditWholesalePrice}
+										customStyles={{
+											...cellFieldStyles,
+											valueText: {
+												...cellFieldStyles.valueText,
+												textAlign: 'left',
+											},
+										}}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('retailPrice')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'DISCOUNT':
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={withNoValueFallback(
+											productData.price.discount?.toLocaleString(),
+										)}
+										isNumberField={true}
+										minimumDecimals={0}
+										ariaLabel={t('common.discount')}
+										placeholder={t('common.addDiscount')}
+										onEdit={value => editField('discount', value)}
+										currency={'%'}
+										isEditable={canEditDiscount}
+										customStyles={{
+											...cellFieldStyles,
+											valueText: {
+												...cellFieldStyles.valueText,
+												textAlign: 'left',
+											},
+										}}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('discount')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
+					)
+				case 'LATIN_NAME':
+					return textCell(columnId, productData.latinName)
+				case 'INTERNAL_CODE':
+					return textCell(columnId, productData.internalCode)
+				case 'PRODUCT_FACTORY_CODE':
+					return textCell(columnId, productData.productFactoryCode)
+				case 'BRAND_NAME':
+					return textCell(columnId, productData.brandName)
+				case 'UNIT_NAME':
+					return textCell(columnId, productData.unitName)
+				case 'STATUS':
+					return textCell(
+						columnId,
+						productState ? t(productState.translationKey) : undefined,
+					)
+				case 'LOCATION_WAREHOUSE':
+					return textCell(columnId, productData.warehouseName)
+				case 'LOCATION_SHELF':
+					return textCell(columnId, productData.shelfName)
+				case 'WHOLESALE_PRICE':
+					return textCell(
+						columnId,
+						productData.price.wholesalePrice?.toLocaleString(),
+					)
+				case 'SEMI_WHOLESALE_PRICE':
+					return textCell(
+						columnId,
+						productData.price.semiWholesalePrice?.toLocaleString(),
+					)
+				case 'CURRENCY':
+					return textCell(columnId, productData.price.currency)
+				case 'TAX_RATE':
+					return textCell(columnId, productData.taxRate)
+				case 'DESCRIPTION':
+					return textCell(columnId, productData.description)
+				case 'COLOR':
+					return textCell(columnId, productData.attributes?.color)
+				case 'SIZE':
+					return textCell(columnId, productData.attributes?.size)
+				case 'WEIGHT':
+					return textCell(columnId, productData.attributes?.weight)
+				case 'LENGTH':
+					return textCell(columnId, productData.attributes?.length)
+				case 'WIDTH':
+					return textCell(columnId, productData.attributes?.width)
+				case 'HEIGHT':
+					return textCell(columnId, productData.attributes?.height)
+				case 'FLAVOR':
+					return textCell(columnId, productData.attributes?.flavor)
+				case 'EXPIRY_DATE':
+					return textCell(
+						columnId,
+						productData.attributes?.expiryDate
+							? formatDate(productData.attributes.expiryDate)
+							: undefined,
+					)
+				default:
+					return <Td key={columnId} sx={styles.tableRow} />
+			}
+		}
+
 		return (
 			<>
-				{/* Checkbox */}
-				{showCheckbox && (
-					<Td sx={{ ...styles.tableRow, ...styles.checkboxRow }}>
+				{canDeleteProduct && (
+					<Td
+						sx={{ ...styles.tableRow, ...styles.checkboxRow }}
+						width={`${PROMOTION_LIST_WIDTHS_MAP_IN_REM.CHECKBOX}rem`}
+					>
 						<Flex
 							sx={{ ...styles.cellContentWrapper, ...styles.checkboxWrapper }}
 							onClick={e => {
 								onSelect(productData.productId)
-
 								e.stopPropagation()
 							}}
 							cursor={'pointer'}
@@ -172,308 +508,12 @@ const ProductTableItem = memo(
 						</Flex>
 					</Td>
 				)}
-
-				{/* Name*/}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={productData.name}
-								ariaLabel={t('common.productName')}
-								onEdit={value => editField('name', value)}
-								isEditable={isOwnerOrAdmin}
-								customStyles={{
-									...cellFieldStyles,
-									valueText: {
-										...cellFieldStyles.valueText,
-										textAlign: 'left',
-										fontWeight: 500,
-									},
-								}}
-								fontColor={'#1E1E1E'}
-								isLoading={isFieldInProgress('name')}
-							/>
-						</Skeleton>
-					</Flex>
-				</Td>
-
-				{/* Barcode */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							padding: isLoading ? '1rem' : 0,
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<EditableCellField
-								value={productData.barcode ?? ''}
-								ariaLabel={t('common.barcode')}
-								onEdit={value => editField('barcode', value)}
-								isEditable={isOwnerOrAdmin}
-								customStyles={{
-									...cellFieldStyles,
-									valueText: {
-										...cellFieldStyles.valueText,
-										textAlign: 'left',
-										fontWeight: 500,
-									},
-								}}
-								fontColor={'#1E1E1E'}
-								isLoading={isFieldInProgress('barcode')}
-							/>
-						</Skeleton>
-					</Flex>
-				</Td>
-
-				{/* Category Name */}
-				<Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							flexDirection: 'column',
-							justifyContent: 'center',
-							alignItems: 'start',
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{withNoValueFallback(productData.categoryName)}
-							</Text>
-						</Skeleton>
-					</Flex>
-				</Td>
-
-				{/* Supplier (A&P only) */}
-				{isOwnerOrAdmin && seeSupplier && (
-					<Td sx={{ ...styles.tableRow }}>
-						<Flex sx={{ ...styles.cellContentWrapper }}>
-							<Skeleton isLoaded={!isLoading}>
-								<Text sx={styles.text}>
-									{withNoValueFallback(productData.supplierName)}
-								</Text>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
-				{/* Stock Quantity */}
-
-				{seeStockQuantity && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={withNoValueFallback(
-										productData.inventory?.quantity?.toLocaleString(),
-									)}
-									isNumberField={true}
-									minimumDecimals={0}
-									ariaLabel={t('common.stockQuantity')}
-									onEdit={value => editField('quantity', value)}
-									isEditable={canEditStockQuantity}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={isFieldInProgress('quantity')}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
-				{seeMinStockQuantity && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={withNoValueFallback(
-										productData.inventory?.minQuantity?.toLocaleString(),
-									)}
-									isNumberField={true}
-									minimumDecimals={0}
-									ariaLabel={t('common.stockMinQuantity')}
-									onEdit={value => editField('minQuantity', value)}
-									isEditable={canEditMinStockQuantity}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={isFieldInProgress('minQuantity')}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-				{/* price buy Cost */}
-				{isOwnerOrAdmin && seeBuyCost && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={
-										productData.price.purchasePrice?.toLocaleString() ?? ''
-									}
-									isNumberField={false}
-									ariaLabel={t('common.buyCost')}
-									placeholder={t('common.addBuyCost')}
-									onEdit={value => editField('purchasePrice', value)}
-									isEditable={canEditBuyCost}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={isFieldInProgress('purchasePrice')}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-				{/* Wholesale Price */}
-				{isOwnerOrAdmin && seeWholesalePrice && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={productData.price.retailPrice?.toLocaleString() ?? ''}
-									isNumberField={true}
-									ariaLabel={t('common.sellPrice')}
-									onEdit={value => editField('retailPrice', value)}
-									isEditable={canEditWholesalePrice}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={isFieldInProgress('retailPrice')}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
-				{/* Discount (editable) */}
-				{seeDiscount && (
-					<Td sx={styles.tableRow}>
-						<Flex
-							sx={{
-								...styles.cellContentWrapper,
-								padding: isLoading ? '1rem' : 0,
-							}}
-						>
-							<Skeleton isLoaded={!isLoading}>
-								<EditableCellField
-									value={withNoValueFallback(
-										productData.price.discount?.toLocaleString(),
-									)}
-									isNumberField={true}
-									minimumDecimals={0}
-									ariaLabel={t('common.discount')}
-									placeholder={t('common.addDiscount')}
-									onEdit={value => editField('discount', value)}
-									currency={'%'}
-									isEditable={canEditDiscount}
-									customStyles={{
-										...cellFieldStyles,
-										valueText: {
-											...cellFieldStyles.valueText,
-											textAlign: 'left',
-										},
-									}}
-									fontColor={'#1E1E1E'}
-									isLoading={isFieldInProgress('discount')}
-								/>
-							</Skeleton>
-						</Flex>
-					</Td>
-				)}
-
-				{/* <Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{withNoValueFallback(productData.inventory?.shelfId)}
-								shelf
-							</Text>
-						</Skeleton>
-					</Flex>
-				</Td> */}
-
-				{/* Warehouse */}
-				{/* <Td sx={styles.tableRow}>
-					<Flex sx={styles.cellContentWrapper}>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>warehouseId</Text>
-						</Skeleton>
-					</Flex>
-				</Td> */}
-				{/* <Td sx={styles.tableRow}>
-					<Flex
-						sx={{
-							...styles.cellContentWrapper,
-							flexDirection: 'column',
-							justifyContent: 'center',
-							alignItems: 'start',
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<Text sx={styles.text}>
-								{productData.name ? formatDate(new Date()) : ''}
-							</Text>
-							<Text sx={styles.text}>
-								{productData.name ? formatDate(new Date()) : ''}
-							</Text>
-						</Skeleton>
-					</Flex>
-				</Td> */}
-
+				{visibleColumns.map(column => renderDataCell(column.id))}
 				<Td
 					sx={{ ...styles.tableRow, ...styles.rightStickyContainer, right: 1 }}
 					onClick={event => event.stopPropagation()}
 				>
 					<Flex sx={styles.rightStickyContainerContent}>
-						{/* Notification Circle & State Circle */}
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
 								<NotificationCircle

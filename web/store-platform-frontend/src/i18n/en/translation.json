@@ -964,6 +964,26 @@
 			"print": "Print",
 			"barcodeCaption": "Barcode: {{value}}"
 		},
+		"columnConfig": {
+			"configureColumns": "Configure columns",
+			"columns": "Columns",
+			"savedConfigurations": "Saved Column Configurations",
+			"saveCurrent": "Save Current Configuration",
+			"namePlaceholder": "Configuration name",
+			"noSavedConfigurations": "No saved configurations yet",
+			"saveSuccess": "Column configuration saved.",
+			"saveError": "Could not save column configuration.",
+			"rename": "Rename",
+			"renameSuccess": "Column configuration renamed.",
+			"overwrite": "Overwrite with current layout",
+			"overwriteConfirm": "Overwrite configuration",
+			"overwriteConfirmBody": "Replace this saved configuration with the current column layout?",
+			"loadSuccess": "Column configuration applied.",
+			"deleteConfirm": "Delete configuration",
+			"deleteConfirmBody": "This saved column configuration will be deleted.",
+			"deleteSuccess": "Column configuration deleted.",
+			"saveLimitReached": "You can save at most {{max}} column configurations."
+		},
 		"filters": {
 			"clearFilter": "Clear filter",
 			"clearFilters": "Clear Filters",

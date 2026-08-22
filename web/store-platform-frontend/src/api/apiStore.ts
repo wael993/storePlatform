@@ -74,6 +74,17 @@ interface EditProductQueryArgument {
 	body: Partial<Omit<Product, 'id' | 'productId'>>
 }
 
+export type ListColumnConfigType =
+	'products' | 'suppliers' | 'customers' | 'categories' | 'partners'
+
+export interface SavedColumnConfig {
+	id: string
+	listType: ListColumnConfigType
+	name: string
+	cols: string
+	isDefault: boolean
+}
+
 export interface UserSettings {
 	_id?: string
 	tenantId: string
@@ -81,6 +92,7 @@ export interface UserSettings {
 	productsPerPage: number
 	displayLanguage: 'en' | 'de' | 'ar'
 	defaultInvoiceCurrencyId?: string
+	columnConfigs?: SavedColumnConfig[]
 	createdAt?: string
 	updatedAt?: string
 }
@@ -1362,6 +1374,20 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
+			async onQueryStarted(_body, { dispatch, queryFulfilled }) {
+				try {
+					const { data } = await queryFulfilled
+					dispatch(
+						storeApi.util.updateQueryData(
+							'getUserSettings',
+							undefined,
+							() => data,
+						),
+					)
+				} catch {
+					// invalidatesTags will refetch
+				}
+			},
 			invalidatesTags: ['user-settings'],
 		}),
 

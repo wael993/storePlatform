@@ -948,6 +948,26 @@
 			"print": "Drucken",
 			"barcodeCaption": "Barcode: {{value}}"
 		},
+		"columnConfig": {
+			"configureColumns": "Spalten konfigurieren",
+			"columns": "Spalten",
+			"savedConfigurations": "Gespeicherte Spaltenkonfigurationen",
+			"saveCurrent": "Aktuelle Konfiguration speichern",
+			"namePlaceholder": "Name der Konfiguration",
+			"noSavedConfigurations": "Noch keine gespeicherten Konfigurationen",
+			"saveSuccess": "Spaltenkonfiguration gespeichert.",
+			"saveError": "Spaltenkonfiguration konnte nicht gespeichert werden.",
+			"rename": "Umbenennen",
+			"renameSuccess": "Spaltenkonfiguration umbenannt.",
+			"overwrite": "Mit aktuellem Layout überschreiben",
+			"overwriteConfirm": "Konfiguration überschreiben",
+			"overwriteConfirmBody": "Diese gespeicherte Konfiguration durch das aktuelle Spaltenlayout ersetzen?",
+			"loadSuccess": "Spaltenkonfiguration übernommen.",
+			"deleteConfirm": "Konfiguration löschen",
+			"deleteConfirmBody": "Diese gespeicherte Spaltenkonfiguration wird gelöscht.",
+			"deleteSuccess": "Spaltenkonfiguration gelöscht.",
+			"saveLimitReached": "Sie können höchstens {{max}} Spaltenkonfigurationen speichern."
+		},
 		"filters": {
 			"clearFilter": "Filter löschen",
 			"clearFilters": "Filter löschen",
