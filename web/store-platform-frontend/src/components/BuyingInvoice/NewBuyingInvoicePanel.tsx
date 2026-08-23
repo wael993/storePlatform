@@ -252,6 +252,8 @@ const NewBuyingInvoicePanel = ({
 	const { user } = useUser()
 	const { canSee } = useSee()
 	const canAddProduct = canSee(SEE.productsAdd)
+	const canAddBuying = canSee(SEE.invoicesBuyingAdd)
+	const canAddSupplier = canSee(SEE.suppliersAdd)
 	const canUseInvoiceAi =
 		canSee(SEE.sellingInvoicesAiRead) &&
 		getEnabledActions().isInvoiceAiEnabled &&
@@ -1157,11 +1159,14 @@ const NewBuyingInvoicePanel = ({
 									const match = draft.extraction?.supplierMatch
 									if (match?.id) handleSupplierChange(match.id)
 								}}
-								onCreate={() =>
-									setCreateSupplierName(
-										draft.extraction?.supplierMatch?.invoiceName ??
-											draft.supplierName,
-									)
+								onCreate={
+									canAddSupplier
+										? () =>
+												setCreateSupplierName(
+													draft.extraction?.supplierMatch?.invoiceName ??
+														draft.supplierName,
+												)
+										: undefined
 								}
 							/>
 							{draft.sourceSupplierName &&
@@ -1238,7 +1243,7 @@ const NewBuyingInvoicePanel = ({
 						</HStack>
 					</Box>
 
-					{!isReadOnly && (
+					{!isReadOnly && canAddBuying && (
 						<Box>
 							<InvoiceProductSearch
 								onAddProduct={product => {
@@ -1311,10 +1316,14 @@ const NewBuyingInvoicePanel = ({
 											? () => setCreateProductLineId(item.id)
 											: undefined
 									}
-									onFind={() => {
-										findProductLineIdRef.current = item.id
-										setSearchFocusNonce(nonce => nonce + 1)
-									}}
+									onFind={
+										canAddBuying
+											? () => {
+													findProductLineIdRef.current = item.id
+													setSearchFocusNonce(nonce => nonce + 1)
+												}
+											: undefined
+									}
 								/>
 							)
 						}}
@@ -1764,7 +1773,7 @@ const NewBuyingInvoicePanel = ({
 				}}
 			/>
 			<Modal
-				isOpen={createSupplierName != null}
+				isOpen={canAddSupplier && createSupplierName != null}
 				onClose={() => setCreateSupplierName(null)}
 				isCentered
 			>

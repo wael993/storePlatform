@@ -154,6 +154,7 @@ export default class PartnerController {
 		requestContext: RequestContext,
 		requestBody: PartnerRequestBody,
 	): Promise<CreatePartnerResponse | null> {
+		await ensureSeeIds(requestContext, [SEE.partnersAdd])
 		const { name, internalCode } = requestBody
 		const tenantContext = getTenantContext(requestContext)
 

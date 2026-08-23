@@ -127,6 +127,7 @@ export default class EmployeeController {
 		body: Record<string, unknown>,
 	): Promise<{ employeeId: string }> {
 		const tenantId = await this.requireAccess(requestContext)
+		await ensureSeeIds(requestContext, [SEE.employeesAdd])
 		const name = parseOrThrow(() => parseRequiredName(body.name))
 		const employmentType = parseOrThrow(() =>
 			parseEmploymentType(body.employmentType),

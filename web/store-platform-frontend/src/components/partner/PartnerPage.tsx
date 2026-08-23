@@ -26,6 +26,8 @@ import {
 	useGetPartnersQuery,
 } from '../../api/apiStore'
 import AddQuickModal from '../modals/AddQuickModal'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 
 const fullWidth = '100%'
 
@@ -84,6 +86,7 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
+	const { canSee } = useSee()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: partnersResponse = [], isLoading: isPartnersLoading } =
@@ -132,16 +135,18 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.partners')}
 				</Heading>
-				<Button
-					leftIcon={<AddSquareIcon />}
-					onClick={onOpen}
-					sx={styles.addProductButton}
-					variant="ghost"
-				>
-					<Text sx={styles.addProductButtonText}>
-						{t('common.addPartner')}
-					</Text>
-				</Button>
+				{canSee(SEE.partnersAdd) && (
+					<Button
+						leftIcon={<AddSquareIcon />}
+						onClick={onOpen}
+						sx={styles.addProductButton}
+						variant="ghost"
+					>
+						<Text sx={styles.addProductButtonText}>
+							{t('common.addPartner')}
+						</Text>
+					</Button>
+				)}
 			</HStack>
 
 			{isPartnersLoading && <Spinner />}
@@ -162,7 +167,7 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handlePostNewPartner}
-				userHasAdminRole={true}
+				userHasAdminRole={canSee(SEE.partnersAdd)}
 			/>
 		</Flex>
 	)

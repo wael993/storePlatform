@@ -40,10 +40,13 @@ export const SEE = {
 	sellingInvoicesAiRead: 'sellingInvoices.aiRead',
 	reports: 'reports',
 	categories: 'categories',
+	categoriesAdd: 'categories.add',
 	categoriesDelete: 'categories.delete',
 	partners: 'partners',
+	partnersAdd: 'partners.add',
 	partnersDelete: 'partners.delete',
 	employees: 'employees',
+	employeesAdd: 'employees.add',
 	usersInvite: 'users.invite',
 	usersList: 'users.list',
 } as const

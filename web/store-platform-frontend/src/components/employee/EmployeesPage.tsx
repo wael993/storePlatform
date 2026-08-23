@@ -44,6 +44,8 @@ import {
 } from '../../shared/employee'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { formatNumber } from '../../shared/utils'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 
 const styles = {
 	wrapper: { width: '100%', flexDir: 'column', paddingBottom: '1rem' },
@@ -66,6 +68,7 @@ const EmployeesPage = () => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const breadCrumbItems = generateBreadcrumbs()
+	const { canSee } = useSee()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const { data: employees = [], isLoading } = useGetEmployeesQuery()
 	const [createEmployee, { isLoading: isCreating }] =
@@ -147,16 +150,18 @@ const EmployeesPage = () => {
 				<Heading sx={styles.title} variant="h5">
 					{t('components.pageHeaders.employees')}
 				</Heading>
-				<Button
-					leftIcon={<AddSquareIcon />}
-					onClick={onOpen}
-					sx={styles.addButton}
-					variant="ghost"
-				>
-					<Text fontSize="0.875rem" fontWeight={700} color="#1E1E1E">
-						{t('employees.add')}
-					</Text>
-				</Button>
+				{canSee(SEE.employeesAdd) && (
+					<Button
+						leftIcon={<AddSquareIcon />}
+						onClick={onOpen}
+						sx={styles.addButton}
+						variant="ghost"
+					>
+						<Text fontSize="0.875rem" fontWeight={700} color="#1E1E1E">
+							{t('employees.add')}
+						</Text>
+					</Button>
+				)}
 			</HStack>
 			<HStack px="1rem" mb={4} flexWrap="wrap" gap={3}>
 				<Button

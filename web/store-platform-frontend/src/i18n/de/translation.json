@@ -370,11 +370,14 @@
 				"sellingInvoices_aiRead": "KI-Rechnung lesen sehen",
 				"reports": "Berichte sehen",
 				"categories": "Kategorien sehen",
+				"categories_add": "Kategorien hinzufügen",
 				"categories_delete": "Kategorien löschen",
 				"partners": "Partner sehen",
+				"partners_add": "Partner hinzufügen",
 				"partners_delete": "Partner löschen",
 				"employees": "Mitarbeiter sehen",
-				"users_invite": "Benutzer einladen-Tab sehen",
+				"employees_add": "Mitarbeiter hinzufügen",
+				"users_invite": "Benutzer hinzufügen / einladen",
 				"users_list": "Benutzer-Tab sehen"
 			}
 		}

@@ -17,6 +17,8 @@ import {
 	usePostProductMutation,
 } from '../../../../api/apiStore'
 import { useUser } from '../../../../shared/hooks/useUser'
+import { useSee } from '../../../../shared/hooks/useSee'
+import { SEE } from '../../../../shared/seeFlags'
 import AddQuickModal from '../../AddQuickModal'
 
 const styles = {
@@ -49,8 +51,15 @@ const BUTTONS: {
 	{ type: 'unit', labelKey: 'components.daily.addUnit' },
 ]
 
+const ADD_SEE_FOR: Partial<Record<AddQuickModalType, string>> = {
+	product: SEE.productsAdd,
+	customer: SEE.customersAdd,
+	supplier: SEE.suppliersAdd,
+}
+
 const DailyActionsHelperButtons = () => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
 	const [modalType, setModalType] = useState<AddQuickModalType>('product')
 	const [formData, setFormData] = useState<FormData>({
 		code: '',
@@ -286,7 +295,10 @@ const DailyActionsHelperButtons = () => {
 	return (
 		<>
 			<SimpleGrid columns={[1, 2, 3]} gap={6} sx={{ marginTop: '2rem' }}>
-				{BUTTONS.map(({ type, labelKey }) => (
+				{BUTTONS.filter(({ type }) => {
+					const flag = ADD_SEE_FOR[type]
+					return !flag || canSee(flag)
+				}).map(({ type, labelKey }) => (
 					<Button
 						key={type}
 						rightIcon={<AsCheckmarkCircleIcon style={{ fontSize: '1.5rem' }} />}
@@ -312,7 +324,11 @@ const DailyActionsHelperButtons = () => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handleQuickAdd}
-				userHasAdminRole={isOwnerOrAdmin}
+				userHasAdminRole={
+					ADD_SEE_FOR[modalType]
+						? canSee(ADD_SEE_FOR[modalType] as string)
+						: isOwnerOrAdmin
+				}
 			/>
 		</>
 	)

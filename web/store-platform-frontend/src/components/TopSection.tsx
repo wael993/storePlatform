@@ -37,6 +37,8 @@ import { hoverFocusActiveButtonStyles } from '../theme/styles'
 import AddDailyActionModal from './modals/DailyAction/AddDailyActionModal'
 import { useResources } from '../shared/hooks/useResources'
 import { useUser } from '../shared/hooks/useUser'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 import PartyInvoiceSummaryCards from './common/PartyInvoiceSummaryCards'
 
 const iconSize = '1.5rem'
@@ -234,6 +236,8 @@ const TopSection = ({
 	} = useDisclosure()
 	const { isActionAllowed } = useResources()
 	const { isAdmin } = useUser()
+	const { canSee } = useSee()
+	const canAddEntries = canSee(SEE.invoicesEntriesAdd)
 	const { t } = useTranslation()
 	const entry = customer ?? supplier ?? partner ?? product
 
@@ -332,7 +336,9 @@ const TopSection = ({
 									: breadCrumbItems[BreadCrumbItem.SUPPLIER]
 					}
 				/>
-				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) && isAdmin && (
+				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
+					isAdmin &&
+					canAddEntries && (
 					<HStack alignSelf={'flex-end'}>
 						<Button
 							leftIcon={<AddSquareIcon />}
@@ -460,7 +466,7 @@ const TopSection = ({
 			<Box sx={styles.divider} />
 
 			<AddDailyActionModal
-				isOpen={isAddDailyActionModalOpen}
+				isOpen={isAddDailyActionModalOpen && canAddEntries}
 				onClose={onAddDailyActionModalClose}
 				targetType={targetType}
 				entryTargetId={entryTargetId}

@@ -27,6 +27,8 @@ import {
 	useUpdateSellingInvoiceMutation,
 } from '../../api/apiStore'
 import { useUser } from '../../shared/hooks/useUser'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import useCustomToast from '../common/CustomToast'
 import { PAGE_COLORS } from './constants'
@@ -215,6 +217,8 @@ const NewSellingInvoicePanel = ({
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { user } = useUser()
+	const { canSee } = useSee()
+	const canAddSelling = canSee(SEE.sellingInvoicesSellingButton)
 	const { data: fetchedCustomers = [] } = useGetCustomersQuery(undefined, {
 		skip: customersProp !== undefined,
 		refetchOnMountOrArgChange: false,
@@ -788,7 +792,7 @@ const NewSellingInvoicePanel = ({
 					</HStack>
 				</Box>
 
-				{!isReadOnly && (
+				{!isReadOnly && canAddSelling && (
 					<Box>
 						<InvoiceProductSearch
 							onAddProduct={handleAddProduct}

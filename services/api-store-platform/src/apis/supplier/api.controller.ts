@@ -243,6 +243,7 @@ export default class SupplierController {
 		requestContext: RequestContext,
 		requestBody: SupplierRequestBody,
 	): Promise<CreateSupplierResponse | null> {
+		await ensureSeeIds(requestContext, [SEE.suppliersAdd])
 		const { name, internalCode } = requestBody
 		const tenantContext = getTenantContext(requestContext)
 

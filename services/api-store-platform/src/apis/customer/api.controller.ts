@@ -221,6 +221,7 @@ export default class CustomerController {
 		requestContext: RequestContext,
 		requestBody: CustomerRequestBody,
 	): Promise<CreateCustomerResponse | null> {
+		await ensureSeeIds(requestContext, [SEE.customersAdd])
 		const { name, internalCode } = requestBody
 		const tenantContext = getTenantContext(requestContext)
 

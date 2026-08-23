@@ -371,11 +371,14 @@
 				"sellingInvoices_aiRead": " قراءة الفاتورة بالذكاء الاصطناعي",
 				"reports": " صفحة التقارير",
 				"categories": " صفحة التصنيفات",
+				"categories_add": "يمكن إضافة تصنيفات",
 				"categories_delete": "يمكن حذف التصنيفات",
 				"partners": " صفحة الشركاء",
+				"partners_add": "يمكن إضافة شركاء",
 				"partners_delete": "يمكن حذف الشركاء",
 				"employees": " صفحة الموظفين",
-				"users_invite": " نافذة دعوة مستخدم",
+				"employees_add": "يمكن إضافة موظفين",
+				"users_invite": "يمكن إضافة / دعوة مستخدم",
 				"users_list": " نافذة المستخدمين"
 			}
 		}

@@ -110,6 +110,7 @@ export default class CategoryController {
 		requestBody: CategoryRequestBody,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.categoriesAdd])
 		const tenantContext = getTenantContext(requestContext)
 
 		if (!requestBody.name?.trim()) {

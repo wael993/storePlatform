@@ -17,6 +17,8 @@ import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import ProductModal from './ProductModal'
 import AddProductModal from './AddProductModal'
 import { useTranslation } from 'react-i18next'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 
 interface BarcodeScannerProps {
 	addToCart: (product: Product) => void
@@ -24,6 +26,8 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canAddProduct = canSee(SEE.productsAdd)
 	const [barcodeInput, setBarcodeInput] = useState('')
 	const [searchBarcode, setSearchBarcode] = useState('')
 	const [pendingBarcode, setPendingBarcode] = useState('')
@@ -86,9 +90,8 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 		if (!searchBarcode) return
 
 		if (isSuccess) {
-			setError(null)
 			if (product) {
-				// Product exists - show product modal
+				setError(null)
 				onProductModalPreviewOpen()
 			}
 		}
@@ -169,10 +172,19 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 
 		// If API call completed successfully but no product found
 		if (!isFetching && isSuccess && !product) {
-			onAddProductModalOpen()
+			if (canAddProduct) onAddProductModalOpen()
+			else setError(t('productModal.notFound'))
 			setSearchBarcode('')
 		}
-	}, [isFetching, isSuccess, product, searchBarcode, onAddProductModalOpen])
+	}, [
+		isFetching,
+		isSuccess,
+		product,
+		searchBarcode,
+		canAddProduct,
+		onAddProductModalOpen,
+		t,
+	])
 
 	useEffect(() => {
 		if (!isQueryError || !searchBarcode) return
@@ -181,9 +193,11 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 		setError(message)
 
 		if (message.toLowerCase().includes('not found')) {
-			onAddProductModalOpen()
+			if (canAddProduct) {
+				onAddProductModalOpen()
+				setError(null)
+			}
 			setSearchBarcode('')
-			setError(null)
 			return
 		}
 
@@ -199,6 +213,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 		queryError,
 		getQueryErrorMessage,
 		onAddProductModalOpen,
+		canAddProduct,
 	])
 
 	return (
@@ -246,7 +261,7 @@ const BarcodeScanner = ({ addToCart }: BarcodeScannerProps) => {
 			)}
 
 			<AddProductModal
-				isOpen={isAddProductModalOpen}
+				isOpen={canAddProduct && isAddProductModalOpen}
 				onClose={handleCreateModalClose}
 				barcode={pendingBarcode || searchBarcode || barcodeInput}
 				onSuccess={handleAddProductSuccess}

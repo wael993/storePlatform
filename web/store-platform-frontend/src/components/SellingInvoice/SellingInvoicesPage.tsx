@@ -471,6 +471,8 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleBarcodeSearchSubmit = (value: string) => {
+		if (!canSeeAddSelling) return
+
 		const barcode = normalizeBarcode(value)
 		if (!barcode) return
 
@@ -880,9 +882,13 @@ const SellingInvoicesPage = () => {
 						</Accordion>
 						) : null}
 
-						<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>
-							<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />
-						</Box>
+						{canSeeAddSelling && (
+							<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>
+								<InvoiceBarcodeSearchBar
+									onSubmit={handleBarcodeSearchSubmit}
+								/>
+							</Box>
+						)}
 
 						{canSeeInvoiceLists ? (
 						<Box sx={isDraftOpen ? styles.listScrollArea : undefined}>

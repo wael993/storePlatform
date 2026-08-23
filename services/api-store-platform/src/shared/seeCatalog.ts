@@ -46,10 +46,13 @@ export const SEE = {
 	sellingInvoicesAiRead: 'sellingInvoices.aiRead',
 	reports: 'reports',
 	categories: 'categories',
+	categoriesAdd: 'categories.add',
 	categoriesDelete: 'categories.delete',
 	partners: 'partners',
+	partnersAdd: 'partners.add',
 	partnersDelete: 'partners.delete',
 	employees: 'employees',
+	employeesAdd: 'employees.add',
 	usersInvite: 'users.invite',
 	usersList: 'users.list',
 } as const
@@ -154,16 +157,23 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 	{
 		id: SEE.categories,
 		tenantPage: TENANT_ACCESSIBLE_PAGE.CATEGORIES,
-		children: [{ id: SEE.categoriesDelete }],
+		children: [{ id: SEE.categoriesAdd }, { id: SEE.categoriesDelete }],
 	},
 	{
 		id: SEE.partners,
 		tenantPage: TENANT_ACCESSIBLE_PAGE.PARTNERS,
-		children: [{ id: SEE.partnersDelete }],
+		children: [{ id: SEE.partnersAdd }, { id: SEE.partnersDelete }],
 	},
-	{ id: SEE.employees, tenantPage: TENANT_ACCESSIBLE_PAGE.EMPLOYEES },
-	{ id: SEE.usersInvite, tenantPage: TENANT_ACCESSIBLE_PAGE.USERS },
-	{ id: SEE.usersList, tenantPage: TENANT_ACCESSIBLE_PAGE.USERS },
+	{
+		id: SEE.employees,
+		tenantPage: TENANT_ACCESSIBLE_PAGE.EMPLOYEES,
+		children: [{ id: SEE.employeesAdd }],
+	},
+	{
+		id: SEE.usersList,
+		tenantPage: TENANT_ACCESSIBLE_PAGE.USERS,
+		children: [{ id: SEE.usersInvite }],
+	},
 ]
 
 const ROLE_DEFAULTS: SeeId[] = [

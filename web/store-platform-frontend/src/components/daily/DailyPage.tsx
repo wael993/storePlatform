@@ -19,6 +19,8 @@ import {
 import { ENTRY_TYPE_LABELS_MAP } from '../../shared/globalConstant'
 import { useResources } from '../../shared/hooks/useResources'
 import { useUser } from '../../shared/hooks/useUser'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import CustomBreadcrumb from '../CustomBreadcrumb'
@@ -165,6 +167,8 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 	const { t } = useTranslation()
 	const { isActionAllowed } = useResources()
 	const { isOwnerOrAdmin, isAdmin } = useUser()
+	const { canSee } = useSee()
+	const canAddEntries = canSee(SEE.invoicesEntriesAdd)
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const [dailyFilters, setDailyFilters] = useState<ProductFilterValues>(
 		getDefaultDailyFilters,
@@ -290,7 +294,8 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 							)}
 
 						{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
-							isAdmin && (
+							isAdmin &&
+							canAddEntries && (
 								<Button
 									leftIcon={<AddSquareIcon />}
 									onClick={onOpen}
@@ -385,7 +390,7 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 			/>
 
 			<AddDailyActionModal
-				isOpen={isOpen}
+				isOpen={isOpen && canAddEntries}
 				onClose={onClose}
 				targetType={targetType}
 			/>

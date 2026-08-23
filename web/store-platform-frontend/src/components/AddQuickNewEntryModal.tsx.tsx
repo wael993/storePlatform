@@ -29,6 +29,8 @@ import {
 	useCreateWarehouseMutation,
 } from '../api/apiStore'
 import { useUser } from '../shared/hooks/useUser'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 import { CashflowIcon } from '../shared/icons/Cashflow'
 import { CubeIcon } from '../shared/icons/Cube'
 import { GridIcon } from '../shared/icons/Grid'
@@ -113,9 +115,17 @@ const styles = {
 	},
 } satisfies StylesObject
 
+const ADD_SEE_FOR: Partial<Record<AddQuickModalType, string>> = {
+	customer: SEE.customersAdd,
+	supplier: SEE.suppliersAdd,
+	category: SEE.categoriesAdd,
+	partner: SEE.partnersAdd,
+}
+
 const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 	const { t, i18n } = useTranslation()
 	const { isOwnerOrAdmin } = useUser()
+	const { canSee } = useSee()
 	const { isArabic } = compareLanguage(i18n.language)
 
 	const {
@@ -332,7 +342,10 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 							}}
 							gap={3}
 						>
-							{QUICK_ADD_CARDS.map(({ type, labelKey, Icon }) => (
+							{QUICK_ADD_CARDS.filter(({ type }) => {
+								const flag = ADD_SEE_FOR[type]
+								return !flag || canSee(flag)
+							}).map(({ type, labelKey, Icon }) => (
 								<Flex
 									key={type}
 									sx={styles.card}
@@ -364,7 +377,11 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handleQuickAdd}
-				userHasAdminRole={isOwnerOrAdmin}
+				userHasAdminRole={
+					ADD_SEE_FOR[modalType]
+						? canSee(ADD_SEE_FOR[modalType] as string)
+						: isOwnerOrAdmin
+				}
 				showInternalCodeLabel={false}
 			/>
 		</>

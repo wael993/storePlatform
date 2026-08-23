@@ -1494,6 +1494,7 @@ export default class ProductController {
 		requestBody: ProductRequestBody,
 		requestContext: RequestContext,
 	): Promise<CreateProductResponse | null> {
+		await ensureSeeIds(requestContext, [SEE.productsAdd])
 		const tenantContext = getTenantContext(requestContext)
 
 		const {
@@ -2970,6 +2971,7 @@ export default class ProductController {
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
 	): Promise<CreateDailyActionResponse> {
+		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
 		const actionId = this.resolveSyncClientId(
 			(requestBody as DailyActionRequestBody & { actionId?: string }).actionId,
 		)

@@ -29,6 +29,8 @@ import {
 	useCreateCategoryMutation,
 	useGetCategoriesQuery,
 } from '../../api/apiStore'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 
 const fullWidth = '100%'
 
@@ -89,6 +91,7 @@ const CategoryPage = (_props: CategoryPageProps) => {
 	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
+	const { canSee } = useSee()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: categoriesResponse = [], isLoading: isCategoriesLoading } =
@@ -127,14 +130,16 @@ const CategoryPage = (_props: CategoryPageProps) => {
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.categories')}
 				</Heading>
-				<Button
-					leftIcon={<AddSquareIcon />}
-					onClick={onOpen}
-					sx={styles.addButton}
-					variant="ghost"
-				>
-					<Text sx={styles.addButtonText}>{t('common.addCategory')}</Text>
-				</Button>
+				{canSee(SEE.categoriesAdd) && (
+					<Button
+						leftIcon={<AddSquareIcon />}
+						onClick={onOpen}
+						sx={styles.addButton}
+						variant="ghost"
+					>
+						<Text sx={styles.addButtonText}>{t('common.addCategory')}</Text>
+					</Button>
+				)}
 			</HStack>
 
 			{isCategoriesLoading && <Spinner />}

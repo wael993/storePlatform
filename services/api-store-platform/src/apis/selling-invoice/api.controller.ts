@@ -972,6 +972,7 @@ export default class SellingInvoiceController {
 		requestBody: InvoiceRequestBody,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.sellingInvoicesSellingButton])
 		if (requestBody.clientMutationId) {
 			const processed = await this.ops.getProcessedSyncMutation(
 				requestContext,

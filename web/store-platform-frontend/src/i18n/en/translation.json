@@ -371,11 +371,14 @@
 				"sellingInvoices_aiRead": "Can see AI read invoice",
 				"reports": "Can see Reports page",
 				"categories": "Can see Categories page",
+				"categories_add": "Can add categories",
 				"categories_delete": "Can delete categories",
 				"partners": "Can see Partners page",
+				"partners_add": "Can add partners",
 				"partners_delete": "Can delete partners",
 				"employees": "Can see Employees page",
-				"users_invite": "Can see Invite User tab",
+				"employees_add": "Can add employees",
+				"users_invite": "Can add / invite user",
 				"users_list": "Can see Users tab"
 			}
 		}
