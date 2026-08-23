@@ -21,6 +21,7 @@ type ReportHttpRequest = express.Request & {
 		role?: RequestContext['role']
 	}
 	allowedFields?: string[]
+	see?: string[]
 }
 
 const isHandleableError = (error: unknown): error is HttpError =>
@@ -96,6 +97,7 @@ export default class ReportRoutes {
 			role: request.user?.role,
 			user: request.user,
 			allowedFields: request.allowedFields || [],
+			see: request.see || [],
 		}
 	}
 

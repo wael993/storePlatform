@@ -126,6 +126,7 @@ export default class StoreRoutes extends PlatformValidator {
 			role: request.user?.role,
 			user: request.user,
 			allowedFields: request.allowedFields || [],
+			see: request.see || [],
 		}
 
 		return requestContext

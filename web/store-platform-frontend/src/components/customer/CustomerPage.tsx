@@ -14,14 +14,9 @@ import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
-import {
-	BreadCrumbItem,
-	AllowedActions,
-	TargetType,
-	AddQuickStateEnum,
-} from '../../shared/globalEnums'
-import { useResources } from '../../shared/hooks/useResources'
-import { useUser } from '../../shared/hooks/useUser'
+import { BreadCrumbItem, TargetType, AddQuickStateEnum } from '../../shared/globalEnums'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import CustomerListWithActionBar from './list/CustomerListWithActionBar'
 import {
@@ -86,8 +81,7 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
-	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin } = useUser()
+	const { canSee } = useSee()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: customersResponse = [], isLoading: isCustomersLoading } =
@@ -148,7 +142,7 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.customers')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_CUSTOMER) && isOwnerOrAdmin && (
+				{canSee(SEE.customersAdd) && (
 					<Button
 						leftIcon={<AddSquareIcon />}
 						onClick={onOpen}
@@ -178,7 +172,7 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handlePostNewCustomer}
-				userHasAdminRole={isOwnerOrAdmin}
+				userHasAdminRole={canSee(SEE.customersAdd)}
 				nextInternalCode={nextInternalCode}
 			/>
 		</Flex>

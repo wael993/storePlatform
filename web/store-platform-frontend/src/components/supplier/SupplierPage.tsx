@@ -12,7 +12,6 @@ import React, { useState } from 'react'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import {
 	AddQuickStateEnum,
-	AllowedActions,
 	BreadCrumbItem,
 	TargetType,
 } from '../../shared/globalEnums'
@@ -20,8 +19,7 @@ import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
-import { useResources } from '../../shared/hooks/useResources'
-import { useUser } from '../../shared/hooks/useUser'
+import useAllowedActions from '../../shared/hooks/useAllowedActions'
 import SupplierListWithActionBar from './list/SupplierListWithActionBar'
 import {
 	useCreateSupplierMutation,
@@ -86,8 +84,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
-	const { isActionAllowed } = useResources()
-	const { isAdmin } = useUser()
+	const { canAddSupplier } = useAllowedActions()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const { data: suppliers = [], isLoading: isSuppliersLoading } =
 		useGetSuppliersQuery({})
@@ -137,7 +134,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.suppliers')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_SUPPLIER) && isAdmin && (
+				{canAddSupplier && (
 					<Button
 						leftIcon={<AddSquareIcon />}
 						onClick={onOpen}
@@ -169,7 +166,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handlePostNewSupplier}
-				userHasAdminRole={isAdmin}
+				userHasAdminRole={canAddSupplier}
 				nextInternalCode={nextInternalCode}
 			/>
 		</Flex>

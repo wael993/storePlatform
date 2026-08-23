@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { SortOrder, SupplierSortHeaderKey } from '../../list/shared/globalEnums'
 import { useResources } from '../../../shared/hooks/useResources'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 import TableSort from '../../common/CustomTableSort'
 import { SUPPLIER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { isTruthy } from '../../list/shared/utils'
@@ -70,6 +72,7 @@ const SupplierListHeaderRow = ({
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
 	const { isActionAllowed } = useResources()
+	const { canSee } = useSee()
 	const showCheckbox = true
 
 	const handleSort = (sortingCell: SupplierSortHeaderKey, order: SortOrder) => {
@@ -108,11 +111,15 @@ const SupplierListHeaderRow = ({
 			width: SUPPLIER_LIST_WIDTHS_MAP_IN_REM.INTERNAL_CODE,
 			sortKey: SupplierSortHeaderKey.INTERNAL_CODE,
 		},
-		{
-			label: t('components.invoiceSummary.totalPayable'),
-			width: SUPPLIER_LIST_WIDTHS_MAP_IN_REM.TOTAL_PAYABLE,
-			sortKey: SupplierSortHeaderKey.TOTAL_PAYABLE,
-		},
+		...(canSee(SEE.suppliersTotalPayable)
+			? [
+					{
+						label: t('components.invoiceSummary.totalPayable'),
+						width: SUPPLIER_LIST_WIDTHS_MAP_IN_REM.TOTAL_PAYABLE,
+						sortKey: SupplierSortHeaderKey.TOTAL_PAYABLE,
+					},
+				]
+			: []),
 
 		{
 			label: null,

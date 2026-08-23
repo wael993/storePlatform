@@ -16,6 +16,7 @@ interface RequestContext {
 	role?: UserRole
 	user?: AuthorizedUser
 	allowedFields: string[]
+	see?: string[]
 }
 
 interface HttpError {
@@ -233,7 +234,7 @@ export type SellingInvoicesSummary = {
 
 export type SellingInvoicesListResponse = {
 	invoices: Array<Record<string, unknown>>
-	summary: SellingInvoicesSummary
+	summary?: SellingInvoicesSummary
 	customerSummary?: CustomerInvoiceSummary
 	nextInvoiceNumber: number
 	totalCount: number

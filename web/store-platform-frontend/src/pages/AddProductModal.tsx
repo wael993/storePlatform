@@ -39,6 +39,8 @@ import { isValid, parse } from 'date-fns'
 import { ChevronRightIcon } from '../components/icons/ChevronRight'
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon'
 import { useSettings } from '../shared/context/SettingsContext'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 import {
 	buildDisplayCurrencyOptions,
 	resolveDefaultDisplayCurrencyId,
@@ -210,6 +212,9 @@ const AddProductModal = ({
 	onCreated,
 }: AddProductModalProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canSeeCategories = canSee(SEE.categories)
+	const canSeeSupplier = canSee(SEE.supplier)
 	const { isArabic } = compareLanguage(i18n.language)
 	const [postNewProduct, { isLoading: isCreating }] = usePostProductMutation()
 	const [editProduct, { isLoading: isUpdatingProduct }] =
@@ -228,9 +233,11 @@ const AddProductModal = ({
 	const isLoading = isCreating || isUpdatingProduct || isUpdatingInventory
 
 	const { data: categories = [], isLoading: isCategoriesLoading } =
-		useGetCategoriesQuery(undefined, { skip: !isOpen })
+		useGetCategoriesQuery(undefined, {
+			skip: !isOpen || !canSeeCategories,
+		})
 	const { data: suppliers = [], isLoading: isSuppliersLoading } =
-		useGetSuppliersQuery({}, { skip: !isOpen })
+		useGetSuppliersQuery({}, { skip: !isOpen || !canSeeSupplier })
 	const { data: units = [], isLoading: isUnitsLoading } = useGetUnitsQuery(
 		{},
 		{ skip: !isOpen },
@@ -706,6 +713,7 @@ const AddProductModal = ({
 
 	const renderClassificationStep = () => (
 		<VStack spacing={4} align="stretch">
+			{canSeeCategories && (
 			<DropdownLabel
 				isSearchable
 				isSingle
@@ -716,6 +724,8 @@ const AddProductModal = ({
 				onSelect={values => handleDropdownSelect('categoryId', values)}
 				isLoading={isCategoriesLoading}
 			/>
+			)}
+			{canSeeSupplier && (
 			<DropdownLabel
 				isSearchable
 				isSingle
@@ -726,6 +736,7 @@ const AddProductModal = ({
 				onSelect={values => handleDropdownSelect('supplierId', values)}
 				isLoading={isSuppliersLoading}
 			/>
+			)}
 			<DropdownLabel
 				isSearchable
 				isSingle

@@ -43,6 +43,12 @@ export const updateTenantUser = async (
 	// }
 	if (requestBody.role) {
 		assertAssignableTenantRole(requestBody.role)
+		if (requestBody.role === 'owner' && requestContext.role !== 'owner') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Only owner can assign the owner role.',
+			)
+		}
 		updates.role = requestBody.role
 	}
 

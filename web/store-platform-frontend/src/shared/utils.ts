@@ -2,6 +2,7 @@ import { config } from '../config'
 import { Breakpoints, EntryType, TargetType } from './globalEnums'
 import { parseNumberValue, toDotDecimal } from './numberParse'
 import { RoutePaths } from './routes'
+import { SEE } from './seeFlags'
 import {
 	CONFIGURABLE_TENANT_PAGES,
 	TenantAccessiblePage,
@@ -129,31 +130,43 @@ export const isTenantRouteAllowed = (
 	pathname: string,
 	globalActions: GlobalActionFlags,
 	tenantActions: TenantActionFlags,
+	canSee: (id: string) => boolean = () => true,
 ): boolean => {
 	if (
 		pathname === RoutePaths.ROOT ||
-		pathname === RoutePaths.STORE_PLATFORM ||
-		pathname.startsWith(RoutePaths.LOGIN)
+		pathname === RoutePaths.STORE_PLATFORM
 	) {
+		return canSee(SEE.welcome)
+	}
+
+	if (pathname.startsWith(RoutePaths.LOGIN)) {
 		return true
 	}
 
 	const routeChecks: Array<[string, boolean]> = [
 		[
 			RoutePaths.BARCODE,
-			globalActions.isBarcodeEnabled && tenantActions.isTenantBarcodeEnabled,
+			globalActions.isBarcodeEnabled &&
+				tenantActions.isTenantBarcodeEnabled &&
+				canSee(SEE.barcode),
 		],
 		[
 			RoutePaths.PRODUCTS,
-			globalActions.isProductsEnabled && tenantActions.isTenantProductsEnabled,
+			globalActions.isProductsEnabled &&
+				tenantActions.isTenantProductsEnabled &&
+				canSee(SEE.products),
 		],
 		[
 			RoutePaths.DAILY,
-			globalActions.isDailyEnabled && tenantActions.isTenantDailyEnabled,
+			globalActions.isDailyEnabled &&
+				tenantActions.isTenantDailyEnabled &&
+				canSee(SEE.daily),
 		],
 		[
 			RoutePaths.ORDERS,
-			globalActions.isOrdersEnabled && tenantActions.isTenantOrdersEnabled,
+			globalActions.isOrdersEnabled &&
+				tenantActions.isTenantOrdersEnabled &&
+				canSee(SEE.orders),
 		],
 		[
 			RoutePaths.INVOICES,
@@ -162,43 +175,56 @@ export const isTenantRouteAllowed = (
 		[
 			RoutePaths.SELLING_INVOICES,
 			globalActions.isSellingInvoicesEnabled &&
-				tenantActions.isTenantSellingInvoicesEnabled,
+				tenantActions.isTenantSellingInvoicesEnabled &&
+				canSee(SEE.invoices),
 		],
 		[
 			RoutePaths.REPORTS,
-			globalActions.isReportsEnabled && tenantActions.isTenantReportsEnabled,
+			globalActions.isReportsEnabled &&
+				tenantActions.isTenantReportsEnabled &&
+				canSee(SEE.reports),
 		],
 		[
 			RoutePaths.CUSTOMERS,
 			globalActions.isCustomersEnabled &&
-				tenantActions.isTenantCustomersEnabled,
+				tenantActions.isTenantCustomersEnabled &&
+				canSee(SEE.customers),
 		],
 		[
 			RoutePaths.CATEGORIES,
 			globalActions.isCategoriesEnabled &&
-				tenantActions.isTenantCategoriesEnabled,
+				tenantActions.isTenantCategoriesEnabled &&
+				canSee(SEE.categories),
 		],
 		[
 			RoutePaths.SUPPLIERS,
 			globalActions.isSuppliersEnabled &&
-				tenantActions.isTenantSuppliersEnabled,
+				tenantActions.isTenantSuppliersEnabled &&
+				canSee(SEE.supplier),
 		],
 		[
 			RoutePaths.PARTNERS,
-			globalActions.isPartnersEnabled && tenantActions.isTenantPartnersEnabled,
+			globalActions.isPartnersEnabled &&
+				tenantActions.isTenantPartnersEnabled &&
+				canSee(SEE.partners),
 		],
 		[
 			RoutePaths.USERS,
-			globalActions.isUsersEnabled && tenantActions.isTenantUsersEnabled,
+			globalActions.isUsersEnabled &&
+				tenantActions.isTenantUsersEnabled &&
+				(canSee(SEE.usersInvite) || canSee(SEE.usersList)),
 		],
 		[
 			RoutePaths.EMPLOYEES,
 			globalActions.isEmployeesEnabled &&
-				tenantActions.isTenantEmployeesEnabled,
+				tenantActions.isTenantEmployeesEnabled &&
+				canSee(SEE.employees),
 		],
 		[
 			RoutePaths.SETTINGS,
-			globalActions.isSettingsEnabled && tenantActions.isTenantSettingsEnabled,
+			globalActions.isSettingsEnabled &&
+				tenantActions.isTenantSettingsEnabled &&
+				canSee(SEE.settings),
 		],
 		[
 			RoutePaths.ADD_NEW_TENANT,
@@ -224,6 +250,14 @@ export const isTenantRouteAllowed = (
 	}
 
 	return true
+}
+
+export const tenantHomePath = (canSee: (id: string) => boolean): string => {
+	if (canSee(SEE.welcome)) return RoutePaths.ROOT
+	if (canSee(SEE.products)) return RoutePaths.PRODUCTS
+	if (canSee(SEE.invoices)) return RoutePaths.SELLING_INVOICES
+	if (canSee(SEE.daily)) return RoutePaths.DAILY
+	return RoutePaths.ROOT
 }
 
 export const mapFee = (fee?: string | number | null): string | undefined =>

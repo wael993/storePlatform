@@ -90,6 +90,8 @@ interface InvoiceTableSectionProps {
 	onViewEntry?: (entry: DailyAction) => void
 	onEditEntry?: (entry: DailyAction) => void
 	showBuyingInvoices?: boolean
+	showSellingInvoices?: boolean
+	showEntries?: boolean
 }
 
 const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {
@@ -119,6 +121,8 @@ const InvoiceTableSection = ({
 	onViewEntry,
 	onEditEntry,
 	showBuyingInvoices = false,
+	showSellingInvoices = false,
+	showEntries = false,
 }: InvoiceTableSectionProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
@@ -161,6 +165,7 @@ const InvoiceTableSection = ({
 		isLoading: isLoadingSelling,
 		isFetching: isFetchingSelling,
 	} = useGetSellingInvoicesQuery(queryParams, {
+		skip: !showSellingInvoices,
 		refetchOnMountOrArgChange: false,
 	})
 
@@ -178,30 +183,36 @@ const InvoiceTableSection = ({
 		isLoading: isLoadingEntries,
 		isFetching: isFetchingEntries,
 	} = useGetDailyActionsQuery(entryQueryParams, {
-		skip: !showBuyingInvoices,
+		skip: !showEntries,
 		refetchOnMountOrArgChange: false,
 	})
 
 	const isLoading =
-		isLoadingSelling ||
-		(showBuyingInvoices && (isLoadingBuying || isLoadingEntries))
-	const isFetching = isFetchingSelling || isFetchingBuying || isFetchingEntries
+		(showSellingInvoices && isLoadingSelling) ||
+		(showBuyingInvoices && isLoadingBuying) ||
+		(showEntries && isLoadingEntries)
+	const isFetching =
+		(showSellingInvoices && isFetchingSelling) ||
+		(showBuyingInvoices && isFetchingBuying) ||
+		(showEntries && isFetchingEntries)
 
 	const { options: displayCurrencyOptions, displayCurrencyId } =
 		useInvoiceDisplayCurrency()
 
 	const tableRows = useMemo((): InvoiceTableRow[] => {
-		const selling = (invoicesResponse?.invoices ?? []).map(invoice => ({
-			...mapApiInvoiceToSellingInvoice(invoice as ApiSellingInvoice),
-			kind: 'selling' as const,
-		}))
+		const selling = showSellingInvoices
+			? (invoicesResponse?.invoices ?? []).map(invoice => ({
+					...mapApiInvoiceToSellingInvoice(invoice as ApiSellingInvoice),
+					kind: 'selling' as const,
+				}))
+			: []
 		const buying = showBuyingInvoices
 			? (buyingInvoicesResponse?.invoices ?? []).map(invoice => ({
 					...mapApiBuyingInvoiceToTableRow(invoice),
 					kind: 'buying' as const,
 				}))
 			: []
-		const entries = showBuyingInvoices
+		const entries = showEntries
 			? mapDailyActionsToEntryTableRows(dailyActions)
 			: []
 
@@ -211,6 +222,8 @@ const InvoiceTableSection = ({
 		buyingInvoicesResponse?.invoices,
 		dailyActions,
 		showBuyingInvoices,
+		showSellingInvoices,
+		showEntries,
 	])
 
 	const filteredRows = useMemo((): InvoiceTableRow[] => {

@@ -1338,15 +1338,43 @@ const getQuery = (
 			},
 		}),
 
-		getUserFrontendResources: builder.query<FrontendResources[], string>({
+		getUserFrontendResources: builder.query<FrontendResourcesResponse, string>({
 			query: userId => ({
 				url: `user/${userId}/frontend-resources`,
 				method: 'GET',
 			}),
-			transformResponse: (response: {
-				frontendResources: FrontendResources[]
-			}) => response.frontendResources,
 			providesTags: ['frontend-resources'],
+		}),
+		getRoleSeeCatalog: builder.query<
+			{
+				catalog: SeeCatalogNode[]
+				available: string[]
+				defaults: Record<string, string[]>
+			},
+			void
+		>({
+			query: () => ({
+				url: 'role-permissions/catalog',
+			}),
+		}),
+		getRoleSee: builder.query<
+			{ see: string[]; catalog: SeeCatalogNode[] },
+			string
+		>({
+			query: role => ({
+				url: `role-permissions/${role}`,
+			}),
+		}),
+		putRoleSee: builder.mutation<
+			{ role: string; see: string[] },
+			{ role: string; see: string[] }
+		>({
+			query: ({ role, see }) => ({
+				url: `role-permissions/${role}`,
+				method: 'PUT',
+				body: { see },
+			}),
+			invalidatesTags: ['frontend-resources'],
 		}),
 		changePassword: builder.mutation<
 			void,
@@ -2087,6 +2115,9 @@ export const {
 	useGetTenantsQuery,
 	useGetUserQuery,
 	useGetUserFrontendResourcesQuery,
+	useGetRoleSeeCatalogQuery,
+	useGetRoleSeeQuery,
+	usePutRoleSeeMutation,
 	useUpdateTenantMutation,
 	useDeleteTenantMutation,
 	useGetSubscriptionQuery,

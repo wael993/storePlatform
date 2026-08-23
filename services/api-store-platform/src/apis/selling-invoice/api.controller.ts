@@ -23,6 +23,7 @@ import {
 	InvoiceStatus,
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
+import { SEE } from '../../shared/seeCatalog'
 import { getTenantContext } from '../../shared/tenant'
 import {
 	CustomerInvoiceSummary,
@@ -881,11 +882,16 @@ export default class SellingInvoiceController {
 				)
 			: invoices
 
-		const summary = await this.buildSellingInvoicesSummary(
-			requestContext,
-			scopedInvoices,
-			filters,
+		const canSeeSummary = (requestContext.see || []).includes(
+			SEE.sellingInvoicesSummary,
 		)
+		const summary = canSeeSummary
+			? await this.buildSellingInvoicesSummary(
+					requestContext,
+					scopedInvoices,
+					filters,
+				)
+			: undefined
 		let customerSummary: CustomerInvoiceSummary | undefined
 
 		if (filters.customerId) {

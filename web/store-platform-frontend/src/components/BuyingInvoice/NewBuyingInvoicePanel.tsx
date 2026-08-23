@@ -67,6 +67,8 @@ import {
 	parseDateInputValue,
 } from '../../shared/dateUtils'
 import { useUser } from '../../shared/hooks/useUser'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { getEnabledActions, getTenantActions } from '../../shared/utils'
 import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import {
@@ -248,7 +250,10 @@ const NewBuyingInvoicePanel = ({
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { user } = useUser()
+	const { canSee } = useSee()
+	const canAddProduct = canSee(SEE.productsAdd)
 	const canUseInvoiceAi =
+		canSee(SEE.sellingInvoicesAiRead) &&
 		getEnabledActions().isInvoiceAiEnabled &&
 		getTenantActions(user?.accessiblePages).isTenantInvoiceAiEnabled
 	const isReadOnly = mode === 'view'
@@ -1301,7 +1306,11 @@ const NewBuyingInvoicePanel = ({
 											} as Product)
 										handleAddProduct(product, item.id)
 									}}
-									onCreate={() => setCreateProductLineId(item.id)}
+									onCreate={
+										canAddProduct
+											? () => setCreateProductLineId(item.id)
+											: undefined
+									}
 									onFind={() => {
 										findProductLineIdRef.current = item.id
 										setSearchFocusNonce(nonce => nonce + 1)
@@ -1715,7 +1724,7 @@ const NewBuyingInvoicePanel = ({
 				</Box>
 			</Box>
 			<AddProductModal
-				isOpen={createProductLineId != null}
+				isOpen={canAddProduct && createProductLineId != null}
 				onClose={() => setCreateProductLineId(null)}
 				barcode={
 					draft.lineItems.find(item => item.id === createProductLineId)

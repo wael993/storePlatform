@@ -165,6 +165,7 @@ type SettingsHttpRequest = express.Request & {
 		role?: RequestContext['role']
 	}
 	allowedFields?: string[]
+	see?: string[]
 }
 
 export default class SettingController {
@@ -196,6 +197,7 @@ export default class SettingController {
 			role: request.user?.role,
 			user: request.user,
 			allowedFields: request.allowedFields || [],
+			see: request.see || [],
 		}
 	}
 
@@ -735,12 +737,10 @@ export default class SettingController {
 	}
 
 	private assertOwnerOrAdmin(request: SettingsHttpRequest): void {
-		const role = request.user?.role
-
-		if (role !== 'owner' && role !== 'admin') {
+		if (!(request.see || []).includes('settings.products')) {
 			throw new AuthorizationError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'Only owner or admin can manage label templates',
+				'Role cannot see product settings.',
 			)
 		}
 	}

@@ -2,7 +2,10 @@ import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
 
-import { BusinessLogicError } from '../../middleware/errorHandler'
+import {
+	AuthorizationError,
+	BusinessLogicError,
+} from '../../middleware/errorHandler'
 import { Inventory } from '../../models/Inventory'
 import { Invoice } from '../../models/Invoice'
 import { Order } from '../../models/Order'
@@ -28,15 +31,21 @@ import {
 	tenantHasInvoiceAi,
 } from '../../shared/invoiceAi/usage'
 import {
+	catalogForTenant,
+	ensureSeeIds,
+	listRoleSee,
+	saveRoleSee,
+} from '../../shared/seePermissions'
+import { SEE } from '../../shared/seeCatalog'
+import {
 	assertAssignableTenantRole,
 	ensureSuperAdmin,
-	ensureTenantAccess,
 	getEmailDomain,
 	getSuperAdminTenantId,
 	getTenantContext,
+	isTenantRole,
 	UserRole,
 } from '../../shared/tenant'
-import { COLLECTION_NAMES } from '../../shared/general'
 import {
 	validateEmail,
 	validatePasswordStrength,
@@ -130,7 +139,7 @@ export default class TenantController {
 	public async getTenantUsers(
 		requestContext: RequestContext,
 	): Promise<TenantUserSummary[]> {
-		await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS, 'read')
+		await ensureSeeIds(requestContext, [SEE.usersList])
 		const tenantContext = getTenantContext(requestContext)
 
 		const users = await withTenantScope(
@@ -141,11 +150,63 @@ export default class TenantController {
 		return users.map(user => this.mapTenantUser(user))
 	}
 
+	private requireOwner(requestContext: RequestContext) {
+		const tenantContext = getTenantContext(requestContext)
+
+		if (tenantContext.role !== 'owner') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Only owner can manage role access.',
+			)
+		}
+
+		return tenantContext
+	}
+
+	public async getRoleSeeCatalog(requestContext: RequestContext) {
+		const tenantContext = this.requireOwner(requestContext)
+
+		return catalogForTenant(tenantContext.tenantId)
+	}
+
+	public async getRoleSee(role: string, requestContext: RequestContext) {
+		const tenantContext = this.requireOwner(requestContext)
+
+		if (!isTenantRole(role)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'role must be owner, admin, cashier, or employee.',
+			)
+		}
+
+		return listRoleSee(tenantContext.tenantId, role)
+	}
+
+	public async putRoleSee(
+		role: string,
+		see: unknown,
+		requestContext: RequestContext,
+	) {
+		this.requireOwner(requestContext)
+		const tenantContext = getTenantContext(requestContext)
+
+		if (!isTenantRole(role) || role === 'owner') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Owner access cannot be changed.',
+			)
+		}
+
+		const saved = await saveRoleSee(tenantContext.tenantId, role, see)
+
+		return { role, see: saved }
+	}
+
 	public async inviteTenantUser(
 		requestBody: InviteTenantUserRequestBody,
 		requestContext: RequestContext,
 	): Promise<InviteTenantUserResponse> {
-		await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS, 'create')
+		await ensureSeeIds(requestContext, [SEE.usersInvite])
 		const tenantContext = getTenantContext(requestContext)
 
 		const { firstName, lastName, email, role } = requestBody
@@ -167,6 +228,13 @@ export default class TenantController {
 		}
 
 		assertAssignableTenantRole(role)
+
+		if (role === 'owner' && requestContext.role !== 'owner') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Only owner can assign the owner role.',
+			)
+		}
 
 		const tenant = await this.requireTenantById(tenantContext.tenantId)
 

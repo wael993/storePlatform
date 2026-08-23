@@ -101,6 +101,17 @@ interface FrontendResources {
 	allowedActions?: string[]
 }
 
+interface FrontendResourcesResponse {
+	frontendResources: FrontendResources[]
+	see?: string[]
+}
+
+type SeeCatalogNode = {
+	id: string
+	locked?: boolean
+	children?: SeeCatalogNode[]
+}
+
 type TranslationKey = import('i18next').ParseKeys
 
 interface ActivityStateMapProps {

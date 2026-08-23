@@ -22,6 +22,7 @@ type SellingInvoiceHttpRequest = express.Request & {
 		role?: RequestContext['role']
 	}
 	allowedFields?: string[]
+	see?: string[]
 }
 
 const isHandleableError = (error: unknown): error is HttpError =>
@@ -104,6 +105,7 @@ export default class SellingInvoiceRoutes {
 			role: request.user?.role,
 			user: request.user,
 			allowedFields: request.allowedFields || [],
+			see: request.see || [],
 		}
 	}
 

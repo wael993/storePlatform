@@ -8,6 +8,8 @@ import { logout } from '../store/user/reducer'
 import TopBar from './TopBar'
 import { layout, layoutCssVars } from '../theme/layout'
 import { useUser } from '../shared/hooks/useUser'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 import { useTenantRouteGuard } from '../shared/hooks/useTenantRouteGuard'
 import { useProductCatalogSync } from '../shared/hooks/useProductCatalogSync'
 
@@ -25,7 +27,8 @@ const TenantLayout = () => {
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
 
-	const { isAdmin, isOwnerOrAdmin, user } = useUser()
+	const { user, isOwnerOrAdmin } = useUser()
+	const { canSee, canSeeAny } = useSee()
 
 	useTenantRouteGuard(user?.accessiblePages)
 	useProductCatalogSync()
@@ -36,7 +39,9 @@ const TenantLayout = () => {
 	const enabledActions = getEnabledActions()
 	const tenantActions = getTenantActions(user?.accessiblePages)
 	const isSettingsVisible =
-		enabledActions.isSettingsEnabled && tenantActions.isTenantSettingsEnabled
+		enabledActions.isSettingsEnabled &&
+		tenantActions.isTenantSettingsEnabled &&
+		canSee(SEE.settings)
 
 	const {
 		isBarcodeEnabled,
@@ -73,44 +78,48 @@ const TenantLayout = () => {
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
 	const topBarItems = [
-		{ label: 'Welcome', path: RoutePaths.ROOT },
-		isDailyEnabled && isTenantDailyEnabled
+		canSee(SEE.welcome) ? { label: 'Welcome', path: RoutePaths.ROOT } : null,
+		isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily)
 			? { label: 'Daily', path: RoutePaths.DAILY }
 			: null,
-		isBarcodeEnabled && isTenantBarcodeEnabled
+		isBarcodeEnabled && isTenantBarcodeEnabled && canSee(SEE.barcode)
 			? { label: 'Barcode', path: RoutePaths.BARCODE }
 			: null,
-		isProductsEnabled && isTenantProductsEnabled
+		isProductsEnabled && isTenantProductsEnabled && canSee(SEE.products)
 			? { label: 'Products', path: RoutePaths.PRODUCTS }
 			: null,
-		isOrdersEnabled && isTenantOrdersEnabled
+		isOrdersEnabled && isTenantOrdersEnabled && canSee(SEE.orders)
 			? { label: 'Orders', path: RoutePaths.ORDERS }
 			: null,
 		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
 			? { label: 'Invoices', path: RoutePaths.INVOICES }
 			: null,
-		isCustomersEnabled && isTenantCustomersEnabled
+		isCustomersEnabled && isTenantCustomersEnabled && canSee(SEE.customers)
 			? { label: 'Customers', path: RoutePaths.CUSTOMERS }
 			: null,
-		isSuppliersEnabled && isTenantSuppliersEnabled
+		isSuppliersEnabled && isTenantSuppliersEnabled && canSee(SEE.supplier)
 			? { label: 'Suppliers', path: RoutePaths.SUPPLIERS }
 			: null,
-		isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled
+		isSellingInvoicesEnabled &&
+		isTenantSellingInvoicesEnabled &&
+		canSee(SEE.invoices)
 			? { label: 'Selling Invoices', path: RoutePaths.SELLING_INVOICES }
 			: null,
-		isReportsEnabled && isTenantReportsEnabled
+		isReportsEnabled && isTenantReportsEnabled && canSee(SEE.reports)
 			? { label: 'Reports', path: RoutePaths.REPORTS }
 			: null,
-		isCategoriesEnabled && isTenantCategoriesEnabled
+		isCategoriesEnabled && isTenantCategoriesEnabled && canSee(SEE.categories)
 			? { label: 'Categories', path: RoutePaths.CATEGORIES }
 			: null,
-		isPartnersEnabled && isTenantPartnersEnabled
+		isPartnersEnabled && isTenantPartnersEnabled && canSee(SEE.partners)
 			? { label: 'Partners', path: RoutePaths.PARTNERS }
 			: null,
-		isOwnerOrAdmin && isEmployeesEnabled && isTenantEmployeesEnabled
+		isEmployeesEnabled && isTenantEmployeesEnabled && canSee(SEE.employees)
 			? { label: 'Employees', path: RoutePaths.EMPLOYEES }
 			: null,
-		isAdmin && isUsersEnabled && isTenantUsersEnabled
+		isUsersEnabled &&
+		isTenantUsersEnabled &&
+		canSeeAny([SEE.usersInvite, SEE.usersList])
 			? { label: 'Users', path: RoutePaths.USERS }
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]

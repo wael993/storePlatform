@@ -16,12 +16,9 @@ import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
 import {
 	BreadCrumbItem,
-	AllowedActions,
 	TargetType,
 	AddQuickStateEnum,
 } from '../../shared/globalEnums'
-import { useResources } from '../../shared/hooks/useResources'
-import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import PartnerListWithActionBar from './list/PartnerListWithActionBar'
 import {
@@ -87,8 +84,6 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
-	const { isActionAllowed } = useResources()
-	const { isAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: partnersResponse = [], isLoading: isPartnersLoading } =
@@ -137,18 +132,16 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.partners')}
 				</Heading>
-				{isActionAllowed(AllowedActions.CAN_ADD_PARTNER) && isAdmin && (
-					<Button
-						leftIcon={<AddSquareIcon />}
-						onClick={onOpen}
-						sx={styles.addProductButton}
-						variant="ghost"
-					>
-						<Text sx={styles.addProductButtonText}>
-							{t('common.addPartner')}
-						</Text>
-					</Button>
-				)}
+				<Button
+					leftIcon={<AddSquareIcon />}
+					onClick={onOpen}
+					sx={styles.addProductButton}
+					variant="ghost"
+				>
+					<Text sx={styles.addProductButtonText}>
+						{t('common.addPartner')}
+					</Text>
+				</Button>
 			</HStack>
 
 			{isPartnersLoading && <Spinner />}
@@ -169,7 +162,7 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 				setFormData={setFormData}
 				inputValue={formData}
 				handleQuickAdd={handlePostNewPartner}
-				userHasAdminRole={isAdmin}
+				userHasAdminRole={true}
 			/>
 		</Flex>
 	)

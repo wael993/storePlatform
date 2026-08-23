@@ -1,81 +1,45 @@
-import { skipToken } from '@reduxjs/toolkit/query/react'
-import { useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import { useLocation } from 'react-router-dom'
-import { useGetUserFrontendResourcesQuery } from '../../api/apiStore'
-import { cacheFrontendResources } from '../../offline/localStore'
-import { RootState } from '../../store/store'
 import { AllowedActions } from '../globalEnums'
-import { useUser } from './useUser'
+import { SEE } from '../seeFlags'
+import { useSee } from './useSee'
 
-export const SLAcquisitionTicketPath =
-	'/services/marketing_platform/space-and-location/*/acquisition/*'
-export const mediaExchangePath =
-	'/services/marketing_platform/space-and-location/media-exchange'
-
-const matchesResourcePath = (
-	resourcePath: string,
-	inputPath: string,
-): boolean => {
-	const segments = resourcePath.split('/')
-	const pattern = segments
-		.map(segment => {
-			if (segment !== '*') return segment
-			return '[^/]+'
-		})
-		.join('/')
-	const regex = new RegExp(`^${pattern}(/.*)?$`)
-	return regex.test(inputPath)
+const ACTION_SEE: Partial<Record<AllowedActions, string>> = {
+	[AllowedActions.ADD_PRODUCT]: SEE.productsAdd,
+	[AllowedActions.DELETE_PRODUCT]: SEE.productsDelete,
+	[AllowedActions.SEE_NOTIFICATIONS]: SEE.productsNotifications,
+	[AllowedActions.SEE_DAILY_ACTION]: SEE.daily,
+	[AllowedActions.CAN_ADD_DAILY_ACTION]: SEE.daily,
+	[AllowedActions.CAN_EDIT_DAILY_ACTION]: SEE.daily,
+	[AllowedActions.CAN_DELETE_DAILY_ACTION]: SEE.daily,
+	[AllowedActions.CAN_SEE_BUDGET_OVERVIEW]: SEE.daily,
+	[AllowedActions.SEE_WHOLESALE_PRICE]: SEE.productsWholesalePrice,
+	[AllowedActions.CAN_EDIT_WHOLESALE_PRICE]: SEE.productsWholesalePrice,
+	[AllowedActions.SEE_REPORT]: SEE.reports,
+	[AllowedActions.ADD_REPORT]: SEE.reports,
+	[AllowedActions.EDIT_REPORT]: SEE.reports,
+	[AllowedActions.DELETE_REPORT]: SEE.reports,
+	[AllowedActions.SEE_BUY_COST]: SEE.productsBuyingPrice,
+	[AllowedActions.CAN_EDIT_BUY_COST]: SEE.productsBuyingPrice,
+	[AllowedActions.SEE_SUPPLIER]: SEE.supplier,
+	[AllowedActions.CAN_ADD_SUPPLIER]: SEE.suppliersAdd,
+	[AllowedActions.CAN_EDIT_SUPPLIER]: SEE.supplier,
+	[AllowedActions.CAN_DELETE_SUPPLIER]: SEE.supplier,
+	[AllowedActions.SEE_CUSTOMER]: SEE.customers,
+	[AllowedActions.CAN_ADD_CUSTOMER]: SEE.customersAdd,
+	[AllowedActions.CAN_EDIT_CUSTOMER]: SEE.customers,
+	[AllowedActions.CAN_DELETE_CUSTOMER]: SEE.customers,
+	[AllowedActions.SEE_PARTNER]: SEE.partners,
+	[AllowedActions.CAN_ADD_PARTNER]: SEE.partners,
+	[AllowedActions.CAN_EDIT_PARTNER]: SEE.partners,
+	[AllowedActions.CAN_DELETE_PARTNER]: SEE.partners,
 }
 
-export function useResources(overriddenPath?: string) {
-	const { pathname } = useLocation()
-	const { userId } = useUser()
-
-	const currentPath = overriddenPath ?? pathname
-
-	const { data: frontendResourcesFromQuery = [] } =
-		useGetUserFrontendResourcesQuery(userId ?? skipToken)
-
-	const frontendResourcesFromStore = useSelector(
-		(state: RootState) => state.frontendResources.frontendResources,
-	)
-
-	const frontendResources =
-		frontendResourcesFromQuery.length > 0
-			? frontendResourcesFromQuery
-			: frontendResourcesFromStore
-
-	useEffect(() => {
-		if (frontendResourcesFromQuery.length > 0) {
-			cacheFrontendResources(frontendResourcesFromQuery)
-		}
-	}, [frontendResourcesFromQuery])
-
-	const allowedActionsForPath = (pathInput: string = currentPath): string[] => {
-		if (!pathInput) return []
-
-		if (!frontendResources || frontendResources.length === 0) return []
-
-		const resources = frontendResources.filter(resource => {
-			return matchesResourcePath(resource.path, pathInput)
-		})
-
-		const allowedActions = resources
-			.flatMap(resource => resource.allowedActions)
-			.filter((action, index, array) => array.indexOf(action) === index)
-			.filter((action): action is string => action !== undefined)
-
-		return allowedActions
-	}
-
-	const allowedActions = allowedActionsForPath()
+export function useResources(_overriddenPath?: string) {
+	const { canSee } = useSee()
 
 	const isActionAllowed = (action: AllowedActions) => {
-		return allowedActions.includes(action)
+		const id = ACTION_SEE[action]
+		return id ? canSee(id) : true
 	}
 
-	return {
-		isActionAllowed,
-	}
+	return { isActionAllowed }
 }

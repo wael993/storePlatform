@@ -24,6 +24,7 @@ type TenantHttpRequest = express.Request & {
 		role?: RequestContext['role']
 	}
 	allowedFields?: string[]
+	see?: string[]
 }
 
 const isHandleableError = (error: unknown): error is HttpError =>
@@ -110,6 +111,7 @@ export default class TenantRoutes {
 			role: request.user?.role,
 			user: request.user,
 			allowedFields: request.allowedFields || [],
+			see: request.see || [],
 		}
 	}
 
@@ -147,6 +149,30 @@ export default class TenantRoutes {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteTenantUser.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/role-permissions/catalog`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getRoleSeeCatalog.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/role-permissions/:role`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getRoleSee.bind(this),
+			)
+			.put(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.putRoleSee.bind(this),
 			)
 
 		app
@@ -514,6 +540,61 @@ export default class TenantRoutes {
 				requestContext,
 			)
 
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getRoleSeeCatalog(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.tenantController.getRoleSeeCatalog(requestContext)
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getRoleSee(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.tenantController.getRoleSee(
+				request.params.role,
+				requestContext,
+			)
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 403, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async putRoleSee(
+		request: TenantHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.tenantController.putRoleSee(
+				request.params.role,
+				request.body?.see,
+				requestContext,
+			)
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)

@@ -12,15 +12,14 @@ import { Product } from '../../models/Products'
 import { Inventory } from '../../models/Inventory'
 import { ensureProductDigestIndexes } from '../../cron/snapshotNegativeQuantity'
 import ProductsMapper from '../mappings/ProductsMapper'
+import { SEE, SeeId, stripProductSeeFields } from '../../shared/seeCatalog'
 import {
 	AuthorizationError,
 	BusinessLogicError,
 } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../../shared/errorCodes'
-import {
-	getFrontendResourcesForRole,
-	getTenantContext,
-} from '../../shared/tenant'
+import { getTenantContext } from '../../shared/tenant'
+import { ensureSeeIds } from '../../shared/seePermissions'
 import {
 	InventoryDocument,
 	ProductAPI,
@@ -28,7 +27,6 @@ import {
 	RequestContext,
 } from '../../shared/types'
 
-export const SEE_NOTIFICATIONS = 'seeNotifications'
 export {
 	MISSING_PURCHASE_PRICE_DIGEST,
 	MISSING_RETAIL_PRICE_DIGEST,
@@ -37,8 +35,6 @@ export {
 	isProductDigestType,
 }
 export type { ProductDigestType }
-
-const PRODUCTS_FRONTEND_PATH = '/services/store_platform/products'
 
 export type ProductNotification = {
 	type: ProductDigestType
@@ -111,17 +107,7 @@ const assertCanSeeNotifications = async (
 		)
 	}
 
-	const { role } = getTenantContext(requestContext)
-	const frontendResources = await getFrontendResourcesForRole(role)
-	const allowedActions =
-		frontendResources?.[PRODUCTS_FRONTEND_PATH]?.allowedActions ?? []
-
-	if (!allowedActions.includes(SEE_NOTIFICATIONS)) {
-		throw new AuthorizationError(
-			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-			'Missing seeNotifications permission.',
-		)
-	}
+	await ensureSeeIds(requestContext, [SEE.productsNotifications])
 
 	return requestContext.userId
 }
@@ -157,10 +143,12 @@ const hydrateDigestProducts = async (
 		}
 
 		return [
-			productsMapper.mapProduct(
-				product,
-				inventoryByProductId.get(productId),
-				requestContext,
+			stripProductSeeFields(
+				productsMapper.mapProduct(
+					product,
+					inventoryByProductId.get(productId),
+				),
+				new Set((requestContext.see || []) as SeeId[]),
 			),
 		]
 	})

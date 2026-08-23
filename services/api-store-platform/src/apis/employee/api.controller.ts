@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import {
-	AuthorizationError,
 	BusinessLogicError,
 } from '../../middleware/errorHandler'
 import { Currency } from '../../models/Currency'
@@ -25,6 +24,8 @@ import {
 import { ERROR_CODES } from '../../shared/errorCodes'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { getTenantContext } from '../../shared/tenant'
+import { ensureSeeIds } from '../../shared/seePermissions'
+import { SEE } from '../../shared/seeCatalog'
 import { RequestContext } from '../../shared/types'
 
 const businessError = (message: string) =>
@@ -52,17 +53,9 @@ const actor = (requestContext: RequestContext) => ({
 })
 
 export default class EmployeeController {
-	private requireAccess(requestContext: RequestContext): string {
-		const tenantContext = getTenantContext(requestContext)
-
-		if (tenantContext.role !== 'owner' && tenantContext.role !== 'admin') {
-			throw new AuthorizationError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'Only owner and admin can manage employees',
-			)
-		}
-
-		return tenantContext.tenantId
+	private async requireAccess(requestContext: RequestContext): Promise<string> {
+		await ensureSeeIds(requestContext, [SEE.employees])
+		return getTenantContext(requestContext).tenantId
 	}
 
 	private async findEmployee(
@@ -110,7 +103,7 @@ export default class EmployeeController {
 	public async getEmployees(
 		requestContext: RequestContext,
 	): Promise<{ data: EmployeeDto[]; totalCount: number }> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employees = (await withTenantScope(Employee.find(), tenantId).sort({
 			name: 1,
 		})) as IEmployee[]
@@ -123,7 +116,7 @@ export default class EmployeeController {
 		employeeId: string,
 		requestContext: RequestContext,
 	): Promise<EmployeeDto> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employee = await this.findEmployee(tenantId, employeeId)
 
 		return toEmployeeDto(employee)
@@ -133,7 +126,7 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 		body: Record<string, unknown>,
 	): Promise<{ employeeId: string }> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const name = parseOrThrow(() => parseRequiredName(body.name))
 		const employmentType = parseOrThrow(() =>
 			parseEmploymentType(body.employmentType),
@@ -175,7 +168,7 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employee = await this.findEmployee(tenantId, employeeId)
 
 		if (body.name !== undefined) {
@@ -235,7 +228,7 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employee = await this.findEmployee(tenantId, employeeId)
 		const salary = parseOrThrow(() => parseSalaryInput(body))
 		const currencyName = await this.currencyName(tenantId, salary.currencyId)
@@ -258,7 +251,7 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employee = await this.findEmployee(tenantId, employeeId)
 		const payout = parseOrThrow(() => parsePayoutInput(body))
 		const currencyName = await this.currencyName(tenantId, payout.currencyId)
@@ -281,7 +274,7 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employee = await this.findEmployee(tenantId, employeeId)
 		const payout = employee.payouts.find(item => item.payoutId === payoutId)
 
@@ -308,7 +301,7 @@ export default class EmployeeController {
 		payoutId: string,
 		requestContext: RequestContext,
 	): Promise<EmployeeDto> {
-		const tenantId = this.requireAccess(requestContext)
+		const tenantId = await this.requireAccess(requestContext)
 		const employee = await this.findEmployee(tenantId, employeeId)
 		const nextPayouts = employee.payouts.filter(
 			item => item.payoutId !== payoutId,

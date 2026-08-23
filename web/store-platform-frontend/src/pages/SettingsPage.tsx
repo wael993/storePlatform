@@ -42,15 +42,9 @@ import {
 } from '../api/apiStore'
 import { generateId } from '../offline/utils'
 import { useUser } from '../shared/hooks/useUser'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 import { useWorkMode } from '../shared/hooks/useWorkMode'
-
-enum StepKeys {
-	product = 0,
-	Language = 1,
-	Currencies = 2,
-	WorkMode = 3,
-	Invoice = 4,
-}
 
 const createEmptyPrimary = (): CurrencySettingItem => ({
 	currencyId: generateId(),
@@ -161,6 +155,7 @@ const SettingsPage = () => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { user } = useUser()
+	const { canSee } = useSee()
 	const { workMode } = useWorkMode()
 	const settingsLockedOffline = workMode === 'offline'
 	const showToastMessage = useCustomToast()
@@ -407,6 +402,29 @@ const SettingsPage = () => {
 		}
 	}
 
+	const visibleSettingsTabs = [
+		{
+			id: SEE.settingsProducts,
+			label: t('components.settingsTabs.product'),
+		},
+		{
+			id: SEE.settingsLanguage,
+			label: t('components.settingsTabs.language'),
+		},
+		{
+			id: SEE.settingsCurrencies,
+			label: t('components.settingsTabs.currencies'),
+		},
+		{
+			id: SEE.settingsWorkMode,
+			label: t('components.settingsTabs.workMode'),
+		},
+		{
+			id: SEE.settingsInvoice,
+			label: t('components.settingsTabs.invoice'),
+		},
+	].filter(tab => canSee(tab.id))
+
 	const isSaveDisabled =
 		settingsLockedOffline ||
 		(!hasChanges && !hasCurrencyChanges && !hasInvoiceChanges)
@@ -448,99 +466,83 @@ const SettingsPage = () => {
 				sx={styles.tabs}
 			>
 				<TabList sx={styles.tabList}>
-					<Tab sx={getTabStyle(StepKeys.product)}>
-						<Text sx={getTabTextStyle(StepKeys.product)}>
-							{t('components.settingsTabs.product')}
-						</Text>
-					</Tab>
-					<Tab sx={getTabStyle(StepKeys.Language)}>
-						<Text sx={getTabTextStyle(StepKeys.Language)}>
-							{t('components.settingsTabs.language')}
-						</Text>
-					</Tab>
-					<Tab sx={getTabStyle(StepKeys.Currencies)}>
-						<Text sx={getTabTextStyle(StepKeys.Currencies)}>
-							{t('components.settingsTabs.currencies')}
-						</Text>
-					</Tab>
-					<Tab sx={getTabStyle(StepKeys.WorkMode)}>
-						<Text sx={getTabTextStyle(StepKeys.WorkMode)}>
-							{t('components.settingsTabs.workMode')}
-						</Text>
-					</Tab>
-					<Tab sx={getTabStyle(StepKeys.Invoice)}>
-						<Text sx={getTabTextStyle(StepKeys.Invoice)}>
-							{t('components.settingsTabs.invoice')}
-						</Text>
-					</Tab>
+					{visibleSettingsTabs.map((tab, index) => (
+						<Tab key={tab.id} sx={getTabStyle(index)}>
+							<Text sx={getTabTextStyle(index)}>{tab.label}</Text>
+						</Tab>
+					))}
 				</TabList>
 				<Divider sx={styles.divider} />
 
 				<TabPanels>
-					<TabPanel sx={styles.contentWrapper}>
-						<Box
-							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
-							opacity={settingsLockedOffline ? 0.55 : 1}
-							aria-disabled={settingsLockedOffline}
-						>
-							<ProductsSettings
-								productsPerPage={productsPerPage}
-								handleProductsPerPageChange={handleProductsPerPageChange}
-							/>
-						</Box>
-					</TabPanel>
-
-					<TabPanel sx={styles.contentWrapper}>
-						<Box
-							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
-							opacity={settingsLockedOffline ? 0.55 : 1}
-							aria-disabled={settingsLockedOffline}
-						>
-							<LanguagesSettings
-								displayLanguage={displayLanguage}
-								handleLanguageChange={handleLanguageChange}
-							/>
-						</Box>
-					</TabPanel>
-
-					<TabPanel sx={styles.contentWrapper}>
-						<Box
-							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
-							opacity={settingsLockedOffline ? 0.55 : 1}
-							aria-disabled={settingsLockedOffline}
-						>
-							<CurrenciesSettings
-								primaryCurrency={primaryCurrency}
-								secondaryCurrencies={secondaryCurrencies}
-								defaultInvoiceCurrencyId={defaultInvoiceCurrencyId}
-								onDefaultInvoiceCurrencyChange={setDefaultInvoiceCurrencyId}
-								onPrimaryChange={handlePrimaryChange}
-								onSecondaryChange={handleSecondaryChange}
-								onAddSecondary={handleAddSecondary}
-								onRemoveSecondary={handleRemoveSecondary}
-							/>
-						</Box>
-					</TabPanel>
-
-					<TabPanel sx={styles.contentWrapper}>
-						<WorkModeSettings />
-					</TabPanel>
-
-					<TabPanel sx={styles.contentWrapper}>
-						<Box
-							pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
-							opacity={settingsLockedOffline ? 0.55 : 1}
-							aria-disabled={settingsLockedOffline}
-						>
-							<InvoiceSettings
-								noMergeInvoiceLines={noMergeInvoiceLines}
-								brand={invoiceBrand}
-								displayNameFallback={user?.tenantName?.trim() || undefined}
-								onNoMergeInvoiceLinesChange={handleNoMergeInvoiceLinesChange}
-								onBrandChange={handleInvoiceBrandChange}
-							/>
-						</Box>
-					</TabPanel>
+					{visibleSettingsTabs.map(tab => (
+						<TabPanel key={tab.id} sx={styles.contentWrapper}>
+							{tab.id === SEE.settingsProducts ? (
+								<Box
+									pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+									opacity={settingsLockedOffline ? 0.55 : 1}
+									aria-disabled={settingsLockedOffline}
+								>
+									<ProductsSettings
+										productsPerPage={productsPerPage}
+										handleProductsPerPageChange={handleProductsPerPageChange}
+									/>
+								</Box>
+							) : null}
+							{tab.id === SEE.settingsLanguage ? (
+								<Box
+									pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+									opacity={settingsLockedOffline ? 0.55 : 1}
+									aria-disabled={settingsLockedOffline}
+								>
+									<LanguagesSettings
+										displayLanguage={displayLanguage}
+										handleLanguageChange={handleLanguageChange}
+									/>
+								</Box>
+							) : null}
+							{tab.id === SEE.settingsCurrencies ? (
+								<Box
+									pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+									opacity={settingsLockedOffline ? 0.55 : 1}
+									aria-disabled={settingsLockedOffline}
+								>
+									<CurrenciesSettings
+										primaryCurrency={primaryCurrency}
+										secondaryCurrencies={secondaryCurrencies}
+										defaultInvoiceCurrencyId={defaultInvoiceCurrencyId}
+										onDefaultInvoiceCurrencyChange={
+											setDefaultInvoiceCurrencyId
+										}
+										onPrimaryChange={handlePrimaryChange}
+										onSecondaryChange={handleSecondaryChange}
+										onAddSecondary={handleAddSecondary}
+										onRemoveSecondary={handleRemoveSecondary}
+									/>
+								</Box>
+							) : null}
+							{tab.id === SEE.settingsWorkMode ? <WorkModeSettings /> : null}
+							{tab.id === SEE.settingsInvoice ? (
+								<Box
+									pointerEvents={settingsLockedOffline ? 'none' : 'auto'}
+									opacity={settingsLockedOffline ? 0.55 : 1}
+									aria-disabled={settingsLockedOffline}
+								>
+									<InvoiceSettings
+										noMergeInvoiceLines={noMergeInvoiceLines}
+										brand={invoiceBrand}
+										displayNameFallback={
+											user?.tenantName?.trim() || undefined
+										}
+										onNoMergeInvoiceLinesChange={
+											handleNoMergeInvoiceLinesChange
+										}
+										onBrandChange={handleInvoiceBrandChange}
+									/>
+								</Box>
+							) : null}
+						</TabPanel>
+					))}
 				</TabPanels>
 			</Tabs>
 

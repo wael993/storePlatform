@@ -1,21 +1,25 @@
 import { useMemo } from 'react'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
-import { useUser } from '../../../shared/hooks/useUser'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 import { ColumnDef } from '../../list/columnConfig/layout'
 import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { ProductSortHeaderKey } from '../../list/shared/globalEnums'
 
 export const useProductColumnCatalog = (): ColumnDef[] => {
-	const { isOwnerOrAdmin } = useUser()
 	const {
 		seeSupplier,
 		seeStockQuantity,
 		seeMinStockQuantity,
 		seeBuyCost,
+		seeWholesalePrice,
+		seeSemiWholesalePrice,
 		seeDiscount,
 		seeLocationWarehouse,
 		seeLocationShelf,
 	} = useAllowedActions()
+	const { canSee } = useSee()
+	const canSeeCategories = canSee(SEE.categories)
 
 	return useMemo(
 		() => [
@@ -44,6 +48,7 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 				labelKey: 'common.category',
 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.CATEGORY_NAME,
 				sortKey: ProductSortHeaderKey.CATEGORY_NAME,
+				available: canSeeCategories,
 			},
 			{
 				id: 'BRAND_NAME',
@@ -57,7 +62,7 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 				labelKey: 'common.supplierName',
 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SUPPLIER_NAME,
 				sortKey: ProductSortHeaderKey.SUPPLIER_NAME,
-				available: isOwnerOrAdmin && seeSupplier,
+				available: seeSupplier,
 			},
 			{
 				id: 'STOCK_QUANTITY',
@@ -84,7 +89,7 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 				labelKey: 'common.buyCost',
 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.PRICE_BUY,
 				sortKey: ProductSortHeaderKey.PRICE_BUY_COST,
-				available: isOwnerOrAdmin && seeBuyCost,
+				available: seeBuyCost,
 			},
 			{
 				id: 'PRICE_SELL',
@@ -98,6 +103,7 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 				labelKey: 'productModal.wholesalePrice',
 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.WHOLESALE_PRICE,
 				sortKey: ProductSortHeaderKey.PRICE_WHOLESALE,
+				available: seeWholesalePrice,
 				defaultHidden: true,
 			},
 			{
@@ -105,6 +111,7 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 				labelKey: 'productModal.semiWholesalePrice',
 				width: PROMOTION_LIST_WIDTHS_MAP_IN_REM.SEMI_WHOLESALE_PRICE,
 				sortKey: ProductSortHeaderKey.PRICE_SEMI_WHOLESALE,
+				available: seeSemiWholesalePrice,
 				defaultHidden: true,
 			},
 			{
@@ -230,14 +237,16 @@ export const useProductColumnCatalog = (): ColumnDef[] => {
 			},
 		],
 		[
-			isOwnerOrAdmin,
 			seeBuyCost,
 			seeDiscount,
 			seeLocationShelf,
 			seeLocationWarehouse,
 			seeMinStockQuantity,
+			seeSemiWholesalePrice,
 			seeStockQuantity,
 			seeSupplier,
+			seeWholesalePrice,
+			canSeeCategories,
 		],
 	)
 }

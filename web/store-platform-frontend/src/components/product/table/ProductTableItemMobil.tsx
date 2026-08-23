@@ -20,8 +20,9 @@ import StateCircle from '../../StateCircle'
 import NotificationCircle from '../../NotificationCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
 import { PRODUCT_STATE_CONFIG } from '../../list/shared/constants'
-import { useUser } from '../../../shared/hooks/useUser'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 import { buildRoutePath } from '../../../shared/routes'
 import {
 	compareLanguage,
@@ -119,7 +120,6 @@ const ProductTableMobil = ({
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
-	const { isOwnerOrAdmin } = useUser()
 	const { printBarcode, isEnsuringBarcode, barcode, preview } =
 		usePrintProductBarcode(product)
 	const {
@@ -131,7 +131,11 @@ const ProductTableMobil = ({
 		seeLocationWarehouse,
 		seeLocationShelf,
 		canDeleteProduct,
+		canEditProduct,
+		canPrintBarcode,
 	} = useAllowedActions()
+	const { canSee } = useSee()
+	const canSeeCategories = canSee(SEE.categories)
 	const {
 		isOpen: isDeleteOpen,
 		onOpen: onDeleteOpen,
@@ -227,12 +231,14 @@ const ProductTableMobil = ({
 								label={t('common.brand')}
 								value={product.brandName}
 							/>
+							{canSeeCategories && (
 							<MobileField
 								isLoading={isLoading}
 								label={t('common.category')}
 								value={product.categoryName}
 							/>
-							{isOwnerOrAdmin && seeSupplier && (
+							)}
+							{seeSupplier && (
 								<MobileField
 									isLoading={isLoading}
 									label={t('common.supplierName')}
@@ -285,7 +291,7 @@ const ProductTableMobil = ({
 									value={product.shelfName}
 								/>
 							)}
-							{isOwnerOrAdmin && seeBuyCost && (
+							{seeBuyCost && (
 								<MobileField
 									isLoading={isLoading}
 									label={t('common.buyCost')}
@@ -399,12 +405,20 @@ const ProductTableMobil = ({
 								</NotificationCircle>
 							</Skeleton>
 							<Skeleton isLoaded={!isLoading}>
-								{isOwnerOrAdmin && (
+								{(canEditProduct ||
+									canPrintBarcode ||
+									canDeleteProduct) && (
 									<OptionsPopover
-										onEdit={() => onEditProduct(product)}
-										onPrintBarcode={() => {
-											void printBarcode()
-										}}
+										onEdit={
+											canEditProduct ? () => onEditProduct(product) : undefined
+										}
+										onPrintBarcode={
+											canPrintBarcode
+												? () => {
+														void printBarcode()
+													}
+												: undefined
+										}
 										isPrintLoading={isEnsuringBarcode}
 										onDelete={
 											canDeleteProduct
@@ -420,7 +434,7 @@ const ProductTableMobil = ({
 					</AccordionPanel>
 				</AccordionItem>
 			</Accordion>
-			{isOwnerOrAdmin && (
+			{canPrintBarcode && (
 				<PrintBarcodeModal
 					product={product}
 					barcode={barcode}

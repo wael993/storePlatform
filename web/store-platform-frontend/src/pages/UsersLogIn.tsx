@@ -7,10 +7,8 @@ import {
 	AlertDescription,
 	AlertIcon,
 	AlertTitle,
-	// Badge,
 	Box,
 	Button,
-	// Checkbox,
 	Container,
 	Flex,
 	FormControl,
@@ -22,6 +20,11 @@ import {
 	SimpleGrid,
 	Spinner,
 	Stack,
+	Tab,
+	TabList,
+	TabPanel,
+	TabPanels,
+	Tabs,
 	Table,
 	Tbody,
 	Td,
@@ -38,8 +41,12 @@ import {
 	useUpdateTenantUserMutation,
 } from '../api/apiStore'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import RoleAccessPanel from '../components/users/RoleAccessPanel'
 import { generateBreadcrumbs } from '../shared/routes'
 import { useTranslation } from 'react-i18next'
+import { useSee } from '../shared/hooks/useSee'
+import { useUser } from '../shared/hooks/useUser'
+import { SEE } from '../shared/seeFlags'
 
 const TENANT_USER_ROLES = [
 	UserRole.OWNER,
@@ -63,13 +70,16 @@ const createInviteUserSchema = (t: (key: string) => string) =>
 
 type InviteUserFormData = z.infer<ReturnType<typeof createInviteUserSchema>>
 
-const USER_ROLE_OPTIONS: TenantUserRole[] = [...TENANT_USER_ROLES]
-
 const UsersLogIn = () => {
 	const { t } = useTranslation()
+	const { isOwner } = useUser()
+	const { canSee } = useSee()
 	const breadCrumbItems = generateBreadcrumbs()
 	const inviteUserSchema = useMemo(() => createInviteUserSchema(t), [t])
-	const { data: users = [], isLoading, isFetching } = useGetTenantUsersQuery()
+	const { data: users = [], isLoading, isFetching } = useGetTenantUsersQuery(
+		undefined,
+		{ skip: !canSee(SEE.usersList) && !isOwner },
+	)
 	const [inviteTenantUser, { isLoading: isInviting }] =
 		useInviteTenantUserMutation()
 	const [updateTenantUser, { isLoading: isUpdating }] =
@@ -97,6 +107,14 @@ const UsersLogIn = () => {
 	const sortedUsers = useMemo(() => {
 		return [...users].sort((a, b) => a.email.localeCompare(b.email))
 	}, [users])
+
+	const roleOptions: TenantUserRole[] = isOwner
+		? [...TENANT_USER_ROLES]
+		: TENANT_USER_ROLES.filter(role => role !== UserRole.OWNER)
+
+	const showInvite = canSee(SEE.usersInvite)
+	const showUsers = canSee(SEE.usersList)
+	const showRoleAccess = isOwner
 
 	const onInvite = async (formData: InviteUserFormData) => {
 		setFeedback('')
@@ -171,122 +189,140 @@ const UsersLogIn = () => {
 					</Alert>
 				) : null}
 
-				<Box borderWidth="1px" borderRadius="xl" p={5}>
-					<Heading size="md" mb={4}>
-						{t('users.inviteUser')}
-					</Heading>
-					<form onSubmit={handleSubmit(onInvite)}>
-						<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-							<FormControl isRequired isInvalid={Boolean(errors.firstName)}>
-								<FormLabel>{t('addTenant.firstName')}</FormLabel>
-								<Input {...register('firstName')} />
-								<FormErrorMessage>{errors.firstName?.message}</FormErrorMessage>
-							</FormControl>
+				<Tabs variant="enclosed">
+					<TabList>
+						{showInvite ? <Tab>{t('users.inviteUser')}</Tab> : null}
+						{showUsers ? <Tab>{t('users.usersTab')}</Tab> : null}
+						{showRoleAccess ? <Tab>{t('users.roleAccess.tab')}</Tab> : null}
+					</TabList>
+					<TabPanels>
+						{showInvite ? (
+							<TabPanel px={0}>
+								<Box borderWidth="1px" borderRadius="xl" p={5}>
+									<form onSubmit={handleSubmit(onInvite)}>
+										<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+											<FormControl
+												isRequired
+												isInvalid={Boolean(errors.firstName)}
+											>
+												<FormLabel>{t('addTenant.firstName')}</FormLabel>
+												<Input {...register('firstName')} />
+												<FormErrorMessage>
+													{errors.firstName?.message}
+												</FormErrorMessage>
+											</FormControl>
 
-							<FormControl isRequired isInvalid={Boolean(errors.lastName)}>
-								<FormLabel>{t('addTenant.lastName')}</FormLabel>
-								<Input {...register('lastName')} />
-								<FormErrorMessage>{errors.lastName?.message}</FormErrorMessage>
-							</FormControl>
+											<FormControl
+												isRequired
+												isInvalid={Boolean(errors.lastName)}
+											>
+												<FormLabel>{t('addTenant.lastName')}</FormLabel>
+												<Input {...register('lastName')} />
+												<FormErrorMessage>
+													{errors.lastName?.message}
+												</FormErrorMessage>
+											</FormControl>
 
-							<FormControl isRequired isInvalid={Boolean(errors.email)}>
-								<FormLabel>{t('login.email')}</FormLabel>
-								<Input type="email" {...register('email')} />
-								<FormErrorMessage>{errors.email?.message}</FormErrorMessage>
-							</FormControl>
+											<FormControl isRequired isInvalid={Boolean(errors.email)}>
+												<FormLabel>{t('login.email')}</FormLabel>
+												<Input type="email" {...register('email')} />
+												<FormErrorMessage>
+													{errors.email?.message}
+												</FormErrorMessage>
+											</FormControl>
 
-							<FormControl isRequired>
-								<FormLabel>{t('users.role')}</FormLabel>
-								<Select {...register('role')}>
-									{USER_ROLE_OPTIONS.map(roleValue => (
-										<option key={roleValue} value={roleValue}>
-											{roleValue}
-										</option>
-									))}
-								</Select>
-							</FormControl>
-						</SimpleGrid>
+											<FormControl isRequired>
+												<FormLabel>{t('users.role')}</FormLabel>
+												<Select {...register('role')}>
+													{roleOptions.map(roleValue => (
+														<option key={roleValue} value={roleValue}>
+															{t(`users.roles.${roleValue}`)}
+														</option>
+													))}
+												</Select>
+											</FormControl>
+										</SimpleGrid>
 
-						{/* <Checkbox
-							mt={4}
-							isChecked={isInternal}
-							onChange={event => setIsInternal(event.target.checked)}
-						>
-							Internal User
-						</Checkbox> */}
-
-						<Button
-							m={'2rem'}
-							width={'100%'}
-							type="submit"
-							colorScheme="blue"
-							isLoading={isInviting}
-							isDisabled={!isValid}
-						>
-							{t('users.inviteUser')}
-						</Button>
-					</form>
-				</Box>
-
-				<Box borderWidth="1px" borderRadius="xl" overflowX="auto">
-					<Table>
-						<Thead>
-							<Tr>
-								<Th>{t('users.name')}</Th>
-								<Th>{t('login.email')}</Th>
-								<Th>{t('users.role')}</Th>
-								{/* <Th>Type</Th> */}
-								<Th textAlign="right">{t('tenants.actions')}</Th>
-							</Tr>
-						</Thead>
-						<Tbody>
-							{sortedUsers.map(user => (
-								<Tr key={user._id}>
-									<Td>
-										{user.firstName} {user.lastName}
-									</Td>
-									<Td>{user.email}</Td>
-									<Td>
-										<Select
-											size="sm"
-											value={user.role}
-											onChange={event =>
-												onRoleChange(
-													user.userId,
-													event.target.value as TenantUserRole,
-												)
-											}
-										>
-											{USER_ROLE_OPTIONS.map(roleValue => (
-												<option
-													key={`${user._id}-${roleValue}`}
-													value={roleValue}
-												>
-													{roleValue}
-												</option>
-											))}
-										</Select>
-									</Td>
-									{/* <Td>
-										<Badge colorScheme={user.isInternal ? 'purple' : 'green'}>
-											{user.isInternal ? 'Internal' : 'External'}
-										</Badge>
-									</Td> */}
-									<Td textAlign="right">
 										<Button
-											size="sm"
-											colorScheme="red"
-											variant="outline"
-											onClick={() => onDeleteUser(user.userId)}
+											m={'2rem'}
+											width={'100%'}
+											type="submit"
+											colorScheme="blue"
+											isLoading={isInviting}
+											isDisabled={!isValid}
 										>
-											{t('common.delete')}
+											{t('users.inviteUser')}
 										</Button>
-									</Td>
-								</Tr>
-							))}
-						</Tbody>
-					</Table>
-				</Box>
+									</form>
+								</Box>
+							</TabPanel>
+						) : null}
+
+						{showUsers ? (
+							<TabPanel px={0}>
+								<Box borderWidth="1px" borderRadius="xl" overflowX="auto">
+									<Table>
+										<Thead>
+											<Tr>
+												<Th>{t('users.name')}</Th>
+												<Th>{t('login.email')}</Th>
+												<Th>{t('users.role')}</Th>
+												<Th textAlign="right">{t('tenants.actions')}</Th>
+											</Tr>
+										</Thead>
+										<Tbody>
+											{sortedUsers.map(user => (
+												<Tr key={user._id}>
+													<Td>
+														{user.firstName} {user.lastName}
+													</Td>
+													<Td>{user.email}</Td>
+													<Td>
+														<Select
+															size="sm"
+															value={user.role}
+															onChange={event =>
+																onRoleChange(
+																	user.userId,
+																	event.target.value as TenantUserRole,
+																)
+															}
+														>
+															{roleOptions.map(roleValue => (
+																<option
+																	key={`${user._id}-${roleValue}`}
+																	value={roleValue}
+																>
+																	{t(`users.roles.${roleValue}`)}
+																</option>
+															))}
+														</Select>
+													</Td>
+													<Td textAlign="right">
+														<Button
+															size="sm"
+															colorScheme="red"
+															variant="outline"
+															onClick={() => onDeleteUser(user.userId)}
+														>
+															{t('common.delete')}
+														</Button>
+													</Td>
+												</Tr>
+											))}
+										</Tbody>
+									</Table>
+								</Box>
+							</TabPanel>
+						) : null}
+
+						{showRoleAccess ? (
+							<TabPanel px={0}>
+								<RoleAccessPanel />
+							</TabPanel>
+						) : null}
+					</TabPanels>
+				</Tabs>
 			</Stack>
 		</Container>
 	)

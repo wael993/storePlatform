@@ -10,6 +10,7 @@ import {
 	getRequiredAccessiblePages,
 	tenantHasRequiredPageAccess,
 } from '../shared/constants/tenantPageAccess'
+import { getSeeSet } from '../shared/seePermissions'
 
 export default class ActivityAuthorization {
 	public constructor(private productController: ProductController) {}
@@ -41,6 +42,7 @@ export default class ActivityAuthorization {
 			request.tenantId = user.tenantId
 			request.tenantName = user.tenantName
 			request.role = user.role
+			request.see = [...(await getSeeSet(user.tenantId, user.role))]
 
 			const requiredPages = getRequiredAccessiblePages(
 				request.path,

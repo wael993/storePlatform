@@ -38,6 +38,8 @@ import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem, InvoicePaymentType } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { pageContentMinHeight } from '../../theme/layout'
 import NewBuyingInvoicePanel from '../BuyingInvoice/NewBuyingInvoicePanel'
@@ -105,7 +107,16 @@ const styles = {
 
 const SellingInvoicesPage = () => {
 	const { t } = useTranslation()
-	const { user, isAdmin } = useUser()
+	const { user } = useUser()
+	const { canSee } = useSee()
+	const canSeeBuying = canSee(SEE.sellingInvoicesBuyingButton)
+	const canSeeSellingList = canSee(SEE.sellingInvoices)
+	const canSeeAddSelling = canSee(SEE.sellingInvoicesSellingButton)
+	const canSeeAddBuying = canSee(SEE.invoicesBuyingAdd)
+	const canSeeEntries = canSee(SEE.sellingInvoicesEntriesButton)
+	const canSeeAddEntries = canSee(SEE.invoicesEntriesAdd)
+	const canSeeSummary = canSee(SEE.sellingInvoicesSummary)
+	const canSeeInvoiceLists = canSeeBuying || canSeeSellingList || canSeeEntries
 	const breadCrumbItems = generateBreadcrumbs()
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
 	const [detailMode, setDetailMode] =
@@ -170,11 +181,12 @@ const SellingInvoicesPage = () => {
 
 	const { data: invoicesMeta, isLoading: isSummaryLoading } =
 		useGetSellingInvoicesQuery(summaryQueryParams, {
+			skip: !canSeeSummary && !canSeeAddSelling,
 			refetchOnMountOrArgChange: false,
 		})
 	const { data: buyingInvoicesMeta } = useGetBuyingInvoicesQuery(
 		{},
-		{ skip: !isAdmin, refetchOnMountOrArgChange: false },
+		{ skip: !canSeeBuying, refetchOnMountOrArgChange: false },
 	)
 
 	const cashBalancePeriodQuery = useMemo(
@@ -198,24 +210,29 @@ const SellingInvoicesPage = () => {
 		data: periodDailyActions = [],
 		isLoading: isPeriodCashBalanceLoading,
 	} = useGetDailyActionsQuery(cashBalancePeriodQuery, {
-		skip: !isAdmin,
+		skip: !canSeeSummary,
 		refetchOnMountOrArgChange: false,
 	})
 	const {
 		data: allTimeDailyActions = [],
 		isLoading: isAllTimeCashBalanceLoading,
 	} = useGetDailyActionsQuery(cashBalanceAllTimeQuery, {
-		skip: !isAdmin,
+		skip: !canSeeSummary,
 		refetchOnMountOrArgChange: false,
 	})
 
 	const { options: cashBalanceCurrencyOptions } = useInvoiceDisplayCurrency()
 	const { data: invoiceCustomers = [] } = useGetCustomersQuery(undefined, {
+		skip:
+			!canSeeSellingList &&
+			!canSeeAddSelling &&
+			!canSeeEntries &&
+			!canSeeAddEntries,
 		refetchOnMountOrArgChange: false,
 	})
 	const { data: invoiceSuppliers = [] } = useGetSuppliersQuery(
 		{},
-		{ skip: !isAdmin, refetchOnMountOrArgChange: false },
+		{ skip: !canSeeBuying, refetchOnMountOrArgChange: false },
 	)
 
 	const [deleteSellingInvoice, { isLoading: isDeletingInvoice }] =
@@ -261,7 +278,8 @@ const SellingInvoicesPage = () => {
 		salesPerson,
 	})
 
-	const isCreatingBuyingInvoice = isAdmin && buyingSessions.length > 0
+	const isCreatingBuyingInvoice =
+		(canSeeBuying || canSeeAddBuying) && buyingSessions.length > 0
 
 	useEffect(() => {
 		if (!activeSession?.initialProductSearch) return
@@ -610,7 +628,9 @@ const SellingInvoicesPage = () => {
 
 	const invoiceListSection = (
 		<InvoiceTableSection
-			showBuyingInvoices={isAdmin}
+			showBuyingInvoices={canSeeBuying}
+			showSellingInvoices={canSeeSellingList}
+			showEntries={canSeeEntries}
 			onViewInvoice={handleViewInvoice}
 			onEditInvoice={handleEditInvoice}
 			onDeleteInvoice={handleDeleteInvoiceRequest}
@@ -673,8 +693,9 @@ const SellingInvoicesPage = () => {
 		</HStack>
 	)
 
-	const adminActionButtons = isAdmin && (
+	const adminActionButtons = (
 		<>
+			{canSeeAddBuying && (
 			<Button
 				leftIcon={<Icon as={AsTruckIcon} boxSize={5} />}
 				variant="outline"
@@ -682,10 +703,11 @@ const SellingInvoicesPage = () => {
 				borderColor={PAGE_COLORS.border}
 				fontWeight={600}
 				onClick={handleNewBuyingInvoice}
-				// isDisabled={!isOnline}
 			>
 				{t('components.sellingInvoices.newBuyingInvoice')}
 			</Button>
+			)}
+			{canSeeAddEntries && (
 			<Button
 				leftIcon={<Icon as={AsCashBalanceIcon} boxSize={5} />}
 				variant="outline"
@@ -696,6 +718,7 @@ const SellingInvoicesPage = () => {
 			>
 				{t('components.sellingInvoices.newEntry')}
 			</Button>
+			)}
 		</>
 	)
 
@@ -764,7 +787,7 @@ const SellingInvoicesPage = () => {
 					'components.buyingInvoices.drawer.discardDraft',
 				)}
 			/>
-			{isAdmin && (
+			{(canSeeEntries || canSeeAddEntries) && (
 				<QuickEntryModal
 					isOpen={isEntryOpen}
 					onClose={handleEntryModalClose}
@@ -821,11 +844,12 @@ const SellingInvoicesPage = () => {
 							{!isDraftOpen && (
 								<HStack spacing={3} flexWrap="wrap">
 									{adminActionButtons}
-									{newInvoiceButton}
+									{canSeeAddSelling ? newInvoiceButton : null}
 								</HStack>
 							)}
 						</Flex>
 
+						{canSeeSummary ? (
 						<Accordion allowToggle>
 							<AccordionItem border="none">
 								<AccordionButton px={0}>
@@ -842,7 +866,7 @@ const SellingInvoicesPage = () => {
 										dateTo={summaryDateTo}
 										onDateFromChange={handleSummaryDateFromChange}
 										onDateToChange={handleSummaryDateToChange}
-										showCashBalance={isAdmin}
+										showCashBalance={canSeeSummary}
 										cashBalance={{
 											period: periodCashBalance,
 											allTime: allTimeCashBalance,
@@ -854,14 +878,17 @@ const SellingInvoicesPage = () => {
 								</AccordionPanel>
 							</AccordionItem>
 						</Accordion>
+						) : null}
 
 						<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>
 							<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />
 						</Box>
 
+						{canSeeInvoiceLists ? (
 						<Box sx={isDraftOpen ? styles.listScrollArea : undefined}>
 							{invoiceListSection}
 						</Box>
+						) : null}
 					</Box>
 
 					{showBuyingDraft && activeBuyingSession ? (

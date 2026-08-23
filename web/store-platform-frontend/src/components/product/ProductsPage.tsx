@@ -15,13 +15,10 @@ import {
 	useGetFilterValuesQuery,
 } from '../../api/apiStore'
 import { useSettings } from '../../shared/context/SettingsContext'
-import {
-	AllowedActions,
-	BreadCrumbItem,
-	TargetType,
-} from '../../shared/globalEnums'
-import { useResources } from '../../shared/hooks/useResources'
-import { useUser } from '../../shared/hooks/useUser'
+import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
+import useAllowedActions from '../../shared/hooks/useAllowedActions'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import TableWithActionBar from './table/ProductTableWithActionBar'
 import { ListColumnConfigProvider } from '../list/columnConfig/ListColumnConfigProvider'
 import { useProductColumnCatalog } from './table/productColumns'
@@ -90,8 +87,8 @@ interface ProductsPageProps {
 }
 
 const ProductsPage = (_targetType: ProductsPageProps) => {
-	const { isOwnerOrAdmin } = useUser()
-	const { isActionAllowed } = useResources()
+	const { canAddProduct, seeSupplier } = useAllowedActions()
+	const { canSee } = useSee()
 	const { productsPerPage } = useSettings()
 
 	const [productFilters, setProductFilters] = useState<ProductFilterValues>(
@@ -183,7 +180,7 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 					<Heading sx={styles.title} variant={'h5'}>
 						{t('components.pageHeaders.products')}
 					</Heading>
-					{isActionAllowed(AllowedActions.ADD_PRODUCT) && isOwnerOrAdmin && (
+					{canAddProduct && (
 						<Button
 							leftIcon={<AddSquareIcon />}
 							onClick={openAdd}
@@ -209,7 +206,8 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 					brandOptions={brandOptions}
 					stateOptions={stateOptions}
 					categoryOptions={categoryOptions}
-					showSupplierFilter={isOwnerOrAdmin}
+					showSupplierFilter={seeSupplier}
+					fieldVisibility={{ category: canSee(SEE.categories) }}
 				/>
 
 				{!isLoading && products.length === 0 && (

@@ -1,8 +1,7 @@
 import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
-import { AllowedActions } from '../../../shared/globalEnums'
-import { useResources } from '../../../shared/hooks/useResources'
+import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useBulkDeleteProductsMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
@@ -46,12 +45,12 @@ const ProductTableActionBar = ({
 	selectedActivities,
 }: ProductTableActionBarProps) => {
 	const { t } = useTranslation()
-	const { isActionAllowed } = useResources()
+	const { canDeleteProduct } = useAllowedActions()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const showToast = useCustomToast()
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeleteProductsMutation()
-	const canDelete = isActionAllowed(AllowedActions.DELETE_PRODUCT)
+	const canDelete = canDeleteProduct
 
 	const handleDelete = async () => {
 		try {

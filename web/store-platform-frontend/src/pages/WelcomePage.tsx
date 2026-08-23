@@ -10,6 +10,8 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import { useUser } from '../shared/hooks/useUser'
+import { useSee } from '../shared/hooks/useSee'
+import { SEE } from '../shared/seeFlags'
 import { ArrowForwardIcon } from '../shared/icons/ArrowForward'
 import {
 	compareLanguage,
@@ -100,6 +102,7 @@ const WelcomePage = () => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
 	const { isOwnerOrAdmin, user } = useUser()
+	const { canSee } = useSee()
 	const enabledActions = getEnabledActions()
 	const tenantActions = getTenantActions(user?.accessiblePages)
 
@@ -128,13 +131,13 @@ const WelcomePage = () => {
 	} = tenantActions
 
 	const quickLinks = [
-		isDailyEnabled && isTenantDailyEnabled
+		isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily)
 			? {
 					path: RoutePaths.DAILY,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.DAILY,
 				}
 			: null,
-		isProductsEnabled && isTenantProductsEnabled
+		isProductsEnabled && isTenantProductsEnabled && canSee(SEE.products)
 			? {
 					path: RoutePaths.PRODUCTS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.PRODUCTS,
@@ -146,37 +149,39 @@ const WelcomePage = () => {
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.INVOICE,
 				}
 			: null,
-		isCustomersEnabled && isTenantCustomersEnabled
+		isCustomersEnabled && isTenantCustomersEnabled && canSee(SEE.customers)
 			? {
 					path: RoutePaths.CUSTOMERS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.CUSTOMERS,
 				}
 			: null,
-		isSuppliersEnabled && isTenantSuppliersEnabled
+		isSuppliersEnabled && isTenantSuppliersEnabled && canSee(SEE.supplier)
 			? {
 					path: RoutePaths.SUPPLIERS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.SUPPLIERS,
 				}
 			: null,
-		isOwnerOrAdmin && isEmployeesEnabled && isTenantEmployeesEnabled
+		isEmployeesEnabled && isTenantEmployeesEnabled && canSee(SEE.employees)
 			? {
 					path: RoutePaths.EMPLOYEES,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.EMPLOYEES,
 				}
 			: null,
-		isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled
+		isSellingInvoicesEnabled &&
+		isTenantSellingInvoicesEnabled &&
+		canSee(SEE.invoices)
 			? {
 					path: RoutePaths.SELLING_INVOICES,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.SELLING_INVOICES,
 				}
 			: null,
-		isReportsEnabled && isTenantReportsEnabled
+		isReportsEnabled && isTenantReportsEnabled && canSee(SEE.reports)
 			? {
 					path: RoutePaths.REPORTS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.REPORTS,
 				}
 			: null,
-		isCategoriesEnabled && isTenantCategoriesEnabled
+		isCategoriesEnabled && isTenantCategoriesEnabled && canSee(SEE.categories)
 			? {
 					path: RoutePaths.CATEGORIES,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.CATEGORIES,

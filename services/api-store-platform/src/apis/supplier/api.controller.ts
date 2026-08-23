@@ -31,6 +31,20 @@ export type SupplierInvoiceCollaborator = {
 const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
 
+const canSeePayable = (requestContext: RequestContext) =>
+	(requestContext.see || []).includes('suppliers.totalPayable')
+
+const omitPayableIfHidden = (
+	supplier: SuppliersResponse['data'][number],
+	requestContext: RequestContext,
+): SuppliersResponse['data'][number] => {
+	if (canSeePayable(requestContext)) return supplier
+
+	const { totalPayable: _omitted, ...row } = supplier
+
+	return row
+}
+
 export default class SupplierController {
 	constructor(
 		private mongoDbClient: MongodbController,
@@ -64,7 +78,12 @@ export default class SupplierController {
 			await redisCache.getJson<SuppliersResponse>(cacheKey)
 
 		if (cachedSuppliers) {
-			return cachedSuppliers
+			return {
+				...cachedSuppliers,
+				data: cachedSuppliers.data.map(supplier =>
+					omitPayableIfHidden(supplier, requestContext),
+				),
+			}
 		}
 
 		const suppliers = await this.mongoDbClient.getDocuments({
@@ -152,7 +171,12 @@ export default class SupplierController {
 
 		await redisCache.setJson(cacheKey, response)
 
-		return response
+		return {
+			...response,
+			data: response.data.map(supplier =>
+				omitPayableIfHidden(supplier, requestContext),
+			),
+		}
 	}
 
 	public async getSupplier(
@@ -205,7 +229,11 @@ export default class SupplierController {
 			},
 		])
 
-		return mappedSuppliers[0]
+		const mapped = mappedSuppliers[0]
+
+		if (!mapped) return null
+
+		return omitPayableIfHidden(mapped, requestContext)
 	}
 
 	public async postSupplier(

@@ -1,7 +1,6 @@
 import {
 	ProductAPI,
 	ProductRequestBody,
-	RequestContext,
 	InventoryDocument,
 } from '../../shared/types'
 
@@ -18,7 +17,6 @@ export default class ProductsMapper {
 	public mapProduct(
 		product: ProductAPI,
 		inventory: InventoryDocument | undefined,
-		_requestContext: RequestContext,
 		lookups?: ProductRelationLookups,
 	): ProductRequestBody {
 		const mappedProduct: ProductRequestBody = {

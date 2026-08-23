@@ -377,39 +377,11 @@ export const getTenantContext = (
 export const ensureTenantAccess = async (
 	requestContext: RequestContext,
 	resource: TenantResource,
-	action: TenantAction,
+	_action: TenantAction,
 ): Promise<void> => {
-	const tenantContext = getTenantContext(requestContext)
-	const dynamicEngine = await getDynamicRoleEngine()
-
-	if (!dynamicEngine) {
-		throw new AuthorizationError(
-			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-			'Permission engine unavailable.',
-		)
-	}
-
-	const permissions = dynamicEngine.matrix[tenantContext.role][resource] || []
-
-	if (!permissions.includes(action)) {
-		if (action === 'create' || action === 'update') {
-			const sourceResources = IMPLICIT_WRITE_SOURCES[resource] || []
-
-			for (const sourceResource of sourceResources) {
-				const sourcePermissions =
-					dynamicEngine.matrix[tenantContext.role][sourceResource] || []
-
-				if (sourcePermissions.includes('create')) {
-					return
-				}
-			}
-		}
-
-		throw new AuthorizationError(
-			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-			`Role ${tenantContext.role} cannot ${action} ${resource}.`,
-		)
-	}
+	getTenantContext(requestContext)
+	const { ensureSeeForResource } = await import('./seePermissions')
+	await ensureSeeForResource(requestContext, resource)
 }
 
 export const getFrontendResourcesForRole = async (

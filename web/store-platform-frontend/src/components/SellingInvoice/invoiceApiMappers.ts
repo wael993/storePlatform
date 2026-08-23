@@ -69,7 +69,7 @@ export interface ApiSellingInvoice {
 
 export interface ApiSellingInvoicesResponse {
 	invoices: ApiSellingInvoice[]
-	summary: {
+	summary?: {
 		todaySales: number
 		paidInvoices: number
 		creditInvoices: number
@@ -162,7 +162,7 @@ export const mapApiInvoiceToDraft = (
 }
 
 export const mapApiSummaryToUi = (
-	summary: ApiSellingInvoicesResponse['summary'],
+	summary: NonNullable<ApiSellingInvoicesResponse['summary']>,
 ): SellingInvoiceSummary => ({
 	todaySales: summary.todaySales,
 	todaySalesTrend: 0,

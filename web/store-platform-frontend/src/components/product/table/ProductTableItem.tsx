@@ -9,7 +9,6 @@ import {
 import { memo, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
-import { useUser } from '../../../shared/hooks/useUser'
 import { listStyles, cellFieldStyles } from '../../../shared/styles'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import EditableCellField from '../../list/EditableCellField'
@@ -57,7 +56,6 @@ const ProductTableItem = memo(
 		const isReadyForExecution = false
 
 		const { t } = useTranslation()
-		const { isOwnerOrAdmin } = useUser()
 		const {
 			canEditWholesalePrice,
 			canEditDiscount,
@@ -65,6 +63,8 @@ const ProductTableItem = memo(
 			canEditStockQuantity,
 			canEditMinStockQuantity,
 			canDeleteProduct,
+			canEditProduct,
+			canPrintBarcode,
 		} = useAllowedActions()
 		const {
 			isOpen: isDeleteOpen,
@@ -224,7 +224,7 @@ const ProductTableItem = memo(
 										value={productData.name}
 										ariaLabel={t('common.productName')}
 										onEdit={value => editField('name', value)}
-										isEditable={isOwnerOrAdmin}
+										isEditable={canEditProduct}
 										customStyles={wrappingFieldStyles}
 										inputHeight="1.85rem"
 										numberInputHeight="1.85rem"
@@ -244,7 +244,7 @@ const ProductTableItem = memo(
 										value={productData.barcode ?? ''}
 										ariaLabel={t('common.barcode')}
 										onEdit={value => editField('barcode', value)}
-										isEditable={isOwnerOrAdmin}
+										isEditable={canEditProduct}
 										customStyles={wrappingFieldStyles}
 										inputHeight="1.85rem"
 										numberInputHeight="1.85rem"
@@ -494,12 +494,22 @@ const ProductTableItem = memo(
 						</Flex>
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
-								{isOwnerOrAdmin && (
+								{(canEditProduct ||
+									canPrintBarcode ||
+									canDeleteProduct) && (
 									<OptionsPopover
-										onEdit={() => onEditProduct(productData)}
-										onPrintBarcode={() => {
-											void printBarcode()
-										}}
+										onEdit={
+											canEditProduct
+												? () => onEditProduct(productData)
+												: undefined
+										}
+										onPrintBarcode={
+											canPrintBarcode
+												? () => {
+														void printBarcode()
+													}
+												: undefined
+										}
 										isPrintLoading={isEnsuringBarcode}
 										onDelete={
 											canDeleteProduct
@@ -514,7 +524,7 @@ const ProductTableItem = memo(
 						</Flex>
 					</Flex>
 				</Td>
-				{isOwnerOrAdmin && (
+				{canPrintBarcode && (
 					<PrintBarcodeModal
 						product={productData}
 						barcode={barcode}

@@ -118,12 +118,17 @@ import {
 } from '../utils/authValidation'
 import {
 	ensureTenantAccess,
-	getFrontendResourcesForRole,
 	getEmailDomain,
 	getTenantContext,
 	assertPersistedUserMayAuthenticate,
 	TenantRole,
 } from '../shared/tenant'
+import {
+	canSeeResource,
+	getSeeSet,
+	getSeeSetForContext,
+} from '../shared/seePermissions'
+import { SEE, SeeId, stripProductSeeFields } from '../shared/seeCatalog'
 import { COLLECTION_NAMES } from '../shared/general'
 import { searchProducts, type SearchableProduct } from '../shared/productSearch'
 import {
@@ -369,6 +374,7 @@ export default class ProductController {
 	private async getProductRelationLookups(
 		requestContext: RequestContext,
 	): Promise<ProductRelationLookups> {
+		const emptyNamed = { data: [] as Array<{ categoryId: string; supplierId: string; name: string }> }
 		const [
 			categoriesResponse,
 			suppliersResponse,
@@ -377,8 +383,12 @@ export default class ProductController {
 			shelvesResponse,
 			warehousesResponse,
 		] = await Promise.all([
-			this.requireCategoryController().getCategories(requestContext),
-			this.requireSupplierController().getSuppliers(requestContext),
+			(await canSeeResource(requestContext, COLLECTION_NAMES.CATEGORIES))
+				? this.requireCategoryController().getCategories(requestContext)
+				: emptyNamed,
+			(await canSeeResource(requestContext, COLLECTION_NAMES.SUPPLIERS))
+				? this.requireSupplierController().getSuppliers(requestContext)
+				: emptyNamed,
 			this.getBrands(requestContext),
 			this.getUnits(requestContext),
 			this.getShelves(requestContext),
@@ -865,6 +875,7 @@ export default class ProductController {
 			lastName: user.user.lastName,
 			accessiblePages: this.resolveAccessiblePagesForAuth(tenant),
 			offlineEnabled: this.resolveOfflineEnabledForAuth(tenant),
+			see: [...(await getSeeSet(user.tenantId, user.role))],
 		}
 	}
 
@@ -973,6 +984,7 @@ export default class ProductController {
 			role: user.role,
 			accessiblePages: this.resolveAccessiblePagesForAuth(tenant),
 			offlineEnabled: this.resolveOfflineEnabledForAuth(tenant),
+			see: [...(await getSeeSet(user.tenantId, user.role))],
 		}
 	}
 
@@ -1145,13 +1157,16 @@ export default class ProductController {
 			inventory.map(inventoryItem => [inventoryItem.productId, inventoryItem]),
 		)
 
+		const productSee = new Set((requestContext.see || []) as SeeId[])
 		const mappedProducts = products
 			.map(product =>
-				this.productsMapper.mapProduct(
-					product,
-					inventoryByProductId.get(product.productId),
-					requestContext,
-					relationLookups,
+				stripProductSeeFields(
+					this.productsMapper.mapProduct(
+						product,
+						inventoryByProductId.get(product.productId),
+						relationLookups,
+					),
+					productSee,
 				),
 			)
 			.filter(Boolean) as ProductRequestBody[]
@@ -1197,7 +1212,6 @@ export default class ProductController {
 					this.productsMapper.mapProduct(
 						product,
 						inventoryByProductId.get(product.productId),
-						requestContext,
 						relationLookups,
 					),
 				)
@@ -1211,11 +1225,16 @@ export default class ProductController {
 		const lastBuyingByProductId =
 			await this.resolveLastBuyingPricesByProductId(tenantId)
 
+		const seeBuying = (requestContext.see || []).includes(
+			SEE.productsBuyingPrice,
+		)
+
 		const catalogProducts = fullProducts.map(product =>
 			this.mapProductCatalogItem(
 				product,
 				lastSellingByProductId.get(product.productId),
 				lastBuyingByProductId.get(product.productId),
+				seeBuying,
 			),
 		)
 
@@ -1311,6 +1330,7 @@ export default class ProductController {
 		product: ProductRequestBody,
 		lastSellingPrice?: number,
 		lastBuyingPrice?: number,
+		seeBuying = false,
 	): ProductCatalogItem {
 		return {
 			productId: product.productId,
@@ -1323,12 +1343,12 @@ export default class ProductController {
 			taxRate: product.taxRate,
 			price: {
 				retailPrice: product.price.retailPrice,
-				purchasePrice: product.price.purchasePrice,
+				...(seeBuying ? { purchasePrice: product.price.purchasePrice } : {}),
 				discount: product.price.discount,
 				currency: product.price.currency,
 			},
-			averageCost: product.inventory?.averageCost,
-			lastBuyingPrice,
+			averageCost: seeBuying ? product.inventory?.averageCost : undefined,
+			lastBuyingPrice: seeBuying ? lastBuyingPrice : undefined,
 			lastSellingPrice,
 			images: product.images?.length ? [product.images[0]] : undefined,
 		}
@@ -1338,8 +1358,13 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<ProductFilterValuesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const canAccessSupplierFilter =
-			requestContext.role === 'owner' || requestContext.role === 'admin'
+		const canAccessSupplierFilter = (
+			await getSeeSetForContext(requestContext)
+		).has(SEE.supplier)
+		const canAccessCategoryFilter = await canSeeResource(
+			requestContext,
+			COLLECTION_NAMES.CATEGORIES,
+		)
 
 		const [products, categoriesResponse, brandsResponse, suppliersResponse] =
 			await Promise.all([
@@ -1349,7 +1374,11 @@ export default class ProductController {
 						.lean<ProductFilterValueSource[]>(),
 					tenantId,
 				),
-				this.requireCategoryController().getCategories(requestContext),
+				canAccessCategoryFilter
+					? this.requireCategoryController().getCategories(requestContext)
+					: Promise.resolve({
+							data: [] as Array<{ categoryId: string; name: string }>,
+						}),
 				this.getBrands(requestContext),
 				canAccessSupplierFilter
 					? this.requireSupplierController().getSuppliers(requestContext)
@@ -1393,11 +1422,13 @@ export default class ProductController {
 				brandNameById.get(product.brandId ?? ''),
 			)
 
-			this.addFilterOption(
-				categoryMap,
-				product.categoryId,
-				categoryNameById.get(product.categoryId ?? ''),
-			)
+			if (canAccessCategoryFilter) {
+				this.addFilterOption(
+					categoryMap,
+					product.categoryId,
+					categoryNameById.get(product.categoryId ?? ''),
+				)
+			}
 
 			this.addFilterOption(stateMap, product.status, product.status)
 		}
@@ -1416,10 +1447,11 @@ export default class ProductController {
 	): Promise<ProductRequestBody | null> {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildProductDetailKey(tenantId, productId)
+		const productSee = new Set((requestContext.see || []) as SeeId[])
 		const cachedProduct = await redisCache.getJson<ProductRequestBody>(cacheKey)
 
 		if (cachedProduct) {
-			return cachedProduct
+			return stripProductSeeFields(cachedProduct, productSee)
 		}
 
 		const product = await this.mongoDbClient.getDocumentByField<ProductAPI>(
@@ -1447,7 +1479,6 @@ export default class ProductController {
 			...this.productsMapper.mapProduct(
 				product,
 				inventoryItem,
-				requestContext,
 				relationLookups,
 			),
 			relatedActions: relatedActions.map(mapProductAction),
@@ -1455,7 +1486,7 @@ export default class ProductController {
 
 		await redisCache.setJson(cacheKey, mappedProduct)
 
-		return mappedProduct
+		return stripProductSeeFields(mappedProduct, productSee)
 	}
 
 	public async postProduct(
@@ -3144,6 +3175,7 @@ export default class ProductController {
 			access: boolean
 			allowedActions: string[]
 		}>
+		see: string[]
 	}> {
 		if (!userId) {
 			throw new BusinessLogicError(
@@ -3170,16 +3202,9 @@ export default class ProductController {
 			)
 		}
 
-		const frontendResourceMap = await getFrontendResourcesForRole(user.role)
-		const frontendResources = Object.entries(frontendResourceMap || {}).map(
-			([path, permission]) => ({
-				path,
-				access: Boolean(permission?.access),
-				allowedActions: permission?.allowedActions || [],
-			}),
-		)
+		const see = [...(await getSeeSet(tenantContext.tenantId, user.role))]
 
-		return { frontendResources }
+		return { frontendResources: [], see }
 	}
 
 	public async changePassword(
@@ -4179,6 +4204,24 @@ export default class ProductController {
 		)
 	}
 
+	private async getDocumentsSinceIfSee(
+		requestContext: RequestContext,
+		collectionName: (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES],
+		model: any,
+		since: Date,
+	) {
+		if (!(await canSeeResource(requestContext, collectionName))) {
+			return []
+		}
+
+		return this.getDocumentsSince(
+			requestContext,
+			collectionName,
+			model,
+			since,
+		)
+	}
+
 	private getOfflineRetentionCutoff(): Date {
 		const cutoff = new Date()
 
@@ -4259,12 +4302,27 @@ export default class ProductController {
 
 		await this.invalidateAllTenantListCaches(tenantId)
 
-		const productsResponse = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.PRODUCTS,
-			model: Product,
-			sort: { createdAt: 'desc' },
-		})
+		const emptyData = { data: [], totalCount: 0 }
+		const ifSee = <T>(
+			resource: (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES],
+			run: () => Promise<T>,
+			empty: T,
+		) =>
+			canSeeResource(requestContext, resource).then(ok =>
+				ok ? run() : empty,
+			)
+
+		const productsResponse = await ifSee(
+			COLLECTION_NAMES.PRODUCTS,
+			() =>
+				this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.PRODUCTS,
+					model: Product,
+					sort: { createdAt: 'desc' },
+				}),
+			{ documents: [] },
+		)
 
 		const [
 			inventory,
@@ -4282,20 +4340,60 @@ export default class ProductController {
 			offlineInvoices,
 			offlineBuyingInvoices,
 		] = await Promise.all([
-			this.getInventory(requestContext),
-			this.requireCustomerController().getCustomers(requestContext),
-			this.requireSupplierController().getSuppliers(requestContext),
-			this.requirePartnerController().getPartners(requestContext),
-			this.requireCategoryController().getCategories(requestContext),
-			this.getBrands(requestContext),
-			this.getShelves(requestContext),
-			this.getWarehouses(requestContext),
-			this.getCurrencies(requestContext),
-			this.getUnits(requestContext),
-			this.getExpenses(requestContext),
-			this.getDailyActionsForOfflineBootstrap(requestContext),
-			this.getInvoicesForOfflineBootstrap(requestContext),
-			this.getBuyingInvoicesForOfflineBootstrap(requestContext),
+			ifSee(COLLECTION_NAMES.INVENTORY, () => this.getInventory(requestContext), []),
+			ifSee(
+				COLLECTION_NAMES.CUSTOMERS,
+				() => this.requireCustomerController().getCustomers(requestContext),
+				emptyData,
+			),
+			ifSee(
+				COLLECTION_NAMES.SUPPLIERS,
+				() => this.requireSupplierController().getSuppliers(requestContext),
+				emptyData,
+			),
+			ifSee(
+				COLLECTION_NAMES.PARTNERS,
+				() => this.requirePartnerController().getPartners(requestContext),
+				emptyData,
+			),
+			ifSee(
+				COLLECTION_NAMES.CATEGORIES,
+				() => this.requireCategoryController().getCategories(requestContext),
+				emptyData,
+			),
+			ifSee(COLLECTION_NAMES.BRANDS, () => this.getBrands(requestContext), emptyData),
+			ifSee(COLLECTION_NAMES.SHELVES, () => this.getShelves(requestContext), emptyData),
+			ifSee(
+				COLLECTION_NAMES.WAREHOUSES,
+				() => this.getWarehouses(requestContext),
+				emptyData,
+			),
+			ifSee(
+				COLLECTION_NAMES.CURRENCIES,
+				() => this.getCurrencies(requestContext),
+				emptyData,
+			),
+			ifSee(COLLECTION_NAMES.UNITS, () => this.getUnits(requestContext), emptyData),
+			ifSee(
+				COLLECTION_NAMES.EXPENSES,
+				() => this.getExpenses(requestContext),
+				emptyData,
+			),
+			ifSee(
+				COLLECTION_NAMES.DAILY_ACTIONS,
+				() => this.getDailyActionsForOfflineBootstrap(requestContext),
+				[],
+			),
+			ifSee(
+				COLLECTION_NAMES.INVOICES,
+				() => this.getInvoicesForOfflineBootstrap(requestContext),
+				[],
+			),
+			ifSee(
+				COLLECTION_NAMES.BUYING_INVOICES,
+				() => this.getBuyingInvoicesForOfflineBootstrap(requestContext),
+				[],
+			),
 		])
 
 		const tenantContext = getTenantContext(requestContext)
@@ -4497,91 +4595,91 @@ export default class ProductController {
 			invoices,
 			buyingInvoices,
 		] = await Promise.all([
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.PRODUCTS,
 				Product,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.INVENTORY,
 				Inventory,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.CUSTOMERS,
 				Customer,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.SUPPLIERS,
 				Supplier,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.PARTNERS,
 				Partner,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.CATEGORIES,
 				Category,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.BRANDS,
 				Brand,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.SHELVES,
 				Shelf,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.WAREHOUSES,
 				Warehouse,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.CURRENCIES,
 				Currency,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.UNITS,
 				Unit,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.EXPENSES,
 				Expense,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.DAILY_ACTIONS,
 				DailyAction,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.INVOICES,
 				Invoice,
 				since,
 			),
-			this.getDocumentsSince(
+			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.BUYING_INVOICES,
 				BuyingInvoice,

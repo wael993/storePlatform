@@ -197,14 +197,14 @@ class RedisCache {
 
 	// Key builders for different entities
 	public buildProductListKey(tenantId: string): string {
-		return `cache:products:list:${tenantId}`
+		return `cache:products:list:${tenantId}:v2`
 	}
 	public buildCategoryListKey(tenantId: string): string {
 		return `cache:categories:list:${tenantId}`
 	}
 
 	public buildProductDetailKey(tenantId: string, productId: string): string {
-		return `cache:products:detail:${tenantId}:${productId}`
+		return `cache:products:detail:${tenantId}:${productId}:v2`
 	}
 
 	public buildOrderListKey(tenantId: string): string {
@@ -223,11 +223,11 @@ class RedisCache {
 	}
 
 	public buildSupplierListKey(tenantId: string): string {
-		return `cache:suppliers:list:${tenantId}`
+		return `cache:suppliers:list:${tenantId}:v2`
 	}
 
 	public buildCustomerListKey(tenantId: string): string {
-		return `cache:customers:list:${tenantId}`
+		return `cache:customers:list:${tenantId}:v2`
 	}
 
 	public buildExpenseListKey(tenantId: string): string {

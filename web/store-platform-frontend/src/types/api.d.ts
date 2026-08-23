@@ -360,6 +360,7 @@ interface LoginAPI {
 	lastName: string
 	role: UserRole
 	accessiblePages?: string[]
+	see?: string[]
 	/** Tenant-level setting returned on login; stored in tenant offline config, not on user. */
 	offlineEnabled?: boolean
 }

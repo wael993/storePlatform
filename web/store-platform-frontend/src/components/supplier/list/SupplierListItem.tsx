@@ -7,6 +7,8 @@ import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import { PAGE_COLORS } from '../../SellingInvoice/constants'
 import { useInvoiceDisplayCurrency } from '../../SellingInvoice/useInvoiceDisplayCurrency'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 const styles = {
 	tableRow: {
@@ -91,6 +93,7 @@ const SupplierListItem = ({
 	isLoading,
 }: SupplierListItemProps) => {
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { canSee } = useSee()
 	const showCheckbox = true
 	const isReadyForExecution = false
 	const totalPayable = supplier.totalPayable ?? 0
@@ -157,6 +160,7 @@ const SupplierListItem = ({
 				</Flex>
 			</Td>
 
+			{canSee(SEE.suppliersTotalPayable) ? (
 			<Td sx={styles.tableRow}>
 				<Flex sx={styles.cellContentWrapper}>
 					<Skeleton isLoaded={!isLoading}>
@@ -173,6 +177,7 @@ const SupplierListItem = ({
 					</Skeleton>
 				</Flex>
 			</Td>
+			) : null}
 
 			<Td sx={{ ...styles.tableRow, ...styles.rightStickyContainer, right: 1 }}>
 				<Flex sx={styles.rightStickyContainerContent}>

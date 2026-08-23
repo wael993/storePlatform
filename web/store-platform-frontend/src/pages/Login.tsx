@@ -23,6 +23,8 @@ import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
 import { UserRole } from '../shared/globalEnums'
 import { RoutePaths } from '../shared/routes'
+import { SEE } from '../shared/seeFlags'
+import { tenantHomePath } from '../shared/utils'
 import { useTranslation } from 'react-i18next'
 
 const Login = () => {
@@ -77,7 +79,7 @@ const Login = () => {
 			const nextRoute =
 				response.role === UserRole.SUPER_ADMIN
 					? RoutePaths.ADD_NEW_TENANT
-					: RoutePaths.ROOT
+					: tenantHomePath(id => (response.see ?? []).includes(id))
 
 			navigate(nextRoute, {
 				state: { role: response.role, tenantId: response.tenantId },

@@ -20,6 +20,8 @@ import SettingsPage from './pages/SettingsPage'
 import WelcomePage from './pages/WelcomePage'
 import { useAuth } from './shared/hooks/useAuth'
 import { useUser } from './shared/hooks/useUser'
+import { useSee } from './shared/hooks/useSee'
+import { SEE } from './shared/seeFlags'
 import { useSilentRefresh } from './shared/hooks/useSilentRefresh'
 import { getEnabledActions, getTenantActions } from './shared/utils'
 import { RoutePaths } from './shared/routes'
@@ -45,7 +47,8 @@ const TENANT_ROLES = [
 ]
 
 const App = () => {
-	const { userRole, user, isOwnerOrAdmin } = useUser()
+	const { userRole, user } = useUser()
+	const { canSee, canSeeAny } = useSee()
 	const { isAuthenticated } = useAuth()
 
 	useSilentRefresh()
@@ -108,88 +111,112 @@ const App = () => {
 					<Route element={<TenantLayout />}>
 						<Route path={RoutePaths.ROOT} element={<WelcomePage />} />
 						<Route path={RoutePaths.STORE_PLATFORM} element={<WelcomePage />} />
-						{isBarcodeEnabled && isTenantBarcodeEnabled && (
-							<Route path={RoutePaths.BARCODE} element={<BarcodePage />} />
-						)}
-						{isProductsEnabled && isTenantProductsEnabled && (
-							<Route
-								path={RoutePaths.PRODUCTS}
-								element={<ProductsPage targetType={TargetType.PRODUCT} />}
-							>
+						{isBarcodeEnabled &&
+							isTenantBarcodeEnabled &&
+							canSee(SEE.barcode) && (
+								<Route path={RoutePaths.BARCODE} element={<BarcodePage />} />
+							)}
+						{isProductsEnabled &&
+							isTenantProductsEnabled &&
+							canSee(SEE.products) && (
 								<Route
-									path=":productId"
-									element={<ProductModal targetType={TargetType.PRODUCT} />}
-								/>
-							</Route>
-						)}
-						{isOrdersEnabled && isTenantOrdersEnabled && (
-							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
-						)}
+									path={RoutePaths.PRODUCTS}
+									element={<ProductsPage targetType={TargetType.PRODUCT} />}
+								>
+									<Route
+										path=":productId"
+										element={<ProductModal targetType={TargetType.PRODUCT} />}
+									/>
+								</Route>
+							)}
+						{isOrdersEnabled &&
+							isTenantOrdersEnabled &&
+							canSee(SEE.orders) && (
+								<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
+							)}
 
-						{isDailyEnabled && isTenantDailyEnabled && (
+						{isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily) && (
 							<Route
 								path={RoutePaths.DAILY}
 								element={<DailyPage targetType={TargetType.DAILY_ACTION} />}
 							/>
 						)}
 
-						{isSellingInvoicesEnabled && isTenantSellingInvoicesEnabled && (
-							<Route
-								path={RoutePaths.SELLING_INVOICES}
-								element={<SellingInvoicesPage />}
-							/>
-						)}
-						{isReportsEnabled && isTenantReportsEnabled && (
-							<Route path={RoutePaths.REPORTS} element={<ReportPage />} />
-						)}
-						{isSettingsEnabled && isTenantSettingsEnabled && (
-							<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />
-						)}
-						{isCustomersEnabled && isTenantCustomersEnabled && (
-							<>
+						{isSellingInvoicesEnabled &&
+							isTenantSellingInvoicesEnabled &&
+							canSee(SEE.invoices) && (
 								<Route
-									path={RoutePaths.CUSTOMERS}
-									element={<CustomerPage targetType={TargetType.CUSTOMER} />}
+									path={RoutePaths.SELLING_INVOICES}
+									element={<SellingInvoicesPage />}
 								/>
+							)}
+						{isReportsEnabled &&
+							isTenantReportsEnabled &&
+							canSee(SEE.reports) && (
+								<Route path={RoutePaths.REPORTS} element={<ReportPage />} />
+							)}
+						{isSettingsEnabled &&
+							isTenantSettingsEnabled &&
+							canSee(SEE.settings) && (
+								<Route path={RoutePaths.SETTINGS} element={<SettingsPage />} />
+							)}
+						{isCustomersEnabled &&
+							isTenantCustomersEnabled &&
+							canSee(SEE.customers) && (
+								<>
+									<Route
+										path={RoutePaths.CUSTOMERS}
+										element={<CustomerPage targetType={TargetType.CUSTOMER} />}
+									/>
+									<Route
+										path={RoutePaths.SINGLE_CUSTOMER}
+										element={
+											<CustomerModal targetType={TargetType.CUSTOMER} />
+										}
+									/>
+								</>
+							)}
+						{isCategoriesEnabled &&
+							isTenantCategoriesEnabled &&
+							canSee(SEE.categories) && (
 								<Route
-									path={RoutePaths.SINGLE_CUSTOMER}
-									element={<CustomerModal targetType={TargetType.CUSTOMER} />}
+									path={RoutePaths.CATEGORIES}
+									element={<CategoryPage targetType={TargetType.CATEGORY} />}
 								/>
-							</>
-						)}
-						{isCategoriesEnabled && isTenantCategoriesEnabled && (
-							<Route
-								path={RoutePaths.CATEGORIES}
-								element={<CategoryPage targetType={TargetType.CATEGORY} />}
-							/>
-						)}
-						{isSuppliersEnabled && isTenantSuppliersEnabled && (
-							<>
-								<Route
-									path={RoutePaths.SUPPLIERS}
-									element={<SupplierPage targetType={TargetType.SUPPLIER} />}
-								/>
-								<Route
-									path={RoutePaths.SINGLE_SUPPLIER}
-									element={<SupplierModal targetType={TargetType.SUPPLIER} />}
-								/>
-							</>
-						)}
-						{isPartnersEnabled && isTenantPartnersEnabled && (
-							<>
-								<Route
-									path={RoutePaths.PARTNERS}
-									element={<PartnerPage targetType={TargetType.PARTNER} />}
-								/>
-								<Route
-									path={RoutePaths.SINGLE_PARTNER}
-									element={<PartnerModal targetType={TargetType.PARTNER} />}
-								/>
-							</>
-						)}
-						{isOwnerOrAdmin &&
-							isEmployeesEnabled &&
-							isTenantEmployeesEnabled && (
+							)}
+						{isSuppliersEnabled &&
+							isTenantSuppliersEnabled &&
+							canSee(SEE.supplier) && (
+								<>
+									<Route
+										path={RoutePaths.SUPPLIERS}
+										element={<SupplierPage targetType={TargetType.SUPPLIER} />}
+									/>
+									<Route
+										path={RoutePaths.SINGLE_SUPPLIER}
+										element={
+											<SupplierModal targetType={TargetType.SUPPLIER} />
+										}
+									/>
+								</>
+							)}
+						{isPartnersEnabled &&
+							isTenantPartnersEnabled &&
+							canSee(SEE.partners) && (
+								<>
+									<Route
+										path={RoutePaths.PARTNERS}
+										element={<PartnerPage targetType={TargetType.PARTNER} />}
+									/>
+									<Route
+										path={RoutePaths.SINGLE_PARTNER}
+										element={<PartnerModal targetType={TargetType.PARTNER} />}
+									/>
+								</>
+							)}
+						{isEmployeesEnabled &&
+							isTenantEmployeesEnabled &&
+							canSee(SEE.employees) && (
 								<>
 									<Route
 										path={RoutePaths.EMPLOYEES}
@@ -201,24 +228,11 @@ const App = () => {
 									/>
 								</>
 							)}
-					</Route>
-				</Route>
-
-				{/* Admin-only routes */}
-				<Route
-					element={
-						<ProtectedRoute
-							isAuthenticated={isAuthenticated}
-							userRole={userRole}
-							allowedRoles={[UserRole.ADMIN]}
-							redirectTo={RoutePaths.BARCODE}
-						/>
-					}
-				>
-					<Route element={<TenantLayout />}>
-						{isUsersEnabled && isTenantUsersEnabled && (
-							<Route path={RoutePaths.USERS} element={<UsersLogIn />} />
-						)}
+						{isUsersEnabled &&
+							isTenantUsersEnabled &&
+							canSeeAny([SEE.usersInvite, SEE.usersList]) && (
+								<Route path={RoutePaths.USERS} element={<UsersLogIn />} />
+							)}
 					</Route>
 				</Route>
 

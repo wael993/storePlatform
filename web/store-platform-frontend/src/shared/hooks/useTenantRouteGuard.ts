@@ -4,21 +4,42 @@ import {
 	getEnabledActions,
 	getTenantActions,
 	isTenantRouteAllowed,
+	tenantHomePath,
 } from '../utils'
 import { RoutePaths } from '../routes'
+import { useSee } from './useSee'
 
 export const useTenantRouteGuard = (accessiblePages?: string[] | null) => {
 	const location = useLocation()
 	const navigate = useNavigate()
+	const { canSee } = useSee()
 
 	useEffect(() => {
 		const globalActions = getEnabledActions()
 		const tenantActions = getTenantActions(accessiblePages)
 
 		if (
-			!isTenantRouteAllowed(location.pathname, globalActions, tenantActions)
+			!isTenantRouteAllowed(
+				location.pathname,
+				globalActions,
+				tenantActions,
+				canSee,
+			)
 		) {
-			navigate(RoutePaths.ROOT, { replace: true })
+			const home = tenantHomePath(canSee)
+			if (location.pathname !== home && location.pathname !== RoutePaths.ROOT) {
+				navigate(home, { replace: true })
+				return
+			}
+
+			if (
+				location.pathname === RoutePaths.ROOT ||
+				location.pathname === RoutePaths.STORE_PLATFORM
+			) {
+				if (home !== RoutePaths.ROOT) {
+					navigate(home, { replace: true })
+				}
+			}
 		}
-	}, [accessiblePages, location.pathname, navigate])
+	}, [accessiblePages, canSee, location.pathname, navigate])
 }

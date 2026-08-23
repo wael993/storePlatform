@@ -24,6 +24,8 @@ import {
 } from './productSearch'
 import { useInventoryByProductId } from './useInventoryByProductId'
 import { useProductCatalog } from './useProductCatalog'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { AsSearchIcon } from '../../icons/Search'
 import { AsCirclePlusIcon } from '../../shared/icons/CirclePlus'
 import { AsQrCodeIcon } from '../../icons/QrCode'
@@ -43,6 +45,8 @@ const InvoiceProductSearch = ({
 	focusNonce,
 }: InvoiceProductSearchProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canAddProduct = canSee(SEE.productsAdd)
 	const inputRef = useRef<HTMLInputElement>(null)
 	const containerRef = useRef<HTMLDivElement>(null)
 	const lastInitialSearchRef = useRef('')
@@ -85,9 +89,13 @@ const InvoiceProductSearch = ({
 			if (results.length === 0) {
 				setSuggestions([])
 				setShowSuggestions(false)
-				setError(null)
-				setPendingBarcode(trimmed)
-				setIsAddProductOpen(true)
+				if (canAddProduct) {
+					setError(null)
+					setPendingBarcode(trimmed)
+					setIsAddProductOpen(true)
+				} else {
+					setError(t('components.sellingInvoices.drawer.productNotFound'))
+				}
 				return
 			}
 
@@ -109,7 +117,7 @@ const InvoiceProductSearch = ({
 			setHighlightedIndex(0)
 			setError(null)
 		},
-		[handleAddProduct],
+		[handleAddProduct, canAddProduct, t],
 	)
 
 	const submitSearch = useCallback(
@@ -289,6 +297,7 @@ const InvoiceProductSearch = ({
 				</InputGroup>
 
 				<Flex gap={2}>
+					{canAddProduct ? (
 					<Button
 						variant="outline"
 						leftIcon={
@@ -306,6 +315,7 @@ const InvoiceProductSearch = ({
 					>
 						{t('components.sellingInvoices.drawer.addProduct')}
 					</Button>
+					) : null}
 					<Button
 						variant="outline"
 						leftIcon={
@@ -418,7 +428,7 @@ const InvoiceProductSearch = ({
 			)}
 
 			<AddProductModal
-				isOpen={isAddProductOpen}
+				isOpen={canAddProduct && isAddProductOpen}
 				onClose={() => {
 					setIsAddProductOpen(false)
 					setPendingBarcode('')

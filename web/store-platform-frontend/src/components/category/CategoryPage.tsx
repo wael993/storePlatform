@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
-import { useUser } from '../../shared/hooks/useUser'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import CategoryListWithActionBar from './list/CategoryListWithActionBar'
 import {
@@ -90,7 +89,6 @@ const CategoryPage = (_props: CategoryPageProps) => {
 	})
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
-	const { isOwnerOrAdmin } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
 	const { data: categoriesResponse = [], isLoading: isCategoriesLoading } =
@@ -129,16 +127,14 @@ const CategoryPage = (_props: CategoryPageProps) => {
 				<Heading sx={styles.title} variant={'h5'}>
 					{t('components.pageHeaders.categories')}
 				</Heading>
-				{isOwnerOrAdmin && (
-					<Button
-						leftIcon={<AddSquareIcon />}
-						onClick={onOpen}
-						sx={styles.addButton}
-						variant="ghost"
-					>
-						<Text sx={styles.addButtonText}>{t('common.addCategory')}</Text>
-					</Button>
-				)}
+				<Button
+					leftIcon={<AddSquareIcon />}
+					onClick={onOpen}
+					sx={styles.addButton}
+					variant="ghost"
+				>
+					<Text sx={styles.addButtonText}>{t('common.addCategory')}</Text>
+				</Button>
 			</HStack>
 
 			{isCategoriesLoading && <Spinner />}

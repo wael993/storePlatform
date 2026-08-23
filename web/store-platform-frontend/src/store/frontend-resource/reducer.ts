@@ -4,6 +4,7 @@ import { storeApi } from '../../api/apiStore'
 
 interface FrontendResourcesState {
 	frontendResources: FrontendResources[]
+	see: string[]
 	currentRoute: string
 	allowedActions?: string[]
 	isLoading: boolean
@@ -12,6 +13,7 @@ interface FrontendResourcesState {
 
 const initialState: FrontendResourcesState = {
 	frontendResources: [] as FrontendResources[],
+	see: [],
 	currentRoute: '',
 	allowedActions: [],
 	isLoading: false,
@@ -54,7 +56,8 @@ export const frontendResourceSlice = createSlice({
 			.addMatcher(
 				storeApi.endpoints.getUserFrontendResources.matchFulfilled,
 				(state, { payload }) => {
-					state.frontendResources = payload
+					state.frontendResources = payload.frontendResources
+					state.see = payload.see ?? []
 					state.isLoading = false
 					state.isUninitialized = false
 				},

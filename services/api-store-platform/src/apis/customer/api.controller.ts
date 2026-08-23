@@ -39,6 +39,20 @@ export type CustomerInvoiceCollaborator = {
 const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
 
+const canSeeReceivable = (requestContext: RequestContext) =>
+	(requestContext.see || []).includes('customers.totalReceivable')
+
+const omitReceivableIfHidden = (
+	customer: CustomerResponse,
+	requestContext: RequestContext,
+): CustomerResponse => {
+	if (canSeeReceivable(requestContext)) return customer
+
+	const { totalReceivable: _omitted, ...row } = customer
+
+	return row
+}
+
 export default class CustomerController {
 	constructor(
 		private mongoDbClient: MongodbController,
@@ -72,7 +86,12 @@ export default class CustomerController {
 			await redisCache.getJson<CustomersResponse>(cacheKey)
 
 		if (cachedCustomers) {
-			return cachedCustomers
+			return {
+				...cachedCustomers,
+				data: cachedCustomers.data.map(customer =>
+					omitReceivableIfHidden(customer, requestContext),
+				),
+			}
 		}
 
 		const customers = await this.mongoDbClient.getDocuments({
@@ -159,7 +178,12 @@ export default class CustomerController {
 
 		await redisCache.setJson(cacheKey, response)
 
-		return response
+		return {
+			...response,
+			data: response.data.map(customer =>
+				omitReceivableIfHidden(customer, requestContext),
+			),
+		}
 	}
 
 	public async getCustomer(
@@ -181,9 +205,12 @@ export default class CustomerController {
 		const dailyActions =
 			await this.invoiceCollaborator.getDailyActions(requestContext)
 
-		return mapCustomer(
-			customer,
-			filterCustomerRelatedActions(dailyActions.data, customer),
+		return omitReceivableIfHidden(
+			mapCustomer(
+				customer,
+				filterCustomerRelatedActions(dailyActions.data, customer),
+			),
+			requestContext,
 		)
 	}
 

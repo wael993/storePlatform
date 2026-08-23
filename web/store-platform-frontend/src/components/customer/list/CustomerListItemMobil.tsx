@@ -22,6 +22,8 @@ import StateCircle from '../../StateCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
 import { PAGE_COLORS } from '../../SellingInvoice/constants'
 import { useInvoiceDisplayCurrency } from '../../SellingInvoice/useInvoiceDisplayCurrency'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 const styles = {
 	listItemGridItem: {
@@ -90,6 +92,7 @@ const CustomerListItemMobil = ({
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { canSee } = useSee()
 	const totalReceivable = customer.totalReceivable ?? 0
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -161,6 +164,7 @@ const CustomerListItemMobil = ({
 					paddingRight={isArabic ? 16 : 0}
 				>
 					<Grid templateColumns="repeat(2, 1fr)" gap="6">
+						{canSee(SEE.customersTotalReceivable) ? (
 						<GridItem sx={styles.listItemGridItem}>
 							<Text sx={styles.titleText}>
 								{t('components.invoiceSummary.totalReceivable')}
@@ -176,6 +180,7 @@ const CustomerListItemMobil = ({
 								</Text>
 							</Skeleton>
 						</GridItem>
+						) : null}
 					</Grid>
 					<Flex
 						sx={{
