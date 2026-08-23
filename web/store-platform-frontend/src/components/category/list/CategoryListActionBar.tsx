@@ -1,12 +1,12 @@
-import { Button, Flex, Text } from '@chakra-ui/react'
+import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
-import { useResources } from '../../../shared/hooks/useResources'
-import { useUser } from '../../../shared/hooks/useUser'
-import { AllowedActions } from '../../../shared/globalEnums'
-import AddRequiredDocumentButton from '../../common/AddRequiredDocumentButton'
-import { AsCloseCircleIcon } from '../../../icons/CloseIconCircle'
-import { AsCheckmarkCircleIcon } from '../../../icons/CheckmarkCircle'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useBulkDeleteCategoriesMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
+import { AsTrashIcon } from '../../../icons/Trash'
 
 const styles = {
 	mainFlexWrapper: {
@@ -36,50 +36,56 @@ const styles = {
 		background: '#EAEAEA',
 		...hoverFocusActiveButtonStyles,
 	},
-	requiredDocumentButton: {
-		backgroundColor: '#EAEAEA',
-		color: '#1E1E1E',
-		fontSize: '0.875rem',
-		fontWeight: '700',
-		height: '2rem',
-		paddingLeft: '0.625rem',
-		paddingRight: '0.625rem',
-		width: 'unset',
-	},
 } satisfies StylesObject
 
 interface CategoryListActionBarProps {
 	selectedCategorys: Category[]
-	isRejectActivityInProgress: boolean
-	onAddRequiredDocument: (
-		selectedCategorys: Category[],
-		data: {},
-	) => Promise<void>
-	isAddRequiredDocumentInProgress: boolean
 }
 
 const CategoryListActionBar = ({
 	selectedCategorys,
-	isRejectActivityInProgress,
-	onAddRequiredDocument,
-	isAddRequiredDocumentInProgress,
 }: CategoryListActionBarProps) => {
 	const { t } = useTranslation()
-	const { isActionAllowed } = useResources()
-	const { isOwnerOrAdmin: isInternalUser } = useUser()
+	const { canSee } = useSee()
+	const { isOpen, onOpen, onClose } = useDisclosure()
+	const showToast = useCustomToast()
+	const [bulkDelete, { isLoading: isDeleting }] =
+		useBulkDeleteCategoriesMutation()
+	const canDelete = canSee(SEE.categoriesDelete)
 
-	const isRequiredDocumentCreationAllowed = isActionAllowed(
-		AllowedActions.ADD_PRODUCT,
-	)
+	const handleDelete = async () => {
+		try {
+			const result = await bulkDelete(
+				selectedCategorys.map(category => category.categoryId),
+			).unwrap()
 
-	const requiredDocumentCreatableOffers = true
+			onClose()
 
-	const handleAddRequiredDocument = async () =>
-		// documentName: string,
-		// deadline: string,
-		{
-			await onAddRequiredDocument([], {})
+			if (result.deleted.length) {
+				showToast({
+					status: 'success',
+					description: t('category.deleteSelectedSuccess', {
+						count: result.deleted.length,
+					}),
+				})
+			}
+
+			if (result.blocked.length) {
+				showToast({
+					status: 'error',
+					description:
+						result.blocked[0]?.reason || t('category.deleteCategoryError'),
+				})
+			}
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+
+			showToast({
+				status: 'error',
+				description: err.data?.message || t('category.deleteCategoryError'),
+			})
 		}
+	}
 
 	return (
 		<Flex sx={styles.mainFlexWrapper}>
@@ -87,53 +93,28 @@ const CategoryListActionBar = ({
 				{`${selectedCategorys.length} 	${t('common.selected')}`}
 			</Text>
 			<Flex sx={styles.iconWrapper}>
-				{isRequiredDocumentCreationAllowed && isInternalUser && (
-					<AddRequiredDocumentButton
-						onAddDocument={handleAddRequiredDocument}
-						isLoading={isAddRequiredDocumentInProgress}
-						isDisabled={
-							!requiredDocumentCreatableOffers ||
-							isAddRequiredDocumentInProgress
-						}
-						// requiredDocumentButtonStyles={styles.requiredDocumentButton}
-						requiredDocumentIconStyles={
-							{
-								// color: '#1E1E1E',
-								// boxSize: '5',
-							}
-						}
-					/>
-				)}
-
-				{isInternalUser && (
-					<Button
+				{canDelete ? (
+					<IconButton
 						sx={styles.iconButton}
-						isDisabled={false}
-						isLoading={isRejectActivityInProgress}
-						size={'sm'}
-						rightIcon={<AsCloseCircleIcon boxSize={6} />}
-						onClick={() => {
-							console.log('modal opened')
-						}}
-						aria-label={t('common.reject')}
-					>
-						{t('common.reject')}
-					</Button>
-				)}
-				<Button
-					isDisabled={false}
-					size={'sm'}
-					rightIcon={<AsCheckmarkCircleIcon boxSize={6} />}
-					aria-label={t('common.accept')}
-					variant="primary"
-					// sx={hoverFocusActiveButtonStyles}
-					onClick={() => {
-						console.log('modal closed')
-					}}
-				>
-					{t('common.accept')}
-				</Button>
+						aria-label={t('category.deleteSelected')}
+						icon={<AsTrashIcon boxSize={5} />}
+						size="sm"
+						onClick={onOpen}
+					/>
+				) : null}
 			</Flex>
+			<ConfirmationDialog
+				header={t('category.deleteSelected')}
+				body={t('category.deleteSelectedConfirm', {
+					count: selectedCategorys.length,
+				})}
+				isOpen={isOpen}
+				onClose={onClose}
+				onConfirm={handleDelete}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</Flex>
 	)
 }

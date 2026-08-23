@@ -1,4 +1,10 @@
-import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
+import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteCategoryMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 import { CATEGORY_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
@@ -89,8 +95,19 @@ const CategoryListItem = ({
 	isHovered,
 	isLoading,
 }: CategoryListItemProps) => {
-	const showCheckbox = true
+	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.categoriesDelete)
+	const showCheckbox = canDelete
 	const isReadyForExecution = false
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deleteCategory, { isLoading: isDeleting }] =
+		useDeleteCategoryMutation()
 
 	return (
 		<>
@@ -202,11 +219,43 @@ const CategoryListItem = ({
 					</Flex>
 					<Flex sx={styles.cellContentWrapperSticky}>
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('category.deleteCategory')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</Flex>
 			</Td>
+			<ConfirmationDialog
+				header={t('category.deleteCategory')}
+				body={t('category.deleteCategoryConfirm')}
+				isOpen={isDeleteOpen}
+				onClose={onDeleteClose}
+				onConfirm={async () => {
+					try {
+						await deleteCategory(category.categoryId).unwrap()
+						onDeleteClose()
+						showToast({
+							status: 'success',
+							description: t('category.deleteCategorySuccess'),
+						})
+					} catch (error) {
+						const err = error as { data?: { message?: string } }
+
+						showToast({
+							status: 'error',
+							description:
+								err.data?.message || t('category.deleteCategoryError'),
+						})
+					}
+				}}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</>
 	)
 }

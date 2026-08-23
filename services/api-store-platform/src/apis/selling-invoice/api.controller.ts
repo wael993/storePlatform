@@ -24,6 +24,7 @@ import {
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
 import { SEE } from '../../shared/seeCatalog'
+import { ensureSeeIds } from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
 import {
 	CustomerInvoiceSummary,
@@ -1275,6 +1276,8 @@ export default class SellingInvoiceController {
 		invoiceId: string,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.sellingInvoicesDelete])
+
 		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
 		const wasStockAffecting = Boolean(
 			existingInvoice &&

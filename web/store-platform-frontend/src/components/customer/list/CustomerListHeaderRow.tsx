@@ -62,7 +62,7 @@ const CustomerListHeaderRow = ({
 
 	const { isActionAllowed } = useResources()
 	const { canSee } = useSee()
-	const showCheckbox = true
+	const showCheckbox = canSee(SEE.customersDelete)
 
 	const handleSort = (sortingCell: CustomerSortHeaderKey, order: SortOrder) => {
 		onSort(sortingCell, order)

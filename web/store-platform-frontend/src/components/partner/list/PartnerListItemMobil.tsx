@@ -11,6 +11,7 @@ import {
 	GridItem,
 	Skeleton,
 	Text,
+	useDisclosure,
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +22,11 @@ import { compareLanguage, withNoValueFallback } from '../../../shared/utils'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeletePartnerMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 const styles = {
 	listItemGridItem: {
@@ -88,6 +94,15 @@ const PartnerListItemMobil = ({
 	const navigate = useNavigate()
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.partnersDelete)
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deletePartner, { isLoading: isDeleting }] = useDeletePartnerMutation()
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
 		event.stopPropagation()
@@ -96,11 +111,13 @@ const PartnerListItemMobil = ({
 	}
 
 	return (
+		<>
 		<Accordion allowToggle index={isOpen ? [0] : []} onChange={onToggle}>
 			<AccordionItem sx={styles.accordionItem}>
 				<Box display="flex" flexDirection="row">
 					<AccordionButton sx={styles.accordionButton}>
 						<Flex alignItems="center" gap="6" flexGrow={1}>
+							{canDelete ? (
 							<Box
 								sx={{
 									...styles.listItemGridItem,
@@ -119,6 +136,7 @@ const PartnerListItemMobil = ({
 									/>
 								</Skeleton>
 							</Box>
+							) : null}
 
 							<Box
 								sx={{ ...styles.listItemGridItem, flex: 1 }}
@@ -192,12 +210,44 @@ const PartnerListItemMobil = ({
 						</Skeleton>
 
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('partner.deletePartner')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</AccordionPanel>
 			</AccordionItem>
 		</Accordion>
+		<ConfirmationDialog
+			header={t('partner.deletePartner')}
+			body={t('partner.deletePartnerConfirm')}
+			isOpen={isDeleteOpen}
+			onClose={onDeleteClose}
+			onConfirm={async () => {
+				try {
+					await deletePartner(partner.partnerId).unwrap()
+					onDeleteClose()
+					showToast({
+						status: 'success',
+						description: t('partner.deletePartnerSuccess'),
+					})
+				} catch (error) {
+					const err = error as { data?: { message?: string } }
+
+					showToast({
+						status: 'error',
+						description: err.data?.message || t('partner.deletePartnerError'),
+					})
+				}
+			}}
+			cancelButtonText={t('common.cancel')}
+			confirmationButtonText={t('common.delete')}
+			isConfirmationButtonLoading={isDeleting}
+		/>
+		</>
 	)
 }
 

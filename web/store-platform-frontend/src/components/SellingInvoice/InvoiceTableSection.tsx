@@ -71,6 +71,8 @@ import { AsEditIcon } from '../../shared/icons/Edit'
 import { AsTrashIcon } from '../../icons/Trash'
 import { AsPrintIcon } from '../../icons/Print'
 import { AsDownloadIcon } from '../../icons/Download'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
@@ -125,6 +127,8 @@ const InvoiceTableSection = ({
 	showEntries = false,
 }: InvoiceTableSectionProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDeleteEntry = canSee(SEE.invoicesEntriesDelete)
 	const showToast = useCustomToast()
 	const searchInputRef = useRef<HTMLInputElement>(null)
 	const { isExporting, printInvoice, downloadInvoice } =
@@ -683,6 +687,7 @@ const InvoiceTableSection = ({
 																	if (entry) onEditEntry?.(entry)
 																}}
 															/>
+															{canDeleteEntry ? (
 															<IconButton
 																size="xs"
 																variant="ghost"
@@ -700,6 +705,7 @@ const InvoiceTableSection = ({
 																color={PAGE_COLORS.muted}
 																onClick={() => handleDeleteEntryRequest(row.id)}
 															/>
+															) : null}
 															<Menu>
 																<MenuButton
 																	as={IconButton}
@@ -738,6 +744,7 @@ const InvoiceTableSection = ({
 																			'components.sellingInvoices.actions.edit',
 																		)}
 																	</MenuItem>
+																	{canDeleteEntry ? (
 																	<MenuItem
 																		onClick={() =>
 																			handleDeleteEntryRequest(row.id)
@@ -748,6 +755,7 @@ const InvoiceTableSection = ({
 																			'components.sellingInvoices.actions.delete',
 																		)}
 																	</MenuItem>
+																	) : null}
 																</MenuList>
 															</Menu>
 														</HStack>
@@ -757,6 +765,10 @@ const InvoiceTableSection = ({
 										}
 
 										const invoice = row
+										const canDeleteInvoice =
+											invoice.kind === 'buying'
+												? canSee(SEE.invoicesBuyingDelete)
+												: canSee(SEE.sellingInvoicesDelete)
 										const paymentConfig =
 											PAYMENT_TYPE_CONFIG[invoice.paymentType]
 										const kindBadge = INVOICE_KIND_BADGE[invoice.kind]
@@ -901,6 +913,7 @@ const InvoiceTableSection = ({
 																onEditInvoice(invoice.id, invoice.kind)
 															}
 														/>
+														{canDeleteInvoice ? (
 														<IconButton
 															size="xs"
 															variant="ghost"
@@ -920,6 +933,7 @@ const InvoiceTableSection = ({
 																onDeleteInvoice(invoice.id, invoice.kind)
 															}
 														/>
+														) : null}
 														<IconButton
 															size="xs"
 															variant="ghost"
@@ -990,6 +1004,7 @@ const InvoiceTableSection = ({
 																>
 																	{t('components.sellingInvoices.actions.edit')}
 																</MenuItem>
+																{canDeleteInvoice ? (
 																<MenuItem
 																	onClick={() =>
 																		onDeleteInvoice(invoice.id, invoice.kind)
@@ -1000,6 +1015,7 @@ const InvoiceTableSection = ({
 																		'components.sellingInvoices.actions.delete',
 																	)}
 																</MenuItem>
+																) : null}
 																<MenuItem
 																	isDisabled={isExporting}
 																	onClick={() =>

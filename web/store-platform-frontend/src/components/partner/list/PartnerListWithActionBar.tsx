@@ -7,6 +7,8 @@ import { compareBreakpoint } from '../../../shared/utils'
 import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import PartnerListActionBar from './PartnerListActionBar'
 import PartnerListMobil from './PartnerListMobil'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 interface PartnerListWithActionBarProps {
 	partners?: Partner[]
@@ -18,6 +20,8 @@ const PartnerListWithActionBar = ({
 	isLoading,
 }: PartnerListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.partnersDelete)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>([])
 	const partnerElements: Partner[] = useMemo(() => {
@@ -66,7 +70,7 @@ const PartnerListWithActionBar = ({
 
 	return (
 		<VStack w="100%" p={0}>
-			{selectedPartnerIds.length > 0 && (
+			{canDelete && selectedPartnerIds.length > 0 && (
 				<PartnerListActionBar
 					selectedPartners={
 						(selectedPartnerIds
@@ -75,9 +79,6 @@ const PartnerListWithActionBar = ({
 							)
 							.filter(Boolean) as Partner[]) ?? []
 					}
-					isRejectActivityInProgress={false}
-					onAddRequiredDocument={() => Promise.resolve()}
-					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
 			{isMobile ? (

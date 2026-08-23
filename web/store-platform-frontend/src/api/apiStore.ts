@@ -688,6 +688,29 @@ const getQuery = (
 			invalidatesTags: ['categories'],
 		}),
 
+		deleteCategory: builder.mutation<void, string>({
+			query: categoryId => ({
+				url: `categories/${categoryId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['categories'],
+		}),
+
+		bulkDeleteCategories: builder.mutation<
+			{
+				deleted: string[]
+				blocked: Array<{ categoryId: string; reason: string }>
+			},
+			string[]
+		>({
+			query: categoryIds => ({
+				url: 'categories/bulk-delete',
+				method: 'POST',
+				body: { categoryIds },
+			}),
+			invalidatesTags: ['categories'],
+		}),
+
 		createBrand: builder.mutation<
 			CreateBrandAPIResponse,
 			Pick<Brand, 'name' | 'description'>
@@ -986,6 +1009,29 @@ const getQuery = (
 			invalidatesTags: ['suppliers'],
 		}),
 
+		deleteSupplier: builder.mutation<void, string>({
+			query: supplierId => ({
+				url: `suppliers/${supplierId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['suppliers'],
+		}),
+
+		bulkDeleteSuppliers: builder.mutation<
+			{
+				deleted: string[]
+				blocked: Array<{ supplierId: string; reason: string }>
+			},
+			string[]
+		>({
+			query: supplierIds => ({
+				url: 'suppliers/bulk-delete',
+				method: 'POST',
+				body: { supplierIds },
+			}),
+			invalidatesTags: ['suppliers'],
+		}),
+
 		createCustomer: builder.mutation<
 			CreateCustomerAPIResponse,
 			Pick<Customer, 'name' | 'internalCode'>
@@ -994,6 +1040,29 @@ const getQuery = (
 				url: 'customers',
 				method: 'POST',
 				body: newCustomer,
+			}),
+			invalidatesTags: ['customers'],
+		}),
+
+		deleteCustomer: builder.mutation<void, string>({
+			query: customerId => ({
+				url: `customers/${customerId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['customers'],
+		}),
+
+		bulkDeleteCustomers: builder.mutation<
+			{
+				deleted: string[]
+				blocked: Array<{ customerId: string; reason: string }>
+			},
+			string[]
+		>({
+			query: customerIds => ({
+				url: 'customers/bulk-delete',
+				method: 'POST',
+				body: { customerIds },
 			}),
 			invalidatesTags: ['customers'],
 		}),
@@ -1113,6 +1182,29 @@ const getQuery = (
 				url: 'partners',
 				method: 'POST',
 				body: newPartner,
+			}),
+			invalidatesTags: ['partners'],
+		}),
+
+		deletePartner: builder.mutation<void, string>({
+			query: partnerId => ({
+				url: `partners/${partnerId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['partners'],
+		}),
+
+		bulkDeletePartners: builder.mutation<
+			{
+				deleted: string[]
+				blocked: Array<{ partnerId: string; reason: string }>
+			},
+			string[]
+		>({
+			query: partnerIds => ({
+				url: 'partners/bulk-delete',
+				method: 'POST',
+				body: { partnerIds },
 			}),
 			invalidatesTags: ['partners'],
 		}),
@@ -2074,6 +2166,8 @@ export const {
 	useGetCustomersQuery,
 	useGetCategoriesQuery,
 	useCreateCategoryMutation,
+	useDeleteCategoryMutation,
+	useBulkDeleteCategoriesMutation,
 	useCreateBrandMutation,
 	useCreateShelfMutation,
 	useCreateWarehouseMutation,
@@ -2093,7 +2187,11 @@ export const {
 	useDeleteProductMutation,
 	usePostProductMutation,
 	useCreateSupplierMutation,
+	useDeleteSupplierMutation,
+	useBulkDeleteSuppliersMutation,
 	useCreateCustomerMutation,
+	useDeleteCustomerMutation,
+	useBulkDeleteCustomersMutation,
 	useGetEmployeesQuery,
 	useGetEmployeeQuery,
 	useCreateEmployeeMutation,
@@ -2103,6 +2201,8 @@ export const {
 	useUpdateEmployeePayoutMutation,
 	useDeleteEmployeePayoutMutation,
 	useCreatePartnerMutation,
+	useDeletePartnerMutation,
+	useBulkDeletePartnersMutation,
 	useCreateUnitMutation,
 	useLoginMutation,
 	useLogoutCurrentMutation,

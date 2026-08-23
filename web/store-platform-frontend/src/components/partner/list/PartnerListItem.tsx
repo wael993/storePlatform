@@ -1,4 +1,10 @@
-import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
+import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeletePartnerMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 import { PARTNER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
@@ -89,8 +95,18 @@ const PartnerListItem = ({
 	isHovered,
 	isLoading,
 }: PartnerListItemProps) => {
-	const showCheckbox = true
+	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.partnersDelete)
+	const showCheckbox = canDelete
 	const isReadyForExecution = false
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deletePartner, { isLoading: isDeleting }] = useDeletePartnerMutation()
 
 	return (
 		<>
@@ -198,11 +214,43 @@ const PartnerListItem = ({
 					</Flex>
 					<Flex sx={styles.cellContentWrapperSticky}>
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('partner.deletePartner')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</Flex>
 			</Td>
+			<ConfirmationDialog
+				header={t('partner.deletePartner')}
+				body={t('partner.deletePartnerConfirm')}
+				isOpen={isDeleteOpen}
+				onClose={onDeleteClose}
+				onConfirm={async () => {
+					try {
+						await deletePartner(partner.partnerId).unwrap()
+						onDeleteClose()
+						showToast({
+							status: 'success',
+							description: t('partner.deletePartnerSuccess'),
+						})
+					} catch (error) {
+						const err = error as { data?: { message?: string } }
+
+						showToast({
+							status: 'error',
+							description:
+								err.data?.message || t('partner.deletePartnerError'),
+						})
+					}
+				}}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</>
 	)
 }

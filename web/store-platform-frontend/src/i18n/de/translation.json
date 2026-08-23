@@ -317,6 +317,12 @@
 			"tab": "Rollenzugriff",
 			"description": "Legen Sie fest, was jede Rolle sehen kann. Ausgeblendete Elemente fehlen in der Oberfläche und in GET-Antworten.",
 			"ownerReadOnly": "Der Inhaber sieht immer alle Seiten dieses Mandanten. Diese Auswahl kann nicht geändert werden.",
+			"columns": {
+				"name": "Seite",
+				"see": "Sehen",
+				"add": "Hinzufügen",
+				"delete": "Löschen"
+			},
 			"helpers": {
 				"supplier": "Lieferantenseite, Lieferantenspalte und Lieferantenfilter.",
 				"addProduct": "Produkt hinzufügen und Rechnungssuche (Enter öffnet das Modal, wenn nichts gefunden wird).",
@@ -340,18 +346,23 @@
 				"products_wholesalePrice": "Großhandelspreis sehen",
 				"products_semiWholesalePrice": "Halb-Großhandelspreis sehen",
 				"products_edit": "Produkt bearbeiten sehen",
-				"products_delete": "Produkt löschen sehen",
+				"products_delete": "Produkte löschen",
 				"products_printBarcode": "Barcode drucken sehen",
 				"products_notifications": "Benachrichtigungen sehen",
 				"customers": "Kundenseite sehen",
 				"customers_add": "Kunde hinzufügen sehen",
+				"customers_delete": "Kunden löschen",
 				"customers_totalReceivable": "Forderungen sehen",
 				"suppliers_add": "Lieferant hinzufügen sehen",
+				"suppliers_delete": "Lieferanten löschen",
 				"suppliers_totalPayable": "Verbindlichkeiten sehen",
 				"invoices": "Rechnungen sehen",
 				"invoices_buying_add": "Einkaufsrechnung hinzufügen sehen",
+				"invoices_buying_delete": "Einkaufsrechnungen löschen",
 				"invoices_entries_add": "Buchungen hinzufügen sehen",
+				"invoices_entries_delete": "Buchungen löschen",
 				"sellingInvoices": "Verkaufsrechnungen sehen",
+				"sellingInvoices_delete": "Verkaufsrechnungen löschen",
 				"sellingInvoices_buyingButton": "Einkaufsrechnungen sehen",
 				"sellingInvoices_sellingButton": "Verkaufsrechnung hinzufügen sehen",
 				"sellingInvoices_entriesButton": "Buchungen sehen",
@@ -359,7 +370,9 @@
 				"sellingInvoices_aiRead": "KI-Rechnung lesen sehen",
 				"reports": "Berichte sehen",
 				"categories": "Kategorien sehen",
+				"categories_delete": "Kategorien löschen",
 				"partners": "Partner sehen",
+				"partners_delete": "Partner löschen",
 				"employees": "Mitarbeiter sehen",
 				"users_invite": "Benutzer einladen-Tab sehen",
 				"users_list": "Benutzer-Tab sehen"
@@ -482,7 +495,23 @@
 			"name": "Partnername",
 			"internalCode": "Partnercode",
 			"createdAt": "Erstellt am"
-		}
+		},
+		"deletePartner": "Partner löschen",
+		"deletePartnerConfirm": "Dieser Partner wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+		"deletePartnerSuccess": "Partner gelöscht.",
+		"deletePartnerError": "Dieser Partner konnte nicht gelöscht werden.",
+		"deleteSelected": "Ausgewählte Partner löschen",
+		"deleteSelectedConfirm": "{{count}} Partner werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+		"deleteSelectedSuccess": "{{count}} Partner gelöscht."
+	},
+	"category": {
+		"deleteCategory": "Kategorie löschen",
+		"deleteCategoryConfirm": "Diese Kategorie wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+		"deleteCategorySuccess": "Kategorie gelöscht.",
+		"deleteCategoryError": "Diese Kategorie konnte nicht gelöscht werden.",
+		"deleteSelected": "Ausgewählte Kategorien löschen",
+		"deleteSelectedConfirm": "{{count}} Kategorien werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+		"deleteSelectedSuccess": "{{count}} Kategorien gelöscht."
 	},
 	"components": {
 		"budgetOverview": {
@@ -500,13 +529,27 @@
 		},
 		"supplier": {
 			"invoices": "Rechnungen",
-			"dailyActions": "Tagesaktionen"
+			"dailyActions": "Tagesaktionen",
+			"deleteSupplier": "Lieferant löschen",
+			"deleteSupplierConfirm": "Dieser Lieferant wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+			"deleteSupplierSuccess": "Lieferant gelöscht.",
+			"deleteSupplierError": "Dieser Lieferant konnte nicht gelöscht werden.",
+			"deleteSelected": "Ausgewählte Lieferanten löschen",
+			"deleteSelectedConfirm": "{{count}} Lieferanten werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+			"deleteSelectedSuccess": "{{count}} Lieferanten gelöscht."
 		},
 		"customer": {
 			"name": "Kundenname",
 			"code": "Kundencode",
 			"sold": "Verkauft",
-			"createdAt": "Erstellt am"
+			"createdAt": "Erstellt am",
+			"deleteCustomer": "Kunde löschen",
+			"deleteCustomerConfirm": "Dieser Kunde wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+			"deleteCustomerSuccess": "Kunde gelöscht.",
+			"deleteCustomerError": "Dieser Kunde konnte nicht gelöscht werden.",
+			"deleteSelected": "Ausgewählte Kunden löschen",
+			"deleteSelectedConfirm": "{{count}} Kunden werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+			"deleteSelectedSuccess": "{{count}} Kunden gelöscht."
 		},
 		"daily": {
 			"dailyActions": "Tagesaktionen",

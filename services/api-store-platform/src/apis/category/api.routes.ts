@@ -122,12 +122,27 @@ export default class CategoryRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/categories/bulk-delete`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.bulkDeleteCategories.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/categories/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCategory.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteCategory.bind(this),
 			)
 	}
 
@@ -178,6 +193,51 @@ export default class CategoryRoutes {
 		try {
 			const resp = await this.categoryController.getCategory(
 				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteCategory(
+		request: CategoryHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.categoryController.deleteCategory(
+				request.params.id,
+				requestContext,
+			)
+
+			response.status(204).send()
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async bulkDeleteCategories(
+		request: CategoryHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const categoryIds = Array.isArray(request.body?.categoryIds)
+			? request.body.categoryIds.filter(
+					(id: unknown): id is string => typeof id === 'string',
+				)
+			: []
+
+		try {
+			const resp = await this.categoryController.bulkDeleteCategories(
+				categoryIds,
 				requestContext,
 			)
 

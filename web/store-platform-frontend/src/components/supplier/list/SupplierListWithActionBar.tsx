@@ -17,6 +17,8 @@ import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import SupplierListMobil from './SupplierListMobil'
 import { matchesNameOrCode } from '../../list/shared/utils'
 import { AsSearchIcon } from '../../../icons/Search'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 interface SupplierListWithActionBarProps {
 	suppliers?: Supplier[]
@@ -29,6 +31,8 @@ const SupplierListWithActionBar = ({
 	isLoading,
 }: SupplierListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.suppliersDelete)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [searchText, setSearchText] = useState('')
 	const [selectedSupplierIds, setSelectedSupplierIds] = useState<string[]>([])
@@ -106,7 +110,7 @@ const SupplierListWithActionBar = ({
 				</InputGroup>
 			</Box>
 
-			{selectedSupplierIds.length > 0 && (
+			{canDelete && selectedSupplierIds.length > 0 && (
 				<SupplierListActionBar
 					selectedSuppliers={
 						(selectedSupplierIds
@@ -115,9 +119,6 @@ const SupplierListWithActionBar = ({
 							)
 							.filter(Boolean) as Supplier[]) ?? []
 					}
-					isRejectActivityInProgress={false}
-					onAddRequiredDocument={() => Promise.resolve()}
-					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
 

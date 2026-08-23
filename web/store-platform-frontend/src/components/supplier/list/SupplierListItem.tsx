@@ -1,4 +1,8 @@
-import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
+import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteSupplierMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
 import { SUPPLIER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
@@ -93,10 +97,20 @@ const SupplierListItem = ({
 	isLoading,
 }: SupplierListItemProps) => {
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { t } = useTranslation()
 	const { canSee } = useSee()
-	const showCheckbox = true
+	const canDelete = canSee(SEE.suppliersDelete)
+	const showCheckbox = canDelete
 	const isReadyForExecution = false
 	const totalPayable = supplier.totalPayable ?? 0
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deleteSupplier, { isLoading: isDeleting }] =
+		useDeleteSupplierMutation()
 
 	return (
 		<>
@@ -203,11 +217,44 @@ const SupplierListItem = ({
 					</Flex>
 					<Flex sx={styles.cellContentWrapperSticky}>
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('components.supplier.deleteSupplier')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</Flex>
 			</Td>
+			<ConfirmationDialog
+				header={t('components.supplier.deleteSupplier')}
+				body={t('components.supplier.deleteSupplierConfirm')}
+				isOpen={isDeleteOpen}
+				onClose={onDeleteClose}
+				onConfirm={async () => {
+					try {
+						await deleteSupplier(supplier.supplierId).unwrap()
+						onDeleteClose()
+						showToast({
+							status: 'success',
+							description: t('components.supplier.deleteSupplierSuccess'),
+						})
+					} catch (error) {
+						const err = error as { data?: { message?: string } }
+
+						showToast({
+							status: 'error',
+							description:
+								err.data?.message ||
+								t('components.supplier.deleteSupplierError'),
+						})
+					}
+				}}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</>
 	)
 }

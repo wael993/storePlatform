@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { Virtuoso } from 'react-virtuoso'
 import SupplierListItemMobil from './SupplierListItemMobil'
 import { mobileVirtuosoStyle } from '../../../theme/layout'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 const styles = {
 	checkboxWrapper: {
@@ -31,17 +33,21 @@ const SupplierListMobil = ({
 	onAllItemsSelectedChange,
 }: SupplierListMobilProps) => {
 	const [openId, setOpenId] = useState<string | null>(null)
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.suppliersDelete)
 	const handleToggle = (id: string) =>
 		setOpenId(prev => (prev === id ? null : id))
 
 	return (
 		<>
+			{canDelete ? (
 			<Flex sx={styles.checkboxWrapper}>
 				<Checkbox
 					isChecked={areAllItemsSelected}
 					onChange={onAllItemsSelectedChange}
 				/>
 			</Flex>
+			) : null}
 
 			<Virtuoso
 				style={mobileVirtuosoStyle}

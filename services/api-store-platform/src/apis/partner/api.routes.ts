@@ -122,12 +122,27 @@ export default class PartnerRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/partners/bulk-delete`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.bulkDeletePartners.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/partners/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getPartner.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deletePartner.bind(this),
 			)
 	}
 
@@ -178,6 +193,51 @@ export default class PartnerRoutes {
 		try {
 			const resp = await this.partnerController.getPartner(
 				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deletePartner(
+		request: PartnerHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.partnerController.deletePartner(
+				request.params.id,
+				requestContext,
+			)
+
+			response.status(204).send()
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async bulkDeletePartners(
+		request: PartnerHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const partnerIds = Array.isArray(request.body?.partnerIds)
+			? request.body.partnerIds.filter(
+					(id: unknown): id is string => typeof id === 'string',
+				)
+			: []
+
+		try {
+			const resp = await this.partnerController.bulkDeletePartners(
+				partnerIds,
 				requestContext,
 			)
 

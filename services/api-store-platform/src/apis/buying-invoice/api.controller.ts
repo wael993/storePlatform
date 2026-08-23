@@ -23,6 +23,8 @@ import {
 	InvoiceStatus,
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
+import { SEE } from '../../shared/seeCatalog'
+import { ensureSeeIds } from '../../shared/seePermissions'
 import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	decodeInvoiceUpload,
@@ -865,6 +867,8 @@ export default class BuyingInvoiceController {
 		buyingInvoiceId: string,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.invoicesBuyingDelete])
+
 		const existingInvoice = await this.getBuyingInvoice(
 			buyingInvoiceId,
 			requestContext,

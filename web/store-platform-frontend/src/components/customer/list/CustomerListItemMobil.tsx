@@ -11,6 +11,7 @@ import {
 	GridItem,
 	Skeleton,
 	Text,
+	useDisclosure,
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,6 +21,9 @@ import { compareLanguage, withNoValueFallback } from '../../../shared/utils'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteCustomerMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
 import { PAGE_COLORS } from '../../SellingInvoice/constants'
 import { useInvoiceDisplayCurrency } from '../../SellingInvoice/useInvoiceDisplayCurrency'
 import { useSee } from '../../../shared/hooks/useSee'
@@ -93,7 +97,16 @@ const CustomerListItemMobil = ({
 	const { isArabic } = compareLanguage(i18n.language)
 	const { formatAmount } = useInvoiceDisplayCurrency()
 	const { canSee } = useSee()
+	const canDelete = canSee(SEE.customersDelete)
 	const totalReceivable = customer.totalReceivable ?? 0
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deleteCustomer, { isLoading: isDeleting }] =
+		useDeleteCustomerMutation()
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
 		event.stopPropagation()
@@ -102,11 +115,13 @@ const CustomerListItemMobil = ({
 	}
 
 	return (
+		<>
 		<Accordion allowToggle index={isOpen ? [0] : []} onChange={onToggle}>
 			<AccordionItem sx={styles.accordionItem}>
 				<Box display="flex" flexDirection="row">
 					<AccordionButton sx={styles.accordionButton}>
 						<Flex alignItems="center" gap="6" flexGrow={1}>
+							{canDelete ? (
 							<Box
 								sx={{
 									...styles.listItemGridItem,
@@ -125,6 +140,7 @@ const CustomerListItemMobil = ({
 									/>
 								</Skeleton>
 							</Box>
+							) : null}
 
 							<Box
 								sx={{ ...styles.listItemGridItem, flex: 1 }}
@@ -207,12 +223,45 @@ const CustomerListItemMobil = ({
 						</Skeleton>
 
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('components.customer.deleteCustomer')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</AccordionPanel>
 			</AccordionItem>
 		</Accordion>
+		<ConfirmationDialog
+			header={t('components.customer.deleteCustomer')}
+			body={t('components.customer.deleteCustomerConfirm')}
+			isOpen={isDeleteOpen}
+			onClose={onDeleteClose}
+			onConfirm={async () => {
+				try {
+					await deleteCustomer(customer.customerId).unwrap()
+					onDeleteClose()
+					showToast({
+						status: 'success',
+						description: t('components.customer.deleteCustomerSuccess'),
+					})
+				} catch (error) {
+					const err = error as { data?: { message?: string } }
+
+					showToast({
+						status: 'error',
+						description:
+							err.data?.message || t('components.customer.deleteCustomerError'),
+					})
+				}
+			}}
+			cancelButtonText={t('common.cancel')}
+			confirmationButtonText={t('common.delete')}
+			isConfirmationButtonLoading={isDeleting}
+		/>
+		</>
 	)
 }
 

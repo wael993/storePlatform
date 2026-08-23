@@ -11,6 +11,7 @@ import {
 	GridItem,
 	Skeleton,
 	Text,
+	useDisclosure,
 } from '@chakra-ui/react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,6 +20,11 @@ import { compareLanguage, withNoValueFallback } from '../../../shared/utils'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteCategoryMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 const styles = {
 	listItemGridItem: {
@@ -85,13 +91,25 @@ const CategoryListItemMobil = ({
 }: CategoryListItemMobilProps) => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.categoriesDelete)
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deleteCategory, { isLoading: isDeleting }] =
+		useDeleteCategoryMutation()
 
 	return (
+		<>
 		<Accordion allowToggle index={isOpen ? [0] : []} onChange={onToggle}>
 			<AccordionItem sx={styles.accordionItem}>
 				<Box display="flex" flexDirection="row">
 					<AccordionButton sx={styles.accordionButton}>
 						<Flex alignItems="center" gap="6" flexGrow={1}>
+							{canDelete ? (
 							<Box
 								sx={{
 									...styles.listItemGridItem,
@@ -110,6 +128,7 @@ const CategoryListItemMobil = ({
 									/>
 								</Skeleton>
 							</Box>
+							) : null}
 
 							<Box sx={{ ...styles.listItemGridItem, flex: 1 }}>
 								<Text sx={styles.titleText}>{t('category.list.name')}</Text>
@@ -177,12 +196,45 @@ const CategoryListItemMobil = ({
 						</Skeleton>
 
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('category.deleteCategory')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</AccordionPanel>
 			</AccordionItem>
 		</Accordion>
+		<ConfirmationDialog
+			header={t('category.deleteCategory')}
+			body={t('category.deleteCategoryConfirm')}
+			isOpen={isDeleteOpen}
+			onClose={onDeleteClose}
+			onConfirm={async () => {
+				try {
+					await deleteCategory(category.categoryId).unwrap()
+					onDeleteClose()
+					showToast({
+						status: 'success',
+						description: t('category.deleteCategorySuccess'),
+					})
+				} catch (error) {
+					const err = error as { data?: { message?: string } }
+
+					showToast({
+						status: 'error',
+						description:
+							err.data?.message || t('category.deleteCategoryError'),
+					})
+				}
+			}}
+			cancelButtonText={t('common.cancel')}
+			confirmationButtonText={t('common.delete')}
+			isConfirmationButtonLoading={isDeleting}
+		/>
+		</>
 	)
 }
 

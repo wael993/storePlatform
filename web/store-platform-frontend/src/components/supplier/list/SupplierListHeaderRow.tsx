@@ -73,7 +73,7 @@ const SupplierListHeaderRow = ({
 
 	const { isActionAllowed } = useResources()
 	const { canSee } = useSee()
-	const showCheckbox = true
+	const showCheckbox = canSee(SEE.suppliersDelete)
 
 	const handleSort = (sortingCell: SupplierSortHeaderKey, order: SortOrder) => {
 		onSort(sortingCell, order)

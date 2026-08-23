@@ -122,12 +122,27 @@ export default class SupplierRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/suppliers/bulk-delete`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.bulkDeleteSuppliers.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/suppliers/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getSupplier.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteSupplier.bind(this),
 			)
 	}
 
@@ -178,6 +193,51 @@ export default class SupplierRoutes {
 		try {
 			const resp = await this.supplierController.getSupplier(
 				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteSupplier(
+		request: SupplierHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.supplierController.deleteSupplier(
+				request.params.id,
+				requestContext,
+			)
+
+			response.status(204).send()
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async bulkDeleteSuppliers(
+		request: SupplierHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const supplierIds = Array.isArray(request.body?.supplierIds)
+			? request.body.supplierIds.filter(
+					(id: unknown): id is string => typeof id === 'string',
+				)
+			: []
+
+		try {
+			const resp = await this.supplierController.bulkDeleteSuppliers(
+				supplierIds,
 				requestContext,
 			)
 

@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { DailyAction } from '../../models/DailyAction'
 import { Partner } from '../../models/Partner'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
@@ -8,6 +9,8 @@ import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
+import { SEE } from '../../shared/seeCatalog'
+import { ensureSeeIds } from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
 import {
 	CreatePartnerResponse,
@@ -230,5 +233,106 @@ export default class PartnerController {
 		return {
 			_id: createPartnerResponse._id,
 		}
+	}
+
+	private async findPartnerDeleteBlocks(tenantId: string, ids: string[]) {
+		const uniqueIds = [...new Set(ids.filter(Boolean))]
+		const blocked = new Map<string, string>()
+		const actions = await withTenantScope(
+			DailyAction.find({ partnerId: { $in: uniqueIds } })
+				.select({ partnerId: 1 })
+				.lean(),
+			tenantId,
+		)
+
+		for (const row of actions) {
+			if (row.partnerId && !blocked.has(row.partnerId)) {
+				blocked.set(
+					row.partnerId,
+					'This partner has daily actions and cannot be deleted.',
+				)
+			}
+		}
+
+		return blocked
+	}
+
+	public async deletePartner(
+		partnerId: string,
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.partnersDelete])
+
+		const tenantContext = getTenantContext(requestContext)
+		const blocked = await this.findPartnerDeleteBlocks(tenantContext.tenantId, [
+			partnerId,
+		])
+		const reason = blocked.get(partnerId)
+
+		if (reason) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				reason,
+			)
+		}
+
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.PARTNERS, id: partnerId },
+			requestContext,
+			Partner,
+		)
+
+		await redisCache.del(redisCache.buildPartnerListKey(tenantContext.tenantId))
+
+		return deleteResponse
+	}
+
+	public async bulkDeletePartners(
+		partnerIds: string[],
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.partnersDelete])
+
+		const tenantContext = getTenantContext(requestContext)
+		const ids = [...new Set(partnerIds.filter(Boolean))]
+		const blocked = await this.findPartnerDeleteBlocks(
+			tenantContext.tenantId,
+			ids,
+		)
+		const deleted: string[] = []
+		const blockedRows: Array<{ partnerId: string; reason: string }> = []
+
+		for (const partnerId of ids) {
+			const reason = blocked.get(partnerId)
+
+			if (reason) {
+				blockedRows.push({ partnerId, reason })
+
+				continue
+			}
+
+			try {
+				await this.mongoDbClient.deleteDocument(
+					{ collectionName: COLLECTION_NAMES.PARTNERS, id: partnerId },
+					requestContext,
+					Partner,
+				)
+
+				deleted.push(partnerId)
+			} catch {
+				blockedRows.push({
+					partnerId,
+					reason: 'Partner could not be deleted.',
+				})
+			}
+		}
+
+		if (deleted.length) {
+			await redisCache.del(
+				redisCache.buildPartnerListKey(tenantContext.tenantId),
+			)
+		}
+
+		return { deleted, blocked: blockedRows }
 	}
 }

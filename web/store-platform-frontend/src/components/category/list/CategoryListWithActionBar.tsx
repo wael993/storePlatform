@@ -7,6 +7,8 @@ import { compareBreakpoint } from '../../../shared/utils'
 import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import CategoryListActionBar from './CategoryListActionBar'
 import CategoryListMobil from './CategoryListMobil'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 interface CategoryListWithActionBarProps {
 	categories?: Category[]
@@ -18,6 +20,8 @@ const CategoryListWithActionBar = ({
 	isLoading,
 }: CategoryListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.categoriesDelete)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
 	const categoryElements: Category[] = useMemo(() => {
@@ -66,7 +70,7 @@ const CategoryListWithActionBar = ({
 
 	return (
 		<VStack w="100%" p={0}>
-			{selectedCategoryIds.length > 0 && (
+			{canDelete && selectedCategoryIds.length > 0 && (
 				<CategoryListActionBar
 					selectedCategorys={
 						(selectedCategoryIds
@@ -75,9 +79,6 @@ const CategoryListWithActionBar = ({
 							)
 							.filter(Boolean) as Category[]) ?? []
 					}
-					isRejectActivityInProgress={false}
-					onAddRequiredDocument={() => Promise.resolve()}
-					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
 			{isMobile ? (

@@ -22,7 +22,7 @@ const ACTION_SEE: Partial<Record<AllowedActions, string>> = {
 	[AllowedActions.SEE_SUPPLIER]: SEE.supplier,
 	[AllowedActions.CAN_ADD_SUPPLIER]: SEE.suppliersAdd,
 	[AllowedActions.CAN_EDIT_SUPPLIER]: SEE.supplier,
-	[AllowedActions.CAN_DELETE_SUPPLIER]: SEE.supplier,
+	[AllowedActions.CAN_DELETE_SUPPLIER]: SEE.suppliersDelete,
 	[AllowedActions.SEE_CUSTOMER]: SEE.customers,
 	[AllowedActions.CAN_ADD_CUSTOMER]: SEE.customersAdd,
 	[AllowedActions.CAN_EDIT_CUSTOMER]: SEE.customers,

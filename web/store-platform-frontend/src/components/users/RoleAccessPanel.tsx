@@ -5,9 +5,15 @@ import {
 	HStack,
 	Spinner,
 	Stack,
+	Table,
+	Tbody,
+	Td,
 	Text,
+	Th,
+	Thead,
+	Tr,
 } from '@chakra-ui/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
 	useGetRoleSeeCatalogQuery,
@@ -15,6 +21,7 @@ import {
 	usePutRoleSeeMutation,
 } from '../../api/apiStore'
 import { SEE } from '../../shared/seeFlags'
+import useCustomToast from '../common/CustomToast'
 
 const EDITABLE_ROLES = ['admin', 'cashier', 'employee'] as const
 const PACKAGE_HELPER_KEYS: Record<string, string> = {
@@ -22,6 +29,28 @@ const PACKAGE_HELPER_KEYS: Record<string, string> = {
 	[SEE.productsAdd]: 'users.roleAccess.helpers.addProduct',
 	[SEE.productsBuyingPrice]: 'users.roleAccess.helpers.buyingPrice',
 }
+
+const ADD_FOR: Record<string, string> = {
+	[SEE.products]: SEE.productsAdd,
+	[SEE.supplier]: SEE.suppliersAdd,
+	[SEE.customers]: SEE.customersAdd,
+	[SEE.sellingInvoicesBuyingButton]: SEE.invoicesBuyingAdd,
+	[SEE.sellingInvoices]: SEE.sellingInvoicesSellingButton,
+	[SEE.sellingInvoicesEntriesButton]: SEE.invoicesEntriesAdd,
+}
+
+const DELETE_FOR: Record<string, string> = {
+	[SEE.products]: SEE.productsDelete,
+	[SEE.supplier]: SEE.suppliersDelete,
+	[SEE.customers]: SEE.customersDelete,
+	[SEE.categories]: SEE.categoriesDelete,
+	[SEE.partners]: SEE.partnersDelete,
+	[SEE.sellingInvoicesBuyingButton]: SEE.invoicesBuyingDelete,
+	[SEE.sellingInvoices]: SEE.sellingInvoicesDelete,
+	[SEE.sellingInvoicesEntriesButton]: SEE.invoicesEntriesDelete,
+}
+
+const HOISTED = new Set([...Object.values(ADD_FOR), ...Object.values(DELETE_FOR)])
 
 type RoleChip = 'owner' | (typeof EDITABLE_ROLES)[number]
 
@@ -33,8 +62,34 @@ const sameSee = (a: string[], b: string[]) => {
 	return a.every(id => other.has(id))
 }
 
+const idsOf = (node: SeeCatalogNode): string[] => [
+	node.id,
+	...(node.children ?? []).flatMap(idsOf),
+]
+
+const stripOrphans = (
+	ids: string[],
+	nodes: SeeCatalogNode[],
+	parentOn = true,
+): string[] => {
+	const keep = new Set(ids)
+	const visit = (list: SeeCatalogNode[], on: boolean) => {
+		for (const node of list) {
+			const selfOn = on && (Boolean(node.locked) || keep.has(node.id))
+
+			if (!selfOn) keep.delete(node.id)
+			if (node.children) visit(node.children, selfOn)
+		}
+	}
+
+	visit(nodes, parentOn)
+
+	return [...keep]
+}
+
 const RoleAccessPanel = () => {
 	const { t } = useTranslation()
+	const showToast = useCustomToast()
 	const [role, setRole] = useState<RoleChip>('admin')
 	const isOwnerView = role === 'owner'
 
@@ -47,56 +102,126 @@ const RoleAccessPanel = () => {
 	const [see, setSee] = useState<string[]>([])
 
 	useEffect(() => {
-		if (roleData?.see) setSee(roleData.see)
+		if (!roleData?.see) return
+		setSee(prev => (sameSee(prev, roleData.see) ? prev : roleData.see))
 	}, [role, roleData?.see])
 
 	const seeSet = useMemo(() => new Set(see), [see])
 	const isDirty = !sameSee(see, roleData?.see ?? [])
 
-	const toggle = (id: string, locked?: boolean) => {
-		if (isOwnerView || locked) return
+	const toggleSee = (node: SeeCatalogNode) => {
+		if (isOwnerView || node.locked) return
 
-		setSee(
-			seeSet.has(id) ? see.filter(item => item !== id) : [...see, id],
-		)
+		if (seeSet.has(node.id)) {
+			const drop = new Set(idsOf(node))
+
+			setSee(see.filter(id => !drop.has(id)))
+			return
+		}
+
+		setSee([...see, node.id])
+	}
+
+	const toggleAction = (id: string, seeOn: boolean) => {
+		if (isOwnerView || !seeOn) return
+
+		setSee(seeSet.has(id) ? see.filter(item => item !== id) : [...see, id])
 	}
 
 	const onSave = async () => {
 		if (isOwnerView || !isDirty) return
 
 		try {
-			const saved = await putRoleSee({ role, see }).unwrap()
+			const saved = await putRoleSee({
+				role,
+				see: stripOrphans(see, catalog),
+			}).unwrap()
 			setSee(saved.see)
 		} catch {
-			// keep local `see` so they can retry
+			showToast({
+				status: 'error',
+				description: t('users.roleUpdateFailed'),
+			})
 		}
 	}
 
-	const renderNode = (node: SeeCatalogNode, depth = 0) => {
-		const helperKey = PACKAGE_HELPER_KEYS[node.id]
-		const checked = node.locked || seeSet.has(node.id)
-		const disabled = isOwnerView || Boolean(node.locked) || isSaving
+	const renderRows = (
+		nodes: SeeCatalogNode[],
+		depth = 0,
+		ancestors: SeeCatalogNode[] = [],
+	): ReactElement[] =>
+		nodes.flatMap(node => {
+			if (HOISTED.has(node.id)) {
+				return node.children
+					? renderRows(node.children, depth, [...ancestors, node])
+					: []
+			}
 
-		return (
-			<Box key={node.id} ps={depth ? 6 : 0}>
-				<Checkbox
-					isChecked={checked}
-					isDisabled={disabled}
-					onChange={() => toggle(node.id, node.locked)}
-				>
-					{t(`users.roleAccess.items.${node.id.replace(/\./g, '_')}`, {
-						defaultValue: node.id,
-					})}
-				</Checkbox>
-				{helperKey ? (
-					<Text fontSize="sm" color="gray.500" ps={6} mb={1}>
-						{t(helperKey)}
-					</Text>
-				) : null}
-				{node.children?.map(child => renderNode(child, depth + 1))}
-			</Box>
-		)
-	}
+			const ancestorsOn = ancestors.every(
+				ancestor => ancestor.locked || seeSet.has(ancestor.id),
+			)
+			const seeOn =
+				ancestorsOn && (Boolean(node.locked) || seeSet.has(node.id))
+			const addId = ADD_FOR[node.id]
+			const deleteId = DELETE_FOR[node.id]
+			const helperKey = PACKAGE_HELPER_KEYS[node.id]
+			const addHelperKey = addId ? PACKAGE_HELPER_KEYS[addId] : undefined
+			const disabled = isOwnerView || isSaving
+			const seeDisabled = disabled || Boolean(node.locked)
+			const actionDisabled = disabled || !seeOn
+
+			return [
+				<Tr key={node.id}>
+					<Td py={2} ps={`${0.5 + depth * 1.25}rem`} whiteSpace="nowrap">
+						<Text>
+							{t(`users.roleAccess.items.${node.id.replace(/\./g, '_')}`, {
+								defaultValue: node.id,
+							})}
+						</Text>
+						{helperKey ? (
+							<Text fontSize="sm" color="gray.500">
+								{t(helperKey)}
+							</Text>
+						) : null}
+					</Td>
+					<Td py={2} textAlign="center">
+						<Checkbox
+							isChecked={seeOn}
+							isDisabled={seeDisabled}
+							onChange={() => toggleSee(node)}
+						/>
+					</Td>
+					<Td py={2} textAlign="center">
+						{addId ? (
+							<Box>
+								<Checkbox
+									isChecked={seeOn && seeSet.has(addId)}
+									isDisabled={actionDisabled}
+									onChange={() => toggleAction(addId, seeOn)}
+								/>
+								{addHelperKey ? (
+									<Text fontSize="sm" color="gray.500">
+										{t(addHelperKey)}
+									</Text>
+								) : null}
+							</Box>
+						) : null}
+					</Td>
+					<Td py={2} textAlign="center">
+						{deleteId ? (
+							<Checkbox
+								isChecked={seeOn && seeSet.has(deleteId)}
+								isDisabled={actionDisabled}
+								onChange={() => toggleAction(deleteId, seeOn)}
+							/>
+						) : null}
+					</Td>
+				</Tr>,
+				...(node.children
+					? renderRows(node.children, depth + 1, [...ancestors, node])
+					: []),
+			]
+		})
 
 	return (
 		<Stack gap={4}>
@@ -120,7 +245,21 @@ const RoleAccessPanel = () => {
 				</Text>
 			) : null}
 			{isCatalogLoading || isRoleFetching ? <Spinner size="sm" /> : null}
-			<Stack gap={2}>{catalog.map(node => renderNode(node))}</Stack>
+			<Box overflowX="auto">
+				<Table size="sm" variant="simple">
+					<Thead>
+						<Tr>
+							<Th>{t('users.roleAccess.columns.name')}</Th>
+							<Th textAlign="center">{t('users.roleAccess.columns.see')}</Th>
+							<Th textAlign="center">{t('users.roleAccess.columns.add')}</Th>
+							<Th textAlign="center">
+								{t('users.roleAccess.columns.delete')}
+							</Th>
+						</Tr>
+					</Thead>
+					<Tbody>{renderRows(catalog)}</Tbody>
+				</Table>
+			</Box>
 			{!isOwnerView ? (
 				<Button
 					alignSelf="flex-start"

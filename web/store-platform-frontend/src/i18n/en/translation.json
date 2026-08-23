@@ -318,6 +318,12 @@
 			"tab": "Role Access",
 			"description": "Choose what each role can see. Hidden items stay off the screen and out of GET responses.",
 			"ownerReadOnly": "Owner always sees every page this tenant has. These checkboxes cannot be changed.",
+			"columns": {
+				"name": "Page",
+				"see": "See",
+				"add": "Add",
+				"delete": "Delete"
+			},
 			"helpers": {
 				"supplier": "Supplier page, product supplier column, and supplier filter.",
 				"addProduct": "Products Add button and invoice search (Enter opens add-product when not found).",
@@ -341,18 +347,23 @@
 				"products_wholesalePrice": "Can see Wholesale price",
 				"products_semiWholesalePrice": "Can see Semi-wholesale price",
 				"products_edit": "Can see Edit product",
-				"products_delete": "Can see Delete product",
+				"products_delete": "Can delete products",
 				"products_printBarcode": "Can see Print barcode",
 				"products_notifications": "Can see Notifications",
 				"customers": "Can see Customers page",
 				"customers_add": "Can see Add customer",
+				"customers_delete": "Can delete customers",
 				"customers_totalReceivable": "Can see Total receivable",
 				"suppliers_add": "Can see Add supplier",
+				"suppliers_delete": "Can delete suppliers",
 				"suppliers_totalPayable": "Can see Total payable",
 				"invoices": "Can see Invoice",
 				"invoices_buying_add": "Can see Add buying invoice",
+				"invoices_buying_delete": "Can delete buying invoices",
 				"invoices_entries_add": "Can see Add entries",
+				"invoices_entries_delete": "Can delete entries",
 				"sellingInvoices": "Can see Selling invoices",
+				"sellingInvoices_delete": "Can delete selling invoices",
 				"sellingInvoices_buyingButton": "Can see Buying invoices",
 				"sellingInvoices_sellingButton": "Can see Add selling invoice",
 				"sellingInvoices_entriesButton": "Can see Entries",
@@ -360,7 +371,9 @@
 				"sellingInvoices_aiRead": "Can see AI read invoice",
 				"reports": "Can see Reports page",
 				"categories": "Can see Categories page",
+				"categories_delete": "Can delete categories",
 				"partners": "Can see Partners page",
+				"partners_delete": "Can delete partners",
 				"employees": "Can see Employees page",
 				"users_invite": "Can see Invite User tab",
 				"users_list": "Can see Users tab"
@@ -484,14 +497,28 @@
 			"name": "Partner Name",
 			"internalCode": "Partner Code",
 			"createdAt": "Created At"
-		}
+		},
+		"deletePartner": "Delete partner",
+		"deletePartnerConfirm": "This partner will be permanently deleted. This cannot be undone.",
+		"deletePartnerSuccess": "Partner deleted.",
+		"deletePartnerError": "Could not delete this partner.",
+		"deleteSelected": "Delete selected partners",
+		"deleteSelectedConfirm": "{{count}} partners will be permanently deleted. This cannot be undone.",
+		"deleteSelectedSuccess": "{{count}} partners deleted."
 	},
 	"category": {
 		"list": {
 			"name": "Category Name",
 			"description": "Description",
 			"createdAt": "Created At"
-		}
+		},
+		"deleteCategory": "Delete category",
+		"deleteCategoryConfirm": "This category will be permanently deleted. This cannot be undone.",
+		"deleteCategorySuccess": "Category deleted.",
+		"deleteCategoryError": "Could not delete this category.",
+		"deleteSelected": "Delete selected categories",
+		"deleteSelectedConfirm": "{{count}} categories will be permanently deleted. This cannot be undone.",
+		"deleteSelectedSuccess": "{{count}} categories deleted."
 	},
 	"components": {
 		"budgetOverview": {
@@ -511,7 +538,14 @@
 		},
 		"supplier": {
 			"invoices": "Invoices",
-			"dailyActions": "Daily Actions"
+			"dailyActions": "Daily Actions",
+			"deleteSupplier": "Delete supplier",
+			"deleteSupplierConfirm": "This supplier will be permanently deleted. This cannot be undone.",
+			"deleteSupplierSuccess": "Supplier deleted.",
+			"deleteSupplierError": "Could not delete this supplier.",
+			"deleteSelected": "Delete selected suppliers",
+			"deleteSelectedConfirm": "{{count}} suppliers will be permanently deleted. This cannot be undone.",
+			"deleteSelectedSuccess": "{{count}} suppliers deleted."
 		},
 		"customer": {
 			"errorLoadingCustomer": "There was an error loading the customer. Please try again!",
@@ -520,7 +554,14 @@
 			"sold": "Sold",
 			"createdAt": "Created At",
 			"invoices": "Invoices",
-			"dailyActions": "Daily Actions"
+			"dailyActions": "Daily Actions",
+			"deleteCustomer": "Delete customer",
+			"deleteCustomerConfirm": "This customer will be permanently deleted. This cannot be undone.",
+			"deleteCustomerSuccess": "Customer deleted.",
+			"deleteCustomerError": "Could not delete this customer.",
+			"deleteSelected": "Delete selected customers",
+			"deleteSelectedConfirm": "{{count}} customers will be permanently deleted. This cannot be undone.",
+			"deleteSelectedSuccess": "{{count}} customers deleted."
 		},
 		"daily": {
 			"productLine": "Product {{number}}",

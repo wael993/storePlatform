@@ -16,6 +16,8 @@ import { useBreakpoints } from '../../../shared/hooks/useBreakpoints'
 import CustomerListMobil from './CustomerListMobil'
 import { matchesNameOrCode } from '../../list/shared/utils'
 import { AsSearchIcon } from '../../../icons/Search'
+import { useSee } from '../../../shared/hooks/useSee'
+import { SEE } from '../../../shared/seeFlags'
 
 interface CustomerListWithActionBarProps {
 	customers?: Customer[]
@@ -27,6 +29,8 @@ const CustomerListWithActionBar = ({
 	isLoading,
 }: CustomerListWithActionBarProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canDelete = canSee(SEE.customersDelete)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [searchText, setSearchText] = useState('')
 	const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([])
@@ -104,7 +108,7 @@ const CustomerListWithActionBar = ({
 				</InputGroup>
 			</Box>
 
-			{selectedCustomerIds.length > 0 && (
+			{canDelete && selectedCustomerIds.length > 0 && (
 				<CustomerListActionBar
 					selectedCustomers={
 						(selectedCustomerIds
@@ -113,9 +117,6 @@ const CustomerListWithActionBar = ({
 							)
 							.filter(Boolean) as Customer[]) ?? []
 					}
-					isRejectActivityInProgress={false}
-					onAddRequiredDocument={() => Promise.resolve()}
-					isAddRequiredDocumentInProgress={false}
 				/>
 			)}
 

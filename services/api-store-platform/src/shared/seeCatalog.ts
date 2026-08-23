@@ -27,13 +27,18 @@ export const SEE = {
 	productsNotifications: 'products.notifications',
 	customers: 'customers',
 	customersAdd: 'customers.add',
+	customersDelete: 'customers.delete',
 	customersTotalReceivable: 'customers.totalReceivable',
 	suppliersAdd: 'suppliers.add',
+	suppliersDelete: 'suppliers.delete',
 	suppliersTotalPayable: 'suppliers.totalPayable',
 	invoices: 'invoices',
 	invoicesBuyingAdd: 'invoices.buying.add',
+	invoicesBuyingDelete: 'invoices.buying.delete',
 	invoicesEntriesAdd: 'invoices.entries.add',
+	invoicesEntriesDelete: 'invoices.entries.delete',
 	sellingInvoices: 'sellingInvoices',
+	sellingInvoicesDelete: 'sellingInvoices.delete',
 	sellingInvoicesBuyingButton: 'sellingInvoices.buyingButton',
 	sellingInvoicesSellingButton: 'sellingInvoices.sellingButton',
 	sellingInvoicesEntriesButton: 'sellingInvoices.entriesButton',
@@ -41,7 +46,9 @@ export const SEE = {
 	sellingInvoicesAiRead: 'sellingInvoices.aiRead',
 	reports: 'reports',
 	categories: 'categories',
+	categoriesDelete: 'categories.delete',
 	partners: 'partners',
+	partnersDelete: 'partners.delete',
 	employees: 'employees',
 	usersInvite: 'users.invite',
 	usersList: 'users.list',
@@ -89,6 +96,7 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 				tenantPage: TENANT_ACCESSIBLE_PAGE.SUPPLIERS,
 				children: [
 					{ id: SEE.suppliersAdd },
+					{ id: SEE.suppliersDelete },
 					{ id: SEE.suppliersTotalPayable },
 				],
 			},
@@ -104,7 +112,11 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 	{
 		id: SEE.customers,
 		tenantPage: TENANT_ACCESSIBLE_PAGE.CUSTOMERS,
-		children: [{ id: SEE.customersAdd }, { id: SEE.customersTotalReceivable }],
+		children: [
+			{ id: SEE.customersAdd },
+			{ id: SEE.customersDelete },
+			{ id: SEE.customersTotalReceivable },
+		],
 	},
 	{
 		id: SEE.invoices,
@@ -114,6 +126,7 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 				id: SEE.sellingInvoicesBuyingButton,
 				children: [
 					{ id: SEE.invoicesBuyingAdd },
+					{ id: SEE.invoicesBuyingDelete },
 					{
 						id: SEE.sellingInvoicesAiRead,
 						tenantPage: TENANT_ACCESSIBLE_PAGE.INVOICE_AI,
@@ -122,18 +135,32 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 			},
 			{
 				id: SEE.sellingInvoices,
-				children: [{ id: SEE.sellingInvoicesSellingButton }],
+				children: [
+					{ id: SEE.sellingInvoicesSellingButton },
+					{ id: SEE.sellingInvoicesDelete },
+				],
 			},
 			{
 				id: SEE.sellingInvoicesEntriesButton,
-				children: [{ id: SEE.invoicesEntriesAdd }],
+				children: [
+					{ id: SEE.invoicesEntriesAdd },
+					{ id: SEE.invoicesEntriesDelete },
+				],
 			},
 			{ id: SEE.sellingInvoicesSummary },
 		],
 	},
 	{ id: SEE.reports, tenantPage: TENANT_ACCESSIBLE_PAGE.REPORTS },
-	{ id: SEE.categories, tenantPage: TENANT_ACCESSIBLE_PAGE.CATEGORIES },
-	{ id: SEE.partners, tenantPage: TENANT_ACCESSIBLE_PAGE.PARTNERS },
+	{
+		id: SEE.categories,
+		tenantPage: TENANT_ACCESSIBLE_PAGE.CATEGORIES,
+		children: [{ id: SEE.categoriesDelete }],
+	},
+	{
+		id: SEE.partners,
+		tenantPage: TENANT_ACCESSIBLE_PAGE.PARTNERS,
+		children: [{ id: SEE.partnersDelete }],
+	},
 	{ id: SEE.employees, tenantPage: TENANT_ACCESSIBLE_PAGE.EMPLOYEES },
 	{ id: SEE.usersInvite, tenantPage: TENANT_ACCESSIBLE_PAGE.USERS },
 	{ id: SEE.usersList, tenantPage: TENANT_ACCESSIBLE_PAGE.USERS },
@@ -256,9 +283,23 @@ export const sanitizeSeeIdsForSave = (
 	}
 
 	const available = new Set(availableSeeIds(pages))
-	const next = incoming.filter((id): id is SeeId => available.has(id as SeeId))
+	const keep = new Set(
+		incoming.filter((id): id is SeeId => available.has(id as SeeId)),
+	)
+	const catalog = filterCatalogForTenant(pages)
+	const visit = (nodes: SeeCatalogNode[], parentOn: boolean) => {
+		for (const node of nodes) {
+			const on = parentOn && (Boolean(node.locked) || keep.has(node.id))
 
-	return [...new Set([...next, ...lockedSeeIds(pages)])]
+			if (!on) keep.delete(node.id)
+
+			if (node.children) visit(node.children, on)
+		}
+	}
+
+	visit(catalog, true)
+
+	return [...new Set([...keep, ...lockedSeeIds(pages)])]
 }
 
 export const stripProductSeeFields = (product: any, see: Set<SeeId>): any => {

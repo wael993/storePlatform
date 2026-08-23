@@ -1,4 +1,8 @@
-import { Td, Checkbox, Flex, Text, Skeleton } from '@chakra-ui/react'
+import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import { useTranslation } from 'react-i18next'
+import ConfirmationDialog from '../../ConfirmationDialog'
+import { useDeleteCustomerMutation } from '../../../api/apiStore'
+import useCustomToast from '../../common/CustomToast'
 import { CUSTOMER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
@@ -93,10 +97,20 @@ const CustomerListItem = ({
 	isLoading,
 }: CustomerListItemProps) => {
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { t } = useTranslation()
 	const { canSee } = useSee()
-	const showCheckbox = true
+	const canDelete = canSee(SEE.customersDelete)
+	const showCheckbox = canDelete
 	const isReadyForExecution = false
 	const totalReceivable = customer.totalReceivable ?? 0
+	const showToast = useCustomToast()
+	const {
+		isOpen: isDeleteOpen,
+		onOpen: onDeleteOpen,
+		onClose: onDeleteClose,
+	} = useDisclosure()
+	const [deleteCustomer, { isLoading: isDeleting }] =
+		useDeleteCustomerMutation()
 
 	return (
 		<>
@@ -203,11 +217,44 @@ const CustomerListItem = ({
 					</Flex>
 					<Flex sx={styles.cellContentWrapperSticky}>
 						<Skeleton isLoaded={!isLoading}>
-							<OptionsPopover />
+							{canDelete ? (
+								<OptionsPopover
+									onDelete={onDeleteOpen}
+									deleteLabel={t('components.customer.deleteCustomer')}
+								/>
+							) : null}
 						</Skeleton>
 					</Flex>
 				</Flex>
 			</Td>
+			<ConfirmationDialog
+				header={t('components.customer.deleteCustomer')}
+				body={t('components.customer.deleteCustomerConfirm')}
+				isOpen={isDeleteOpen}
+				onClose={onDeleteClose}
+				onConfirm={async () => {
+					try {
+						await deleteCustomer(customer.customerId).unwrap()
+						onDeleteClose()
+						showToast({
+							status: 'success',
+							description: t('components.customer.deleteCustomerSuccess'),
+						})
+					} catch (error) {
+						const err = error as { data?: { message?: string } }
+
+						showToast({
+							status: 'error',
+							description:
+								err.data?.message ||
+								t('components.customer.deleteCustomerError'),
+						})
+					}
+				}}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</>
 	)
 }

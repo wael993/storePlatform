@@ -78,7 +78,7 @@ const useAllowedActions = (_overriddenPath?: string): AllowedActionsMap => {
 		seeSupplier: canSee(SEE.supplier),
 		canAddSupplier: canSee(SEE.suppliersAdd),
 		canEditSupplier: canSee(SEE.supplier),
-		canDeleteSupplier: canSee(SEE.supplier),
+		canDeleteSupplier: canSee(SEE.suppliersDelete),
 
 		seeLocationShelf: true,
 		canEditLocationShelf: true,

@@ -125,6 +125,7 @@ import {
 } from '../shared/tenant'
 import {
 	canSeeResource,
+	ensureSeeIds,
 	getSeeSet,
 	getSeeSetForContext,
 } from '../shared/seePermissions'
@@ -1717,6 +1718,8 @@ export default class ProductController {
 		productId: string,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.productsDelete])
+
 		const tenantContext = getTenantContext(requestContext)
 
 		await assertProductDeletable(tenantContext.tenantId, productId)
@@ -1738,6 +1741,8 @@ export default class ProductController {
 		productIds: string[],
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.productsDelete])
+
 		const tenantContext = getTenantContext(requestContext)
 		const ids = [...new Set(productIds.filter(Boolean))]
 		const blocked = await findProductDeleteBlocks(tenantContext.tenantId, ids)
@@ -3076,6 +3081,8 @@ export default class ProductController {
 		actionIds: string[],
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.invoicesEntriesDelete])
+
 		const uniqueActionIds = Array.from(new Set(actionIds))
 
 		const deleteResponse = await this.mongoDbClient.deleteDocuments(

@@ -37,6 +37,7 @@ interface OptionsPopoverProps {
 	onPrintBarcode?: () => void
 	isPrintLoading?: boolean
 	onDelete?: () => void
+	deleteLabel?: string
 }
 
 const OptionsPopover = ({
@@ -44,6 +45,7 @@ const OptionsPopover = ({
 	onPrintBarcode,
 	isPrintLoading,
 	onDelete,
+	deleteLabel,
 }: OptionsPopoverProps) => {
 	const { t } = useTranslation()
 	const { isOpen, onOpen, onClose } = useDisclosure()
@@ -124,7 +126,7 @@ const OptionsPopover = ({
 									onClose()
 								}}
 							>
-								{t('components.product.deleteProduct')}
+								{deleteLabel ?? t('components.product.deleteProduct')}
 							</Text>
 						) : null}
 					</PopoverBody>

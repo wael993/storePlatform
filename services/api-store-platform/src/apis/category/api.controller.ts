@@ -2,12 +2,15 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { Category } from '../../models/Category'
+import { Product } from '../../models/Products'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
+import { SEE } from '../../shared/seeCatalog'
+import { ensureSeeIds } from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
 import {
 	CategoriesResponse,
@@ -172,5 +175,107 @@ export default class CategoryController {
 		await this.invalidateCategoryCache(requestContext, categoryId)
 
 		return { _id: categoryId }
+	}
+
+	private async findCategoryDeleteBlocks(tenantId: string, ids: string[]) {
+		const uniqueIds = [...new Set(ids.filter(Boolean))]
+		const blocked = new Map<string, string>()
+		const products = await withTenantScope(
+			Product.find({ categoryId: { $in: uniqueIds } })
+				.select({ categoryId: 1 })
+				.lean(),
+			tenantId,
+		)
+
+		for (const row of products) {
+			if (row.categoryId && !blocked.has(row.categoryId)) {
+				blocked.set(
+					row.categoryId,
+					'This category has products and cannot be deleted.',
+				)
+			}
+		}
+
+		return blocked
+	}
+
+	public async deleteCategory(
+		categoryId: string,
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.categoriesDelete])
+
+		const tenantContext = getTenantContext(requestContext)
+		const blocked = await this.findCategoryDeleteBlocks(
+			tenantContext.tenantId,
+			[categoryId],
+		)
+		const reason = blocked.get(categoryId)
+
+		if (reason) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				reason,
+			)
+		}
+
+		const deleteResponse = await this.mongoDbClient.deleteDocument(
+			{ collectionName: COLLECTION_NAMES.CATEGORIES, id: categoryId },
+			requestContext,
+			Category,
+		)
+
+		await this.invalidateCategoryCache(requestContext, categoryId)
+
+		return deleteResponse
+	}
+
+	public async bulkDeleteCategories(
+		categoryIds: string[],
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.categoriesDelete])
+
+		const tenantContext = getTenantContext(requestContext)
+		const ids = [...new Set(categoryIds.filter(Boolean))]
+		const blocked = await this.findCategoryDeleteBlocks(
+			tenantContext.tenantId,
+			ids,
+		)
+		const deleted: string[] = []
+		const blockedRows: Array<{ categoryId: string; reason: string }> = []
+
+		for (const categoryId of ids) {
+			const reason = blocked.get(categoryId)
+
+			if (reason) {
+				blockedRows.push({ categoryId, reason })
+
+				continue
+			}
+
+			try {
+				await this.mongoDbClient.deleteDocument(
+					{ collectionName: COLLECTION_NAMES.CATEGORIES, id: categoryId },
+					requestContext,
+					Category,
+				)
+
+				deleted.push(categoryId)
+			} catch {
+				blockedRows.push({
+					categoryId,
+					reason: 'Category could not be deleted.',
+				})
+			}
+		}
+
+		if (deleted.length) {
+			for (const categoryId of deleted) {
+				await this.invalidateCategoryCache(requestContext, categoryId)
+			}
+		}
+
+		return { deleted, blocked: blockedRows }
 	}
 }

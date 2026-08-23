@@ -122,12 +122,27 @@ export default class CustomerRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/customers/bulk-delete`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.bulkDeleteCustomers.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/customers/:id`)
 			.get(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCustomer.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteCustomer.bind(this),
 			)
 	}
 
@@ -178,6 +193,51 @@ export default class CustomerRoutes {
 		try {
 			const resp = await this.customerController.getCustomer(
 				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteCustomer(
+		request: CustomerHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.customerController.deleteCustomer(
+				request.params.id,
+				requestContext,
+			)
+
+			response.status(204).send()
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async bulkDeleteCustomers(
+		request: CustomerHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const customerIds = Array.isArray(request.body?.customerIds)
+			? request.body.customerIds.filter(
+					(id: unknown): id is string => typeof id === 'string',
+				)
+			: []
+
+		try {
+			const resp = await this.customerController.bulkDeleteCustomers(
+				customerIds,
 				requestContext,
 			)
 
