@@ -602,6 +602,7 @@
 			"customerName": "Customer Name",
 			"addQuickUnit": "Add Quick Unit",
 			"unitName": "Unit Name",
+			"expenseName": "Expense Name",
 			"addQuickExpense": "Add Quick Expense",
 			"addProduct": "Add Product",
 			"addCurrency": "Add Currency",
@@ -872,6 +873,7 @@
 			"suppliers": "Suppliers",
 			"partners": "Partners",
 			"partner": "Partner",
+			"product": "Product",
 			"employees": "Employees",
 			"employee": "Employee",
 			"reports": "Reports"
@@ -1226,7 +1228,8 @@
 		"sellingEntry": "Selling Entry",
 		"paymentEntry": "Payment Entry",
 		"receiptEntry": "Receipt Entry",
-		"expenseEntry": "Expense Entry"
+		"expenseEntry": "Expense Entry",
+		"date": "Date"
 	},
 	"offline": {
 		"bootstrapFailed": "Offline download failed",

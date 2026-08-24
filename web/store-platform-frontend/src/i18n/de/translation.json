@@ -161,6 +161,7 @@
 			"dailyDescription": "Tägliche Kauf-, Verkaufs- und Ausgabenaktionen.",
 			"suppliersDescription": "Lieferantenverzeichnis und Details.",
 			"customersDescription": "Kundenverzeichnis und Details.",
+			"categoriesDescription": "Produktkategorieverzeichnis.",
 			"partnersDescription": "Partnerverzeichnis und Details.",
 			"ordersDescription": "Auftragsverwaltung.",
 			"invoicesDescription": "Rechnungsverwaltung.",
@@ -474,6 +475,7 @@
 		"description": "Beschreibung"
 	},
 	"supplier": {
+		"errorLoadingSupplier": "Beim Laden des Lieferanten ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut!",
 		"list": {
 			"name": "Lieferantenname",
 			"internalCode": "Lieferantencode"
@@ -495,6 +497,11 @@
 		"deleteSelectedSuccess": "{{count}} Partner gelöscht."
 	},
 	"category": {
+		"list": {
+			"name": "Kategoriename",
+			"description": "Beschreibung",
+			"createdAt": "Erstellt am"
+		},
 		"deleteCategory": "Kategorie löschen",
 		"deleteCategoryConfirm": "Diese Kategorie wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
 		"deleteCategorySuccess": "Kategorie gelöscht.",
@@ -509,7 +516,9 @@
 			"text": "Budgetübersicht",
 			"purchase": "Einkaufswert",
 			"payments": "Zahlungswert",
-			"balance": "Saldo"
+			"balance": "Saldo",
+			"sumBuyingWeight": "Summe Einkaufsgewicht",
+			"sumSellingWeight": "Summe Verkaufsgewicht"
 		},
 		"invoiceSummary": {
 			"totalInvoiced": "Gesamt fakturiert",
@@ -529,8 +538,11 @@
 			"deleteSelectedSuccess": "{{count}} Lieferanten gelöscht."
 		},
 		"customer": {
+			"errorLoadingCustomer": "Beim Laden des Kunden ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut!",
 			"name": "Kundenname",
 			"code": "Kundencode",
+			"invoices": "Rechnungen",
+			"dailyActions": "Tagesaktionen",
 			"deleteCustomer": "Kunde löschen",
 			"deleteCustomerConfirm": "Dieser Kunde wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
 			"deleteCustomerSuccess": "Kunde gelöscht.",
@@ -540,6 +552,7 @@
 			"deleteSelectedSuccess": "{{count}} Kunden gelöscht."
 		},
 		"daily": {
+			"productLine": "Produkt {{number}}",
 			"dailyActions": "Tagesaktionen",
 			"cashBalance": "Kassenbestand",
 			"budgetOverview": {
@@ -589,6 +602,7 @@
 			"customerName": "Kundenname",
 			"addQuickUnit": "Schnell Einheit hinzufügen",
 			"unitName": "Einheitsname",
+			"expenseName": "Ausgabenname",
 			"addQuickExpense": "Schnell Ausgabe hinzufügen",
 			"addProduct": "Produkt hinzufügen",
 			"addCurrency": "Währung hinzufügen",
@@ -855,9 +869,11 @@
 			"supplier": "Lieferant",
 			"users": "Benutzer",
 			"customers": "Kunden",
+			"categories": "Kategorien",
 			"suppliers": "Lieferanten",
 			"partners": "Partner",
 			"partner": "Partner",
+			"product": "Produkt",
 			"employees": "Mitarbeiter",
 			"employee": "Mitarbeiter",
 			"reports": "Berichte"
@@ -1042,6 +1058,7 @@
 			"brand": "Marke"
 		},
 		"topBar": {
+			"changePassword": "Passwort ändern",
 			"logoAlt": "Store Platform Logo",
 			"welcome": "Willkommen",
 			"notifications": "Benachrichtigungen",
@@ -1148,6 +1165,7 @@
 		"addEntry": "Eintrag hinzufügen",
 		"addProduct": "Produkt hinzufügen",
 		"addCustomer": "Kunde hinzufügen",
+		"addCategory": "Kategorie hinzufügen",
 		"addSupplier": "Lieferant hinzufügen",
 		"addPartner": "Partner hinzufügen",
 		"product": "Produkt",
@@ -1210,7 +1228,8 @@
 		"sellingEntry": "Verkaufseintrag",
 		"paymentEntry": "Zahlungseintrag",
 		"receiptEntry": "Zahlungseingang",
-		"expenseEntry": "Ausgabeeintrag"
+		"expenseEntry": "Ausgabeeintrag",
+		"date": "Datum"
 	},
 	"offline": {
 		"bootstrapFailed": "Offline-Download fehlgeschlagen",
