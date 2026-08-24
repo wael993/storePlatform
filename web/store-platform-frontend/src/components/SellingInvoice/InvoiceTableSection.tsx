@@ -129,6 +129,7 @@ const InvoiceTableSection = ({
 	const { t } = useTranslation()
 	const { canSee } = useSee()
 	const canDeleteEntry = canSee(SEE.invoicesEntriesDelete)
+	const canEditEntry = canSee(SEE.invoicesEntriesEdit)
 	const showToast = useCustomToast()
 	const searchInputRef = useRef<HTMLInputElement>(null)
 	const { isExporting, printInvoice, downloadInvoice } =
@@ -668,6 +669,7 @@ const InvoiceTableSection = ({
 																	if (entry) onViewEntry?.(entry)
 																}}
 															/>
+															{canEditEntry ? (
 															<IconButton
 																size="xs"
 																variant="ghost"
@@ -687,6 +689,7 @@ const InvoiceTableSection = ({
 																	if (entry) onEditEntry?.(entry)
 																}}
 															/>
+															) : null}
 															{canDeleteEntry ? (
 															<IconButton
 																size="xs"
@@ -734,6 +737,7 @@ const InvoiceTableSection = ({
 																			'components.sellingInvoices.actions.view',
 																		)}
 																	</MenuItem>
+																	{canEditEntry ? (
 																	<MenuItem
 																		onClick={() => {
 																			const entry = findDailyActionById(row.id)
@@ -744,6 +748,7 @@ const InvoiceTableSection = ({
 																			'components.sellingInvoices.actions.edit',
 																		)}
 																	</MenuItem>
+																	) : null}
 																	{canDeleteEntry ? (
 																	<MenuItem
 																		onClick={() =>
@@ -769,6 +774,10 @@ const InvoiceTableSection = ({
 											invoice.kind === 'buying'
 												? canSee(SEE.invoicesBuyingDelete)
 												: canSee(SEE.sellingInvoicesDelete)
+										const canEditInvoice =
+											invoice.kind === 'buying'
+												? canSee(SEE.invoicesBuyingEdit)
+												: canSee(SEE.sellingInvoicesEdit)
 										const paymentConfig =
 											PAYMENT_TYPE_CONFIG[invoice.paymentType]
 										const kindBadge = INVOICE_KIND_BADGE[invoice.kind]
@@ -895,6 +904,7 @@ const InvoiceTableSection = ({
 																onViewInvoice(invoice.id, invoice.kind)
 															}
 														/>
+														{canEditInvoice ? (
 														<IconButton
 															size="xs"
 															variant="ghost"
@@ -913,6 +923,7 @@ const InvoiceTableSection = ({
 																onEditInvoice(invoice.id, invoice.kind)
 															}
 														/>
+														) : null}
 														{canDeleteInvoice ? (
 														<IconButton
 															size="xs"
@@ -997,6 +1008,7 @@ const InvoiceTableSection = ({
 																>
 																	{t('components.sellingInvoices.actions.view')}
 																</MenuItem>
+																{canEditInvoice ? (
 																<MenuItem
 																	onClick={() =>
 																		onEditInvoice(invoice.id, invoice.kind)
@@ -1004,6 +1016,7 @@ const InvoiceTableSection = ({
 																>
 																	{t('components.sellingInvoices.actions.edit')}
 																</MenuItem>
+																) : null}
 																{canDeleteInvoice ? (
 																<MenuItem
 																	onClick={() =>

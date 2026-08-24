@@ -57,13 +57,15 @@ const ProductTableItem = memo(
 
 		const { t } = useTranslation()
 		const {
-			canEditWholesalePrice,
 			canEditDiscount,
 			canEditBuyCost,
+			canEditSellingPrice,
 			canEditStockQuantity,
 			canEditMinStockQuantity,
 			canDeleteProduct,
 			canEditProduct,
+			canEditProductName,
+			canEditProductBarcode,
 			canPrintBarcode,
 		} = useAllowedActions()
 		const {
@@ -224,7 +226,7 @@ const ProductTableItem = memo(
 										value={productData.name}
 										ariaLabel={t('common.productName')}
 										onEdit={value => editField('name', value)}
-										isEditable={canEditProduct}
+										isEditable={canEditProductName}
 										customStyles={wrappingFieldStyles}
 										inputHeight="1.85rem"
 										numberInputHeight="1.85rem"
@@ -244,7 +246,7 @@ const ProductTableItem = memo(
 										value={productData.barcode ?? ''}
 										ariaLabel={t('common.barcode')}
 										onEdit={value => editField('barcode', value)}
-										isEditable={canEditProduct}
+										isEditable={canEditProductBarcode}
 										customStyles={wrappingFieldStyles}
 										inputHeight="1.85rem"
 										numberInputHeight="1.85rem"
@@ -349,7 +351,7 @@ const ProductTableItem = memo(
 										isNumberField={true}
 										ariaLabel={t('common.sellPrice')}
 										onEdit={value => editField('retailPrice', value)}
-										isEditable={canEditWholesalePrice}
+										isEditable={canEditSellingPrice}
 										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('retailPrice')}

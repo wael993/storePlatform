@@ -5,6 +5,9 @@ interface AllowedActionsMap {
 	canAddProduct: boolean
 	canDeleteProduct: boolean
 	canEditProduct: boolean
+	canEditProductName: boolean
+	canEditProductBarcode: boolean
+	canEditSellingPrice: boolean
 	canPrintBarcode: boolean
 
 	seeStockQuantity: boolean
@@ -49,23 +52,34 @@ const useAllowedActions = (_overriddenPath?: string): AllowedActionsMap => {
 		canAddProduct: canSee(SEE.productsAdd),
 		canDeleteProduct: canSee(SEE.productsDelete),
 		canEditProduct: canSee(SEE.productsEdit),
+		canEditProductName:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditName),
+		canEditProductBarcode:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditBarcode),
+		canEditSellingPrice:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditSellingPrice),
 		canPrintBarcode: canSee(SEE.productsPrintBarcode),
 
 		seeStockQuantity: true,
-		canEditStockQuantity: true,
+		canEditStockQuantity:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditQuantity),
 		seeNotifications: canSee(SEE.productsNotifications),
 
 		seeMinStockQuantity: true,
-		canEditMinStockQuantity: true,
+		canEditMinStockQuantity:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditMinQuantity),
 
 		seeWholesalePrice: canSee(SEE.productsWholesalePrice),
-		canEditWholesalePrice: canSee(SEE.productsWholesalePrice),
+		canEditWholesalePrice:
+			canSee(SEE.productsEdit) && canSee(SEE.productsWholesalePrice),
 
 		seeSemiWholesalePrice: canSee(SEE.productsSemiWholesalePrice),
-		canEditSemiWholesalePrice: canSee(SEE.productsSemiWholesalePrice),
+		canEditSemiWholesalePrice:
+			canSee(SEE.productsEdit) && canSee(SEE.productsSemiWholesalePrice),
 
 		seeDiscount: true,
-		canEditDiscount: true,
+		canEditDiscount:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditDiscount),
 
 		seeReport: canSee(SEE.reports),
 		canAddReport: canSee(SEE.reports),
@@ -73,7 +87,8 @@ const useAllowedActions = (_overriddenPath?: string): AllowedActionsMap => {
 		canDeleteReport: canSee(SEE.reports),
 
 		seeBuyCost: canSee(SEE.productsBuyingPrice),
-		canEditBuyCost: canSee(SEE.productsBuyingPrice),
+		canEditBuyCost:
+			canSee(SEE.productsEdit) && canSee(SEE.productsEditBuyingPrice),
 
 		seeSupplier: canSee(SEE.supplier),
 		canAddSupplier: canSee(SEE.suppliersAdd),

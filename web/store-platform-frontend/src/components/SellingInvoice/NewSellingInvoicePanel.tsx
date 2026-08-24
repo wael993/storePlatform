@@ -219,6 +219,7 @@ const NewSellingInvoicePanel = ({
 	const { user } = useUser()
 	const { canSee } = useSee()
 	const canAddSelling = canSee(SEE.sellingInvoicesSellingButton)
+	const canEditInvoiceDiscount = canSee(SEE.invoicesInvoiceDiscount)
 	const { data: fetchedCustomers = [] } = useGetCustomersQuery(undefined, {
 		skip: customersProp !== undefined,
 		refetchOnMountOrArgChange: false,
@@ -917,7 +918,7 @@ const NewSellingInvoicePanel = ({
 								<Text fontSize="sm" color={PAGE_COLORS.muted}>
 									{t('components.sellingInvoices.drawer.discount')}
 								</Text>
-								{isReadOnly ? (
+								{isReadOnly || !canEditInvoiceDiscount ? (
 									<CurrencyAmountTooltip
 										amount={totals.discount}
 										displayText={formatAmount(totals.discount)}

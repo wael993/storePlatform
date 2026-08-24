@@ -76,10 +76,13 @@ const UsersLogIn = () => {
 	const { canSee } = useSee()
 	const breadCrumbItems = generateBreadcrumbs()
 	const inviteUserSchema = useMemo(() => createInviteUserSchema(t), [t])
-	const { data: users = [], isLoading, isFetching } = useGetTenantUsersQuery(
-		undefined,
-		{ skip: !canSee(SEE.usersList) && !isOwner },
-	)
+	const {
+		data: users = [],
+		isLoading,
+		isFetching,
+	} = useGetTenantUsersQuery(undefined, {
+		skip: !canSee(SEE.usersList) || !isOwner,
+	})
 	const [inviteTenantUser, { isLoading: isInviting }] =
 		useInviteTenantUserMutation()
 	const [updateTenantUser, { isLoading: isUpdating }] =
@@ -114,7 +117,6 @@ const UsersLogIn = () => {
 
 	const showInvite = canSee(SEE.usersInvite)
 	const showUsers = canSee(SEE.usersList)
-	const showRoleAccess = isOwner
 
 	const onInvite = async (formData: InviteUserFormData) => {
 		setFeedback('')
@@ -193,7 +195,7 @@ const UsersLogIn = () => {
 					<TabList>
 						{showInvite ? <Tab>{t('users.inviteUser')}</Tab> : null}
 						{showUsers ? <Tab>{t('users.usersTab')}</Tab> : null}
-						{showRoleAccess ? <Tab>{t('users.roleAccess.tab')}</Tab> : null}
+						{isOwner ? <Tab>{t('users.roleAccess.tab')}</Tab> : null}
 					</TabList>
 					<TabPanels>
 						{showInvite ? (
@@ -316,7 +318,7 @@ const UsersLogIn = () => {
 							</TabPanel>
 						) : null}
 
-						{showRoleAccess ? (
+						{isOwner ? (
 							<TabPanel px={0}>
 								<RoleAccessPanel />
 							</TabPanel>

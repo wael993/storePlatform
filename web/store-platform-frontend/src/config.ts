@@ -12,12 +12,8 @@ const resolveApiEndpoint = (): string => {
 		)
 	}
 
-	const fromEnv = import.meta.env.VITE_BUSINESS_PLATFORM_ENDPOINT
-	// Same-origin path proxied to Render via vercel.json (first-party cookies on mobile)
-	if (!fromEnv || fromEnv.includes('onrender.com')) {
-		return '/api/data'
-	}
-	return fromEnv
+	// Same-origin path proxied to Render via vercel.json (first-party cookies on mobile).
+	return '/api/data'
 }
 
 const apiEndpoint = resolveApiEndpoint()

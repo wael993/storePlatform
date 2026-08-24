@@ -11,7 +11,7 @@ interface BuyingInvoiceDetailModalProps {
 	suppliers?: Supplier[]
 	onClose: () => void
 	onSaved?: () => void
-	onRequestEdit: () => void
+	onRequestEdit?: () => void
 }
 
 const BuyingInvoiceDetailModal = ({

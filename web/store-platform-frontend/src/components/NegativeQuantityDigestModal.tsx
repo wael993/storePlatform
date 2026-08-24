@@ -51,7 +51,7 @@ const DigestProductRow = ({
 		seeBuyCost,
 		canEditBuyCost,
 		seeWholesalePrice,
-		canEditWholesalePrice,
+		canEditSellingPrice,
 	} = useAllowedActions(RoutePaths.PRODUCTS)
 
 	const field =
@@ -111,7 +111,7 @@ const DigestProductRow = ({
 										isNumberField={true}
 										ariaLabel={t('common.sellPrice')}
 										onEdit={value => editField('retailPrice', value)}
-										isEditable={canEditWholesalePrice}
+										isEditable={canEditSellingPrice}
 										customStyles={cellFieldStyles}
 										isLoading={isFieldInProgress('retailPrice')}
 									/>

@@ -272,6 +272,15 @@ export default class TenantController {
 			password: hashedPassword,
 			role,
 			avatarColorId: Math.floor(Math.random() * 1000000),
+			createdBy: {
+				_id: requestContext.userId ?? '',
+				displayName:
+					`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim() ||
+					requestContext.userId ||
+					'user',
+				role: requestContext.role,
+				createdAt: new Date(),
+			},
 		})
 
 		return {

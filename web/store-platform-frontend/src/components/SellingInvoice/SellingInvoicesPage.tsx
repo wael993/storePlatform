@@ -115,6 +115,9 @@ const SellingInvoicesPage = () => {
 	const canSeeAddBuying = canSee(SEE.invoicesBuyingAdd)
 	const canSeeEntries = canSee(SEE.sellingInvoicesEntriesButton)
 	const canSeeAddEntries = canSee(SEE.invoicesEntriesAdd)
+	const canEditSelling = canSee(SEE.sellingInvoicesEdit)
+	const canEditBuying = canSee(SEE.invoicesBuyingEdit)
+	const canEditEntries = canSee(SEE.invoicesEntriesEdit)
 	const canSeeSummary = canSee(SEE.sellingInvoicesSummary)
 	const canSeeInvoiceLists = canSeeBuying || canSeeSellingList || canSeeEntries
 	const breadCrumbItems = generateBreadcrumbs()
@@ -571,6 +574,8 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleEditInvoice = (invoiceId: string, kind: 'selling' | 'buying') => {
+		if (kind === 'buying' && !canEditBuying) return
+		if (kind === 'selling' && !canEditSelling) return
 		openInvoiceDetail(invoiceId, kind, 'edit')
 	}
 
@@ -617,6 +622,7 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleEditEntry = (entry: DailyAction) => {
+		if (!canEditEntries) return
 		setSelectedEntry(entry)
 		setEntryModalMode('edit')
 		onEntryOpen()
@@ -698,28 +704,28 @@ const SellingInvoicesPage = () => {
 	const adminActionButtons = (
 		<>
 			{canSeeAddBuying && (
-			<Button
-				leftIcon={<Icon as={AsTruckIcon} boxSize={5} />}
-				variant="outline"
-				borderRadius="lg"
-				borderColor={PAGE_COLORS.border}
-				fontWeight={600}
-				onClick={handleNewBuyingInvoice}
-			>
-				{t('components.sellingInvoices.newBuyingInvoice')}
-			</Button>
+				<Button
+					leftIcon={<Icon as={AsTruckIcon} boxSize={5} />}
+					variant="outline"
+					borderRadius="lg"
+					borderColor={PAGE_COLORS.border}
+					fontWeight={600}
+					onClick={handleNewBuyingInvoice}
+				>
+					{t('components.sellingInvoices.newBuyingInvoice')}
+				</Button>
 			)}
 			{canSeeAddEntries && (
-			<Button
-				leftIcon={<Icon as={AsCashBalanceIcon} boxSize={5} />}
-				variant="outline"
-				borderRadius="lg"
-				borderColor={PAGE_COLORS.border}
-				fontWeight={600}
-				onClick={handleNewEntry}
-			>
-				{t('components.sellingInvoices.newEntry')}
-			</Button>
+				<Button
+					leftIcon={<Icon as={AsCashBalanceIcon} boxSize={5} />}
+					variant="outline"
+					borderRadius="lg"
+					borderColor={PAGE_COLORS.border}
+					fontWeight={600}
+					onClick={handleNewEntry}
+				>
+					{t('components.sellingInvoices.newEntry')}
+				</Button>
 			)}
 		</>
 	)
@@ -733,7 +739,9 @@ const SellingInvoicesPage = () => {
 				customers={invoiceCustomers}
 				onClose={handleDetailClose}
 				onSaved={handleDetailInvoiceSaved}
-				onRequestEdit={() => setDetailMode('edit')}
+				onRequestEdit={
+					canEditSelling ? () => setDetailMode('edit') : undefined
+				}
 			/>
 			<BuyingInvoiceDetailModal
 				isOpen={isBuyingDetailOpen}
@@ -742,7 +750,9 @@ const SellingInvoicesPage = () => {
 				suppliers={invoiceSuppliers}
 				onClose={handleBuyingDetailClose}
 				onSaved={handleDetailInvoiceSaved}
-				onRequestEdit={() => setDetailMode('edit')}
+				onRequestEdit={
+					canEditBuying ? () => setDetailMode('edit') : undefined
+				}
 			/>
 			<ConfirmationDialog
 				isOpen={isDeleteOpen}
@@ -852,48 +862,47 @@ const SellingInvoicesPage = () => {
 						</Flex>
 
 						{canSeeSummary ? (
-						<Accordion allowToggle>
-							<AccordionItem border="none">
-								<AccordionButton px={0}>
-									<Box flex="1" textAlign="right">
-										{t('components.sellingInvoices.summaryTitle')}
-									</Box>
-									<AccordionIcon />
-								</AccordionButton>
-								<AccordionPanel px={0} pb={4}>
-									<InvoiceSummaryCards
-										summary={summary}
-										isLoading={isSummaryLoading}
-										dateFrom={summaryDateFrom}
-										dateTo={summaryDateTo}
-										onDateFromChange={handleSummaryDateFromChange}
-										onDateToChange={handleSummaryDateToChange}
-										showCashBalance={canSeeSummary}
-										cashBalance={{
-											period: periodCashBalance,
-											allTime: allTimeCashBalance,
-										}}
-										isCashBalanceLoading={
-											isPeriodCashBalanceLoading || isAllTimeCashBalanceLoading
-										}
-									/>
-								</AccordionPanel>
-							</AccordionItem>
-						</Accordion>
+							<Accordion allowToggle>
+								<AccordionItem border="none">
+									<AccordionButton px={0}>
+										<Box flex="1" textAlign="right">
+											{t('components.sellingInvoices.summaryTitle')}
+										</Box>
+										<AccordionIcon />
+									</AccordionButton>
+									<AccordionPanel px={0} pb={4}>
+										<InvoiceSummaryCards
+											summary={summary}
+											isLoading={isSummaryLoading}
+											dateFrom={summaryDateFrom}
+											dateTo={summaryDateTo}
+											onDateFromChange={handleSummaryDateFromChange}
+											onDateToChange={handleSummaryDateToChange}
+											showCashBalance={canSeeSummary}
+											cashBalance={{
+												period: periodCashBalance,
+												allTime: allTimeCashBalance,
+											}}
+											isCashBalanceLoading={
+												isPeriodCashBalanceLoading ||
+												isAllTimeCashBalanceLoading
+											}
+										/>
+									</AccordionPanel>
+								</AccordionItem>
+							</Accordion>
 						) : null}
 
 						{canSeeAddSelling && (
 							<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>
-								<InvoiceBarcodeSearchBar
-									onSubmit={handleBarcodeSearchSubmit}
-								/>
+								<InvoiceBarcodeSearchBar onSubmit={handleBarcodeSearchSubmit} />
 							</Box>
 						)}
 
 						{canSeeInvoiceLists ? (
-						<Box sx={isDraftOpen ? styles.listScrollArea : undefined}>
-							{invoiceListSection}
-						</Box>
+							<Box sx={isDraftOpen ? styles.listScrollArea : undefined}>
+								{invoiceListSection}
+							</Box>
 						) : null}
 					</Box>
 

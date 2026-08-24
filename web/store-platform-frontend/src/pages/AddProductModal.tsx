@@ -226,6 +226,8 @@ const AddProductModal = ({
 	const [form, setForm] = useState(INITIAL_FORM)
 	const [baseline, setBaseline] = useState<typeof INITIAL_FORM | null>(null)
 	const isEdit = Boolean(product)
+	const lock = (id: string) =>
+		isEdit && (!canSee(SEE.productsEdit) || !canSee(id))
 	const isDirty =
 		isEdit &&
 		baseline != null &&
@@ -491,7 +493,7 @@ const AddProductModal = ({
 	}
 
 	const buildProductBody = () => ({
-		name: form.name.trim() || form.latinName.trim(),
+		name: form.name.trim() || (isEdit ? undefined : form.latinName.trim()),
 		latinName: form.latinName.trim() || undefined,
 		productFactoryCode: form.productFactoryCode.trim() || undefined,
 		barcode: form.barcode.trim(),
@@ -581,11 +583,12 @@ const AddProductModal = ({
 			} else {
 				const created = await postNewProduct({
 					...productBody,
+					name: form.name.trim() || form.latinName.trim(),
 					images: [],
 					quantity: Number(form.quantity),
-					minQuantity: form.minQuantity.trim()
-						? Number(form.minQuantity)
-						: undefined,
+					...(form.minQuantity.trim()
+						? { minQuantity: Number(form.minQuantity) }
+						: {}),
 					...(form.warehouseId.trim()
 						? { warehouseId: form.warehouseId.trim() }
 						: {}),
@@ -620,6 +623,7 @@ const AddProductModal = ({
 				inputType="text"
 				label={t('common.productName')}
 				value={form.name}
+				isReadOnly={lock(SEE.productsEditName)}
 				onChange={value => handleFieldChange('name', value)}
 			/>
 			<InputLabel
@@ -632,7 +636,7 @@ const AddProductModal = ({
 				inputType="text"
 				label={t('common.barcode')}
 				value={form.barcode}
-				// isReadOnly
+				isReadOnly={lock(SEE.productsEditBarcode)}
 				onChange={value => handleFieldChange('barcode', value)}
 			/>
 			<InputLabel
@@ -669,24 +673,28 @@ const AddProductModal = ({
 					inputType="number"
 					label={t('productModal.retailPrice')}
 					value={form.price.retailPrice}
+					isReadOnly={lock(SEE.productsEditSellingPrice)}
 					onChange={value => handlePriceChange('retailPrice', value)}
 				/>
 				<InputLabel
 					inputType="number"
 					label={t('common.stockQuantity')}
 					value={form.quantity}
+					isReadOnly={lock(SEE.productsEditQuantity)}
 					onChange={value => handleFieldChange('quantity', value)}
 				/>
 				<InputLabel
 					inputType="number"
 					label={t('common.stockMinQuantity')}
 					value={form.minQuantity}
+					isReadOnly={lock(SEE.productsEditMinQuantity)}
 					onChange={value => handleFieldChange('minQuantity', value)}
 				/>
 				<InputLabel
 					inputType="number"
 					label={t('productModal.purchasePrice')}
 					value={form.price.purchasePrice}
+					isReadOnly={lock(SEE.productsEditBuyingPrice)}
 					onChange={value => handlePriceChange('purchasePrice', value)}
 				/>
 				<InputLabel
@@ -705,6 +713,7 @@ const AddProductModal = ({
 					inputType="number"
 					label={t('productModal.discountPrice')}
 					value={form.price.discount}
+					isReadOnly={lock(SEE.productsEditDiscount)}
 					onChange={value => handlePriceChange('discount', value)}
 				/>
 			</SimpleGrid>
@@ -714,28 +723,28 @@ const AddProductModal = ({
 	const renderClassificationStep = () => (
 		<VStack spacing={4} align="stretch">
 			{canSeeCategories && (
-			<DropdownLabel
-				isSearchable
-				isSingle
-				label={t('common.category')}
-				placeholder={t('common.category')}
-				options={categoryOptions}
-				selectedOptions={getSelectedOption(categoryOptions, form.categoryId)}
-				onSelect={values => handleDropdownSelect('categoryId', values)}
-				isLoading={isCategoriesLoading}
-			/>
+				<DropdownLabel
+					isSearchable
+					isSingle
+					label={t('common.category')}
+					placeholder={t('common.category')}
+					options={categoryOptions}
+					selectedOptions={getSelectedOption(categoryOptions, form.categoryId)}
+					onSelect={values => handleDropdownSelect('categoryId', values)}
+					isLoading={isCategoriesLoading}
+				/>
 			)}
 			{canSeeSupplier && (
-			<DropdownLabel
-				isSearchable
-				isSingle
-				label={t('common.supplier')}
-				placeholder={t('common.supplier')}
-				options={supplierOptions}
-				selectedOptions={getSelectedOption(supplierOptions, form.supplierId)}
-				onSelect={values => handleDropdownSelect('supplierId', values)}
-				isLoading={isSuppliersLoading}
-			/>
+				<DropdownLabel
+					isSearchable
+					isSingle
+					label={t('common.supplier')}
+					placeholder={t('common.supplier')}
+					options={supplierOptions}
+					selectedOptions={getSelectedOption(supplierOptions, form.supplierId)}
+					onSelect={values => handleDropdownSelect('supplierId', values)}
+					isLoading={isSuppliersLoading}
+				/>
 			)}
 			<DropdownLabel
 				isSearchable

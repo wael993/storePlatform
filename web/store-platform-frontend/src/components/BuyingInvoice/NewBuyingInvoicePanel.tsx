@@ -253,6 +253,7 @@ const NewBuyingInvoicePanel = ({
 	const { canSee } = useSee()
 	const canAddProduct = canSee(SEE.productsAdd)
 	const canAddBuying = canSee(SEE.invoicesBuyingAdd)
+	const canEditInvoiceDiscount = canSee(SEE.invoicesInvoiceDiscount)
 	const canAddSupplier = canSee(SEE.suppliersAdd)
 	const canUseInvoiceAi =
 		canSee(SEE.sellingInvoicesAiRead) &&
@@ -1433,7 +1434,7 @@ const NewBuyingInvoicePanel = ({
 									<Text fontSize="sm" color={PAGE_COLORS.muted}>
 										{t('components.buyingInvoices.drawer.discount')}
 									</Text>
-									{isReadOnly ? (
+									{isReadOnly || !canEditInvoiceDiscount ? (
 										<CurrencyAmountTooltip
 											amount={totals.discount}
 											displayText={formatAmount(totals.discount)}

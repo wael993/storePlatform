@@ -126,6 +126,8 @@ import {
 import {
 	canSeeResource,
 	ensureSeeIds,
+	ensureProductPatchSee,
+	ensureInventoryPatchSee,
 	getSeeSet,
 	getSeeSetForContext,
 } from '../shared/seePermissions'
@@ -1660,8 +1662,15 @@ export default class ProductController {
 		requestBody: ProductDocument,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.productsEdit])
 		const allowedUpdates = normalizeProductPatchRequest(requestBody)
 		const tenantContext = getTenantContext(requestContext)
+		const existingProduct = await withTenantScope(
+			Product.findOne({ productId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		await ensureProductPatchSee(requestContext, allowedUpdates, existingProduct)
 
 		if (allowedUpdates.barcode) {
 			const existingWithBarcode = await withTenantScope(
@@ -1681,11 +1690,6 @@ export default class ProductController {
 		}
 
 		if (allowedUpdates.price) {
-			const existingProduct = await withTenantScope(
-				Product.findOne({ productId }).lean(),
-				tenantContext.tenantId,
-			)
-
 			if (!existingProduct) {
 				throw new BusinessLogicError(
 					ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
@@ -2633,7 +2637,19 @@ export default class ProductController {
 		requestBody: Partial<InventoryRequestBody>,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.productsEdit])
 		const allowedUpdates = normalizeInventoryPatchRequest(requestBody)
+		const tenantContext = getTenantContext(requestContext)
+		const existingInventory = await withTenantScope(
+			Inventory.findOne({ inventoryId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		await ensureInventoryPatchSee(
+			requestContext,
+			allowedUpdates,
+			existingInventory,
+		)
 
 		if (allowedUpdates.productId) {
 			await this.ensureInventoryProductBelongsToTenant(
@@ -3040,6 +3056,7 @@ export default class ProductController {
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.invoicesEntriesEdit])
 		const optionalString = (value?: string) => value?.trim() || undefined
 		const dailyActionData = {
 			entryType: requestBody.entryType,

@@ -54,7 +54,18 @@ const DELETE_FOR: Record<string, string> = {
 	[SEE.sellingInvoicesEntriesButton]: SEE.invoicesEntriesDelete,
 }
 
-const HOISTED = new Set([...Object.values(ADD_FOR), ...Object.values(DELETE_FOR)])
+const EDIT_FOR: Record<string, string> = {
+	[SEE.products]: SEE.productsEdit,
+	[SEE.sellingInvoicesBuyingButton]: SEE.invoicesBuyingEdit,
+	[SEE.sellingInvoices]: SEE.sellingInvoicesEdit,
+	[SEE.sellingInvoicesEntriesButton]: SEE.invoicesEntriesEdit,
+}
+
+const HOISTED = new Set([
+	...Object.values(ADD_FOR),
+	...Object.values(EDIT_FOR),
+	...Object.values(DELETE_FOR),
+])
 
 type RoleChip = 'owner' | (typeof EDITABLE_ROLES)[number]
 
@@ -129,7 +140,20 @@ const RoleAccessPanel = () => {
 	const toggleAction = (id: string, seeOn: boolean) => {
 		if (isOwnerView || !seeOn) return
 
-		setSee(seeSet.has(id) ? see.filter(item => item !== id) : [...see, id])
+		if (seeSet.has(id)) {
+			const found = catalog.flatMap(function collect(
+				node: SeeCatalogNode,
+			): string[] {
+				if (node.id === id) return idsOf(node)
+				return node.children?.flatMap(collect) ?? []
+			})
+			const drop = new Set(found.length ? found : [id])
+
+			setSee(see.filter(item => !drop.has(item)))
+			return
+		}
+
+		setSee([...see, id])
 	}
 
 	const onSave = async () => {
@@ -167,6 +191,7 @@ const RoleAccessPanel = () => {
 			const seeOn =
 				ancestorsOn && (Boolean(node.locked) || seeSet.has(node.id))
 			const addId = ADD_FOR[node.id]
+			const editId = EDIT_FOR[node.id]
 			const deleteId = DELETE_FOR[node.id]
 			const helperKey = PACKAGE_HELPER_KEYS[node.id]
 			const addHelperKey = addId ? PACKAGE_HELPER_KEYS[addId] : undefined
@@ -209,6 +234,15 @@ const RoleAccessPanel = () => {
 									</Text>
 								) : null}
 							</Box>
+						) : null}
+					</Td>
+					<Td py={2} textAlign="center">
+						{editId ? (
+							<Checkbox
+								isChecked={seeOn && seeSet.has(editId)}
+								isDisabled={actionDisabled}
+								onChange={() => toggleAction(editId, seeOn)}
+							/>
 						) : null}
 					</Td>
 					<Td py={2} textAlign="center">
@@ -256,6 +290,7 @@ const RoleAccessPanel = () => {
 							<Th>{t('users.roleAccess.columns.name')}</Th>
 							<Th textAlign="center">{t('users.roleAccess.columns.see')}</Th>
 							<Th textAlign="center">{t('users.roleAccess.columns.add')}</Th>
+							<Th textAlign="center">{t('users.roleAccess.columns.edit')}</Th>
 							<Th textAlign="center">
 								{t('users.roleAccess.columns.delete')}
 							</Th>

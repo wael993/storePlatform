@@ -11,7 +11,7 @@ interface InvoiceDetailModalProps {
 	customers?: Customer[]
 	onClose: () => void
 	onSaved?: () => void
-	onRequestEdit: () => void
+	onRequestEdit?: () => void
 }
 
 const InvoiceDetailModal = ({

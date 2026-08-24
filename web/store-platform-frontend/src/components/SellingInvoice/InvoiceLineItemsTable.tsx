@@ -36,6 +36,8 @@ import {
 	type DisplayCurrencyOption,
 } from './currencyDisplay'
 import { formatNumber } from '../../shared/utils'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 
 interface InvoiceLineItemsTableProps {
 	lineItems: SellingInvoiceLineItem[]
@@ -103,6 +105,10 @@ const InvoiceLineItemsTable = ({
 	productCaption,
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canEditLinePrice = !isReadOnly && canSee(SEE.invoicesLinePrice)
+	const canEditLineDiscount = !isReadOnly && canSee(SEE.invoicesLineDiscount)
+	const canEditLineTotal = !isReadOnly && canSee(SEE.invoicesLineTotal)
 	const editStartRefs = useRef(new Map<string, () => void>())
 
 	// Newest line items are appended last; show newest first in the table.
@@ -297,9 +303,9 @@ const InvoiceLineItemsTable = ({
 										registerEditStart={registerEditStart}
 										onEnterCommit={() => focusNextField(index, 'unitPrice')}
 										onEdit={
-											isReadOnly
-												? undefined
-												: unitPrice => handleUnitPriceEdit(item, unitPrice)
+											canEditLinePrice
+												? unitPrice => handleUnitPriceEdit(item, unitPrice)
+												: undefined
 										}
 										costReference={
 											invoiceKind === 'selling'
@@ -327,7 +333,7 @@ const InvoiceLineItemsTable = ({
 								</Flex>
 							</Td>
 							<Td>
-								{isReadOnly ? (
+								{!canEditLineDiscount ? (
 									<Text fontSize="sm" fontWeight={600}>
 										{formatAmount(getLineDiscountAmount(item))}
 									</Text>
@@ -358,9 +364,9 @@ const InvoiceLineItemsTable = ({
 									registerEditStart={registerEditStart}
 									onEnterCommit={() => focusNextField(index, 'total')}
 									onEdit={
-										isReadOnly
-											? undefined
-											: total => handleTotalEdit(item, total)
+										canEditLineTotal
+											? total => handleTotalEdit(item, total)
+											: undefined
 									}
 								/>
 							</Td>

@@ -29,6 +29,8 @@ import InputLabel from '../common/InputLabel'
 import useCustomToast from '../common/CustomToast'
 import DropdownLabel from '../DropdownLabel'
 import { PAGE_COLORS } from './constants'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { buildDisplayCurrencyOptions } from './currencyDisplay'
 import {
 	getDailyActionId,
@@ -87,13 +89,14 @@ const QuickEntryModal = ({
 }: QuickEntryModalProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
+	const { canSee } = useSee()
 	const hasInitializedCurrency = useRef(false)
 	const previousEntryType = useRef<QuickEntryType>(
 		DailyActionType.RECEIPT_ENTRY,
 	)
 
-	const isReadOnly = mode === 'view'
-	const isEditing = mode === 'edit'
+	const isEditing = mode === 'edit' && canSee(SEE.invoicesEntriesEdit)
+	const isReadOnly = mode === 'view' || (mode === 'edit' && !isEditing)
 
 	const [form, setForm] = useState(createInitialFormState)
 	const [postDailyAction, { isLoading: isCreating }] =

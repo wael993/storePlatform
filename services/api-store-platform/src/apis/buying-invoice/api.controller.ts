@@ -24,7 +24,7 @@ import {
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
 import { SEE } from '../../shared/seeCatalog'
-import { ensureSeeIds } from '../../shared/seePermissions'
+import { ensureSeeIds, ensureInvoiceEditFieldSee } from '../../shared/seePermissions'
 import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	decodeInvoiceUpload,
@@ -776,9 +776,16 @@ export default class BuyingInvoiceController {
 		requestBody: Partial<BuyingInvoiceRequestBody>,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeIds(requestContext, [SEE.invoicesBuyingEdit])
 		const existingInvoice = await this.getBuyingInvoice(
 			buyingInvoiceId,
 			requestContext,
+		)
+		await ensureInvoiceEditFieldSee(
+			requestContext,
+			existingInvoice,
+			requestBody,
+			'buying',
 		)
 		const wasStockAffecting = Boolean(
 			existingInvoice &&
