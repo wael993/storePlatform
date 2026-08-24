@@ -2,35 +2,19 @@ import {
 	Box,
 	Button,
 	Flex,
-	GridItem,
 	HStack,
-	Icon,
-	Spacer,
 	Text,
 	useDisclosure,
-	VStack,
 } from '@chakra-ui/react'
-// import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from './CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
-import { compareTargetType } from '../shared/utils'
+import { compareTargetType, formatNumber } from '../shared/utils'
 import {
 	AllowedActions,
 	BreadCrumbItem,
 	TargetType,
 } from '../shared/globalEnums'
-import { CustomTooltip } from './common/CustomTooltip'
-import { AsStarIcon } from './icons/Star'
-import { AsTruckIcon } from './icons/Truck'
-import EditableField from './modals/EditableField'
-import { AsTargetIcon } from './icons/Target'
-import { cellFieldStyles } from '../shared/styles'
-import { AsClockIcon } from './icons/Clock'
-// import { formatDateFromAndDateTo } from '../shared/dateUtils'
-import { TicketStatus } from './common/TicketStatus'
-// import { BudgetOverview } from './common/BudgetOverview'
-// import { useGetBudgetOverviewQuery } from '../api/apiStore'
 import { CloseButton } from './common/CloseButton'
 import { AddSquareIcon } from './icons/AddSquare'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
@@ -40,13 +24,36 @@ import { useUser } from '../shared/hooks/useUser'
 import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
 import PartyInvoiceSummaryCards from './common/PartyInvoiceSummaryCards'
+import { PRODUCT_STATE_CONFIG } from './list/shared/constants'
+import { ActivityState } from './list/shared/globalEnums'
 
-const iconSize = '1.5rem'
 const fullWidth = '100%'
-const borderColor = '#EAEAEA'
 const mutedTextColor = '#929494'
-const borderRightMd = { md: `1px solid ${borderColor}` }
-const widthGridItem = { lg: fullWidth, xl: '24%' }
+const borderColor = '#EAEAEA'
+
+const TYPE_CHIP: Partial<
+	Record<TargetType, { translationKey: TranslationKey; color: string }>
+> = {
+	[TargetType.CUSTOMER]: {
+		translationKey: 'common.customer',
+		color: '#5698E6',
+	},
+	[TargetType.SUPPLIER]: {
+		translationKey: 'common.supplier',
+		color: '#E7CB3A',
+	},
+	[TargetType.PARTNER]: {
+		translationKey: 'common.partner',
+		color: '#9B59B6',
+	},
+}
+
+const BREADCRUMB_ITEM = {
+	[TargetType.CUSTOMER]: BreadCrumbItem.CUSTOMER,
+	[TargetType.SUPPLIER]: BreadCrumbItem.SUPPLIER,
+	[TargetType.PARTNER]: BreadCrumbItem.PARTNER,
+	[TargetType.PRODUCT]: BreadCrumbItem.PRODUCT,
+} as const
 
 const styles = {
 	wrapper: {
@@ -58,21 +65,48 @@ const styles = {
 		flexDir: 'column',
 		width: fullWidth,
 	},
-	titleWrapper: {
-		alignItems: 'center',
+	titleRow: {
+		alignItems: 'flex-start',
+		justifyContent: 'space-between',
+		flexWrap: 'wrap',
+		gap: '0.75rem',
 		paddingTop: '0.5rem',
-		paddingBottom: '0.75rem',
-		gap: '0.25rem',
 	},
 	titleDrawer: {
 		fontSize: '1.25rem',
 		fontWeight: '700',
 		color: '#1E1E1E',
+		lineHeight: '1.4',
 	},
-	subHeaderText: {
+	metaRow: {
+		alignItems: 'center',
+		flexWrap: 'wrap',
+		gap: '0.375rem',
+		mt: '0.25rem',
 		color: mutedTextColor,
-		fontWeight: 700,
-		marginBottom: '1rem',
+		fontSize: '0.875rem',
+		fontWeight: 600,
+		minH: '1.25rem',
+	},
+	metaDot: {
+		color: '#C4C4C4',
+		fontWeight: 500,
+	},
+	chip: {
+		alignItems: 'center',
+		gap: '0.375rem',
+	},
+	chipDot: {
+		width: '0.5rem',
+		height: '0.5rem',
+		borderRadius: 'full',
+		flexShrink: 0,
+	},
+	chipLabel: {
+		fontSize: '0.875rem',
+		fontWeight: 600,
+		color: mutedTextColor,
+		lineHeight: '1.2',
 	},
 	addButton: {
 		...hoverFocusActiveButtonStyles,
@@ -87,126 +121,36 @@ const styles = {
 		borderWidth: 0,
 		height: '1px',
 		backgroundColor: borderColor,
-		marginTop: '0.5rem',
 		width: fullWidth,
 		marginY: '1rem',
 	},
-	contentWrapper: {
+	factsRow: {
+		display: 'grid',
+		gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))',
+		gap: '1rem',
 		width: fullWidth,
-		flexDirection: 'row',
-		columnGap: '1rem',
-		display: { base: 'grid', lg: 'grid', xl: 'flex' },
-		gridTemplateColumns: {
-			sm: 'repeat(1, 1fr)',
-			md: 'repeat(2, 1fr)',
-		},
 	},
-	gridItemFirst: {
-		paddingY: { base: '1rem', md: '1.75rem' },
-		display: 'flex',
-		flexDirection: 'column',
-		justifyContent: 'center',
-		width: { lg: fullWidth, xl: '24%' },
+	factCell: {
+		flexDir: 'column',
+		alignItems: 'flex-start',
+		gap: '0.125rem',
+		minW: 0,
 	},
-	itemWrapperWithTwoChildren: {
-		gap: '0.5rem',
-		alignItems: 'center',
-		paddingBottom: { base: '0.5rem', md: '0.5rem', xl: '1.25rem' },
-		height: { sm: 'unset', md: '2rem' },
-		color: '#707070',
-	},
-	itemWrapperWithMargin: {
-		alignItems: 'center',
-		paddingBottom: { base: '0.5rem', md: '0.5rem', xl: '1.25rem' },
-		height: { sm: 'unset', md: '2rem' },
-		color: '#707070',
-		marginLeft: '0.15rem',
-	},
-	icon: {
-		fontSize: iconSize,
+	factLabel: {
 		color: mutedTextColor,
+		fontSize: '0.75rem',
+		fontWeight: 700,
+		lineHeight: '1.2',
 	},
-	brandsList: {
-		alignItems: 'start',
-		gap: '0.55rem',
-		width: '90%',
-	},
-	itemText: {
-		color: mutedTextColor,
-		pl: '0.5rem',
+	factValue: {
+		color: '#1E1E1E',
 		fontSize: '1rem',
-		fontWeight: '500',
-		lineHeight: '1.2rem',
-		whiteSpace: 'nowrap',
-	},
-	itemWrapperLastChild: {
-		alignItems: 'center',
-		gap: '0.5rem',
-	},
-	itemTextHidden: {
-		color: mutedTextColor,
-		pl: '0.5rem',
-		fontSize: '1rem',
-		fontWeight: '500',
-		lineHeight: '1.2rem',
+		fontWeight: 700,
+		lineHeight: '1.3',
 		overflow: 'hidden',
 		textOverflow: 'ellipsis',
 		whiteSpace: 'nowrap',
 		width: fullWidth,
-	},
-	gridItemLast: {
-		paddingY: { base: '1rem', md: '1.75rem' },
-		borderRight: { lg: 'none', xl: `1px solid ${borderColor}` },
-		display: 'flex',
-		flexDirection: 'column',
-		justifyContent: 'center',
-		gap: { base: '0.5rem', xl: 0 },
-		paddingRight: { base: '0rem', md: '1rem' },
-		width: { lg: fullWidth, xl: '24%' },
-	},
-	feeSectionGridItem: {
-		borderRight: borderRightMd,
-		display: 'flex',
-		flexDirection: { base: 'column', lg: 'row' },
-		paddingTop: { base: '1rem', md: '1.75rem' },
-		paddingBottom: { base: '1rem', xl: 0 },
-		justifyContent: 'center',
-		gap: { base: '0.25rem', lg: '1rem' },
-		paddingRight: { base: '0rem', md: '1rem' },
-		width: {
-			lg: fullWidth,
-			xl: '24%',
-		},
-	},
-	feeSectionGridItemLast: {
-		borderRight: 'none',
-		display: 'flex',
-		flexDirection: { base: 'column', lg: 'row' },
-		paddingTop: { base: '1rem', md: '1.75rem' },
-		paddingBottom: { base: '1rem', xl: 0 },
-		justifyContent: 'center',
-		gap: { base: '0.25rem', lg: '1rem' },
-		paddingRight: { base: '0rem', md: '1rem' },
-		width: {
-			lg: fullWidth,
-			xl: '24%',
-		},
-	},
-	feeSectionFlexWrapper: {
-		flexDirection: 'column',
-		width: { base: fullWidth, xl: '50%' },
-		gap: '0.25rem',
-	},
-	editableFieldMainRow: {
-		...cellFieldStyles.mainRow,
-		width: fullWidth,
-		maxWidth: fullWidth,
-		justifyContent: 'space-between',
-	},
-	itemWrapperLastChildWithWidth: {
-		alignItems: 'center',
-		width: widthGridItem,
-		gap: '0.5rem',
 	},
 } satisfies StylesObject
 
@@ -219,6 +163,13 @@ interface TopSectionProps {
 	onClose: () => void
 }
 
+const StatusChip = ({ color, label }: { color: string; label: string }) => (
+	<HStack sx={styles.chip} spacing={0}>
+		<Box sx={{ ...styles.chipDot, bg: color }} />
+		<Text sx={styles.chipLabel}>{label}</Text>
+	</HStack>
+)
+
 const TopSection = ({
 	targetType,
 	customer,
@@ -227,8 +178,7 @@ const TopSection = ({
 	partner,
 	onClose,
 }: TopSectionProps) => {
-	const { isCustomerTarget, isPartnerTarget, isProductTarget } =
-		compareTargetType(targetType)
+	const { isProductTarget } = compareTargetType(targetType)
 	const {
 		isOpen: isAddDailyActionModalOpen,
 		onOpen: onAddDailyActionModalOpen,
@@ -240,52 +190,6 @@ const TopSection = ({
 	const canAddEntries = canSee(SEE.invoicesEntriesAdd)
 	const { t } = useTranslation()
 	const entry = customer ?? supplier ?? partner ?? product
-
-	// const budgetOverviewArgs = customer?.customerId
-	// 	? ({
-	// 			entityType: 'customer',
-	// 			id: customer.customerId,
-	// 		} satisfies BudgetOverviewQueryArgument)
-	// 	: supplier?.supplierId
-	// 		? ({
-	// 				entityType: 'supplier',
-	// 				id: supplier.supplierId,
-	// 			} satisfies BudgetOverviewQueryArgument)
-	// 		: partner?.partnerId
-	// 			? ({
-	// 					entityType: 'partner' as const,
-	// 					id: partner.partnerId,
-	// 				} satisfies BudgetOverviewQueryArgument)
-	// 			: product?.productId
-	// 				? ({
-	// 						entityType: 'product',
-	// 						id: product.productId,
-	// 					} satisfies BudgetOverviewQueryArgument)
-	// 				: undefined
-
-	// const { data: budgetOverview, isFetching: isBudgetOverviewFetching } =
-	// 	useGetBudgetOverviewQuery(
-	// 		budgetOverviewArgs ?? ({} as BudgetOverviewQueryArgument),
-	// 		{
-	// 			skip: !budgetOverviewArgs,
-	// 		},
-	// 	)
-
-	// const budgetOverviewLabels = useMemo(
-	// 	() =>
-	// 		isProductTarget
-	// 			? {
-	// 					tooltip: t('components.daily.budgetOverview.tooltip'),
-	// 					title: t('components.daily.budgetOverview.title'),
-	// 					purchase: t('components.daily.budgetOverview.sales'),
-	// 					payments: t('components.daily.budgetOverview.costs'),
-	// 					balance: t('components.daily.budgetOverview.profit'),
-	// 					sumBuyingWeight: t('components.budgetOverview.sumBuyingWeight'),
-	// 					sumSellingWeight: t('components.budgetOverview.sumSellingWeight'),
-	// 				}
-	// 			: undefined,
-	// 	[isProductTarget, t],
-	// )
 
 	if (!entry) return null
 
@@ -301,45 +205,107 @@ const TopSection = ({
 		id: entryTargetId,
 		name: entry.name,
 	})
+	const breadcrumbKey =
+		BREADCRUMB_ITEM[targetType as keyof typeof BREADCRUMB_ITEM] ??
+		BreadCrumbItem.SUPPLIER
 
-	const editableFieldProps = {
-		ariaLabelName: t('common.supplierFocus'),
-		placeholder: t('common.addFocus'),
-		tooltip: t('common.supplierFocus'),
-		textWidth: fullWidth,
-		iconLeft: AsTargetIcon,
-		value: entry.internalCode ?? '',
-		onFieldEdition: () => Promise.resolve(),
-		isLoading: false,
-		isNumberField: false,
-		isEditable: true,
-		customStyles: {
-			mainRow: styles.editableFieldMainRow,
-		},
-		checkIconMarginRight: '0.5rem',
-		fontColor: mutedTextColor,
-		iconsGap: '0.5rem',
+	const productState = product
+		? PRODUCT_STATE_CONFIG[product.status as ActivityState]
+		: undefined
+	const typeChip = TYPE_CHIP[targetType]
+	const chip = isProductTarget
+		? productState && (
+				<StatusChip
+					color={productState.color}
+					label={t(productState.translationKey)}
+				/>
+			)
+		: typeChip && (
+				<StatusChip color={typeChip.color} label={t(typeChip.translationKey)} />
+			)
+
+	const barcode =
+		isProductTarget && canSee(SEE.barcode) && product?.barcode?.trim()
+			? product.barcode
+			: undefined
+
+	const metaItems = [entry.internalCode, chip, barcode].filter(Boolean)
+
+	const productFacts: { label: string; value: string }[] = []
+	if (isProductTarget && product) {
+		const stockValue = formatNumber(product.inventory?.quantity)
+		if (product.inventory?.quantity != null && stockValue) {
+			productFacts.push({
+				label: t('common.stockQuantity'),
+				value: stockValue,
+			})
+		}
+		const retailValue = [
+			formatNumber(product.price?.retailPrice),
+			product.price?.currency,
+		]
+			.filter(Boolean)
+			.join(' ')
+		if (product.price?.retailPrice != null && retailValue) {
+			productFacts.push({
+				label: t('common.sellPrice'),
+				value: retailValue,
+			})
+		}
+		const buyValue = [
+			formatNumber(product.price?.purchasePrice),
+			product.price?.currency,
+		]
+			.filter(Boolean)
+			.join(' ')
+		if (
+			canSee(SEE.productsBuyingPrice) &&
+			product.price?.purchasePrice != null &&
+			buyValue
+		) {
+			productFacts.push({
+				label: t('common.buyCost'),
+				value: buyValue,
+			})
+		}
+		if (product.categoryName?.trim()) {
+			productFacts.push({
+				label: t('common.category'),
+				value: product.categoryName,
+			})
+		}
 	}
+
+	const showInvoiceFacts = Boolean(customer?.customerId || supplier?.supplierId)
+	const showFacts = showInvoiceFacts || productFacts.length > 0
+	const canAddDailyAction =
+		isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
+		isAdmin &&
+		canAddEntries
 
 	return (
 		<Flex sx={styles.wrapper}>
 			<Flex sx={styles.header}>
 				<CustomBreadcrumb
 					marginTop="2rem"
-					items={
-						isCustomerTarget
-							? breadCrumbItems[BreadCrumbItem.CUSTOMER]
-							: isPartnerTarget
-								? breadCrumbItems[BreadCrumbItem.PARTNER]
-								: isProductTarget
-									? breadCrumbItems[BreadCrumbItem.PRODUCT]
-									: breadCrumbItems[BreadCrumbItem.SUPPLIER]
-					}
+					items={breadCrumbItems[breadcrumbKey]}
 				/>
-				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
-					isAdmin &&
-					canAddEntries && (
-						<HStack alignSelf={'flex-end'}>
+				<Flex sx={styles.titleRow}>
+					<Box minW="12rem" flex="1">
+						<Text sx={styles.titleDrawer}>{entry.name}</Text>
+						{metaItems.length > 0 && (
+							<HStack sx={styles.metaRow} spacing={0}>
+								{metaItems.map((item, index) => (
+									<HStack key={index} spacing="0.375rem">
+										{index > 0 && <Text sx={styles.metaDot}>·</Text>}
+										{typeof item === 'string' ? <Text>{item}</Text> : item}
+									</HStack>
+								))}
+							</HStack>
+						)}
+					</Box>
+					<HStack spacing="0.5rem" flexShrink={0} alignItems="center">
+						{canAddDailyAction && (
 							<Button
 								leftIcon={<AddSquareIcon />}
 								onClick={onAddDailyActionModalOpen}
@@ -348,120 +314,34 @@ const TopSection = ({
 							>
 								<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
 							</Button>
-						</HStack>
-					)}
-				<Flex sx={{ ...styles.titleWrapper, justifyContent: 'space-between' }}>
-					<Text sx={styles.titleDrawer}>{entry.name}</Text>
-					<CloseButton onClose={onClose} />
+						)}
+						<CloseButton onClose={onClose} />
+					</HStack>
 				</Flex>
-				<Text sx={styles.subHeaderText}>{entry.internalCode ?? ''}</Text>
 
-				<Spacer />
-
-				<Box sx={styles.divider} />
-
-				<Box id="ContentWrapper" sx={styles.contentWrapper}>
-					<GridItem sx={styles.gridItemFirst}>
-						<Flex sx={styles.itemWrapperWithTwoChildren}>
-							<Icon sx={styles.icon} as={AsStarIcon} />
-							<VStack sx={styles.brandsList}>
-								<Text sx={styles.itemText}>{entry.name}</Text>
-							</VStack>
-						</Flex>
-						<Flex sx={styles.itemWrapperLastChild}>
-							<Icon sx={styles.icon} as={AsTruckIcon} />
-							<CustomTooltip
-								styles={styles.itemTextHidden}
-								label={entry.internalCode ?? ''}
-								placement="bottom-start"
-							>
-								{entry.internalCode ?? ''}
-							</CustomTooltip>
-						</Flex>
-					</GridItem>
-
-					<GridItem sx={styles.gridItemLast}>
-						<Flex sx={styles.itemWrapperWithTwoChildren}>
-							<EditableField {...editableFieldProps} />
-						</Flex>
-						<Flex sx={styles.itemWrapperLastChildWithWidth}>
-							<Icon sx={styles.icon} as={AsClockIcon} />
-							<Text
-								variant="baseStyle"
-								sx={{ ...styles.itemText, textAlign: 'left' }}
-							>
-								2022-12-12
-								{/* {formatDateFromAndDateTo(
-									entry?.attributes?.expiryDate?.toString(),
-									entry?.attributes?.expiryDate?.toString(),
-								)} */}
-							</Text>
-						</Flex>
-					</GridItem>
-
-					<GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
-						<Flex
-							sx={{
-								...styles.feeSectionFlexWrapper,
-								justifyContent: 'center',
-								width: '100%',
-								flexDirection: 'column',
-							}}
-							// sx={styles.feeSectionFlexWrapper}
-						>
-							<Flex sx={styles.itemWrapperWithMargin}>
-								{customer?.customerId ? (
-									<PartyInvoiceSummaryCards customerId={customer.customerId} />
-								) : (
-									supplier?.supplierId && (
-										<PartyInvoiceSummaryCards
-											supplierId={supplier.supplierId}
-										/>
-									)
-								)}
-							</Flex>
-						</Flex>
-					</GridItem>
-
-					{/* <GridItem sx={{ ...styles.feeSectionGridItem, width: widthGridItem }}>
-						<Flex
-							sx={{
-								...styles.feeSectionFlexWrapper,
-								justifyContent: 'center',
-								width: '100%',
-								flexDirection: 'column',
-							}}
-						>
-							<Flex sx={styles.itemWrapperWithMargin}>
-								<BudgetOverview
-									targetType={targetType}
-									sumBuyingWeight={budgetOverview?.sumBuyingWeight}
-									sumSellingWeight={budgetOverview?.sumSellingWeight}
-									payments={budgetOverview?.payments}
-									purchase={budgetOverview?.purchase}
-									currency={budgetOverview?.currency}
-									balance={budgetOverview?.balance}
-									isFetching={isBudgetOverviewFetching}
-									labels={budgetOverviewLabels}
-								/>
-							</Flex>
-						</Flex>
-					</GridItem> */}
-
-					<GridItem
-						sx={{
-							...styles.feeSectionGridItem,
-							width: widthGridItem,
-						}}
-					>
-						<TicketStatus
-							targetType={targetType}
-							showReasonName={true}
-							reasonName={entry.internalCode ?? ''}
-							isMobileView={false}
-						/>
-					</GridItem>
-				</Box>
+				{showFacts && (
+					<>
+						<Box sx={styles.divider} />
+						{showInvoiceFacts && (
+							<PartyInvoiceSummaryCards
+								customerId={customer?.customerId}
+								supplierId={supplier?.supplierId}
+							/>
+						)}
+						{productFacts.length > 0 && (
+							<Box sx={styles.factsRow}>
+								{productFacts.map(fact => (
+									<Flex key={fact.label} sx={styles.factCell}>
+										<Text sx={styles.factLabel}>{fact.label}</Text>
+										<Text sx={styles.factValue} title={fact.value}>
+											{fact.value}
+										</Text>
+									</Flex>
+								))}
+							</Box>
+						)}
+					</>
+				)}
 			</Flex>
 			<Box sx={styles.divider} />
 

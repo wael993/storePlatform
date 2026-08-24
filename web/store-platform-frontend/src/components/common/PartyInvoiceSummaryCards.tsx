@@ -9,14 +9,17 @@ import { DollarSignIcon } from '../../icons/DollarSign'
 import { WalletIcon } from '../../icons/Wallet'
 import { PAGE_COLORS } from '../SellingInvoice/constants'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 
 const styles = {
 	container: {
-		flexDirection: 'column',
-		alignItems: 'flex-start',
-		gap: '0rem',
+		display: 'grid',
+		gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))',
+		gap: '1rem',
 		width: '100%',
 		fontSize: '0.9rem',
+		alignItems: 'start',
 	},
 	row: {
 		width: '100%',
@@ -59,12 +62,6 @@ const styles = {
 		flexShrink: '0',
 		alignSelf: 'center',
 	},
-	divider: {
-		width: '100%',
-		height: '0.2rem',
-		border: 'none',
-		backgroundColor: '#376288',
-	},
 } satisfies StylesObject
 
 interface SummaryRowProps {
@@ -104,7 +101,11 @@ const PartyInvoiceSummaryCards = ({
 }: PartyInvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { canSee } = useSee()
 	const isSupplier = Boolean(supplierId) && !customerId
+	const canSeeOutstanding = isSupplier
+		? canSee(SEE.suppliersTotalPayable)
+		: canSee(SEE.customersTotalReceivable)
 
 	const sellingQuery = useGetSellingInvoicesQuery(
 		{ customerId: customerId ?? '' },
@@ -138,16 +139,16 @@ const PartyInvoiceSummaryCards = ({
 
 	if (showSkeleton) {
 		return (
-			<Flex sx={styles.container} mb={3}>
-				{Array.from({ length: 3 }).map((_, index) => (
+			<Box sx={styles.container}>
+				{Array.from({ length: canSeeOutstanding ? 3 : 2 }).map((_, index) => (
 					<Skeleton
 						key={index}
-						height="1.75rem"
+						height="2.5rem"
 						width="100%"
 						borderRadius="md"
 					/>
 				))}
-			</Flex>
+			</Box>
 		)
 	}
 
@@ -158,8 +159,8 @@ const PartyInvoiceSummaryCards = ({
 		: t('components.invoiceSummary.totalReceivable')
 
 	return (
-		<Box width="100%" mb={1} opacity={isFetching ? 0.7 : 1}>
-			<Flex sx={styles.container}>
+		<Box width="100%" opacity={isFetching ? 0.7 : 1}>
+			<Box sx={styles.container}>
 				<SummaryRow
 					label={t('components.invoiceSummary.totalInvoiced')}
 					value={formatAmount(totals.totalInvoiced)}
@@ -167,7 +168,6 @@ const PartyInvoiceSummaryCards = ({
 					iconBg="#DBEAFE"
 					iconColor="#2563EB"
 				/>
-				<Box sx={styles.divider} />
 				<SummaryRow
 					label={t('components.invoiceSummary.totalPaid')}
 					value={formatAmount(totals.totalPaid)}
@@ -175,17 +175,19 @@ const PartyInvoiceSummaryCards = ({
 					iconBg="#DCFCE7"
 					iconColor="#15803D"
 				/>
-				<Box sx={styles.divider} />
-				<SummaryRow
-					label={outstandingLabel}
-					value={formatAmount(totals.outstanding)}
-					icon={<WalletIcon fill="none" />}
-					iconBg="#FEE2E2"
-					iconColor="#DC2626"
-					valueColor={totals.outstanding > 0 ? PAGE_COLORS.danger : 'gray.900'}
-				/>
-				<Box sx={styles.divider} />
-			</Flex>
+				{canSeeOutstanding && (
+					<SummaryRow
+						label={outstandingLabel}
+						value={formatAmount(totals.outstanding)}
+						icon={<WalletIcon fill="none" />}
+						iconBg="#FEE2E2"
+						iconColor="#DC2626"
+						valueColor={
+							totals.outstanding > 0 ? PAGE_COLORS.danger : 'gray.900'
+						}
+					/>
+				)}
+			</Box>
 		</Box>
 	)
 }

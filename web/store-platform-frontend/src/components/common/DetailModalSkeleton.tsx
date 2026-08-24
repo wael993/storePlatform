@@ -9,35 +9,25 @@ const skeletonStyles = {
 		gridColumn: '1 / span 12',
 		marginTop: '2rem',
 		width: '100%',
-	},
-	columnsFlexWrapper: {
 		flexDir: 'column',
-		width: '100%',
-		gap: '2.5rem',
+		gap: '1rem',
 	},
-	topSectionWrapper: {
-		justifyContent: { base: 'flex-start', md: 'space-between' },
+	titleRow: {
+		justifyContent: 'space-between',
+		alignItems: 'flex-start',
 		width: '100%',
-		alignItems: { base: 'flex-start', md: 'center' },
+		gap: '0.75rem',
+	},
+	titleBlock: {
+		flexDir: 'column',
+		gap: '0.5rem',
+		flex: 1,
+	},
+	factsRow: {
+		width: '100%',
 		flexDir: { base: 'column', md: 'row' },
-		gap: '1.5rem',
-	},
-	bottomSectionWrapper: {
-		width: '100%',
-		flexDir: { base: 'column', md: 'row' },
-		gap: '2.5rem',
-		marginTop: '4rem',
-	},
-	leftSideSectionWrapper: {
-		flexDir: 'column',
-		gap: '1.5rem',
-		width: { base: '100%', md: '50%' },
-	},
-	rightSideSectionWrapper: {
-		flexDir: 'column',
-		gap: '1.5rem',
-		width: { base: '100%', md: '50%' },
-		alignItems: { base: 'flex-start', md: 'center' },
+		gap: '1rem',
+		pt: '0.5rem',
 	},
 } satisfies StylesObject
 
@@ -50,74 +40,31 @@ const DetailModalSkeleton = ({
 	onClose,
 	targetType,
 }: DetailModalSkeletonProps) => {
-	const { isCustomerTarget, isSupplierTarget, isPartnerTarget } =
-		compareTargetType(targetType)
+	const { isPartnerTarget } = compareTargetType(targetType)
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 
 	return (
 		<Flex sx={skeletonStyles.wrapper}>
-			<Flex sx={skeletonStyles.columnsFlexWrapper}>
-				<Flex sx={skeletonStyles.topSectionWrapper}>
-					<Flex flexDir="column" gap="1.5rem">
-						{!isMobile && (
-							<Skeleton width={'15rem'} height="1rem" color={'red'} />
-						)}
-						<Skeleton width={isMobile ? '100vw' : '10rem'} height="1rem" />
-						<Skeleton width={isMobile ? '80vw' : '15rem'} height="1rem" />
-					</Flex>
-					<Flex gap="1rem" alignItems="center">
-						<Skeleton width={isMobile ? '25vw' : '5rem'} height="2rem" />
-						<Skeleton width={isMobile ? '25vw' : '5rem'} height="2rem" />
-						<Skeleton width={isMobile ? '10vw' : '2rem'} height="1rem" />
-						<Skeleton width={isMobile ? '10vw' : '2rem'} height="1rem" />
-						<CloseButton onClose={onClose} />
-					</Flex>
+			{!isMobile && <Skeleton width="15rem" height="1rem" />}
+			<Flex sx={skeletonStyles.titleRow}>
+				<Flex sx={skeletonStyles.titleBlock}>
+					<Skeleton width={isMobile ? '70%' : '16rem'} height="1.5rem" />
+					<Skeleton width={isMobile ? '50%' : '12rem'} height="0.875rem" />
 				</Flex>
-				<Flex gap="2rem" flexDir={{ base: 'column', md: 'row' }}>
-					{Array.from({ length: 5 }).map((_, index) => (
+				<CloseButton onClose={onClose} />
+			</Flex>
+			{!isPartnerTarget && (
+				<Flex sx={skeletonStyles.factsRow}>
+					{Array.from({ length: 3 }).map((_, index) => (
 						<Skeleton
 							key={index}
-							width={{ base: '100%', md: '20%' }}
-							height="3rem"
+							width={{ base: '100%', md: '10rem' }}
+							height="2.5rem"
+							flex="1"
 						/>
 					))}
 				</Flex>
-				{isCustomerTarget && (
-					<Flex gap="2rem" flexDir={{ base: 'column', md: 'row' }}>
-						{Array.from({ length: 5 }).map((_, index) => (
-							<Skeleton
-								key={index}
-								width={{ base: '100%', md: '20%' }}
-								height="3rem"
-							/>
-						))}
-					</Flex>
-				)}
-				{(isSupplierTarget || isPartnerTarget) && (
-					<Skeleton width="30%" height="10rem" />
-				)}
-
-				<Flex sx={skeletonStyles.bottomSectionWrapper}>
-					<Flex sx={skeletonStyles.leftSideSectionWrapper}>
-						{Array.from({ length: 5 }).map((_, index) => (
-							<Skeleton
-								key={index}
-								width={isMobile ? '100%' : '80%'}
-								height="1.5rem"
-							/>
-						))}
-					</Flex>
-					<Flex sx={skeletonStyles.rightSideSectionWrapper}>
-						{Array.from({ length: 5 }).map((_, index) => (
-							<Skeleton
-								key={index}
-								width={isMobile ? '100%' : '80%'}
-								height="1.5rem"
-							/>
-						))}
-					</Flex>
-				</Flex>
-			</Flex>
+			)}
 		</Flex>
 	)
 }
