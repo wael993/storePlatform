@@ -378,7 +378,13 @@ export default class ProductController {
 	private async getProductRelationLookups(
 		requestContext: RequestContext,
 	): Promise<ProductRelationLookups> {
-		const emptyNamed = { data: [] as Array<{ categoryId: string; supplierId: string; name: string }> }
+		const emptyNamed = {
+			data: [] as Array<{
+				categoryId: string
+				supplierId: string
+				name: string
+			}>,
+		}
 		const [
 			categoriesResponse,
 			suppliersResponse,
@@ -1957,11 +1963,7 @@ export default class ProductController {
 		},
 		session: mongoose.ClientSession,
 	): Promise<InventoryDocument> {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.INVENTORY,
-			'update',
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
 		const tenantContext = getTenantContext(requestContext)
 		const { productId, warehouseId, quantityDelta } = params
@@ -2024,11 +2026,7 @@ export default class ProductController {
 		},
 		session: mongoose.ClientSession,
 	): Promise<InventoryDocument> {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.INVENTORY,
-			'update',
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
 		const tenantContext = getTenantContext(requestContext)
 		const { productId, warehouseId, purchaseQuantity, purchaseUnitPrice } =
@@ -3160,7 +3158,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 
 		if (requestContext.userId && requestContext.userId !== userId) {
-			await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS, 'read')
+			await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS)
 		}
 
 		const user = (await withTenantScope(
@@ -3428,11 +3426,7 @@ export default class ProductController {
 		requestBody: Partial<Omit<ExpenseRequestBody, 'expenseId'>>,
 		requestContext: RequestContext,
 	) {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.EXPENSES,
-			'update',
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.EXPENSES)
 
 		const { tenantId } = getTenantContext(requestContext)
 		const updateData = {
@@ -3472,11 +3466,7 @@ export default class ProductController {
 		expenseId: string,
 		requestContext: RequestContext,
 	) {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.EXPENSES,
-			'delete',
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.EXPENSES)
 
 		const { tenantId } = getTenantContext(requestContext)
 		const deleted = await withTenantScope(
@@ -4187,12 +4177,7 @@ export default class ProductController {
 			return []
 		}
 
-		return this.getDocumentsSince(
-			requestContext,
-			collectionName,
-			model,
-			since,
-		)
+		return this.getDocumentsSince(requestContext, collectionName, model, since)
 	}
 
 	private getOfflineRetentionCutoff(): Date {
@@ -4281,9 +4266,7 @@ export default class ProductController {
 			run: () => Promise<T>,
 			empty: T,
 		) =>
-			canSeeResource(requestContext, resource).then(ok =>
-				ok ? run() : empty,
-			)
+			canSeeResource(requestContext, resource).then(ok => (ok ? run() : empty))
 
 		const productsResponse = await ifSee(
 			COLLECTION_NAMES.PRODUCTS,
@@ -4313,7 +4296,11 @@ export default class ProductController {
 			offlineInvoices,
 			offlineBuyingInvoices,
 		] = await Promise.all([
-			ifSee(COLLECTION_NAMES.INVENTORY, () => this.getInventory(requestContext), []),
+			ifSee(
+				COLLECTION_NAMES.INVENTORY,
+				() => this.getInventory(requestContext),
+				[],
+			),
 			ifSee(
 				COLLECTION_NAMES.CUSTOMERS,
 				() => this.requireCustomerController().getCustomers(requestContext),
@@ -4334,8 +4321,16 @@ export default class ProductController {
 				() => this.requireCategoryController().getCategories(requestContext),
 				emptyData,
 			),
-			ifSee(COLLECTION_NAMES.BRANDS, () => this.getBrands(requestContext), emptyData),
-			ifSee(COLLECTION_NAMES.SHELVES, () => this.getShelves(requestContext), emptyData),
+			ifSee(
+				COLLECTION_NAMES.BRANDS,
+				() => this.getBrands(requestContext),
+				emptyData,
+			),
+			ifSee(
+				COLLECTION_NAMES.SHELVES,
+				() => this.getShelves(requestContext),
+				emptyData,
+			),
 			ifSee(
 				COLLECTION_NAMES.WAREHOUSES,
 				() => this.getWarehouses(requestContext),
@@ -4346,7 +4341,11 @@ export default class ProductController {
 				() => this.getCurrencies(requestContext),
 				emptyData,
 			),
-			ifSee(COLLECTION_NAMES.UNITS, () => this.getUnits(requestContext), emptyData),
+			ifSee(
+				COLLECTION_NAMES.UNITS,
+				() => this.getUnits(requestContext),
+				emptyData,
+			),
 			ifSee(
 				COLLECTION_NAMES.EXPENSES,
 				() => this.getExpenses(requestContext),

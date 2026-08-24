@@ -24,7 +24,10 @@ import {
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
 import { SEE } from '../../shared/seeCatalog'
-import { ensureSeeIds, ensureInvoiceEditFieldSee } from '../../shared/seePermissions'
+import {
+	ensureSeeIds,
+	ensureInvoiceEditFieldSee,
+} from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
 import {
 	CustomerInvoiceSummary,
@@ -1187,12 +1190,14 @@ export default class SellingInvoiceController {
 		)
 
 		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
+
 		await ensureInvoiceEditFieldSee(
 			requestContext,
 			existingInvoice,
 			requestBody,
 			'selling',
 		)
+
 		const wasStockAffecting = Boolean(
 			existingInvoice &&
 			this.shouldAdjustInventoryForInvoice(existingInvoice.status),

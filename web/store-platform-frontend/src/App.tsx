@@ -129,11 +129,9 @@ const App = () => {
 									/>
 								</Route>
 							)}
-						{isOrdersEnabled &&
-							isTenantOrdersEnabled &&
-							canSee(SEE.orders) && (
-								<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
-							)}
+						{isOrdersEnabled && isTenantOrdersEnabled && canSee(SEE.orders) && (
+							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
+						)}
 
 						{isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily) && (
 							<Route
@@ -170,9 +168,7 @@ const App = () => {
 									/>
 									<Route
 										path={RoutePaths.SINGLE_CUSTOMER}
-										element={
-											<CustomerModal targetType={TargetType.CUSTOMER} />
-										}
+										element={<CustomerModal targetType={TargetType.CUSTOMER} />}
 									/>
 								</>
 							)}
@@ -194,9 +190,7 @@ const App = () => {
 									/>
 									<Route
 										path={RoutePaths.SINGLE_SUPPLIER}
-										element={
-											<SupplierModal targetType={TargetType.SUPPLIER} />
-										}
+										element={<SupplierModal targetType={TargetType.SUPPLIER} />}
 									/>
 								</>
 							)}

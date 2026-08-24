@@ -110,7 +110,8 @@ const RoleAccessPanel = () => {
 
 	const { data: catalogData, isLoading: isCatalogLoading } =
 		useGetRoleSeeCatalogQuery()
-	const { data: roleData, isFetching: isRoleFetching } = useGetRoleSeeQuery(role)
+	const { data: roleData, isFetching: isRoleFetching } =
+		useGetRoleSeeQuery(role)
 	const [putRoleSee, { isLoading: isSaving }] = usePutRoleSeeMutation()
 
 	const catalog = roleData?.catalog ?? catalogData?.catalog ?? []
@@ -188,8 +189,7 @@ const RoleAccessPanel = () => {
 			const ancestorsOn = ancestors.every(
 				ancestor => ancestor.locked || seeSet.has(ancestor.id),
 			)
-			const seeOn =
-				ancestorsOn && (Boolean(node.locked) || seeSet.has(node.id))
+			const seeOn = ancestorsOn && (Boolean(node.locked) || seeSet.has(node.id))
 			const addId = ADD_FOR[node.id]
 			const editId = EDIT_FOR[node.id]
 			const deleteId = DELETE_FOR[node.id]
@@ -291,9 +291,7 @@ const RoleAccessPanel = () => {
 							<Th textAlign="center">{t('users.roleAccess.columns.see')}</Th>
 							<Th textAlign="center">{t('users.roleAccess.columns.add')}</Th>
 							<Th textAlign="center">{t('users.roleAccess.columns.edit')}</Th>
-							<Th textAlign="center">
-								{t('users.roleAccess.columns.delete')}
-							</Th>
+							<Th textAlign="center">{t('users.roleAccess.columns.delete')}</Th>
 						</Tr>
 					</Thead>
 					<Tbody>{renderRows(catalog)}</Tbody>

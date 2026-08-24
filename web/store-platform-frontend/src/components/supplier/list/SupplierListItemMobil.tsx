@@ -111,149 +111,153 @@ const SupplierListItemMobil = ({
 
 	return (
 		<>
-		<Accordion allowToggle index={isOpen ? [0] : []} onChange={onToggle}>
-			<AccordionItem sx={styles.accordionItem}>
-				<Box display="flex" flexDirection="row">
-					<AccordionButton sx={styles.accordionButton}>
-						<Flex alignItems="center" gap="6" flexGrow={1}>
-							{canDelete ? (
-							<Box
-								sx={{
-									...styles.listItemGridItem,
-									width: '1.5rem',
-									flex: '0 0 auto',
-								}}
-							>
-								<Skeleton isLoaded={!isLoading}>
-									<Checkbox
-										onChange={event => {
-											onSelect(supplier.supplierId)
-											event.stopPropagation()
+			<Accordion allowToggle index={isOpen ? [0] : []} onChange={onToggle}>
+				<AccordionItem sx={styles.accordionItem}>
+					<Box display="flex" flexDirection="row">
+						<AccordionButton sx={styles.accordionButton}>
+							<Flex alignItems="center" gap="6" flexGrow={1}>
+								{canDelete ? (
+									<Box
+										sx={{
+											...styles.listItemGridItem,
+											width: '1.5rem',
+											flex: '0 0 auto',
 										}}
-										isChecked={selectedSuppliers.includes(supplier.supplierId)}
-										zIndex={2}
-									/>
-								</Skeleton>
-							</Box>
+									>
+										<Skeleton isLoaded={!isLoading}>
+											<Checkbox
+												onChange={event => {
+													onSelect(supplier.supplierId)
+													event.stopPropagation()
+												}}
+												isChecked={selectedSuppliers.includes(
+													supplier.supplierId,
+												)}
+												zIndex={2}
+											/>
+										</Skeleton>
+									</Box>
+								) : null}
+
+								<Box
+									sx={{ ...styles.listItemGridItem, flex: 1 }}
+									onClick={onNavigate}
+								>
+									<Text sx={styles.titleText}>{t('supplier.list.name')}</Text>
+									<Skeleton isLoaded={!isLoading}>
+										<Text sx={styles.valueText}>
+											{withNoValueFallback(supplier.name)}
+										</Text>
+									</Skeleton>
+								</Box>
+
+								<Box
+									sx={{ ...styles.listItemGridItem, flex: 1 }}
+									onClick={onNavigate}
+								>
+									<Text sx={styles.titleText}>
+										{t('supplier.list.internalCode')}
+									</Text>
+									<Skeleton isLoaded={!isLoading}>
+										<Text sx={styles.valueText}>
+											{withNoValueFallback(supplier.internalCode)}
+										</Text>
+									</Skeleton>
+								</Box>
+							</Flex>
+							<AccordionIcon minWidth="3rem" />
+						</AccordionButton>
+					</Box>
+
+					<AccordionPanel
+						overflow="hidden"
+						paddingLeft={isArabic ? 0 : 16}
+						paddingRight={isArabic ? 16 : 0}
+					>
+						<Grid templateColumns="repeat(2, 1fr)" gap="6">
+							{canSee(SEE.suppliersTotalPayable) ? (
+								<GridItem sx={styles.listItemGridItem}>
+									<Text sx={styles.titleText}>
+										{t('components.invoiceSummary.totalPayable')}
+									</Text>
+									<Skeleton isLoaded={!isLoading}>
+										<Text
+											sx={{
+												...styles.valueText,
+												color:
+													totalPayable > 0 ? PAGE_COLORS.danger : undefined,
+											}}
+										>
+											{formatAmount(totalPayable)}
+										</Text>
+									</Skeleton>
+								</GridItem>
 							) : null}
-
-							<Box
-								sx={{ ...styles.listItemGridItem, flex: 1 }}
-								onClick={onNavigate}
-							>
-								<Text sx={styles.titleText}>{t('supplier.list.name')}</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(supplier.name)}
-									</Text>
-								</Skeleton>
-							</Box>
-
-							<Box
-								sx={{ ...styles.listItemGridItem, flex: 1 }}
-								onClick={onNavigate}
-							>
-								<Text sx={styles.titleText}>
-									{t('supplier.list.internalCode')}
-								</Text>
-								<Skeleton isLoaded={!isLoading}>
-									<Text sx={styles.valueText}>
-										{withNoValueFallback(supplier.internalCode)}
-									</Text>
-								</Skeleton>
-							</Box>
-						</Flex>
-						<AccordionIcon minWidth="3rem" />
-					</AccordionButton>
-				</Box>
-
-				<AccordionPanel
-					overflow="hidden"
-					paddingLeft={isArabic ? 0 : 16}
-					paddingRight={isArabic ? 16 : 0}
-				>
-					<Grid templateColumns="repeat(2, 1fr)" gap="6">
-						{canSee(SEE.suppliersTotalPayable) ? (
-						<GridItem sx={styles.listItemGridItem}>
-							<Text sx={styles.titleText}>
-								{t('components.invoiceSummary.totalPayable')}
-							</Text>
+						</Grid>
+						<Flex
+							sx={{
+								...styles.actionsContainer,
+								justifyContent: isArabic ? 'flex-start' : 'flex-end',
+							}}
+						>
 							<Skeleton isLoaded={!isLoading}>
-								<Text
-									sx={{
-										...styles.valueText,
-										color: totalPayable > 0 ? PAGE_COLORS.danger : undefined,
+								<NotificationCircle
+									productId={supplier.supplierId}
+									showIfNoChanges={false}
+									customStyles={{
+										animationCircle: { width: '1.5rem', height: '1.5rem' },
 									}}
 								>
-									{formatAmount(totalPayable)}
-								</Text>
+									<StateCircle
+										stateColor="#929494"
+										stateTitle="inactive"
+										customStyles={{
+											colorCircle: { width: '0.875rem', height: '0.875rem' },
+										}}
+									/>
+								</NotificationCircle>
 							</Skeleton>
-						</GridItem>
-						) : null}
-					</Grid>
-					<Flex
-						sx={{
-							...styles.actionsContainer,
-							justifyContent: isArabic ? 'flex-start' : 'flex-end',
-						}}
-					>
-						<Skeleton isLoaded={!isLoading}>
-							<NotificationCircle
-								productId={supplier.supplierId}
-								showIfNoChanges={false}
-								customStyles={{
-									animationCircle: { width: '1.5rem', height: '1.5rem' },
-								}}
-							>
-								<StateCircle
-									stateColor="#929494"
-									stateTitle="inactive"
-									customStyles={{
-										colorCircle: { width: '0.875rem', height: '0.875rem' },
-									}}
-								/>
-							</NotificationCircle>
-						</Skeleton>
 
-						<Skeleton isLoaded={!isLoading}>
-							{canDelete ? (
-								<OptionsPopover
-									onDelete={onDeleteOpen}
-									deleteLabel={t('components.supplier.deleteSupplier')}
-								/>
-							) : null}
-						</Skeleton>
-					</Flex>
-				</AccordionPanel>
-			</AccordionItem>
-		</Accordion>
-		<ConfirmationDialog
-			header={t('components.supplier.deleteSupplier')}
-			body={t('components.supplier.deleteSupplierConfirm')}
-			isOpen={isDeleteOpen}
-			onClose={onDeleteClose}
-			onConfirm={async () => {
-				try {
-					await deleteSupplier(supplier.supplierId).unwrap()
-					onDeleteClose()
-					showToast({
-						status: 'success',
-						description: t('components.supplier.deleteSupplierSuccess'),
-					})
-				} catch (error) {
-					const err = error as { data?: { message?: string } }
+							<Skeleton isLoaded={!isLoading}>
+								{canDelete ? (
+									<OptionsPopover
+										onDelete={onDeleteOpen}
+										deleteLabel={t('components.supplier.deleteSupplier')}
+									/>
+								) : null}
+							</Skeleton>
+						</Flex>
+					</AccordionPanel>
+				</AccordionItem>
+			</Accordion>
+			<ConfirmationDialog
+				header={t('components.supplier.deleteSupplier')}
+				body={t('components.supplier.deleteSupplierConfirm')}
+				isOpen={isDeleteOpen}
+				onClose={onDeleteClose}
+				onConfirm={async () => {
+					try {
+						await deleteSupplier(supplier.supplierId).unwrap()
+						onDeleteClose()
+						showToast({
+							status: 'success',
+							description: t('components.supplier.deleteSupplierSuccess'),
+						})
+					} catch (error) {
+						const err = error as { data?: { message?: string } }
 
-					showToast({
-						status: 'error',
-						description:
-							err.data?.message || t('components.supplier.deleteSupplierError'),
-					})
-				}
-			}}
-			cancelButtonText={t('common.cancel')}
-			confirmationButtonText={t('common.delete')}
-			isConfirmationButtonLoading={isDeleting}
-		/>
+						showToast({
+							status: 'error',
+							description:
+								err.data?.message ||
+								t('components.supplier.deleteSupplierError'),
+						})
+					}
+				}}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeleting}
+			/>
 		</>
 	)
 }

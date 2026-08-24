@@ -1,4 +1,11 @@
-import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import {
+	Td,
+	Checkbox,
+	Flex,
+	Text,
+	Skeleton,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useDeleteCategoryMutation } from '../../../api/apiStore'

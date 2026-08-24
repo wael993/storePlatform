@@ -82,10 +82,22 @@ export const createApp = () => {
 	productController.setBuyingInvoiceController(buyingInvoiceController)
 
 	const employeeController = new EmployeeController()
-	const employeeRoutes = new EmployeeRoutes(employeeController, productController)
-	const customerRoutes = new CustomerRoutes(customerController, productController)
-	const supplierRoutes = new SupplierRoutes(supplierController, productController)
-	const categoryRoutes = new CategoryRoutes(categoryController, productController)
+	const employeeRoutes = new EmployeeRoutes(
+		employeeController,
+		productController,
+	)
+	const customerRoutes = new CustomerRoutes(
+		customerController,
+		productController,
+	)
+	const supplierRoutes = new SupplierRoutes(
+		supplierController,
+		productController,
+	)
+	const categoryRoutes = new CategoryRoutes(
+		categoryController,
+		productController,
+	)
 	const partnerRoutes = new PartnerRoutes(partnerController, productController)
 	const settingRoutes = new SettingRoutes(settingController, productController)
 	const tenantRoutes = new TenantRoutes(tenantController, productController)

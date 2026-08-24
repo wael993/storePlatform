@@ -232,11 +232,11 @@ const ProductTableMobil = ({
 								value={product.brandName}
 							/>
 							{canSeeCategories && (
-							<MobileField
-								isLoading={isLoading}
-								label={t('common.category')}
-								value={product.categoryName}
-							/>
+								<MobileField
+									isLoading={isLoading}
+									label={t('common.category')}
+									value={product.categoryName}
+								/>
 							)}
 							{seeSupplier && (
 								<MobileField
@@ -405,9 +405,7 @@ const ProductTableMobil = ({
 								</NotificationCircle>
 							</Skeleton>
 							<Skeleton isLoaded={!isLoading}>
-								{(canEditProduct ||
-									canPrintBarcode ||
-									canDeleteProduct) && (
+								{(canEditProduct || canPrintBarcode || canDeleteProduct) && (
 									<OptionsPopover
 										onEdit={
 											canEditProduct ? () => onEditProduct(product) : undefined

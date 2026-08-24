@@ -739,9 +739,7 @@ const SellingInvoicesPage = () => {
 				customers={invoiceCustomers}
 				onClose={handleDetailClose}
 				onSaved={handleDetailInvoiceSaved}
-				onRequestEdit={
-					canEditSelling ? () => setDetailMode('edit') : undefined
-				}
+				onRequestEdit={canEditSelling ? () => setDetailMode('edit') : undefined}
 			/>
 			<BuyingInvoiceDetailModal
 				isOpen={isBuyingDetailOpen}
@@ -750,9 +748,7 @@ const SellingInvoicesPage = () => {
 				suppliers={invoiceSuppliers}
 				onClose={handleBuyingDetailClose}
 				onSaved={handleDetailInvoiceSaved}
-				onRequestEdit={
-					canEditBuying ? () => setDetailMode('edit') : undefined
-				}
+				onRequestEdit={canEditBuying ? () => setDetailMode('edit') : undefined}
 			/>
 			<ConfirmationDialog
 				isOpen={isDeleteOpen}

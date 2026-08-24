@@ -144,10 +144,7 @@ const hydrateDigestProducts = async (
 
 		return [
 			stripProductSeeFields(
-				productsMapper.mapProduct(
-					product,
-					inventoryByProductId.get(productId),
-				),
+				productsMapper.mapProduct(product, inventoryByProductId.get(productId)),
 				new Set((requestContext.see || []) as SeeId[]),
 			),
 		]

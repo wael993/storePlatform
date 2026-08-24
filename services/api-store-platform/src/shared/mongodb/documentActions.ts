@@ -87,7 +87,7 @@ export const getDocuments = async <T>(
 	model: EntityModel,
 	sort: Sort,
 ): Promise<T[]> => {
-	await ensureTenantAccess(requestContext, collectionName, 'read')
+	await ensureTenantAccess(requestContext, collectionName)
 	const tenantContext = getTenantContext(requestContext)
 
 	return withTenantScope(model.find(), tenantContext.tenantId)
@@ -103,7 +103,7 @@ export const getDocumentByField = async <T>(
 	{ fieldName, fieldValue }: Record<string, string>,
 	session?: ClientSession,
 ): Promise<T | null> => {
-	await ensureTenantAccess(requestContext, resource, 'read')
+	await ensureTenantAccess(requestContext, resource)
 	const tenantContext = getTenantContext(requestContext)
 
 	const query = withTenantScope(
@@ -127,7 +127,7 @@ export const createDocument = async (
 		payload,
 	})
 
-	await ensureTenantAccess(requestContext, resource, 'create')
+	await ensureTenantAccess(requestContext, resource)
 
 	const tenantContext = getTenantContext(requestContext)
 
@@ -171,7 +171,7 @@ export const updateDocument = async (
 	payload: Record<string, unknown>,
 	session?: ClientSession,
 ) => {
-	await ensureTenantAccess(requestContext, resource, 'update')
+	await ensureTenantAccess(requestContext, resource)
 	const tenantContext = getTenantContext(requestContext)
 
 	const idField = RESOURCE_ID_FIELD[resource]
@@ -211,7 +211,7 @@ export const deleteDocument = async (
 	model: EntityModel,
 	id: string,
 ) => {
-	await ensureTenantAccess(requestContext, resource, 'delete')
+	await ensureTenantAccess(requestContext, resource)
 	const { tenantId } = getTenantContext(requestContext)
 
 	const idField = RESOURCE_ID_FIELD[resource]
@@ -243,7 +243,7 @@ export const deleteDocuments = async (
 		fieldValues: string[]
 	},
 ) => {
-	await ensureTenantAccess(requestContext, resource, 'delete')
+	await ensureTenantAccess(requestContext, resource)
 	const { tenantId } = getTenantContext(requestContext)
 
 	const valuesToDelete = Array.from(new Set(fieldValues))

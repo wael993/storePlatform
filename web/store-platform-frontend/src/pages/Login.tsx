@@ -23,7 +23,6 @@ import { useDispatch } from 'react-redux'
 import { setCredentials } from '../store/user/reducer'
 import { UserRole } from '../shared/globalEnums'
 import { RoutePaths } from '../shared/routes'
-import { SEE } from '../shared/seeFlags'
 import { tenantHomePath } from '../shared/utils'
 import { useTranslation } from 'react-i18next'
 

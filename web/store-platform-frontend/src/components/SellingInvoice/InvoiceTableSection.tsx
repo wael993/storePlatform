@@ -670,44 +670,46 @@ const InvoiceTableSection = ({
 																}}
 															/>
 															{canEditEntry ? (
-															<IconButton
-																size="xs"
-																variant="ghost"
-																aria-label={t(
-																	'components.sellingInvoices.actions.edit',
-																)}
-																icon={
-																	<Icon
-																		as={AsEditIcon}
-																		color={PAGE_COLORS.primary}
-																		boxSize={5}
-																	/>
-																}
-																color={PAGE_COLORS.muted}
-																onClick={() => {
-																	const entry = findDailyActionById(row.id)
-																	if (entry) onEditEntry?.(entry)
-																}}
-															/>
+																<IconButton
+																	size="xs"
+																	variant="ghost"
+																	aria-label={t(
+																		'components.sellingInvoices.actions.edit',
+																	)}
+																	icon={
+																		<Icon
+																			as={AsEditIcon}
+																			color={PAGE_COLORS.primary}
+																			boxSize={5}
+																		/>
+																	}
+																	color={PAGE_COLORS.muted}
+																	onClick={() => {
+																		const entry = findDailyActionById(row.id)
+																		if (entry) onEditEntry?.(entry)
+																	}}
+																/>
 															) : null}
 															{canDeleteEntry ? (
-															<IconButton
-																size="xs"
-																variant="ghost"
-																aria-label={t(
-																	'components.sellingInvoices.actions.delete',
-																)}
-																icon={
-																	<Icon
-																		as={AsTrashIcon}
-																		fill="none"
-																		color={PAGE_COLORS.danger}
-																		boxSize={5}
-																	/>
-																}
-																color={PAGE_COLORS.muted}
-																onClick={() => handleDeleteEntryRequest(row.id)}
-															/>
+																<IconButton
+																	size="xs"
+																	variant="ghost"
+																	aria-label={t(
+																		'components.sellingInvoices.actions.delete',
+																	)}
+																	icon={
+																		<Icon
+																			as={AsTrashIcon}
+																			fill="none"
+																			color={PAGE_COLORS.danger}
+																			boxSize={5}
+																		/>
+																	}
+																	color={PAGE_COLORS.muted}
+																	onClick={() =>
+																		handleDeleteEntryRequest(row.id)
+																	}
+																/>
 															) : null}
 															<Menu>
 																<MenuButton
@@ -738,28 +740,30 @@ const InvoiceTableSection = ({
 																		)}
 																	</MenuItem>
 																	{canEditEntry ? (
-																	<MenuItem
-																		onClick={() => {
-																			const entry = findDailyActionById(row.id)
-																			if (entry) onEditEntry?.(entry)
-																		}}
-																	>
-																		{t(
-																			'components.sellingInvoices.actions.edit',
-																		)}
-																	</MenuItem>
+																		<MenuItem
+																			onClick={() => {
+																				const entry = findDailyActionById(
+																					row.id,
+																				)
+																				if (entry) onEditEntry?.(entry)
+																			}}
+																		>
+																			{t(
+																				'components.sellingInvoices.actions.edit',
+																			)}
+																		</MenuItem>
 																	) : null}
 																	{canDeleteEntry ? (
-																	<MenuItem
-																		onClick={() =>
-																			handleDeleteEntryRequest(row.id)
-																		}
-																		color={PAGE_COLORS.danger}
-																	>
-																		{t(
-																			'components.sellingInvoices.actions.delete',
-																		)}
-																	</MenuItem>
+																		<MenuItem
+																			onClick={() =>
+																				handleDeleteEntryRequest(row.id)
+																			}
+																			color={PAGE_COLORS.danger}
+																		>
+																			{t(
+																				'components.sellingInvoices.actions.delete',
+																			)}
+																		</MenuItem>
 																	) : null}
 																</MenuList>
 															</Menu>
@@ -905,45 +909,45 @@ const InvoiceTableSection = ({
 															}
 														/>
 														{canEditInvoice ? (
-														<IconButton
-															size="xs"
-															variant="ghost"
-															aria-label={t(
-																'components.sellingInvoices.actions.edit',
-															)}
-															icon={
-																<Icon
-																	as={AsEditIcon}
-																	color={PAGE_COLORS.primary}
-																	boxSize={5}
-																/>
-															}
-															color={PAGE_COLORS.muted}
-															onClick={() =>
-																onEditInvoice(invoice.id, invoice.kind)
-															}
-														/>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.edit',
+																)}
+																icon={
+																	<Icon
+																		as={AsEditIcon}
+																		color={PAGE_COLORS.primary}
+																		boxSize={5}
+																	/>
+																}
+																color={PAGE_COLORS.muted}
+																onClick={() =>
+																	onEditInvoice(invoice.id, invoice.kind)
+																}
+															/>
 														) : null}
 														{canDeleteInvoice ? (
-														<IconButton
-															size="xs"
-															variant="ghost"
-															aria-label={t(
-																'components.sellingInvoices.actions.delete',
-															)}
-															icon={
-																<Icon
-																	as={AsTrashIcon}
-																	fill="none"
-																	color={PAGE_COLORS.danger}
-																	boxSize={5}
-																/>
-															}
-															color={PAGE_COLORS.muted}
-															onClick={() =>
-																onDeleteInvoice(invoice.id, invoice.kind)
-															}
-														/>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.delete',
+																)}
+																icon={
+																	<Icon
+																		as={AsTrashIcon}
+																		fill="none"
+																		color={PAGE_COLORS.danger}
+																		boxSize={5}
+																	/>
+																}
+																color={PAGE_COLORS.muted}
+																onClick={() =>
+																	onDeleteInvoice(invoice.id, invoice.kind)
+																}
+															/>
 														) : null}
 														<IconButton
 															size="xs"
@@ -1009,25 +1013,27 @@ const InvoiceTableSection = ({
 																	{t('components.sellingInvoices.actions.view')}
 																</MenuItem>
 																{canEditInvoice ? (
-																<MenuItem
-																	onClick={() =>
-																		onEditInvoice(invoice.id, invoice.kind)
-																	}
-																>
-																	{t('components.sellingInvoices.actions.edit')}
-																</MenuItem>
+																	<MenuItem
+																		onClick={() =>
+																			onEditInvoice(invoice.id, invoice.kind)
+																		}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.edit',
+																		)}
+																	</MenuItem>
 																) : null}
 																{canDeleteInvoice ? (
-																<MenuItem
-																	onClick={() =>
-																		onDeleteInvoice(invoice.id, invoice.kind)
-																	}
-																	color={PAGE_COLORS.danger}
-																>
-																	{t(
-																		'components.sellingInvoices.actions.delete',
-																	)}
-																</MenuItem>
+																	<MenuItem
+																		onClick={() =>
+																			onDeleteInvoice(invoice.id, invoice.kind)
+																		}
+																		color={PAGE_COLORS.danger}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.delete',
+																		)}
+																	</MenuItem>
 																) : null}
 																<MenuItem
 																	isDisabled={isExporting}

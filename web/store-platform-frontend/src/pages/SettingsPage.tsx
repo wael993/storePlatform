@@ -511,9 +511,7 @@ const SettingsPage = () => {
 										primaryCurrency={primaryCurrency}
 										secondaryCurrencies={secondaryCurrencies}
 										defaultInvoiceCurrencyId={defaultInvoiceCurrencyId}
-										onDefaultInvoiceCurrencyChange={
-											setDefaultInvoiceCurrencyId
-										}
+										onDefaultInvoiceCurrencyChange={setDefaultInvoiceCurrencyId}
 										onPrimaryChange={handlePrimaryChange}
 										onSecondaryChange={handleSecondaryChange}
 										onAddSecondary={handleAddSecondary}
@@ -531,9 +529,7 @@ const SettingsPage = () => {
 									<InvoiceSettings
 										noMergeInvoiceLines={noMergeInvoiceLines}
 										brand={invoiceBrand}
-										displayNameFallback={
-											user?.tenantName?.trim() || undefined
-										}
+										displayNameFallback={user?.tenantName?.trim() || undefined}
 										onNoMergeInvoiceLinesChange={
 											handleNoMergeInvoiceLinesChange
 										}

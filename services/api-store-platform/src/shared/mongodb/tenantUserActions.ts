@@ -12,13 +12,14 @@ import {
 	BusinessLogicError,
 } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
+import { COLLECTION_NAMES } from '../general'
 
 export const updateTenantUser = async (
 	userId: string,
 	requestBody: UpdateTenantUserRequestBody,
 	requestContext: RequestContext,
 ): Promise<IUser> => {
-	await ensureTenantAccess(requestContext, 'users', 'update')
+	await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS)
 	const tenantContext = getTenantContext(requestContext)
 
 	if (Object.prototype.hasOwnProperty.call(requestBody, 'tenantId')) {
@@ -49,6 +50,7 @@ export const updateTenantUser = async (
 				'Only owner can assign the owner role.',
 			)
 		}
+
 		updates.role = requestBody.role
 	}
 
@@ -93,7 +95,7 @@ export const deleteTenantUser = async (
 	userId: string,
 	requestContext: RequestContext,
 ): Promise<void> => {
-	await ensureTenantAccess(requestContext, 'users', 'delete')
+	await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS)
 	const tenantContext = getTenantContext(requestContext)
 
 	const targetUser = (await withTenantScope(

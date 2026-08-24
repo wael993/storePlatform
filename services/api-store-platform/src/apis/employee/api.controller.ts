@@ -1,8 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import {
-	BusinessLogicError,
-} from '../../middleware/errorHandler'
+import { BusinessLogicError } from '../../middleware/errorHandler'
 import { Currency } from '../../models/Currency'
 import {
 	assertHourlySchedule,
@@ -55,6 +53,7 @@ const actor = (requestContext: RequestContext) => ({
 export default class EmployeeController {
 	private async requireAccess(requestContext: RequestContext): Promise<string> {
 		await ensureSeeIds(requestContext, [SEE.employees])
+
 		return getTenantContext(requestContext).tenantId
 	}
 
@@ -127,6 +126,7 @@ export default class EmployeeController {
 		body: Record<string, unknown>,
 	): Promise<{ employeeId: string }> {
 		const tenantId = await this.requireAccess(requestContext)
+
 		await ensureSeeIds(requestContext, [SEE.employeesAdd])
 		const name = parseOrThrow(() => parseRequiredName(body.name))
 		const employmentType = parseOrThrow(() =>

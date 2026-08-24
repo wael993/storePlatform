@@ -41,12 +41,12 @@ const CategoryListMobil = ({
 	return (
 		<>
 			{canDelete ? (
-			<Flex sx={styles.checkboxWrapper}>
-				<Checkbox
-					isChecked={areAllItemsSelected}
-					onChange={onAllItemsSelectedChange}
-				/>
-			</Flex>
+				<Flex sx={styles.checkboxWrapper}>
+					<Checkbox
+						isChecked={areAllItemsSelected}
+						onChange={onAllItemsSelectedChange}
+					/>
+				</Flex>
 			) : null}
 
 			<Virtuoso

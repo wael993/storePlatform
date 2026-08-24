@@ -556,6 +556,7 @@ export default class TenantRoutes {
 
 		try {
 			const resp = await this.tenantController.getRoleSeeCatalog(requestContext)
+
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
@@ -575,6 +576,7 @@ export default class TenantRoutes {
 				request.params.role,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
@@ -595,6 +597,7 @@ export default class TenantRoutes {
 				request.body?.see,
 				requestContext,
 			)
+
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)

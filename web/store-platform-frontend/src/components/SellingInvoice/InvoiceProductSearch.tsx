@@ -298,23 +298,23 @@ const InvoiceProductSearch = ({
 
 				<Flex gap={2}>
 					{canAddProduct ? (
-					<Button
-						variant="outline"
-						leftIcon={
-							<Icon
-								as={AsCirclePlusIcon}
-								fill="1E1E1E"
-								color={PAGE_COLORS.primary}
-								boxSize={5}
-							/>
-						}
-						borderRadius="lg"
-						borderColor={PAGE_COLORS.border}
-						fontWeight={600}
-						onClick={() => setIsAddProductOpen(true)}
-					>
-						{t('components.sellingInvoices.drawer.addProduct')}
-					</Button>
+						<Button
+							variant="outline"
+							leftIcon={
+								<Icon
+									as={AsCirclePlusIcon}
+									fill="1E1E1E"
+									color={PAGE_COLORS.primary}
+									boxSize={5}
+								/>
+							}
+							borderRadius="lg"
+							borderColor={PAGE_COLORS.border}
+							fontWeight={600}
+							onClick={() => setIsAddProductOpen(true)}
+						>
+							{t('components.sellingInvoices.drawer.addProduct')}
+						</Button>
 					) : null}
 					<Button
 						variant="outline"

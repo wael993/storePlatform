@@ -1,4 +1,11 @@
-import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import {
+	Td,
+	Checkbox,
+	Flex,
+	Text,
+	Skeleton,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useDeleteSupplierMutation } from '../../../api/apiStore'
@@ -175,22 +182,22 @@ const SupplierListItem = ({
 			</Td>
 
 			{canSee(SEE.suppliersTotalPayable) ? (
-			<Td sx={styles.tableRow}>
-				<Flex sx={styles.cellContentWrapper}>
-					<Skeleton isLoaded={!isLoading}>
-						<Text
-							sx={{
-								...styles.text,
-								fontWeight: totalPayable > 0 ? 600 : 500,
-								color:
-									totalPayable > 0 ? PAGE_COLORS.danger : styles.text.color,
-							}}
-						>
-							{formatAmount(totalPayable)}
-						</Text>
-					</Skeleton>
-				</Flex>
-			</Td>
+				<Td sx={styles.tableRow}>
+					<Flex sx={styles.cellContentWrapper}>
+						<Skeleton isLoaded={!isLoading}>
+							<Text
+								sx={{
+									...styles.text,
+									fontWeight: totalPayable > 0 ? 600 : 500,
+									color:
+										totalPayable > 0 ? PAGE_COLORS.danger : styles.text.color,
+								}}
+							>
+								{formatAmount(totalPayable)}
+							</Text>
+						</Skeleton>
+					</Flex>
+				</Td>
 			) : null}
 
 			<Td sx={{ ...styles.tableRow, ...styles.rightStickyContainer, right: 1 }}>

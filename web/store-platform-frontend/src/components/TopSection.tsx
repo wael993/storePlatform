@@ -339,17 +339,17 @@ const TopSection = ({
 				{isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
 					isAdmin &&
 					canAddEntries && (
-					<HStack alignSelf={'flex-end'}>
-						<Button
-							leftIcon={<AddSquareIcon />}
-							onClick={onAddDailyActionModalOpen}
-							sx={styles.addButton}
-							variant="ghost"
-						>
-							<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
-						</Button>
-					</HStack>
-				)}
+						<HStack alignSelf={'flex-end'}>
+							<Button
+								leftIcon={<AddSquareIcon />}
+								onClick={onAddDailyActionModalOpen}
+								sx={styles.addButton}
+								variant="ghost"
+							>
+								<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
+							</Button>
+						</HStack>
+					)}
 				<Flex sx={{ ...styles.titleWrapper, justifyContent: 'space-between' }}>
 					<Text sx={styles.titleDrawer}>{entry.name}</Text>
 					<CloseButton onClose={onClose} />

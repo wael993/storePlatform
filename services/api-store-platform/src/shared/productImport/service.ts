@@ -206,7 +206,7 @@ const assertImportAllowed = async (
 	options?: { ignoreExistingProducts?: boolean },
 ) => {
 	assertOwnerOrAdmin(requestContext)
-	await ensureTenantAccess(requestContext, COLLECTION_NAMES.PRODUCTS, 'create')
+	await ensureTenantAccess(requestContext, COLLECTION_NAMES.PRODUCTS)
 	const { tenantId } = getTenantContext(requestContext)
 	const tenant = await loadTenant(tenantId)
 	const status = tenantImportStatus(tenant)
@@ -526,7 +526,7 @@ export const commitProductImport = async (
 		ignoreExistingProducts: true,
 	})
 
-	await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY, 'create')
+	await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
 	if (typeof sessionId !== 'string' || !sessionId.trim()) {
 		throw new BusinessLogicError(

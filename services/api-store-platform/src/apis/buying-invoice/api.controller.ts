@@ -24,7 +24,10 @@ import {
 } from '../../shared/globalEnums'
 import { type InvoiceNumberPrefix } from '../../shared/invoiceNumbering'
 import { SEE } from '../../shared/seeCatalog'
-import { ensureSeeIds, ensureInvoiceEditFieldSee } from '../../shared/seePermissions'
+import {
+	ensureSeeIds,
+	ensureInvoiceEditFieldSee,
+} from '../../shared/seePermissions'
 import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	decodeInvoiceUpload,
@@ -781,12 +784,14 @@ export default class BuyingInvoiceController {
 			buyingInvoiceId,
 			requestContext,
 		)
+
 		await ensureInvoiceEditFieldSee(
 			requestContext,
 			existingInvoice,
 			requestBody,
 			'buying',
 		)
+
 		const wasStockAffecting = Boolean(
 			existingInvoice &&
 			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
@@ -926,7 +931,6 @@ export default class BuyingInvoiceController {
 		await ensureTenantAccess(
 			requestContext,
 			COLLECTION_NAMES.BUYING_INVOICES,
-			'create',
 		)
 
 		const usage = await getInvoiceAiUsage(
@@ -947,7 +951,6 @@ export default class BuyingInvoiceController {
 		await ensureTenantAccess(
 			requestContext,
 			COLLECTION_NAMES.BUYING_INVOICES,
-			'create',
 		)
 
 		const tenantId = getTenantContext(requestContext).tenantId
@@ -1005,7 +1008,6 @@ export default class BuyingInvoiceController {
 		await ensureTenantAccess(
 			requestContext,
 			COLLECTION_NAMES.BUYING_INVOICES,
-			'create',
 		)
 
 		await ensureTenantAccess(
@@ -1013,7 +1015,6 @@ export default class BuyingInvoiceController {
 			kind === 'product'
 				? COLLECTION_NAMES.PRODUCTS
 				: COLLECTION_NAMES.SUPPLIERS,
-			'update',
 		)
 
 		const id = typeof requestBody.id === 'string' ? requestBody.id.trim() : ''

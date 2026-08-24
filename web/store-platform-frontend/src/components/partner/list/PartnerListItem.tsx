@@ -1,4 +1,11 @@
-import { Td, Checkbox, Flex, Text, Skeleton, useDisclosure } from '@chakra-ui/react'
+import {
+	Td,
+	Checkbox,
+	Flex,
+	Text,
+	Skeleton,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useDeletePartnerMutation } from '../../../api/apiStore'
@@ -242,8 +249,7 @@ const PartnerListItem = ({
 
 						showToast({
 							status: 'error',
-							description:
-								err.data?.message || t('partner.deletePartnerError'),
+							description: err.data?.message || t('partner.deletePartnerError'),
 						})
 					}
 				}}

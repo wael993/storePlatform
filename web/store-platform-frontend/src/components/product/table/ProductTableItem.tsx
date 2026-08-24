@@ -496,9 +496,7 @@ const ProductTableItem = memo(
 						</Flex>
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
-								{(canEditProduct ||
-									canPrintBarcode ||
-									canDeleteProduct) && (
+								{(canEditProduct || canPrintBarcode || canDeleteProduct) && (
 									<OptionsPopover
 										onEdit={
 											canEditProduct

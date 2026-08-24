@@ -132,10 +132,7 @@ export const isTenantRouteAllowed = (
 	tenantActions: TenantActionFlags,
 	canSee: (id: string) => boolean = () => true,
 ): boolean => {
-	if (
-		pathname === RoutePaths.ROOT ||
-		pathname === RoutePaths.STORE_PLATFORM
-	) {
+	if (pathname === RoutePaths.ROOT || pathname === RoutePaths.STORE_PLATFORM) {
 		return canSee(SEE.welcome)
 	}
 
