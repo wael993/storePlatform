@@ -41,7 +41,9 @@
 		"preview": "vite preview",
 		"format": "prettier --log-level warn --config ../../.prettierrc --write src",
 		"lint": "eslint src --fix",
-		"format-and-lint": "npm run lint && npm run format"
+		"format-and-lint": "npm run lint && npm run format",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage"
 	},
 	"browserslist": {
 		"production": [
@@ -56,16 +58,23 @@
 		]
 	},
 	"devDependencies": {
+		"@testing-library/dom": "^10.4.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.6",
 		"@types/node": "^25.6.0",
 		"@types/uuid": "^10.0.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
 		"@vitejs/plugin-react": "^4.7.0",
+		"@vitest/coverage-v8": "^3.2.7",
 		"eslint": "^8.57.1",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-react": "^7.37.5",
 		"eslint-plugin-unused-imports": "^4.1.4",
+		"jsdom": "^27.0.1",
+		"msw": "^2.15.0",
 		"prettier": "^3.6.2",
-		"vite": "^6.3.5"
+		"vite": "^6.3.5",
+		"vitest": "^3.2.7"
 	}
 }

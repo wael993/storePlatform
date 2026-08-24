@@ -34,6 +34,7 @@ import { DailyAction } from '../models/DailyAction'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
+import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import {
 	mergeProductPricePatch,
@@ -1943,31 +1944,6 @@ export default class ProductController {
 	}
 
 	/**
-	 * Weighted moving average cost, recalculated on every purchase.
-	 * ponytail: assumes currentQuantity >= 0; if stock had gone negative from an
-	 * oversold sale, the average skews toward the new purchase price instead of
-	 * being mathematically "correct". Upgrade path: reset the average to the
-	 * purchase price whenever currentQuantity <= 0.
-	 */
-	private computeMovingAverageCost(
-		currentQuantity: number,
-		currentAverageCost: number,
-		purchaseQuantity: number,
-		purchaseUnitPrice: number,
-	): number {
-		const priorQuantity = Math.max(0, currentQuantity)
-		const totalQuantity = priorQuantity + purchaseQuantity
-
-		if (totalQuantity <= 0) return purchaseUnitPrice
-
-		return (
-			(priorQuantity * currentAverageCost +
-				purchaseQuantity * purchaseUnitPrice) /
-			totalQuantity
-		)
-	}
-
-	/**
 	 * Atomically adjusts Inventory.quantity and recomputes availableQuantity as
 	 * max(0, quantity - reservedQuantity). Upserts on first write.
 	 * Permission: inventory update (or create via invoice/buyingInvoice implicit write).
@@ -2092,39 +2068,10 @@ export default class ProductController {
 								},
 							],
 						},
-						averageCost: {
-							$let: {
-								vars: {
-									priorQty: {
-										$max: [0, { $ifNull: ['$quantity', 0] }],
-									},
-									priorAvg: {
-										$ifNull: ['$averageCost', purchaseUnitPrice],
-									},
-								},
-								in: {
-									$cond: [
-										{
-											$lte: [{ $add: ['$$priorQty', purchaseQuantity] }, 0],
-										},
-										purchaseUnitPrice,
-										{
-											$divide: [
-												{
-													$add: [
-														{
-															$multiply: ['$$priorQty', '$$priorAvg'],
-														},
-														purchaseQuantity * purchaseUnitPrice,
-													],
-												},
-												{ $add: ['$$priorQty', purchaseQuantity] },
-											],
-										},
-									],
-								},
-							},
-						},
+						averageCost: purchaseAverageCostExpression(
+							purchaseQuantity,
+							purchaseUnitPrice,
+						),
 					},
 				},
 			],

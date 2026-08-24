@@ -13,7 +13,7 @@ module.exports = {
 		ecmaVersion: 'latest',
 		sourceType: 'module',
 	},
-	plugins: ['@typescript-eslint', 'unused-imports', '@stylistic/js', 'jest'],
+	plugins: ['@typescript-eslint', 'unused-imports', '@stylistic/js'],
 	ignorePatterns: ['dist/'],
 	settings: {},
 	rules: {
@@ -57,10 +57,5 @@ module.exports = {
 			{ blankLine: 'never', prev: 'case', next: 'case' },
 			{ blankLine: 'any', prev: 'import', next: 'import' },
 		],
-		'jest/no-disabled-tests': 'warn',
-		'jest/no-focused-tests': 'error',
-		'jest/no-identical-title': 'error',
-		'jest/prefer-to-have-length': 'warn',
-		'jest/valid-expect': 'error',
 	},
 }

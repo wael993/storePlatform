@@ -1,0 +1,7 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"skipLibCheck": false
+	},
+	"exclude": ["**/*.test.ts", "src/test/**"]
+}

@@ -14,7 +14,11 @@ import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
-import { BreadCrumbItem, TargetType, AddQuickStateEnum } from '../../shared/globalEnums'
+import {
+	BreadCrumbItem,
+	TargetType,
+	AddQuickStateEnum,
+} from '../../shared/globalEnums'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import CustomBreadcrumb from '../CustomBreadcrumb'
@@ -106,21 +110,12 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 		onClose()
 	}
 
-	// const nextInternalCode = customers
-	// 	.map(c => c.internalCode)
-	// 	.sort(
-	// 		(a, b) =>
-	// 			parseInt(b?.slice(2) ?? '0', 10) - parseInt(a?.slice(2) ?? '0', 10),
-	// 	)[0]
-
 	const nextInternalCode =
 		'CZ' +
 		String(
 			Math.max(
-				...customers.map(
-					c => parseInt(c.internalCode?.slice(2) ?? '0', 10),
-					10,
-				),
+				0,
+				...customers.map(c => parseInt(c.internalCode?.slice(2) ?? '0', 10)),
 			) + 1,
 		).padStart(3, '0')
 

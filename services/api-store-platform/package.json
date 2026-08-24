@@ -4,7 +4,7 @@
 	"main": "index.js",
 	"scripts": {
 		"start": "node dist/server.js",
-		"build": "tsc",
+		"build": "tsc -p tsconfig.build.json",
 		"format": "prettier --log-level warn --config ../../.prettierrc --write src",
 		"lint": "eslint src --fix",
 		"format-and-lint": "npm run lint && npm run format",
@@ -20,7 +20,9 @@
 		"seed:super-admin": "ts-node src/scripts/create-super-admin-user.ts",
 		"migrate:drop-stale-indexes": "ts-node src/scripts/drop-stale-indexes.ts",
 		"cron:negative-quantity-snapshot": "ts-node src/scripts/run-negative-quantity-snapshot.ts",
-		"cron:subscription-lifecycle": "ts-node src/scripts/run-subscription-lifecycle.ts"
+		"cron:subscription-lifecycle": "ts-node src/scripts/run-subscription-lifecycle.ts",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage"
 	},
 	"keywords": [],
 	"author": "",
@@ -59,14 +61,17 @@
 	},
 	"devDependencies": {
 		"@stylistic/eslint-plugin-js": "^2.13.0",
+		"@types/supertest": "^7.2.1",
 		"@typescript-eslint/eslint-plugin": "^8.35.0",
 		"@typescript-eslint/parser": "^8.35.0",
+		"@vitest/coverage-v8": "^3.2.7",
 		"eslint": "^8.57.1",
 		"eslint-config-prettier": "^9.1.0",
-		"eslint-plugin-jest": "^28.11.0",
 		"eslint-plugin-unused-imports": "^4.1.4",
 		"nodemon": "^3.1.9",
 		"prettier": "^3.6.2",
-		"ts-node": "^10.9.2"
+		"supertest": "^7.2.2",
+		"ts-node": "^10.9.2",
+		"vitest": "^3.2.7"
 	}
 }

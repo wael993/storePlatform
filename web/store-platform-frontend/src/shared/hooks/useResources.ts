@@ -26,20 +26,26 @@ const ACTION_SEE: Partial<Record<AllowedActions, string>> = {
 	[AllowedActions.SEE_CUSTOMER]: SEE.customers,
 	[AllowedActions.CAN_ADD_CUSTOMER]: SEE.customersAdd,
 	[AllowedActions.CAN_EDIT_CUSTOMER]: SEE.customers,
-	[AllowedActions.CAN_DELETE_CUSTOMER]: SEE.customers,
+	[AllowedActions.CAN_DELETE_CUSTOMER]: SEE.customersDelete,
 	[AllowedActions.SEE_PARTNER]: SEE.partners,
-	[AllowedActions.CAN_ADD_PARTNER]: SEE.partners,
+	[AllowedActions.CAN_ADD_PARTNER]: SEE.partnersAdd,
 	[AllowedActions.CAN_EDIT_PARTNER]: SEE.partners,
-	[AllowedActions.CAN_DELETE_PARTNER]: SEE.partners,
+	[AllowedActions.CAN_DELETE_PARTNER]: SEE.partnersDelete,
+}
+
+export const isActionAllowed = (
+	action: AllowedActions,
+	canSee: (id: string) => boolean,
+) => {
+	const id = ACTION_SEE[action]
+	return id ? canSee(id) : false
 }
 
 export function useResources(_overriddenPath?: string) {
 	const { canSee } = useSee()
 
-	const isActionAllowed = (action: AllowedActions) => {
-		const id = ACTION_SEE[action]
-		return id ? canSee(id) : true
+	return {
+		isActionAllowed: (action: AllowedActions) =>
+			isActionAllowed(action, canSee),
 	}
-
-	return { isActionAllowed }
 }
