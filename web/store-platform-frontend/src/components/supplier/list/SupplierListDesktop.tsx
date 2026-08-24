@@ -15,7 +15,7 @@ import {
 	compareStringsForSorting,
 	getTableWidth,
 } from '../../list/shared/utils'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { SUPPLIER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { useUser } from '../../../shared/hooks/useUser'
 import { SortOrder, SupplierSortHeaderKey } from '../../list/shared/globalEnums'
 import SupplierListHeaderRow from './SupplierListHeaderRow'
@@ -119,8 +119,7 @@ const TableComponent = ({
 }) => {
 	const { isInternalUser } = context as VirtuosoContext
 	const tableWidth = getTableWidth(
-		// TODO: change to SUPPLIER_LIST_WIDTHS_MAP_IN_REM
-		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+		SUPPLIER_LIST_WIDTHS_MAP_IN_REM,
 		isInternalUser,
 		14,
 		4,

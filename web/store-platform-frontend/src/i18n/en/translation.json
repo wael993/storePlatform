@@ -154,12 +154,8 @@
 		"removeMethod": "Remove payment method",
 		"paymentSettingsSaved": "Payment information saved.",
 		"paymentSettingsSaveFailed": "Failed to save payment information.",
-		"renewSubscription": "Renew subscription",
-		"renewed": "Subscription renewed.",
-		"renewFailed": "Failed to renew subscription.",
 		"accessiblePages": {
 			"inventory": "Inventory",
-			"reports": "Reports",
 			"usersDescription": "Manage tenant users and roles.",
 			"productsDescription": "Product catalog and pricing.",
 			"dailyDescription": "Daily buying, selling, and expense actions.",
@@ -216,12 +212,6 @@
 		"items": "Items",
 		"total": "Total (€)",
 		"date": "Date"
-	},
-	"invoices": {
-		"empty": "No invoices found.",
-		"invoiceNumber": "Invoice #",
-		"amount": "Amount (€)",
-		"issued": "Issued"
 	},
 	"employees": {
 		"add": "Add employee",
@@ -409,8 +399,6 @@
 		"failed": "Failed to change password."
 	},
 	"products": {
-		"allProducts": "All Products",
-		"loadFailed": "Failed to load",
 		"stockValue": "Stock: {{stock}}"
 	},
 	"notFound": {
@@ -458,7 +446,6 @@
 		"retailPriceRequired": "Retail price is required.",
 		"quantityRequired": "Stock quantity is required.",
 		"minQuantityInvalid": "Minimum stock quantity must be a valid number greater than or equal to 0.",
-		"requiredProductValues": "Wholesale price, retail sale price, buy cost and stock quantity are required.",
 		"createFailed": "Failed to create product.",
 		"updateFailed": "Failed to update product.",
 		"tabBasicInfo": "Basic Info",
@@ -468,21 +455,14 @@
 		"latinName": "Latin Name",
 		"internalCode": "Internal Code",
 		"productFactoryCode": "Product Factory Code",
-		"categoryId": "Category ID",
-		"brandId": "Brand ID",
 		"purchasePrice": "Purchase Price",
 		"retailPrice": "Retail Price",
 		"wholesalePrice": "Wholesale Price",
-		"retailSalePrice": "Retail Sale Price",
 		"semiWholesalePrice": "Semi-Wholesale Price",
-		"semiWholesaleSalesPrice": "Semi-Wholesale Sales Price",
 		"discountPrice": "Discount Price",
 		"currency": "Currency",
 		"currencyPlaceholder": "Currency (e.g. EUR)",
 		"taxRate": "Tax Rate",
-		"taxType": "Tax Type",
-		"taxValue": "Tax Value",
-		"supplierId": "Supplier ID",
 		"unitId": "Unit",
 		"warehouse": "Warehouse",
 		"shelf": "Shelf",
@@ -492,21 +472,13 @@
 		"height": "Height",
 		"flavor": "Flavor",
 		"expiryDate": "Expiry Date",
-		"description": "Description",
-		"units": {
-			"piece": "Piece",
-			"kg": "KG",
-			"meter": "Meter",
-			"set": "Set",
-			"mm": "MM"
-		}
+		"description": "Description"
 	},
 	"supplier": {
 		"errorLoadingSupplier": "There was an error loading the supplier. Please try again!",
 		"list": {
 			"name": "Supplier Name",
-			"internalCode": "Supplier Code",
-			"createdAt": "Created At"
+			"internalCode": "Supplier Code"
 		}
 	},
 	"partner": {
@@ -569,8 +541,6 @@
 			"errorLoadingCustomer": "There was an error loading the customer. Please try again!",
 			"name": "Customer Name",
 			"code": "Customer Code",
-			"sold": "Sold",
-			"createdAt": "Created At",
 			"invoices": "Invoices",
 			"dailyActions": "Daily Actions",
 			"deleteCustomer": "Delete customer",
@@ -588,8 +558,6 @@
 			"budgetOverview": {
 				"tooltip": "Profit overview for the filtered daily actions.",
 				"title": "Daily Profit Overview",
-				"purchases": "Purchases",
-				"expenses": "Expenses",
 				"costs": "Costs",
 				"sales": "Sales",
 				"profit": "Profits"
@@ -618,18 +586,14 @@
 			"actionDate": "Action Date",
 			"actionSummary": "Action Summary",
 			"noActionSummary": "No summary available for this action.",
-			"inputLockedWarning": "No changes allowed for this action anymore.",
 			"textPlaceholder": "Add text...",
 			"selectEntryType": "Select Entry Type",
 			"actionTypeMissing": "Please select the action type to continue.",
 			"actionDataMissing": "Please fill in the required fields to continue.",
-			"invoiceNumberMissing": "Please enter the invoice number to continue.",
 			"invoiceDetailsMissing": "Please enter the invoice number and invoice date to continue.",
 			"actionSavedSuccessfully": "Daily action saved successfully.",
-			"noDailyFound": "No daily actions found",
 			"addQuickProduct": "Add Quick Product",
 			"productName": "Product Name",
-			"internalReference": "Internal Reference",
 			"addQuickCurrency": "Add Quick Currency",
 			"currencyName": "Currency Name",
 			"addQuickSupplier": "Add Quick Supplier",
@@ -691,14 +655,10 @@
 			"barcodeSearchPlaceholder": "Scan barcode or search product...",
 			"barcodeSearchHint": "Press Enter to start a new invoice",
 			"todaysInvoices": "Today's Invoices",
-			"todayDate": "Today, {{date}}",
 			"searchPlaceholder": "Search invoice, customer...",
-			"filters": "Filters",
-			"settings": "Settings",
 			"empty": "No invoices found.",
 			"summaryTitle": "Summary",
 			"summary": {
-				"todaySales": "Today's Sales",
 				"periodSales": "Period Sales",
 				"totalProfit": "Total Profit",
 				"bestSeller": "Best Seller",
@@ -749,8 +709,7 @@
 				"delete": "Delete",
 				"more": "More options",
 				"deleteConfirmTitle": "Delete invoice",
-				"deleteConfirmBody": "Are you sure you want to delete this invoice? This action cannot be undone.",
-				"exportFailed": "Could not prepare this invoice for print/download."
+				"deleteConfirmBody": "Are you sure you want to delete this invoice? This action cannot be undone."
 			},
 			"document": {
 				"invoiceNumber": "Invoice No.",
@@ -780,19 +739,15 @@
 				"searchPlaceholder": "Barcode, code, or name parts — press Enter",
 				"searchHint": "Type 2+ letters from product words separated by space (e.g. طرن خار), or enter barcode / internal / factory code, then press Enter",
 				"preparingCatalog": "Preparing product catalog…",
-				"catalogNotReady": "Product catalog is still loading. Please wait a moment and press Enter again.",
 				"searchMinTokenLength": "Each word part must be at least 2 characters",
 				"addProduct": "Add Product",
 				"scan": "Scan",
-				"searching": "Searching products...",
-				"searchFailed": "Product search failed. Please try again.",
 				"productNotFound": "Product not found",
 				"enterBarcodeOrName": "Enter a barcode, code, or product name",
 				"noItems": "No products added yet. Scan a barcode or search by name.",
 				"addNote": "+ Add Note",
 				"additionalInfo": "Additional Info",
 				"notePlaceholder": "Enter note here...",
-				"printAfterPayment": "Print invoice after payment",
 				"subtotal": "Subtotal",
 				"discount": "Discount",
 				"tax": "Tax (15%)",
@@ -822,10 +777,8 @@
 					"product": "Product",
 					"barcode": "Barcode",
 					"qty": "Qty",
-					"unit": "Unit",
 					"price": "Unit Price",
 					"discount": "Discount",
-					"tax": "Tax",
 					"total": "Total"
 				}
 			}
@@ -855,7 +808,6 @@
 				"saveCreditInvoice": "Save Credit Invoice",
 				"saveFailed": "Failed to save invoice. Please try again.",
 				"saveSuccess": "Buying invoice saved successfully.",
-				"offlineUnavailable": "Buying invoices require an internet connection.",
 				"newDraftTab": "Start another invoice",
 				"draftTab": "Draft {{index}}",
 				"closeDraftTab": "Close draft",
@@ -873,9 +825,6 @@
 				"needsConfirmation": "{{percent}} confidence — tap the marker to confirm or edit the value",
 				"highConfidence": "{{percent}} confidence",
 				"supplierInvoiceNumber": "Supplier invoice #",
-				"matchProduct": "Match this line to a catalog product",
-				"extractedVatLabel": "Extracted VAT",
-				"extractedTotal": "Extracted total: {{amount}}",
 				"unresolved": "Confirm or correct highlighted fields before approval. Missing values were not guessed.",
 				"failed": "Could not read this invoice. Try a clearer photo or a different file.",
 				"approve": "Approve Invoice",
@@ -918,7 +867,6 @@
 			"customer": "Customer",
 			"supplier": "Supplier",
 			"users": "Users",
-			"tenants": "Tenants",
 			"customers": "Customers",
 			"categories": "Categories",
 			"suppliers": "Suppliers",
@@ -927,9 +875,6 @@
 			"employees": "Employees",
 			"employee": "Employee",
 			"reports": "Reports"
-		},
-		"activitySettingsSection": {
-			"title": "Products Per Page"
 		},
 		"activityDetail": {
 			"topSection": {
@@ -1040,7 +985,6 @@
 			"quoteCurrency": "Quote currency",
 			"quoteCurrencyPlaceholder": "Select currency",
 			"rateEqualsHint": "Set how much of the quote currency equals 1 unit currency.",
-			"rateSuffix": "1 {{primary}} =",
 			"addSecondary": "Add Secondary Currency",
 			"removeSecondary": "Remove currency",
 			"primaryRequired": "Primary currency name is required.",
@@ -1050,13 +994,6 @@
 			"defaultInvoiceCurrencyHint": "Amounts on new invoices are stored in the primary currency and shown in this currency by default."
 		},
 		"modal": {
-			"filterModal": {
-				"selectFiltersInfoInternal": "Please select at least one of the required filters to continue.",
-				"selectDateFiltersInfoInternal": "Please select the year or start and end date to continue.",
-				"selectFiltersInfoExternal": "Please select at least the year or start and end date to continue.",
-				"dateToMissingWarning": "Please select the end date to continue.",
-				"dateFromMissingWarning": "Please select the start date to continue."
-			},
 			"leavingModal": {
 				"header": "Unsaved changes",
 				"body": "Are you sure you want to leave? There are unsaved changes. If you leave, your changes will be lost.",
@@ -1082,8 +1019,7 @@
 			"deleteSelected": "Delete selected products",
 			"deleteSelectedConfirm": "{{count}} products will be permanently deleted. This cannot be undone.",
 			"deleteSelectedSuccess": "{{count}} products deleted.",
-			"print": "Print",
-			"barcodeCaption": "Barcode: {{value}}"
+			"print": "Print"
 		},
 		"columnConfig": {
 			"configureColumns": "Configure columns",
@@ -1204,7 +1140,6 @@
 		"logoutFailed": "Logout failed.",
 		"active": "Active",
 		"inactive": "Inactive",
-		"noElementsFound": "No elements found",
 		"emptyStateTitle": "Nothing to show yet",
 		"emptyStateDescription": "Try adjusting your search or add a new item to get started.",
 		"addDailyAction": "Add Daily Action",
@@ -1218,7 +1153,6 @@
 		"amount": "Amount",
 		"price": "Price",
 		"stock": "Stock",
-		"supplierOrCustomer": "Supplier / Customer",
 		"supplierCustomerOrExpense": "Supplier / Customer / Expense",
 		"noOptions": "No options",
 		"optionDoesNotExist": "This option does not exist",
@@ -1226,7 +1160,6 @@
 		"showResults": "Show Results",
 		"show": "Show",
 		"hide": "Hide",
-		"add": "Add",
 		"addEntry": "Add Entry",
 		"addProduct": "Add Product",
 		"addCustomer": "Add Customer",
@@ -1237,7 +1170,6 @@
 		"supplier": "Supplier",
 		"customer": "Customer",
 		"partner": "Partner",
-		"dailyAction": "Daily Action",
 		"expense": "Expense",
 		"currency": "Currency",
 		"unit": "Unit",
@@ -1261,7 +1193,6 @@
 		"status": "Status",
 		"error": "Error!",
 		"tooltip": "Tooltip",
-		"unknownState": "Unknown",
 		"from": "From",
 		"to": "To",
 		"selected": "selected",
@@ -1272,13 +1203,10 @@
 		"cancel": "Cancel",
 		"retry": "Retry",
 		"save": "Save",
-		"reject": "Reject",
-		"accept": "Accept",
 		"priceSell": "Sell Price",
 		"discount": "Discount",
 		"addDiscount": "Add Discount",
 		"color": "Color",
-		"createdAt": "Created At",
 		"invoiceNumber": "Invoice Number",
 		"invoiceNumberPlaceholder": "Enter invoice number",
 		"invoiceDate": "Invoice Date",
@@ -1286,7 +1214,6 @@
 		"invoiceDatePlaceholder": "Select invoice date",
 		"datePlaceholder": "Select date",
 		"datePicker": "Date Picker",
-		"openCalendar": "Open calendar",
 		"clearDate": "Clear date",
 		"fileOptions": "File options",
 		"listOptions": "List options",
@@ -1299,20 +1226,12 @@
 		"sellingEntry": "Selling Entry",
 		"paymentEntry": "Payment Entry",
 		"receiptEntry": "Receipt Entry",
-		"expenseEntry": "Expense Entry",
-		"supplierFocus": "Supplier focus",
-		"addFocus": "Add focus",
-		"shop": "Shop",
-		"promotionSpace": "Promotion Space"
+		"expenseEntry": "Expense Entry"
 	},
 	"offline": {
-		"bootstrapRequired": "Download data to work offline. Connect to the internet and sync once.",
 		"bootstrapFailed": "Offline download failed",
-		"retryBootstrap": "Retry download",
 		"workingOffline": "Working offline. {{count}} change(s) waiting to sync.",
-		"syncNow": "Download data",
 		"pushChanges": "Push changes",
-		"syncing": "Syncing…",
 		"downloadingData": "Downloading offline data…",
 		"pushInProgress": "Sending changes to server…",
 		"pushInProgressDescription": "Please wait while your offline changes are being uploaded.",
@@ -1325,15 +1244,11 @@
 		"retryPush": "Retry",
 		"pendingChanges": "{{count}} change(s) pending sync",
 		"lastSynced": "Last synced: {{time}}",
-		"networkError": "Network connection lost. Using local data.",
-		"syncComplete": "Sync complete",
-		"syncFailed": "Sync failed",
 		"conflictTitle": "Sync conflicts",
 		"conflictMessage": "Some changes could not be synced. Please review.",
 		"insufficientStockTitle": "Insufficient stock",
 		"insufficientStockMessage": "Some items exceed available stock. Do you want to continue anyway?",
 		"insufficientStockItem": "{{name}}: requested {{requested}}, available {{available}}",
-		"unsyncedLogoutWarning": "You have unsynced changes. Are you sure you want to log out?",
-		"invoiceBlockExhausted": "Invoice numbers exhausted. Please sync online."
+		"unsyncedLogoutWarning": "You have unsynced changes. Are you sure you want to log out?"
 	}
 }

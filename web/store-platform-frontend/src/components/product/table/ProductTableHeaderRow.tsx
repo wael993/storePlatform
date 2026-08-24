@@ -6,7 +6,7 @@ import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import { useResources } from '../../../shared/hooks/useResources'
 import { useListColumnConfig } from '../../list/columnConfig/ListColumnConfigProvider'
 import TableSort from '../../common/CustomTableSort'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { PRODUCT_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { ProductSortHeaderKey, SortOrder } from '../../list/shared/globalEnums'
 
 interface ProductTableHeaderRowProps {
@@ -81,12 +81,12 @@ const ProductTableHeaderRow = ({
 		const isAcceptingAllowed = isActionAllowed(AllowedActions.ADD_PRODUCT)
 		const isRejectingAllowed = isActionAllowed(AllowedActions.ADD_PRODUCT)
 		if (isAcceptingAllowed && isRejectingAllowed) {
-			return `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`
+			return `${PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`
 		}
 		if (isAcceptingAllowed || isRejectingAllowed) {
-			return `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 4}rem`
+			return `${PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 4}rem`
 		}
-		return `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 7}rem`
+		return `${PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT - 7}rem`
 	}
 
 	return (
@@ -94,7 +94,7 @@ const ProductTableHeaderRow = ({
 			{canDeleteProduct && (
 				<Th
 					sx={styles.checkboxHeader}
-					width={`${PROMOTION_LIST_WIDTHS_MAP_IN_REM.CHECKBOX}rem`}
+					width={`${PRODUCT_LIST_WIDTHS_MAP_IN_REM.CHECKBOX}rem`}
 				>
 					<Checkbox
 						isChecked={areAllItemsSelected}
@@ -136,7 +136,7 @@ const ProductTableHeaderRow = ({
 				sx={{
 					...styles.tableHeaderStickyRight,
 					background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${getStickyRightWidth()})`,
-					width: `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
+					width: `${PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
 				}}
 			/>
 		</Tr>

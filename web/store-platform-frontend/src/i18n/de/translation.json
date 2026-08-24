@@ -154,12 +154,8 @@
 		"removeMethod": "Zahlungsmethode entfernen",
 		"paymentSettingsSaved": "Zahlungsinformationen gespeichert.",
 		"paymentSettingsSaveFailed": "Zahlungsinformationen konnten nicht gespeichert werden.",
-		"renewSubscription": "Abo verlängern",
-		"renewed": "Abo wurde verlängert.",
-		"renewFailed": "Abo konnte nicht verlängert werden.",
 		"accessiblePages": {
 			"inventory": "Inventar",
-			"reports": "Berichte",
 			"usersDescription": "Mandantenbenutzer und Rollen verwalten.",
 			"productsDescription": "Produktkatalog und Preise.",
 			"dailyDescription": "Tägliche Kauf-, Verkaufs- und Ausgabenaktionen.",
@@ -215,12 +211,6 @@
 		"items": "Artikel",
 		"total": "Gesamt (€)",
 		"date": "Datum"
-	},
-	"invoices": {
-		"empty": "Keine Rechnungen gefunden.",
-		"invoiceNumber": "Rechnungsnr.",
-		"amount": "Betrag (€)",
-		"issued": "Ausgestellt"
 	},
 	"employees": {
 		"add": "Mitarbeiter hinzufügen",
@@ -408,8 +398,6 @@
 		"failed": "Passwort konnte nicht geändert werden."
 	},
 	"products": {
-		"allProducts": "Alle Produkte",
-		"loadFailed": "Laden fehlgeschlagen",
 		"stockValue": "Bestand: {{stock}}"
 	},
 	"notFound": {
@@ -457,7 +445,6 @@
 		"retailPriceRequired": "Einzelhandelspreis ist erforderlich.",
 		"quantityRequired": "Lagerbestand ist erforderlich.",
 		"minQuantityInvalid": "Die minimale Lagerbestandsmenge muss eine gültige Zahl größer oder gleich 0 sein.",
-		"requiredProductValues": "Großhandelspreis, Einzelhandelspreis, Einkaufspreis und Lagerbestand sind erforderlich.",
 		"createFailed": "Produkt konnte nicht erstellt werden.",
 		"updateFailed": "Produkt konnte nicht aktualisiert werden.",
 		"tabBasicInfo": "Grundinformationen",
@@ -467,21 +454,14 @@
 		"latinName": "Lateinischer Name",
 		"internalCode": "Interner Code",
 		"productFactoryCode": "Produkt-Fabrikcode",
-		"categoryId": "Kategorie-ID",
-		"brandId": "Marken-ID",
 		"purchasePrice": "Einkaufspreis",
 		"retailPrice": "Einzelhandelspreis",
 		"wholesalePrice": "Großhandelspreis",
-		"retailSalePrice": "Einzelhandelspreis",
 		"semiWholesalePrice": "Halbgroßhandelspreis",
-		"semiWholesaleSalesPrice": "Halbgroßhandelspreis",
 		"discountPrice": "Rabattpreis",
 		"currency": "Währung",
 		"currencyPlaceholder": "Währung (z. B. EUR)",
 		"taxRate": "Steuersatz",
-		"taxType": "Steuerart",
-		"taxValue": "Steuerwert",
-		"supplierId": "Lieferanten-ID",
 		"unitId": "Einheit",
 		"warehouse": "Lager",
 		"shelf": "Regal",
@@ -491,20 +471,12 @@
 		"height": "Höhe",
 		"flavor": "Geschmack",
 		"expiryDate": "Ablaufdatum",
-		"description": "Beschreibung",
-		"units": {
-			"piece": "Stück",
-			"kg": "KG",
-			"meter": "Meter",
-			"set": "Set",
-			"mm": "MM"
-		}
+		"description": "Beschreibung"
 	},
 	"supplier": {
 		"list": {
 			"name": "Lieferantenname",
-			"internalCode": "Lieferantencode",
-			"createdAt": "Erstellt am"
+			"internalCode": "Lieferantencode"
 		}
 	},
 	"partner": {
@@ -559,8 +531,6 @@
 		"customer": {
 			"name": "Kundenname",
 			"code": "Kundencode",
-			"sold": "Verkauft",
-			"createdAt": "Erstellt am",
 			"deleteCustomer": "Kunde löschen",
 			"deleteCustomerConfirm": "Dieser Kunde wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
 			"deleteCustomerSuccess": "Kunde gelöscht.",
@@ -575,8 +545,6 @@
 			"budgetOverview": {
 				"tooltip": "Gewinnübersicht für die gefilterten Tagesaktionen.",
 				"title": "Tägliche Gewinnübersicht",
-				"purchases": "Einkäufe",
-				"expenses": "Ausgaben",
 				"costs": "Kosten",
 				"sales": "Verkäufe",
 				"profit": "Gewinne"
@@ -605,18 +573,14 @@
 			"actionDate": "Aktionsdatum",
 			"actionSummary": "Aktionsübersicht",
 			"noActionSummary": "Für diese Aktion ist keine Übersicht verfügbar.",
-			"inputLockedWarning": "Für diese Aktion sind keine Änderungen mehr erlaubt.",
 			"textPlaceholder": "Text hinzufügen...",
 			"selectEntryType": "Eintragsart auswählen",
 			"actionTypeMissing": "Bitte wählen Sie den Aktionstyp aus, um fortzufahren.",
 			"actionDataMissing": "Bitte füllen Sie die erforderlichen Felder aus, um fortzufahren.",
-			"invoiceNumberMissing": "Bitte geben Sie die Rechnungsnummer ein, um fortzufahren.",
 			"invoiceDetailsMissing": "Bitte geben Sie Rechnungsnummer und Rechnungsdatum ein, um fortzufahren.",
 			"actionSavedSuccessfully": "Tagesaktion erfolgreich gespeichert.",
-			"noDailyFound": "Keine Tagesaktionen gefunden",
 			"addQuickProduct": "Schnell Produkt hinzufügen",
 			"productName": "Produktname",
-			"internalReference": "Interne Referenz",
 			"addQuickCurrency": "Schnell Währung hinzufügen",
 			"currencyName": "Währungsname",
 			"addQuickSupplier": "Schnell Lieferant hinzufügen",
@@ -678,14 +642,10 @@
 			"barcodeSearchPlaceholder": "Barcode scannen oder Produkt suchen...",
 			"barcodeSearchHint": "Enter drücken, um eine neue Rechnung zu starten",
 			"todaysInvoices": "Heutige Rechnungen",
-			"todayDate": "Heute, {{date}}",
 			"searchPlaceholder": "Rechnung, Kunde suchen...",
-			"filters": "Filter",
-			"settings": "Einstellungen",
 			"empty": "Keine Rechnungen gefunden.",
 			"summaryTitle": "Zusammenfassung",
 			"summary": {
-				"todaySales": "Heutiger Umsatz",
 				"periodSales": "Umsatz im Zeitraum",
 				"totalProfit": "Gesamtgewinn",
 				"bestSeller": "Bestseller",
@@ -736,8 +696,7 @@
 				"delete": "Löschen",
 				"more": "Weitere Optionen",
 				"deleteConfirmTitle": "Rechnung löschen",
-				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-				"exportFailed": "Rechnung konnte nicht für Druck/Download vorbereitet werden."
+				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
 			},
 			"document": {
 				"invoiceNumber": "Rechnungsnr.",
@@ -767,19 +726,15 @@
 				"searchPlaceholder": "Barcode, Code oder Namensteile — Enter drücken",
 				"searchHint": "Mindestens 2 Buchstaben pro Wortteil mit Leerzeichen trennen (z. B. طرن خار) oder Barcode / interner / Fabrikcode eingeben, dann Enter",
 				"preparingCatalog": "Produktkatalog wird vorbereitet…",
-				"catalogNotReady": "Der Produktkatalog wird noch geladen. Bitte kurz warten und erneut Enter drücken.",
 				"searchMinTokenLength": "Jeder Wortteil muss mindestens 2 Zeichen haben",
 				"addProduct": "Produkt hinzufügen",
 				"scan": "Scannen",
-				"searching": "Produkte werden gesucht...",
-				"searchFailed": "Produktsuche fehlgeschlagen. Bitte erneut versuchen.",
 				"productNotFound": "Produkt nicht gefunden",
 				"enterBarcodeOrName": "Barcode, Code oder Produktname eingeben",
 				"noItems": "Noch keine Produkte hinzugefügt. Barcode scannen oder nach Name suchen.",
 				"addNote": "+ Notiz hinzufügen",
 				"additionalInfo": "Zusätzliche Informationen",
 				"notePlaceholder": "Notiz hier eingeben...",
-				"printAfterPayment": "Rechnung nach Zahlung drucken",
 				"subtotal": "Zwischensumme",
 				"discount": "Rabatt",
 				"tax": "Steuer (15%)",
@@ -809,10 +764,8 @@
 					"product": "Produkt",
 					"barcode": "Barcode",
 					"qty": "Menge",
-					"unit": "Einheit",
 					"price": "Einzelpreis",
 					"discount": "Rabatt",
-					"tax": "Steuer",
 					"total": "Gesamt"
 				}
 			}
@@ -842,7 +795,6 @@
 				"saveCreditInvoice": "Kreditrechnung speichern",
 				"saveFailed": "Rechnung konnte nicht gespeichert werden. Bitte erneut versuchen.",
 				"saveSuccess": "Einkaufsrechnung erfolgreich gespeichert.",
-				"offlineUnavailable": "Einkaufsrechnungen benötigen eine Internetverbindung.",
 				"newDraftTab": "Weitere Rechnung starten",
 				"draftTab": "Entwurf {{index}}",
 				"closeDraftTab": "Entwurf schließen",
@@ -860,9 +812,6 @@
 				"needsConfirmation": "{{percent}} Sicherheit — Markierung tippen zum Bestätigen oder Wert ändern",
 				"highConfidence": "{{percent}} Sicherheit",
 				"supplierInvoiceNumber": "Lieferanten-Rechnungsnr.",
-				"matchProduct": "Diese Zeile einem Katalogprodukt zuordnen",
-				"extractedVatLabel": "Ausgelesene MwSt.",
-				"extractedTotal": "Ausgelesener Betrag: {{amount}}",
 				"unresolved": "Markierte Felder vor der Freigabe bestätigen oder korrigieren. Fehlende Werte wurden nicht erraten.",
 				"failed": "Rechnung konnte nicht gelesen werden. Bitte ein schärferes Foto oder eine andere Datei versuchen.",
 				"approve": "Rechnung freigeben",
@@ -905,7 +854,6 @@
 			"customer": "Kunde",
 			"supplier": "Lieferant",
 			"users": "Benutzer",
-			"tenants": "Mandanten",
 			"customers": "Kunden",
 			"suppliers": "Lieferanten",
 			"partners": "Partner",
@@ -913,9 +861,6 @@
 			"employees": "Mitarbeiter",
 			"employee": "Mitarbeiter",
 			"reports": "Berichte"
-		},
-		"activitySettingsSection": {
-			"title": "Produkte pro Seite"
 		},
 		"activityDetail": {
 			"topSection": {
@@ -1026,7 +971,6 @@
 			"quoteCurrency": "Gegenwährung",
 			"quoteCurrencyPlaceholder": "Währung auswählen",
 			"rateEqualsHint": "Legen Sie fest, wie viel der Gegenwährung 1 Einheitswährung entspricht.",
-			"rateSuffix": "1 {{primary}} =",
 			"addSecondary": "Sekundärwährung hinzufügen",
 			"removeSecondary": "Währung entfernen",
 			"primaryRequired": "Der Name der Primärwährung ist erforderlich.",
@@ -1036,13 +980,6 @@
 			"defaultInvoiceCurrencyHint": "Beträge auf neuen Rechnungen werden in der Primärwährung gespeichert und standardmäßig in dieser Währung angezeigt."
 		},
 		"modal": {
-			"filterModal": {
-				"selectFiltersInfoInternal": "Bitte wählen Sie mindestens einen der erforderlichen Filter aus, um fortzufahren.",
-				"selectDateFiltersInfoInternal": "Bitte wählen Sie das Jahr oder Start- und Enddatum aus, um fortzufahren.",
-				"selectFiltersInfoExternal": "Bitte wählen Sie mindestens das Jahr oder Start- und Enddatum aus, um fortzufahren.",
-				"dateToMissingWarning": "Bitte wählen Sie das Enddatum aus, um fortzufahren.",
-				"dateFromMissingWarning": "Bitte wählen Sie das Startdatum aus, um fortzufahren."
-			},
 			"leavingModal": {
 				"header": "Nicht gespeicherte Änderungen",
 				"body": "Möchten Sie die Seite wirklich verlassen? Es gibt nicht gespeicherte Änderungen. Wenn Sie gehen, gehen diese Änderungen verloren.",
@@ -1068,8 +1005,7 @@
 			"deleteSelected": "Ausgewählte Produkte löschen",
 			"deleteSelectedConfirm": "{{count}} Produkte werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
 			"deleteSelectedSuccess": "{{count}} Produkte gelöscht.",
-			"print": "Drucken",
-			"barcodeCaption": "Barcode: {{value}}"
+			"print": "Drucken"
 		},
 		"columnConfig": {
 			"configureColumns": "Spalten konfigurieren",
@@ -1189,7 +1125,6 @@
 		"logoutFailed": "Abmeldung fehlgeschlagen.",
 		"active": "Aktiv",
 		"inactive": "Inaktiv",
-		"noElementsFound": "Keine Elemente gefunden",
 		"emptyStateTitle": "Noch nichts anzuzeigen",
 		"emptyStateDescription": "Passen Sie die Suche an oder fügen Sie ein neues Element hinzu, um zu beginnen.",
 		"addDailyAction": "Tagesaktion hinzufügen",
@@ -1203,7 +1138,6 @@
 		"amount": "Betrag",
 		"price": "Preis",
 		"stock": "Bestand",
-		"supplierOrCustomer": "Lieferant / Kunde",
 		"supplierCustomerOrExpense": "Lieferant / Kunde / Ausgabe",
 		"noOptions": "Keine Optionen",
 		"optionDoesNotExist": "Diese Option existiert nicht",
@@ -1211,7 +1145,6 @@
 		"showResults": "Ergebnisse anzeigen",
 		"show": "Anzeigen",
 		"hide": "Ausblenden",
-		"add": "Hinzufügen",
 		"addEntry": "Eintrag hinzufügen",
 		"addProduct": "Produkt hinzufügen",
 		"addCustomer": "Kunde hinzufügen",
@@ -1221,7 +1154,6 @@
 		"supplier": "Lieferant",
 		"customer": "Kunde",
 		"partner": "Partner",
-		"dailyAction": "Tagesaktion",
 		"expense": "Ausgabe",
 		"currency": "Währung",
 		"unit": "Einheit",
@@ -1245,7 +1177,6 @@
 		"status": "Status",
 		"error": "Fehler!",
 		"tooltip": "Tooltip",
-		"unknownState": "Unbekannt",
 		"from": "Von",
 		"to": "Bis",
 		"selected": "ausgewählt",
@@ -1256,13 +1187,10 @@
 		"cancel": "Abbrechen",
 		"retry": "Erneut versuchen",
 		"save": "Speichern",
-		"reject": "Ablehnen",
-		"accept": "Akzeptieren",
 		"priceSell": "Verkaufspreis",
 		"discount": "Rabatt",
 		"addDiscount": "Rabatt hinzufügen",
 		"color": "Farbe",
-		"createdAt": "Erstellt am",
 		"invoiceNumber": "Rechnungsnummer",
 		"invoiceNumberPlaceholder": "Rechnungsnummer eingeben",
 		"invoiceDate": "Rechnungsdatum",
@@ -1270,7 +1198,6 @@
 		"invoiceDatePlaceholder": "Rechnungsdatum auswählen",
 		"datePlaceholder": "Datum auswählen",
 		"datePicker": "Datumsauswahl",
-		"openCalendar": "Kalender öffnen",
 		"clearDate": "Datum löschen",
 		"fileOptions": "Dateioptionen",
 		"listOptions": "Listenoptionen",
@@ -1283,20 +1210,12 @@
 		"sellingEntry": "Verkaufseintrag",
 		"paymentEntry": "Zahlungseintrag",
 		"receiptEntry": "Zahlungseingang",
-		"expenseEntry": "Ausgabeeintrag",
-		"supplierFocus": "Lieferantenfokus",
-		"addFocus": "Fokus hinzufügen",
-		"shop": "Shop",
-		"promotionSpace": "Aktionsfläche"
+		"expenseEntry": "Ausgabeeintrag"
 	},
 	"offline": {
-		"bootstrapRequired": "Daten herunterladen, um offline zu arbeiten. Mit dem Internet verbinden und einmal synchronisieren.",
 		"bootstrapFailed": "Offline-Download fehlgeschlagen",
-		"retryBootstrap": "Download erneut versuchen",
 		"workingOffline": "Offline-Modus. {{count}} Änderung(en) warten auf Synchronisation.",
-		"syncNow": "Daten herunterladen",
 		"pushChanges": "Änderungen senden",
-		"syncing": "Synchronisiere…",
 		"downloadingData": "Offline-Daten werden heruntergeladen…",
 		"pushInProgress": "Änderungen werden gesendet…",
 		"pushInProgressDescription": "Bitte warten, während Ihre Offline-Änderungen hochgeladen werden.",
@@ -1309,15 +1228,11 @@
 		"retryPush": "Erneut versuchen",
 		"pendingChanges": "{{count}} Änderung(en) ausstehend",
 		"lastSynced": "Zuletzt synchronisiert: {{time}}",
-		"networkError": "Netzwerkverbindung verloren. Lokale Daten werden verwendet.",
-		"syncComplete": "Synchronisation abgeschlossen",
-		"syncFailed": "Synchronisation fehlgeschlagen",
 		"conflictTitle": "Synchronisationskonflikte",
 		"conflictMessage": "Einige Änderungen konnten nicht synchronisiert werden. Bitte prüfen.",
 		"insufficientStockTitle": "Unzureichender Bestand",
 		"insufficientStockMessage": "Einige Artikel überschreiten den verfügbaren Bestand. Möchten Sie trotzdem fortfahren?",
 		"insufficientStockItem": "{{name}}: angefordert {{requested}}, verfügbar {{available}}",
-		"unsyncedLogoutWarning": "Es gibt nicht synchronisierte Änderungen. Wirklich abmelden?",
-		"invoiceBlockExhausted": "Rechnungsnummern aufgebraucht. Bitte online synchronisieren."
+		"unsyncedLogoutWarning": "Es gibt nicht synchronisierte Änderungen. Wirklich abmelden?"
 	}
 }

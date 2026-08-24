@@ -1,6 +1,6 @@
 import { ActivityState } from './globalEnums'
 
-export const PROMOTION_LIST_WIDTHS_MAP_IN_REM = {
+export const PRODUCT_LIST_WIDTHS_MAP_IN_REM = {
 	CHECKBOX: 2,
 	NAME: 15,
 	LATIN_NAME: 8,

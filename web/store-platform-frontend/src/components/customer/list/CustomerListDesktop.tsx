@@ -15,7 +15,7 @@ import {
 	compareStringsForSorting,
 	getTableWidth,
 } from '../../list/shared/utils'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { CUSTOMER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { useUser } from '../../../shared/hooks/useUser'
 import { SortOrder, CustomerSortHeaderKey } from '../../list/shared/globalEnums'
 import CustomerListHeaderRow from './CustomerListHeaderRow'
@@ -95,8 +95,7 @@ const TableComponent = ({
 }) => {
 	const { isOwnerOrAdmin } = context as VirtuosoContext
 	const tableWidth = getTableWidth(
-		// TODO: change to CUSTOMER_LIST_WIDTHS_MAP_IN_REM
-		PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+		CUSTOMER_LIST_WIDTHS_MAP_IN_REM,
 		isOwnerOrAdmin,
 		14,
 		4,

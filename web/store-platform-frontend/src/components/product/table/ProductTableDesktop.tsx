@@ -9,7 +9,7 @@ import React, {
 	useState,
 } from 'react'
 import { TableVirtuoso } from 'react-virtuoso'
-import { PROMOTION_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
+import { PRODUCT_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { ProductSortHeaderKey, SortOrder } from '../../list/shared/globalEnums'
 import {
 	compareDatesForSorting,
@@ -371,9 +371,9 @@ const ProductTableDesktop = memo(
 				0,
 			)
 			const checkboxWidth = canDeleteProduct
-				? PROMOTION_LIST_WIDTHS_MAP_IN_REM.CHECKBOX
+				? PRODUCT_LIST_WIDTHS_MAP_IN_REM.CHECKBOX
 				: 0
-			return `${checkboxWidth + dataWidth + PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT + 4}rem`
+			return `${checkboxWidth + dataWidth + PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT + 4}rem`
 		}, [canDeleteProduct, visibleColumns])
 
 		const context: VirtuosoContext = {

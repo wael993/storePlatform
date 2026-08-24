@@ -14,7 +14,7 @@ import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import EditableCellField from '../../list/EditableCellField'
 import {
 	PRODUCT_STATE_CONFIG,
-	PROMOTION_LIST_WIDTHS_MAP_IN_REM,
+	PRODUCT_LIST_WIDTHS_MAP_IN_REM,
 } from '../../list/shared/constants'
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
@@ -123,11 +123,11 @@ const ProductTableItem = memo(
 				textAlign: 'center',
 			},
 			rightStickyContainer: {
-				width: `${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
+				width: `${PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem`,
 				position: 'sticky',
 				right: '0',
 				zIndex: '1',
-				background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${PROMOTION_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem)`,
+				background: `linear-gradient(to right, transparent 0rem, transparent 0rem, #FFFFFF 7rem, #FFFFFF 2rem, #FFFFFF ${PRODUCT_LIST_WIDTHS_MAP_IN_REM.STICKY_RIGHT}rem)`,
 			},
 			topSectionMenu: {
 				boxSize: 7,
@@ -448,7 +448,7 @@ const ProductTableItem = memo(
 				{canDeleteProduct && (
 					<Td
 						sx={{ ...styles.tableRow, ...styles.checkboxRow }}
-						width={`${PROMOTION_LIST_WIDTHS_MAP_IN_REM.CHECKBOX}rem`}
+						width={`${PRODUCT_LIST_WIDTHS_MAP_IN_REM.CHECKBOX}rem`}
 					>
 						<Flex
 							sx={{ ...styles.cellContentWrapper, ...styles.checkboxWrapper }}

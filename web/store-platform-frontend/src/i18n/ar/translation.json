@@ -154,12 +154,8 @@
 		"removeMethod": "إزالة طريقة الدفع",
 		"paymentSettingsSaved": "تم حفظ معلومات الدفع.",
 		"paymentSettingsSaveFailed": "فشل حفظ معلومات الدفع.",
-		"renewSubscription": "تجديد الاشتراك",
-		"renewed": "تم تجديد الاشتراك.",
-		"renewFailed": "فشل تجديد الاشتراك.",
 		"accessiblePages": {
 			"inventory": "المخزون",
-			"reports": "التقارير",
 			"usersDescription": "إدارة مستخدمي المستأجر والأدوار.",
 			"productsDescription": "كتالوج المنتجات والأسعار.",
 			"dailyDescription": "إجراءات الشراء والبيع والمصروفات اليومية.",
@@ -216,12 +212,6 @@
 		"items": "العناصر",
 		"total": "الإجمالي (€)",
 		"date": "التاريخ"
-	},
-	"invoices": {
-		"empty": "لم يتم العثور على فواتير.",
-		"invoiceNumber": "رقم الفاتورة",
-		"amount": "المبلغ (€)",
-		"issued": "تاريخ الإصدار"
 	},
 	"employees": {
 		"add": "إضافة موظف",
@@ -409,8 +399,6 @@
 		"failed": "فشل تغيير كلمة المرور."
 	},
 	"products": {
-		"allProducts": "جميع المنتجات",
-		"loadFailed": "فشل التحميل",
 		"stockValue": "المخزون: {{stock}}"
 	},
 	"notFound": {
@@ -458,7 +446,6 @@
 		"retailPriceRequired": "سعر البيع بالتجزئة مطلوب.",
 		"quantityRequired": "كمية المخزون مطلوبة.",
 		"minQuantityInvalid": "يجب أن تكون الحد الأدنى لكمية المخزون رقمًا صالحًا أكبر من أو يساوي 0.",
-		"requiredProductValues": "سعر الجملة وسعر البيع بالتجزئة وسعر الشراء وكمية المخزون مطلوبة.",
 		"createFailed": "فشل إنشاء المنتج.",
 		"updateFailed": "فشل تحديث المنتج.",
 		"tabBasicInfo": "المعلومات الأساسية",
@@ -468,21 +455,14 @@
 		"latinName": "الاسم اللاتيني",
 		"internalCode": "الرمز الداخلي",
 		"productFactoryCode": "رمز المنتج في المصنع",
-		"categoryId": "معرّف الفئة",
-		"brandId": "معرّف العلامة التجارية",
 		"purchasePrice": "سعر الشراء",
 		"retailPrice": "سعر البيع بالتجزئة",
 		"wholesalePrice": "سعر الجملة",
-		"retailSalePrice": "سعر البيع بالتجزئة",
 		"semiWholesalePrice": "سعر نصف الجملة",
-		"semiWholesaleSalesPrice": "سعر نصف الجملة",
 		"discountPrice": "سعر الخصم",
 		"currency": "العملة",
 		"currencyPlaceholder": "العملة (مثل EUR)",
 		"taxRate": "نسبة الضريبة",
-		"taxType": "نوع الضريبة",
-		"taxValue": "قيمة الضريبة",
-		"supplierId": "معرّف المورد",
 		"unitId": "الوحدة",
 		"warehouse": "المستودع",
 		"shelf": "الرف",
@@ -492,21 +472,13 @@
 		"height": "الارتفاع",
 		"flavor": "النكهة",
 		"expiryDate": "تاريخ الانتهاء",
-		"description": "الوصف",
-		"units": {
-			"piece": "قطعة",
-			"kg": "كغ",
-			"meter": "متر",
-			"set": "مجموعة",
-			"mm": "مم"
-		}
+		"description": "الوصف"
 	},
 	"supplier": {
 		"errorLoadingSupplier": "حدث خطأ أثناء تحميل المورد. يرجى المحاولة مرة أخرى!",
 		"list": {
 			"name": "اسم المورد",
-			"internalCode": "رمز المورد",
-			"createdAt": "تاريخ الإنشاء"
+			"internalCode": "رمز المورد"
 		}
 	},
 	"partner": {
@@ -593,8 +565,6 @@
 			"errorLoadingCustomer": "حدث خطأ أثناء تحميل الزبون. يرجى المحاولة مرة أخرى!",
 			"name": "اسم الزبون",
 			"code": "رمز الزبون",
-			"sold": "المبيعات",
-			"createdAt": "تاريخ الإنشاء",
 			"invoices": "الفواتير",
 			"dailyActions": "الإجراءات اليومية",
 			"deleteCustomer": "حذف الزبون",
@@ -612,8 +582,6 @@
 			"budgetOverview": {
 				"tooltip": "نظرة عامة على أرباح الإجراءات اليومية بعد التصفية.",
 				"title": "نظرة عامة",
-				"purchases": "المشتريات",
-				"expenses": "النفقات",
 				"costs": "التكاليف",
 				"sales": "المبيعات",
 				"profit": "الأرباح"
@@ -623,7 +591,6 @@
 			"receiptAction": "إجراء قبض",
 			"paymentAction": "إجراء دفع",
 			"expenseAction": "إجراء نفقات",
-
 			"confirmations": {
 				"deleteDailyAction": "حذف الإجراء اليومي",
 				"deleteDailyActionConfirmationBody": "هل أنت متأكد أنك تريد حذف هذا الإجراء اليومي؟",
@@ -643,18 +610,14 @@
 			"actionDate": "تاريخ الإجراء",
 			"actionSummary": "ملخص الإجراء",
 			"noActionSummary": "لا يوجد ملخص متاح لهذا الإجراء.",
-			"inputLockedWarning": "لم يعد مسموحًا بإجراء تغييرات على هذا الإجراء.",
 			"textPlaceholder": "أضف نصًا...",
 			"selectEntryType": "اختر نوع الإدخال",
 			"actionTypeMissing": "يرجى اختيار نوع الإجراء للمتابعة.",
 			"actionDataMissing": "يرجى ملء الحقول المطلوبة للمتابعة.",
-			"invoiceNumberMissing": "يرجى إدخال رقم الفاتورة للمتابعة.",
 			"invoiceDetailsMissing": "يرجى إدخال رقم الفاتورة وتاريخها للمتابعة.",
 			"actionSavedSuccessfully": "تم حفظ الإجراء اليومي بنجاح.",
-			"noDailyFound": "لم يتم العثور على إجراءات يومية",
 			"addQuickProduct": "إضافة منتج سريع",
 			"productName": "اسم المنتج",
-			"internalReference": "المرجع الداخلي",
 			"addQuickCurrency": "إضافة عملة سريعة",
 			"currencyName": "اسم العملة",
 			"addQuickSupplier": "إضافة مورد سريع",
@@ -693,14 +656,10 @@
 			"barcodeSearchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
 			"barcodeSearchHint": "اضغط Enter لبدء فاتورة جديدة",
 			"todaysInvoices": "فواتير اليوم",
-			"todayDate": "اليوم، {{date}}",
 			"searchPlaceholder": "ابحث عن فاتورة أو زبون...",
-			"filters": "تصفية",
-			"settings": "الإعدادات",
 			"empty": "لا توجد فواتير.",
 			"summaryTitle": "ملخص",
 			"summary": {
-				"todaySales": "مبيعات اليوم",
 				"periodSales": "مبيعات الفترة",
 				"totalProfit": "إجمالي الربح",
 				"bestSeller": "الأكثر مبيعاً",
@@ -751,8 +710,7 @@
 				"delete": "حذف",
 				"more": "المزيد",
 				"deleteConfirmTitle": "حذف الفاتورة",
-				"deleteConfirmBody": "هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.",
-				"exportFailed": "تعذر تجهيز هذه الفاتورة للطباعة/التنزيل."
+				"deleteConfirmBody": "هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء."
 			},
 			"document": {
 				"invoiceNumber": "رقم الفاتورة",
@@ -782,19 +740,15 @@
 				"searchPlaceholder": "باركود أو كود أو أجزاء من الاسم — اضغط Enter",
 				"searchHint": "اكتب حرفين أو أكثر من كل جزء من اسم المنتج مفصولاً بمسافة (مثال: طرن خار)، أو أدخل الباركود / الكود الداخلي / كود المصنع، ثم اضغط Enter",
 				"preparingCatalog": "جاري تجهيز قائمة المنتجات…",
-				"catalogNotReady": "قائمة المنتجات ما زالت قيد التحميل. انتظر قليلاً ثم اضغط Enter مرة أخرى.",
 				"searchMinTokenLength": "يجب أن يحتوي كل جزء من الاسم على حرفين على الأقل",
 				"addProduct": "إضافة منتج",
 				"scan": "مسح",
-				"searching": "جاري البحث عن المنتجات...",
-				"searchFailed": "فشل البحث عن المنتج. يرجى المحاولة مرة أخرى.",
 				"productNotFound": "المنتج غير موجود",
 				"enterBarcodeOrName": "أدخل باركود أو كود أو اسم منتج",
 				"noItems": "لم تتم إضافة منتجات بعد. امسح باركود أو ابحث بالاسم.",
 				"addNote": "+ إضافة ملاحظة",
 				"additionalInfo": "معلومات إضافية",
 				"notePlaceholder": "أدخل الملاحظة هنا...",
-				"printAfterPayment": "طباعة الفاتورة بعد الدفع",
 				"subtotal": "المجموع الفرعي",
 				"discount": "الخصم",
 				"tax": "الضريبة",
@@ -824,10 +778,8 @@
 					"product": "المنتج",
 					"barcode": "الباركود",
 					"qty": "الكمية",
-					"unit": "الوحدة",
 					"price": "افرادي",
 					"discount": "الخصم",
-					"tax": "الضريبة",
 					"total": "الإجمالي"
 				}
 			}
@@ -857,7 +809,6 @@
 				"saveCreditInvoice": "حفظ فاتورة آجلة",
 				"saveFailed": "فشل حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
 				"saveSuccess": "تم حفظ فاتورة الشراء بنجاح.",
-				"offlineUnavailable": "فواتير الشراء تتطلب اتصالاً بالإنترنت.",
 				"newDraftTab": "بدء فاتورة أخرى",
 				"draftTab": "مسودة {{index}}",
 				"closeDraftTab": "إغلاق المسودة",
@@ -875,9 +826,6 @@
 				"needsConfirmation": "ثقة {{percent}} — اضغط العلامة للتأكيد أو عدّل القيمة",
 				"highConfidence": "ثقة {{percent}}",
 				"supplierInvoiceNumber": "رقم فاتورة المورد",
-				"matchProduct": "اربط هذا السطر بمنتج من الكتالوج",
-				"extractedVatLabel": "الضريبة المستخرجة",
-				"extractedTotal": "الإجمالي المستخرج: {{amount}}",
 				"unresolved": "أكد أو صحح الحقول المميزة قبل الاعتماد. لم يتم تخمين القيم الناقصة.",
 				"failed": "تعذر قراءة هذه الفاتورة. جرّب صورة أوضح أو ملفاً آخر.",
 				"approve": "اعتماد الفاتورة",
@@ -920,7 +868,6 @@
 			"customer": "الزبون",
 			"supplier": "المورد",
 			"users": "المستخدمون",
-			"tenants": "المستأجرون",
 			"customers": "الزبائن",
 			"categories": "الفئات",
 			"suppliers": "الموردون",
@@ -930,9 +877,6 @@
 			"employees": "الموظفون",
 			"employee": "موظف",
 			"reports": "التقارير"
-		},
-		"activitySettingsSection": {
-			"title": "المنتجات لكل صفحة"
 		},
 		"activityDetail": {
 			"topSection": {
@@ -1043,7 +987,6 @@
 			"quoteCurrency": "عملة المقابل",
 			"quoteCurrencyPlaceholder": "اختر العملة",
 			"rateEqualsHint": "حدد كم من عملة المقابل تساوي 1 من عملة الوحدة.",
-			"rateSuffix": "1 {{primary}} =",
 			"addSecondary": "إضافة عملة ثانوية",
 			"removeSecondary": "إزالة العملة",
 			"primaryRequired": "اسم العملة الأساسية مطلوب.",
@@ -1053,13 +996,6 @@
 			"defaultInvoiceCurrencyHint": "يتم حفظ المبالغ في الفواتير الجديدة بالعملة الأساسية وعرضها افتراضيًا بهذه العملة."
 		},
 		"modal": {
-			"filterModal": {
-				"selectFiltersInfoInternal": "يرجى اختيار واحد على الأقل من المرشحات المطلوبة للمتابعة.",
-				"selectDateFiltersInfoInternal": "يرجى اختيار السنة أو تاريخ البداية والنهاية للمتابعة.",
-				"selectFiltersInfoExternal": "يرجى اختيار السنة أو تاريخ البداية والنهاية على الأقل للمتابعة.",
-				"dateToMissingWarning": "يرجى اختيار تاريخ النهاية للمتابعة.",
-				"dateFromMissingWarning": "يرجى اختيار تاريخ البداية للمتابعة."
-			},
 			"leavingModal": {
 				"header": "تغييرات غير محفوظة",
 				"body": "هل أنت متأكد أنك تريد المغادرة؟ توجد تغييرات غير محفوظة. إذا غادرت، ستفقد هذه التغييرات.",
@@ -1085,8 +1021,7 @@
 			"deleteSelected": "حذف المنتجات المحددة",
 			"deleteSelectedConfirm": "سيتم حذف {{count}} منتجاً نهائياً. لا يمكن التراجع عن هذا الإجراء.",
 			"deleteSelectedSuccess": "تم حذف {{count}} منتج.",
-			"print": "طباعة",
-			"barcodeCaption": "الباركود: {{value}}"
+			"print": "طباعة"
 		},
 		"columnConfig": {
 			"configureColumns": "تكوين الأعمدة",
@@ -1207,7 +1142,6 @@
 		"logoutFailed": "فشل تسجيل الخروج.",
 		"active": "نشط",
 		"inactive": "غير نشط",
-		"noElementsFound": "لم يتم العثور على عناصر",
 		"emptyStateTitle": "لا يوجد شيء لعرضه بعد",
 		"emptyStateDescription": "جرّب تعديل البحث أو أضف عنصرًا جديدًا للبدء.",
 		"addDailyAction": "إضافة إجراء يومي",
@@ -1221,7 +1155,6 @@
 		"amount": "المبلغ",
 		"price": "السعر",
 		"stock": "المخزون",
-		"supplierOrCustomer": "المورد / الزبون",
 		"supplierCustomerOrExpense": "المورد / الزبون / النفقات",
 		"noOptions": "لا توجد خيارات",
 		"optionDoesNotExist": "هذا الخيار غير موجود",
@@ -1229,7 +1162,6 @@
 		"showResults": "عرض النتائج",
 		"show": "إظهار",
 		"hide": "إخفاء",
-		"add": "إضافة",
 		"addEntry": "إضافة إدخال",
 		"addProduct": "إضافة منتج",
 		"addCustomer": "إضافة زبون",
@@ -1240,7 +1172,6 @@
 		"supplier": "المورد",
 		"customer": "الزبون",
 		"partner": "الشريك",
-		"dailyAction": "إجراء يومي",
 		"expense": "النفقات",
 		"currency": "العملة",
 		"unit": "الوحدة",
@@ -1264,7 +1195,6 @@
 		"status": "الحالة",
 		"error": "خطأ!",
 		"tooltip": "تلميح",
-		"unknownState": "غير معروف",
 		"from": "من",
 		"to": "إلى",
 		"selected": "محدد",
@@ -1275,13 +1205,10 @@
 		"cancel": "إلغاء",
 		"retry": "إعادة المحاولة",
 		"save": "حفظ",
-		"reject": "رفض",
-		"accept": "قبول",
 		"priceSell": "سعر البيع",
 		"discount": "الخصم",
 		"addDiscount": "إضافة خصم",
 		"color": "اللون",
-		"createdAt": "تاريخ الإنشاء",
 		"invoiceNumber": "رقم الفاتورة",
 		"invoiceNumberPlaceholder": "أدخل رقم الفاتورة",
 		"invoiceDate": "تاريخ الفاتورة",
@@ -1289,7 +1216,6 @@
 		"invoiceDatePlaceholder": "اختر تاريخ الفاتورة",
 		"datePlaceholder": "اختر التاريخ",
 		"datePicker": "منتقي التاريخ",
-		"openCalendar": "فتح التقويم",
 		"clearDate": "مسح التاريخ",
 		"fileOptions": "خيارات الملف",
 		"listOptions": "خيارات القائمة",
@@ -1303,20 +1229,12 @@
 		"paymentEntry": "حركة دفع",
 		"receiptEntry": "حركة قبض",
 		"expenseEntry": "حركة نفقات",
-		"supplierFocus": "تركيز المورد",
-		"addFocus": "إضافة تركيز",
-		"shop": "المتجر",
-		"promotionSpace": "مساحة العرض",
 		"date": "التاريخ"
 	},
 	"offline": {
-		"bootstrapRequired": "حمّل البيانات للعمل بدون إنترنت. اتصل بالإنترنت وقم بالمزامنة مرة واحدة.",
 		"bootstrapFailed": "فشل تحميل بيانات العمل بدون اتصال",
-		"retryBootstrap": "إعادة محاولة التحميل",
 		"workingOffline": "العمل بدون اتصال. {{count}} تغيير(ات) في انتظار المزامنة.",
-		"syncNow": "تحميل البيانات",
 		"pushChanges": "إرسال التغييرات",
-		"syncing": "جاري المزامنة…",
 		"downloadingData": "جاري تحميل بيانات العمل بدون اتصال…",
 		"pushInProgress": "جاري إرسال التغييرات إلى الخادم…",
 		"pushInProgressDescription": "يرجى الانتظار أثناء رفع التغييرات التي أجريتها بدون اتصال.",
@@ -1329,15 +1247,11 @@
 		"retryPush": "إعادة المحاولة",
 		"pendingChanges": "{{count}} تغيير(ات) في انتظار المزامنة",
 		"lastSynced": "آخر مزامنة: {{time}}",
-		"networkError": "فقد الاتصال بالشبكة. يتم استخدام البيانات المحلية.",
-		"syncComplete": "اكتملت المزامنة",
-		"syncFailed": "فشلت المزامنة",
 		"conflictTitle": "تعارضات المزامنة",
 		"conflictMessage": "تعذر مزامنة بعض التغييرات. يرجى المراجعة.",
 		"insufficientStockTitle": "مخزون غير كافٍ",
 		"insufficientStockMessage": "بعض العناصر تتجاوز المخزون المتاح. هل تريد المتابعة على أي حال؟",
 		"insufficientStockItem": "{{name}}: مطلوب {{requested}}، متاح {{available}}",
-		"unsyncedLogoutWarning": "لديك تغييرات غير متزامنة. هل تريد تسجيل الخروج؟",
-		"invoiceBlockExhausted": "نفدت أرقام الفواتير. يرجى المزامنة عبر الإنترنت."
+		"unsyncedLogoutWarning": "لديك تغييرات غير متزامنة. هل تريد تسجيل الخروج؟"
 	}
 }
