@@ -192,7 +192,7 @@ const CustomerListItem = ({
 									color:
 										totalReceivable > 0
 											? PAGE_COLORS.danger
-											: styles.text.color,
+											: PAGE_COLORS.success,
 								}}
 							>
 								{formatAmount(totalReceivable)}
@@ -215,7 +215,11 @@ const CustomerListItem = ({
 								}}
 							>
 								<StateCircle
-									stateColor={'#929494'}
+									stateColor={
+										totalReceivable > 0
+											? PAGE_COLORS.danger
+											: PAGE_COLORS.success
+									}
 									stateTitle={'inactive'}
 									customStyles={{
 										colorCircle: { width: '0.875rem', height: '0.875rem' },

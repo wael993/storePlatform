@@ -185,7 +185,9 @@ const SupplierListItemMobil = ({
 											sx={{
 												...styles.valueText,
 												color:
-													totalPayable > 0 ? PAGE_COLORS.danger : undefined,
+													totalPayable > 0
+														? PAGE_COLORS.danger
+														: PAGE_COLORS.success,
 											}}
 										>
 											{formatAmount(totalPayable)}
@@ -209,7 +211,11 @@ const SupplierListItemMobil = ({
 									}}
 								>
 									<StateCircle
-										stateColor="#929494"
+										stateColor={
+											totalPayable > 0
+												? PAGE_COLORS.danger
+												: PAGE_COLORS.success
+										}
 										stateTitle="inactive"
 										customStyles={{
 											colorCircle: { width: '0.875rem', height: '0.875rem' },

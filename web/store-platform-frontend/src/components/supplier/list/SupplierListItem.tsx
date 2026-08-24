@@ -190,7 +190,7 @@ const SupplierListItem = ({
 									...styles.text,
 									fontWeight: totalPayable > 0 ? 600 : 500,
 									color:
-										totalPayable > 0 ? PAGE_COLORS.danger : styles.text.color,
+										totalPayable > 0 ? PAGE_COLORS.danger : PAGE_COLORS.success,
 								}}
 							>
 								{formatAmount(totalPayable)}
@@ -213,7 +213,9 @@ const SupplierListItem = ({
 								}}
 							>
 								<StateCircle
-									stateColor={'#929494'}
+									stateColor={
+										totalPayable > 0 ? PAGE_COLORS.danger : PAGE_COLORS.success
+									}
 									stateTitle={'inactive'}
 									customStyles={{
 										colorCircle: { width: '0.875rem', height: '0.875rem' },
