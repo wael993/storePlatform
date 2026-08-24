@@ -143,8 +143,7 @@ const TableComponent = ({
 	const tableWidth = getTableWidth(
 		DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM,
 		isOwnerOrAdmin,
-		14,
-		4,
+		44,
 	)
 
 	return (
@@ -313,8 +312,6 @@ const DailyActionListDesktop = memo(
 			const tableWidth = getTableWidth(
 				DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM,
 				isOwnerOrAdmin,
-				14,
-				4,
 			)
 
 			return (

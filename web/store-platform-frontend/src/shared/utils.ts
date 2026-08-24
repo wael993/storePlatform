@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { Breakpoints, EntryType, TargetType } from './globalEnums'
+import { Breakpoints, DailyActionType, TargetType } from './globalEnums'
 import { parseNumberValue, toDotDecimal } from './numberParse'
 import { RoutePaths } from './routes'
 import { SEE } from './seeFlags'
@@ -27,13 +27,13 @@ export function compareTargetType(entryType: TargetType) {
 	}
 }
 
-export function compareEntryType(entryType: EntryType) {
+export function compareEntryType(entryType: DailyActionType) {
 	return {
-		isSellingEntry: entryType === EntryType.SELLING_ENTRY,
-		isBuyingEntry: entryType === EntryType.BUYING_ENTRY,
-		isReceiptEntry: entryType === EntryType.RECEIPT_ENTRY,
-		isPaymentEntry: entryType === EntryType.PAYMENT_ENTRY,
-		isExpenseEntry: entryType === EntryType.EXPENSE_ENTRY,
+		isSellingEntry: entryType === DailyActionType.SELLING_ENTRY,
+		isBuyingEntry: entryType === DailyActionType.BUYING_ENTRY,
+		isReceiptEntry: entryType === DailyActionType.RECEIPT_ENTRY,
+		isPaymentEntry: entryType === DailyActionType.PAYMENT_ENTRY,
+		isExpenseEntry: entryType === DailyActionType.EXPENSE_ENTRY,
 	}
 }
 

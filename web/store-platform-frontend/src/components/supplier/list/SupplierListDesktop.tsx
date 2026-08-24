@@ -121,8 +121,7 @@ const TableComponent = ({
 	const tableWidth = getTableWidth(
 		SUPPLIER_LIST_WIDTHS_MAP_IN_REM,
 		isInternalUser,
-		14,
-		4,
+		44,
 	)
 
 	return (

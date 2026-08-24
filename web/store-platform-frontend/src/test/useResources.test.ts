@@ -21,7 +21,7 @@ describe('isActionAllowed', () => {
 	})
 
 	it('blocks an unmapped action', () => {
-		expect(isActionAllowed(AllowedActions.SEE_STOCK_QUANTITY, canSee([]))).toBe(
+		expect(isActionAllowed('seeStockQuantity' as AllowedActions, canSee([]))).toBe(
 			false,
 		)
 	})

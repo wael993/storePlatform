@@ -220,7 +220,11 @@ const CustomerListItem = ({
 											? PAGE_COLORS.danger
 											: PAGE_COLORS.success
 									}
-									stateTitle={'inactive'}
+									stateTitle={
+										totalReceivable > 0
+											? 'common.inactive'
+											: 'common.active'
+									}
 									customStyles={{
 										colorCircle: { width: '0.875rem', height: '0.875rem' },
 									}}

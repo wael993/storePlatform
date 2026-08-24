@@ -107,8 +107,6 @@ const TableComponent = ({
 	const tableWidth = getTableWidth(
 		PARTNER_LIST_WIDTHS_MAP_IN_REM,
 		isOwnerOrAdmin,
-		14,
-		4,
 	)
 
 	return (

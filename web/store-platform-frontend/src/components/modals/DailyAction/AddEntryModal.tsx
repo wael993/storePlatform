@@ -19,7 +19,6 @@ import { isEqual } from 'lodash'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import {
 	DailyActionType,
-	EntryType,
 	StepKeys,
 } from '../../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
@@ -118,7 +117,7 @@ const AddEntryModal = ({ isOpen, onClose }: AddEntryModalProps) => {
 	} = useDailyActionHandlers({ shouldLoadOptions: isOpen })
 
 	const { isReceiptEntry, isPaymentEntry, isExpenseEntry } = compareEntryType(
-		entryType?.[0]?.value as EntryType,
+		entryType?.[0]?.value as DailyActionType,
 	)
 
 	const [shouldLeavingBeQuestioned, setShouldLeavingBeQuestioned] =

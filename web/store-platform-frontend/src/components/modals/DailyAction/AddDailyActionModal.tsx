@@ -19,7 +19,6 @@ import { isEqual } from 'lodash'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import {
 	DailyActionType,
-	EntryType,
 	StepKeys,
 	TargetType,
 } from '../../../shared/globalEnums'
@@ -138,7 +137,7 @@ const AddDailyActionModal = ({
 		isReceiptEntry,
 		isPaymentEntry,
 		isExpenseEntry,
-	} = compareEntryType(entryType?.[0]?.value as EntryType)
+	} = compareEntryType(entryType?.[0]?.value as DailyActionType)
 
 	const [shouldLeavingBeQuestioned, setShouldLeavingBeQuestioned] =
 		useState<boolean>(false)

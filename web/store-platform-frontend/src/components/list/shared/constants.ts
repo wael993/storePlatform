@@ -80,11 +80,7 @@ export const DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM = {
 	STICKY_RIGHT: 15,
 } as const
 
-export const LIST_INTERNAL_ONLY_COLUMNS: string[] = [
-	'SUPPLIER',
-	'COMBINED_TARGET_CONTRIBUTIONS',
-	'LISTING',
-]
+export const LIST_INTERNAL_ONLY_COLUMNS: string[] = ['SUPPLIER']
 
 export const PRODUCT_STATE_CONFIG: ActivityStateMap = {
 	[ActivityState.ACTIVE]: {

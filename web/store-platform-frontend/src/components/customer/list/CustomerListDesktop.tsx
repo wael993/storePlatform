@@ -97,7 +97,7 @@ const TableComponent = ({
 	const tableWidth = getTableWidth(
 		CUSTOMER_LIST_WIDTHS_MAP_IN_REM,
 		isOwnerOrAdmin,
-		14,
+		44,
 		4,
 	)
 

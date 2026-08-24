@@ -28,8 +28,6 @@ export enum AllowedActions {
 	//BUDGET OVERVIEW
 	CAN_SEE_BUDGET_OVERVIEW = 'seeBudgetOverview',
 
-	// STOCK QUANTITY
-	SEE_STOCK_QUANTITY = 'seeStockQuantity',
 	SEE_NOTIFICATIONS = 'seeNotifications',
 
 	// WHOLESALE PRICE
@@ -79,14 +77,6 @@ export enum TargetType {
 	DAILY_ACTION = 'DAILY_ACTION', //إجراء يومي
 	// PAYMENT = 'PAYMENT',//دفع
 	// RECEIPT = 'RECEIPT',//قبض
-}
-
-export enum EntryType {
-	BUYING_ENTRY = 'BUYING_ENTRY', //حركة شراء
-	SELLING_ENTRY = 'SELLING_ENTRY', //حركة بيع
-	PAYMENT_ENTRY = 'PAYMENT_ENTRY', //حركة دفع
-	RECEIPT_ENTRY = 'RECEIPT_ENTRY', //حركة قبض
-	EXPENSE_ENTRY = 'EXPENSE_ENTRY', //مصروف
 }
 
 export enum BreadCrumbItem {
