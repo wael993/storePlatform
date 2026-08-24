@@ -1,23 +1,3 @@
-interface FilterOptions {
-	referenceIds?: string[]
-	packageNames?: string[]
-	suppliers?: string[]
-	brands?: string[]
-	salesAreas?: string[]
-	locations?: string[]
-	shops?: string[]
-	dateFrom: string
-	dateTo?: string
-	ticketStatuses?: ActivityStatusAPI[]
-	categories?: string[]
-	clusters?: string[]
-	subCategories?: string[]
-	year?: number
-	ghNumbers?: string[]
-	productDescriptionGhNumbers?: string[]
-	priceOfferStatuses?: PriceLevel3StatusAPI[]
-	resetFilters?: boolean
-}
 type AddQuickModalType =
 	| 'product'
 	// | 'currency'
@@ -86,15 +66,6 @@ interface StylesObject {
 	[k: string]: import('@chakra-ui/react').CSSObject
 }
 
-interface AcceptAgbResponse {
-	modifiedCount: number
-}
-
-interface AcceptAgbRequest {
-	userId: string
-	serviceId: string
-}
-
 interface FrontendResources {
 	path: string
 	access: boolean
@@ -152,14 +123,3 @@ interface SelectOption {
 	isInvalid?: boolean
 	color?: string
 }
-
-type EntryType =
-	| 'customer'
-	| 'supplier'
-	| 'product'
-	| 'dailyAction'
-	| 'payment'
-	| 'receipt'
-	| 'sale'
-	| 'purchase'
-	| 'other'

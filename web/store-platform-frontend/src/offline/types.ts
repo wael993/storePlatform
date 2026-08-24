@@ -155,11 +155,6 @@ export interface SyncPushResponse {
 	serverTime: string
 }
 
-export interface SyncPushRequestPayload {
-	retryClientMutationIds?: string[]
-	entries: SyncPushEntry[]
-}
-
 export type OfflineSyncState =
 	'idle' | 'bootstrapping' | 'syncing' | 'offline' | 'error' | 'success'
 

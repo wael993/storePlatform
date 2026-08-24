@@ -4,13 +4,8 @@ import type {
 	InvoiceTotals,
 	SellingInvoiceLineItem,
 } from '../SellingInvoice/types'
-import type {
-	InvoicePaymentType,
-	InvoiceUiStatus,
-} from '../../shared/globalEnums'
+import type { InvoicePaymentType } from '../../shared/globalEnums'
 import type { InvoiceExtractionReview } from '../../shared/invoiceExtraction'
-
-export type BuyingInvoiceStatus = `${InvoiceUiStatus}`
 
 export type BuyingInvoicePaymentType =
 	`${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`

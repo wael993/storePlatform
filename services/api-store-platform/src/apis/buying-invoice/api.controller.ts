@@ -928,10 +928,7 @@ export default class BuyingInvoiceController {
 	public async getInvoiceAiUsage(
 		requestContext: RequestContext,
 	): Promise<InvoiceAiUsageResponse> {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.BUYING_INVOICES,
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.BUYING_INVOICES)
 
 		const usage = await getInvoiceAiUsage(
 			getTenantContext(requestContext).tenantId,
@@ -948,10 +945,7 @@ export default class BuyingInvoiceController {
 		requestBody: Record<string, unknown>,
 		requestContext: RequestContext,
 	) {
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.BUYING_INVOICES,
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.BUYING_INVOICES)
 
 		const tenantId = getTenantContext(requestContext).tenantId
 		const input = decodeInvoiceUpload(requestBody)
@@ -1005,10 +999,7 @@ export default class BuyingInvoiceController {
 
 		const kind = requestBody.kind
 
-		await ensureTenantAccess(
-			requestContext,
-			COLLECTION_NAMES.BUYING_INVOICES,
-		)
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.BUYING_INVOICES)
 
 		await ensureTenantAccess(
 			requestContext,

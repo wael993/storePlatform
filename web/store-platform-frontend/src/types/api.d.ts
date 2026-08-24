@@ -1,21 +1,3 @@
-interface AddUserRequestBody {
-	firstName: string
-	lastName: string
-	email: string
-	accessLevel: accessLevel
-	disabled: boolean
-}
-
-interface AddUser {
-	password: string
-	firstName: string
-	lastName: string
-	email: string
-	accessLevel?: accessLevel
-	disabled?: boolean
-	id?: string
-}
-
 interface APIResponse<T> {
 	totalCount: number
 	data: T[]
@@ -39,8 +21,6 @@ type WarehousesAPIResponse = APIResponse<Warehouse>
 type CreateExpenseAPIResponse = CreateAPIResponse
 type CreateUnitAPIResponse = CreateAPIResponse
 type UpdateExpenseAPIResponse = CreateAPIResponse
-
-type ProductsAPIResponse = APIResponse<Product>
 type SuppliersAPIResponse = APIResponse<Supplier>
 type PartnersAPIResponse = APIResponse<Partner>
 type CustomersAPIResponse = APIResponse<Customer>
@@ -48,7 +28,6 @@ type CategoriesAPIResponse = APIResponse<Category>
 type ExpensesAPIResponse = APIResponse<Expense>
 type UnitsAPIResponse = APIResponse<Unit>
 type DailyActionsAPIResponse = APIResponse<DailyAction>
-type SavedFiltersAPIResponse = APIResponse<SavedFilters>
 interface BudgetOverviewAPIResponse {
 	payments: string
 	purchase: string
@@ -61,35 +40,8 @@ interface BudgetOverviewQueryArgument {
 	entityType: 'customer' | 'supplier' | 'partner' | 'product'
 	id: string
 }
-interface UserSettings {
-	enabledAccess: Access[]
-}
-type PostNewUser = Omit<AddUser, '_id'>
 
-type Access =
-	| 'settings'
-	| 'model-page-users'
-	| 'model-page-time-logs'
-	| 'admin-logging-stats'
-
-type ActivityStatusAPI =
-	'new' | 'preparation' | 'execution' | 'done' | 'rejected'
-
-// type ActivityType = 'PA' | 'PA1' | 'PA2' | 'PA3' | 'PO' | 'ALL'
 type accessLevel = 'admin' | 'editor' | 'customer'
-
-interface BearerTokenPayload {
-	aud: string
-	email: string
-	exp: number
-	iat: number
-	iss: string
-	tenantId: string
-	tenantLoginBackgroundUrl: string | null
-	tenantLogoUrl: string
-	tenantName: string
-	uid: string
-}
 
 //////////////////////////
 

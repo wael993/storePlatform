@@ -44,7 +44,6 @@ export enum SupplierSortHeaderKey {
 export enum CustomerSortHeaderKey {
 	NAME = 'name',
 	INTERNAL_CODE = 'internalCode',
-	SOLD = 'sold',
 	TOTAL_RECEIVABLE = 'totalReceivable',
 }
 export enum PartnerSortHeaderKey {
@@ -68,12 +67,6 @@ export enum DailyActionSortHeaderKey {
 	INVOICE_DATE = 'invoiceDate',
 	INVOICE_NUMBER = 'invoiceNumber',
 	NOTE = 'note',
-}
-
-export enum SimpleEntitySortHeaderKey {
-	NAME = 'name',
-	INTERNAL_CODE = 'internalCode',
-	CREATED_AT = 'createdAt',
 }
 
 export enum ActivityState {

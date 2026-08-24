@@ -49,12 +49,10 @@ const logger = createLogger({
 })
 
 export enum EntityType {
-	ACTIVITIES = 'ACTIVITIES',
 	AUTHORIZATION = 'AUTHORIZATION',
 	STORAGE = 'STORAGE_SERVICE',
 	MONGODB = 'MONGO_DB',
 	PRODUCTS = 'PRODUCTS',
-	CACHE = 'CACHE',
 }
 
 export default logger

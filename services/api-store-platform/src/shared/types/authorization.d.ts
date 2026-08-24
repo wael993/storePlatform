@@ -29,7 +29,6 @@ interface Operation {
 }
 
 type AccessLevel = 'GLOBAL' | 'SERVICE' | 'COMPANY' | 'SELF'
-type HttpMethods = 'GET' | 'DELETE' | 'POST' | 'PUT' | 'PATCH'
 
 interface FieldValueFilter {
 	fieldName: string

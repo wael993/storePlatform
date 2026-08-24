@@ -30,20 +30,11 @@ export enum AllowedActions {
 
 	// STOCK QUANTITY
 	SEE_STOCK_QUANTITY = 'seeStockQuantity',
-	CAN_EDIT_STOCK_QUANTITY = 'canEditStockQuantity',
 	SEE_NOTIFICATIONS = 'seeNotifications',
-
-	// MIN STOCK QUANTITY
-	SEE_MIN_STOCK_QUANTITY = 'seeMinStockQuantity',
-	CAN_EDIT_MIN_STOCK_QUANTITY = 'canEditMinStockQuantity',
 
 	// WHOLESALE PRICE
 	SEE_WHOLESALE_PRICE = 'seeWholesalePrice',
 	CAN_EDIT_WHOLESALE_PRICE = 'canEditWholesalePrice',
-
-	// DISCOUNT
-	SEE_DISCOUNT = 'seeDiscount',
-	CAN_EDIT_DISCOUNT = 'canEditDiscount',
 
 	// REPORT
 	SEE_REPORT = 'seeReport',
@@ -60,13 +51,6 @@ export enum AllowedActions {
 	CAN_ADD_SUPPLIER = 'canAddSupplier',
 	CAN_EDIT_SUPPLIER = 'canEditSupplier',
 	CAN_DELETE_SUPPLIER = 'canDeleteSupplier',
-	// LOCATION SHELF
-	SEE_LOCATION_SHELF = 'seeLocationShelf',
-	CAN_EDIT_LOCATION_SHELF = 'canEditLocationShelf',
-	// LOCATION WAREHOUSE
-	SEE_LOCATION_WAREHOUSE = 'seeLocationWarehouse',
-	CAN_EDIT_LOCATION_WAREHOUSE = 'canEditLocationWarehouse',
-
 	// CUSTOMER
 	SEE_CUSTOMER = 'seeCustomer',
 	CAN_ADD_CUSTOMER = 'canAddCustomer',
@@ -117,7 +101,6 @@ export enum BreadCrumbItem {
 	ADD_NEW_TENANT = 'addNewTenant',
 	TENANTS_LIST = 'tenantsList',
 	RENEWAL_REQUESTS = 'renewalRequests',
-	ALL_PRODUCTS = 'allProducts',
 	CUSTOMERS = 'customers',
 	CUSTOMER = 'customer',
 	CATEGORIES = 'categories',
@@ -134,16 +117,6 @@ export enum StepKeys {
 	ACTION_TYPE = 1,
 	ACTION_DATA = 2,
 	ACTION_SUMMARY = 3,
-}
-
-export enum ActionTypes {
-	buying = 'buying',
-	selling = 'selling',
-	purchase = 'purchase',
-	procurement = 'procurement',
-	receipt = 'receipt',
-	Payment = 'Payment',
-	test = 'test',
 }
 
 export enum AddQuickStateEnum {

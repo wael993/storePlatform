@@ -45,8 +45,6 @@ export interface SellingInvoiceSummary {
 	salesSparkline: number[]
 }
 
-export type SellingInvoiceStatusFilter = 'all' | SellingInvoiceStatus
-
 export type SellingInvoiceSortKey = 'invoiceNumber' | 'time'
 export type SortDirection = 'asc' | 'desc'
 

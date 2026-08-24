@@ -463,9 +463,6 @@ export type CreateUnitResponse = {
 	_id: string
 	unitId?: string
 }
-export type CreateCategoryResponse = {
-	_id: string
-}
 export type CreateBrandResponse = {
 	_id: string
 }
@@ -713,7 +710,6 @@ interface UserAPIFormat {
 	createdAt?: Date
 }
 
-type ProductAPIStatus = 'active' | 'inactive' | 'discontinued'
 interface ProductAPI {
 	tenantId: string
 	// _id: string
@@ -764,12 +760,4 @@ interface ProductAPI {
 	createdAt: Date
 	updatedAt: Date
 	relatedActions?: ProductDailyAction[]
-}
-
-export type ProductAPIEnriched = Omit<
-	ProductAPI,
-	'categoryId' | 'brandId' | 'supplierId'
-> & {
-	brand?: { _id: string; name: string }
-	supplier?: { supplierId: string; name: string }
 }
