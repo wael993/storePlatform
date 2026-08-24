@@ -224,9 +224,7 @@ const CustomerListItemMobil = ({
 												: PAGE_COLORS.success
 										}
 										stateTitle={
-											totalReceivable > 0
-												? 'common.inactive'
-												: 'common.active'
+											totalReceivable > 0 ? 'common.inactive' : 'common.active'
 										}
 										customStyles={{
 											colorCircle: { width: '0.875rem', height: '0.875rem' },

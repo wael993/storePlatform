@@ -17,10 +17,7 @@ import { useEffect, useMemo, useState } from 'react'
 import MultiStepper from '../../common/MultiStepper'
 import { isEqual } from 'lodash'
 import ConfirmationDialog from '../../ConfirmationDialog'
-import {
-	DailyActionType,
-	StepKeys,
-} from '../../../shared/globalEnums'
+import { DailyActionType, StepKeys } from '../../../shared/globalEnums'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import FirstStep from './AddDailyActionSteps/FirstStep'
 import SecondStep from './AddDailyActionSteps/SecondStep'

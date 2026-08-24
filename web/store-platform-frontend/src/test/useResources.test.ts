@@ -21,9 +21,9 @@ describe('isActionAllowed', () => {
 	})
 
 	it('blocks an unmapped action', () => {
-		expect(isActionAllowed('seeStockQuantity' as AllowedActions, canSee([]))).toBe(
-			false,
-		)
+		expect(
+			isActionAllowed('seeStockQuantity' as AllowedActions, canSee([])),
+		).toBe(false)
 	})
 
 	it('maps customer and partner delete to *.delete see ids', () => {
