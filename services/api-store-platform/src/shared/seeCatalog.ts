@@ -7,7 +7,6 @@ import { TenantRole } from './tenant'
 export const SEE = {
 	welcome: 'welcome',
 	daily: 'daily',
-	barcode: 'barcode',
 	orders: 'orders',
 	settings: 'settings',
 	settingsProducts: 'settings.products',
@@ -89,7 +88,6 @@ export const PACKAGE_SEE_IDS: SeeId[] = [
 export const SEE_CATALOG: SeeCatalogNode[] = [
 	{ id: SEE.welcome, tenantPage: null },
 	{ id: SEE.daily, tenantPage: TENANT_ACCESSIBLE_PAGE.DAILY },
-	{ id: SEE.barcode, tenantPage: TENANT_ACCESSIBLE_PAGE.BARCODE },
 	{ id: SEE.orders, tenantPage: TENANT_ACCESSIBLE_PAGE.ORDERS },
 	{
 		id: SEE.settings,

@@ -6,7 +6,6 @@
 	},
 	"navigation": {
 		"welcome": "Willkommen",
-		"barcode": "Barcode",
 		"allProducts": "Alle Produkte",
 		"addTenant": "Mandant hinzufügen"
 	},
@@ -167,7 +166,6 @@
 			"invoicesDescription": "Rechnungsverwaltung.",
 			"inventoryDescription": "Bestands- und Inventarverfolgung.",
 			"reportsDescription": "Fragen Sie den KI-Assistenten zu Umsatz, Produkten, Lieferanten und Rechnungen.",
-			"barcodeDescription": "Barcode-Scan-Workflow.",
 			"settingsDescription": "Mandanteneinstellungen und Präferenzen.",
 			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung.",
 			"invoiceAi": "KI-Rechnungimport",
@@ -195,11 +193,6 @@
 		"invalidCredentials": "Ungültige E-Mail-Adresse oder ungültiges Passwort.",
 		"resetSent": "Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet.",
 		"resetFailed": "E-Mail zum Zurücksetzen konnte nicht gesendet werden."
-	},
-	"barcode": {
-		"scanPlaceholder": "Barcode scannen oder manuell eingeben...",
-		"scan": "Scannen",
-		"searching": "Produkt wird gesucht..."
 	},
 	"pagination": {
 		"previous": "Zurück",
@@ -323,7 +316,6 @@
 			"items": {
 				"welcome": "Willkommensseite sehen",
 				"daily": "Tagesseite sehen",
-				"barcode": "Barcode-Seite sehen",
 				"orders": "Bestellseite sehen",
 				"settings": "Einstellungen sehen",
 				"settings_products": "Produkte-Tab sehen",
@@ -436,10 +428,6 @@
 	"productModal": {
 		"newProduct": "Neues Produkt",
 		"editProduct": "Produkt bearbeiten",
-		"productDetails": "Produktdetails",
-		"notFound": "Produkt nicht gefunden",
-		"noDescription": "Keine Beschreibung",
-		"addToCart": "In den Warenkorb",
 		"saveProduct": "Produkt speichern",
 		"nameBarcodeRequired": "Name und Barcode sind erforderlich.",
 		"nameOrLatinNameRequired": "Produktname oder lateinischer Name ist erforderlich.",
@@ -873,7 +861,6 @@
 			"suppliers": "Lieferanten",
 			"partners": "Partner",
 			"partner": "Partner",
-			"product": "Produkt",
 			"employees": "Mitarbeiter",
 			"employee": "Mitarbeiter",
 			"reports": "Berichte"

@@ -52,7 +52,6 @@ export const getEnabledActions = () => {
 		isAddNewTenantEnabled: enabledActions.has('ADD_NEW_TENANT'),
 		isTenantsListEnabled: enabledActions.has('TENANTS_LIST'),
 		isDailyEnabled: enabledActions.has('DAILY'),
-		isBarcodeEnabled: enabledActions.has('BARCODE'),
 		isProductsEnabled: enabledActions.has('PRODUCTS'),
 		isOrdersEnabled: enabledActions.has('ORDERS'),
 		isInvoicesEnabled: enabledActions.has('INVOICE'),
@@ -88,7 +87,6 @@ export const getGloballyEnabledTenantPages = (
 		INVOICE_AI: enabledActions.isInvoiceAiEnabled,
 		INVENTORY: enabledActions.isProductsEnabled,
 		REPORTS: enabledActions.isReportsEnabled,
-		BARCODE: enabledActions.isBarcodeEnabled,
 		SETTINGS: enabledActions.isSettingsEnabled,
 	}
 
@@ -104,7 +102,6 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 	return {
 		isTenantAddNewTenantEnabled: tenantPages.has('ADD_NEW_TENANT'),
 		isTenantTenantsListEnabled: tenantPages.has('TENANTS_LIST'),
-		isTenantBarcodeEnabled: tenantPages.has('BARCODE'),
 		isTenantProductsEnabled: tenantPages.has('PRODUCTS'),
 		isTenantDailyEnabled: tenantPages.has('DAILY'),
 		isTenantOrdersEnabled: tenantPages.has('ORDERS'),
@@ -141,12 +138,6 @@ export const isTenantRouteAllowed = (
 	}
 
 	const routeChecks: Array<[string, boolean]> = [
-		[
-			RoutePaths.BARCODE,
-			globalActions.isBarcodeEnabled &&
-				tenantActions.isTenantBarcodeEnabled &&
-				canSee(SEE.barcode),
-		],
 		[
 			RoutePaths.PRODUCTS,
 			globalActions.isProductsEnabled &&

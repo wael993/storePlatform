@@ -9,7 +9,6 @@ export const RoutePaths = {
 	SERVICES: '/services',
 	STORE_PLATFORM: ROUTE_PREFIX,
 	LOGIN: withBasePath('/login'),
-	BARCODE: withBasePath('/barcode'),
 	PRODUCTS: withBasePath('/products'),
 	SINGLE_PRODUCT: withBasePath('/products/:productId'),
 	DAILY: withBasePath('/daily'),
@@ -48,7 +47,6 @@ export const buildRoutePath = {
 
 export const fullPaths = {
 	ROOT: RoutePaths.ROOT,
-	BARCODE: RoutePaths.BARCODE,
 	PRODUCTS: RoutePaths.PRODUCTS,
 	ALL_PRODUCTS: RoutePaths.PRODUCTS,
 	DAILY: RoutePaths.DAILY,
@@ -71,9 +69,7 @@ export const fullPaths = {
 
 export const routeLabelKeys = {
 	ROOT: 'navigation.welcome',
-	BARCODE: 'navigation.barcode',
 	PRODUCTS: 'components.pageHeaders.products',
-	PRODUCT: 'components.pageHeaders.product',
 	ALL_PRODUCTS: 'navigation.allProducts',
 	DAILY: 'components.pageHeaders.daily',
 	ORDERS: 'components.pageHeaders.orders',
@@ -100,7 +96,6 @@ export const routeLabelKeys = {
 export const getRouteLabel = (path: string, fallback = '') => {
 	const routeLabelKeyByPath: Record<string, string> = {
 		[RoutePaths.ROOT]: routeLabelKeys.ROOT,
-		[RoutePaths.BARCODE]: routeLabelKeys.BARCODE,
 		[RoutePaths.PRODUCTS]: routeLabelKeys.PRODUCTS,
 		[RoutePaths.DAILY]: routeLabelKeys.DAILY,
 		[RoutePaths.ORDERS]: routeLabelKeys.ORDERS,
@@ -168,26 +163,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			id: 'products',
 			name: t(routeLabelKeys.PRODUCTS),
 			href: `${fullPaths.PRODUCTS}`,
-			isCurrentPage: true,
-		},
-	]
-	const barcode: BreadcrumbItem[] = [
-		{
-			id: 'store-platform',
-			name: t(routeLabelKeys.STORE_PLATFORM),
-			href: fullPaths.ROOT,
-			isCurrentPage: false,
-		},
-		{
-			id: 'barcode',
-			name: t(routeLabelKeys.BARCODE),
-			href: fullPaths.BARCODE,
-			isCurrentPage: true,
-		},
-		{
-			id: 'product',
-			name: t(routeLabelKeys.PRODUCT),
-			href: fullPaths.PRODUCTS,
 			isCurrentPage: true,
 		},
 	]
@@ -492,7 +467,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		StorePlatform,
 		settings,
 		allActivities,
-		barcode,
 		products,
 		orders,
 		daily,

@@ -1,7 +1,6 @@
 export const SEE = {
 	welcome: 'welcome',
 	daily: 'daily',
-	barcode: 'barcode',
 	orders: 'orders',
 	settings: 'settings',
 	settingsProducts: 'settings.products',

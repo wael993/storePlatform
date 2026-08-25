@@ -225,7 +225,7 @@ const TopSection = ({
 			)
 
 	const barcode =
-		isProductTarget && canSee(SEE.barcode) && product?.barcode?.trim()
+		isProductTarget && product?.barcode?.trim()
 			? product.barcode
 			: undefined
 

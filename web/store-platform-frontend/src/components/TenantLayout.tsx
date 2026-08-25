@@ -44,7 +44,6 @@ const TenantLayout = () => {
 		canSee(SEE.settings)
 
 	const {
-		isBarcodeEnabled,
 		isProductsEnabled,
 		isOrdersEnabled,
 		isInvoicesEnabled,
@@ -60,7 +59,6 @@ const TenantLayout = () => {
 	} = enabledActions
 
 	const {
-		isTenantBarcodeEnabled,
 		isTenantProductsEnabled,
 		isTenantOrdersEnabled,
 		isTenantInvoicesEnabled,
@@ -81,9 +79,6 @@ const TenantLayout = () => {
 		canSee(SEE.welcome) ? { label: 'Welcome', path: RoutePaths.ROOT } : null,
 		isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily)
 			? { label: 'Daily', path: RoutePaths.DAILY }
-			: null,
-		isBarcodeEnabled && isTenantBarcodeEnabled && canSee(SEE.barcode)
-			? { label: 'Barcode', path: RoutePaths.BARCODE }
 			: null,
 		isProductsEnabled && isTenantProductsEnabled && canSee(SEE.products)
 			? { label: 'Products', path: RoutePaths.PRODUCTS }

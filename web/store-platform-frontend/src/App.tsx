@@ -6,7 +6,6 @@ import {
 } from 'react-router-dom'
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
-import BarcodePage from './pages/BarcodePage'
 import { TargetType, UserRole } from './shared/globalEnums'
 import UsersLogIn from './pages/UsersLogIn'
 import AddNewTenant from './pages/AddNewTenant'
@@ -59,7 +58,6 @@ const App = () => {
 	const {
 		isAddNewTenantEnabled,
 		isTenantsListEnabled,
-		isBarcodeEnabled,
 		isDailyEnabled,
 		isProductsEnabled,
 		isOrdersEnabled,
@@ -77,7 +75,6 @@ const App = () => {
 	const {
 		isTenantAddNewTenantEnabled,
 		isTenantTenantsListEnabled,
-		isTenantBarcodeEnabled,
 		isTenantProductsEnabled,
 		isTenantDailyEnabled,
 		isTenantOrdersEnabled,
@@ -111,11 +108,6 @@ const App = () => {
 					<Route element={<TenantLayout />}>
 						<Route path={RoutePaths.ROOT} element={<WelcomePage />} />
 						<Route path={RoutePaths.STORE_PLATFORM} element={<WelcomePage />} />
-						{isBarcodeEnabled &&
-							isTenantBarcodeEnabled &&
-							canSee(SEE.barcode) && (
-								<Route path={RoutePaths.BARCODE} element={<BarcodePage />} />
-							)}
 						{isProductsEnabled &&
 							isTenantProductsEnabled &&
 							canSee(SEE.products) && (
@@ -237,7 +229,7 @@ const App = () => {
 							isAuthenticated={isAuthenticated}
 							userRole={userRole}
 							allowedRoles={[UserRole.SUPER_ADMIN]}
-							redirectTo={RoutePaths.BARCODE}
+							redirectTo={RoutePaths.ROOT}
 						/>
 					}
 				>

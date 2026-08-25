@@ -6,7 +6,6 @@
 	},
 	"navigation": {
 		"welcome": "الرئيسية",
-		"barcode": "الباركود",
 		"allProducts": "جميع المنتجات",
 		"addTenant": "إضافة مستأجر"
 	},
@@ -167,7 +166,6 @@
 			"invoicesDescription": "إدارة الفواتير.",
 			"inventoryDescription": "تتبع المخزون والمستودعات.",
 			"reportsDescription": "اسأل مساعد الذكاء الاصطناعي عن المبيعات والمنتجات والموردين والفواتير.",
-			"barcodeDescription": "سير عمل مسح الباركود.",
 			"settingsDescription": "إعدادات وتفضيلات المستأجر.",
 			"sellingInvoicesDescription": "إدارة الفواتير المباعة.",
 			"invoiceAi": "استيراد الفواتير بالذكاء الاصطناعي",
@@ -195,11 +193,6 @@
 		"invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
 		"resetSent": "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.",
 		"resetFailed": "فشل إرسال بريد إعادة التعيين."
-	},
-	"barcode": {
-		"scanPlaceholder": "امسح الباركود أو اكتبه يدويًا...",
-		"scan": "مسح",
-		"searching": "جارٍ البحث عن المنتج..."
 	},
 	"pagination": {
 		"previous": "السابق",
@@ -323,7 +316,6 @@
 			"items": {
 				"welcome": " صفحة الترحيب",
 				"daily": " الصفحة اليومية",
-				"barcode": " صفحة الباركود",
 				"orders": " صفحة الطلبات",
 				"settings": " صفحة الإعدادات",
 				"settings_products": " نافذة المنتجات",
@@ -436,10 +428,6 @@
 	"productModal": {
 		"newProduct": "منتج جديد",
 		"editProduct": "تعديل المنتج",
-		"productDetails": "تفاصيل المنتج",
-		"notFound": "لم يتم العثور على المنتج",
-		"noDescription": "لا يوجد وصف",
-		"addToCart": "إضافة إلى السلة",
 		"saveProduct": "حفظ المنتج",
 		"nameBarcodeRequired": "الاسم والباركود مطلوبان.",
 		"nameOrLatinNameRequired": "اسم المنتج أو الاسم اللاتيني مطلوب.",
@@ -873,7 +861,6 @@
 			"suppliers": "الموردون",
 			"partners": "الشركاء",
 			"partner": "الشريك",
-			"product": "المنتج",
 			"employees": "الموظفون",
 			"employee": "موظف",
 			"reports": "التقارير"

@@ -13,7 +13,7 @@ const ProtectedRoute = ({
 	isAuthenticated,
 	userRole,
 	allowedRoles,
-	redirectTo = RoutePaths.BARCODE,
+	redirectTo = RoutePaths.ROOT,
 }: ProtectedRouteProps) => {
 	if (!isAuthenticated) {
 		return <Navigate to={RoutePaths.LOGIN} />

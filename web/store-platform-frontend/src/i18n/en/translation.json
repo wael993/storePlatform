@@ -6,7 +6,6 @@
 	},
 	"navigation": {
 		"welcome": "Welcome",
-		"barcode": "Barcode",
 		"allProducts": "All products",
 		"addTenant": "Add Tenant"
 	},
@@ -167,7 +166,6 @@
 			"invoicesDescription": "Invoice management.",
 			"inventoryDescription": "Stock and inventory tracking.",
 			"reportsDescription": "Ask the AI assistant about sales, products, suppliers, and invoices.",
-			"barcodeDescription": "Barcode scanning workflow.",
 			"settingsDescription": "Tenant settings and preferences.",
 			"sellingInvoicesDescription": "Selling invoice management.",
 			"invoiceAi": "Invoice AI import",
@@ -195,11 +193,6 @@
 		"invalidCredentials": "Invalid email or password.",
 		"resetSent": "Password reset link sent to your email.",
 		"resetFailed": "Failed to send reset email."
-	},
-	"barcode": {
-		"scanPlaceholder": "Scan barcode or type manually...",
-		"scan": "Scan",
-		"searching": "Searching for product..."
 	},
 	"pagination": {
 		"previous": "Previous",
@@ -323,7 +316,6 @@
 			"items": {
 				"welcome": "Can see Welcome page",
 				"daily": "Can see Daily page",
-				"barcode": "Can see Barcode page",
 				"orders": "Can see Orders page",
 				"settings": "Can see Settings page",
 				"settings_products": "Can see Products tab",
@@ -436,10 +428,6 @@
 	"productModal": {
 		"newProduct": "New Product",
 		"editProduct": "Edit Product",
-		"productDetails": "Product Details",
-		"notFound": "Product not found",
-		"noDescription": "No description",
-		"addToCart": "Add to Cart",
 		"saveProduct": "Save Product",
 		"nameBarcodeRequired": "Name and barcode are required.",
 		"nameOrLatinNameRequired": "Product name or latin name is required.",
@@ -873,7 +861,6 @@
 			"suppliers": "Suppliers",
 			"partners": "Partners",
 			"partner": "Partner",
-			"product": "Product",
 			"employees": "Employees",
 			"employee": "Employee",
 			"reports": "Reports"
