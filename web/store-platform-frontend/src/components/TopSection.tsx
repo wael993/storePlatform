@@ -225,9 +225,7 @@ const TopSection = ({
 			)
 
 	const barcode =
-		isProductTarget && product?.barcode?.trim()
-			? product.barcode
-			: undefined
+		isProductTarget && product?.barcode?.trim() ? product.barcode : undefined
 
 	const metaItems = [entry.internalCode, chip, barcode].filter(Boolean)
 

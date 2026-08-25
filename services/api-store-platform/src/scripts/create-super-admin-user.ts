@@ -61,9 +61,12 @@ async function createSuperAdminUser() {
 		)
 
 		const hashedPassword = await bcrypt.hash(password, 10)
-		const existing = await User.findOne({ tenantId, email })
+		const existing =
+			(await User.findOne({ tenantId, email })) ??
+			(await User.findOne({ tenantId, role: SUPER_ADMIN_ROLE }))
 
 		if (existing) {
+			existing.email = email
 			existing.role = SUPER_ADMIN_ROLE
 			existing.password = hashedPassword
 			existing.tokenVersion = (existing.tokenVersion ?? 0) + 1
