@@ -1092,6 +1092,7 @@
 		"expiresInOneDay": "Your subscription expires in 1 day.",
 		"expiresToday": "Your subscription expires today.",
 		"expired": "Your subscription expired on {{date}}.",
+		"readOnly": "You can only view your data. Adding, editing and deleting stay disabled until the subscription is renewed.",
 		"renewBefore": "Please complete payment and wait for administrator approval before {{date}} to keep your tenant account active.",
 		"requestRenewal": "Request Subscription Renewal",
 		"submitRequest": "Request Renewal",

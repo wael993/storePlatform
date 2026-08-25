@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
 	Alert,
 	AlertDescription,
@@ -35,6 +35,8 @@ const ALLOWED_QR_URL = /^(https?:\/\/|data:image\/)/i
 
 export const isAllowedPaymentQrUrl = (url: string) =>
 	ALLOWED_QR_URL.test(url.trim())
+
+const APPROVED_BANNER_MS = 5000
 
 const dismissKey = (tenantId: string, remainingDays: number) =>
 	`subscription-banner:${tenantId}:${remainingDays}`
@@ -173,6 +175,22 @@ const SubscriptionRenewalBanner = () => {
 	)
 	const isRejected = latestRequest?.status === 'rejected' && !pendingRequest
 
+	const hideApproved = () => {
+		if (approvedStorageKey) {
+			localStorage.setItem(approvedStorageKey, '1')
+		}
+
+		setDismissedApproved(true)
+	}
+
+	useEffect(() => {
+		if (!showApproved || pendingRequest) return
+
+		const timer = window.setTimeout(hideApproved, APPROVED_BANNER_MS)
+
+		return () => window.clearTimeout(timer)
+	}, [showApproved, pendingRequest, approvedStorageKey])
+
 	if (
 		!tenantId ||
 		skip ||
@@ -212,14 +230,6 @@ const SubscriptionRenewalBanner = () => {
 		}
 
 		setDismissed(true)
-	}
-
-	const dismissApproved = () => {
-		if (approvedStorageKey) {
-			localStorage.setItem(approvedStorageKey, '1')
-		}
-
-		setDismissedApproved(true)
 	}
 
 	const submitRequest = () => {
@@ -275,11 +285,12 @@ const SubscriptionRenewalBanner = () => {
 						) : (
 							daysMessage
 						)}
-						{!pendingRequest &&
-						!showApproved &&
-						subscription &&
-						subscription.remainingDays >= 0
-							? ` ${t('subscription.renewBefore', { date })}`
+						{!pendingRequest && !showApproved && subscription
+							? ` ${
+									subscription.expired
+										? t('subscription.readOnly')
+										: t('subscription.renewBefore', { date })
+								}`
 							: ''}
 					</AlertDescription>
 					{pendingRequest ? (
@@ -313,12 +324,14 @@ const SubscriptionRenewalBanner = () => {
 						</Button>
 					) : null}
 				</Box>
-				{pendingRequest || isRejected ? null : (
+				{pendingRequest ||
+				isRejected ||
+				(subscription?.remainingDays ?? 0) < 0 ? null : (
 					<CloseButton
 						alignSelf="flex-start"
 						ms={2}
 						aria-label={t('subscription.dismiss')}
-						onClick={showApproved ? dismissApproved : dismiss}
+						onClick={showApproved ? hideApproved : dismiss}
 					/>
 				)}
 			</Alert>

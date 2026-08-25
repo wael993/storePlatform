@@ -1092,6 +1092,7 @@
 		"expiresInOneDay": "Ihr Abo läuft in 1 Tag ab.",
 		"expiresToday": "Ihr Abo läuft heute ab.",
 		"expired": "Ihr Abo ist am {{date}} abgelaufen.",
+		"readOnly": "Sie können Ihre Daten nur ansehen. Hinzufügen, Bearbeiten und Löschen bleiben gesperrt, bis das Abo erneuert wurde.",
 		"renewBefore": "Bitte zahlen Sie und warten Sie auf die Freigabe durch den Administrator vor dem {{date}}, damit Ihr Mandantenkonto aktiv bleibt.",
 		"requestRenewal": "Abo-Verlängerung beantragen",
 		"submitRequest": "Verlängerung beantragen",

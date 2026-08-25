@@ -91,17 +91,40 @@ export const resolveAccessiblePagesForTenant = (
 	return pages
 }
 
-export const getRequiredAccessiblePages = (
-	requestPath: string,
-	method: string,
-): TenantAccessiblePage[] | null => {
+const requestSegments = (requestPath: string): string[] => {
 	const normalizedPath = requestPath.split('?')[0]
 
 	const relativePath = normalizedPath.startsWith(API_BASE_PATH)
 		? normalizedPath.slice(API_BASE_PATH.length)
 		: normalizedPath
 
-	const segments = relativePath.split('/').filter(Boolean)
+	return relativePath.split('/').filter(Boolean)
+}
+
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+export const isWriteBlockedWhileExpired = (
+	requestPath: string,
+	method: string,
+): boolean => {
+	if (!WRITE_METHODS.has(method.toUpperCase())) {
+		return false
+	}
+
+	const [firstSegment] = requestSegments(requestPath)
+
+	if (!firstSegment || UNRESTRICTED_API_SEGMENTS.has(firstSegment)) {
+		return false
+	}
+
+	return firstSegment !== 'subscription'
+}
+
+export const getRequiredAccessiblePages = (
+	requestPath: string,
+	method: string,
+): TenantAccessiblePage[] | null => {
+	const segments = requestSegments(requestPath)
 	const [firstSegment, secondSegment, thirdSegment] = segments
 
 	if (!firstSegment || UNRESTRICTED_API_SEGMENTS.has(firstSegment)) {

@@ -8,6 +8,7 @@ import {
 import { ERROR_CODES } from '../shared/errorCodes'
 import {
 	getRequiredAccessiblePages,
+	isWriteBlockedWhileExpired,
 	tenantHasRequiredPageAccess,
 } from '../shared/constants/tenantPageAccess'
 import { getSeeSet } from '../shared/seePermissions'
@@ -48,12 +49,23 @@ export default class ActivityAuthorization {
 				request.path,
 				request.method,
 			)
+			const blockedWhileExpired = isWriteBlockedWhileExpired(
+				request.path,
+				request.method,
+			)
 
-			if (requiredPages) {
-				const accessiblePages =
-					await this.productController.getTenantAccessiblePagesForRequest(
-						user.tenantId,
-					)
+			if (requiredPages || blockedWhileExpired) {
+				const { accessiblePages, subscriptionExpired } =
+					await this.productController.getTenantRequestAccess(user.tenantId)
+
+				if (subscriptionExpired && blockedWhileExpired) {
+					response.status(403).json({
+						message: 'Subscription expired. Renew it to make changes.',
+						errorCode: ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					})
+
+					return
+				}
 
 				if (!tenantHasRequiredPageAccess(accessiblePages, requiredPages)) {
 					response.status(403).json({

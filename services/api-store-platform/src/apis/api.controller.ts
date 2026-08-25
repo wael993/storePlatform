@@ -667,9 +667,10 @@ export default class ProductController {
 		}
 	}
 
-	public async getTenantAccessiblePagesForRequest(
-		tenantId: string,
-	): Promise<TenantAccessiblePage[]> {
+	public async getTenantRequestAccess(tenantId: string): Promise<{
+		accessiblePages: TenantAccessiblePage[]
+		subscriptionExpired: boolean
+	}> {
 		const tenant = (await Tenant.findOne({
 			tenantId,
 		}).lean()) as ITenant | null
@@ -681,16 +682,21 @@ export default class ProductController {
 			)
 		}
 
-		const { tenant: synced } = await syncTenantSubscription(tenant)
+		const { tenant: synced, view } = await syncTenantSubscription(tenant)
+		const subscriptionExpired = Boolean(view?.expired)
 
-		if (synced.status !== 'active') {
+		// An expired subscription deactivates the tenant, but it stays readable so it can renew.
+		if (synced.status !== 'active' && !subscriptionExpired) {
 			throw new AuthorizationError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 				'Tenant is not active.',
 			)
 		}
 
-		return resolveAccessiblePagesForTenant(synced)
+		return {
+			accessiblePages: resolveAccessiblePagesForTenant(synced),
+			subscriptionExpired,
+		}
 	}
 
 	private async ensureProductsBelongToTenant(
