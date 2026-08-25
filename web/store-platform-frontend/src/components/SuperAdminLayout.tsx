@@ -80,12 +80,13 @@ const SuperAdminLayout = () => {
 	return (
 		<Flex minH="100dvh" bg="gray.50" overflowX="hidden">
 			<Box
-				w={{ base: 'full', md: '280px' }}
+				display={{ base: 'none', md: 'flex' }}
+				w="280px"
+				flexShrink={0}
 				bg="white"
-				borderRightWidth="1px"
+				borderEndWidth="1px"
 				px={5}
 				py={6}
-				display="flex"
 				flexDir="column"
 				gap={6}
 			>
@@ -101,21 +102,11 @@ const SuperAdminLayout = () => {
 				<Divider />
 
 				<Stack gap={2}>
-					{isAddNewTenantEnabled && isTenantAddNewTenantEnabled && (
-						<Box as={NavLink} to={RoutePaths.ADD_NEW_TENANT} style={navStyle}>
-							{t(routeLabelKeys.ADD_NEW_TENANT)}
+					{topBarItems.map(item => (
+						<Box as={NavLink} key={item.path} to={item.path} style={navStyle}>
+							{item.label}
 						</Box>
-					)}
-					{isTenantsListEnabled && isTenantTenantsListEnabled && (
-						<Box as={NavLink} to={RoutePaths.TENANTS_LIST} style={navStyle}>
-							{t(routeLabelKeys.TENANTS_LIST)}
-						</Box>
-					)}
-					{isTenantsListEnabled && isTenantTenantsListEnabled && (
-						<Box as={NavLink} to={RoutePaths.RENEWAL_REQUESTS} style={navStyle}>
-							{t(routeLabelKeys.RENEWAL_REQUESTS)}
-						</Box>
-					)}
+					))}
 				</Stack>
 
 				<Box mt="auto">
@@ -135,13 +126,12 @@ const SuperAdminLayout = () => {
 				</Box>
 			</Box>
 
-			<Box flex="1" p={0} minW={0} sx={layoutCssVars}>
+			<Box flex="1" p={0} minW={0} w="full" sx={layoutCssVars}>
 				<TopBar
 					navItems={topBarItems}
 					userName={userName || user?.email || 'User'}
 					onLogout={handleLogout}
 					isLogoutLoading={isLoading}
-					isSettingsVisible={true}
 				/>
 				<Box
 					px={layout.contentPaddingX}

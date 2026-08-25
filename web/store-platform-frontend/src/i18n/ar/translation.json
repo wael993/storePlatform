@@ -1,5 +1,5 @@
 {
-	"appTitle": "الزين",
+	"appTitle": "ريڤو",
 	"settings": {
 		"updateSuccessMessage": "تم تحديث الإعدادات بنجاح.",
 		"updateFailedMessage": "فشل تحديث الإعدادات."
@@ -64,7 +64,7 @@
 	},
 	"report": {
 		"chat": {
-			"title": "مساعد الأعمال بالذكاء الاصطناعي",
+			"title": "ريڤو",
 			"subtitle": "اسأل عن المبيعات والمنتجات والموردين والفواتير والربح.",
 			"placeholder": "اسأل أي شيء عن عملك...",
 			"send": "إرسال",
@@ -1046,7 +1046,7 @@
 		},
 		"topBar": {
 			"changePassword": "تغيير كلمة المرور",
-			"logoAlt": "شعار منصة المتجر",
+			"logoAlt": "شعار ريڤو",
 			"welcome": "مرحبًا",
 			"notifications": "الإشعارات",
 			"noNotifications": "لا توجد إشعارات",

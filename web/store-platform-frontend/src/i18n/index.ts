@@ -13,28 +13,36 @@ const applyDocumentLanguage = (nextLanguage: string) => {
 	const direction = nextLanguage === 'ar' ? 'rtl' : 'ltr'
 	document.documentElement.lang = nextLanguage
 	document.documentElement.dir = direction
+	if (i18n.isInitialized) {
+		document.title = i18n.t('appTitle')
+	}
 }
 
-void i18n.use(initReactI18next).init({
-	resources: {
-		en: {
-			translation: enTranslation,
-		},
-		de: {
-			translation: deTranslation,
-		},
-		ar: {
-			translation: arTranslation,
-		},
-	},
-	lng: language,
-	fallbackLng: ['ar', 'en', 'de'],
-	interpolation: {
-		escapeValue: false,
-	},
-})
-
 applyDocumentLanguage(language)
+
+void i18n
+	.use(initReactI18next)
+	.init({
+		resources: {
+			en: {
+				translation: enTranslation,
+			},
+			de: {
+				translation: deTranslation,
+			},
+			ar: {
+				translation: arTranslation,
+			},
+		},
+		lng: language,
+		fallbackLng: ['ar', 'en', 'de'],
+		interpolation: {
+			escapeValue: false,
+		},
+	})
+	.then(() => {
+		applyDocumentLanguage(i18n.language)
+	})
 
 i18n.on('languageChanged', nextLanguage => {
 	applyDocumentLanguage(nextLanguage)

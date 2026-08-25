@@ -1,5 +1,5 @@
 {
-	"appTitle": "Store Platform",
+	"appTitle": "Rivo",
 	"settings": {
 		"updateSuccessMessage": "Einstellungen erfolgreich aktualisiert.",
 		"updateFailedMessage": "Einstellungen konnten nicht aktualisiert werden."
@@ -64,7 +64,7 @@
 	},
 	"report": {
 		"chat": {
-			"title": "KI-Geschäftsassistent",
+			"title": "Rivo",
 			"subtitle": "Stellen Sie Fragen zu Umsatz, Produkten, Lieferanten, Rechnungen und Gewinn.",
 			"placeholder": "Fragen Sie etwas zu Ihrem Geschäft...",
 			"send": "Senden",
@@ -1046,7 +1046,7 @@
 		},
 		"topBar": {
 			"changePassword": "Passwort ändern",
-			"logoAlt": "Store Platform Logo",
+			"logoAlt": "Rivo-Logo",
 			"welcome": "Willkommen",
 			"notifications": "Benachrichtigungen",
 			"noNotifications": "Keine Benachrichtigungen",

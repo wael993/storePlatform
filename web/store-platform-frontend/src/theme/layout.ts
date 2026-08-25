@@ -5,7 +5,7 @@ export const layout = {
 	topBarHeight: { base: '4rem', md: '5rem' },
 	contentPaddingX: { base: 4, md: 8 },
 	contentPaddingY: { base: 4, md: 8 },
-	logoSize: { base: '2rem', md: '2.875rem' },
+	logoSize: { base: '7rem', md: '8rem' },
 } as const
 
 export const layoutCssVars = {

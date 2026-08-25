@@ -198,8 +198,8 @@ const WelcomePage = () => {
 							<Image
 								src="/favicon.ico"
 								alt={t('components.topBar.logoAlt')}
-								w={{ base: '4.5rem', md: '5.5rem' }}
-								h={{ base: '4.5rem', md: '5.5rem' }}
+								w={{ base: '4.5rem', md: '8.5rem' }}
+								h={{ base: '4.5rem', md: '8.5rem' }}
 								objectFit="contain"
 							/>
 						</Flex>

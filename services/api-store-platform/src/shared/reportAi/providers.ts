@@ -11,7 +11,7 @@ import {
 
 const PROVIDER_TIMEOUT_MS = 20_000
 
-const ASSISTANT_NAME = 'Zain'
+const ASSISTANT_NAME = 'Rivo'
 
 const SYSTEM_PROMPT = (
 	now: Date,

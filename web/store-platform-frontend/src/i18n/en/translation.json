@@ -1,5 +1,5 @@
 {
-	"appTitle": "Store Platform",
+	"appTitle": "Rivo",
 	"settings": {
 		"updateSuccessMessage": "Settings updated successfully.",
 		"updateFailedMessage": "Failed to update settings."
@@ -64,7 +64,7 @@
 	},
 	"report": {
 		"chat": {
-			"title": "AI Business Assistant",
+			"title": "Rivo",
 			"subtitle": "Ask questions about your sales, products, suppliers, invoices, and profit.",
 			"placeholder": "Ask anything about your business...",
 			"send": "Send",
@@ -1046,7 +1046,7 @@
 		},
 		"topBar": {
 			"changePassword": "Change Password",
-			"logoAlt": "Store Platform Logo",
+			"logoAlt": "Rivo Logo",
 			"welcome": "Welcome",
 			"notifications": "Notifications",
 			"noNotifications": "No notifications",

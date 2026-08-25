@@ -335,7 +335,7 @@ const TopBar = ({
 							objectFit="contain"
 							flexShrink={0}
 						/>
-						<Text
+						{/* <Text
 							fontSize={{ base: 'md', md: 'xl' }}
 							fontWeight="semibold"
 							color="gray.800"
@@ -343,7 +343,7 @@ const TopBar = ({
 							display={{ base: 'none', sm: 'block' }}
 						>
 							{t('appTitle')}
-						</Text>
+						</Text> */}
 					</Flex>
 					{!isMobile && (
 						<FormControl maxW={{ base: '9rem', md: '10rem' }}>
