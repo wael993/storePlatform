@@ -3429,14 +3429,17 @@ export default class ProductController {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.EXPENSES)
 
 		const { tenantId } = getTenantContext(requestContext)
-		const updateData = {
-			...requestBody,
+		const updateData: Record<string, unknown> = {
 			internalCode: requestBody.internalCode?.trim() || undefined,
 			updatedBy: {
 				_id: requestContext.userId as string,
 				displayName: `${requestContext.user?.firstName} ${requestContext.user?.lastName}`,
 				updatedAt: new Date(),
 			},
+		}
+
+		if (requestBody.name !== undefined) {
+			updateData.name = requestBody.name
 		}
 
 		const updated = await withTenantScope(

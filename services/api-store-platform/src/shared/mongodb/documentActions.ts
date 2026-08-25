@@ -42,6 +42,16 @@ const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.EMPLOYEES]: 'employeeId',
 }
 
+export const omitIdentityFields = (payload: Record<string, unknown>) => {
+	const next = { ...payload }
+
+	delete next.tenantId
+	delete next.createdBy
+	delete next.updatedBy
+
+	return next
+}
+
 const getUserDisplayName = (requestContext: RequestContext) =>
 	`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim()
 
@@ -175,9 +185,7 @@ export const updateDocument = async (
 	const tenantContext = getTenantContext(requestContext)
 
 	const idField = RESOURCE_ID_FIELD[resource]
-	const updatePayload = { ...payload }
-
-	delete updatePayload.updatedBy
+	const updatePayload = omitIdentityFields(payload)
 
 	const query = withTenantScope(
 		model.findOneAndUpdate(
@@ -185,6 +193,7 @@ export const updateDocument = async (
 			{
 				$set: {
 					...updatePayload,
+					tenantId: tenantContext.tenantId,
 					updatedBy: buildUpdatedBy(requestContext, resource),
 				},
 			},
