@@ -5,6 +5,9 @@ import MongodbController from '../../shared/mongodb/mongodbController'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { getTenantContext } from '../../shared/tenant'
 import { analyzeBusinessQuestion } from '../../shared/reportAi/chat'
+import { runReportTool } from '../../shared/reportAi/tools'
+import { ReportAiAuth } from '../../shared/reportAi/types'
+import { ensureSeeForResource } from '../../shared/seePermissions'
 import { ReportRequestBody, RequestContext } from '../../shared/types'
 
 export default class ReportController {
@@ -77,8 +80,24 @@ export default class ReportController {
 		requestBody: Record<string, unknown>,
 		requestContext: RequestContext,
 	) {
+		await ensureSeeForResource(requestContext, COLLECTION_NAMES.REPORTS)
 		const tenantId = getTenantContext(requestContext).tenantId
+		const auth: ReportAiAuth = {
+			role: requestContext.role,
+			see: requestContext.see || [],
+		}
 
-		return analyzeBusinessQuestion(tenantId, requestBody.messages)
+		return analyzeBusinessQuestion(tenantId, requestBody.messages, auth)
+	}
+
+	public async getReportWatch(requestContext: RequestContext) {
+		await ensureSeeForResource(requestContext, COLLECTION_NAMES.REPORTS)
+		const tenantId = getTenantContext(requestContext).tenantId
+		const auth: ReportAiAuth = {
+			role: requestContext.role,
+			see: requestContext.see || [],
+		}
+
+		return runReportTool(tenantId, 'businessWatch', {}, new Date(), auth)
 	}
 }

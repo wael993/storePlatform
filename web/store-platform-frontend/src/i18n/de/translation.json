@@ -64,19 +64,32 @@
 	},
 	"report": {
 		"chat": {
-			"title": "Rivo",
-			"subtitle": "Stellen Sie Fragen zu Umsatz, Produkten, Lieferanten, Rechnungen und Gewinn.",
-			"placeholder": "Fragen Sie etwas zu Ihrem Geschäft...",
+			"title": "RIVO",
+			"subtitle": "Fragen Sie zu Umsatz, Lager, Gewinn, Kunden und Berichten.",
+			"placeholder": "Fragen Sie RIVO zu Ihrem Geschäft...",
 			"send": "Senden",
-			"empty": "Unterhaltung starten",
-			"emptyHint": "Der Assistent antwortet nur mit Daten dieses Mandanten. Wählen Sie eine Frage oder schreiben Sie selbst.",
+			"empty": "RIVO ist da",
+			"emptyHint": "RIVO liest die Daten dieses Mandanten und antwortet klar. Fragen Sie nach Umsatz oder danach, worauf Sie heute achten sollten.",
 			"thinking": "Geschäftsdaten werden gelesen...",
 			"error": "Antwort nicht möglich. Bitte erneut versuchen.",
 			"examples": {
-				"bestSeller": "Was war mein meistverkauftes Produkt im letzten Monat?",
-				"salesRange": "Wie hoch war mein Umsatz von Januar bis März?",
+				"watch": "RIVO, worauf sollte ich heute achten?",
+				"todaySales": "Wie viel habe ich heute verkauft?",
 				"profit": "Wie hoch war mein Gewinn im letzten Monat?",
-				"topSuppliers": "Bei welchem Lieferanten habe ich dieses Jahr am meisten eingekauft?"
+				"outstanding": "Welche Kunden haben noch offene Beträge?"
+			},
+			"watch": {
+				"title": "RIVO beobachtet",
+				"intro": "Ich habe Ihr Geschäft geprüft. Das verdient Ihre Aufmerksamkeit:",
+				"empty": "Ich habe Ihr Geschäft geprüft. Im Moment fällt nichts Ungewöhnliches auf.",
+				"error": "RIVO konnte die Beobachtung gerade nicht laden.",
+				"partial": "Einige Zahlen konnten nicht geladen werden. Das ist nicht das vollständige Bild.",
+				"lowStock": "{{count}} Produkte gehen zur Neige: {{names}}",
+				"salesUp": "Der Umsatz der letzten 30 Tage ist {{percent}} % höher als in der Vorperiode.",
+				"salesDown": "Der Umsatz der letzten 30 Tage ist {{percent}} % niedriger als in der Vorperiode.",
+				"profitUp": "Der Gewinn ist {{percent}} % höher als in der Vorperiode.",
+				"profitDown": "Der Gewinn ist {{percent}} % niedriger als in der Vorperiode.",
+				"outstanding": "{{count}} Kunden haben offene Rechnungen. Höchster Betrag: {{topName}}."
 			}
 		}
 	},

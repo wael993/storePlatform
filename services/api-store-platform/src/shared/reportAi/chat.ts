@@ -1,9 +1,10 @@
 import { config } from '../../config/config'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
+import { normalizeEasternNumerals } from './intent'
 import { getReportAiProvider } from './providers'
-import { isReportToolName, runReportTool } from './tools'
-import { ReportChatMessage, ReportToolName } from './types'
+import { canRunReportTool, isReportToolName, runReportTool } from './tools'
+import { ReportAiAuth, ReportChatMessage, ReportToolName } from './types'
 
 const MAX_MESSAGES = 16
 const MAX_CONTENT = 4000
@@ -11,6 +12,7 @@ const MAX_CONTENT = 4000
 export const analyzeBusinessQuestion = async (
 	tenantId: string,
 	messages: unknown,
+	auth: ReportAiAuth,
 	now = new Date(),
 ): Promise<{ reply: string }> => {
 	if (!Array.isArray(messages) || !messages.length) {
@@ -26,7 +28,7 @@ export const analyzeBusinessQuestion = async (
 		const role = record.role === 'assistant' ? 'assistant' : 'user'
 		const content =
 			typeof record.content === 'string'
-				? record.content.trim().slice(0, MAX_CONTENT)
+				? normalizeEasternNumerals(record.content).trim().slice(0, MAX_CONTENT)
 				: ''
 
 		return { role, content }
@@ -49,8 +51,14 @@ export const analyzeBusinessQuestion = async (
 				return { error: `Unknown tool ${name}` }
 			}
 
+			if (!canRunReportTool(auth, name)) {
+				return { error: 'unauthorized' }
+			}
+
 			return JSON.parse(
-				JSON.stringify(await runReportTool(tenantId, name, args ?? {}, now)),
+				JSON.stringify(
+					await runReportTool(tenantId, name, args ?? {}, now, auth),
+				),
 			)
 		},
 		now,

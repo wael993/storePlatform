@@ -18,6 +18,7 @@
 		"seed:master": "ts-node src/scripts/seed-master-data.ts",
 		"migrate:multi-tenant": "ts-node src/scripts/migrate-multi-tenant.ts",
 		"seed:super-admin": "ts-node src/scripts/create-super-admin-user.ts",
+		"seed:app-tenant": "ts-node src/scripts/seed-app-tenant.ts",
 		"migrate:drop-stale-indexes": "ts-node src/scripts/drop-stale-indexes.ts",
 		"cron:negative-quantity-snapshot": "ts-node src/scripts/run-negative-quantity-snapshot.ts",
 		"cron:subscription-lifecycle": "ts-node src/scripts/run-subscription-lifecycle.ts",

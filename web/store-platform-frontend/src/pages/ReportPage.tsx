@@ -14,7 +14,11 @@ import {
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { PAGE_COLORS } from '../components/SellingInvoice/constants'
-import { usePostReportChatMutation } from '../api/apiStore'
+import {
+	usePostReportChatMutation,
+	useGetReportWatchQuery,
+} from '../api/apiStore'
+import type { ReportWatchItem } from '../api/apiStore'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
 import { BulbIcon } from '../shared/icons/Bulb'
@@ -35,20 +39,35 @@ type ChatRole = 'user' | 'assistant'
 type ChatMessage = { role: ChatRole; content: string }
 
 const EXAMPLE_KEYS = [
-	'report.chat.examples.bestSeller',
-	'report.chat.examples.salesRange',
+	'report.chat.examples.watch',
+	'report.chat.examples.todaySales',
 	'report.chat.examples.profit',
-	'report.chat.examples.topSuppliers',
+	'report.chat.examples.outstanding',
 ] as const
 
+const watchLineKey = (item: ReportWatchItem): string => {
+	if (item.kind === 'lowStock') return 'report.chat.watch.lowStock'
+	if (item.kind === 'outstanding') return 'report.chat.watch.outstanding'
+	if (item.kind === 'salesChange') {
+		return item.percent < 0
+			? 'report.chat.watch.salesDown'
+			: 'report.chat.watch.salesUp'
+	}
+
+	return item.percent < 0
+		? 'report.chat.watch.profitDown'
+		: 'report.chat.watch.profitUp'
+}
+
 const ReportPage = () => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const breadCrumbItems = generateBreadcrumbs()
 	const [draft, setDraft] = useState('')
 	const [messages, setMessages] = useState<ChatMessage[]>([])
 	const [error, setError] = useState('')
 	const bottomRef = useRef<HTMLDivElement>(null)
 	const [postReportChat, { isLoading }] = usePostReportChatMutation()
+	const { data: watch, isError: watchFailed } = useGetReportWatchQuery()
 
 	useEffect(() => {
 		bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -170,6 +189,66 @@ const ReportPage = () => {
 							<Text fontSize="sm" color={PAGE_COLORS.muted} maxW="28rem">
 								{t('report.chat.emptyHint')}
 							</Text>
+							{watchFailed && (
+								<Text fontSize="sm" color={PAGE_COLORS.danger}>
+									{t('report.chat.watch.error')}
+								</Text>
+							)}
+							{watch && (
+								<Box
+									maxW="28rem"
+									w="100%"
+									p={4}
+									borderRadius="1rem"
+									border="1px solid"
+									borderColor={AI.border}
+									bg="white"
+									textAlign="start"
+								>
+									<Text fontWeight={700} fontSize="sm" mb={2}>
+										{t('report.chat.watch.title')}
+									</Text>
+									<Text
+										fontSize="sm"
+										color="gray.700"
+										mb={watch.items?.length ? 2 : 0}
+									>
+										{watch.items?.length
+											? t('report.chat.watch.intro')
+											: t('report.chat.watch.empty')}
+									</Text>
+									{watch.partial && (
+										<Text fontSize="sm" color={PAGE_COLORS.danger} mb={2}>
+											{t('report.chat.watch.partial')}
+										</Text>
+									)}
+									{(watch.items ?? []).map((item, index) => (
+										<Text
+											key={`${item.kind}-${index}`}
+											fontSize="sm"
+											color="gray.800"
+										>
+											{t(watchLineKey(item), {
+												count:
+													item.kind === 'lowStock' && item.truncated
+														? `${item.count}+`
+														: 'count' in item
+															? item.count
+															: 0,
+												percent: 'percent' in item ? Math.abs(item.percent) : 0,
+												names:
+													item.kind === 'lowStock'
+														? item.names.join(
+																i18n.language === 'ar' ? '، ' : ', ',
+															)
+														: '',
+												topName:
+													item.kind === 'outstanding' ? item.topName || '' : '',
+											})}
+										</Text>
+									))}
+								</Box>
+							)}
 							<Flex gap={2} flexWrap="wrap" justify="center">
 								{EXAMPLE_KEYS.map(key => (
 									<Button
@@ -226,6 +305,7 @@ const ReportPage = () => {
 									whiteSpace="pre-wrap"
 									fontSize="sm"
 									lineHeight="1.6"
+									dir="auto"
 								>
 									{message.content}
 								</Box>
@@ -278,6 +358,7 @@ const ReportPage = () => {
 						maxH="8rem"
 						rows={1}
 						resize="none"
+						dir="auto"
 						borderColor={AI.border}
 						_focus={{
 							borderColor: AI.accent,

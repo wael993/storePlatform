@@ -2065,6 +2065,7 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	if (path.startsWith('buying-invoices/invoice-ai-usage')) return false
 	if (path.startsWith('buying-invoices/confirm-match')) return false
 	if (path.startsWith('reports/chat')) return false
+	if (path.startsWith('reports/watch')) return false
 	if (path.startsWith('tenants')) return false
 	if (path.startsWith('subscription')) return false
 	if (path.startsWith('users')) return false

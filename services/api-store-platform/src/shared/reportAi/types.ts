@@ -9,6 +9,11 @@ export type ReportChatMessage = {
 	content: string
 }
 
+export type ReportAiAuth = {
+	role?: string
+	see: readonly string[]
+}
+
 export type ReportToolName =
 	| 'topSellingProducts'
 	| 'salesSummary'
@@ -16,6 +21,7 @@ export type ReportToolName =
 	| 'profitSummary'
 	| 'topSuppliers'
 	| 'topCustomersByOutstanding'
+	| 'businessWatch'
 
 export type ReportToolRunner = (
 	name: ReportToolName,

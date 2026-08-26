@@ -85,6 +85,32 @@ export interface SavedColumnConfig {
 	isDefault: boolean
 }
 
+export type ReportWatchItem =
+	| { kind: 'lowStock'; count: number; names: string[]; truncated?: boolean }
+	| {
+			kind: 'salesChange' | 'profitChange'
+			percent: number
+			current: number
+			previous: number
+	  }
+	| {
+			kind: 'outstanding'
+			count: number
+			total: number
+			topName: string | null
+	  }
+
+export type ReportWatchResponse = {
+	period: {
+		startDate: string
+		endDate: string
+		previousStartDate: string
+		previousEndDate: string
+	}
+	items: ReportWatchItem[]
+	partial?: boolean
+}
+
 export interface UserSettings {
 	_id?: string
 	tenantId: string
@@ -1933,6 +1959,10 @@ const getQuery = (
 			}),
 		}),
 
+		getReportWatch: builder.query<ReportWatchResponse, void>({
+			query: () => ({ url: 'reports/watch' }),
+		}),
+
 		getProductImportStatus: builder.query<ProductImportStatusResponse, void>({
 			query: () => ({ url: 'product-import/status' }),
 			providesTags: ['product-import'],
@@ -2267,6 +2297,7 @@ export const {
 	useExtractBuyingInvoiceMutation,
 	useGetInvoiceAiUsageQuery,
 	usePostReportChatMutation,
+	useGetReportWatchQuery,
 	useConfirmBuyingInvoiceMatchMutation,
 	useGetProductImportStatusQuery,
 	useSkipProductImportMutation,

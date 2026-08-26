@@ -64,19 +64,32 @@
 	},
 	"report": {
 		"chat": {
-			"title": "Rivo",
-			"subtitle": "Ask questions about your sales, products, suppliers, invoices, and profit.",
-			"placeholder": "Ask anything about your business...",
+			"title": "RIVO",
+			"subtitle": "Ask about your business: sales, stock, profit, customers, and reports.",
+			"placeholder": "Ask RIVO about your business...",
 			"send": "Send",
-			"empty": "Start a conversation",
-			"emptyHint": "The assistant answers from this tenant's records only. Try a question below or type your own.",
+			"empty": "RIVO is with you",
+			"emptyHint": "RIVO reads this store's records and answers in plain language. Ask about sales, or what needs your attention today.",
 			"thinking": "Looking up your business data...",
 			"error": "Could not get an answer. Try again.",
 			"examples": {
-				"bestSeller": "What was my best-selling product last month?",
-				"salesRange": "What were my sales from January to March?",
+				"watch": "RIVO, what should I pay attention to today?",
+				"todaySales": "How much did I sell today?",
 				"profit": "What was my profit last month?",
-				"topSuppliers": "Which supplier did I buy the most from this year?"
+				"outstanding": "Which customers still owe me?"
+			},
+			"watch": {
+				"title": "RIVO is watching",
+				"intro": "I monitored your business. Here's what deserves your attention:",
+				"empty": "I monitored your business. Nothing unusual stands out right now.",
+				"error": "Could not load what RIVO is watching.",
+				"partial": "Some figures could not be loaded. This is not the full picture.",
+				"lowStock": "{{count}} products may be running low: {{names}}",
+				"salesUp": "Sales in the last 30 days are up {{percent}}% versus the prior period.",
+				"salesDown": "Sales in the last 30 days dropped {{percent}}% versus the prior period.",
+				"profitUp": "Profit is up {{percent}}% versus the prior period.",
+				"profitDown": "Profit dropped {{percent}}% versus the prior period.",
+				"outstanding": "{{count}} customers have unpaid invoices. Highest: {{topName}}."
 			}
 		}
 	},

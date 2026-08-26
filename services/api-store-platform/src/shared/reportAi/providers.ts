@@ -3,6 +3,14 @@ import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import logger, { EntityType } from '../logger/logger'
 import {
+	classifyRivoIntent,
+	detectRivoLanguage,
+	rivoPersonaReply,
+	rivoSystemPrompt,
+	switchTargetLanguage,
+	type RivoLang,
+} from './intent'
+import {
 	ReportAiProvider,
 	ReportAiProviderName,
 	ReportChatMessage,
@@ -10,21 +18,6 @@ import {
 } from './types'
 
 const PROVIDER_TIMEOUT_MS = 20_000
-
-const ASSISTANT_NAME = 'Rivo'
-
-const SYSTEM_PROMPT = (
-	now: Date,
-	timezone: string,
-) => `You are ${ASSISTANT_NAME}, a read-only business assistant for this store tenant.
-Today is ${now.toISOString().slice(0, 10)} (${timezone}).
-Identity: your name is ${ASSISTANT_NAME}. You help tenant users understand sales, products, suppliers, invoices, customers, and profit. You cannot create, edit, or delete records. You only see this tenant's data.
-If the user asks your name, who you are, or what you can do, answer from this profile. Do not call tools for that.
-For business numbers, call tools. Never invent numbers, products, suppliers, or customers.
-If tools return empty data, say the data is not available for that period.
-Convert natural-language dates to YYYY-MM-DD startDate/endDate before calling tools. For current outstanding balances, omit dates unless the user named a period.
-Use the user's follow-up context. Answer in the user's language. Do not mention tools, SQL, or databases.
-Keep answers short and professional.`
 
 const TOOL_SPECS: Array<{
 	name: ReportToolName
@@ -90,6 +83,12 @@ const TOOL_SPECS: Array<{
 		},
 	},
 	{
+		name: 'businessWatch',
+		description:
+			'What deserves attention now: low stock, sales/profit change vs prior 30 days, unpaid customer balances. Call on greetings or "what should I watch".',
+		parameters: { type: 'object', properties: {} },
+	},
+	{
 		name: 'topCustomersByOutstanding',
 		description:
 			'Customers ranked by current unpaid selling-invoice balance. Omit dates for all open invoices; dates filter by invoice issue date.',
@@ -121,6 +120,95 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
 const asString = (value: unknown): string | null =>
 	typeof value === 'string' && value.trim() ? value.trim() : null
 
+const EMPTY_DATA: Record<RivoLang, string> = {
+	ar: 'ما لقيت بيانات تجارية مطابقة لهالسؤال.',
+	en: 'I could not find matching business data for that question.',
+	de: 'Ich habe keine passenden Geschäftsdaten zu dieser Frage gefunden.',
+}
+
+const UNFINISHED: Record<RivoLang, string> = {
+	ar: 'ما قدرت أكمّل التحليل. جرّب فترة أقصر.',
+	en: 'I could not finish that analysis. Try a narrower date range.',
+	de: 'Ich konnte die Analyse nicht abschließen. Bitte einen kürzeren Zeitraum wählen.',
+}
+
+const replyLang = (messages: ReportChatMessage[]): RivoLang =>
+	detectRivoLanguage(messages[messages.length - 1]?.content ?? '')
+
+const formatMockWatch = (result: unknown, lang: RivoLang): string => {
+	const record = asRecord(result)
+	const items = Array.isArray(record?.items) ? record.items : []
+	const empty = {
+		ar: 'راقبت تجارتك. ما في شي بارز يستاهل انتباهك هلق.',
+		en: 'I monitored your business. Nothing unusual stands out right now.',
+		de: 'Ich habe Ihr Geschäft geprüft. Im Moment fällt nichts Ungewöhnliches auf.',
+	}
+	const intro = {
+		ar: 'راقبت تجارتك. هدول النقاط تستاهل انتباهك:',
+		en: 'I monitored your business. Here’s what deserves your attention:',
+		de: 'Ich habe Ihr Geschäft geprüft. Das verdient Ihre Aufmerksamkeit:',
+	}
+	const partial = {
+		ar: 'بعض الأرقام ما قدرت تتحمّل. اللي ظاهر هون مو الصورة الكاملة.',
+		en: 'Some figures could not be loaded. This is not the full picture.',
+		de: 'Einige Zahlen konnten nicht geladen werden. Das ist nicht das vollständige Bild.',
+	}
+	const partialLine = record?.partial ? partial[lang] : ''
+
+	if (!items.length) return partialLine || empty[lang]
+
+	const lines = items.map(item => {
+		const row = asRecord(item)
+		const kind = asString(row?.kind)
+		const count = Number(row?.count) || 0
+		const percent = Number(row?.percent) || 0
+		const topName = asString(row?.topName) || ''
+
+		if (kind === 'lowStock') {
+			const n = row?.truncated ? `${count}+` : String(count)
+
+			return lang === 'de'
+				? `${n} Produkte gehen zur Neige.`
+				: lang === 'en'
+					? `${n} products may be running low.`
+					: `${n} منتجات قرب يخلص مخزونها.`
+		}
+
+		if (kind === 'salesChange' || kind === 'profitChange') {
+			const up = percent >= 0
+			const n = Math.abs(percent)
+
+			if (kind === 'salesChange') {
+				return lang === 'de'
+					? `Umsatz ${up ? 'plus' : 'minus'} ${n}%.`
+					: lang === 'en'
+						? `Sales ${up ? 'up' : 'down'} ${n}%.`
+						: `المبيعات ${up ? 'ارتفعت' : 'نزلت'} ${n}%.`
+			}
+
+			return lang === 'de'
+				? `Gewinn ${up ? 'plus' : 'minus'} ${n}%.`
+				: lang === 'en'
+					? `Profit ${up ? 'up' : 'down'} ${n}%.`
+					: `الربح ${up ? 'ارتفع' : 'نزل'} ${n}%.`
+		}
+
+		if (kind === 'outstanding') {
+			return lang === 'de'
+				? `${count} Kunden mit offenen Rechnungen. Höchster: ${topName}.`
+				: lang === 'en'
+					? `${count} customers have unpaid invoices. Highest: ${topName}.`
+					: `${count} زبائن عليهم دين. الأكثر: ${topName}.`
+		}
+
+		return ''
+	})
+
+	return [intro[lang], ...lines.filter(Boolean), partialLine]
+		.filter(Boolean)
+		.join('\n')
+}
+
 const lastMonthRange = (now: Date) => {
 	const end = now.toISOString().slice(0, 10)
 	const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -130,32 +218,71 @@ const lastMonthRange = (now: Date) => {
 	return { startDate: start, endDate: end }
 }
 
+const pickMockTool = (question: string): ReportToolName => {
+	if (
+		/customer|outstanding|receivable|owed|زبون|عميل|دين|مستحق/.test(question)
+	) {
+		return 'topCustomersByOutstanding'
+	}
+
+	if (/supplier|buy|purchase|مورد|شراء|مشتريات|اشتري/.test(question)) {
+		return /most|top|best|أكثر|اكتر/.test(question)
+			? 'topSuppliers'
+			: 'purchaseSummary'
+	}
+
+	if (/profit|ربح|أرباح/.test(question)) return 'profitSummary'
+
+	if (/best.?sell|top.?product|sold|أكثر.*بيع|اكتر.*بيع/.test(question)) {
+		return 'topSellingProducts'
+	}
+
+	return 'salesSummary'
+}
+
 const mockProvider = (): ReportAiProvider => ({
 	async answer({ messages, runTool, now }) {
-		const question = messages[messages.length - 1]?.content.toLowerCase() ?? ''
+		const last = messages[messages.length - 1]?.content ?? ''
+		const intent = classifyRivoIntent(last)
+		const lang =
+			intent === 'language_switch'
+				? switchTargetLanguage(last)
+				: detectRivoLanguage(last)
 
-		if (/your name|who are you|what can you|what do you do/.test(question)) {
-			return `I am ${ASSISTANT_NAME}. I can answer questions about this store's sales, products, suppliers, invoices, customers, and profit. I cannot change any records.`
+		if (intent === 'insult') {
+			const insultTurns = messages.filter(
+				message =>
+					message.role === 'user' &&
+					classifyRivoIntent(message.content) === 'insult',
+			).length
+
+			return rivoPersonaReply('insult', lang, insultTurns >= 2)
 		}
 
-		const range = lastMonthRange(now)
-		const tool: ReportToolName = /customer|outstanding|receivable|owed/.test(
-			question,
-		)
-			? 'topCustomersByOutstanding'
-			: /supplier|buy|purchase/.test(question)
-				? /most|top|best/.test(question)
-					? 'topSuppliers'
-					: 'purchaseSummary'
-				: /profit/.test(question)
-					? 'profitSummary'
-					: /best.?sell|top.?product|sold/.test(question)
-						? 'topSellingProducts'
-						: 'salesSummary'
+		if (
+			intent === 'identity' ||
+			intent === 'off_topic' ||
+			intent === 'language_switch'
+		) {
+			return rivoPersonaReply(intent, lang)
+		}
+
+		if (intent === 'watch') {
+			return formatMockWatch(await runTool('businessWatch', {}), lang)
+		}
+
+		const question = last.toLowerCase()
+		const today = now.toISOString().slice(0, 10)
+		const range =
+			/اليوم|today|heute/.test(question) &&
+			!/شهر|month|monat|أسبوع|week/.test(question)
+				? { startDate: today, endDate: today }
+				: lastMonthRange(now)
+		const tool = pickMockTool(question)
 		const result = await runTool(tool, {
 			...(tool === 'topCustomersByOutstanding' ? {} : range),
 			limit: 5,
-			supplierName: question.match(/supplier\s+(.+)$/)?.[1],
+			supplierName: last.match(/supplier\s+(.+)$/i)?.[1],
 		})
 
 		return JSON.stringify({ tool, result }, null, 2)
@@ -224,7 +351,7 @@ const openaiProvider = (): ReportAiProvider => {
 			requireConfig(Boolean(apiKey), 'OPENAI_API_KEY is required.')
 
 			const history: Array<Record<string, unknown>> = [
-				{ role: 'system', content: SYSTEM_PROMPT(now, timezone) },
+				{ role: 'system', content: rivoSystemPrompt(now, timezone) },
 				...messages.map(message => ({
 					role: message.role,
 					content: message.content,
@@ -258,10 +385,7 @@ const openaiProvider = (): ReportAiProvider => {
 					: []
 
 				if (!toolCalls.length) {
-					return (
-						content ||
-						'I could not find matching business data for that question.'
-					)
+					return content || EMPTY_DATA[replyLang(messages)]
 				}
 
 				history.push(message as Record<string, unknown>)
@@ -290,7 +414,7 @@ const openaiProvider = (): ReportAiProvider => {
 				}
 			}
 
-			return 'I could not finish that analysis. Try a narrower date range.'
+			return UNFINISHED[replyLang(messages)]
 		},
 	}
 }
@@ -318,7 +442,7 @@ const geminiProvider = (): ReportAiProvider => {
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						systemInstruction: {
-							parts: [{ text: SYSTEM_PROMPT(now, timezone) }],
+							parts: [{ text: rivoSystemPrompt(now, timezone) }],
 						},
 						generationConfig: { temperature: 0 },
 						tools: [
@@ -350,9 +474,7 @@ const geminiProvider = (): ReportAiProvider => {
 					.trim()
 
 				if (!functionCalls.length) {
-					return (
-						text || 'I could not find matching business data for that question.'
-					)
+					return text || EMPTY_DATA[replyLang(messages)]
 				}
 
 				contents.push({ role: 'model', parts })
@@ -377,7 +499,7 @@ const geminiProvider = (): ReportAiProvider => {
 				contents.push({ role: 'user', parts: responses })
 			}
 
-			return 'I could not finish that analysis. Try a narrower date range.'
+			return UNFINISHED[replyLang(messages)]
 		},
 	}
 }

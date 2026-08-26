@@ -114,6 +114,15 @@ export default class ReportRoutes {
 			)
 
 		app
+			.route(`${baseRoute}/reports/watch`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getReportWatch.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/reports`)
 			.get(
 				this.startCalc.bind(this),
@@ -247,6 +256,23 @@ export default class ReportRoutes {
 		try {
 			const resp = await this.reportController.postReportChat(
 				request.body,
+				this.getRequestContext(request),
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getReportWatch(
+		request: ReportHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		try {
+			const resp = await this.reportController.getReportWatch(
 				this.getRequestContext(request),
 			)
 
