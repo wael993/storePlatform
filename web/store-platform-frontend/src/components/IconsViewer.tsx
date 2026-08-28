@@ -103,6 +103,8 @@ import { ZoomInIcon } from '../shared/icons/ZoomIn'
 import { ZoomOutIcon } from '../shared/icons/ZoomOut'
 import { ContributionPerBundleIcon } from '../shared/icons/price/ContributionPerBundleIcon'
 import { PriceActivityFeeIcon } from '../shared/icons/price/PriceActivityFeeIcon'
+import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 
 interface IconsViewerProps {
 	isOpen: boolean
@@ -322,7 +324,8 @@ const styles = {
 
 const IconsViewer = ({ isOpen, onClose }: IconsViewerProps) => {
 	const totalCount = generalIcons.length + priceIcons.length
-
+	const { i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	return (
 		<Modal
 			isOpen={isOpen}
@@ -335,7 +338,14 @@ const IconsViewer = ({ isOpen, onClose }: IconsViewerProps) => {
 				<ModalHeader sx={styles.header}>
 					<Heading sx={styles.title}>Icon Library</Heading>
 					<Text sx={styles.subtitle}>{totalCount} icons from shared/icons</Text>
-					<ModalCloseButton top={4} />
+					<ModalCloseButton
+						size="lg"
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 				</ModalHeader>
 
 				<ModalBody py={6} px={{ base: 4, md: 8 }} bg="#FAFAFA">

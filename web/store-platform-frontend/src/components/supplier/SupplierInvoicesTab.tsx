@@ -20,8 +20,11 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useGetBuyingInvoicesQuery } from '../../api/apiStore'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
 import BuyingInvoiceDetailModal from '../BuyingInvoice/BuyingInvoiceDetailModal'
+import type { BuyingInvoicePanelMode } from '../BuyingInvoice/NewBuyingInvoicePanel'
 import {
 	mapApiBuyingInvoiceToTableRow,
 	type ApiBuyingInvoice,
@@ -75,9 +78,13 @@ interface SupplierInvoicesTabProps {
 
 const SupplierInvoicesTab = ({ supplierId }: SupplierInvoicesTabProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canEditBuying = canSee(SEE.invoicesBuyingEdit)
 	const [statusFilter, setStatusFilter] = useState('all')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
+	const [detailMode, setDetailMode] =
+		useState<Extract<BuyingInvoicePanelMode, 'view' | 'edit'>>('view')
 	const {
 		isOpen: isDetailOpen,
 		onOpen: onDetailOpen,
@@ -124,11 +131,13 @@ const SupplierInvoicesTab = ({ supplierId }: SupplierInvoicesTabProps) => {
 
 	const handleViewInvoice = (invoiceId: string) => {
 		setDetailInvoiceId(invoiceId)
+		setDetailMode('view')
 		onDetailOpen()
 	}
 
 	const handleDetailClose = () => {
 		setDetailInvoiceId(null)
+		setDetailMode('view')
 		onDetailClose()
 	}
 
@@ -432,9 +441,9 @@ const SupplierInvoicesTab = ({ supplierId }: SupplierInvoicesTabProps) => {
 			<BuyingInvoiceDetailModal
 				isOpen={isDetailOpen}
 				buyingInvoiceId={detailInvoiceId}
-				mode="view"
+				mode={detailMode}
 				onClose={handleDetailClose}
-				onRequestEdit={handleDetailClose}
+				onRequestEdit={canEditBuying ? () => setDetailMode('edit') : undefined}
 			/>
 		</Box>
 	)

@@ -19,6 +19,8 @@ import {
 import { AsCheckmarkCircleIcon } from '../../icons/CheckmarkCircle'
 import InputLabel from '../common/InputLabel'
 import { MODAL_CONFIG } from '../../shared/globalConstant'
+import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../../shared/utils'
 
 interface AddQuickModalProps {
 	showInternalCodeLabel?: boolean
@@ -40,9 +42,6 @@ const styles: StylesObject = {
 	modalOverlay: {
 		backgroundColor: 'blackAlpha.300',
 		backdropFilter: 'blur(2px)',
-	},
-	modalHeader: {
-		marginRight: '3rem',
 	},
 	headerText: {
 		fontWeight: 700,
@@ -99,6 +98,8 @@ const AddQuickModal = ({
 	modalType,
 	handleInputChange,
 }: AddQuickModalProps) => {
+	const { i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const onCloseModal = () => {
 		setFormData({ code: '', value: '' })
 		onClose()
@@ -115,12 +116,19 @@ const AddQuickModal = ({
 		>
 			<ModalOverlay sx={styles.modalOverlay} />
 			<ModalContent style={{ padding: '1rem' }}>
-				<ModalHeader sx={styles.modalHeader}>
+				<ModalHeader>
 					<Heading variant="h5" sx={styles.headerText}>
 						{t(MODAL_CONFIG[modalType].title)}
 					</Heading>
 				</ModalHeader>
-				<ModalCloseButton />
+				<ModalCloseButton
+					size="lg"
+					sx={{
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
+				/>
 				<ModalBody>
 					<VStack
 						sx={{ gap: '1rem', alignItems: 'left', marginBottom: '1.5rem' }}

@@ -31,6 +31,7 @@ import {
 } from '../../api/apiStore'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
+import { compareLanguage } from '../../shared/utils'
 
 const fullWidth = '100%'
 
@@ -90,7 +91,8 @@ const CategoryPage = (_props: CategoryPageProps) => {
 		description: '',
 	})
 	const breadCrumbItems = generateBreadcrumbs()
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const { canSee } = useSee()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 
@@ -154,7 +156,14 @@ const CategoryPage = (_props: CategoryPageProps) => {
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>{t('common.addCategory')}</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						size="lg"
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<ModalBody pb={6}>
 						<VStack align="stretch" spacing={4}>
 							<Input

@@ -322,7 +322,7 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 				<ModalOverlay bg="blackAlpha.300" backdropFilter="blur(2px)" />
 				<ModalContent borderRadius={0} m={4}>
 					<ModalHeader sx={styles.header}>
-						<VStack alignItems={isArabic ? 'end' : 'start'}>
+						<VStack alignItems="start">
 							<Heading sx={styles.title}>
 								{t('components.quickAdd.title')}
 							</Heading>
@@ -330,7 +330,14 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 								{t('components.quickAdd.subtitle')}
 							</Text>
 						</VStack>
-						<ModalCloseButton top={4} />
+						<ModalCloseButton
+							size="lg"
+							sx={{
+								left: isArabic ? '0.4rem' : 'auto',
+								right: isArabic ? 'auto' : '0.4rem',
+								marginRight: 0,
+							}}
+						/>
 					</ModalHeader>
 					<ModalBody py={6} px={{ base: 4, md: 8 }} bg="#FAFAFA">
 						<Grid

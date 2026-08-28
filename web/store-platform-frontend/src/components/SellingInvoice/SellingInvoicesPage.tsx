@@ -857,7 +857,7 @@ const SellingInvoicesPage = () => {
 							)}
 						</Flex>
 
-						{canSeeSummary ? (
+						{canSeeSummary && !isDraftOpen ? (
 							<Accordion allowToggle>
 								<AccordionItem border="none">
 									<AccordionButton px={0}>

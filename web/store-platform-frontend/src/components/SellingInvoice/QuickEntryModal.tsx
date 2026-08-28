@@ -22,7 +22,12 @@ import {
 	useUpdateDailyActionMutation,
 } from '../../api/apiStore'
 import { DailyActionType } from '../../shared/globalEnums'
-import { formatNumberForDb, mapFee, parseNumberValue } from '../../shared/utils'
+import {
+	compareLanguage,
+	formatNumberForDb,
+	mapFee,
+	parseNumberValue,
+} from '../../shared/utils'
 import { datePickerStyles, documentNameStyles } from '../../theme/styles'
 import DatePickerLabel from '../common/DatePickerLabel'
 import InputLabel from '../common/InputLabel'
@@ -87,9 +92,10 @@ const QuickEntryModal = ({
 	customers,
 	suppliers,
 }: QuickEntryModalProps) => {
-	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { canSee } = useSee()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const hasInitializedCurrency = useRef(false)
 	const previousEntryType = useRef<QuickEntryType>(
 		DailyActionType.RECEIPT_ENTRY,
@@ -368,7 +374,14 @@ const QuickEntryModal = ({
 				<ModalHeader fontWeight={700} fontSize="lg" pb={2}>
 					{modalTitle}
 				</ModalHeader>
-				<ModalCloseButton />
+				<ModalCloseButton
+					size="lg"
+					sx={{
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
+				/>
 				<ModalBody pt={0} pb={4}>
 					<HStack spacing={2} mb={4}>
 						{ENTRY_TYPES.map(entryType => {

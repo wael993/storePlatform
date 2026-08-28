@@ -20,9 +20,12 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useGetSellingInvoicesQuery } from '../../api/apiStore'
+import { useSee } from '../../shared/hooks/useSee'
+import { SEE } from '../../shared/seeFlags'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
 import CurrencyAmountTooltip from '../SellingInvoice/CurrencyAmountTooltip'
 import InvoiceDetailModal from '../SellingInvoice/InvoiceDetailModal'
+import type { InvoicePanelMode } from '../SellingInvoice/NewSellingInvoicePanel'
 import {
 	INVOICES_PER_PAGE,
 	PAGE_COLORS,
@@ -75,9 +78,13 @@ interface CustomerInvoicesTabProps {
 
 const CustomerInvoicesTab = ({ customerId }: CustomerInvoicesTabProps) => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
+	const canEditSelling = canSee(SEE.sellingInvoicesEdit)
 	const [statusFilter, setStatusFilter] = useState('all')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
+	const [detailMode, setDetailMode] =
+		useState<Extract<InvoicePanelMode, 'view' | 'edit'>>('view')
 	const {
 		isOpen: isDetailOpen,
 		onOpen: onDetailOpen,
@@ -124,11 +131,13 @@ const CustomerInvoicesTab = ({ customerId }: CustomerInvoicesTabProps) => {
 
 	const handleViewInvoice = (invoiceId: string) => {
 		setDetailInvoiceId(invoiceId)
+		setDetailMode('view')
 		onDetailOpen()
 	}
 
 	const handleDetailClose = () => {
 		setDetailInvoiceId(null)
+		setDetailMode('view')
 		onDetailClose()
 	}
 
@@ -428,9 +437,9 @@ const CustomerInvoicesTab = ({ customerId }: CustomerInvoicesTabProps) => {
 			<InvoiceDetailModal
 				isOpen={isDetailOpen}
 				invoiceId={detailInvoiceId}
-				mode="view"
+				mode={detailMode}
 				onClose={handleDetailClose}
-				onRequestEdit={handleDetailClose}
+				onRequestEdit={canEditSelling ? () => setDetailMode('edit') : undefined}
 			/>
 		</Box>
 	)
