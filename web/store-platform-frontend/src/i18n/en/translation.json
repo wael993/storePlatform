@@ -578,7 +578,6 @@
 				"addProductFailed": "Failed to add product",
 				"addSupplierFailed": "Failed to add supplier",
 				"addCustomerFailed": "Failed to add customer",
-				"addCurrencyFailed": "Failed to add currency",
 				"addUnitFailed": "Failed to add unit",
 				"addExpenseFailed": "Failed to add expense",
 				"addPartnerFailed": "Failed to add partner"
@@ -656,7 +655,6 @@
 				"editTitle": "Edit Entry"
 			},
 			"barcodeSearchPlaceholder": "Scan barcode or search product...",
-			"barcodeSearchHint": "Press Enter to start a new invoice",
 			"todaysInvoices": "Today's Invoices",
 			"searchPlaceholder": "Search invoice, customer...",
 			"empty": "No invoices found.",
@@ -668,10 +666,7 @@
 				"bestSellerValue": "{{name}} · {{quantity}} pcs",
 				"topProfitProduct": "Top Profit Product",
 				"topProfitProductValue": "{{name}} · {{profit}}",
-				"paidInvoices": "Paid Invoices",
-				"creditInvoices": "Credit Invoices",
 				"totalReceivable": "Total Receivable",
-				"averageOrder": "Average Order",
 				"cashBalance": "Cash Balance",
 				"cashBalancePeriod": "Period",
 				"cashBalanceAllTime": "All time"
@@ -778,7 +773,6 @@
 				"discardDraft": "Discard",
 				"columns": {
 					"product": "Product",
-					"barcode": "Barcode",
 					"qty": "Qty",
 					"price": "Unit Price",
 					"discount": "Discount",
@@ -1198,7 +1192,6 @@
 		"locationWarehouse": "Location Warehouse",
 		"locationShelf": "Location Shelf",
 		"status": "Status",
-		"error": "Error!",
 		"tooltip": "Tooltip",
 		"from": "From",
 		"to": "To",
@@ -1251,7 +1244,6 @@
 		"pushPartialFailedDescription": "{{synced}} synced, {{failed}} failed. Please review and retry.",
 		"retryPush": "Retry",
 		"pendingChanges": "{{count}} change(s) pending sync",
-		"lastSynced": "Last synced: {{time}}",
 		"conflictTitle": "Sync conflicts",
 		"conflictMessage": "Some changes could not be synced. Please review.",
 		"insufficientStockTitle": "Insufficient stock",

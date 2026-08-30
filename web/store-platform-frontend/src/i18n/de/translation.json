@@ -578,7 +578,6 @@
 				"addProductFailed": "Produkt konnte nicht hinzugefügt werden",
 				"addSupplierFailed": "Lieferant konnte nicht hinzugefügt werden",
 				"addCustomerFailed": "Kunde konnte nicht hinzugefügt werden",
-				"addCurrencyFailed": "Währung konnte nicht hinzugefügt werden",
 				"addUnitFailed": "Einheit konnte nicht hinzugefügt werden",
 				"addExpenseFailed": "Ausgabe konnte nicht hinzugefügt werden",
 				"addPartnerFailed": "Partner konnte nicht hinzugefügt werden"
@@ -656,7 +655,6 @@
 				"editTitle": "Buchung bearbeiten"
 			},
 			"barcodeSearchPlaceholder": "Barcode scannen oder Produkt suchen...",
-			"barcodeSearchHint": "Enter drücken, um eine neue Rechnung zu starten",
 			"todaysInvoices": "Heutige Rechnungen",
 			"searchPlaceholder": "Rechnung, Kunde suchen...",
 			"empty": "Keine Rechnungen gefunden.",
@@ -668,10 +666,7 @@
 				"bestSellerValue": "{{name}} · {{quantity}} Stk.",
 				"topProfitProduct": "Produkt mit höchstem Gewinn",
 				"topProfitProductValue": "{{name}} · {{profit}}",
-				"paidInvoices": "Bezahlte Rechnungen",
-				"creditInvoices": "Kreditrechnungen",
 				"totalReceivable": "Gesamtforderungen",
-				"averageOrder": "Durchschnittliche Bestellung",
 				"cashBalance": "Kassenbestand",
 				"cashBalancePeriod": "Zeitraum",
 				"cashBalanceAllTime": "Gesamt"
@@ -778,7 +773,6 @@
 				"discardDraft": "Verwerfen",
 				"columns": {
 					"product": "Produkt",
-					"barcode": "Barcode",
 					"qty": "Menge",
 					"price": "Einzelpreis",
 					"discount": "Rabatt",
@@ -1198,7 +1192,6 @@
 		"locationWarehouse": "Lagerort",
 		"locationShelf": "Regal",
 		"status": "Status",
-		"error": "Fehler!",
 		"tooltip": "Tooltip",
 		"from": "Von",
 		"to": "Bis",
@@ -1251,7 +1244,6 @@
 		"pushPartialFailedDescription": "{{synced}} synchronisiert, {{failed}} fehlgeschlagen. Bitte prüfen und erneut versuchen.",
 		"retryPush": "Erneut versuchen",
 		"pendingChanges": "{{count}} Änderung(en) ausstehend",
-		"lastSynced": "Zuletzt synchronisiert: {{time}}",
 		"conflictTitle": "Synchronisationskonflikte",
 		"conflictMessage": "Einige Änderungen konnten nicht synchronisiert werden. Bitte prüfen.",
 		"insufficientStockTitle": "Unzureichender Bestand",

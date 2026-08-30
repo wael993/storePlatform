@@ -602,7 +602,6 @@
 				"addProductFailed": "فشل إضافة المنتج",
 				"addSupplierFailed": "فشل إضافة المورد",
 				"addCustomerFailed": "فشل إضافة الزبون",
-				"addCurrencyFailed": "فشل إضافة العملة",
 				"addUnitFailed": "فشل إضافة الوحدة",
 				"addExpenseFailed": "فشل إضافة النفقات",
 				"addPartnerFailed": "فشل إضافة الشريك"
@@ -656,7 +655,6 @@
 				"editTitle": "تعديل السند"
 			},
 			"barcodeSearchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
-			"barcodeSearchHint": "اضغط Enter لبدء فاتورة جديدة",
 			"todaysInvoices": "فواتير اليوم",
 			"searchPlaceholder": "ابحث عن فاتورة أو زبون...",
 			"empty": "لا توجد فواتير.",
@@ -668,10 +666,7 @@
 				"bestSellerValue": "{{name}} · {{quantity}} قطعة",
 				"topProfitProduct": "المنتج الأعلى ربحاً",
 				"topProfitProductValue": "{{name}} · {{profit}}",
-				"paidInvoices": "الفواتير المدفوعة",
-				"creditInvoices": "الفواتير الآجلة",
 				"totalReceivable": "إجمالي المستحقات",
-				"averageOrder": "متوسط الطلب",
 				"cashBalance": "رصيد الصندوق",
 				"cashBalancePeriod": "الفترة",
 				"cashBalanceAllTime": "كل الوقت"
@@ -778,7 +773,6 @@
 				"discardDraft": "تجاهل",
 				"columns": {
 					"product": "المنتج",
-					"barcode": "الباركود",
 					"qty": "الكمية",
 					"price": "افرادي",
 					"discount": "الخصم",
@@ -1198,7 +1192,6 @@
 		"locationWarehouse": "موقع المستودع",
 		"locationShelf": "الرف",
 		"status": "الحالة",
-		"error": "خطأ!",
 		"tooltip": "تلميح",
 		"from": "من",
 		"to": "إلى",
@@ -1251,7 +1244,6 @@
 		"pushPartialFailedDescription": "تمت مزامنة {{synced}}، وفشل {{failed}}. يرجى المراجعة وإعادة المحاولة.",
 		"retryPush": "إعادة المحاولة",
 		"pendingChanges": "{{count}} تغيير(ات) في انتظار المزامنة",
-		"lastSynced": "آخر مزامنة: {{time}}",
 		"conflictTitle": "تعارضات المزامنة",
 		"conflictMessage": "تعذر مزامنة بعض التغييرات. يرجى المراجعة.",
 		"insufficientStockTitle": "مخزون غير كافٍ",

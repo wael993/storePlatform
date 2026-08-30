@@ -232,18 +232,7 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 					t('components.daily.errors.addExpenseFailed'),
 				)
 			},
-			// currency: async ({ value, code }) => {
-			// 	const label = value.trim()
-			// 	if (!label) return
-			// 	await executeAction(
-			// 		() =>
-			// 			createCurrency({
-			// 				name: label,
-			// 				internalCode: (code.trim() || label).toUpperCase(),
-			// 			}).unwrap(),
-			// 		t('components.daily.errors.addCurrencyFailed'),
-			// 	)
-			// },
+
 			unit: async ({ value, code }) => {
 				if (!value.trim()) return
 				await executeAction(

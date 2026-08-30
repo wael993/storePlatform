@@ -14,11 +14,22 @@ const localeFiles = ['en', 'de', 'ar'].map(locale => ({
 
 const KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)*$/
 
+const looksLikeI18nKey = key =>
+	KEY_PATTERN.test(key) && key.includes('.')
+
 const SOURCE_PATTERNS = [
 	/\bt\(\s*['"]([^'"]+)['"]/g,
 	/\bi18n\.t\(\s*['"]([^'"]+)['"]/g,
-	/(?:labelKey|translationKey|titleKey|descriptionKey|errorKey)\s*:\s*['"]([^'"]+)['"]/g,
+	/(?<![a-zA-Z0-9_])(?:labelKey|translationKey|titleKey|descriptionKey|errorKey|title|label|code|placeholder|buttonText)\s*:\s*['"]([^'"]+)['"]/g,
 ]
+
+const RETURN_I18N_KEY_PATTERN = /return\s+['"]([^'"]+)['"]/g
+
+// routeLabelKeys (incl. appTitle), MODAL_CONFIG, TENANT_PAGE_* maps, EXAMPLE_KEYS, etc.
+const QUOTED_I18N_KEY_PATTERN = /['"]([a-zA-Z][\w]*(?:\.[\w]+)*)['"]/g
+
+// t(`prefix.${var}`) — static segment before the first ${...}
+const DYNAMIC_PREFIX_PATTERN = /\bt\(\s*`([a-zA-Z][\w.]*)?\$\{/g
 
 const stripComments = content =>
 	content
@@ -118,15 +129,48 @@ const findDuplicateKeysInRawJson = (raw, filePath) => {
 	return duplicates
 }
 
-const collectUsedKeys = sourceFiles => {
+const expandDynamicPrefixKeys = (prefix, referenceKeys) => {
+	const keys = []
+	for (const key of referenceKeys.keys()) {
+		if (key.startsWith(prefix)) keys.push(key)
+	}
+	return keys
+}
+
+const collectUsedKeys = (sourceFiles, referenceKeys) => {
 	const used = new Set()
+	const addKey = key => {
+		const trimmed = key?.trim()
+		if (trimmed && looksLikeI18nKey(trimmed)) used.add(trimmed)
+	}
+	const addKnownKey = key => {
+		const trimmed = key?.trim()
+		if (trimmed && referenceKeys?.has(trimmed)) used.add(trimmed)
+	}
+
 	for (const filePath of sourceFiles) {
 		const content = stripComments(readFileSync(filePath, 'utf8'))
 		for (const pattern of SOURCE_PATTERNS) {
 			pattern.lastIndex = 0
 			for (const match of content.matchAll(pattern)) {
-				const key = match[1]?.trim()
-				if (key) used.add(key)
+				addKey(match[1])
+			}
+		}
+
+		RETURN_I18N_KEY_PATTERN.lastIndex = 0
+		for (const match of content.matchAll(RETURN_I18N_KEY_PATTERN)) {
+			addKnownKey(match[1])
+		}
+
+		QUOTED_I18N_KEY_PATTERN.lastIndex = 0
+		for (const match of content.matchAll(QUOTED_I18N_KEY_PATTERN)) {
+			addKnownKey(match[1])
+		}
+
+		DYNAMIC_PREFIX_PATTERN.lastIndex = 0
+		for (const match of content.matchAll(DYNAMIC_PREFIX_PATTERN)) {
+			for (const key of expandDynamicPrefixKeys(match[1] ?? '', referenceKeys)) {
+				used.add(key)
 			}
 		}
 	}
@@ -186,7 +230,7 @@ if (!referenceKeys) {
 	}
 }
 
-const usedKeys = collectUsedKeys(walkFiles(srcDir))
+const usedKeys = collectUsedKeys(walkFiles(srcDir), referenceKeys)
 for (const key of usedKeys) {
 	if (!KEY_PATTERN.test(key)) {
 		errors.push(`source: invalid translation key "${key}"`)

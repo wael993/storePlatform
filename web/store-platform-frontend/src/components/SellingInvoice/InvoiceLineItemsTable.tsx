@@ -209,7 +209,6 @@ const InvoiceLineItemsTable = ({
 						<Th minW="12rem">
 							{t('components.sellingInvoices.drawer.columns.product')}
 						</Th>
-						{/* <Th>{t('components.sellingInvoices.drawer.columns.barcode')}</Th> */}
 						<Th>{t('components.sellingInvoices.drawer.columns.qty')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.price')}</Th>
 						<Th>{t('components.sellingInvoices.drawer.columns.discount')}</Th>
