@@ -1,0 +1,58 @@
+# Phase 1 CI — run locally:
+#   cd web/store-platform-frontend && npm ci && npm run lint:ci && npm run typecheck && npm run format:check && npm run checkTranslations && npm run test && npm run build && npm run audit:ci
+#   cd services/api-store-platform && npm ci && npm run lint:ci && npm run typecheck && npm run format:check && npm run test && npm run build && npm run audit:ci
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/store-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/store-platform-frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint:ci
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run checkTranslations
+      - run: npm run test
+      - run: npm run build
+      # note: informational until bcrypt/exceljs transitive vulns are upgraded
+      - run: npm run audit:ci
+        continue-on-error: true
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api-store-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: services/api-store-platform/package-lock.json
+      - run: npm ci
+      - run: npm run lint:ci
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build
+      # note: informational until bcrypt/exceljs transitive vulns are upgraded
+      - run: npm run audit:ci
+        continue-on-error: true

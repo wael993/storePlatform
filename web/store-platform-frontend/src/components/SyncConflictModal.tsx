@@ -41,7 +41,7 @@ const SyncConflictModal = ({
 				</ModalBody>
 				<ModalFooter>
 					<Button colorScheme="blue" onClick={onClose}>
-						{t('common.ok', { defaultValue: 'OK' })}
+						{t('common.ok')}
 					</Button>
 				</ModalFooter>
 			</ModalContent>

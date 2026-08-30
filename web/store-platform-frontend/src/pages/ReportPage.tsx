@@ -229,12 +229,9 @@ const ReportPage = () => {
 											color="gray.800"
 										>
 											{t(watchLineKey(item), {
-												count:
-													item.kind === 'lowStock' && item.truncated
-														? `${item.count}+`
-														: 'count' in item
-															? item.count
-															: 0,
+												count: 'count' in item ? item.count : 0,
+												countPlus:
+													item.kind === 'lowStock' && item.truncated ? '+' : '',
 												percent: 'percent' in item ? Math.abs(item.percent) : 0,
 												names:
 													item.kind === 'lowStock'

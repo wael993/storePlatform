@@ -437,11 +437,7 @@ const SecondStep = ({
 										marginBottom="1rem"
 									>
 										<Text fontWeight={700}>
-											{t('components.daily.productLines', {
-												defaultValue:
-													productLines.find(pl => pl.id === productLine.id)
-														?.productName ?? t('common.productName'),
-
+											{t('components.daily.productLine', {
 												number: index + 1,
 											})}
 										</Text>

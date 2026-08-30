@@ -10,8 +10,6 @@
 		"@hookform/resolvers": "^5.4.0",
 		"@react-pdf/renderer": "^4.6.0",
 		"@reduxjs/toolkit": "2.6.1",
-		"@types/react": "^19.0.0",
-		"@types/react-dom": "^19.0.0",
 		"axios": "^1.7.9",
 		"chakra-dayzed-datepicker": "^0.3.1",
 		"date-fns": "4.1.0",
@@ -31,7 +29,6 @@
 		"react-router-dom": "^7.2.0",
 		"react-virtuoso": "4.12.3",
 		"redux-persist": "6.0.0",
-		"typescript": "5.8.3",
 		"use-context-selector": "^2.0.0",
 		"zod": "^4.4.3"
 	},
@@ -41,6 +38,11 @@
 		"preview": "vite preview",
 		"format": "prettier --log-level warn --config ../../.prettierrc --write src",
 		"lint": "eslint src --fix",
+		"lint:ci": "eslint src --max-warnings 0",
+		"typecheck": "tsc --noEmit -p tsconfig.build.json",
+		"format:check": "prettier --check --config ../../.prettierrc src",
+		"checkTranslations": "node scripts/checkTranslations.mjs",
+		"audit:ci": "npm audit --audit-level=high",
 		"format-and-lint": "npm run lint && npm run format",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage"
@@ -62,6 +64,8 @@
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.6",
 		"@types/node": "^25.6.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
 		"@types/uuid": "^10.0.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
@@ -74,6 +78,7 @@
 		"jsdom": "^27.0.1",
 		"msw": "^2.15.0",
 		"prettier": "^3.6.2",
+		"typescript": "5.8.3",
 		"vite": "^6.3.5",
 		"vitest": "^3.2.7"
 	}

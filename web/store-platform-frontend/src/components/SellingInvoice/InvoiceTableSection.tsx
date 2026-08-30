@@ -411,7 +411,7 @@ const InvoiceTableSection = ({
 						</InputGroup>
 						<Flex align="center" gap={1}>
 							<IconButton
-								aria-label={t('common.previous')}
+								aria-label={t('pagination.previous')}
 								icon={<ChevronRightIcon boxSize={5} />}
 								size="sm"
 								variant="ghost"
@@ -434,7 +434,7 @@ const InvoiceTableSection = ({
 								}}
 							/>
 							<IconButton
-								aria-label={t('common.next')}
+								aria-label={t('pagination.next')}
 								icon={<ChevronLeftIcon boxSize={5} />}
 								size="sm"
 								variant="ghost"

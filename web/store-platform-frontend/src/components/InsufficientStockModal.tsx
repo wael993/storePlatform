@@ -49,10 +49,10 @@ const InsufficientStockModal = ({
 				</ModalBody>
 				<ModalFooter>
 					<Button variant="ghost" mr={3} onClick={onCancel}>
-						{t('common.cancel', { defaultValue: 'Cancel' })}
+						{t('common.cancel')}
 					</Button>
 					<Button colorScheme="blue" onClick={onConfirm}>
-						{t('common.confirm', { defaultValue: 'Confirm' })}
+						{t('common.confirm')}
 					</Button>
 				</ModalFooter>
 			</ModalContent>
