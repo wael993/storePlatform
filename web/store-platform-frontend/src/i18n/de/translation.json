@@ -583,6 +583,7 @@
 				"addExpenseFailed": "Ausgabe konnte nicht hinzugefügt werden",
 				"addPartnerFailed": "Partner konnte nicht hinzugefügt werden"
 			},
+			"addSuccess": "Erfolgreich hinzugefügt.",
 			"actionType": "Aktionstyp",
 			"actionDate": "Aktionsdatum",
 			"actionSummary": "Aktionsübersicht",

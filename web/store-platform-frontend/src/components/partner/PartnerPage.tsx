@@ -26,6 +26,7 @@ import {
 	useGetPartnersQuery,
 } from '../../api/apiStore'
 import AddQuickModal from '../modals/AddQuickModal'
+import useCustomToast from '../common/CustomToast'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 
@@ -93,6 +94,7 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 		useGetPartnersQuery({})
 	const [createPartner, { isLoading: isPartnerLoading }] =
 		useCreatePartnerMutation()
+	const showToast = useCustomToast()
 	const partners = useMemo(() => partnersResponse ?? [], [partnersResponse])
 
 	const handleInputChange = (field: 'value' | 'code', value: string) => {
@@ -102,12 +104,23 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 		}))
 	}
 	const handlePostNewPartner = async (data: FormData) => {
-		await createPartner({
-			name: data.value,
-			internalCode: data.code,
-		}).unwrap()
-		setFormData({ code: '', value: '' })
-		onClose()
+		try {
+			await createPartner({
+				name: data.value,
+				internalCode: data.code,
+			}).unwrap()
+			setFormData({ code: '', value: '' })
+			onClose()
+			showToast({
+				title: t('components.daily.addSuccess'),
+				status: 'success',
+			})
+		} catch {
+			showToast({
+				title: t('components.daily.errors.addPartnerFailed'),
+				status: 'error',
+			})
+		}
 	}
 	const nextInternalCode =
 		'CZ' +

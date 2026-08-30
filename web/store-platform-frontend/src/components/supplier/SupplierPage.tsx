@@ -26,6 +26,7 @@ import {
 	useGetSuppliersQuery,
 } from '../../api/apiStore'
 import AddQuickModal from '../modals/AddQuickModal'
+import useCustomToast from '../common/CustomToast'
 
 const fullWidth = '100%'
 
@@ -90,6 +91,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 		useGetSuppliersQuery({})
 	const [createSupplier, { isLoading: isSupplierLoading }] =
 		useCreateSupplierMutation()
+	const showToast = useCustomToast()
 
 	const handleInputChange = (field: 'value' | 'code', value: string) => {
 		setFormData(prev => ({
@@ -99,12 +101,23 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 	}
 
 	const handlePostNewSupplier = async (data: FormData) => {
-		await createSupplier({
-			name: data.value,
-			internalCode: data.code,
-		}).unwrap()
-		setFormData({ code: '', value: '' })
-		onClose()
+		try {
+			await createSupplier({
+				name: data.value,
+				internalCode: data.code,
+			}).unwrap()
+			setFormData({ code: '', value: '' })
+			onClose()
+			showToast({
+				title: t('components.daily.addSuccess'),
+				status: 'success',
+			})
+		} catch {
+			showToast({
+				title: t('components.daily.errors.addSupplierFailed'),
+				status: 'error',
+			})
+		}
 	}
 	const nextInternalCode =
 		'CZ' +

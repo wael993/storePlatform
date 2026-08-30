@@ -28,6 +28,7 @@ import {
 	useGetCustomersQuery,
 } from '../../api/apiStore'
 import AddQuickModal from '../modals/AddQuickModal'
+import useCustomToast from '../common/CustomToast'
 
 const fullWidth = '100%'
 
@@ -92,6 +93,7 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 		useGetCustomersQuery()
 	const [createCustomer, { isLoading: isCustomerLoading }] =
 		useCreateCustomerMutation()
+	const showToast = useCustomToast()
 	const customers = useMemo(() => customersResponse ?? [], [customersResponse])
 
 	const handleInputChange = (field: 'value' | 'code', value: string) => {
@@ -102,12 +104,23 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 	}
 
 	const handlePostNewCustomer = async (data: FormData) => {
-		await createCustomer({
-			name: data.value,
-			internalCode: data.code,
-		}).unwrap()
-		setFormData({ code: '', value: '' })
-		onClose()
+		try {
+			await createCustomer({
+				name: data.value,
+				internalCode: data.code,
+			}).unwrap()
+			setFormData({ code: '', value: '' })
+			onClose()
+			showToast({
+				title: t('components.daily.addSuccess'),
+				status: 'success',
+			})
+		} catch {
+			showToast({
+				title: t('components.daily.errors.addCustomerFailed'),
+				status: 'error',
+			})
+		}
 	}
 
 	const nextInternalCode =

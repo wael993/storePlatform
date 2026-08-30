@@ -607,6 +607,7 @@
 				"addExpenseFailed": "فشل إضافة النفقات",
 				"addPartnerFailed": "فشل إضافة الشريك"
 			},
+			"addSuccess": "تمت الإضافة بنجاح.",
 			"actionType": "نوع الإجراء",
 			"actionDate": "تاريخ الإجراء",
 			"actionSummary": "ملخص الإجراء",

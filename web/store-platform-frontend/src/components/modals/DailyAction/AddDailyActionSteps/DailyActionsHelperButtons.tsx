@@ -20,6 +20,7 @@ import { useUser } from '../../../../shared/hooks/useUser'
 import { useSee } from '../../../../shared/hooks/useSee'
 import { SEE } from '../../../../shared/seeFlags'
 import AddQuickModal from '../../AddQuickModal'
+import useCustomToast from '../../../common/CustomToast'
 
 const styles = {
 	button: {
@@ -60,6 +61,7 @@ const ADD_SEE_FOR: Partial<Record<AddQuickModalType, string>> = {
 const DailyActionsHelperButtons = () => {
 	const { t } = useTranslation()
 	const { canSee } = useSee()
+	const showToast = useCustomToast()
 	const [modalType, setModalType] = useState<AddQuickModalType>('product')
 	const [formData, setFormData] = useState<FormData>({
 		code: '',
@@ -110,10 +112,17 @@ const DailyActionsHelperButtons = () => {
 	) => {
 		try {
 			await action()
+			showToast({
+				title: t('components.daily.addSuccess'),
+				status: 'success',
+			})
+			resetModal()
 		} catch (error) {
 			console.error(errorMessage, error)
-		} finally {
-			resetModal()
+			showToast({
+				title: errorMessage,
+				status: 'error',
+			})
 		}
 	}
 

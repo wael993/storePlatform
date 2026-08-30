@@ -42,6 +42,7 @@ import { StoreIcon } from '../shared/icons/Store'
 import { TruckIcon } from '../shared/icons/Truck'
 import QuickAddFormModal from './modals/AddQuickModal'
 import { compareLanguage } from '../shared/utils'
+import useCustomToast from './common/CustomToast'
 
 interface AddQuickModalProps {
 	isOpen: boolean
@@ -127,6 +128,7 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 	const { isOwnerOrAdmin } = useUser()
 	const { canSee } = useSee()
 	const { isArabic } = compareLanguage(i18n.language)
+	const showToast = useCustomToast()
 
 	const {
 		isOpen: isFormOpen,
@@ -180,10 +182,17 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 	) => {
 		try {
 			await action()
+			showToast({
+				title: t('components.daily.addSuccess'),
+				status: 'success',
+			})
+			resetForm()
 		} catch (error) {
 			console.error(errorMessage, error)
-		} finally {
-			resetForm()
+			showToast({
+				title: errorMessage,
+				status: 'error',
+			})
 		}
 	}
 

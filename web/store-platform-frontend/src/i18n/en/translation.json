@@ -583,6 +583,7 @@
 				"addExpenseFailed": "Failed to add expense",
 				"addPartnerFailed": "Failed to add partner"
 			},
+			"addSuccess": "Added successfully.",
 			"actionType": "Action Type",
 			"actionDate": "Action Date",
 			"actionSummary": "Action Summary",
