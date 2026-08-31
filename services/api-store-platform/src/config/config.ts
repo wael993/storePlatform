@@ -2,7 +2,6 @@ import dotenv from 'dotenv'
 import path from 'path'
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') })
-dotenv.config({ path: path.resolve(process.cwd(), 'src/.env') })
 
 const connectionString =
 	process.env.BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING?.trim()

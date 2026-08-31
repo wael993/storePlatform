@@ -1,6 +1,9 @@
 # Phase 1 CI — run locally:
 #   cd web/store-platform-frontend && npm ci && npm run lint:ci && npm run typecheck && npm run format:check && npm run checkTranslations && npm run test && npm run build && npm run audit:ci
 #   cd services/api-store-platform && npm ci && npm run lint:ci && npm run typecheck && npm run format:check && npm run test && npm run build && npm run audit:ci
+# Phase 2 Docker — run locally:
+#   cp .env.example .env && docker compose up --build
+#   CI/isolated Mongo: docker compose -f docker-compose.yml -f docker-compose.ci.yml up --build
 name: CI
 
 on:
@@ -56,3 +59,17 @@ jobs:
       # note: informational until bcrypt/exceljs transitive vulns are upgraded
       - run: npm run audit:ci
         continue-on-error: true
+
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose -f docker-compose.yml -f docker-compose.ci.yml build
+      - run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait
+      - run: curl -sf http://localhost:3001/test
+      - run: curl -sf http://localhost:3000/
+      - run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs api 2>&1 | grep -E '\[seed-if-empty\] (done|skip|seeding)'
+      - if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
