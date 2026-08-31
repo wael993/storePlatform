@@ -13,7 +13,6 @@ export const RoutePaths = {
 	SINGLE_PRODUCT: withBasePath('/products/:productId'),
 	DAILY: withBasePath('/daily'),
 	ORDERS: withBasePath('/orders'),
-	INVOICES: withBasePath('/invoices'),
 	SELLING_INVOICES: withBasePath('/selling-invoices'),
 	REPORTS: withBasePath('/reports'),
 	CUSTOMERS: withBasePath('/customers'),
@@ -51,7 +50,6 @@ export const fullPaths = {
 	ALL_PRODUCTS: RoutePaths.PRODUCTS,
 	DAILY: RoutePaths.DAILY,
 	ORDERS: RoutePaths.ORDERS,
-	INVOICES: RoutePaths.INVOICES,
 	CUSTOMERS: RoutePaths.CUSTOMERS,
 	CATEGORIES: RoutePaths.CATEGORIES,
 	SUPPLIERS: RoutePaths.SUPPLIERS,
@@ -73,7 +71,6 @@ export const routeLabelKeys = {
 	ALL_PRODUCTS: 'navigation.allProducts',
 	DAILY: 'components.pageHeaders.daily',
 	ORDERS: 'components.pageHeaders.orders',
-	INVOICES: 'components.pageHeaders.invoices',
 	CUSTOMERS: 'components.pageHeaders.customers',
 	CUSTOMER: 'components.pageHeaders.customer',
 	CATEGORIES: 'components.pageHeaders.categories',
@@ -99,7 +96,6 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.PRODUCTS]: routeLabelKeys.PRODUCTS,
 		[RoutePaths.DAILY]: routeLabelKeys.DAILY,
 		[RoutePaths.ORDERS]: routeLabelKeys.ORDERS,
-		[RoutePaths.INVOICES]: routeLabelKeys.INVOICES,
 		[RoutePaths.CUSTOMERS]: routeLabelKeys.CUSTOMERS,
 		[RoutePaths.CATEGORIES]: routeLabelKeys.CATEGORIES,
 		[RoutePaths.SUPPLIERS]: routeLabelKeys.SUPPLIERS,
@@ -324,20 +320,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
-	const invoices: BreadcrumbItem[] = [
-		{
-			id: 'store-platform',
-			name: t(routeLabelKeys.STORE_PLATFORM),
-			href: fullPaths.ROOT,
-			isCurrentPage: false,
-		},
-		{
-			id: 'invoices',
-			name: t(routeLabelKeys.INVOICES),
-			href: fullPaths.INVOICES,
-			isCurrentPage: true,
-		},
-	]
 	const users: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -470,7 +452,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		products,
 		orders,
 		daily,
-		invoices,
 		customers,
 		categories,
 		customer,

@@ -101,14 +101,13 @@ const styles = {
 const WelcomePage = () => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
-	const { isOwnerOrAdmin, user } = useUser()
+	const { user } = useUser()
 	const { canSee } = useSee()
 	const enabledActions = getEnabledActions()
 	const tenantActions = getTenantActions(user?.accessiblePages)
 
 	const {
 		isProductsEnabled,
-		isInvoicesEnabled,
 		isDailyEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
@@ -120,7 +119,6 @@ const WelcomePage = () => {
 
 	const {
 		isTenantProductsEnabled,
-		isTenantInvoicesEnabled,
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
 		isTenantSellingInvoicesEnabled,
@@ -141,12 +139,6 @@ const WelcomePage = () => {
 			? {
 					path: RoutePaths.PRODUCTS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.PRODUCTS,
-				}
-			: null,
-		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
-			? {
-					path: RoutePaths.INVOICES,
-					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.INVOICE,
 				}
 			: null,
 		isCustomersEnabled && isTenantCustomersEnabled && canSee(SEE.customers)

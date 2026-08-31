@@ -831,7 +831,7 @@ const SellingInvoicesPage = () => {
 					>
 						<CustomBreadcrumb
 							marginTop="0.5rem"
-							items={breadCrumbItems[BreadCrumbItem.INVOICES]}
+							items={breadCrumbItems[BreadCrumbItem.SELLING_INVOICES]}
 						/>
 
 						<Flex

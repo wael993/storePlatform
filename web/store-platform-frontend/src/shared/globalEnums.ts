@@ -84,7 +84,7 @@ export enum BreadCrumbItem {
 	PRODUCTS = 'products',
 	PRODUCT = 'product',
 	ORDERS = 'orders',
-	INVOICES = 'invoices',
+	SELLING_INVOICES = 'sellingInvoices',
 	DAILY = 'daily',
 	USERS = 'users',
 	ADD_NEW_TENANT = 'addNewTenant',

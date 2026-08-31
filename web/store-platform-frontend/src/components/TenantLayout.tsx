@@ -27,7 +27,7 @@ const TenantLayout = () => {
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
 
-	const { user, isOwnerOrAdmin } = useUser()
+	const { user } = useUser()
 	const { canSee, canSeeAny } = useSee()
 
 	useTenantRouteGuard(user?.accessiblePages)
@@ -46,7 +46,6 @@ const TenantLayout = () => {
 	const {
 		isProductsEnabled,
 		isOrdersEnabled,
-		isInvoicesEnabled,
 		isUsersEnabled,
 		isDailyEnabled,
 		isCustomersEnabled,
@@ -61,7 +60,6 @@ const TenantLayout = () => {
 	const {
 		isTenantProductsEnabled,
 		isTenantOrdersEnabled,
-		isTenantInvoicesEnabled,
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
@@ -85,9 +83,6 @@ const TenantLayout = () => {
 			: null,
 		isOrdersEnabled && isTenantOrdersEnabled && canSee(SEE.orders)
 			? { label: 'Orders', path: RoutePaths.ORDERS }
-			: null,
-		isOwnerOrAdmin && isInvoicesEnabled && isTenantInvoicesEnabled
-			? { label: 'Invoices', path: RoutePaths.INVOICES }
 			: null,
 		isCustomersEnabled && isTenantCustomersEnabled && canSee(SEE.customers)
 			? { label: 'Customers', path: RoutePaths.CUSTOMERS }
