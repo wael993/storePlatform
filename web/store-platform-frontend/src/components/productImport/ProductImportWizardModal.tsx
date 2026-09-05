@@ -385,6 +385,12 @@ const ProductImportWizardModal = ({
 									</Text>
 									<Select
 										value={mapping[field.key] ?? ''}
+										sx={{
+											'& + div': {
+												left: '0.75rem',
+												right: 'auto',
+											},
+										}}
 										onChange={event =>
 											setMapping(current => ({
 												...current,
