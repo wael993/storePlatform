@@ -4,9 +4,15 @@ import enTranslation from './en/translation.json'
 import deTranslation from './de/translation.json'
 import arTranslation from './ar/translation.json'
 
+const SUPPORTED_LANGUAGES = ['ar', 'en', 'de'] as const
+type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
+
+const isSupportedLanguage = (value: string | null): value is SupportedLanguage =>
+	SUPPORTED_LANGUAGES.includes(value as SupportedLanguage)
+
 const persistedLanguage = window.localStorage.getItem('store-platform-language')
-const language = ['ar', 'en', 'de'].includes(persistedLanguage || '')
-	? (persistedLanguage as 'ar' | 'en' | 'de')
+const language: SupportedLanguage = isSupportedLanguage(persistedLanguage)
+	? persistedLanguage
 	: 'ar'
 
 const applyDocumentLanguage = (nextLanguage: string) => {
@@ -18,7 +24,13 @@ const applyDocumentLanguage = (nextLanguage: string) => {
 	}
 }
 
+const persistLanguage = (nextLanguage: string) => {
+	if (!isSupportedLanguage(nextLanguage)) return
+	window.localStorage.setItem('store-platform-language', nextLanguage)
+}
+
 applyDocumentLanguage(language)
+persistLanguage(language)
 
 void i18n
 	.use(initReactI18next)
@@ -46,6 +58,7 @@ void i18n
 
 i18n.on('languageChanged', nextLanguage => {
 	applyDocumentLanguage(nextLanguage)
+	persistLanguage(nextLanguage)
 })
 
 export default i18n

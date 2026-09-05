@@ -225,7 +225,7 @@ export default class SettingController {
 					tenantId,
 					userId,
 					productsPerPage: 20,
-					displayLanguage: 'en',
+					displayLanguage: 'ar',
 				})
 			}
 

@@ -52,7 +52,7 @@ const UserSettingsSchema: Schema<IUserSettings> = new mongoose.Schema(
 		displayLanguage: {
 			type: String,
 			enum: ['en', 'de', 'ar'],
-			default: 'en',
+			default: 'ar',
 		},
 		defaultInvoiceCurrencyId: {
 			type: String,

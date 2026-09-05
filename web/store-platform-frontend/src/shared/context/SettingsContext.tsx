@@ -27,7 +27,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [productsPerPage, setProductsPerPageState] = useState<number>(20)
 	const [displayLanguage, setDisplayLanguageState] = useState<
 		'en' | 'de' | 'ar'
-	>('en')
+	>('ar')
 	const [defaultInvoiceCurrencyId, setDefaultInvoiceCurrencyIdState] =
 		useState<string>('')
 	const [hasChanges, setHasChanges] = useState(false)
@@ -35,13 +35,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 	// Initialize from fetched settings
 	useEffect(() => {
 		if (userSettings) {
+			const nextLanguage = userSettings.displayLanguage || 'ar'
 			setProductsPerPageState(Math.min(userSettings.productsPerPage || 20, 100))
-			setDisplayLanguageState(userSettings.displayLanguage || 'en')
+			setDisplayLanguageState(nextLanguage)
 			setDefaultInvoiceCurrencyIdState(
 				userSettings.defaultInvoiceCurrencyId || '',
 			)
-			if (i18n.resolvedLanguage !== userSettings.displayLanguage) {
-				void i18n.changeLanguage(userSettings.displayLanguage || 'en')
+			if (i18n.resolvedLanguage !== nextLanguage) {
+				void i18n.changeLanguage(nextLanguage)
 			}
 		}
 	}, [userSettings])
