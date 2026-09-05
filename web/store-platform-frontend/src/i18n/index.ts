@@ -7,7 +7,9 @@ import arTranslation from './ar/translation.json'
 const SUPPORTED_LANGUAGES = ['ar', 'en', 'de'] as const
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
 
-const isSupportedLanguage = (value: string | null): value is SupportedLanguage =>
+const isSupportedLanguage = (
+	value: string | null,
+): value is SupportedLanguage =>
 	SUPPORTED_LANGUAGES.includes(value as SupportedLanguage)
 
 const persistedLanguage = window.localStorage.getItem('store-platform-language')
