@@ -99,7 +99,7 @@ const SecondStep = ({
 		() =>
 			customers
 				.map(customer => ({
-					value: customer.customerId ?? customer.internalCode,
+					value: customer.customerId,
 					label: customer.name ?? customer.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
@@ -110,7 +110,7 @@ const SecondStep = ({
 		() =>
 			suppliers
 				.map(supplier => ({
-					value: supplier.supplierId ?? supplier.internalCode,
+					value: supplier.supplierId,
 					label: supplier.name ?? supplier.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
@@ -121,7 +121,7 @@ const SecondStep = ({
 		() =>
 			currency
 				.map((currency: Currency) => ({
-					value: currency.currencyId ?? currency.internalCode,
+					value: currency.currencyId,
 					label: currency.name ?? currency.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
@@ -132,7 +132,7 @@ const SecondStep = ({
 		() =>
 			unit
 				.map((unit: Unit) => ({
-					value: unit.unitId ?? unit.internalCode,
+					value: unit.unitId,
 					label: unit.name ?? unit.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
@@ -143,7 +143,7 @@ const SecondStep = ({
 		() =>
 			products
 				.map((product: Product) => ({
-					value: product.productId ?? product.internalCode,
+					value: product.productId,
 					label: product.name ?? product.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
@@ -154,7 +154,7 @@ const SecondStep = ({
 		() =>
 			partners
 				.map(partner => ({
-					value: partner.partnerId ?? partner.internalCode,
+					value: partner.partnerId,
 					label: partner.name ?? partner.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),
@@ -164,7 +164,7 @@ const SecondStep = ({
 		() =>
 			expenses
 				.map(expense => ({
-					value: expense.expenseId ?? expense.internalCode,
+					value: expense.expenseId,
 					label: expense.name ?? expense.internalCode ?? 'TBD',
 				}))
 				.filter((option): option is DropdownOption => Boolean(option.value)),

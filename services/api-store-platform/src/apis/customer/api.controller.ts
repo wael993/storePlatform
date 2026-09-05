@@ -222,7 +222,7 @@ export default class CustomerController {
 		requestBody: CustomerRequestBody,
 	): Promise<CreateCustomerResponse | null> {
 		await ensureSeeIds(requestContext, [SEE.customersAdd])
-		const { name, internalCode } = requestBody
+		const { name } = requestBody
 		const tenantContext = getTenantContext(requestContext)
 
 		if (!name || !name.trim()) {
@@ -262,7 +262,6 @@ export default class CustomerController {
 
 		const customerData: Record<string, unknown> = {
 			customerId,
-			internalCode: internalCode?.trim() || undefined,
 			name,
 		}
 

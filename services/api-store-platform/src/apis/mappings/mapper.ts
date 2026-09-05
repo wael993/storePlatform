@@ -44,8 +44,8 @@ export const filterCustomerRelatedActions = (
 		action =>
 			action.entryType !== DailyActionType.BUYING_ENTRY &&
 			(action.customerId === customer.customerId ||
-				action.customerId === customer.internalCode ||
-				action.customerName === customer.name),
+				action.customerName === customer.name ||
+				action.customerId === customer.internalCode),
 	)
 
 export const filterPartnerRelatedActions = (
@@ -58,8 +58,8 @@ export const filterPartnerRelatedActions = (
 			action.entryType !== DailyActionType.SELLING_ENTRY &&
 			action.entryType !== DailyActionType.EXPENSE_ENTRY &&
 			(action.partnerId === partner.partnerId ||
-				action.partnerId === partner.internalCode ||
-				action.partnerName === partner.name),
+				action.partnerName === partner.name ||
+				action.partnerId === partner.internalCode),
 	)
 
 export const mapProductAction = (action: DailyAction): ProductDailyAction => ({
@@ -141,7 +141,7 @@ export const mapCustomerAction = (
 
 export const mapCustomers = (customers: Customer[]): CustomerResponse[] =>
 	customers.map(customer => ({
-		customerId: customer.customerId ?? customer.internalCode ?? '',
+		customerId: customer.customerId,
 		name: customer.name,
 		internalCode: customer.internalCode,
 		createdAt: customer.createdAt,
@@ -157,7 +157,7 @@ export const mapCustomer = (
 	relatedActions: CustomerDailyAction[] = [],
 	totalReceivable = 0,
 ): CustomerResponse => ({
-	customerId: customer.customerId ?? customer.internalCode ?? '',
+	customerId: customer.customerId,
 	name: customer.name,
 	internalCode: customer.internalCode,
 	createdAt: customer.createdAt?.toISOString(),

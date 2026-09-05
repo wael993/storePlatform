@@ -181,6 +181,7 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 				handleQuickAdd={handlePostNewSupplier}
 				userHasAdminRole={canAddSupplier}
 				nextInternalCode={nextInternalCode}
+				showInternalCodeLabel={false}
 			/>
 		</Flex>
 	)

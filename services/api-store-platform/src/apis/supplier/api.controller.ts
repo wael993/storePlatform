@@ -130,9 +130,7 @@ export default class SupplierController {
 
 		const data = suppliers.documents.map((supplier: SupplierDocument) => {
 			const actions = dailyActions.data.filter(
-				action =>
-					action.supplierId === supplier.supplierId ||
-					action.supplierId === supplier.internalCode,
+				action => action.supplierId === supplier.supplierId,
 			)
 			const { totalPayable } =
 				this.invoiceCollaborator.buildSupplierInvoiceSummary(
@@ -244,7 +242,7 @@ export default class SupplierController {
 		requestBody: SupplierRequestBody,
 	): Promise<CreateSupplierResponse | null> {
 		await ensureSeeIds(requestContext, [SEE.suppliersAdd])
-		const { name, internalCode } = requestBody
+		const { name } = requestBody
 		const tenantContext = getTenantContext(requestContext)
 
 		if (!name || !name.trim()) {
@@ -285,7 +283,6 @@ export default class SupplierController {
 		const supplierData: Record<string, unknown> = {
 			supplierId,
 			name,
-			internalCode: internalCode?.trim() || undefined,
 		}
 
 		logger.info('Saving supplier to database.', {

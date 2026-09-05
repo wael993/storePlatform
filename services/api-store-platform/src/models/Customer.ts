@@ -24,7 +24,7 @@ export interface ICustomer extends Document {
 }
 
 const CustomerSchema = new Schema<ICustomer>({
-	customerId: { type: String, required: true, index: true },
+	customerId: { type: String, required: true, index: true, unique: true },
 	internalCode: { type: String, index: true, uppercase: true },
 	name: { type: String, required: true, index: true },
 	email: { type: String },
@@ -33,9 +33,6 @@ const CustomerSchema = new Schema<ICustomer>({
 })
 
 tenantScopedSchema(CustomerSchema)
-CustomerSchema.index(
-	{ tenantId: 1, internalCode: 1 },
-	{ unique: true, sparse: true },
-)
+CustomerSchema.index({ tenantId: 1, customerId: 1 }, { unique: true })
 
 export const Customer = mongoose.model<ICustomer>('Customer', CustomerSchema)

@@ -182,6 +182,7 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 				handleQuickAdd={handlePostNewCustomer}
 				userHasAdminRole={canSee(SEE.customersAdd)}
 				nextInternalCode={nextInternalCode}
+				showInternalCodeLabel={false}
 			/>
 		</Flex>
 	)

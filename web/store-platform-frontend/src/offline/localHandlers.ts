@@ -54,6 +54,7 @@ import {
 	formatBuyingInvoiceNumber,
 } from '../shared/invoiceNumbering'
 import {
+	DailyActionType,
 	InvoicePaymentStatus,
 	InvoicePaymentType,
 	InvoiceStatus,
@@ -420,6 +421,11 @@ const filterProducts = (
 const filterInvoices = (invoices: LocalInvoice[], params: URLSearchParams) => {
 	let filtered = [...invoices]
 
+	const customerId = params.get('customerId')?.trim()
+	if (customerId) {
+		filtered = filtered.filter(inv => inv.customerId === customerId)
+	}
+
 	const status = params.get('status')
 	if (status && status !== 'all') {
 		filtered = filtered.filter(inv => {
@@ -466,6 +472,11 @@ const filterBuyingInvoices = (
 	params: URLSearchParams,
 ) => {
 	let filtered = [...invoices]
+
+	const supplierId = params.get('supplierId')?.trim()
+	if (supplierId) {
+		filtered = filtered.filter(inv => inv.supplierId === supplierId)
+	}
 
 	const status = params.get('status')
 	if (status && status !== 'all') {
@@ -1042,13 +1053,27 @@ const applyLocalEntityMutation = async (
 	const op = operationFromMethod(method)
 
 	if (entity === 'customer' && op === 'create') {
+		const name = String(payload.name ?? '').trim()
+		if (!name) {
+			throw new Error('Customer name is required')
+		}
+		// ponytail: O(n) local name scan; index normalized name if customer lists get huge
+		const nameTaken = (await offlineDb.customers.toArray()).some(
+			customer =>
+				(customer.name ?? '').trim().toLowerCase() === name.toLowerCase(),
+		)
+		if (nameTaken) {
+			throw new Error('Customer already exists in this tenant.')
+		}
+
 		const customerId = String(payload.customerId ?? generateId())
 		payload.customerId = customerId
+		payload.name = name
 		await offlineDb.customers.put(
 			withLocalMeta(
 				{
 					customerId,
-					name: String(payload.name ?? ''),
+					name,
 					internalCode: payload.internalCode as string | undefined,
 				} as Customer,
 				'pending',
@@ -1078,13 +1103,26 @@ const applyLocalEntityMutation = async (
 	}
 
 	if (entity === 'supplier' && op === 'create') {
+		const name = String(payload.name ?? '').trim()
+		if (!name) {
+			throw new Error('Supplier name is required')
+		}
+		// ponytail: O(n) local name scan; index normalized name if supplier lists get huge
+		const nameTaken = (await offlineDb.suppliers.toArray()).some(
+			supplier =>
+				(supplier.name ?? '').trim().toLowerCase() === name.toLowerCase(),
+		)
+		if (nameTaken) {
+			throw new Error('Supplier already exists in this tenant.')
+		}
+
 		const supplierId = String(payload.supplierId ?? generateId())
 		payload.supplierId = supplierId
 		await offlineDb.suppliers.put(
 			withLocalMeta(
 				{
 					supplierId,
-					name: String(payload.name ?? ''),
+					name,
 				} as Supplier,
 				'pending',
 				supplierId,
@@ -1678,7 +1716,17 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Customer not found' } },
 						}
 					}
-					return { data: customer }
+					const relatedActions = (
+						await getLocalDailyActionsForOffline()
+					).filter(
+						action =>
+							action.entryType !== DailyActionType.BUYING_ENTRY &&
+							(action.customerId === customer.customerId ||
+								action.customerName === customer.name ||
+								(!!customer.internalCode &&
+									action.customerId === customer.internalCode)),
+					)
+					return { data: { ...customer, relatedActions } }
 				}
 				const data = await offlineDb.customers.toArray()
 				return { data: { data, totalCount: data.length } }
@@ -1692,7 +1740,10 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Supplier not found' } },
 						}
 					}
-					return { data: supplier }
+					const relatedActions = (
+						await getLocalDailyActionsForOffline()
+					).filter(action => action.supplierId === supplier.supplierId)
+					return { data: { ...supplier, relatedActions } }
 				}
 				const data = await offlineDb.suppliers.toArray()
 				return { data: { data, totalCount: data.length } }
