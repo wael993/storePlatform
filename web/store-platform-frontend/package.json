@@ -10,6 +10,7 @@
 		"@hookform/resolvers": "^5.4.0",
 		"@react-pdf/renderer": "^4.6.0",
 		"@reduxjs/toolkit": "2.6.1",
+		"@vercel/config": "^0.7.0",
 		"axios": "^1.7.9",
 		"chakra-dayzed-datepicker": "^0.3.1",
 		"date-fns": "4.1.0",
