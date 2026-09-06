@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
+import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
 import Tenant from '../models/Tenant'
 import User from '../models/User'
@@ -230,7 +231,7 @@ async function seedAppTenant() {
 
 	const warehouse = {
 		tenantId: TENANT_ID,
-		warehouseId: id('wh-main'),
+		warehouseId: uuidv4(),
 		name: 'المستودع الرئيسي',
 		code: 'MAIN',
 		address: 'عمّان — المنطقة الحرة',
@@ -257,10 +258,15 @@ async function seedAppTenant() {
 		{ name: 'شاومي', description: 'هواتف وإلكترونيات بأسعار مناسبة' },
 	]
 	const brands = await Brand.insertMany(
-		brandRows.map(brand => ({ ...brand, tenantId: TENANT_ID, createdBy: BY })),
+		brandRows.map(brand => ({
+			...brand,
+			tenantId: TENANT_ID,
+			brandId: uuidv4(),
+			createdBy: BY,
+		})),
 	)
 	const brandId = (name: string) =>
-		String(brands.find(brand => brand.name === name)?._id ?? '')
+		brands.find(brand => brand.name === name)?.brandId ?? ''
 
 	const categoryRows = [
 		{

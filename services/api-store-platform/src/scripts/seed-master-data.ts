@@ -187,6 +187,7 @@ async function seedMasterData() {
 		await Brand.deleteMany({ tenantId })
 		const brandDocs = BRANDS_DATA.map(brand => ({
 			...brand,
+			brandId: uuidv4(),
 			tenantId,
 			createdBy: systemUser,
 		}))

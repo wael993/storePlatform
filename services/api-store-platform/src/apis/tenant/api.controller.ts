@@ -41,7 +41,6 @@ import {
 	assertAssignableTenantRole,
 	ensureSuperAdmin,
 	getEmailDomain,
-	getSuperAdminTenantId,
 	getTenantContext,
 	isTenantRole,
 	UserRole,
@@ -114,10 +113,6 @@ export default class TenantController {
 		const lower = String.fromCharCode(97 + crypto.randomInt(0, 26))
 
 		return `${lower}${randomPart}${digit}`
-	}
-
-	private createTenantIdFromDomain(domain: string): string {
-		return domain.replace(/\./g, '-').toLowerCase()
 	}
 
 	private async requireTenantById(tenantId: string): Promise<ITenant> {
@@ -603,23 +598,7 @@ export default class TenantController {
 			)
 		}
 
-		const tenantId = this.createTenantIdFromDomain(normalizedDomain)
-
-		if (tenantId === getSuperAdminTenantId()) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Tenant ID conflict detected. Choose a different domain.',
-			)
-		}
-
-		const tenantIdConflict = await Tenant.findOne({ tenantId }).lean()
-
-		if (tenantIdConflict) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Tenant ID conflict detected. Choose a different domain.',
-			)
-		}
+		const tenantId = uuidv4()
 
 		const ownerPasswordError = validatePasswordStrength(ownerPassword)
 

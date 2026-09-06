@@ -36,6 +36,7 @@ import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
+import { resolveSyncClientId } from '../shared/uuid'
 import {
 	mergeProductPricePatch,
 	normalizeInventoryPatchRequest,
@@ -1571,7 +1572,7 @@ export default class ProductController {
 			}
 		}
 
-		const productId = this.resolveSyncClientId(requestBody.productId)
+		const productId = resolveSyncClientId(requestBody.productId)
 
 		const existingById = await withTenantScope(
 			Product.findOne({ productId }).lean(),
@@ -2083,16 +2084,6 @@ export default class ProductController {
 		).lean()
 
 		return updated as unknown as InventoryDocument
-	}
-
-	private resolveSyncClientId(clientId?: string): string {
-		const trimmed = clientId?.trim()
-
-		if (trimmed && /^[0-9a-f-]{36}$/i.test(trimmed)) {
-			return trimmed
-		}
-
-		return uuidv4()
 	}
 
 	private async resolveLatestInvoiceSequence(
@@ -2939,7 +2930,7 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<CreateDailyActionResponse> {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
-		const actionId = this.resolveSyncClientId(
+		const actionId = resolveSyncClientId(
 			(requestBody as DailyActionRequestBody & { actionId?: string }).actionId,
 		)
 
@@ -3378,7 +3369,7 @@ export default class ProductController {
 			)
 		}
 
-		const expenseId = this.resolveSyncClientId(requestBody.expenseId)
+		const expenseId = resolveSyncClientId(requestBody.expenseId)
 
 		const existingById = await withTenantScope(
 			Expense.findOne({ expenseId }).lean(),
@@ -3554,7 +3545,7 @@ export default class ProductController {
 			)
 		}
 
-		const currencyId = this.resolveSyncClientId(requestBody.currencyId)
+		const currencyId = resolveSyncClientId(requestBody.currencyId)
 
 		const existingById = await withTenantScope(
 			Currency.findOne({ currencyId }).lean(),
@@ -3668,7 +3659,7 @@ export default class ProductController {
 			)
 		}
 
-		const unitId = this.resolveSyncClientId(requestBody.unitId)
+		const unitId = resolveSyncClientId(requestBody.unitId)
 
 		const existingById = await withTenantScope(
 			Unit.findOne({ unitId }).lean(),
@@ -3730,20 +3721,9 @@ export default class ProductController {
 			sort: { name: 1 },
 		})
 
-		const data = brands.documents.map((brand: BrandDocument) => ({
-			brandId: String(brand._id),
-			name: brand.name,
-			description: brand.description,
-			createdAt: brand.createdAt?.toISOString?.(),
-			updatedAt: brand.updatedAt?.toISOString?.(),
-			createdBy: brand.createdBy as BrandsResponse['data'][number]['createdBy'],
-			updatedBy: brand.updatedBy
-				? {
-						...brand.updatedBy,
-						updatedAt: brand.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-		}))
+		const data = brands.documents.map((brand: BrandDocument) =>
+			this.mapBrandDocument(brand),
+		)
 
 		const response: BrandsResponse = {
 			data,
@@ -3759,31 +3739,13 @@ export default class ProductController {
 		brandId: string,
 		requestContext: RequestContext,
 	): Promise<BrandsResponse['data'][number] | null> {
-		const brand = await this.mongoDbClient.getDocumentByField<BrandDocument>(
-			requestContext,
-			COLLECTION_NAMES.BRANDS,
-			Brand,
-			{ fieldName: '_id', fieldValue: brandId },
-		)
+		const brand = await this.findBrandByBusinessId(brandId, requestContext)
 
 		if (!brand) {
 			return null
 		}
 
-		return {
-			brandId: String(brand._id),
-			name: brand.name,
-			description: brand.description,
-			createdAt: brand.createdAt?.toISOString?.(),
-			updatedAt: brand.updatedAt?.toISOString?.(),
-			createdBy: brand.createdBy as BrandsResponse['data'][number]['createdBy'],
-			updatedBy: brand.updatedBy
-				? {
-						...brand.updatedBy,
-						updatedAt: brand.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-		}
+		return this.mapBrandDocument(brand)
 	}
 
 	public async postBrand(
@@ -3797,6 +3759,17 @@ export default class ProductController {
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'Brand name is required',
 			)
+		}
+
+		const brandId = resolveSyncClientId(requestBody.brandId)
+
+		const existingById = await withTenantScope(
+			Brand.findOne({ brandId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (existingById) {
+			return { _id: brandId }
 		}
 
 		const existing = await withTenantScope(
@@ -3814,6 +3787,7 @@ export default class ProductController {
 		}
 
 		const brandData = {
+			brandId,
 			name: requestBody.name.trim(),
 			description: requestBody.description?.trim(),
 		}
@@ -3821,10 +3795,11 @@ export default class ProductController {
 		logger.info('Saving brand to database.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
+			brandId,
 			name: brandData.name,
 		})
 
-		const createBrandResponse = await this.mongoDbClient.createDocument(
+		await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.BRANDS, data: brandData },
 			Brand,
 			requestContext,
@@ -3833,13 +3808,13 @@ export default class ProductController {
 		logger.info('Brand created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
-			brandId: createBrandResponse._id,
+			brandId,
 			name: brandData.name,
 		})
 
 		await redisCache.del(redisCache.buildBrandListKey(tenantContext.tenantId))
 
-		return { _id: createBrandResponse._id }
+		return { _id: brandId }
 	}
 
 	public async getShelves(
@@ -4073,24 +4048,37 @@ export default class ProductController {
 			)
 		}
 
-		const warehouseId = requestBody.warehouseId?.trim() || uuidv4()
+		const warehouseId = resolveSyncClientId(requestBody.warehouseId)
 
-		const existing = await withTenantScope(
+		const existingById = (await withTenantScope(
 			Warehouse.findOne({ warehouseId }),
 			tenantContext.tenantId,
-		).lean()
+		).lean()) as { name?: string } | null
 
-		if (existing) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'Warehouse already exists in this tenant.',
-			)
+		if (existingById) {
+			const existingName =
+				typeof existingById.name === 'string'
+					? existingById.name.trim().toLowerCase()
+					: ''
+			const requestName = requestBody.name.trim().toLowerCase()
+
+			if (existingName !== requestName) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Warehouse ID already exists with a different name.',
+				)
+			}
+
+			return { _id: warehouseId, warehouseId }
 		}
 
 		const warehouseData = {
 			warehouseId,
 			name: requestBody.name.trim(),
 			code: requestBody.code?.trim(),
+			address: requestBody.address?.trim(),
+			status: requestBody.status,
+			description: requestBody.description?.trim(),
 		}
 
 		logger.info('Saving warehouse to database.', {
@@ -4100,7 +4088,7 @@ export default class ProductController {
 			name: warehouseData.name,
 		})
 
-		const createWarehouseResponse = await this.mongoDbClient.createDocument(
+		await this.mongoDbClient.createDocument(
 			{ collectionName: COLLECTION_NAMES.WAREHOUSES, data: warehouseData },
 			Warehouse,
 			requestContext,
@@ -4117,7 +4105,7 @@ export default class ProductController {
 			redisCache.buildWarehouseListKey(tenantContext.tenantId),
 		)
 
-		return { _id: createWarehouseResponse._id }
+		return { _id: warehouseId, warehouseId }
 	}
 
 	public async getProcessedSyncMutation(
@@ -4530,20 +4518,61 @@ export default class ProductController {
 	private mapBrandDocumentsForSync(
 		brands: BrandDocument[],
 	): Array<Record<string, unknown>> {
-		return brands.map(brand => ({
-			brandId: String(brand._id),
+		return brands.map(
+			brand => this.mapBrandDocument(brand) as unknown as Record<string, unknown>,
+		)
+	}
+
+	private resolveBrandBusinessId(brand: BrandDocument): string {
+		return brand.brandId ?? String(brand._id)
+	}
+
+	private mapBrandDocument(
+		brand: BrandDocument,
+	): BrandsResponse['data'][number] {
+		return {
+			brandId: this.resolveBrandBusinessId(brand),
 			name: brand.name,
 			description: brand.description,
 			createdAt: brand.createdAt?.toISOString?.(),
 			updatedAt: brand.updatedAt?.toISOString?.(),
-			createdBy: brand.createdBy,
+			createdBy: brand.createdBy as BrandsResponse['data'][number]['createdBy'],
 			updatedBy: brand.updatedBy
 				? {
 						...brand.updatedBy,
 						updatedAt: brand.updatedBy.updatedAt.toISOString(),
 					}
 				: undefined,
-		}))
+		}
+	}
+
+	private async findBrandByBusinessId(
+		brandId: string,
+		requestContext: RequestContext,
+	): Promise<BrandDocument | null> {
+		const byBrandId =
+			await this.mongoDbClient.getDocumentByField<BrandDocument>(
+				requestContext,
+				COLLECTION_NAMES.BRANDS,
+				Brand,
+				{ fieldName: 'brandId', fieldValue: brandId },
+			)
+
+		if (byBrandId) {
+			return byBrandId
+		}
+
+		// Legacy brands used Mongo _id as brandId
+		if (!mongoose.isValidObjectId(brandId)) {
+			return null
+		}
+
+		return this.mongoDbClient.getDocumentByField<BrandDocument>(
+			requestContext,
+			COLLECTION_NAMES.BRANDS,
+			Brand,
+			{ fieldName: '_id', fieldValue: brandId },
+		)
 	}
 
 	private extractSyncPathId(url: string): string {
@@ -5008,20 +5037,10 @@ export default class ProductController {
 					data,
 				)
 			} else if (entry.entity === 'warehouse' && entry.method === 'POST') {
-				const warehouseId = String(
-					(payload as WarehouseRequestBody).warehouseId ?? '',
-				).trim()
-
 				data = (await this.postWarehouse(
 					payload as WarehouseRequestBody,
 					requestContext,
 				)) as Record<string, unknown>
-
-				data = {
-					...data,
-					warehouseId:
-						warehouseId || (payload as WarehouseRequestBody).warehouseId,
-				}
 
 				await this.recordSyncMutation(
 					requestContext,

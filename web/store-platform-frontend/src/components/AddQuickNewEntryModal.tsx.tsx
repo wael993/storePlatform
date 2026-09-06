@@ -40,6 +40,7 @@ import { PersonIcon } from '../shared/icons/Person'
 import { StarIcon } from '../shared/icons/Star'
 import { StoreIcon } from '../shared/icons/Store'
 import { TruckIcon } from '../shared/icons/Truck'
+import { generateId } from '../offline/utils'
 import QuickAddFormModal from './modals/AddQuickModal'
 import { compareLanguage } from '../shared/utils'
 import useCustomToast from './common/CustomToast'
@@ -286,7 +287,8 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 					() =>
 						createWarehouse({
 							name: value.trim(),
-							warehouseId: (code.trim() || value).toUpperCase(),
+							warehouseId: generateId(),
+							code: code.trim() || undefined,
 						}).unwrap(),
 					t('components.quickAdd.errors.addWarehouseFailed'),
 				)

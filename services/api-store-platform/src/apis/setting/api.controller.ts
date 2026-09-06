@@ -31,6 +31,7 @@ import logger from '../../shared/logger/logger'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { getTenantContext } from '../../shared/tenant'
+import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CreateCurrencyResponse,
 	CurrencyRequestBody,
@@ -177,16 +178,6 @@ export default class SettingController {
 
 	private escapeRegex(value: string): string {
 		return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-	}
-
-	private resolveSyncClientId(clientId?: string): string {
-		const trimmed = clientId?.trim()
-
-		if (trimmed && /^[0-9a-f-]{36}$/i.test(trimmed)) {
-			return trimmed
-		}
-
-		return uuidv4()
 	}
 
 	private getRequestContext(request: SettingsHttpRequest): RequestContext {
@@ -373,7 +364,7 @@ export default class SettingController {
 
 		const normalizedPrimary: ICurrencySettingItem | null = primaryCurrency
 			? {
-					currencyId: this.resolveSyncClientId(primaryCurrency.currencyId),
+					currencyId: resolveSyncClientId(primaryCurrency.currencyId),
 					name: primaryCurrency.name.trim(),
 					internalCode: primaryCurrency.internalCode?.trim() || undefined,
 				}
@@ -388,7 +379,7 @@ export default class SettingController {
 							item?.name?.trim() && Number(item.exchangeRate) > 0,
 					)
 					.map((item: ICurrencySettingItem) => ({
-						currencyId: this.resolveSyncClientId(item.currencyId),
+						currencyId: resolveSyncClientId(item.currencyId),
 						name: item.name.trim(),
 						internalCode: item.internalCode?.trim() || undefined,
 						exchangeRate: Number(item.exchangeRate),

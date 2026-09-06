@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
-
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { Category } from '../../models/Category'
 import { Product } from '../../models/Products'
@@ -12,6 +10,7 @@ import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
+import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CategoriesResponse,
 	CategoryDocument,
@@ -28,16 +27,6 @@ export default class CategoryController {
 
 	private escapeRegex(value: string): string {
 		return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-	}
-
-	private resolveSyncClientId(clientId?: string): string {
-		const trimmed = clientId?.trim()
-
-		if (trimmed && /^[0-9a-f-]{36}$/i.test(trimmed)) {
-			return trimmed
-		}
-
-		return uuidv4()
 	}
 
 	private async invalidateCategoryCache(
@@ -134,7 +123,7 @@ export default class CategoryController {
 			)
 		}
 
-		const categoryId = this.resolveSyncClientId(requestBody.categoryId)
+		const categoryId = resolveSyncClientId(requestBody.categoryId)
 
 		const existingById = await withTenantScope(
 			Category.findOne({ categoryId }).lean(),

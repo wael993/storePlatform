@@ -185,5 +185,6 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 
 tenantScopedSchema(InvoiceSchema)
 InvoiceSchema.index({ tenantId: 1, invoiceNumber: 1 })
+InvoiceSchema.index({ tenantId: 1, warehouseId: 1 })
 
 export const Invoice = mongoose.model<IInvoice>('Invoice', InvoiceSchema)

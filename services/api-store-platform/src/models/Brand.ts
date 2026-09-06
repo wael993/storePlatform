@@ -3,6 +3,7 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
 export interface IBrand extends Document {
 	tenantId: string
+	brandId: string
 	name: string
 	description?: string
 	createdBy: {
@@ -20,6 +21,7 @@ export interface IBrand extends Document {
 }
 
 const BrandSchema = new Schema<IBrand>({
+	brandId: { type: String, required: true },
 	name: { type: String, required: true, index: true },
 	description: { type: String },
 	createdBy: {
@@ -37,5 +39,6 @@ const BrandSchema = new Schema<IBrand>({
 })
 
 tenantScopedSchema(BrandSchema)
+BrandSchema.index({ tenantId: 1, brandId: 1 }, { unique: true })
 
 export const Brand = mongoose.model<IBrand>('Brand', BrandSchema)

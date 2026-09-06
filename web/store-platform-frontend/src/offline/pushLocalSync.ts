@@ -41,6 +41,28 @@ const remapBrandId = async (
 	})
 }
 
+const remapWarehouseId = async (
+	clientId: string,
+	serverId: string,
+	serverTime: string,
+) => {
+	if (!clientId || clientId === serverId) {
+		await markSynced(offlineDb.warehouses, clientId || serverId, serverTime)
+		return
+	}
+
+	const warehouse = await offlineDb.warehouses.get(clientId)
+	if (!warehouse) return
+
+	await offlineDb.warehouses.delete(clientId)
+	await offlineDb.warehouses.put({
+		...warehouse,
+		warehouseId: serverId,
+		syncStatus: 'synced',
+		updatedAt: serverTime,
+	})
+}
+
 export const applyPushResultToLocalStore = async (
 	entry: OutboxEntry,
 	item: SyncPushResult,
@@ -108,9 +130,9 @@ export const applyPushResultToLocalStore = async (
 			return
 		}
 		case 'warehouse': {
-			const warehouseId = String(data.warehouseId ?? payload.warehouseId ?? '')
-			if (warehouseId)
-				await markSynced(offlineDb.warehouses, warehouseId, serverTime)
+			const clientId = String(payload.warehouseId ?? '')
+			const serverId = String(data.warehouseId ?? data._id ?? clientId)
+			await remapWarehouseId(clientId, serverId, serverTime)
 			return
 		}
 		case 'expense': {

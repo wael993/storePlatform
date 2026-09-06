@@ -21,6 +21,7 @@ import { useSee } from '../../../../shared/hooks/useSee'
 import { SEE } from '../../../../shared/seeFlags'
 import AddQuickModal from '../../AddQuickModal'
 import useCustomToast from '../../../common/CustomToast'
+import { generateId } from '../../../../offline/utils'
 
 const styles = {
 	button: {
@@ -275,7 +276,8 @@ const DailyActionsHelperButtons = () => {
 					() =>
 						createWarehouse({
 							name: value.trim(),
-							warehouseId: (code.trim() || value).toUpperCase(),
+							warehouseId: generateId(),
+							code: code.trim() || undefined,
 						}).unwrap(),
 					t('components.quickAdd.errors.addWarehouseFailed'),
 				)

@@ -27,7 +27,6 @@ const WarehouseSchema: Schema<IWarehouse> = new mongoose.Schema({
 	warehouseId: {
 		type: String,
 		required: [true, 'warehouseId is required'],
-		unique: true,
 		trim: true,
 	},
 	name: {
@@ -57,6 +56,9 @@ const WarehouseSchema: Schema<IWarehouse> = new mongoose.Schema({
 tenantScopedSchema(WarehouseSchema)
 
 WarehouseSchema.index({ tenantId: 1, warehouseId: 1 }, { unique: true })
+WarehouseSchema.index({ tenantId: 1, status: 1 })
+WarehouseSchema.index({ tenantId: 1, name: 1 })
+WarehouseSchema.index({ tenantId: 1, code: 1 }, { sparse: true })
 
 export const Warehouse = mongoose.model<IWarehouse>(
 	'Warehouses',

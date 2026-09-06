@@ -183,6 +183,7 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 
 tenantScopedSchema(BuyingInvoiceSchema)
 BuyingInvoiceSchema.index({ tenantId: 1, invoiceNumber: 1 })
+BuyingInvoiceSchema.index({ tenantId: 1, warehouseId: 1 })
 
 export const BuyingInvoice = mongoose.model<IBuyingInvoice>(
 	'BuyingInvoice',

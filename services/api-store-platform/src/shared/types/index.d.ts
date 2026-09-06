@@ -380,6 +380,7 @@ export type CategoryRequestBody = {
 	parentCategoryId?: string
 }
 export type BrandRequestBody = {
+	brandId?: string
 	name: string
 	description?: string
 }
@@ -389,9 +390,12 @@ export type ShelfRequestBody = {
 	description?: string
 }
 export type WarehouseRequestBody = {
-	warehouseId: string
+	warehouseId?: string
 	name: string
 	code?: string
+	address?: string
+	status?: 'active' | 'inactive'
+	description?: string
 }
 export type InventoryRequestBody = {
 	productId: string
@@ -471,6 +475,7 @@ export type CreateShelfResponse = {
 }
 export type CreateWarehouseResponse = {
 	_id: string
+	warehouseId?: string
 }
 export type CategoryAPI = {
 	categoryId: string
@@ -610,6 +615,7 @@ interface SupplierDocument {
 interface BrandDocument {
 	tenantId: string
 	_id?: string
+	brandId?: string
 	name: string
 	description?: string
 	createdBy?: UserAPIFormat

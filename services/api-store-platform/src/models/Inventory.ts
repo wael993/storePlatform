@@ -80,6 +80,8 @@ InventorySchema.index(
 	{ unique: true, sparse: true },
 )
 
+InventorySchema.index({ tenantId: 1, warehouseId: 1 })
+
 export const Inventory = mongoose.model<IInventory>(
 	'Inventory',
 	InventorySchema,

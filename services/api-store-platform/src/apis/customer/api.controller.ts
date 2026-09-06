@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
-
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { Customer } from '../../models/Customer'
 import { Invoice } from '../../models/Invoice'
@@ -13,6 +11,7 @@ import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
+import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CreateCustomerResponse,
 	CustomerDocument,
@@ -68,16 +67,6 @@ export default class CustomerController {
 
 	private escapeRegex(value: string): string {
 		return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-	}
-
-	private resolveSyncClientId(clientId?: string): string {
-		const trimmed = clientId?.trim()
-
-		if (trimmed && /^[0-9a-f-]{36}$/i.test(trimmed)) {
-			return trimmed
-		}
-
-		return uuidv4()
 	}
 
 	public async getCustomers(
@@ -246,7 +235,7 @@ export default class CustomerController {
 			)
 		}
 
-		const customerId = this.resolveSyncClientId(requestBody.customerId)
+		const customerId = resolveSyncClientId(requestBody.customerId)
 
 		const existingById = await withTenantScope(
 			Customer.findOne({ customerId }).lean(),
