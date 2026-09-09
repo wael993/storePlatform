@@ -4519,7 +4519,8 @@ export default class ProductController {
 		brands: BrandDocument[],
 	): Array<Record<string, unknown>> {
 		return brands.map(
-			brand => this.mapBrandDocument(brand) as unknown as Record<string, unknown>,
+			brand =>
+				this.mapBrandDocument(brand) as unknown as Record<string, unknown>,
 		)
 	}
 
