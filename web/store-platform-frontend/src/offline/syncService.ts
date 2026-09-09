@@ -48,6 +48,7 @@ import type {
 	OutboxEntry,
 	SyncPushResponse,
 } from './types'
+import { storeApi } from '../api/apiStore'
 
 type StateListener = (state: Partial<OfflineState>) => void
 
@@ -210,6 +211,9 @@ export const bootstrapOfflineData = async (tenantId: string): Promise<void> => {
 		const payload = (await response.json()) as BootstrapPayload
 		await applyBootstrapPayload(payload, tenantId)
 		markOnline()
+		store.dispatch(
+			storeApi.util.invalidateTags(['products', 'inventory', 'warehouses']),
+		)
 
 		emit({
 			syncState: 'idle',

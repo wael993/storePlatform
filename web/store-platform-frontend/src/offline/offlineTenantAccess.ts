@@ -45,6 +45,9 @@ export const clearTenantOfflineConfig = (): void => {
 
 export const onAuthLogout = (): void => {
 	clearTenantOfflineConfig()
+	void import('../shared/warehouseScope').then(module =>
+		module.initWarehouseScope(null),
+	)
 	void import('./productCatalogStore').then(module =>
 		module.clearProductCatalogMemory(),
 	)

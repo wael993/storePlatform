@@ -67,6 +67,10 @@ import {
 	resolveRequestParams,
 	withLocalMeta,
 } from './utils'
+import {
+	filterInventoryByWarehouseScope,
+	filterProductsByWarehouseStock,
+} from '../shared/warehouseScope'
 
 const addFilterOption = (
 	map: Map<string, { value: string; label: string }>,
@@ -1630,12 +1634,17 @@ export const handleOfflineQuery = async (
 		if (method === 'GET') {
 			if (path === 'products/catalog') {
 				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
-				const catalogProducts = tenantId
+				const catalogRows = tenantId
 					? await offlineDb.catalogProducts
 							.where('tenantId')
 							.equals(tenantId)
 							.toArray()
 					: []
+				const source: Array<{ productId?: string }> =
+					catalogRows.length > 0
+						? catalogRows
+						: await offlineDb.products.toArray()
+				const catalogProducts = await filterProductsByWarehouseStock(source)
 
 				return {
 					data: {
@@ -1699,12 +1708,16 @@ export const handleOfflineQuery = async (
 					return { data: product }
 				}
 
-				const products = await offlineDb.products.toArray()
+				const products = await filterProductsByWarehouseStock(
+					await offlineDb.products.toArray(),
+				)
 				return { data: filterProducts(products, params) }
 			}
 
 			if (path === 'inventory') {
-				const inventory = await offlineDb.inventory.toArray()
+				const inventory = filterInventoryByWarehouseScope(
+					await offlineDb.inventory.toArray(),
+				)
 				return { data: inventory }
 			}
 

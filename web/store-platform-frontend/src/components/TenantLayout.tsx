@@ -12,6 +12,7 @@ import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
 import { useTenantRouteGuard } from '../shared/hooks/useTenantRouteGuard'
 import { useProductCatalogSync } from '../shared/hooks/useProductCatalogSync'
+import { useWarehouseScope } from '../shared/hooks/useWarehouseScope'
 
 import { getEnabledActions, getTenantActions } from '../shared/utils'
 import { RoutePaths } from '../shared/routes'
@@ -32,6 +33,7 @@ const TenantLayout = () => {
 
 	useTenantRouteGuard(user?.accessiblePages)
 	useProductCatalogSync()
+	useWarehouseScope()
 
 	const [showImportProducts, setShowImportProducts] = useState(false)
 	const [importWizardSignal, setImportWizardSignal] = useState(0)

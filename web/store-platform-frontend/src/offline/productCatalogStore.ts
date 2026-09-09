@@ -2,7 +2,10 @@ import type {
 	ProductCatalogItem,
 	ProductCatalogResponse,
 } from '../api/apiStore'
-import { mapCatalogItemToProduct } from '../components/SellingInvoice/catalogMappers'
+import {
+	mapCatalogItemToProduct,
+	mapProductToCatalogItem,
+} from '../components/SellingInvoice/catalogMappers'
 import {
 	buildProductSearchIndexes,
 	createEmptyProductSearchIndexes,
@@ -13,6 +16,11 @@ import store from '../store/store'
 import { getIsNetworkOnline } from './connectivity'
 import { getSyncMeta, offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
 import type { LocalCatalogProduct } from './types'
+import { getWorkMode } from './workMode'
+import {
+	filterProductsByWarehouseStock,
+	subscribeWarehouseScope,
+} from '../shared/warehouseScope'
 
 export interface ProductCatalogState {
 	tenantId: string | null
@@ -42,6 +50,7 @@ let memoryState: ProductCatalogState = {
 const listeners = new Set<Listener>()
 let syncInFlight: Promise<void> | null = null
 let activeTenantId: string | null = null
+let unfilteredProducts: Product[] = []
 
 const emit = (partial: Partial<ProductCatalogState>): void => {
 	memoryState = { ...memoryState, ...partial }
@@ -50,18 +59,19 @@ const emit = (partial: Partial<ProductCatalogState>): void => {
 	}
 }
 
-const loadMemoryFromItems = (
+const loadMemoryFromItems = async (
 	tenantId: string,
 	items: ProductCatalogItem[],
-): void => {
-	const products = items.map(mapCatalogItemToProduct)
+): Promise<void> => {
+	unfilteredProducts = items.map(mapCatalogItemToProduct)
+	const products = await filterProductsByWarehouseStock(unfilteredProducts)
 	const indexes = buildProductSearchIndexes(products)
 
 	emit({
 		tenantId,
 		products,
 		indexes,
-		isReady: products.length > 0,
+		isReady: unfilteredProducts.length > 0,
 	})
 }
 
@@ -83,6 +93,7 @@ export const getCatalogIndexes = (): ProductSearchIndexes => memoryState.indexes
 
 export const clearProductCatalogMemory = (): void => {
 	activeTenantId = null
+	unfilteredProducts = []
 	emit({
 		tenantId: null,
 		products: [],
@@ -104,6 +115,23 @@ export const clearForTenant = async (tenantId: string): Promise<void> => {
 	}
 }
 
+const readLocalCatalogItems = async (
+	tenantId: string,
+): Promise<LocalCatalogProduct[]> => {
+	const records = await offlineDb.catalogProducts
+		.where('tenantId')
+		.equals(tenantId)
+		.toArray()
+
+	if (records.length > 0) return records
+
+	const products = await offlineDb.products.toArray()
+	return products.flatMap(product => {
+		if (!product.productId) return []
+		return [{ ...mapProductToCatalogItem(product), tenantId }]
+	})
+}
+
 export const hydrateFromIndexedDB = async (tenantId: string): Promise<void> => {
 	if (activeTenantId && activeTenantId !== tenantId) {
 		await clearForTenant(activeTenantId)
@@ -111,12 +139,10 @@ export const hydrateFromIndexedDB = async (tenantId: string): Promise<void> => {
 
 	activeTenantId = tenantId
 
-	const records = await offlineDb.catalogProducts
-		.where('tenantId')
-		.equals(tenantId)
-		.toArray()
+	const records = await readLocalCatalogItems(tenantId)
 
 	if (records.length === 0) {
+		unfilteredProducts = []
 		emit({
 			tenantId,
 			products: [],
@@ -126,14 +152,52 @@ export const hydrateFromIndexedDB = async (tenantId: string): Promise<void> => {
 		return
 	}
 
-	loadMemoryFromItems(tenantId, records)
+	await loadMemoryFromItems(tenantId, records)
 
 	const lastSyncedAt = await getSyncMeta(getCatalogMetaKey(tenantId))
 	emit({ lastSyncedAt })
 }
 
+export const seedCatalogFromLocalProducts = async (
+	tenantId: string,
+): Promise<void> => {
+	const products = await offlineDb.products.toArray()
+	const serverTime = new Date().toISOString()
+	const records: LocalCatalogProduct[] = products.flatMap(product => {
+		if (!product.productId) return []
+		return [{ ...mapProductToCatalogItem(product), tenantId }]
+	})
+
+	await offlineDb.transaction(
+		'rw',
+		offlineDb.catalogProducts,
+		offlineDb.syncMeta,
+		async () => {
+			await offlineDb.catalogProducts
+				.where('tenantId')
+				.equals(tenantId)
+				.delete()
+			if (records.length > 0) {
+				await offlineDb.catalogProducts.bulkPut(records)
+			}
+			await setSyncMeta(getCatalogMetaKey(tenantId), serverTime)
+		},
+	)
+
+	activeTenantId = tenantId
+	await loadMemoryFromItems(tenantId, records)
+	emit({
+		isSyncing: false,
+		lastSyncedAt: serverTime,
+		lastError: null,
+	})
+}
+
 export const syncFromNetwork = async (tenantId: string): Promise<void> => {
-	if (!getIsNetworkOnline()) return
+	if (!getIsNetworkOnline() || getWorkMode() === 'offline') {
+		await hydrateFromIndexedDB(tenantId)
+		return
+	}
 
 	if (syncInFlight) {
 		await syncInFlight
@@ -187,7 +251,7 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 			)
 
 			activeTenantId = tenantId
-			loadMemoryFromItems(tenantId, payload.products)
+			await loadMemoryFromItems(tenantId, payload.products)
 			emit({
 				isSyncing: false,
 				lastSyncedAt: serverTime,
@@ -204,3 +268,8 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 
 	await syncInFlight
 }
+
+subscribeWarehouseScope(() => {
+	if (!activeTenantId) return
+	void hydrateFromIndexedDB(activeTenantId)
+})

@@ -9,6 +9,7 @@ import store, { persistor } from './store/store'
 import { SettingsProvider } from './shared/context/SettingsContext'
 import { loadTenantOfflineConfig } from './offline/offlineTenantAccess'
 import { loadWorkModePreference } from './offline/workMode'
+import { initWarehouseScope } from './shared/warehouseScope'
 import {
 	alignAutoWorkModeOnSessionStart,
 	initOfflineState,
@@ -16,8 +17,10 @@ import {
 
 const warmOfflineSessionBeforeRender = async (): Promise<void> => {
 	const tenantId = store.getState().user?.user?.tenantId
+	const userId = store.getState().user?.user?.userId
 	if (!tenantId) return
 
+	initWarehouseScope(tenantId, userId)
 	await loadWorkModePreference()
 	await loadTenantOfflineConfig(tenantId)
 	await initOfflineState(tenantId)

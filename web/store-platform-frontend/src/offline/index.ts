@@ -72,5 +72,6 @@ export {
 	subscribeProductCatalog,
 	clearProductCatalogMemory,
 	clearForTenant,
+	seedCatalogFromLocalProducts,
 } from './productCatalogStore'
 export { getApiErrorMessage } from './getApiErrorMessage'

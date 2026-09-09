@@ -364,6 +364,9 @@ export const applyBootstrapPayload = async (
 	await pruneExpiredOfflineRecords(
 		payload.offlineRetentionDays ?? OFFLINE_SYNC_RETENTION_DAYS,
 	)
+
+	const { seedCatalogFromLocalProducts } = await import('./productCatalogStore')
+	await seedCatalogFromLocalProducts(tenantId)
 }
 
 export const cacheFrontendResources = async (

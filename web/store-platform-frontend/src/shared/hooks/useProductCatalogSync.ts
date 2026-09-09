@@ -4,6 +4,7 @@ import {
 	getIsNetworkOnline,
 	subscribeConnectivity,
 } from '../../offline/connectivity'
+import { getWorkMode } from '../../offline/workMode'
 import {
 	getProductCatalogState,
 	hydrateFromIndexedDB,
@@ -33,7 +34,7 @@ export const useProductCatalogSync = () => {
 
 		const initializeCatalog = async () => {
 			await hydrateFromIndexedDB(tenantId)
-			if (getIsNetworkOnline()) {
+			if (getIsNetworkOnline() && getWorkMode() !== 'offline') {
 				void syncFromNetwork(tenantId)
 			}
 		}
@@ -41,12 +42,12 @@ export const useProductCatalogSync = () => {
 		void initializeCatalog()
 
 		intervalId = setInterval(() => {
-			if (!getIsNetworkOnline()) return
+			if (!getIsNetworkOnline() || getWorkMode() === 'offline') return
 			void syncFromNetwork(tenantId)
 		}, SYNC_INTERVAL_MS)
 
 		const unsubConnectivity = subscribeConnectivity(isOnline => {
-			if (!isOnline) return
+			if (!isOnline || getWorkMode() === 'offline') return
 
 			const { lastSyncedAt } = getProductCatalogState()
 			if (shouldSyncCatalog(lastSyncedAt)) {
@@ -55,7 +56,11 @@ export const useProductCatalogSync = () => {
 		})
 
 		const handleVisibilityChange = () => {
-			if (document.visibilityState !== 'visible' || !getIsNetworkOnline()) {
+			if (
+				document.visibilityState !== 'visible' ||
+				!getIsNetworkOnline() ||
+				getWorkMode() === 'offline'
+			) {
 				return
 			}
 
