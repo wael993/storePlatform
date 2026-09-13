@@ -368,3 +368,169 @@ Read-only `mapFee` on cards / lists (`BudgetOverview`, `DailyPage`, `DailyAction
 ### Note until this ships
 
 Quick Entry hotfix is enough to type large amounts. Do not “fix” grouping by putting `mapFee` back on `value`. Treat pasted `4,000` as untrusted until the parser change lands.
+
+---
+
+## FE-OFF-1 — Review pending offline changes (not just a count)
+
+**Type:** Feature  
+**Priority:** Medium  
+**Labels:** frontend, offline, outbox, ux  
+**Implement:** later (do not mix into the current warehouse/barcode work)
+
+### Summary
+
+While offline, the banner only says *“Working offline. N change(s) waiting to sync.”* The user cannot open that number and see **what** those changes are (new product, daily entry, selling invoice, etc.).
+
+The Dexie outbox already stores every pending mutation with `entity`, `operation`, `payload`, `createdAt`, and `status`. The UI never lists it.
+
+### Symptom
+
+1. Switch to offline work mode.
+2. Add a product, a daily action, a selling invoice (or any mix).
+3. Banner shows `Working offline. 3 change(s) waiting to sync.`
+4. There is no way to browse those 3 items. Same gap on the online “N change(s) pending sync” banner.
+
+### Expected
+
+From the banner (offline **and** the online pending-sync banner), the user can open a **read-only list** of unsynced outbox rows and see, for each:
+
+| Column | Source |
+|---|---|
+| What | Translated `entity` (`invoice`, `product`, `dailyAction`, …) |
+| Action | Translated `operation` (`create` / `update` / `delete`) |
+| Title | Human label from the payload (invoice number, product name, entry type + amount, …) |
+| When | `createdAt` |
+| Status | `pending` or `failed` (`lastError` under failed rows) |
+
+Newest first. Empty list if `pendingCount === 0`. List updates live when the outbox changes.
+
+Tapping a row **may** navigate to the existing screen for that record (invoice / product / daily page). That is optional. The list itself is required.
+
+### Root cause (traced)
+
+`getPendingOutboxCount()` in `web/store-platform-frontend/src/offline/db.ts` only counts `outbox` rows with `status` `pending` or `failed`.
+
+`useOfflineSync` / `OfflineState` expose `pendingCount` only. `OfflineSyncBanner` interpolates that into `offline.workingOffline` / `offline.pendingChanges`. No hook reads `offlineDb.outbox`.
+
+Each `OutboxEntry` already has everything a review list needs (`types.ts`):
+
+- `entity`: `invoice` \| `buyingInvoice` \| `product` \| `dailyAction` \| `customer` \| `supplier` \| `expense` \| … (full `OutboxEntity`)
+- `operation`: `create` \| `update` \| `delete`
+- `payload`: the mutation body (invoice number, product name, `entryType`, etc.)
+- `createdAt`, `status`, `lastError`
+
+`subscribeOutboxChanges` already exists in `localStore.ts`. Sync already reads the same table in `syncService.ts`. Nothing new to persist.
+
+### How to implement (do this, nothing extra)
+
+**A. List pending outbox rows**
+
+Add `getPendingOutboxEntries()` next to `getPendingOutboxCount` in `db.ts`:
+
+```
+offlineDb.outbox
+  .where('status').anyOf(['pending', 'failed'])
+  .reverse()   // createdAt index already exists
+  .sortBy('createdAt')
+```
+
+Return `OutboxEntry[]`. Do not copy payloads into a second store.
+
+**B. One title helper**
+
+Small function, e.g. `getOutboxEntryTitle(entry)` — switch on `entity`, read the payload, fall back to `entity` + `operation` if the field is missing. No new types.
+
+| entity | Title from payload |
+|---|---|
+| `invoice` | `#{{invoiceNumber}}` + customer name if present |
+| `buyingInvoice` | `#{{invoiceNumber}}` + supplier name if present |
+| `product` | `name` |
+| `dailyAction` | `entryType` + amount / note (same labels as Daily page) |
+| `customer` / `supplier` / `partner` / `expense` / `category` / `brand` / `shelf` / `warehouse` | `name` |
+| `inventory` / settings / `currency` / `unit` | translated entity name is enough |
+
+**C. Review UI from the banner**
+
+Reuse the `SyncConflictModal` pattern (Chakra modal, i18n). New `PendingChangesModal` (or the same file if it stays small).
+
+Entry points — both banners that already show the count:
+
+- Offline: `offline.workingOffline` in `OfflineSyncBanner.tsx`
+- Online pending: `offline.pendingChanges` (same file)
+
+A “Review” / “View” button, or make the count text a button. Do not add a new page or route.
+
+Subscribe with `subscribeOutboxChanges` so the list matches `pendingCount`.
+
+**D. i18n**
+
+Add keys under `offline` in `en` / `ar` / `de`: modal title, Review button, entity labels, operation labels, empty state, failed + `lastError`. Do not invent a second copy of Daily/Invoice names if those keys already exist.
+
+### Files to change (later)
+
+| Path | What |
+|---|---|
+| `web/store-platform-frontend/src/offline/db.ts` | `getPendingOutboxEntries()` |
+| `web/store-platform-frontend/src/offline/index.ts` | re-export if needed |
+| `web/store-platform-frontend/src/components/OfflineSyncBanner.tsx` | Review button on both count banners |
+| `web/store-platform-frontend/src/components/PendingChangesModal.tsx` | new, list only — mirror `SyncConflictModal` |
+| `web/store-platform-frontend/src/i18n/{en,ar,de}/translation.json` | `offline` keys |
+| Title helper: next to the modal or a 20-line fn in `offline/` | payload → label |
+
+Do **not** change `OutboxEntry`, sync push, or local handlers. The data is already written.
+
+### Concrete examples (use as fixtures)
+
+**Example 1 — mixed offline work**
+
+- Offline: add product “Tea 500g”, add a selling invoice `#1042`, add an expense entry 50.
+- Banner: `Working offline. 3 change(s) waiting to sync.`
+- Review list (newest first):
+
+| What | Action | Title |
+|---|---|---|
+| Daily action | Create | Expense · 50 |
+| Selling invoice | Create | #1042 |
+| Product | Create | Tea 500g |
+
+**Example 2 — failed row**
+
+- One invoice create failed (`status: 'failed'`, `lastError` set).
+- It still appears. Status = failed. Show `lastError` under the row.
+
+**Example 3 — count matches list**
+
+- Banner says 3. Modal has 3 rows. After a successful push, both are 0 / empty.
+
+### Acceptance
+
+- [ ] Offline banner: with `pendingCount > 0`, user can open a list of those changes.
+- [ ] Online “pending sync” banner: same list.
+- [ ] Each row shows entity, operation, title, time, status.
+- [ ] Titles are readable for invoice, buying invoice, product, daily action (the common shop work). Other entities at least show translated type + operation.
+- [ ] Failed rows show `lastError`.
+- [ ] List count equals `pendingCount` (`pending` + `failed` only; not `processing` / `completed`).
+- [ ] `en` / `ar` / `de` all have the new strings.
+- [ ] No new Dexie table. No discard / edit / retry-per-row in this ticket.
+
+### Out of scope
+
+- Discarding or editing a pending change.
+- Per-row retry (banner Retry already retries the whole push).
+- Redesigning sync, conflicts, or `SyncConflictModal`.
+- A dedicated `/offline-changes` page.
+- Showing locally edited catalog rows that never went through the outbox (if that can happen, it is a different bug).
+
+### Test plan
+
+1. Offline: create a product, a selling invoice, a daily entry → Review shows all three with correct titles.
+2. Close and reopen the modal → same three (Dexie, not React state).
+3. Go online, push → list empty, count 0.
+4. Force one failed outbox row → it appears with the error text.
+5. Online banner with leftover pending rows → Review still works.
+6. `pendingCount === 0` → no Review action, or empty state if opened.
+
+### Note until this ships
+
+The count is trustworthy. Users who need to know *what* they queued must remember it or wait for sync. Do not “fix” this by putting raw payloads in the banner text.
