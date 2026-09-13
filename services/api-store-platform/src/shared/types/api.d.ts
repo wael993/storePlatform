@@ -176,6 +176,35 @@ interface Partner {
 	relatedActions?: PartnerDailyAction[]
 }
 
+type LabelFieldType =
+	| 'storeName'
+	| 'storeLogo'
+	| 'productName'
+	| 'barcode'
+	| 'barcodeValue'
+	| 'price'
+	| 'category'
+
+type LabelTextAlign = 'left' | 'center' | 'right'
+
+interface LabelField {
+	id: string
+	type: LabelFieldType
+	x: number
+	y: number
+	width: number
+	height: number
+	fontSize?: number
+	align?: LabelTextAlign
+	padding?: number
+}
+
+interface LabelLayout {
+	width: number
+	height: number
+	fields: LabelField[]
+}
+
 export interface LabelTemplateResponse {
 	templateId: string
 	name: string
