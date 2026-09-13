@@ -3,6 +3,6 @@ export const parseTransferQty = (quantityText: string): number =>
 
 export const isTransferQtyValid = (
 	quantity: number,
-	available: number,
+	sourceQty: number,
 ): boolean =>
-	Number.isInteger(quantity) && quantity >= 1 && quantity <= available
+	Number.isInteger(quantity) && quantity >= 1 && quantity <= sourceQty

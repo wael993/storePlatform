@@ -2909,14 +2909,13 @@ export default class ProductController {
 				)
 			}
 
-			const sourceAvailable =
-				Number(sourceInventory.quantity ?? 0) -
-				Number(sourceInventory.reservedQuantity ?? 0)
+			// note: reserved/availableQuantity is unused; gate on quantity. Upgrade when reservations are written.
+			const sourceQty = Number(sourceInventory.quantity ?? 0)
 
-			if (sourceAvailable < item.quantity) {
+			if (sourceQty < item.quantity) {
 				throw new BusinessLogicError(
 					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-					`Insufficient stock for ${item.productId}. Available: ${Math.max(0, sourceAvailable)}, requested: ${item.quantity}.`,
+					`Insufficient stock for ${item.productId}. Available: ${Math.max(0, sourceQty)}, requested: ${item.quantity}.`,
 				)
 			}
 

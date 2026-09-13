@@ -81,14 +81,14 @@ const ProductStockRow = ({
 	quantityText,
 	onQuantityChange,
 	toWarehouseId,
-	onAvailable,
+	onSourceQty,
 }: {
 	product: Product
 	warehouseId: string | null
 	quantityText: string
 	onQuantityChange: (value: string) => void
 	toWarehouseId: string
-	onAvailable: (productId: string, available: number) => void
+	onSourceQty: (productId: string, sourceQty: number) => void
 }) => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -98,39 +98,35 @@ const ProductStockRow = ({
 		})
 
 	const qtyByWarehouse = useMemo(() => {
-		const map = new Map<string, { quantity: number; available: number }>()
+		const map = new Map<string, number>()
 		for (const row of inventoryByWarehouse) {
-			const quantity = Number(row.quantity ?? 0)
-			map.set(row.warehouseId, {
-				quantity,
-				available: Number(row.availableQuantity ?? quantity),
-			})
+			map.set(row.warehouseId, Number(row.quantity ?? 0))
 		}
 		return map
 	}, [inventoryByWarehouse])
 
-	const sourceRow = warehouseId ? qtyByWarehouse.get(warehouseId) : undefined
-	const listAvailable = Number(
-		product.inventory?.availableQuantity ?? product.inventory?.quantity ?? 0,
-	)
-	// List stock is good enough to confirm; by-product corrects after it settles.
-	const sourceAvailable = stockReady
-		? (sourceRow?.available ?? 0)
-		: listAvailable
+	const listQty = Number(product.inventory?.quantity ?? 0)
+	// List qty is good enough to confirm; by-product corrects after it settles.
+	// note: reserved/availableQuantity is unused; gate on quantity. Upgrade when reservations are written.
+	const sourceQty = stockReady
+		? warehouseId
+			? (qtyByWarehouse.get(warehouseId) ?? 0)
+			: 0
+		: listQty
 	const destinationQty = toWarehouseId
-		? (qtyByWarehouse.get(toWarehouseId)?.quantity ?? 0)
+		? (qtyByWarehouse.get(toWarehouseId) ?? 0)
 		: 0
 	const quantity = parseTransferQty(quantityText)
-	const quantityValid = isTransferQtyValid(quantity, sourceAvailable)
+	const quantityValid = isTransferQtyValid(quantity, sourceQty)
 	const oversold =
 		stockReady &&
 		Number.isInteger(quantity) &&
 		quantity >= 1 &&
-		quantity > sourceAvailable
+		quantity > sourceQty
 
 	useLayoutEffect(() => {
-		onAvailable(product.productId, sourceAvailable)
-	}, [onAvailable, product.productId, sourceAvailable])
+		onSourceQty(product.productId, sourceQty)
+	}, [onSourceQty, product.productId, sourceQty])
 
 	return (
 		<Tr>
@@ -139,7 +135,7 @@ const ProductStockRow = ({
 				<NumberInput
 					size="sm"
 					min={1}
-					max={Math.max(sourceAvailable, 1)}
+					max={Math.max(sourceQty, 1)}
 					value={quantityText}
 					onChange={onQuantityChange}
 					maxW="6rem"
@@ -148,9 +144,9 @@ const ProductStockRow = ({
 				</NumberInput>
 			</Td>
 			<Td isNumeric>
-				{formatNumber(sourceAvailable) ?? sourceAvailable}
+				{formatNumber(sourceQty) ?? sourceQty}
 				{quantityValid
-					? ` ${isArabic ? '←' : '→'} ${formatNumber(sourceAvailable - quantity) ?? sourceAvailable - quantity}`
+					? ` ${isArabic ? '←' : '→'} ${formatNumber(sourceQty - quantity) ?? sourceQty - quantity}`
 					: ''}
 			</Td>
 			<Td isNumeric>
@@ -185,15 +181,17 @@ const WarehouseTransferModal = ({
 		useWarehouseScope()
 	const [toWarehouseId, setToWarehouseId] = useState('')
 	const [quantities, setQuantities] = useState<Record<string, string>>({})
-	const [availableById, setAvailableById] = useState<Record<string, number>>({})
+	const [sourceQtyById, setSourceQtyById] = useState<Record<string, number>>(
+		{},
+	)
 	const [postTransfer, { isLoading }] = usePostWarehouseTransferMutation()
 	const productIdsKey = products.map(p => p.productId).join(',')
 
-	const onAvailable = useCallback((productId: string, available: number) => {
-		setAvailableById(prev =>
-			prev[productId] === available
+	const onSourceQty = useCallback((productId: string, sourceQty: number) => {
+		setSourceQtyById(prev =>
+			prev[productId] === sourceQty
 				? prev
-				: { ...prev, [productId]: available },
+				: { ...prev, [productId]: sourceQty },
 		)
 	}, [])
 
@@ -203,7 +201,7 @@ const WarehouseTransferModal = ({
 		setQuantities(
 			Object.fromEntries(products.map(product => [product.productId, '1'])),
 		)
-		// note: do not clear availableById here — that runs after the row reports and leaves confirm stuck. key off productIdsKey so a new array ref from parent doesn't reset the form
+		// note: do not clear sourceQtyById here — that runs after the row reports and leaves confirm stuck. key off productIdsKey so a new array ref from parent doesn't reset the form
 	}, [isOpen, productIdsKey])
 
 	const fromWarehouse = warehouses.find(
@@ -228,11 +226,11 @@ const WarehouseTransferModal = ({
 	const stockOk =
 		products.length > 0 &&
 		products.every(product => {
-			const available = availableById[product.productId]
-			if (available === undefined) return false
+			const sourceQty = sourceQtyById[product.productId]
+			if (sourceQty === undefined) return false
 			return isTransferQtyValid(
 				parseTransferQty(quantities[product.productId] ?? '1'),
-				available,
+				sourceQty,
 			)
 		})
 
@@ -347,7 +345,7 @@ const WarehouseTransferModal = ({
 												}))
 											}
 											toWarehouseId={toWarehouseId}
-											onAvailable={onAvailable}
+											onSourceQty={onSourceQty}
 										/>
 									))}
 								</Tbody>
