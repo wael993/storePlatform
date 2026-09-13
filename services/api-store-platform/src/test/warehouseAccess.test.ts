@@ -39,6 +39,7 @@ describe('warehouseAccess', () => {
 		expect(parseWarehouseScopeHeader(encodeURIComponent('المستودع'))).toEqual([
 			'المستودع',
 		])
+
 		expect(parseWarehouseScopeHeader('%ZZ')).toEqual(['%ZZ'])
 		expect(parseWarehouseScopeHeader(undefined)).toBeUndefined()
 	})
@@ -59,6 +60,7 @@ describe('warehouseAccess', () => {
 				undefined,
 			),
 		).toBeNull()
+
 		expect(
 			getAllowedWarehouseIds({
 				role: 'cashier',
@@ -78,12 +80,14 @@ describe('warehouseAccess', () => {
 				warehouseScope: ['w1', 'w2'],
 			} as RequestContext),
 		).toThrow()
+
 		expect(() =>
 			requireOperationalWarehouseId({
 				...ownerCtx,
 				warehouseScope: null,
 			} as RequestContext),
 		).toThrow()
+
 		expect(getEffectiveWarehouseIds(op)).toEqual(['w1'])
 		expect(getEffectiveWarehouseIds(ownerCtx)).toBeNull()
 	})
@@ -105,6 +109,7 @@ describe('warehouseAccess', () => {
 			{ warehouseId: 'w1' },
 			{ warehouseId: 'w2' },
 		])
+
 		expect(filterByWarehouseAccess(ownerCtx, stock)).toEqual(stock)
 		expect(
 			filterByWarehouseAccess(
