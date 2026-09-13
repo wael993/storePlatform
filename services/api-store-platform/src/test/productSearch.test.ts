@@ -45,6 +45,11 @@ describe('searchProducts', () => {
 		])
 	})
 
+	it('matches a single name token or partial code when no exact code hits', () => {
+		expect(searchProducts(catalog, 'apple')).toEqual([catalog[0], catalog[2]])
+		expect(searchProducts(catalog, '12345')).toEqual([catalog[0], catalog[2]])
+	})
+
 	it('ignores name matches for a single short token', () => {
 		expect(MIN_NAME_TOKEN_LENGTH).toBe(2)
 		expect(searchProducts(catalog, 'R')).toEqual([])

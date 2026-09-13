@@ -60,9 +60,6 @@ const Login = () => {
 		try {
 			const response = await login({ body: { email, password } }).unwrap()
 
-			if (!response) {
-				throw new Error('No user returned')
-			}
 			dispatch(setCredentials(response))
 			await setTenantOfflineConfig(response.tenantId, response.offlineEnabled)
 			await ensureTenantOfflineDataIsolation(response.tenantId)
@@ -103,7 +100,7 @@ const Login = () => {
 		}
 	}
 
-	const handleForgotPassword = async () => {
+	const handleForgotPassword = () => {
 		setError('')
 		setResetMessage('')
 
@@ -112,12 +109,7 @@ const Login = () => {
 			return
 		}
 
-		try {
-			setResetMessage(t('login.resetSent'))
-		} catch (error) {
-			const err = error as { data?: { message?: string } }
-			setError(err?.data?.message || t('login.resetFailed'))
-		}
+		setResetMessage(t('login.resetSent'))
 	}
 
 	return (

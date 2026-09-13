@@ -1,8 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { renderHook } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AllowedActions } from '../shared/globalEnums'
-import { isActionAllowed } from '../shared/hooks/useResources'
+import { isActionAllowed, useResources } from '../shared/hooks/useResources'
 import { SEE } from '../shared/seeFlags'
+
+vi.mock('../shared/hooks/useSee', () => ({
+	useSee: () => ({
+		canSee: (id: string) => id === SEE.productsAdd,
+	}),
+}))
 
 const canSee = (allowed: string[]) => {
 	const set = new Set(allowed)
@@ -42,5 +49,18 @@ describe('isActionAllowed', () => {
 		expect(
 			isActionAllowed(AllowedActions.CAN_DELETE_CUSTOMER, canSee([])),
 		).toBe(false)
+	})
+})
+
+describe('useResources', () => {
+	it('wires canSee through the hook', () => {
+		const { result } = renderHook(() => useResources())
+
+		expect(result.current.isActionAllowed(AllowedActions.ADD_PRODUCT)).toBe(
+			true,
+		)
+		expect(result.current.isActionAllowed(AllowedActions.SEE_REPORT)).toBe(
+			false,
+		)
 	})
 })

@@ -13,9 +13,12 @@ describe('invoice numbering', () => {
 	})
 
 	it('parses prefixed and legacy numbers', () => {
+		expect(parseInvoiceSequence()).toBe(0)
+		expect(parseInvoiceSequence('SI-000000')).toBe(0)
 		expect(parseInvoiceSequence('SI-000001')).toBe(1)
 		expect(parseInvoiceSequence('BI-000042')).toBe(42)
 		expect(parseInvoiceSequence('1001')).toBe(1001)
+		expect(parseInvoiceSequence('not-a-number')).toBe(0)
 	})
 
 	it('detects a matching prefix', () => {

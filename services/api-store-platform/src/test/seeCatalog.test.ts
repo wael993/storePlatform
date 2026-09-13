@@ -6,6 +6,7 @@ import {
 	resolveSeeIds,
 	sanitizeSeeIdsForSave,
 	SEE,
+	stripProductSeeFields,
 } from '../shared/seeCatalog'
 
 const pages = [
@@ -72,5 +73,47 @@ describe('seeCatalog', () => {
 
 		expect(ids).toContain(SEE.productsBuyingPrice)
 		expect(ids).toContain(SEE.products)
+	})
+
+	it('gives owners every available id from defaultSeeIds', () => {
+		expect(defaultSeeIds('owner', pages)).toContain(SEE.productsBuyingPrice)
+	})
+
+	it('adds invoices when stored see has sellingInvoices without invoices', () => {
+		const ids = resolveSeeIds('cashier', pages, [SEE.sellingInvoices])
+
+		expect(ids).toContain(SEE.sellingInvoices)
+		expect(ids).toContain(SEE.invoices)
+	})
+
+	it('strips supplier and price fields the caller cannot see', () => {
+		const stripped = stripProductSeeFields(
+			{
+				supplierId: 's1',
+				supplierName: 'Acme',
+				averageCost: 4,
+				lastBuyingPrice: 5,
+				price: {
+					purchasePrice: 3,
+					wholesalePrice: 8,
+					semiWholesalePrice: 6,
+				},
+				inventory: { averageCost: 4 },
+			},
+			new Set(),
+		)
+
+		expect(stripped).toMatchObject({
+			supplierId: undefined,
+			supplierName: undefined,
+			averageCost: undefined,
+			lastBuyingPrice: undefined,
+			price: {
+				purchasePrice: undefined,
+				wholesalePrice: undefined,
+				semiWholesalePrice: undefined,
+			},
+			inventory: { averageCost: undefined },
+		})
 	})
 })
