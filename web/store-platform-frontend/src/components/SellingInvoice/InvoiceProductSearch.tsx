@@ -11,11 +11,12 @@ import {
 	Spinner,
 	Text,
 } from '@chakra-ui/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AddProductModal from '../../pages/AddProductModal'
 import { PAGE_COLORS } from './constants'
 import {
+	buildProductSearchIndexes,
 	hasShortNameTokens,
 	normalizeSearchQuery,
 	productMatchesCode,
@@ -23,7 +24,8 @@ import {
 	SEARCH_RESULTS_LIMIT,
 } from './productSearch'
 import { useInventoryByProductId } from './useInventoryByProductId'
-import { useProductCatalog } from './useProductCatalog'
+import { mapCatalogItemToProduct, useProductCatalog } from './useProductCatalog'
+import { useGetProductCatalogQuery } from '../../api/apiStore'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { AsSearchIcon } from '../../icons/Search'
@@ -36,6 +38,8 @@ interface InvoiceProductSearchProps {
 	initialSearch?: string
 	autoFocus?: boolean
 	focusNonce?: number
+	/** Buying: full tenant catalog (BE ?all=1). Selling: warehouse-scoped catalog. */
+	includeAllProducts?: boolean
 }
 
 const InvoiceProductSearch = ({
@@ -43,6 +47,7 @@ const InvoiceProductSearch = ({
 	initialSearch = '',
 	autoFocus = true,
 	focusNonce,
+	includeAllProducts = false,
 }: InvoiceProductSearchProps) => {
 	const { t } = useTranslation()
 	const { canSee } = useSee()
@@ -61,7 +66,36 @@ const InvoiceProductSearch = ({
 	const [highlightedIndex, setHighlightedIndex] = useState(-1)
 	const suggestionRefs = useRef<(HTMLLIElement | null)[]>([])
 
-	const { products, indexes, isReady, isSyncing, refetch } = useProductCatalog()
+	const scopedCatalog = useProductCatalog()
+	const {
+		data: allCatalogResponse,
+		isLoading: isAllCatalogLoading,
+		isFetching: isAllCatalogFetching,
+		refetch: refetchAllCatalog,
+	} = useGetProductCatalogQuery({ all: true }, { skip: !includeAllProducts })
+
+	const allProducts = useMemo(
+		() => (allCatalogResponse?.products ?? []).map(mapCatalogItemToProduct),
+		[allCatalogResponse?.products],
+	)
+	const allIndexes = useMemo(
+		() => buildProductSearchIndexes(allProducts),
+		[allProducts],
+	)
+
+	const products = includeAllProducts ? allProducts : scopedCatalog.products
+	const indexes = includeAllProducts ? allIndexes : scopedCatalog.indexes
+	const isReady = includeAllProducts
+		? Boolean(allCatalogResponse)
+		: scopedCatalog.isReady
+	const isSyncing = includeAllProducts
+		? isAllCatalogLoading || isAllCatalogFetching
+		: scopedCatalog.isSyncing
+	const refetch = includeAllProducts
+		? async () => {
+				await refetchAllCatalog()
+			}
+		: scopedCatalog.refetch
 	const inventoryByProductId = useInventoryByProductId()
 
 	const clearInput = useCallback(() => {

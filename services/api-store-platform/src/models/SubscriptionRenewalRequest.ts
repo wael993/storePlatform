@@ -77,7 +77,7 @@ const schema = new Schema<ISubscriptionRenewalRequest>(
 )
 
 schema.index(
-	{ tenantId: 1 },
+	{ tenantId: 1, status: 1 },
 	{
 		unique: true,
 		partialFilterExpression: { status: RENEWAL_REQUEST_STATUS.PENDING },

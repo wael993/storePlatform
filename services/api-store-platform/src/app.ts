@@ -61,7 +61,10 @@ export const createApp = () => {
 
 	productController.setPartnerController(partnerController)
 
-	const settingController = new SettingController(productController)
+	const settingController = new SettingController(
+		productController,
+		mongoDbClient,
+	)
 
 	productController.setSettingController(settingController)
 

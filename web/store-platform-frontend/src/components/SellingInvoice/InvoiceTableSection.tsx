@@ -29,12 +29,21 @@ import { useTranslation } from 'react-i18next'
 
 import {
 	useDeleteDailyActionMutation,
+	useDeleteWarehouseTransferMutation,
 	useGetBuyingInvoicesQuery,
 	useGetDailyActionsQuery,
 	useGetSellingInvoicesQuery,
+	useGetWarehouseTransfersQuery,
+	useLazyGetWarehouseTransferQuery,
 } from '../../api/apiStore'
 import ConfirmationDialog from '../ConfirmationDialog'
 import useCustomToast from '../common/CustomToast'
+import WarehouseTransferDetailModal from '../product/WarehouseTransferDetailModal'
+import {
+	downloadWarehouseTransfer,
+	printWarehouseTransfer,
+} from '../product/warehouseTransferDocument'
+import { openInvoicePrintWindow } from './invoiceDocumentActions'
 import { mapApiBuyingInvoiceToTableRow } from '../BuyingInvoice/buyingInvoiceApiMappers'
 import { SortIcon } from '../icons/Sort'
 import {
@@ -49,6 +58,7 @@ import {
 } from './constants'
 import {
 	mapDailyActionsToEntryTableRows,
+	mapWarehouseTransfersToTableRows,
 	getDailyActionId,
 	type InvoiceTableRow,
 } from './entryTableMappers'
@@ -73,6 +83,7 @@ import { AsPrintIcon } from '../../icons/Print'
 import { AsDownloadIcon } from '../../icons/Download'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
+import useAllowedActions from '../../shared/hooks/useAllowedActions'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
@@ -84,6 +95,7 @@ import {
 import { ChevronRightIcon } from '../icons/ChevronRight'
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon'
 import { useInvoiceDocumentExport } from './useInvoiceDocumentExport'
+import { compareLanguage } from '../../shared/utils'
 
 interface InvoiceTableSectionProps {
 	onViewInvoice: (invoiceId: string, kind: 'selling' | 'buying') => void
@@ -126,8 +138,10 @@ const InvoiceTableSection = ({
 	showSellingInvoices = false,
 	showEntries = false,
 }: InvoiceTableSectionProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const { canSee } = useSee()
+	const { canEditStockQuantity } = useAllowedActions()
 	const canDeleteEntry = canSee(SEE.invoicesEntriesDelete)
 	const canEditEntry = canSee(SEE.invoicesEntriesEdit)
 	const showToast = useCustomToast()
@@ -138,8 +152,48 @@ const InvoiceTableSection = ({
 	const [entryPendingDelete, setEntryPendingDelete] = useState<string | null>(
 		null,
 	)
+	const [transferPendingDelete, setTransferPendingDelete] = useState<
+		string | null
+	>(null)
+	const [transferDetailId, setTransferDetailId] = useState<string | null>(null)
+	const [transferDetailEdit, setTransferDetailEdit] = useState(false)
 	const [deleteDailyAction, { isLoading: isDeletingEntry }] =
 		useDeleteDailyActionMutation()
+	const [deleteWarehouseTransfer, { isLoading: isDeletingTransfer }] =
+		useDeleteWarehouseTransferMutation()
+	const [fetchWarehouseTransfer] = useLazyGetWarehouseTransferQuery()
+	const [exportingTransferId, setExportingTransferId] = useState<string | null>(
+		null,
+	)
+
+	const exportWarehouseTransfer = async (
+		referenceId: string,
+		mode: 'print' | 'download',
+	) => {
+		let printWindow: Window | null = null
+
+		try {
+			// Opened before the await, so popup blockers still allow the print window.
+			// Throws when blocked, which the catch below turns into a toast.
+			printWindow = mode === 'print' ? openInvoicePrintWindow() : null
+			setExportingTransferId(referenceId)
+			const detail = await fetchWarehouseTransfer(referenceId).unwrap()
+			const title = t('components.product.warehouseTransfer.detailTitle')
+			if (printWindow) {
+				printWarehouseTransfer(detail, title, printWindow)
+			} else {
+				downloadWarehouseTransfer(detail, title)
+			}
+		} catch {
+			printWindow?.close()
+			showToast({
+				status: 'error',
+				description: t('components.product.warehouseTransfer.error'),
+			})
+		} finally {
+			setExportingTransferId(null)
+		}
+	}
 
 	const [tableSearch, setTableSearch] = useState('')
 	const [statusFilter, setStatusFilter] = useState('all')
@@ -192,14 +246,27 @@ const InvoiceTableSection = ({
 		refetchOnMountOrArgChange: false,
 	})
 
+	const {
+		data: warehouseTransfers = [],
+		isLoading: isLoadingTransfers,
+		isFetching: isFetchingTransfers,
+	} = useGetWarehouseTransfersQuery(
+		{
+			invoiceDateFrom: activeSearch ? undefined : selectedDateKey,
+			invoiceDateTo: activeSearch ? undefined : selectedDateKey,
+		},
+		// Movements are part of Today's Actions, so they follow the same permission.
+		{ skip: !showEntries, refetchOnMountOrArgChange: false },
+	)
+
 	const isLoading =
 		(showSellingInvoices && isLoadingSelling) ||
 		(showBuyingInvoices && isLoadingBuying) ||
-		(showEntries && isLoadingEntries)
+		(showEntries && (isLoadingEntries || isLoadingTransfers))
 	const isFetching =
 		(showSellingInvoices && isFetchingSelling) ||
 		(showBuyingInvoices && isFetchingBuying) ||
-		(showEntries && isFetchingEntries)
+		(showEntries && (isFetchingEntries || isFetchingTransfers))
 
 	const { options: displayCurrencyOptions, displayCurrencyId } =
 		useInvoiceDisplayCurrency()
@@ -220,22 +287,40 @@ const InvoiceTableSection = ({
 		const entries = showEntries
 			? mapDailyActionsToEntryTableRows(dailyActions)
 			: []
+		const search = activeSearch?.toLowerCase()
+		const transfers = (
+			showEntries
+				? mapWarehouseTransfersToTableRows(warehouseTransfers, isArabic)
+				: []
+		).filter(
+			row =>
+				!search ||
+				row.productSummary.toLowerCase().includes(search) ||
+				row.customerLabel.toLowerCase().includes(search) ||
+				row.fromWarehouseName.toLowerCase().includes(search) ||
+				row.toWarehouseName.toLowerCase().includes(search),
+		)
 
-		return [...selling, ...buying, ...entries]
+		return [...selling, ...buying, ...entries, ...transfers]
 	}, [
 		invoicesResponse?.invoices,
 		buyingInvoicesResponse?.invoices,
 		dailyActions,
+		warehouseTransfers,
 		showBuyingInvoices,
 		showSellingInvoices,
 		showEntries,
+		activeSearch,
 	])
 
 	const filteredRows = useMemo((): InvoiceTableRow[] => {
 		if (statusFilter === 'all') return tableRows
 
 		return tableRows.filter(
-			row => row.kind !== 'entry' && row.status === statusFilter,
+			row =>
+				row.kind !== 'entry' &&
+				row.kind !== 'transfer' &&
+				row.status === statusFilter,
 		)
 	}, [statusFilter, tableRows])
 
@@ -336,6 +421,32 @@ const InvoiceTableSection = ({
 		}
 	}
 
+	const handleConfirmDeleteTransfer = async () => {
+		if (!transferPendingDelete) return
+
+		try {
+			await deleteWarehouseTransfer(transferPendingDelete).unwrap()
+			showToast({
+				status: 'success',
+				description: t('components.product.warehouseTransfer.deleteSuccess'),
+			})
+			if (transferDetailId === transferPendingDelete) {
+				setTransferDetailId(null)
+				setTransferDetailEdit(false)
+			}
+		} catch (error) {
+			const err = error as { data?: { message?: string } }
+			showToast({
+				status: 'error',
+				description:
+					err.data?.message ||
+					t('components.product.warehouseTransfer.deleteError'),
+			})
+		} finally {
+			setTransferPendingDelete(null)
+		}
+	}
+
 	const showInitialLoader =
 		isLoading &&
 		!invoicesResponse &&
@@ -367,7 +478,7 @@ const InvoiceTableSection = ({
 				>
 					<HStack spacing={2}>
 						<Text fontSize="lg" fontWeight={700} color="gray.900">
-							{t('components.sellingInvoices.todaysInvoices')}
+							{t('components.sellingInvoices.todaysActions')}
 						</Text>
 						<Badge
 							bg="#DBEAFE"
@@ -585,6 +696,238 @@ const InvoiceTableSection = ({
 									</Tr>
 								) : (
 									paginatedRows.map(row => {
+										if (row.kind === 'transfer') {
+											return (
+												<Tr
+													key={`transfer-${row.id}`}
+													_hover={{ bg: 'gray.50' }}
+													borderBottom="1px solid"
+													borderColor={PAGE_COLORS.border}
+												>
+													<Td fontWeight={600} color="gray.900">
+														<Badge
+															px={2.5}
+															py={0.5}
+															borderRadius="md"
+															fontSize="xs"
+															fontWeight={700}
+															bg="#EEF2FF"
+															color="#4338CA"
+															textTransform="none"
+															title={t(
+																'components.product.warehouseTransfer.movement',
+															)}
+														>
+															{t(
+																'components.product.warehouseTransfer.movement',
+															)}
+														</Badge>
+													</Td>
+													<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
+														{row.time}
+													</Td>
+													<Td color="gray.800" whiteSpace="nowrap">
+														{row.customerLabel}
+													</Td>
+													<Td color="gray.800">{row.productSummary}</Td>
+													<Td color={PAGE_COLORS.muted}>—</Td>
+													<Td isNumeric color="gray.800">
+														{row.totalQuantity}
+													</Td>
+													<Td isNumeric color={PAGE_COLORS.muted}>
+														—
+													</Td>
+													<Td isNumeric color={PAGE_COLORS.muted}>
+														—
+													</Td>
+													<Td isNumeric color={PAGE_COLORS.muted}>
+														—
+													</Td>
+													<Td>
+														<HStack spacing={1}>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.view',
+																)}
+																icon={
+																	<Icon
+																		as={AsWatcherEyeIcon}
+																		color={PAGE_COLORS.primary}
+																		boxSize={5}
+																	/>
+																}
+																onClick={() => {
+																	setTransferDetailEdit(false)
+																	setTransferDetailId(row.id)
+																}}
+															/>
+															{row.editable && canEditStockQuantity ? (
+																<>
+																	<IconButton
+																		size="xs"
+																		variant="ghost"
+																		aria-label={t(
+																			'components.sellingInvoices.actions.edit',
+																		)}
+																		icon={
+																			<Icon
+																				as={AsEditIcon}
+																				color={PAGE_COLORS.primary}
+																				boxSize={4}
+																			/>
+																		}
+																		onClick={() => {
+																			setTransferDetailEdit(true)
+																			setTransferDetailId(row.id)
+																		}}
+																	/>
+																	<IconButton
+																		size="xs"
+																		variant="ghost"
+																		aria-label={t(
+																			'components.sellingInvoices.actions.delete',
+																		)}
+																		icon={
+																			<Icon
+																				as={AsTrashIcon}
+																				fill="none"
+																				color={PAGE_COLORS.danger}
+																				boxSize={5}
+																			/>
+																		}
+																		onClick={() =>
+																			setTransferPendingDelete(row.id)
+																		}
+																	/>
+																</>
+															) : null}
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.print',
+																)}
+																isDisabled={exportingTransferId === row.id}
+																icon={
+																	<Icon
+																		as={AsPrintIcon}
+																		color={PAGE_COLORS.primary}
+																		boxSize={5}
+																	/>
+																}
+																onClick={() => {
+																	void exportWarehouseTransfer(row.id, 'print')
+																}}
+															/>
+															<IconButton
+																size="xs"
+																variant="ghost"
+																aria-label={t(
+																	'components.sellingInvoices.actions.download',
+																)}
+																isDisabled={exportingTransferId === row.id}
+																icon={
+																	<Icon
+																		as={AsDownloadIcon}
+																		color={PAGE_COLORS.primary}
+																		boxSize={5}
+																	/>
+																}
+																onClick={() => {
+																	void exportWarehouseTransfer(
+																		row.id,
+																		'download',
+																	)
+																}}
+															/>
+															<Menu>
+																<MenuButton
+																	as={IconButton}
+																	size="xs"
+																	variant="ghost"
+																	aria-label={t(
+																		'components.sellingInvoices.actions.more',
+																	)}
+																	icon={
+																		<Icon
+																			as={AsThreeDotsIcon}
+																			color={PAGE_COLORS.primary}
+																			boxSize={5}
+																		/>
+																	}
+																	color={PAGE_COLORS.muted}
+																/>
+																<MenuList>
+																	<MenuItem
+																		onClick={() => {
+																			setTransferDetailEdit(false)
+																			setTransferDetailId(row.id)
+																		}}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.view',
+																		)}
+																	</MenuItem>
+																	{row.editable && canEditStockQuantity ? (
+																		<MenuItem
+																			onClick={() => {
+																				setTransferDetailEdit(true)
+																				setTransferDetailId(row.id)
+																			}}
+																		>
+																			{t(
+																				'components.sellingInvoices.actions.edit',
+																			)}
+																		</MenuItem>
+																	) : null}
+																	{row.editable && canEditStockQuantity ? (
+																		<MenuItem
+																			onClick={() =>
+																				setTransferPendingDelete(row.id)
+																			}
+																			color={PAGE_COLORS.danger}
+																		>
+																			{t(
+																				'components.sellingInvoices.actions.delete',
+																			)}
+																		</MenuItem>
+																	) : null}
+																	<MenuItem
+																		isDisabled={exportingTransferId === row.id}
+																		onClick={() => {
+																			void exportWarehouseTransfer(
+																				row.id,
+																				'print',
+																			)
+																		}}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.print',
+																		)}
+																	</MenuItem>
+																	<MenuItem
+																		isDisabled={exportingTransferId === row.id}
+																		onClick={() => {
+																			void exportWarehouseTransfer(
+																				row.id,
+																				'download',
+																			)
+																		}}
+																	>
+																		{t(
+																			'components.sellingInvoices.actions.download',
+																		)}
+																	</MenuItem>
+																</MenuList>
+															</Menu>
+														</HStack>
+													</Td>
+												</Tr>
+											)
+										}
+
 										if (row.kind === 'entry') {
 											const entryBadge = ENTRY_KIND_BADGE[row.entrySubType]
 											const entryPrimaryAmount = convertEntryAmountToPrimary(
@@ -1139,6 +1482,25 @@ const InvoiceTableSection = ({
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeletingEntry}
+			/>
+			<ConfirmationDialog
+				isOpen={Boolean(transferPendingDelete)}
+				onClose={() => setTransferPendingDelete(null)}
+				onConfirm={handleConfirmDeleteTransfer}
+				header={t('components.product.warehouseTransfer.deleteConfirm')}
+				body={t('components.product.warehouseTransfer.deleteConfirmBody')}
+				cancelButtonText={t('common.cancel')}
+				confirmationButtonText={t('common.delete')}
+				isConfirmationButtonLoading={isDeletingTransfer}
+			/>
+			<WarehouseTransferDetailModal
+				referenceId={transferDetailId}
+				isOpen={Boolean(transferDetailId)}
+				initialEdit={transferDetailEdit}
+				onClose={() => {
+					setTransferDetailId(null)
+					setTransferDetailEdit(false)
+				}}
 			/>
 		</Box>
 	)

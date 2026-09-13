@@ -26,6 +26,7 @@ export const createInvoiceDraft = (
 		paymentType?: SellingInvoicePaymentType
 		invoiceNumber?: number
 		customerName?: string
+		warehouseId?: string
 	},
 ): SellingInvoiceDraft => ({
 	invoiceId: generateId(),
@@ -36,6 +37,7 @@ export const createInvoiceDraft = (
 	customerId: WALK_IN_CUSTOMER_ID,
 	customerName: options?.customerName ?? 'Walk-in Customer',
 	paymentType: options?.paymentType ?? InvoicePaymentType.CASH,
+	warehouseId: options?.warehouseId ?? '',
 	lineItems: [],
 	note: '',
 	paidAmount: 0,
@@ -51,6 +53,7 @@ export const createInvoiceDraftSession = (
 		invoiceNumber?: number
 		customerName?: string
 		productSearch?: string
+		warehouseId?: string
 	},
 ): InvoiceDraftSession => {
 	const draft = createInvoiceDraft(salesPerson, options)

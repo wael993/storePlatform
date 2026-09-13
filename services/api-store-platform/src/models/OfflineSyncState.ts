@@ -34,10 +34,8 @@ const OfflineSyncStateSchema: Schema<IOfflineSyncState> = new mongoose.Schema(
 )
 
 tenantScopedSchema(OfflineSyncStateSchema)
-// tenantScopedSchema already indexes tenantId; upgrade it to unique in place
-// instead of declaring a second index on the same key (avoids Mongoose's
-// duplicate schema index warning).
-OfflineSyncStateSchema.path('tenantId').index({ unique: true })
+OfflineSyncStateSchema.path('tenantId').index(false)
+OfflineSyncStateSchema.index({ tenantId: 1 }, { unique: true })
 
 export const OfflineSyncState = mongoose.model<IOfflineSyncState>(
 	'OfflineSyncState',

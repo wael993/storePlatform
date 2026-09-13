@@ -29,6 +29,7 @@ import {
 	useGetBuyingInvoiceQuery,
 	useGetInvoiceSettingsQuery,
 	useGetSuppliersQuery,
+	useGetProductCatalogQuery,
 	usePostBuyingInvoiceMutation,
 	useUpdateBuyingInvoiceMutation,
 	useExtractBuyingInvoiceMutation,
@@ -51,8 +52,7 @@ import {
 	createLineItemFromProduct,
 } from '../SellingInvoice/productLineItem'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
-import { useProductCatalog } from '../SellingInvoice/useProductCatalog'
-import { getProductCatalogState } from '../../offline/productCatalogStore'
+import { mapCatalogItemToProduct } from '../SellingInvoice/useProductCatalog'
 import AddProductModal from '../../pages/AddProductModal'
 import CurrencyAmountTooltip from '../SellingInvoice/CurrencyAmountTooltip'
 import DropdownLabel from '../DropdownLabel'
@@ -67,6 +67,7 @@ import {
 	parseDateInputValue,
 } from '../../shared/dateUtils'
 import { useUser } from '../../shared/hooks/useUser'
+import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { getEnabledActions, getTenantActions } from '../../shared/utils'
@@ -296,7 +297,12 @@ const NewBuyingInvoicePanel = ({
 	const [confirmBuyingInvoiceMatch] = useConfirmBuyingInvoiceMatchMutation()
 	const [createSupplier, { isLoading: isCreatingSupplier }] =
 		useCreateSupplierMutation()
-	const { products, refetch: refetchCatalog } = useProductCatalog()
+	const { data: allCatalogResponse, refetch: refetchCatalog } =
+		useGetProductCatalogQuery({ all: true })
+	const products = useMemo(
+		() => (allCatalogResponse?.products ?? []).map(mapCatalogItemToProduct),
+		[allCatalogResponse?.products],
+	)
 	const {
 		data: existingInvoice,
 		isLoading: isLoadingInvoice,
@@ -340,6 +346,28 @@ const NewBuyingInvoicePanel = ({
 	const setShowNote = isControlledCreate
 		? (value: boolean) => onShowNoteChange?.(value)
 		: setInternalShowNote
+
+	const { operationalWarehouseId, isOperational } = useWarehouseScope()
+
+	useEffect(() => {
+		// An existing invoice keeps the warehouse it was posted in; the backend rejects
+		// a change, so following the picker here would just make the invoice unsavable.
+		if (isExistingInvoice) return
+		if (!isOperational || !operationalWarehouseId) return
+		if (draft.warehouseId === operationalWarehouseId) return
+
+		setDraft(current =>
+			current.warehouseId === operationalWarehouseId
+				? current
+				: { ...current, warehouseId: operationalWarehouseId },
+		)
+	}, [
+		draft.warehouseId,
+		operationalWarehouseId,
+		isOperational,
+		isExistingInvoice,
+		setDraft,
+	])
 
 	useEffect(() => {
 		if (!extractFile) {
@@ -388,6 +416,7 @@ const NewBuyingInvoicePanel = ({
 			createBuyingInvoiceDraft(salesPerson, {
 				paymentType: initialPaymentType,
 				invoiceNumber: nextInvoiceNumber,
+				warehouseId: operationalWarehouseId ?? '',
 			}),
 		)
 		setInternalShowNote(false)
@@ -399,6 +428,7 @@ const NewBuyingInvoicePanel = ({
 		initialPaymentType,
 		nextInvoiceNumber,
 		salesPerson,
+		operationalWarehouseId,
 	])
 
 	useEffect(() => {
@@ -743,6 +773,13 @@ const NewBuyingInvoicePanel = ({
 
 	const handleSaveInvoice = async (status: InvoiceStatus) => {
 		if (!canSave) return
+
+		if (!isExistingInvoice) {
+			if (!isOperational || !operationalWarehouseId || !draft.warehouseId) {
+				setSaveError(t('components.topBar.warehouseScopePostingBlocked'))
+				return
+			}
+		}
 
 		setSaveError(null)
 
@@ -1257,6 +1294,7 @@ const NewBuyingInvoicePanel = ({
 								initialSearch={initialProductSearch}
 								autoFocus={isActive}
 								focusNonce={searchFocusNonce}
+								includeAllProducts
 							/>
 						</Box>
 					)}
@@ -1751,10 +1789,10 @@ const NewBuyingInvoicePanel = ({
 					const lineId = createProductLineId
 					const line = draft.lineItems.find(item => item.id === lineId)
 					setCreateProductLineId(null)
-					await refetchCatalog()
-					const product = getProductCatalogState().products.find(
-						item => item.productId === productId,
-					)
+					const { data } = await refetchCatalog()
+					const product = (data?.products ?? [])
+						.map(mapCatalogItemToProduct)
+						.find(item => item.productId === productId)
 					if (!lineId) return
 					handleAddProduct(
 						product ??

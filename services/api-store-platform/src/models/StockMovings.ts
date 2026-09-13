@@ -5,7 +5,7 @@ export interface IStockMoving extends Document {
 	tenantId: string
 	stockMovingId: string
 	productId: string
-	warehouseId?: string
+	warehouseId: string
 	type?:
 		| 'purchase'
 		| 'sale'
@@ -47,6 +47,7 @@ const StockMovingSchema: Schema<IStockMoving> = new mongoose.Schema({
 	},
 	warehouseId: {
 		type: String,
+		required: [true, 'warehouseId is required'],
 		trim: true,
 	},
 	type: {

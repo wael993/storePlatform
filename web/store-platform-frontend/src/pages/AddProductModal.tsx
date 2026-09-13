@@ -40,6 +40,7 @@ import { ChevronRightIcon } from '../components/icons/ChevronRight'
 import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon'
 import { useSettings } from '../shared/context/SettingsContext'
 import { useSee } from '../shared/hooks/useSee'
+import { useWarehouseScope } from '../shared/hooks/useWarehouseScope'
 import { SEE } from '../shared/seeFlags'
 import {
 	buildDisplayCurrencyOptions,
@@ -213,6 +214,7 @@ const AddProductModal = ({
 }: AddProductModalProps) => {
 	const { t } = useTranslation()
 	const { canSee } = useSee()
+	const { isOperational, operationalWarehouseId } = useWarehouseScope()
 	const canSeeCategories = canSee(SEE.categories)
 	const canSeeSupplier = canSee(SEE.supplier)
 	const { isArabic } = compareLanguage(i18n.language)
@@ -383,6 +385,10 @@ const AddProductModal = ({
 
 		setForm(prev => ({
 			...prev,
+			warehouseId:
+				operationalWarehouseId ??
+				(prev.warehouseId || warehouseOptions[0]?.value || ''),
+			unitId: prev.unitId || unitOptions[0]?.value || '',
 			name: initialName || prev.name,
 			barcode: barcode || prev.barcode,
 			price: {
@@ -391,16 +397,23 @@ const AddProductModal = ({
 					initialPurchasePrice != null
 						? String(initialPurchasePrice)
 						: prev.price.purchasePrice,
-				currency: prev.price.currency || defaultCurrencyCode,
+				currency:
+					prev.price.currency ||
+					currencyOptions[0]?.value ||
+					defaultCurrencyCode,
 			},
 		}))
 	}, [
 		isOpen,
 		product,
 		barcode,
+		currencyOptions,
 		defaultCurrencyCode,
 		initialName,
 		initialPurchasePrice,
+		operationalWarehouseId,
+		unitOptions,
+		warehouseOptions,
 	])
 
 	const handleFieldChange = (key: keyof typeof INITIAL_FORM, value: string) => {
@@ -485,7 +498,12 @@ const AddProductModal = ({
 		setForm({
 			...INITIAL_FORM,
 			barcode: barcode || '',
-			price: { ...INITIAL_FORM.price, currency: defaultCurrencyCode },
+			warehouseId: operationalWarehouseId ?? warehouseOptions[0]?.value ?? '',
+			unitId: unitOptions[0]?.value ?? '',
+			price: {
+				...INITIAL_FORM.price,
+				currency: currencyOptions[0]?.value || defaultCurrencyCode,
+			},
 		})
 		setStep(0)
 		setError('')
@@ -545,6 +563,11 @@ const AddProductModal = ({
 			return
 		}
 
+		if (!isEdit && !isOperational) {
+			setError(t('components.topBar.warehouseScopePostingBlocked'))
+			return
+		}
+
 		try {
 			const productBody = buildProductBody()
 
@@ -559,20 +582,29 @@ const AddProductModal = ({
 						baseline != null &&
 						(form.quantity !== baseline.quantity ||
 							form.minQuantity !== baseline.minQuantity ||
-							form.warehouseId !== baseline.warehouseId ||
 							form.shelfId !== baseline.shelfId)
 
 					if (inventoryChanged) {
+						if (!isOperational || !operationalWarehouseId) {
+							throw new Error(
+								t('components.topBar.warehouseScopePostingBlocked'),
+							)
+						}
+						const inventoryWarehouseId =
+							product.inventory?.warehouseId?.trim() || operationalWarehouseId
+						if (inventoryWarehouseId !== operationalWarehouseId) {
+							throw new Error(
+								t('components.topBar.warehouseScopePostingBlocked'),
+							)
+						}
 						await editInventory({
 							id: product.productId,
 							body: {
+								warehouseId: inventoryWarehouseId,
 								quantity: Number(form.quantity),
 								minQuantity: form.minQuantity.trim()
 									? Number(form.minQuantity)
 									: undefined,
-								...(form.warehouseId.trim()
-									? { warehouseId: form.warehouseId.trim() }
-									: {}),
 								...(form.shelfId.trim()
 									? { shelfId: form.shelfId.trim() }
 									: {}),
@@ -589,9 +621,7 @@ const AddProductModal = ({
 					...(form.minQuantity.trim()
 						? { minQuantity: Number(form.minQuantity) }
 						: {}),
-					...(form.warehouseId.trim()
-						? { warehouseId: form.warehouseId.trim() }
-						: {}),
+					warehouseId: operationalWarehouseId ?? form.warehouseId.trim(),
 					...(form.shelfId.trim() ? { shelfId: form.shelfId.trim() } : {}),
 				}).unwrap()
 				if (created._id) onCreated?.(created._id)
@@ -779,6 +809,12 @@ const AddProductModal = ({
 				)}
 				onSelect={values => handleDropdownSelect('warehouseId', values)}
 				isLoading={isWarehousesLoading}
+				isDisabled
+				disabledTooltip={
+					!isOperational
+						? t('components.topBar.warehouseScopePostingBlocked')
+						: undefined
+				}
 			/>
 			<DropdownLabel
 				isSearchable

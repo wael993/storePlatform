@@ -27,6 +27,7 @@ interface DailyAction {
 	_id?: string
 	actionId: string
 	entryType: EntryActionType
+	warehouseId?: string
 	productId?: string
 	productName?: string
 	supplierId?: string
@@ -70,6 +71,10 @@ interface FrontendResources {
 	path: string
 	access: boolean
 	allowedActions?: string[]
+}
+interface GetLabelTemplatesResponse {
+	data: LabelTemplate[]
+	totalCount: number
 }
 
 interface FrontendResourcesResponse {

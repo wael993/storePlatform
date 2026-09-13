@@ -9,6 +9,7 @@ import {
 import { memo, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { useWarehouseScope } from '../../../shared/hooks/useWarehouseScope'
 import { listStyles, cellFieldStyles } from '../../../shared/styles'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import EditableCellField from '../../list/EditableCellField'
@@ -28,11 +29,14 @@ import ConfirmationDialog from '../../ConfirmationDialog'
 import { useDeleteProductMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { useListColumnConfig } from '../../list/columnConfig/ListColumnConfigProvider'
+import { useUser } from '../../../shared/hooks/useUser'
+import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
 
 interface ProductTableItemProps {
 	product: Product
 	onSelect: (id: string) => void
 	onEditProduct: (product: Product) => void
+	onMovementProduct: (product: Product) => void
 	isSelected: boolean
 	isHovered: boolean
 	isLoading: boolean
@@ -43,6 +47,7 @@ const ProductTableItem = memo(
 		product: productData,
 		onSelect,
 		onEditProduct,
+		onMovementProduct,
 		isSelected,
 		isHovered,
 		isLoading,
@@ -68,6 +73,11 @@ const ProductTableItem = memo(
 			canEditProductBarcode,
 			canPrintBarcode,
 		} = useAllowedActions()
+		const { isOperational, hasMultipleAccessible } = useWarehouseScope()
+		const { user } = useUser()
+		const { isOnline } = useOfflineSync(user?.tenantId)
+		const canMoveProduct =
+			canEditStockQuantity && isOperational && hasMultipleAccessible && isOnline
 		const {
 			isOpen: isDeleteOpen,
 			onOpen: onDeleteOpen,
@@ -292,7 +302,7 @@ const ProductTableItem = memo(
 										minimumDecimals={0}
 										ariaLabel={t('common.stockQuantity')}
 										onEdit={value => editField('quantity', value)}
-										isEditable={canEditStockQuantity}
+										isEditable={canEditStockQuantity && isOperational}
 										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('quantity')}
@@ -312,7 +322,7 @@ const ProductTableItem = memo(
 										minimumDecimals={0}
 										ariaLabel={t('common.stockMinQuantity')}
 										onEdit={value => editField('minQuantity', value)}
-										isEditable={canEditMinStockQuantity}
+										isEditable={canEditMinStockQuantity && isOperational}
 										customStyles={centeredFieldStyles}
 										fontColor={'#1E1E1E'}
 										isLoading={isFieldInProgress('minQuantity')}
@@ -496,7 +506,10 @@ const ProductTableItem = memo(
 						</Flex>
 						<Flex sx={styles.cellContentWrapperSticky}>
 							<Skeleton isLoaded={!isLoading}>
-								{(canEditProduct || canPrintBarcode || canDeleteProduct) && (
+								{(canEditProduct ||
+									canPrintBarcode ||
+									canMoveProduct ||
+									canDeleteProduct) && (
 									<OptionsPopover
 										onEdit={
 											canEditProduct
@@ -511,6 +524,11 @@ const ProductTableItem = memo(
 												: undefined
 										}
 										isPrintLoading={isEnsuringBarcode}
+										onMovement={
+											canMoveProduct
+												? () => onMovementProduct(productData)
+												: undefined
+										}
 										onDelete={
 											canDeleteProduct
 												? () => {

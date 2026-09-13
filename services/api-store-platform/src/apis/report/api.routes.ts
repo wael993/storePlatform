@@ -10,6 +10,7 @@ import {
 	ReportRequestBody,
 	RequestContext,
 } from '../../shared/types'
+import { buildRequestContext } from '../../shared/buildRequestContext'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import ReportController from './api.controller'
 
@@ -88,17 +89,7 @@ export default class ReportRoutes {
 	}
 
 	private getRequestContext(request: ReportHttpRequest): RequestContext {
-		return {
-			authorization: request.headers.authorization,
-			cookie: request.headers.cookie,
-			userId: request.user?.userId,
-			tenantId: request.user?.tenantId,
-			tenantName: request.user?.tenantName,
-			role: request.user?.role,
-			user: request.user,
-			allowedFields: request.allowedFields || [],
-			see: request.see || [],
-		}
+		return buildRequestContext(request)
 	}
 
 	public setRoutes(app: express.Application): void {

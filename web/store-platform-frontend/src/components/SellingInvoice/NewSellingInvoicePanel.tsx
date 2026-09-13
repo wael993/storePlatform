@@ -27,6 +27,7 @@ import {
 	useUpdateSellingInvoiceMutation,
 } from '../../api/apiStore'
 import { useUser } from '../../shared/hooks/useUser'
+import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
@@ -269,6 +270,27 @@ const NewSellingInvoicePanel = ({
 		? (value: boolean) => onShowNoteChange?.(value)
 		: setInternalShowNote
 	const { products: catalogProducts } = useProductCatalog()
+	const { operationalWarehouseId, isOperational } = useWarehouseScope()
+
+	useEffect(() => {
+		// An existing invoice keeps the warehouse it was posted in; the backend rejects
+		// a change, so following the picker here would just make the invoice unsavable.
+		if (isExistingInvoice) return
+		if (!isOperational || !operationalWarehouseId) return
+		if (draft.warehouseId === operationalWarehouseId) return
+
+		setDraft(current =>
+			current.warehouseId === operationalWarehouseId
+				? current
+				: { ...current, warehouseId: operationalWarehouseId },
+		)
+	}, [
+		draft.warehouseId,
+		operationalWarehouseId,
+		isOperational,
+		isExistingInvoice,
+		setDraft,
+	])
 
 	const {
 		options: displayCurrencyOptions,
@@ -287,6 +309,7 @@ const NewSellingInvoicePanel = ({
 				paymentType: initialPaymentType,
 				invoiceNumber: nextInvoiceNumber,
 				customerName: t('components.sellingInvoices.drawer.walkInCustomer'),
+				warehouseId: operationalWarehouseId ?? '',
 			}),
 		)
 		setInternalShowNote(false)
@@ -300,6 +323,7 @@ const NewSellingInvoicePanel = ({
 		salesPerson,
 		user?.email,
 		t,
+		operationalWarehouseId,
 	])
 
 	useEffect(() => {
@@ -462,6 +486,13 @@ const NewSellingInvoicePanel = ({
 
 	const handleSaveInvoice = async (status: InvoiceStatus) => {
 		if (draft.lineItems.length === 0 || isReadOnly) return
+
+		if (mode !== 'edit') {
+			if (!isOperational || !operationalWarehouseId || !draft.warehouseId) {
+				setSaveError(t('components.topBar.warehouseScopePostingBlocked'))
+				return
+			}
+		}
 
 		setSaveError(null)
 

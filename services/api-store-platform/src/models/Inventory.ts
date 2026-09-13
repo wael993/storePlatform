@@ -5,7 +5,7 @@ export interface IInventory extends Document {
 	tenantId: string
 	inventoryId: string
 	productId: string
-	warehouseId?: string
+	warehouseId: string
 	shelfId?: string
 	quantity?: number
 	averageCost?: number
@@ -44,6 +44,8 @@ const InventorySchema: Schema<IInventory> = new mongoose.Schema(
 		},
 		warehouseId: {
 			type: String,
+			required: [true, 'warehouseId is required'],
+			trim: true,
 		},
 		shelfId: {
 			type: String,
@@ -75,12 +77,14 @@ const InventorySchema: Schema<IInventory> = new mongoose.Schema(
 
 tenantScopedSchema(InventorySchema)
 
+// note: one stock row per product per warehouse. Ceiling: no cross-warehouse aggregate index; upgrade if reporting needs sum-by-product.
 InventorySchema.index(
-	{ tenantId: 1, productId: 1 },
-	{ unique: true, sparse: true },
+	{ tenantId: 1, warehouseId: 1, productId: 1 },
+	{ unique: true },
 )
 
 InventorySchema.index({ tenantId: 1, warehouseId: 1 })
+InventorySchema.index({ tenantId: 1, productId: 1 })
 
 export const Inventory = mongoose.model<IInventory>(
 	'Inventory',

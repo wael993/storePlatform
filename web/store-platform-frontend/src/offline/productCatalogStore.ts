@@ -13,6 +13,10 @@ import store from '../store/store'
 import { getIsNetworkOnline } from './connectivity'
 import { getSyncMeta, offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
 import type { LocalCatalogProduct } from './types'
+import {
+	getWarehouseScopeIds,
+	WAREHOUSE_SCOPE_HEADER,
+} from '../shared/warehouseScope'
 
 export interface ProductCatalogState {
 	tenantId: string | null
@@ -29,6 +33,9 @@ type Listener = (state: ProductCatalogState) => void
 const getCatalogMetaKey = (tenantId: string): string =>
 	`${SYNC_META_KEYS.catalogLastSyncedAt}:${tenantId}`
 
+const getCatalogScopeMetaKey = (tenantId: string): string =>
+	`${SYNC_META_KEYS.catalogScope}:${tenantId}`
+
 let memoryState: ProductCatalogState = {
 	tenantId: null,
 	products: [],
@@ -41,6 +48,8 @@ let memoryState: ProductCatalogState = {
 
 const listeners = new Set<Listener>()
 let syncInFlight: Promise<void> | null = null
+/** Warehouse scope the in-flight sync is fetching, so a scope change can re-run it. */
+let syncInFlightScopeKey: string | null = null
 let activeTenantId: string | null = null
 
 const emit = (partial: Partial<ProductCatalogState>): void => {
@@ -126,6 +135,19 @@ export const hydrateFromIndexedDB = async (tenantId: string): Promise<void> => {
 		return
 	}
 
+	const storedScope = await getSyncMeta(getCatalogScopeMetaKey(tenantId))
+	const currentScope = getWarehouseScopeIds().join(',')
+
+	if (storedScope !== currentScope) {
+		emit({
+			tenantId,
+			products: [],
+			indexes: createEmptyProductSearchIndexes(),
+			isReady: false,
+		})
+		return
+	}
+
 	loadMemoryFromItems(tenantId, records)
 
 	const lastSyncedAt = await getSyncMeta(getCatalogMetaKey(tenantId))
@@ -133,13 +155,32 @@ export const hydrateFromIndexedDB = async (tenantId: string): Promise<void> => {
 }
 
 export const syncFromNetwork = async (tenantId: string): Promise<void> => {
-	if (!getIsNetworkOnline()) return
+	const warehouseScope = getWarehouseScopeIds()
+	const scopeKey = warehouseScope.join(',')
 
-	if (syncInFlight) {
-		await syncInFlight
+	if (!getIsNetworkOnline()) {
+		const storedScope = await getSyncMeta(getCatalogScopeMetaKey(tenantId))
+		if (storedScope !== scopeKey) {
+			emit({
+				products: [],
+				indexes: createEmptyProductSearchIndexes(),
+				isReady: false,
+			})
+		}
 		return
 	}
 
+	if (syncInFlight) {
+		await syncInFlight
+
+		// The in-flight sync fetched a different warehouse scope, so its result does not
+		// answer this call; run again for the scope actually selected now.
+		if (scopeKey === syncInFlightScopeKey) return
+
+		return syncFromNetwork(tenantId)
+	}
+
+	syncInFlightScopeKey = scopeKey
 	syncInFlight = (async () => {
 		emit({ isSyncing: true, lastError: null })
 
@@ -151,6 +192,10 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 
 			if (accessToken) {
 				headers.Authorization = `Bearer ${accessToken}`
+			}
+
+			if (warehouseScope.length > 0) {
+				headers[WAREHOUSE_SCOPE_HEADER] = scopeKey
 			}
 
 			const response = await fetch(
@@ -183,6 +228,7 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 						.delete()
 					await offlineDb.catalogProducts.bulkPut(records)
 					await setSyncMeta(getCatalogMetaKey(tenantId), serverTime)
+					await setSyncMeta(getCatalogScopeMetaKey(tenantId), scopeKey)
 				},
 			)
 

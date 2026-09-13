@@ -364,6 +364,7 @@ export interface PostSellingInvoiceBody {
 	issuedAt?: string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
+	warehouseId: string
 }
 
 export interface SellingInvoicesApiResponse {
@@ -446,7 +447,7 @@ export interface PostBuyingInvoiceBody {
 		discount: number
 	}>
 	notes?: string
-	warehouseId?: string
+	warehouseId: string
 	issuedAt?: string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
@@ -643,9 +644,13 @@ const getQuery = (
 			keepUnusedDataFor: 3600,
 		}),
 
-		getProductCatalog: builder.query<ProductCatalogResponse, void>({
-			query: () => ({
+		getProductCatalog: builder.query<
+			ProductCatalogResponse,
+			{ all?: boolean } | void
+		>({
+			query: args => ({
 				url: 'products/catalog',
+				params: args?.all ? { all: '1' } : undefined,
 			}),
 			providesTags: ['products'],
 			keepUnusedDataFor: 3600,
@@ -1577,7 +1582,7 @@ const getQuery = (
 			invalidatesTags: ['invoice-settings'],
 		}),
 
-		getLabelTemplates: builder.query<{ templates: LabelTemplate[] }, void>({
+		getLabelTemplates: builder.query<GetLabelTemplatesResponse, void>({
 			query: () => ({
 				url: 'label-templates',
 				method: 'GET',
@@ -2051,6 +2056,91 @@ const getQuery = (
 			}),
 			providesTags: ['inventory'],
 		}),
+		getInventoryByProduct: builder.query<
+			Array<{
+				warehouseId: string
+				quantity: number
+				availableQuantity: number
+			}>,
+			string
+		>({
+			query: productId => ({
+				url: `inventory/by-product/${productId}`,
+			}),
+			transformResponse: (response: {
+				data: Array<{
+					warehouseId: string
+					quantity: number
+					availableQuantity: number
+				}>
+			}) => response.data ?? [],
+			providesTags: ['inventory'],
+		}),
+		getWarehouseTransfers: builder.query<
+			WarehouseTransferAction[],
+			{ invoiceDateFrom?: string; invoiceDateTo?: string } | void
+		>({
+			query: filters => ({
+				url: 'inventory/warehouse-transfers',
+				params: filters ?? undefined,
+			}),
+			transformResponse: (response: { data: WarehouseTransferAction[] }) =>
+				response.data ?? [],
+			providesTags: ['inventory'],
+		}),
+		getWarehouseTransfer: builder.query<WarehouseTransferAction, string>({
+			query: referenceId => ({
+				url: `inventory/warehouse-transfers/${referenceId}`,
+			}),
+			providesTags: ['inventory'],
+		}),
+		postWarehouseTransfer: builder.mutation<
+			{
+				referenceId: string
+				fromWarehouseId: string
+				toWarehouseId: string
+				items: Array<{ productId: string; quantity: number }>
+			},
+			{
+				toWarehouseId: string
+				fromWarehouseId?: string
+				items: Array<{ productId: string; quantity: number }>
+			}
+		>({
+			query: body => ({
+				url: 'inventory/warehouse-transfer',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['products', 'product', 'inventory'],
+		}),
+		patchWarehouseTransfer: builder.mutation<
+			{
+				referenceId: string
+				fromWarehouseId: string
+				toWarehouseId: string
+				items: Array<{ productId: string; quantity: number }>
+			},
+			{
+				referenceId: string
+				toWarehouseId: string
+				items: Array<{ productId: string; quantity: number }>
+			}
+		>({
+			query: ({ referenceId, ...body }) => ({
+				url: `inventory/warehouse-transfers/${referenceId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['products', 'product', 'inventory'],
+		}),
+		deleteWarehouseTransfer: builder.mutation<void, string>({
+			query: referenceId => ({
+				url: `inventory/warehouse-transfers/${referenceId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['products', 'product', 'inventory'],
+		}),
 		getProductNotifications: builder.query<ProductNotificationsResponse, void>({
 			query: () => ({
 				url: 'products/notifications',
@@ -2306,6 +2396,13 @@ export const {
 	useCommitProductImportMutation,
 	useBulkDeleteProductsMutation,
 	useGetInventoryQuery,
+	useGetInventoryByProductQuery,
+	useGetWarehouseTransfersQuery,
+	useGetWarehouseTransferQuery,
+	useLazyGetWarehouseTransferQuery,
+	usePostWarehouseTransferMutation,
+	usePatchWarehouseTransferMutation,
+	useDeleteWarehouseTransferMutation,
 	useEditInventoryMutation,
 	useGetProductNotificationsQuery,
 	useMarkProductNotificationsReadMutation,

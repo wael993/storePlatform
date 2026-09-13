@@ -38,6 +38,7 @@ import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem, InvoicePaymentType } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
+import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { generateBreadcrumbs } from '../../shared/routes'
@@ -108,7 +109,9 @@ const styles = {
 const SellingInvoicesPage = () => {
 	const { t } = useTranslation()
 	const { user } = useUser()
+	const { isOperational, operationalWarehouseId } = useWarehouseScope()
 	const { canSee } = useSee()
+	const canPostInvoices = isOperational && Boolean(operationalWarehouseId)
 	const canSeeBuying = canSee(SEE.sellingInvoicesBuyingButton)
 	const canSeeSellingList = canSee(SEE.sellingInvoices)
 	const canSeeAddSelling = canSee(SEE.sellingInvoicesSellingButton)
@@ -458,7 +461,8 @@ const SellingInvoicesPage = () => {
 		productSearch?: string
 		paymentType?: SellingInvoicePaymentType
 	}) => {
-		createSession(options)
+		if (!canPostInvoices || !operationalWarehouseId) return
+		createSession({ ...options, warehouseId: operationalWarehouseId })
 	}
 
 	const handleNewInvoice = () => {
@@ -466,7 +470,8 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleNewBuyingInvoice = () => {
-		createBuyingSession()
+		if (!canPostInvoices || !operationalWarehouseId) return
+		createBuyingSession({ warehouseId: operationalWarehouseId })
 	}
 
 	const handleNewCreditInvoice = () => {
@@ -474,7 +479,7 @@ const SellingInvoicesPage = () => {
 	}
 
 	const handleBarcodeSearchSubmit = (value: string) => {
-		if (!canSeeAddSelling) return
+		if (!canSeeAddSelling || !canPostInvoices) return
 
 		const barcode = normalizeBarcode(value)
 		if (!barcode) return
@@ -664,14 +669,18 @@ const SellingInvoicesPage = () => {
 					borderColor="#1D4ED8"
 					_hover={{ bg: '#1D4ED8' }}
 					aria-label={t('components.sellingInvoices.newInvoiceOptions')}
+					isDisabled={!canPostInvoices}
 				>
 					<ChevronDownIcon />
 				</MenuButton>
 				<MenuList>
-					<MenuItem onClick={handleNewInvoice}>
+					<MenuItem onClick={handleNewInvoice} isDisabled={!canPostInvoices}>
 						{t('components.sellingInvoices.newInvoice')}
 					</MenuItem>
-					<MenuItem onClick={handleNewCreditInvoice}>
+					<MenuItem
+						onClick={handleNewCreditInvoice}
+						isDisabled={!canPostInvoices}
+					>
 						{t('components.sellingInvoices.newCreditInvoice')}
 					</MenuItem>
 				</MenuList>
@@ -695,6 +704,12 @@ const SellingInvoicesPage = () => {
 				px={5}
 				_hover={{ bg: '#1D4ED8' }}
 				onClick={handleNewInvoice}
+				isDisabled={!canPostInvoices}
+				title={
+					canPostInvoices
+						? undefined
+						: t('components.topBar.warehouseScopePostingBlocked')
+				}
 			>
 				{t('components.sellingInvoices.newInvoice')}
 			</Button>
@@ -711,6 +726,12 @@ const SellingInvoicesPage = () => {
 					borderColor={PAGE_COLORS.border}
 					fontWeight={600}
 					onClick={handleNewBuyingInvoice}
+					isDisabled={!canPostInvoices}
+					title={
+						canPostInvoices
+							? undefined
+							: t('components.topBar.warehouseScopePostingBlocked')
+					}
 				>
 					{t('components.sellingInvoices.newBuyingInvoice')}
 				</Button>
@@ -925,7 +946,10 @@ const SellingInvoicesPage = () => {
 								activeDraftTabId={activeBuyingSessionId ?? undefined}
 								onSelectDraftTab={setActiveBuyingSessionId}
 								onCloseDraftTab={requestCloseBuyingDraftTab}
-								onAddDraftTab={() => createBuyingSession()}
+								onAddDraftTab={() => {
+									if (!canPostInvoices || !operationalWarehouseId) return
+									createBuyingSession({ warehouseId: operationalWarehouseId })
+								}}
 							/>
 						</Box>
 					) : showSellingDraft && activeSession ? (
@@ -946,7 +970,10 @@ const SellingInvoicesPage = () => {
 								activeDraftTabId={activeSessionId ?? undefined}
 								onSelectDraftTab={setActiveSessionId}
 								onCloseDraftTab={requestCloseDraftTab}
-								onAddDraftTab={() => createSession()}
+								onAddDraftTab={() => {
+									if (!canPostInvoices || !operationalWarehouseId) return
+									createSession({ warehouseId: operationalWarehouseId })
+								}}
 							/>
 						</Box>
 					) : null}

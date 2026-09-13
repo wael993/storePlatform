@@ -17,6 +17,7 @@ import {
 	ShelfRequestBody,
 	WarehouseRequestBody,
 } from '../shared/types'
+import { buildRequestContext } from '../shared/buildRequestContext'
 import { DailyActionRequestBody, LoginData } from '../shared/types/api'
 import { config } from '../config/config'
 import { format } from 'date-fns'
@@ -117,19 +118,7 @@ export default class StoreRoutes extends PlatformValidator {
 	}
 
 	private getRequestContext(request: any): RequestContext {
-		const requestContext: RequestContext = {
-			authorization: request.headers.authorization,
-			cookie: request.headers.cookie,
-			userId: request.user?.userId,
-			tenantId: request.user?.tenantId,
-			tenantName: request.user?.tenantName,
-			role: request.user?.role,
-			user: request.user,
-			allowedFields: request.allowedFields || [],
-			see: request.see || [],
-		}
-
-		return requestContext
+		return buildRequestContext(request)
 	}
 
 	public constructor(private productController: ProductController) {
@@ -257,7 +246,52 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/inventory/warehouse-transfer`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postWarehouseTransfer.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/inventory/warehouse-transfers`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getWarehouseTransfers.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/inventory/warehouse-transfers/:referenceId`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getWarehouseTransfer.bind(this),
+			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchWarehouseTransfer.bind(this),
+			)
+			.delete(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.deleteWarehouseTransfer.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/inventory/by-product/:productId`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getInventoryByProduct.bind(this),
+			)
 			.patch(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -740,8 +774,15 @@ export default class StoreRoutes extends PlatformValidator {
 		const requestContext = this.getRequestContext(request)
 
 		try {
-			const resp =
-				await this.productController.getProductCatalog(requestContext)
+			const all =
+				request.query?.all === '1' ||
+				request.query?.all === 'true' ||
+				request.query?.all === true
+
+			const resp = await this.productController.getProductCatalog(
+				requestContext,
+				{ all },
+			)
 
 			response.status(200).json(resp)
 		} catch (error: any) {
@@ -1402,6 +1443,130 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postWarehouseTransfer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.postWarehouseTransfer(
+				request.body ?? {},
+				requestContext,
+			)
+
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getWarehouseTransfers(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getWarehouseTransfers(
+				requestContext,
+				{
+					invoiceDateFrom: request.query.invoiceDateFrom,
+					invoiceDateTo: request.query.invoiceDateTo,
+				},
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getWarehouseTransfer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getWarehouseTransfer(
+				request.params.referenceId,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchWarehouseTransfer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.patchWarehouseTransfer(
+				request.params.referenceId,
+				request.body ?? {},
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async deleteWarehouseTransfer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			await this.productController.deleteWarehouseTransfer(
+				request.params.referenceId,
+				requestContext,
+			)
+
+			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getInventoryByProduct(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.getInventoryByProductAcrossAcl(
+				request.params.productId,
+				requestContext,
+			)
+
+			response.status(200).json({ data: resp })
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

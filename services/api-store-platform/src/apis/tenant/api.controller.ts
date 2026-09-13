@@ -14,6 +14,7 @@ import { Report } from '../../models/Report'
 import RefreshToken from '../../models/RefreshToken'
 import Tenant, { ITenant } from '../../models/Tenant'
 import User, { IUser } from '../../models/User'
+import { Warehouse } from '../../models/Warehaus'
 import SubscriptionRenewalRequest from '../../models/SubscriptionRenewalRequest'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
@@ -37,6 +38,7 @@ import {
 	saveRoleSee,
 } from '../../shared/seePermissions'
 import { SEE } from '../../shared/seeCatalog'
+import { getAllowedWarehouseIds } from '../../shared/warehouseAccess'
 import {
 	assertAssignableTenantRole,
 	ensureSuperAdmin,
@@ -86,6 +88,7 @@ type TenantUserLean = {
 	readonly displayName: string
 	readonly email: string
 	readonly role: UserRole
+	readonly warehouseIds?: string[]
 	readonly user: {
 		readonly firstName: string
 		readonly lastName: string
@@ -104,6 +107,7 @@ export default class TenantController {
 			role: user.role,
 			firstName: user.user.firstName,
 			lastName: user.user.lastName,
+			warehouseIds: user.warehouseIds ?? [],
 		}
 	}
 
@@ -255,6 +259,28 @@ export default class TenantController {
 		const temporaryPassword = this.createTemporaryPassword()
 		const hashedPassword = await bcrypt.hash(temporaryPassword, 10)
 
+		// Non-owners need a warehouse ACL. An inviter can never hand out more access
+		// than they hold themselves, so only an unrestricted inviter defaults the
+		// invitee to every tenant warehouse (owner can revoke afterwards).
+		let warehouseIds: string[] | undefined
+
+		if (role !== 'owner') {
+			const inviterScope = getAllowedWarehouseIds(requestContext)
+
+			if (inviterScope === null) {
+				const warehouses = (await withTenantScope(
+					Warehouse.find({}).select('warehouseId').lean(),
+					tenantContext.tenantId,
+				)) as Array<{ warehouseId?: string }>
+
+				warehouseIds = warehouses
+					.map(warehouse => warehouse.warehouseId)
+					.filter((id): id is string => Boolean(id))
+			} else {
+				warehouseIds = [...inviterScope]
+			}
+		}
+
 		const created = await User.create({
 			tenantId: tenantContext.tenantId,
 			userId: uuidv4(),
@@ -266,6 +292,7 @@ export default class TenantController {
 			email: email.toLowerCase(),
 			password: hashedPassword,
 			role,
+			...(warehouseIds ? { warehouseIds } : {}),
 			avatarColorId: Math.floor(Math.random() * 1000000),
 			createdBy: {
 				_id: requestContext.userId ?? '',

@@ -19,6 +19,11 @@ import {
 } from '../offline/localHandlers'
 import { isOfflineCapableForTenant } from '../offline/localStore'
 import { getWorkMode } from '../offline/workMode'
+import {
+	getWarehouseScopeIds,
+	hydrateWarehouseScopeForUser,
+	WAREHOUSE_SCOPE_HEADER,
+} from '../shared/warehouseScope'
 
 export type TagType =
 	| 'products'
@@ -105,11 +110,20 @@ const baseQuery = fetchBaseQuery({
 	prepareHeaders: (headers, { getState }) => {
 		const state = getState() as RootState
 		const token = state.user?.accessToken
+		const user = state.user?.user
+
+		if (user?.tenantId && user?.userId) {
+			hydrateWarehouseScopeForUser(user.tenantId, user.userId)
+		}
 
 		if (token) {
 			headers.set('Authorization', `Bearer ${token}`)
 		}
 		headers.set('x-work-mode', getWorkMode())
+		const warehouseScope = getWarehouseScopeIds()
+		if (warehouseScope.length > 0) {
+			headers.set(WAREHOUSE_SCOPE_HEADER, warehouseScope.join(','))
+		}
 		return headers
 	},
 })
@@ -124,7 +138,13 @@ const getRequestMethod = (args: string | FetchArgs): string => {
 
 const tryServeOfflineQuery = async (
 	args: string | FetchArgs,
+	state: RootState,
 ): Promise<{ data: unknown } | null> => {
+	const user = state.user?.user
+	if (user?.tenantId && user?.userId) {
+		hydrateWarehouseScopeForUser(user.tenantId, user.userId)
+	}
+
 	const localResult = await handleOfflineQuery(args)
 	if ('data' in localResult) {
 		return localResult as { data: unknown }
@@ -161,7 +181,10 @@ const baseQueryWithReauth: BaseQueryFn<
 			offlineCapable && isOfflineCapableEndpoint(requestUrl)
 
 		if (canServeOffline && !getIsOnline()) {
-			const localResult = await tryServeOfflineQuery(args)
+			const localResult = await tryServeOfflineQuery(
+				args,
+				api.getState() as RootState,
+			)
 			if (localResult) return localResult
 		}
 
@@ -177,7 +200,10 @@ const baseQueryWithReauth: BaseQueryFn<
 
 			result = await baseQuery(args, api, extraOptions)
 		} else if (canServeOffline) {
-			const localResult = await tryServeOfflineQuery(args)
+			const localResult = await tryServeOfflineQuery(
+				args,
+				api.getState() as RootState,
+			)
 			if (localResult) return localResult
 		} else {
 			api.dispatch(logout())
@@ -203,13 +229,13 @@ const baseQueryWithOffline: BaseQueryFn<
 		canServeOffline && method === 'GET' && (!accessToken || !getIsOnline())
 
 	if (preferOfflineReads) {
-		const localResult = await tryServeOfflineQuery(args)
+		const localResult = await tryServeOfflineQuery(args, state)
 		if (localResult) return localResult
 	}
 
 	if (!getIsOnline()) {
 		if (canServeOffline) {
-			const localResult = await tryServeOfflineQuery(args)
+			const localResult = await tryServeOfflineQuery(args, state)
 			if (localResult) return localResult
 
 			return {
@@ -235,7 +261,7 @@ const baseQueryWithOffline: BaseQueryFn<
 
 	if (shouldFallbackToOffline(result.error) && canServeOffline) {
 		setOnlineFromFetchResult(true)
-		const localResult = await tryServeOfflineQuery(args)
+		const localResult = await tryServeOfflineQuery(args, state)
 		if (localResult) return localResult
 	}
 

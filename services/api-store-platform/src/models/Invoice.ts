@@ -50,7 +50,7 @@ export interface IInvoice extends Document {
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
 	printAfterPayment?: boolean
-	warehouseId?: string
+	warehouseId: string
 	issuedAt: Date
 	createdBy: {
 		_id: string
@@ -173,6 +173,7 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 		},
 		warehouseId: {
 			type: String,
+			required: [true, 'warehouseId is required'],
 			trim: true,
 		},
 		issuedAt: {

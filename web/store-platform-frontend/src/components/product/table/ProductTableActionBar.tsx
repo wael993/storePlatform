@@ -1,11 +1,21 @@
-import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
+import {
+	IconButton,
+	Flex,
+	Text,
+	useDisclosure,
+	Tooltip,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { useWarehouseScope } from '../../../shared/hooks/useWarehouseScope'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useBulkDeleteProductsMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { AsTrashIcon } from '../../../icons/Trash'
+import { AsTruckIcon } from '../../../shared/icons/Truck'
+import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
+import { useUser } from '../../../shared/hooks/useUser'
 
 const styles = {
 	mainFlexWrapper: {
@@ -39,18 +49,30 @@ const styles = {
 
 interface ProductTableActionBarProps {
 	selectedActivities: Product[]
+	onMovementProducts: (products: Product[]) => void
 }
 
 const ProductTableActionBar = ({
 	selectedActivities,
+	onMovementProducts,
 }: ProductTableActionBarProps) => {
 	const { t } = useTranslation()
-	const { canDeleteProduct } = useAllowedActions()
+	const { canDeleteProduct, canEditStockQuantity } = useAllowedActions()
+	const { isOperational, hasMultipleAccessible } = useWarehouseScope()
+	const { user } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
+	const { isOnline } = useOfflineSync(user?.tenantId)
+
 	const showToast = useCustomToast()
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeleteProductsMutation()
 	const canDelete = canDeleteProduct
+	const canMove =
+		canEditStockQuantity &&
+		isOperational &&
+		hasMultipleAccessible &&
+		// A single product moves from its own row action; the bar is for grouped moves.
+		selectedActivities.length >= 2
 
 	const handleDelete = async () => {
 		try {
@@ -93,6 +115,23 @@ const ProductTableActionBar = ({
 				{`${selectedActivities.length} 	${t('common.selected')}`}
 			</Text>
 			<Flex sx={styles.iconWrapper}>
+				{canMove ? (
+					<Tooltip
+						label={t('components.product.warehouseTransfer.movementOffline')}
+						isDisabled={isOnline}
+					>
+						<span>
+							<IconButton
+								sx={styles.iconButton}
+								aria-label={t('components.product.warehouseTransfer.movement')}
+								icon={<AsTruckIcon boxSize={5} />}
+								size="sm"
+								isDisabled={!isOnline}
+								onClick={() => onMovementProducts(selectedActivities)}
+							/>
+						</span>
+					</Tooltip>
+				) : null}
 				{canDelete ? (
 					<IconButton
 						sx={styles.iconButton}

@@ -22,4 +22,5 @@ export const COLLECTION_NAMES = {
 	STOCK_MOVINGS: 'stockMovings',
 	SYNC_MUTATIONS: 'syncMutations',
 	EMPLOYEES: 'employees',
+	LABEL_TEMPLATES: 'labelTemplates',
 } as const

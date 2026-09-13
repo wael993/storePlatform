@@ -16,6 +16,10 @@ import {
 	type ProductNotificationDigestResponse,
 } from '../api/apiStore'
 import { getWorkMode } from './workMode'
+import {
+	getOperationalWarehouseId,
+	getWarehouseScopeIds,
+} from '../shared/warehouseScope'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
@@ -33,6 +37,7 @@ import {
 	allocateNextInvoiceNumber,
 	allocateNextBuyingInvoiceNumber,
 	findDuplicateOutboxEntry,
+	findLocalInventoryRow,
 	getLocalNextInvoiceNumber,
 	getLocalNextBuyingInvoiceNumber,
 	saveLocalInvoice,
@@ -118,16 +123,117 @@ const buildDailyActionFilterValues = (dailyActions: DailyAction[]) => {
 	}
 }
 
+const filterByWarehouseScope = <T extends { warehouseId?: string }>(
+	items: T[],
+): T[] => {
+	const scope = getWarehouseScopeIds()
+	// Empty scope = no access (matches server ACL lockout; never leak Dexie).
+	if (scope.length === 0) return []
+	const allowed = new Set(scope)
+	return items.filter(
+		item => item.warehouseId !== undefined && allowed.has(item.warehouseId),
+	)
+}
+
+const assertWarehouseInScope = (warehouseId?: string): boolean => {
+	const scope = getWarehouseScopeIds()
+	if (scope.length === 0 || !warehouseId) return false
+	return scope.includes(warehouseId)
+}
+
+/** Product ids with stock in current warehouse scope. Empty scope = no access. */
+const loadOfflineAccessibleProductIds = async (): Promise<string[]> => {
+	const scope = getWarehouseScopeIds()
+	if (scope.length === 0) return []
+
+	const rows = filterByWarehouseScope(await offlineDb.inventory.toArray())
+	return [
+		...new Set(
+			rows.map(row => row.productId).filter((id): id is string => Boolean(id)),
+		),
+	]
+}
+
+const filterProductsByWarehouseStock = async <T extends { productId?: string }>(
+	products: T[],
+): Promise<T[]> => {
+	const accessibleProductIds = await loadOfflineAccessibleProductIds()
+	if (accessibleProductIds.length === 0) return []
+	const allowed = new Set(accessibleProductIds)
+	return products.filter(
+		product =>
+			product.productId !== undefined && allowed.has(product.productId),
+	)
+}
+
+/** note: sums qty across scoped warehouses; qty-weighted averageCost. */
+const aggregateInventoryByProductId = <
+	T extends {
+		productId?: string
+		quantity?: number
+		availableQuantity?: number
+		reservedQuantity?: number
+		averageCost?: number
+	},
+>(
+	items: T[],
+): Map<string, T> => {
+	const map = new Map<string, T>()
+
+	for (const item of items) {
+		if (!item.productId) continue
+		const existing = map.get(item.productId)
+		if (!existing) {
+			map.set(item.productId, item)
+			continue
+		}
+
+		const existingQty = Number(existing.quantity ?? 0)
+		const nextQty = Number(item.quantity ?? 0)
+		const totalQty = existingQty + nextQty
+		const existingCost = Number(existing.averageCost ?? 0)
+		const nextCost = Number(item.averageCost ?? 0)
+
+		map.set(item.productId, {
+			...existing,
+			quantity: totalQty,
+			availableQuantity:
+				Number(existing.availableQuantity ?? 0) +
+				Number(item.availableQuantity ?? 0),
+			reservedQuantity:
+				Number(existing.reservedQuantity ?? 0) +
+				Number(item.reservedQuantity ?? 0),
+			averageCost:
+				totalQty > 0
+					? (existingCost * existingQty + nextCost * nextQty) / totalQty
+					: existing.averageCost,
+		})
+	}
+
+	return map
+}
+
+const requireOperationalWarehouseIdForOffline = (
+	warehouseId?: string,
+): string => {
+	const operationalId = getOperationalWarehouseId()
+	const id = warehouseId?.trim()
+	if (!operationalId || !id || id !== operationalId) {
+		throw new Error(
+			'Exactly one warehouse must be selected to post invoices or change stock.',
+		)
+	}
+	return id
+}
+
 const validateLocalSaleInventory = async (
 	items: PostSellingInvoiceBody['items'],
+	warehouseId: string,
 ): Promise<void> => {
 	const insufficientItems: InsufficientStockItem[] = []
 
 	for (const item of items) {
-		const inventory = await offlineDb.inventory
-			.where('productId')
-			.equals(item.productId)
-			.first()
+		const inventory = await findLocalInventoryRow(item.productId, warehouseId)
 		const available = Number(
 			inventory?.availableQuantity ?? inventory?.quantity ?? 0,
 		)
@@ -642,13 +748,14 @@ const handlePostInvoice = async (
 
 	const clientMutationId = body.clientMutationId ?? generateId()
 	const status = mapInvoiceStatus(body.status)
+	const warehouseId = requireOperationalWarehouseIdForOffline(body.warehouseId)
 
 	if (
 		status !== InvoiceStatus.DRAFT &&
 		status !== InvoiceStatus.CANCELLED &&
 		body.items?.length
 	) {
-		await validateLocalSaleInventory(body.items)
+		await validateLocalSaleInventory(body.items, warehouseId)
 	}
 
 	const allocatedNumber = await allocateNextInvoiceNumber()
@@ -667,6 +774,7 @@ const handlePostInvoice = async (
 			paymentStatus: body.paymentStatus,
 			currencyAmounts: body.currencyAmounts,
 			notes: body.notes,
+			warehouseId,
 			issuedAt: body.issuedAt ?? nowIso(),
 			createdAt: nowIso(),
 		},
@@ -730,6 +838,7 @@ const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
 
 	const clientMutationId = body.clientMutationId ?? generateId()
 	const status = mapInvoiceStatus(body.status)
+	const warehouseId = requireOperationalWarehouseIdForOffline(body.warehouseId)
 	const allocatedNumber = await allocateNextBuyingInvoiceNumber()
 	const invoiceNumber =
 		body.invoiceNumber ?? formatBuyingInvoiceNumber(allocatedNumber)
@@ -746,6 +855,7 @@ const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
 			paymentStatus: body.paymentStatus,
 			currencyAmounts: body.currencyAmounts,
 			notes: body.notes,
+			warehouseId,
 			issuedAt: body.issuedAt ?? nowIso(),
 			createdAt: nowIso(),
 			invoiceDiscount: body.invoiceDiscount,
@@ -1202,11 +1312,21 @@ const applyLocalEntityMutation = async (
 			),
 		)
 		if (payload.quantity !== undefined) {
+			const warehouseId =
+				String(payload.warehouseId ?? '').trim() ||
+				getOperationalWarehouseId() ||
+				''
+			if (!warehouseId) {
+				throw new Error(
+					'Exactly one warehouse must be selected to post invoices or change stock.',
+				)
+			}
 			await offlineDb.inventory.put(
 				withLocalMeta(
 					{
 						inventoryId: generateId(),
 						productId,
+						warehouseId,
 						quantity: Number(payload.quantity),
 						availableQuantity: Number(payload.quantity),
 					},
@@ -1514,8 +1634,8 @@ const buildOfflineDigest = async (
 		offlineDb.products.toArray(),
 		offlineDb.inventory.toArray(),
 	])
-	const inventoryByProductId = new Map(
-		inventory.map(row => [row.productId, row]),
+	const inventoryByProductId = aggregateInventoryByProductId(
+		filterByWarehouseScope(inventory),
 	)
 	const hydrate = (product: Product) =>
 		withLocalInventory(product, inventoryByProductId)
@@ -1630,17 +1750,27 @@ export const handleOfflineQuery = async (
 		if (method === 'GET') {
 			if (path === 'products/catalog') {
 				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
-				const catalogProducts = tenantId
-					? await offlineDb.catalogProducts
-							.where('tenantId')
-							.equals(tenantId)
-							.toArray()
-					: []
+				const storedScope = tenantId
+					? await getSyncMeta(`${SYNC_META_KEYS.catalogScope}:${tenantId}`)
+					: null
+				const currentScope = getWarehouseScopeIds().join(',')
+				const catalogProducts =
+					tenantId && storedScope === currentScope
+						? await offlineDb.catalogProducts
+								.where('tenantId')
+								.equals(tenantId)
+								.toArray()
+						: []
+				const includeAll =
+					params.get('all') === '1' || params.get('all') === 'true'
+				const products = includeAll
+					? catalogProducts
+					: await filterProductsByWarehouseStock(catalogProducts)
 
 				return {
 					data: {
-						products: catalogProducts,
-						totalCount: catalogProducts.length,
+						products,
+						totalCount: products.length,
 					},
 				}
 			}
@@ -1696,16 +1826,51 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Product not found' } },
 						}
 					}
-					return { data: product }
+					const accessible = await filterProductsByWarehouseStock([product])
+					if (accessible.length === 0) {
+						return {
+							error: { status: 404, data: { message: 'Product not found' } },
+						}
+					}
+					return { data: accessible[0] }
 				}
 
-				const products = await offlineDb.products.toArray()
+				const products = await filterProductsByWarehouseStock(
+					await offlineDb.products.toArray(),
+				)
 				return { data: filterProducts(products, params) }
 			}
 
 			if (path === 'inventory') {
-				const inventory = await offlineDb.inventory.toArray()
+				const inventory = filterByWarehouseScope(
+					await offlineDb.inventory.toArray(),
+				)
 				return { data: inventory }
+			}
+
+			if (path === 'inventory/warehouse-transfers') {
+				// note: offline has no StockMoving ledger; empty until online sync.
+				return { data: { data: [] } }
+			}
+
+			if (path.startsWith('inventory/by-product/')) {
+				const productId = path.split('/')[2]
+				const rows = filterByWarehouseScope(
+					(await offlineDb.inventory.toArray()).filter(
+						row => row.productId === productId && Boolean(row.warehouseId),
+					),
+				)
+				return {
+					data: {
+						data: rows.map(row => ({
+							warehouseId: row.warehouseId as string,
+							quantity: Number(row.quantity ?? 0),
+							availableQuantity: Number(
+								row.availableQuantity ?? row.quantity ?? 0,
+							),
+						})),
+					},
+				}
 			}
 
 			if (path === 'customers' || path.startsWith('customers/')) {
@@ -1830,14 +1995,16 @@ export const handleOfflineQuery = async (
 			}
 
 			if (path === 'daily-actions/filter-values') {
-				const actions = await getLocalDailyActionsForOffline()
+				const actions = filterByWarehouseScope(
+					await getLocalDailyActionsForOffline(),
+				)
 				return { data: buildDailyActionFilterValues(actions) }
 			}
 
 			if (path === 'daily-actions' || path.startsWith('daily-actions/')) {
 				if (path !== 'daily-actions') {
 					const action = await offlineDb.dailyActions.get(path.split('/')[1])
-					return action
+					return action && assertWarehouseInScope(action.warehouseId)
 						? { data: action }
 						: {
 								error: {
@@ -1847,7 +2014,7 @@ export const handleOfflineQuery = async (
 							}
 				}
 				const actions = filterDailyActionsByParams(
-					await getLocalDailyActionsForOffline(),
+					filterByWarehouseScope(await getLocalDailyActionsForOffline()),
 					parseDailyActionFiltersFromParams(params),
 				)
 				return { data: { data: actions, totalCount: actions.length } }
@@ -1887,17 +2054,20 @@ export const handleOfflineQuery = async (
 				const isCollection = path === 'selling-invoices' || path === 'invoices'
 				if (!isCollection) {
 					const invoice = await offlineDb.invoices.get(path.split('/')[1])
-					return invoice
-						? { data: invoice }
-						: {
-								error: {
-									status: 404,
-									data: { message: 'Invoice not found' },
-								},
-							}
+					if (!invoice || !assertWarehouseInScope(invoice.warehouseId)) {
+						return {
+							error: {
+								status: 404,
+								data: { message: 'Invoice not found' },
+							},
+						}
+					}
+					return { data: invoice }
 				}
 
-				const invoices = await getLocalInvoicesForOffline()
+				const invoices = filterByWarehouseScope(
+					await getLocalInvoicesForOffline(),
+				)
 				const filtered = filterInvoices(invoices, params)
 				const nextInvoiceNumber = await getLocalNextInvoiceNumber()
 
@@ -1917,17 +2087,23 @@ export const handleOfflineQuery = async (
 					const buyingInvoice = await offlineDb.buyingInvoices.get(
 						path.split('/')[1],
 					)
-					return buyingInvoice
-						? { data: buyingInvoice }
-						: {
-								error: {
-									status: 404,
-									data: { message: 'Buying invoice not found' },
-								},
-							}
+					if (
+						!buyingInvoice ||
+						!assertWarehouseInScope(buyingInvoice.warehouseId)
+					) {
+						return {
+							error: {
+								status: 404,
+								data: { message: 'Buying invoice not found' },
+							},
+						}
+					}
+					return { data: buyingInvoice }
 				}
 
-				const invoices = await getLocalBuyingInvoicesForOffline()
+				const invoices = filterByWarehouseScope(
+					await getLocalBuyingInvoicesForOffline(),
+				)
 				const filtered = filterBuyingInvoices(invoices, params)
 				const nextInvoiceNumber = await getLocalNextBuyingInvoiceNumber()
 
@@ -2059,6 +2235,31 @@ export const handleOfflineQuery = async (
 		if (method === 'POST' && path === 'buying-invoices') {
 			const data = await handlePostBuyingInvoice(body as PostBuyingInvoiceBody)
 			return { data }
+		}
+
+		if (method === 'POST' && path === 'inventory/warehouse-transfer') {
+			return {
+				error: {
+					status: 503,
+					data: {
+						message: 'Warehouse transfer requires an online connection.',
+					},
+				},
+			}
+		}
+
+		if (
+			(method === 'PATCH' || method === 'DELETE') &&
+			path.startsWith('inventory/warehouse-transfers/')
+		) {
+			return {
+				error: {
+					status: 503,
+					data: {
+						message: 'Warehouse transfer requires an online connection.',
+					},
+				},
+			}
 		}
 
 		if (method === 'PATCH' && path === 'currency-settings') {

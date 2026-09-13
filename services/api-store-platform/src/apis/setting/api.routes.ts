@@ -8,6 +8,7 @@ import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import SettingController from './api.controller'
+import { buildRequestContext } from '../../shared/buildRequestContext'
 
 type SettingHttpRequest = express.Request & {
 	user?: RequestContext['user'] & {
@@ -87,6 +88,10 @@ export default class SettingRoutes {
 		const duration = Date.now() - this.startTime
 
 		logger.info(`(end-to-end): ${duration}ms`)
+	}
+
+	private getRequestContext(request: SettingHttpRequest): RequestContext {
+		return buildRequestContext(request)
 	}
 
 	public setRoutes(app: express.Application): void {
@@ -268,8 +273,15 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.getLabelTemplates(request, response)
+			const resp =
+				await this.settingController.getLabelTemplates(requestContext)
+
+			console.log('🚀 ~ SettingRoutes ~ getLabelTemplates ~ resp:', resp)
+
+			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {

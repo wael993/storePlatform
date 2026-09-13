@@ -41,7 +41,6 @@ export interface ISellingInvoiceItem extends Document {
 }
 
 const SellingInvoiceItemSchema = new Schema<ISellingInvoiceItem>({
-	tenantId: { type: String, required: true, index: true },
 	sellingInvoiceId: { type: String, required: true, index: true },
 	customerId: { type: String },
 	invoiceNumber: { type: String, required: true, index: true },

@@ -38,6 +38,19 @@ import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import { resolveSyncClientId } from '../shared/uuid'
 import {
+	ensureWarehouseAccess,
+	ensureWarehouseAcl,
+	filterByAccessibleProductIds,
+	filterByWarehouseAccess,
+	filterByWarehouseAcl,
+	getEffectiveWarehouseIds,
+	loadAccessibleProductIds,
+	requireOperationalWarehouseId,
+	requireWarehouseId,
+} from '../shared/warehouseAccess'
+import { groupWarehouseTransferMovings } from '../shared/warehouseTransfer'
+import { StockMoving } from '../models/StockMovings'
+import {
 	mergeProductPricePatch,
 	normalizeInventoryPatchRequest,
 	normalizeProductPatchRequest,
@@ -174,6 +187,52 @@ import { OfflineSyncState } from '../models/OfflineSyncState'
 
 const OFFLINE_INVOICE_NUMBER_BLOCK = 500
 
+const MAX_WAREHOUSE_TRANSFER_ITEMS = 200
+
+/** Sum qty across warehouse rows; qty-weighted averageCost. */
+const aggregateInventoryByProductId = (
+	inventory: InventoryDocument[],
+): Map<string, InventoryDocument> => {
+	const inventoryByProductId = new Map<string, InventoryDocument>()
+
+	for (const inventoryItem of inventory) {
+		const existing = inventoryByProductId.get(inventoryItem.productId)
+
+		if (!existing) {
+			inventoryByProductId.set(inventoryItem.productId, inventoryItem)
+
+			continue
+		}
+
+		const existingQty = Number(existing.quantity ?? 0)
+		const nextQty = Number(inventoryItem.quantity ?? 0)
+		const totalQty = existingQty + nextQty
+		const existingCost = Number(existing.averageCost ?? 0)
+		const nextCost = Number(inventoryItem.averageCost ?? 0)
+
+		inventoryByProductId.set(inventoryItem.productId, {
+			...existing,
+			// A combined-view total belongs to no single warehouse or shelf; keeping one
+			// row's labels would show the total under an arbitrary warehouse name.
+			warehouseId: '',
+			shelfId: undefined,
+			quantity: totalQty,
+			availableQuantity:
+				Number(existing.availableQuantity ?? 0) +
+				Number(inventoryItem.availableQuantity ?? 0),
+			reservedQuantity:
+				Number(existing.reservedQuantity ?? 0) +
+				Number(inventoryItem.reservedQuantity ?? 0),
+			averageCost:
+				totalQty > 0
+					? (existingCost * existingQty + nextCost * nextQty) / totalQty
+					: existing.averageCost,
+		})
+	}
+
+	return inventoryByProductId
+}
+
 type TokenPayload = {
 	userId: string
 	tenantId: string
@@ -230,6 +289,7 @@ type ProductFilterValueSource = {
 }
 
 type DailyActionFilterValueSource = {
+	warehouseId?: string
 	entryType?: string
 	productId?: string
 	productName?: string
@@ -797,6 +857,7 @@ export default class ProductController {
 			email: user.email,
 			role: user.role,
 			permissions: {},
+			warehouseIds: user.warehouseIds ?? [],
 		}
 
 		return request.user
@@ -1066,6 +1127,15 @@ export default class ProductController {
 		const limit = Math.min(pagination?.limit || 20, 100)
 		const offset = pagination?.offset || 0
 
+		const accessibleProductIds = await loadAccessibleProductIds(
+			requestContext,
+			tenantId,
+		)
+
+		if (accessibleProductIds !== null && accessibleProductIds.length === 0) {
+			return { products: [], totalCount: 0 }
+		}
+
 		const searchText = filters.searchText?.trim()
 		const supplierRegexList = this.buildCaseInsensitiveRegexList(
 			filters.supplier,
@@ -1079,6 +1149,12 @@ export default class ProductController {
 			.filter(Boolean)
 
 		const productQueryClauses: Record<string, unknown>[] = []
+
+		if (accessibleProductIds !== null) {
+			productQueryClauses.push({
+				productId: { $in: accessibleProductIds },
+			})
+		}
 
 		if (supplierRegexList.length > 0) {
 			productQueryClauses.push({
@@ -1163,16 +1239,15 @@ export default class ProductController {
 		}
 
 		const productIds = products.map(product => product.productId)
-		const inventory =
+		const inventoryRaw =
 			productIds.length === 0
 				? []
 				: await withTenantScope(
 						Inventory.find({ productId: { $in: productIds } }),
 						tenantId,
 					).lean<InventoryDocument[]>()
-		const inventoryByProductId = new Map(
-			inventory.map(inventoryItem => [inventoryItem.productId, inventoryItem]),
-		)
+		const inventory = filterByWarehouseAccess(requestContext, inventoryRaw)
+		const inventoryByProductId = aggregateInventoryByProductId(inventory)
 
 		const productSee = new Set((requestContext.see || []) as SeeId[])
 		const mappedProducts = products
@@ -1203,6 +1278,7 @@ export default class ProductController {
 
 	public async getProductCatalog(
 		requestContext: RequestContext,
+		options: { all?: boolean } = {},
 	): Promise<ProductCatalogResponse> {
 		const tenantId = this.getTenantId(requestContext)
 		const cacheKey = redisCache.buildProductListKey(tenantId)
@@ -1210,19 +1286,18 @@ export default class ProductController {
 		let fullProducts = await redisCache.getJson<ProductRequestBody[]>(cacheKey)
 
 		if (!fullProducts) {
+			// Tenant-wide cache: load unfiltered inventory (filter products per-user below).
 			const [products, inventory, relationLookups] = await Promise.all([
 				withTenantScope(Product.find({}).sort({ name: 1 }), tenantId).lean<
 					ProductAPI[]
 				>(),
-				this.getInventory(requestContext),
+				withTenantScope(Inventory.find({}), tenantId).lean<
+					InventoryDocument[]
+				>(),
 				this.getProductRelationLookups(requestContext),
 			])
-			const inventoryByProductId = new Map(
-				inventory.map(inventoryItem => [
-					inventoryItem.productId,
-					inventoryItem,
-				]),
-			)
+			// Aggregate multi-warehouse rows before cache (last-wins Map corrupts qty/cost).
+			const inventoryByProductId = aggregateInventoryByProductId(inventory)
 
 			fullProducts = products
 				.map(product =>
@@ -1237,6 +1312,14 @@ export default class ProductController {
 			await redisCache.setJson(cacheKey, fullProducts)
 		}
 
+		// note: all=true skips warehouse-stock filter (buying invoice search).
+		const visibleProducts = options.all
+			? fullProducts
+			: filterByAccessibleProductIds(
+					fullProducts,
+					await loadAccessibleProductIds(requestContext, tenantId),
+				)
+
 		const lastSellingByProductId =
 			await this.resolveLastSellingPricesByProductId(tenantId)
 		const lastBuyingByProductId =
@@ -1246,12 +1329,47 @@ export default class ProductController {
 			SEE.productsBuyingPrice,
 		)
 
-		const catalogProducts = fullProducts.map(product =>
+		const averageCostByProductId = new Map<string, number>()
+
+		if (seeBuying && visibleProducts.length > 0) {
+			const scopedInventory = filterByWarehouseAccess(
+				requestContext,
+				await withTenantScope(
+					Inventory.find({
+						productId: {
+							$in: visibleProducts.map(product => product.productId),
+						},
+					}),
+					tenantId,
+				).lean<InventoryDocument[]>(),
+			)
+
+			// note: qty-weighted averageCost across scoped warehouses.
+			const totals = new Map<string, { cost: number; qty: number }>()
+
+			for (const row of scopedInventory) {
+				const qty = Number(row.quantity ?? 0)
+				const unitCost = Number(row.averageCost ?? 0)
+				const current = totals.get(row.productId) ?? { cost: 0, qty: 0 }
+
+				totals.set(row.productId, {
+					cost: current.cost + unitCost * qty,
+					qty: current.qty + qty,
+				})
+			}
+
+			for (const [productId, { cost, qty }] of totals) {
+				if (qty > 0) averageCostByProductId.set(productId, cost / qty)
+			}
+		}
+
+		const catalogProducts = visibleProducts.map(product =>
 			this.mapProductCatalogItem(
 				product,
 				lastSellingByProductId.get(product.productId),
 				lastBuyingByProductId.get(product.productId),
 				seeBuying,
+				averageCostByProductId.get(product.productId),
 			),
 		)
 
@@ -1348,6 +1466,7 @@ export default class ProductController {
 		lastSellingPrice?: number,
 		lastBuyingPrice?: number,
 		seeBuying = false,
+		scopedAverageCost?: number,
 	): ProductCatalogItem {
 		return {
 			productId: product.productId,
@@ -1364,7 +1483,9 @@ export default class ProductController {
 				discount: product.price.discount,
 				currency: product.price.currency,
 			},
-			averageCost: seeBuying ? product.inventory?.averageCost : undefined,
+			// note: no tenant-wide fallback — that cache aggregates every warehouse and
+			// would leak cost from warehouses outside the caller's scope.
+			averageCost: seeBuying ? scopedAverageCost : undefined,
 			lastBuyingPrice: seeBuying ? lastBuyingPrice : undefined,
 			lastSellingPrice,
 			images: product.images?.length ? [product.images[0]] : undefined,
@@ -1463,12 +1584,48 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<ProductRequestBody | null> {
 		const tenantId = this.getTenantId(requestContext)
+		const accessibleProductIds = await loadAccessibleProductIds(
+			requestContext,
+			tenantId,
+		)
+
+		if (
+			accessibleProductIds !== null &&
+			!accessibleProductIds.includes(productId)
+		) {
+			return null
+		}
+
 		const cacheKey = redisCache.buildProductDetailKey(tenantId, productId)
 		const productSee = new Set((requestContext.see || []) as SeeId[])
 		const cachedProduct = await redisCache.getJson<ProductRequestBody>(cacheKey)
 
+		const scopedInventoryForProduct = async () => {
+			const rows = (await this.getInventory(requestContext)).filter(
+				item => item.productId === productId,
+			)
+
+			return aggregateInventoryByProductId(rows).get(productId)
+		}
+
 		if (cachedProduct) {
-			return stripProductSeeFields(cachedProduct, productSee)
+			// note: detail cache is tenant-wide; inventory + location labels are warehouse-scoped.
+			const inventory = await scopedInventoryForProduct()
+			const lookups = await this.getProductRelationLookups(requestContext)
+
+			return stripProductSeeFields(
+				{
+					...cachedProduct,
+					inventory,
+					warehouseName: inventory?.warehouseId
+						? lookups.warehouseNameById.get(inventory.warehouseId)
+						: undefined,
+					shelfName: inventory?.shelfId
+						? lookups.shelfNameById.get(inventory.shelfId)
+						: undefined,
+				},
+				productSee,
+			)
 		}
 
 		const product = await this.mongoDbClient.getDocumentByField<ProductAPI>(
@@ -1483,8 +1640,7 @@ export default class ProductController {
 		}
 
 		const dailyActions = await this.getDailyActions(requestContext)
-		const inventory = await this.getInventory(requestContext)
-		const inventoryItem = inventory.find(item => item.productId === productId)
+		const inventoryItem = await scopedInventoryForProduct()
 
 		const relationLookups = await this.getProductRelationLookups(requestContext)
 		const relatedActions = filterProductRelatedActions(
@@ -1501,7 +1657,13 @@ export default class ProductController {
 			relatedActions: relatedActions.map(mapProductAction),
 		}
 
-		await redisCache.setJson(cacheKey, mappedProduct)
+		// Cache without inventory/location so a later scope cannot serve another user's stock.
+		const cacheableProduct = { ...mappedProduct }
+
+		delete cacheableProduct.inventory
+		delete cacheableProduct.warehouseName
+		delete cacheableProduct.shelfName
+		await redisCache.setJson(cacheKey, cacheableProduct)
 
 		return stripProductSeeFields(mappedProduct, productSee)
 	}
@@ -1586,10 +1748,24 @@ export default class ProductController {
 			}
 		}
 
+		const scopedWarehouseId = requireWarehouseId(warehouseId)
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (scopedWarehouseId !== operationalWarehouseId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Inventory warehouseId must match the selected operational warehouse.',
+			)
+		}
+
+		ensureWarehouseAccess(requestContext, scopedWarehouseId)
+
 		const productData: ProductDocument = {
 			productId,
 			name,
 			latinName,
+			// note: unique partial index on {tenantId, barcode} matches any non-empty
+			// string, so a shared placeholder would collide on the second product.
 			barcode: normalizedBarcode === '' ? productId : normalizedBarcode,
 			internalCode: internalCode?.trim(),
 			productFactoryCode: productFactoryCode?.trim(),
@@ -1613,6 +1789,15 @@ export default class ProductController {
 			description: description?.trim(),
 		}
 
+		const inventoryData: InventoryDocument = {
+			inventoryId: uuidv4(),
+			productId: productData.productId,
+			warehouseId: scopedWarehouseId,
+			shelfId,
+			quantity,
+			minQuantity,
+		}
+
 		logger.info('Saving product to database....', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
@@ -1620,35 +1805,29 @@ export default class ProductController {
 			name: productData.name,
 		})
 
-		await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.PRODUCTS, data: productData },
-			Product,
-			requestContext,
-		)
+		await this.runInTransaction(async session => {
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.PRODUCTS,
+					data: productData,
+					session,
+				},
+				Product,
+				requestContext,
+			)
 
-		logger.info('Product created successfully.', {
-			entity: EntityType.MONGODB,
-			tenantId: tenantContext.tenantId,
-			productId: productData.productId,
-			name: productData.name,
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.INVENTORY,
+					data: inventoryData,
+					session,
+				},
+				Inventory,
+				requestContext,
+			)
 		})
 
-		const inventoryData: InventoryDocument = {
-			inventoryId: uuidv4(),
-			productId: productData.productId,
-			warehouseId,
-			shelfId,
-			quantity,
-			minQuantity,
-		}
-
-		await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.INVENTORY, data: inventoryData },
-			Inventory,
-			requestContext,
-		)
-
-		logger.info('Inventory created for new product.', {
+		logger.info('Product and inventory created successfully.', {
 			entity: EntityType.MONGODB,
 			tenantId: tenantContext.tenantId,
 			productId: productData.productId,
@@ -1927,15 +2106,24 @@ export default class ProductController {
 	public async getInventoryByProductId(
 		requestContext: RequestContext,
 		productId: string,
+		warehouseId: string,
 		session?: mongoose.ClientSession,
 	): Promise<InventoryDocument | null> {
-		return this.mongoDbClient.getDocumentByField<InventoryDocument>(
-			requestContext,
-			COLLECTION_NAMES.INVENTORY,
-			Inventory,
-			{ fieldName: 'productId', fieldValue: productId },
-			session,
+		const tenantId = this.getTenantId(requestContext)
+		const scopedWarehouseId = requireWarehouseId(warehouseId)
+
+		ensureWarehouseAccess(requestContext, scopedWarehouseId)
+
+		let query = withTenantScope(
+			Inventory.findOne({ productId, warehouseId: scopedWarehouseId }),
+			tenantId,
 		)
+
+		if (session) {
+			query = query.session(session)
+		}
+
+		return (await query.lean()) as InventoryDocument | null
 	}
 
 	public async runInTransaction<T>(
@@ -1965,15 +2153,44 @@ export default class ProductController {
 		requestContext: RequestContext,
 		params: {
 			productId: string
-			warehouseId?: string
+			warehouseId: string
 			quantityDelta: number
+			/** ACL-only: destination leg of warehouse transfer (outside working scope). */
+			accessMode?: 'operational' | 'acl'
+			/** Seed averageCost on upsert when missing (warehouse transfer in). */
+			seedAverageCost?: number
+			/**
+			 * Skip the stock gate. Reversals (cancelling a posted purchase) must always
+			 * be able to unwind a document, even when the goods have since been sold and
+			 * the row goes negative.
+			 */
+			allowNegative?: boolean
 		},
 		session: mongoose.ClientSession,
 	): Promise<InventoryDocument> {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
 		const tenantContext = getTenantContext(requestContext)
-		const { productId, warehouseId, quantityDelta } = params
+		const warehouseId = requireWarehouseId(params.warehouseId)
+
+		if (params.accessMode === 'acl') {
+			ensureWarehouseAcl(requestContext, warehouseId)
+		} else {
+			ensureWarehouseAccess(requestContext, warehouseId)
+			const operationalWarehouseId =
+				requireOperationalWarehouseId(requestContext)
+
+			if (warehouseId !== operationalWarehouseId) {
+				throw new AuthorizationError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					'Stock changes require the operational warehouse to match warehouseId.',
+				)
+			}
+		}
+
+		const { productId, quantityDelta } = params
+		const isGatedDecrease = quantityDelta < 0 && !params.allowNegative
+		const needed = isGatedDecrease ? -quantityDelta : 0
 
 		const inventoryId = uuidv4()
 		const createdBy = {
@@ -1984,36 +2201,70 @@ export default class ProductController {
 			createdAt: new Date(),
 		}
 
-		const updated = await Inventory.findOneAndUpdate(
-			{ tenantId: tenantContext.tenantId, productId },
-			[
-				{
-					$set: {
-						inventoryId: { $ifNull: ['$inventoryId', inventoryId] },
-						productId: { $ifNull: ['$productId', productId] },
-						warehouseId: { $ifNull: ['$warehouseId', warehouseId] },
-						createdBy: { $ifNull: ['$createdBy', createdBy] },
-						quantity: {
-							$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
-						},
-						availableQuantity: {
-							$max: [
-								0,
-								{
-									$subtract: [
-										{
-											$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
-										},
-										{ $ifNull: ['$reservedQuantity', 0] },
-									],
-								},
-							],
-						},
+		const setFields: Record<string, unknown> = {
+			inventoryId: { $ifNull: ['$inventoryId', inventoryId] },
+			productId: { $ifNull: ['$productId', productId] },
+			warehouseId: { $ifNull: ['$warehouseId', warehouseId] },
+			createdBy: { $ifNull: ['$createdBy', createdBy] },
+			quantity: {
+				$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
+			},
+			availableQuantity: {
+				$max: [
+					0,
+					{
+						$subtract: [
+							{
+								$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
+							},
+							{ $ifNull: ['$reservedQuantity', 0] },
+						],
 					},
-				},
-			],
-			{ new: true, upsert: true, session },
+				],
+			},
+		}
+
+		// Transfer-in: qty-weighted averageCost (same formula as purchase).
+		if (params.seedAverageCost !== undefined && quantityDelta > 0) {
+			setFields.averageCost = purchaseAverageCostExpression(
+				quantityDelta,
+				params.seedAverageCost,
+			)
+		}
+
+		const filter: Record<string, unknown> = {
+			tenantId: tenantContext.tenantId,
+			productId,
+			warehouseId,
+		}
+
+		if (isGatedDecrease) {
+			// Atomic stock gate: blocks concurrent oversell / over-transfer.
+			filter.$expr = {
+				$gte: [
+					{
+						$subtract: [
+							{ $ifNull: ['$quantity', 0] },
+							{ $ifNull: ['$reservedQuantity', 0] },
+						],
+					},
+					needed,
+				],
+			}
+		}
+
+		const updated = await Inventory.findOneAndUpdate(
+			filter,
+			[{ $set: setFields }],
+			{ new: true, upsert: !isGatedDecrease, session },
 		).lean()
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				`Insufficient stock for product ${productId}.`,
+			)
+		}
 
 		return updated as unknown as InventoryDocument
 	}
@@ -2027,7 +2278,7 @@ export default class ProductController {
 		requestContext: RequestContext,
 		params: {
 			productId: string
-			warehouseId?: string
+			warehouseId: string
 			purchaseQuantity: number
 			purchaseUnitPrice: number
 		},
@@ -2036,8 +2287,19 @@ export default class ProductController {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
 		const tenantContext = getTenantContext(requestContext)
-		const { productId, warehouseId, purchaseQuantity, purchaseUnitPrice } =
-			params
+		const warehouseId = requireWarehouseId(params.warehouseId)
+
+		ensureWarehouseAccess(requestContext, warehouseId)
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (warehouseId !== operationalWarehouseId) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Stock changes require the operational warehouse to match warehouseId.',
+			)
+		}
+
+		const { productId, purchaseQuantity, purchaseUnitPrice } = params
 
 		const inventoryId = uuidv4()
 		const createdBy = {
@@ -2049,7 +2311,7 @@ export default class ProductController {
 		}
 
 		const updated = await Inventory.findOneAndUpdate(
-			{ tenantId: tenantContext.tenantId, productId },
+			{ tenantId: tenantContext.tenantId, productId, warehouseId },
 			[
 				{
 					$set: {
@@ -2084,6 +2346,951 @@ export default class ProductController {
 		).lean()
 
 		return updated as unknown as InventoryDocument
+	}
+
+	public async getInventoryByProductAcrossAcl(
+		productId: string,
+		requestContext: RequestContext,
+	): Promise<
+		Array<{
+			warehouseId: string
+			quantity: number
+			availableQuantity: number
+		}>
+	> {
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
+
+		const tenantId = this.getTenantId(requestContext)
+		const rows = await withTenantScope(
+			Inventory.find({ productId }).select(
+				'warehouseId quantity availableQuantity',
+			),
+			tenantId,
+		).lean<
+			Array<{
+				warehouseId?: string
+				quantity?: number
+				availableQuantity?: number
+			}>
+		>()
+
+		return filterByWarehouseAcl(
+			requestContext,
+			rows.map(row => ({
+				warehouseId: row.warehouseId,
+				quantity: Number(row.quantity ?? 0),
+				availableQuantity: Number(row.availableQuantity ?? 0),
+			})),
+		).filter(row => Boolean(row.warehouseId)) as Array<{
+			warehouseId: string
+			quantity: number
+			availableQuantity: number
+		}>
+	}
+
+	public async postWarehouseTransfer(
+		requestBody: {
+			productId?: string
+			toWarehouseId?: string
+			fromWarehouseId?: string
+			quantity?: number
+			items?: Array<{ productId?: string; quantity?: number }>
+		},
+		requestContext: RequestContext,
+	): Promise<{
+		referenceId: string
+		fromWarehouseId: string
+		toWarehouseId: string
+		items: Array<{ productId: string; quantity: number }>
+	}> {
+		await ensureSeeIds(requestContext, [SEE.productsEditQuantity])
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
+
+		const items = this.normalizeWarehouseTransferItems(requestBody)
+		const toWarehouseId = requireWarehouseId(requestBody.toWarehouseId)
+		const fromWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (
+			requestBody.fromWarehouseId &&
+			requireWarehouseId(requestBody.fromWarehouseId) !== fromWarehouseId
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'fromWarehouseId must match the selected operational warehouse.',
+			)
+		}
+
+		if (fromWarehouseId === toWarehouseId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Source and destination warehouses must be different.',
+			)
+		}
+
+		ensureWarehouseAcl(requestContext, fromWarehouseId)
+		ensureWarehouseAcl(requestContext, toWarehouseId)
+
+		const tenantId = this.getTenantId(requestContext)
+		const { fromName, toName } = await this.resolveWarehouseTransferNames(
+			tenantId,
+			fromWarehouseId,
+			toWarehouseId,
+		)
+
+		await this.ensureWarehouseTransferProductsExist(
+			tenantId,
+			items.map(item => item.productId),
+		)
+
+		const referenceId = uuidv4()
+
+		await this.runInTransaction(async session => {
+			await this.applyWarehouseTransferItems(
+				requestContext,
+				{
+					referenceId,
+					fromWarehouseId,
+					toWarehouseId,
+					fromName,
+					toName,
+					items,
+				},
+				session,
+			)
+		})
+
+		await this.invalidateEntityCache('inventory', requestContext)
+		for (const item of items) {
+			await this.invalidateEntityCache(
+				'products',
+				requestContext,
+				item.productId,
+			)
+		}
+
+		return {
+			referenceId,
+			fromWarehouseId,
+			toWarehouseId,
+			items,
+		}
+	}
+
+	public async getWarehouseTransfer(
+		referenceId: string,
+		requestContext: RequestContext,
+	) {
+		const detail = await this.loadWarehouseTransferDetail(
+			referenceId.trim(),
+			requestContext,
+		)
+
+		if (!detail) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Warehouse transfer not found.',
+			)
+		}
+
+		return detail
+	}
+
+	public async patchWarehouseTransfer(
+		referenceId: string,
+		requestBody: {
+			toWarehouseId?: string
+			items?: Array<{ productId?: string; quantity?: number }>
+		},
+		requestContext: RequestContext,
+	): Promise<{
+		referenceId: string
+		fromWarehouseId: string
+		toWarehouseId: string
+		items: Array<{ productId: string; quantity: number }>
+	}> {
+		await ensureSeeIds(requestContext, [SEE.productsEditQuantity])
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
+
+		const existing = await this.loadWarehouseTransferDetail(
+			referenceId.trim(),
+			requestContext,
+		)
+
+		if (!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Warehouse transfer not found.',
+			)
+		}
+
+		if (!existing.editable) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'This warehouse transfer cannot be edited in the current warehouse scope.',
+			)
+		}
+
+		const items = this.normalizeWarehouseTransferItems({
+			items: requestBody.items ?? existing.items,
+		})
+		const fromWarehouseId = existing.fromWarehouseId
+		const toWarehouseId = requireWarehouseId(
+			requestBody.toWarehouseId ?? existing.toWarehouseId,
+		)
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (operationalWarehouseId !== fromWarehouseId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Editing requires the operational warehouse to match the transfer source.',
+			)
+		}
+
+		if (fromWarehouseId === toWarehouseId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Source and destination warehouses must be different.',
+			)
+		}
+
+		ensureWarehouseAcl(requestContext, fromWarehouseId)
+		ensureWarehouseAcl(requestContext, toWarehouseId)
+
+		const tenantId = this.getTenantId(requestContext)
+		const { fromName, toName } = await this.resolveWarehouseTransferNames(
+			tenantId,
+			fromWarehouseId,
+			toWarehouseId,
+		)
+
+		await this.ensureWarehouseTransferProductsExist(
+			tenantId,
+			items.map(item => item.productId),
+		)
+
+		await this.runInTransaction(async session => {
+			await this.claimWarehouseTransferLegs(tenantId, existing, session)
+
+			await this.reverseWarehouseTransferItems(
+				requestContext,
+				existing,
+				session,
+			)
+
+			await this.applyWarehouseTransferItems(
+				requestContext,
+				{
+					referenceId: existing.referenceId,
+					fromWarehouseId,
+					toWarehouseId,
+					fromName,
+					toName,
+					items,
+				},
+				session,
+			)
+		})
+
+		await this.invalidateEntityCache('inventory', requestContext)
+		const touched = new Set([
+			...existing.items.map(item => item.productId),
+			...items.map(item => item.productId),
+		])
+
+		for (const productId of touched) {
+			await this.invalidateEntityCache('products', requestContext, productId)
+		}
+
+		return {
+			referenceId: existing.referenceId,
+			fromWarehouseId,
+			toWarehouseId,
+			items,
+		}
+	}
+
+	public async deleteWarehouseTransfer(
+		referenceId: string,
+		requestContext: RequestContext,
+	): Promise<void> {
+		await ensureSeeIds(requestContext, [SEE.productsEditQuantity])
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
+
+		const existing = await this.loadWarehouseTransferDetail(
+			referenceId.trim(),
+			requestContext,
+		)
+
+		if (!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Warehouse transfer not found.',
+			)
+		}
+
+		if (!existing.editable) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'This warehouse transfer cannot be deleted in the current warehouse scope.',
+			)
+		}
+
+		const fromWarehouseId = existing.fromWarehouseId
+		const toWarehouseId = existing.toWarehouseId
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (operationalWarehouseId !== fromWarehouseId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Deleting requires the operational warehouse to match the transfer source.',
+			)
+		}
+
+		ensureWarehouseAcl(requestContext, fromWarehouseId)
+		ensureWarehouseAcl(requestContext, toWarehouseId)
+
+		const tenantId = this.getTenantId(requestContext)
+
+		await this.runInTransaction(async session => {
+			await this.claimWarehouseTransferLegs(tenantId, existing, session)
+
+			await this.reverseWarehouseTransferItems(
+				requestContext,
+				existing,
+				session,
+			)
+		})
+
+		await this.invalidateEntityCache('inventory', requestContext)
+		for (const item of existing.items) {
+			await this.invalidateEntityCache(
+				'products',
+				requestContext,
+				item.productId,
+			)
+		}
+	}
+
+	public async getWarehouseTransfers(
+		requestContext: RequestContext,
+		filters: { invoiceDateFrom?: string; invoiceDateTo?: string } = {},
+	): Promise<{
+		data: Array<{
+			referenceId: string
+			fromWarehouseId: string
+			fromWarehouseName: string
+			toWarehouseId: string
+			toWarehouseName: string
+			createdAt: string
+			createdByName?: string
+			editable: boolean
+			note?: string
+			items: Array<{
+				productId: string
+				productName: string
+				quantity: number
+				unitName?: string
+			}>
+			totalQuantity: number
+		}>
+		totalCount: number
+	}> {
+		const tenantId = this.getTenantId(requestContext)
+		const invoiceDateFrom = getInvoiceDateBoundary(
+			filters.invoiceDateFrom,
+			'start',
+		)
+		const invoiceDateTo = getInvoiceDateBoundary(filters.invoiceDateTo, 'end')
+		const createdAtFilter =
+			invoiceDateFrom || invoiceDateTo
+				? {
+						'createdBy.createdAt': {
+							...(invoiceDateFrom ? { $gte: invoiceDateFrom } : {}),
+							...(invoiceDateTo ? { $lte: invoiceDateTo } : {}),
+						},
+					}
+				: {}
+
+		const movings = await withTenantScope(
+			StockMoving.find({
+				referenceType: 'warehouse_transfer',
+				type: { $in: ['transfer_out', 'transfer_in'] },
+				...createdAtFilter,
+			}).sort({ 'createdBy.createdAt': 'desc' }),
+			tenantId,
+		).lean<
+			Array<{
+				referenceId: string
+				referenceType?: string
+				type?: string
+				productId: string
+				warehouseId: string
+				quantity: number
+				createdAt?: Date
+				createdBy?: {
+					_id?: string
+					displayName?: string
+					createdAt?: Date
+				}
+				note?: string
+			}>
+		>()
+
+		const grouped = groupWarehouseTransferMovings(
+			movings.map(moving => ({
+				...moving,
+				createdAt: moving.createdBy?.createdAt ?? moving.createdAt,
+			})),
+		)
+		const effective = getEffectiveWarehouseIds(requestContext)
+		const scoped =
+			effective === null
+				? grouped
+				: grouped.filter(
+						row =>
+							effective.includes(row.fromWarehouseId) ||
+							effective.includes(row.toWarehouseId),
+					)
+
+		const mapped = await this.mapGroupedWarehouseTransfers(
+			requestContext,
+			tenantId,
+			scoped,
+		)
+
+		return { data: mapped, totalCount: mapped.length }
+	}
+
+	private normalizeWarehouseTransferItems(requestBody: {
+		productId?: string
+		quantity?: number
+		items?: Array<{ productId?: string; quantity?: number }>
+	}): Array<{ productId: string; quantity: number }> {
+		const rawItems =
+			requestBody.items && requestBody.items.length > 0
+				? requestBody.items
+				: [
+						{
+							productId: requestBody.productId,
+							quantity: requestBody.quantity,
+						},
+					]
+
+		// Every item costs four writes inside one transaction; cap it so a single
+		// request cannot hold a transaction open indefinitely.
+		if (rawItems.length > MAX_WAREHOUSE_TRANSFER_ITEMS) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				`A warehouse transfer cannot contain more than ${MAX_WAREHOUSE_TRANSFER_ITEMS} products.`,
+			)
+		}
+
+		const byProduct = new Map<string, number>()
+
+		for (const raw of rawItems) {
+			const productId = raw.productId?.trim()
+			const quantity = Number(raw.quantity)
+
+			if (!productId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'productId is required.',
+				)
+			}
+
+			if (
+				!Number.isFinite(quantity) ||
+				!Number.isInteger(quantity) ||
+				quantity < 1
+			) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'quantity must be a positive integer.',
+				)
+			}
+
+			byProduct.set(productId, (byProduct.get(productId) ?? 0) + quantity)
+		}
+
+		const items = [...byProduct.entries()].map(([productId, quantity]) => ({
+			productId,
+			quantity,
+		}))
+
+		if (items.length === 0) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'At least one product is required.',
+			)
+		}
+
+		return items
+	}
+
+	private async resolveWarehouseTransferNames(
+		tenantId: string,
+		fromWarehouseId: string,
+		toWarehouseId: string,
+	) {
+		const warehouses = await withTenantScope(
+			Warehouse.find({
+				warehouseId: { $in: [fromWarehouseId, toWarehouseId] },
+			}).select('warehouseId name'),
+			tenantId,
+		).lean<Array<{ warehouseId: string; name?: string }>>()
+
+		const warehouseNameById = new Map(
+			warehouses.map(row => [
+				row.warehouseId,
+				row.name?.trim() || row.warehouseId,
+			]),
+		)
+
+		if (
+			!warehouseNameById.has(fromWarehouseId) ||
+			!warehouseNameById.has(toWarehouseId)
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Warehouse not found.',
+			)
+		}
+
+		return {
+			fromName: warehouseNameById.get(fromWarehouseId)!,
+			toName: warehouseNameById.get(toWarehouseId)!,
+		}
+	}
+
+	private async ensureWarehouseTransferProductsExist(
+		tenantId: string,
+		productIds: string[],
+	) {
+		const products = await withTenantScope(
+			Product.find({ productId: { $in: productIds } }).select('productId'),
+			tenantId,
+		).lean<Array<{ productId: string }>>()
+
+		const found = new Set(products.map(product => product.productId))
+		const missing = productIds.filter(productId => !found.has(productId))
+
+		if (missing.length > 0) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				`Product not found: ${missing[0]}.`,
+			)
+		}
+	}
+
+	private async applyWarehouseTransferItems(
+		requestContext: RequestContext,
+		params: {
+			referenceId: string
+			fromWarehouseId: string
+			toWarehouseId: string
+			fromName: string
+			toName: string
+			items: Array<{ productId: string; quantity: number }>
+		},
+		session: mongoose.ClientSession,
+	) {
+		const note = `${params.fromName} → ${params.toName}`
+
+		for (const item of params.items) {
+			const sourceInventory = await this.getInventoryByProductId(
+				requestContext,
+				item.productId,
+				params.fromWarehouseId,
+				session,
+			)
+
+			if (!sourceInventory) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					`No inventory record found for product ${item.productId}.`,
+				)
+			}
+
+			const sourceAvailable =
+				Number(sourceInventory.quantity ?? 0) -
+				Number(sourceInventory.reservedQuantity ?? 0)
+
+			if (sourceAvailable < item.quantity) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					`Insufficient stock for ${item.productId}. Available: ${Math.max(0, sourceAvailable)}, requested: ${item.quantity}.`,
+				)
+			}
+
+			const unitCost = Number(sourceInventory.averageCost ?? 0)
+
+			await this.atomicAdjustInventoryQuantity(
+				requestContext,
+				{
+					productId: item.productId,
+					warehouseId: params.fromWarehouseId,
+					quantityDelta: -item.quantity,
+				},
+				session,
+			)
+
+			await this.atomicAdjustInventoryQuantity(
+				requestContext,
+				{
+					productId: item.productId,
+					warehouseId: params.toWarehouseId,
+					quantityDelta: item.quantity,
+					accessMode: 'acl',
+					// note: an uncosted source row must not dilute the destination's
+					// averageCost towards zero, so only seed a real cost.
+					seedAverageCost: unitCost > 0 ? unitCost : undefined,
+				},
+				session,
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.STOCK_MOVINGS,
+					data: {
+						stockMovingId: uuidv4(),
+						productId: item.productId,
+						warehouseId: params.fromWarehouseId,
+						type: 'transfer_out',
+						quantity: item.quantity,
+						unitCost,
+						referenceType: 'warehouse_transfer',
+						referenceId: params.referenceId,
+						note,
+					},
+					session,
+				},
+				StockMoving,
+				requestContext,
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.STOCK_MOVINGS,
+					data: {
+						stockMovingId: uuidv4(),
+						productId: item.productId,
+						warehouseId: params.toWarehouseId,
+						type: 'transfer_in',
+						quantity: item.quantity,
+						unitCost,
+						referenceType: 'warehouse_transfer',
+						referenceId: params.referenceId,
+						note,
+					},
+					session,
+				},
+				StockMoving,
+				requestContext,
+			)
+		}
+	}
+
+	/**
+	 * Removes the transfer's legs inside the caller's transaction and fails unless
+	 * this call is the one that removed them. The transfer was loaded before the
+	 * transaction opened, so this is what stops a concurrent edit or a double-clicked
+	 * delete from reversing the same transfer twice and inventing stock.
+	 */
+	private async claimWarehouseTransferLegs(
+		tenantId: string,
+		existing: {
+			referenceId: string
+			fromWarehouseId: string
+			toWarehouseId: string
+			items: Array<{ productId: string; quantity: number }>
+		},
+		session: mongoose.ClientSession,
+	): Promise<void> {
+		const changedMeanwhile = () =>
+			new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'This warehouse transfer changed meanwhile. Reload and try again.',
+			)
+
+		const legs = await StockMoving.find({
+			tenantId,
+			referenceType: 'warehouse_transfer',
+			referenceId: existing.referenceId,
+		})
+			.select('_id productId type warehouseId quantity')
+			.session(session)
+			.lean<
+				Array<{
+					_id: unknown
+					productId?: string
+					type?: string
+					warehouseId?: string
+					quantity?: number
+				}>
+			>()
+
+		const expected = new Set(
+			existing.items.flatMap(item => [
+				`${item.productId}|transfer_out|${existing.fromWarehouseId}|${item.quantity}`,
+				`${item.productId}|transfer_in|${existing.toWarehouseId}|${item.quantity}`,
+			]),
+		)
+
+		if (legs.length !== expected.size) {
+			throw changedMeanwhile()
+		}
+
+		for (const leg of legs) {
+			const key = `${leg.productId}|${leg.type}|${leg.warehouseId}|${leg.quantity}`
+
+			if (!expected.delete(key)) {
+				throw changedMeanwhile()
+			}
+		}
+
+		const result = await StockMoving.deleteMany({
+			tenantId,
+			referenceType: 'warehouse_transfer',
+			referenceId: existing.referenceId,
+			_id: { $in: legs.map(leg => leg._id) },
+		}).session(session)
+
+		if (result.deletedCount !== legs.length) {
+			throw changedMeanwhile()
+		}
+	}
+
+	private async reverseWarehouseTransferItems(
+		requestContext: RequestContext,
+		existing: {
+			fromWarehouseId: string
+			toWarehouseId: string
+			items: Array<{ productId: string; quantity: number }>
+		},
+		session: mongoose.ClientSession,
+	) {
+		for (const item of existing.items) {
+			try {
+				await this.atomicAdjustInventoryQuantity(
+					requestContext,
+					{
+						productId: item.productId,
+						warehouseId: existing.toWarehouseId,
+						quantityDelta: -item.quantity,
+						accessMode: 'acl',
+					},
+					session,
+				)
+			} catch (error) {
+				if (
+					error instanceof BusinessLogicError &&
+					error.message.startsWith('Insufficient stock')
+				) {
+					throw new BusinessLogicError(
+						ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+						`Cannot reverse transfer: destination stock for ${item.productId} is insufficient.`,
+					)
+				}
+
+				throw error
+			}
+
+			// Keep source averageCost; do not seed from dest (avoids clobbering COGS).
+			await this.atomicAdjustInventoryQuantity(
+				requestContext,
+				{
+					productId: item.productId,
+					warehouseId: existing.fromWarehouseId,
+					quantityDelta: item.quantity,
+				},
+				session,
+			)
+		}
+	}
+
+	private isWarehouseTransferEditable(
+		requestContext: RequestContext,
+		fromWarehouseId: string,
+		toWarehouseId: string,
+	) {
+		try {
+			ensureWarehouseAcl(requestContext, fromWarehouseId)
+			ensureWarehouseAcl(requestContext, toWarehouseId)
+
+			return requireOperationalWarehouseId(requestContext) === fromWarehouseId
+		} catch {
+			return false
+		}
+	}
+
+	private async mapGroupedWarehouseTransfers(
+		requestContext: RequestContext,
+		tenantId: string,
+		scoped: ReturnType<typeof groupWarehouseTransferMovings>,
+	) {
+		const productIds = [
+			...new Set(scoped.flatMap(row => row.items.map(item => item.productId))),
+		]
+		const warehouseIds = [
+			...new Set(
+				scoped.flatMap(row => [row.fromWarehouseId, row.toWarehouseId]),
+			),
+		]
+
+		const [products, warehouses] = await Promise.all([
+			productIds.length === 0
+				? Promise.resolve([])
+				: withTenantScope(
+						Product.find({ productId: { $in: productIds } }).select(
+							'productId name unitId',
+						),
+						tenantId,
+					).lean<
+						Array<{ productId: string; name?: string; unitId?: string }>
+					>(),
+			warehouseIds.length === 0
+				? Promise.resolve([])
+				: withTenantScope(
+						Warehouse.find({ warehouseId: { $in: warehouseIds } }).select(
+							'warehouseId name',
+						),
+						tenantId,
+					).lean<Array<{ warehouseId: string; name?: string }>>(),
+		])
+
+		const unitIds = [
+			...new Set(
+				products
+					.map(product => product.unitId)
+					.filter((id): id is string => Boolean(id)),
+			),
+		]
+		const units =
+			unitIds.length === 0
+				? []
+				: await withTenantScope(
+						Unit.find({ unitId: { $in: unitIds } }).select('unitId name'),
+						tenantId,
+					).lean<Array<{ unitId: string; name?: string }>>()
+
+		const productById = new Map(products.map(row => [row.productId, row]))
+		const warehouseById = new Map(
+			warehouses.map(row => [
+				row.warehouseId,
+				row.name?.trim() || row.warehouseId,
+			]),
+		)
+		const unitById = new Map(
+			units.map(row => [row.unitId, row.name?.trim() || undefined]),
+		)
+
+		return scoped.map(row => {
+			const createdAtDate = new Date(row.createdAt)
+			const createdAt = Number.isNaN(createdAtDate.getTime())
+				? new Date(0).toISOString()
+				: createdAtDate.toISOString()
+			const items = row.items.map(item => {
+				const product = productById.get(item.productId)
+
+				return {
+					productId: item.productId,
+					productName: product?.name?.trim() || item.productId,
+					quantity: item.quantity,
+					unitName: product?.unitId ? unitById.get(product.unitId) : undefined,
+				}
+			})
+
+			return {
+				referenceId: row.referenceId,
+				fromWarehouseId: row.fromWarehouseId,
+				fromWarehouseName:
+					warehouseById.get(row.fromWarehouseId) || row.fromWarehouseId,
+				toWarehouseId: row.toWarehouseId,
+				toWarehouseName:
+					warehouseById.get(row.toWarehouseId) || row.toWarehouseId,
+				createdAt,
+				createdByName: row.createdBy?.displayName?.trim() || undefined,
+				editable: this.isWarehouseTransferEditable(
+					requestContext,
+					row.fromWarehouseId,
+					row.toWarehouseId,
+				),
+				note: row.note,
+				items,
+				totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+			}
+		})
+	}
+
+	private async loadWarehouseTransferDetail(
+		referenceId: string,
+		requestContext: RequestContext,
+	) {
+		if (!referenceId) return null
+
+		const tenantId = this.getTenantId(requestContext)
+		const movings = await withTenantScope(
+			StockMoving.find({
+				referenceType: 'warehouse_transfer',
+				referenceId,
+				type: { $in: ['transfer_out', 'transfer_in'] },
+			}),
+			tenantId,
+		).lean<
+			Array<{
+				referenceId: string
+				referenceType?: string
+				type?: string
+				productId: string
+				warehouseId: string
+				quantity: number
+				createdAt?: Date
+				createdBy?: {
+					_id?: string
+					displayName?: string
+					createdAt?: Date
+				}
+				note?: string
+			}>
+		>()
+
+		if (movings.length === 0) return null
+
+		const grouped = groupWarehouseTransferMovings(
+			movings.map(moving => ({
+				...moving,
+				createdAt: moving.createdBy?.createdAt ?? moving.createdAt,
+			})),
+		)
+
+		if (grouped.length === 0) {
+			// note: mismatched transfer_out/in legs are omitted by groupWarehouseTransferMovings.
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Warehouse transfer data is incomplete or corrupt and cannot be opened.',
+			)
+		}
+
+		const [detail] = await this.mapGroupedWarehouseTransfers(
+			requestContext,
+			tenantId,
+			grouped,
+		)
+
+		const effective = getEffectiveWarehouseIds(requestContext)
+
+		if (
+			effective !== null &&
+			!effective.includes(detail.fromWarehouseId) &&
+			!effective.includes(detail.toWarehouseId)
+		) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'You do not have access to this warehouse transfer.',
+			)
+		}
+
+		return detail
 	}
 
 	private async resolveLatestInvoiceSequence(
@@ -2463,7 +3670,7 @@ export default class ProductController {
 			await redisCache.getJson<InventoryDocument[]>(cacheKey)
 
 		if (cachedInventory) {
-			return cachedInventory
+			return filterByWarehouseAccess(requestContext, cachedInventory)
 		}
 
 		const { documents: inventory } = await this.mongoDbClient.getDocuments({
@@ -2475,7 +3682,10 @@ export default class ProductController {
 
 		await redisCache.setJson(cacheKey, inventory)
 
-		return inventory
+		return filterByWarehouseAccess(
+			requestContext,
+			inventory as InventoryDocument[],
+		)
 	}
 
 	public async getInventoryItem(
@@ -2488,6 +3698,8 @@ export default class ProductController {
 			await redisCache.getJson<InventoryDocument>(cacheKey)
 
 		if (cachedInventoryItem) {
+			ensureWarehouseAccess(requestContext, cachedInventoryItem.warehouseId)
+
 			return cachedInventoryItem
 		}
 
@@ -2501,6 +3713,11 @@ export default class ProductController {
 		if (!inventoryItem) {
 			return null
 		}
+
+		ensureWarehouseAccess(
+			requestContext,
+			(inventoryItem as InventoryDocument).warehouseId,
+		)
 
 		await redisCache.setJson(cacheKey, inventoryItem)
 
@@ -2516,10 +3733,14 @@ export default class ProductController {
 			requestBody.productId,
 		)
 
+		const warehouseId = requireWarehouseId(requestBody.warehouseId)
+
+		ensureWarehouseAccess(requestContext, warehouseId)
+
 		const inventoryData: InventoryDocument = {
 			inventoryId: uuidv4(),
 			productId: requestBody.productId,
-			warehouseId: requestBody.warehouseId,
+			warehouseId,
 			shelfId: requestBody.shelfId,
 			quantity: requestBody.quantity,
 		}
@@ -2555,9 +3776,11 @@ export default class ProductController {
 		requestBody: Partial<InventoryRequestBody>,
 		requestContext: RequestContext,
 	) {
+		const warehouseId = requireWarehouseId(requestBody.warehouseId)
 		const inventory = await this.getInventoryByProductId(
 			requestContext,
 			productId,
+			warehouseId,
 		)
 
 		if (!inventory) {
@@ -2586,6 +3809,41 @@ export default class ProductController {
 			Inventory.findOne({ inventoryId }).lean(),
 			tenantContext.tenantId,
 		)
+
+		if (!existingInventory) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Inventory not found.',
+			)
+		}
+
+		const existingWarehouseId = requireWarehouseId(
+			(existingInventory as InventoryDocument).warehouseId,
+		)
+
+		ensureWarehouseAccess(requestContext, existingWarehouseId)
+
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (existingWarehouseId !== operationalWarehouseId) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Stock changes require the operational warehouse to match warehouseId.',
+			)
+		}
+
+		if (allowedUpdates.warehouseId !== undefined) {
+			const nextWarehouseId = requireWarehouseId(allowedUpdates.warehouseId)
+
+			if (nextWarehouseId !== existingWarehouseId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Inventory warehouseId cannot be changed. Use warehouse transfer.',
+				)
+			}
+
+			delete allowedUpdates.warehouseId
+		}
 
 		await ensureInventoryPatchSee(
 			requestContext,
@@ -2617,6 +3875,34 @@ export default class ProductController {
 		inventoryId: string,
 		requestContext: RequestContext,
 	) {
+		const tenantContext = getTenantContext(requestContext)
+		const existingInventory = await withTenantScope(
+			Inventory.findOne({ inventoryId }).lean(),
+			tenantContext.tenantId,
+		)
+
+		if (!existingInventory) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				'Inventory not found.',
+			)
+		}
+
+		const existingWarehouseId = requireWarehouseId(
+			(existingInventory as InventoryDocument).warehouseId,
+		)
+
+		ensureWarehouseAccess(requestContext, existingWarehouseId)
+
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (existingWarehouseId !== operationalWarehouseId) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Stock changes require the operational warehouse to match warehouseId.',
+			)
+		}
+
 		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.INVENTORY, id: inventoryId },
 			requestContext,
@@ -2648,7 +3934,7 @@ export default class ProductController {
 				await redisCache.getJson<DailyActionResponse>(cacheKey)
 
 			if (cachedDailyActions) {
-				return cachedDailyActions
+				return this.scopeDailyActions(requestContext, cachedDailyActions.data)
 			}
 		}
 
@@ -2750,23 +4036,33 @@ export default class ProductController {
 		//TO_DO : map daily action
 
 		// const mappedDailyAction = mapDailyAction([dailyAction])
-		return {
-			data: dailyActions,
-			totalCount: dailyActions.length,
-		}
+		return this.scopeDailyActions(requestContext, dailyActions)
+	}
+
+	/** The entries cache is tenant-wide, so narrow it to the caller's scope on read. */
+	private scopeDailyActions(
+		requestContext: RequestContext,
+		data: DailyActionResponse['data'],
+	): DailyActionResponse {
+		const scoped = filterByWarehouseAccess(requestContext, data)
+
+		return { data: scoped, totalCount: scoped.length }
 	}
 
 	public async getDailyActionFilterValues(
 		requestContext: RequestContext,
 	): Promise<DailyActionFilterValuesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const dailyActions = await withTenantScope(
-			DailyAction.find({})
-				.select(
-					'entryType productId productName supplierId supplierName customerId customerName expenseId expenseName',
-				)
-				.lean<DailyActionFilterValueSource[]>(),
-			tenantId,
+		const dailyActions = filterByWarehouseAccess(
+			requestContext,
+			await withTenantScope(
+				DailyAction.find({})
+					.select(
+						'warehouseId entryType productId productName supplierId supplierName customerId customerName expenseId expenseName partnerId partnerName',
+					)
+					.lean<DailyActionFilterValueSource[]>(),
+				tenantId,
+			),
 		)
 
 		const entryTypeMap = new Map<string, FilterValueOption>()
@@ -2839,6 +4135,12 @@ export default class ProductController {
 		const cachedAction = await redisCache.getJson<DailyActionResponse>(cacheKey)
 
 		if (cachedAction) {
+			const cached = cachedAction.data?.[0] as
+				| { warehouseId?: string }
+				| undefined
+
+			ensureWarehouseAccess(requestContext, cached?.warehouseId)
+
 			return cachedAction
 		}
 
@@ -2852,6 +4154,11 @@ export default class ProductController {
 		if (!dailyAction) {
 			return null
 		}
+
+		ensureWarehouseAccess(
+			requestContext,
+			(dailyAction as { warehouseId?: string }).warehouseId,
+		)
 
 		await redisCache.setJson(cacheKey, { data: [dailyAction], totalCount: 1 })
 
@@ -2943,10 +4250,25 @@ export default class ProductController {
 			return { _id: String(existingById._id), actionId: existingById.actionId }
 		}
 
+		// Entries feed the warehouse-scoped cash balance, so they are attributed to the
+		// operational warehouse and cannot be booked from a combined view.
+		const scopedWarehouseId = requireOperationalWarehouseId(requestContext)
+
+		if (
+			requestBody.warehouseId &&
+			requestBody.warehouseId.trim() !== scopedWarehouseId
+		) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Entry warehouseId must match the selected operational warehouse.',
+			)
+		}
+
 		const createdAt = new Date()
 		const optionalString = (value?: string) => value?.trim() || undefined
 		const dailyActionData = {
 			actionId,
+			warehouseId: scopedWarehouseId,
 			entryType: requestBody.entryType,
 			productId: optionalString(requestBody.productId),
 			invoiceNumber: optionalString(requestBody.invoiceNumber),
@@ -2993,12 +4315,33 @@ export default class ProductController {
 		}
 	}
 
+	/** Entries may only be edited or deleted from a warehouse the caller works in. */
+	private async ensureDailyActionsInWarehouseScope(
+		requestContext: RequestContext,
+		actionIds: string[],
+	): Promise<void> {
+		if (actionIds.length === 0) {
+			return
+		}
+
+		const rows = await withTenantScope(
+			DailyAction.find({ actionId: { $in: actionIds } }).select('warehouseId'),
+			this.getTenantId(requestContext),
+		).lean<Array<{ warehouseId?: string }>>()
+
+		for (const row of rows) {
+			ensureWarehouseAccess(requestContext, row.warehouseId)
+		}
+	}
+
 	public async patchDailyAction(
 		actionId: string,
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
 	) {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesEdit])
+		await this.ensureDailyActionsInWarehouseScope(requestContext, [actionId])
+
 		const optionalString = (value?: string) => value?.trim() || undefined
 		const dailyActionData = {
 			entryType: requestBody.entryType,
@@ -3045,6 +4388,11 @@ export default class ProductController {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesDelete])
 
 		const uniqueActionIds = Array.from(new Set(actionIds))
+
+		await this.ensureDailyActionsInWarehouseScope(
+			requestContext,
+			uniqueActionIds,
+		)
 
 		const deleteResponse = await this.mongoDbClient.deleteDocuments(
 			{
@@ -3960,7 +5308,15 @@ export default class ProductController {
 			await redisCache.getJson<WarehousesResponse>(cacheKey)
 
 		if (cachedWarehouses) {
-			return cachedWarehouses
+			const filtered = filterByWarehouseAcl(
+				requestContext,
+				cachedWarehouses.data,
+			)
+
+			return {
+				data: filtered,
+				totalCount: filtered.length,
+			}
 		}
 
 		const warehouses = await this.mongoDbClient.getDocuments({
@@ -3996,13 +5352,20 @@ export default class ProductController {
 
 		await redisCache.setJson(cacheKey, response)
 
-		return response
+		const filtered = filterByWarehouseAcl(requestContext, response.data)
+
+		return {
+			data: filtered,
+			totalCount: filtered.length,
+		}
 	}
 
 	public async getWarehouse(
 		warehouseId: string,
 		requestContext: RequestContext,
 	): Promise<WarehousesResponse['data'][number] | null> {
+		ensureWarehouseAcl(requestContext, warehouseId)
+
 		const warehouse =
 			await this.mongoDbClient.getDocumentByField<WarehouseDocument>(
 				requestContext,
@@ -4192,7 +5555,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		return withTenantScope(
+		const invoices = (await withTenantScope(
 			Invoice.find({
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
@@ -4207,7 +5570,9 @@ export default class ProductController {
 				.sort({ createdAt: -1 })
 				.lean(),
 			tenantContext.tenantId,
-		) as Promise<Array<Record<string, unknown>>>
+		)) as Array<Record<string, unknown> & { warehouseId?: string }>
+
+		return filterByWarehouseAccess(requestContext, invoices)
 	}
 
 	private async getBuyingInvoicesForOfflineBootstrap(
@@ -4216,7 +5581,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		return withTenantScope(
+		const invoices = (await withTenantScope(
 			BuyingInvoice.find({
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
@@ -4231,7 +5596,9 @@ export default class ProductController {
 				.sort({ createdAt: -1 })
 				.lean(),
 			tenantContext.tenantId,
-		) as Promise<Array<Record<string, unknown>>>
+		)) as Array<Record<string, unknown> & { warehouseId?: string }>
+
+		return filterByWarehouseAccess(requestContext, invoices)
 	}
 
 	private async getDailyActionsForOfflineBootstrap(
@@ -4240,12 +5607,14 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		return withTenantScope(
+		const dailyActions = (await withTenantScope(
 			DailyAction.find({ invoiceDate: { $gte: cutoff } })
 				.sort({ createdAt: -1 })
 				.lean(),
 			tenantContext.tenantId,
-		) as Promise<DailyActionResponse['data']>
+		)) as DailyActionResponse['data']
+
+		return filterByWarehouseAccess(requestContext, dailyActions)
 	}
 
 	public async getSyncBootstrap(
@@ -4275,6 +5644,15 @@ export default class ProductController {
 					sort: { createdAt: 'desc' },
 				}),
 			{ documents: [] },
+		)
+
+		const accessibleProductIds = await loadAccessibleProductIds(
+			requestContext,
+			tenantId,
+		)
+		const bootstrapProducts = filterByAccessibleProductIds(
+			productsResponse.documents as Array<{ productId?: string }>,
+			accessibleProductIds,
 		)
 
 		const [
@@ -4394,9 +5772,7 @@ export default class ProductController {
 			: { frontendResources: [] }
 
 		return {
-			products: productsResponse.documents as unknown as Array<
-				Record<string, unknown>
-			>,
+			products: bootstrapProducts as unknown as Array<Record<string, unknown>>,
 			inventory: inventory as unknown as Array<Record<string, unknown>>,
 			customers: customersResponse.data as unknown as Array<
 				Record<string, unknown>
@@ -4698,9 +6074,20 @@ export default class ProductController {
 			),
 		])
 
+		const accessibleProductIds = await loadAccessibleProductIds(
+			requestContext,
+			this.getTenantId(requestContext),
+		)
+
 		return {
-			products: products as unknown as Array<Record<string, unknown>>,
-			inventory: inventory as unknown as Array<Record<string, unknown>>,
+			products: filterByAccessibleProductIds(
+				products as Array<{ productId?: string }>,
+				accessibleProductIds,
+			) as unknown as Array<Record<string, unknown>>,
+			inventory: filterByWarehouseAccess(
+				requestContext,
+				inventory as unknown as Array<{ warehouseId?: string }>,
+			) as unknown as Array<Record<string, unknown>>,
 			customers: customers as unknown as Array<Record<string, unknown>>,
 			suppliers: suppliers as unknown as Array<Record<string, unknown>>,
 			partners: partners as unknown as Array<Record<string, unknown>>,
@@ -4713,25 +6100,133 @@ export default class ProductController {
 			shelves: this.mapShelfDocumentsForSync(
 				shelves as unknown as ShelfDocument[],
 			),
-			warehouses: this.mapWarehouseDocumentsForSync(
-				warehouses as unknown as WarehouseDocument[],
-			),
+			warehouses: filterByWarehouseAcl(
+				requestContext,
+				this.mapWarehouseDocumentsForSync(
+					warehouses as unknown as WarehouseDocument[],
+				) as Array<{ warehouseId?: string }>,
+			) as unknown as Array<Record<string, unknown>>,
 			currencies: currencies as unknown as Array<Record<string, unknown>>,
 			units: units as unknown as Array<Record<string, unknown>>,
 			expenses: expenses as unknown as Array<Record<string, unknown>>,
-			dailyActions: dailyActions as unknown as Array<Record<string, unknown>>,
-			invoices: invoices as unknown as Array<Record<string, unknown>>,
-			buyingInvoices: buyingInvoices as unknown as Array<
-				Record<string, unknown>
-			>,
+			dailyActions: filterByWarehouseAccess(
+				requestContext,
+				dailyActions as unknown as Array<{ warehouseId?: string }>,
+			) as unknown as Array<Record<string, unknown>>,
+			invoices: filterByWarehouseAccess(
+				requestContext,
+				invoices as unknown as Array<{ warehouseId?: string }>,
+			) as unknown as Array<Record<string, unknown>>,
+			buyingInvoices: filterByWarehouseAccess(
+				requestContext,
+				buyingInvoices as unknown as Array<{ warehouseId?: string }>,
+			) as unknown as Array<Record<string, unknown>>,
 			serverTime: new Date().toISOString(),
 		}
 	}
 
-	private async processSyncPushEntry(
+	/**
+	 * Warehouse of the queued work itself: the payload the device wrote offline, or
+	 * failing that the document the entry targets.
+	 */
+	private async resolveSyncEntryWarehouseId(
 		requestContext: RequestContext,
 		entry: SyncPushRequestBody['entries'][number],
+	): Promise<string | undefined> {
+		const payloadWarehouseId = (
+			entry.payload as { warehouseId?: unknown } | undefined
+		)?.warehouseId
+
+		if (typeof payloadWarehouseId === 'string' && payloadWarehouseId.trim()) {
+			return payloadWarehouseId.trim()
+		}
+
+		const documentId = entry.url ? this.extractSyncPathId(entry.url) : ''
+
+		if (!documentId) {
+			return undefined
+		}
+
+		const tenantId = this.getTenantId(requestContext)
+
+		if (entry.entity === 'invoice') {
+			const invoice = await withTenantScope(
+				Invoice.findOne({ invoiceId: documentId }).select('warehouseId'),
+				tenantId,
+			).lean<{ warehouseId?: string }>()
+
+			return invoice?.warehouseId?.trim() || undefined
+		}
+
+		if (entry.entity === 'buyingInvoice') {
+			const buyingInvoice = await withTenantScope(
+				BuyingInvoice.findOne({ buyingInvoiceId: documentId }).select(
+					'warehouseId',
+				),
+				tenantId,
+			).lean<{ warehouseId?: string }>()
+
+			return buyingInvoice?.warehouseId?.trim() || undefined
+		}
+
+		return undefined
+	}
+
+	/**
+	 * Queued offline work belongs to the warehouse it was written in, which is not
+	 * necessarily the one the device has selected when it finally syncs (an owner may
+	 * have no selection at all, or a combined multi-warehouse view). Replaying each
+	 * entry in its own warehouse is what keeps a queue drainable.
+	 */
+	private async scopeContextToSyncEntry(
+		requestContext: RequestContext,
+		entry: SyncPushRequestBody['entries'][number],
+	): Promise<RequestContext> {
+		const warehouseId = await this.resolveSyncEntryWarehouseId(
+			requestContext,
+			entry,
+		)
+
+		if (!warehouseId) {
+			return requestContext
+		}
+
+		ensureWarehouseAcl(requestContext, warehouseId)
+
+		return { ...requestContext, warehouseScope: [warehouseId] }
+	}
+
+	private async processSyncPushEntry(
+		baseRequestContext: RequestContext,
+		entry: SyncPushRequestBody['entries'][number],
 	): Promise<SyncPushResult> {
+		let requestContext: RequestContext
+
+		try {
+			requestContext = await this.scopeContextToSyncEntry(
+				baseRequestContext,
+				entry,
+			)
+		} catch (error: any) {
+			// Losing access to one warehouse must not fail the whole push.
+			const message = error?.message ?? 'Sync entry processing failed'
+
+			await this.recordSyncMutation(
+				baseRequestContext,
+				entry.clientMutationId,
+				entry.entity,
+				entry.operation,
+				undefined,
+				message,
+			)
+
+			return {
+				clientMutationId: entry.clientMutationId,
+				success: false,
+				error: message,
+			}
+		}
+
 		const processed = await this.getProcessedSyncMutation(
 			requestContext,
 			entry.clientMutationId,

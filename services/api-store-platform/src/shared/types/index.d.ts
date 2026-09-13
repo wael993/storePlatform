@@ -17,6 +17,8 @@ interface RequestContext {
 	user?: AuthorizedUser
 	allowedFields: string[]
 	see?: string[]
+	/** Working warehouse scope from `x-warehouse-scope` (ACL ∩ selection). `null` = unrestricted. */
+	warehouseScope?: string[] | null
 }
 
 interface HttpError {
@@ -191,7 +193,7 @@ export type InvoiceRequestBody = {
 	}>
 	notes?: string
 	printAfterPayment?: boolean
-	warehouseId?: string
+	warehouseId: string
 	issuedAt?: Date | string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
@@ -278,7 +280,7 @@ export type BuyingInvoiceRequestBody = {
 		discount: number
 	}>
 	notes?: string
-	warehouseId?: string
+	warehouseId: string
 	issuedAt?: Date | string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
@@ -422,6 +424,7 @@ export type UpdateTenantUserRequestBody = {
 	firstName?: string
 	lastName?: string
 	role?: TenantRole
+	warehouseIds?: string[]
 	// isInternal?: boolean
 }
 export type AddTenantRequestBody = {
@@ -506,6 +509,7 @@ export type TenantUserSummary = {
 	role: UserRole
 	firstName: string
 	lastName: string
+	warehouseIds: string[]
 }
 export type AddTenantResponse = {
 	tenantId: string
@@ -654,7 +658,7 @@ interface WarehouseDocument {
 export interface InventoryDocument {
 	inventoryId: string
 	productId: string
-	warehouseId?: string
+	warehouseId: string
 	shelfId?: string
 	quantity?: number
 	averageCost?: number // weighted moving average cost, updated on each purchase

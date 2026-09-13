@@ -46,12 +46,14 @@ export const useInvoiceDraftSessions = ({
 		(options?: {
 			paymentType?: SellingInvoicePaymentType
 			productSearch?: string
+			warehouseId?: string
 		}) => {
 			const session = createInvoiceDraftSession(salesPerson, {
 				paymentType: options?.paymentType,
 				invoiceNumber: nextInvoiceNumber,
 				customerName: walkInCustomerName,
 				productSearch: options?.productSearch,
+				warehouseId: options?.warehouseId,
 			})
 
 			setState(current => ({

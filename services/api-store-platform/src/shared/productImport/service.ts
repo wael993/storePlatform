@@ -27,6 +27,8 @@ import { getImportAiProvider } from '../importAi/providers'
 import { Product } from '../../models/Products'
 import { Category } from '../../models/Category'
 import { Supplier } from '../../models/Supplier'
+import { Warehouse } from '../../models/Warehaus'
+import { requireOperationalWarehouseId } from '../warehouseAccess'
 import Tenant from '../../models/Tenant'
 import ProductImportSession from '../../models/ProductImportSession'
 import { Invoice } from '../../models/Invoice'
@@ -633,10 +635,29 @@ export const commitProductImport = async (
 	const quantityByProductId = new Map(
 		batch.map((row, index) => [productIds[index], row.quantity]),
 	)
+	// Imported stock is a stock-changing operation: it lands in the caller's
+	// operational warehouse, never in an arbitrary one.
+	const importWarehouseId = requireOperationalWarehouseId(requestContext)
+
+	const warehouseExists = await withTenantScope(
+		Warehouse.findOne({ warehouseId: importWarehouseId })
+			.select('warehouseId')
+			.lean<{ warehouseId?: string }>(),
+		tenantId,
+	)
+
+	if (!warehouseExists?.warehouseId) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+			'A warehouse is required before importing products with inventory.',
+		)
+	}
+
 	const inventories = products.map(product => ({
 		tenantId,
 		inventoryId: uuidv4(),
 		productId: product.productId,
+		warehouseId: importWarehouseId,
 		quantity: quantityByProductId.get(product.productId) ?? 0,
 		createdBy: { ...createdByBase },
 	}))

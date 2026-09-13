@@ -9,8 +9,7 @@ interface AuthorizedUser {
 	email: string
 	role: UserRole
 	permissions: Resources
-	// services: Service[]
-	// isInternal: boolean
+	warehouseIds?: string[]
 }
 export interface Resources {
 	[resourcePath: string]: {

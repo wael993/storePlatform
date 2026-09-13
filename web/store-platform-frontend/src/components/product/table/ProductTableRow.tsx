@@ -7,6 +7,7 @@ interface ProductTableRowProps {
 	product: Product
 	onSelect: (id: string) => void
 	onEditProduct: (product: Product) => void
+	onMovementProduct: (product: Product) => void
 	tableRowProps: Record<string, unknown>
 	isSelected: boolean
 	isLoading: boolean
@@ -16,6 +17,7 @@ const ProductTableRow = ({
 	product,
 	onSelect,
 	onEditProduct,
+	onMovementProduct,
 	isSelected,
 	tableRowProps,
 	isLoading,
@@ -43,6 +45,7 @@ const ProductTableRow = ({
 				product={product}
 				onSelect={onSelect}
 				onEditProduct={onEditProduct}
+				onMovementProduct={onMovementProduct}
 				isSelected={isSelected}
 				isHovered={isHovered}
 				isLoading={isLoading}

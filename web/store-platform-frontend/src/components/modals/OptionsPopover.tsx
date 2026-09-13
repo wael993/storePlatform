@@ -36,6 +36,7 @@ interface OptionsPopoverProps {
 	onEdit?: () => void
 	onPrintBarcode?: () => void
 	isPrintLoading?: boolean
+	onMovement?: () => void
 	onDelete?: () => void
 	deleteLabel?: string
 }
@@ -44,6 +45,7 @@ const OptionsPopover = ({
 	onEdit,
 	onPrintBarcode,
 	isPrintLoading,
+	onMovement,
 	onDelete,
 	deleteLabel,
 }: OptionsPopoverProps) => {
@@ -108,6 +110,25 @@ const OptionsPopover = ({
 								}}
 							>
 								{t('components.product.printBarcode')}
+							</Text>
+						) : null}
+						{onMovement ? (
+							<Text
+								as="button"
+								type="button"
+								sx={styles.action}
+								onMouseDown={event => {
+									event.preventDefault()
+									event.stopPropagation()
+								}}
+								onClick={event => {
+									event.preventDefault()
+									event.stopPropagation()
+									onMovement()
+									onClose()
+								}}
+							>
+								{t('components.product.warehouseTransfer.movement')}
 							</Text>
 						) : null}
 						{onDelete ? (

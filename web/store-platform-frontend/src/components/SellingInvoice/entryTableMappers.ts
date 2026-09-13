@@ -36,8 +36,24 @@ export interface EntryTableRow {
 	note?: string
 }
 
+export interface TransferTableRow {
+	kind: 'transfer'
+	id: string
+	sortKey: number
+	time: string
+	productSummary: string
+	customerLabel: string
+	totalQuantity: number
+	fromWarehouseName: string
+	toWarehouseName: string
+	editable: boolean
+	createdByName?: string
+}
+
 export type InvoiceTableRow =
-	(SellingInvoice & { kind: 'selling' | 'buying' }) | EntryTableRow
+	| (SellingInvoice & { kind: 'selling' | 'buying' })
+	| EntryTableRow
+	| TransferTableRow
 
 const ENTRY_TYPE_MAP: Record<string, EntrySubType | undefined> = {
 	[DailyActionType.RECEIPT_ENTRY]: 'receipt',
@@ -170,3 +186,32 @@ export const mapDailyActionsToEntryTableRows = (
 	dailyActions
 		.map(mapDailyActionToEntryTableRow)
 		.filter((row): row is EntryTableRow => row !== null)
+
+export const mapWarehouseTransfersToTableRows = (
+	transfers: WarehouseTransferAction[],
+	isArabic: boolean,
+): TransferTableRow[] =>
+	transfers.map(transfer => {
+		const sortSource = transfer.createdAt
+		const first = transfer.items[0]
+		const extraCount = Math.max(transfer.items.length - 1, 0)
+		const productSummary = first
+			? extraCount > 0
+				? `${first.productName} +${extraCount}`
+				: first.productName
+			: '—'
+
+		return {
+			kind: 'transfer' as const,
+			id: transfer.referenceId,
+			sortKey: sortSource ? dayjs(sortSource).valueOf() : 0,
+			time: sortSource ? dayjs(sortSource).format('hh:mm A') : '--:--',
+			productSummary,
+			customerLabel: `${transfer.fromWarehouseName} ${isArabic ? '←' : '→'} ${transfer.toWarehouseName}`,
+			totalQuantity: transfer.totalQuantity,
+			fromWarehouseName: transfer.fromWarehouseName,
+			toWarehouseName: transfer.toWarehouseName,
+			editable: transfer.editable,
+			createdByName: transfer.createdByName,
+		}
+	})

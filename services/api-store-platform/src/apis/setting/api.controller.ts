@@ -14,7 +14,6 @@ import {
 	cloneLabelLayout,
 	ILabelTemplate,
 	LabelTemplate,
-	LabelTemplateDto,
 	SYSTEM_LABEL_LAYOUT,
 	SYSTEM_LABEL_TEMPLATE_ID,
 	systemLabelTemplateDto,
@@ -37,7 +36,14 @@ import {
 	CurrencyRequestBody,
 	RequestContext,
 } from '../../shared/types'
+import { buildRequestContext } from '../../shared/buildRequestContext'
 import { v4 as uuidv4 } from 'uuid'
+import { COLLECTION_NAMES } from '../../shared/general'
+import MongodbController from '../../shared/mongodb/mongodbController'
+import {
+	LabelTemplateResponse,
+	LabelTemplatesResponse,
+} from '../../shared/types/api'
 
 const assertSettingsMutableWhileOnline = (
 	request: Pick<express.Request, 'headers'>,
@@ -170,7 +176,10 @@ type SettingsHttpRequest = express.Request & {
 }
 
 export default class SettingController {
-	constructor(private currencyCatalog: CurrencyCatalogCollaborator) {}
+	constructor(
+		private currencyCatalog: CurrencyCatalogCollaborator,
+		private mongoDbClient: MongodbController,
+	) {}
 
 	private getTenantId(requestContext: RequestContext): string {
 		return requestContext.tenantId || 'global'
@@ -181,15 +190,7 @@ export default class SettingController {
 	}
 
 	private getRequestContext(request: SettingsHttpRequest): RequestContext {
-		return {
-			userId: request.user?.userId,
-			tenantId: request.user?.tenantId,
-			tenantName: request.user?.tenantName,
-			role: request.user?.role,
-			user: request.user,
-			allowedFields: request.allowedFields || [],
-			see: request.see || [],
-		}
+		return buildRequestContext(request)
 	}
 
 	public async getUserSettings(
@@ -770,10 +771,9 @@ export default class SettingController {
 	}
 
 	public async getLabelTemplates(
-		request: SettingsHttpRequest,
-		response: express.Response,
-	): Promise<void> {
-		const { tenantId } = request.user ?? {}
+		requestContext: RequestContext,
+	): Promise<LabelTemplatesResponse> {
+		const tenantId = this.getTenantId(requestContext)
 
 		if (!tenantId) {
 			throw new BusinessLogicError(
@@ -782,15 +782,27 @@ export default class SettingController {
 			)
 		}
 
-		const custom = await this.listCustomTemplates(tenantId)
-		const hasCustomDefault = custom.some(template => template.isDefault)
-
-		response.status(200).json({
-			templates: [
-				systemLabelTemplateDto(!hasCustomDefault),
-				...custom.map(toLabelTemplateDto),
-			],
+		const templates = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.LABEL_TEMPLATES,
+			model: LabelTemplate,
+			sort: { createdAt: 1 },
 		})
+
+		const isDefault = templates.documents.some(template => template.isDefault)
+		const data = [
+			systemLabelTemplateDto(!isDefault),
+			...templates.documents.map(toLabelTemplateDto),
+		]
+		const response: LabelTemplatesResponse = {
+			data,
+			totalCount: templates.documents.length,
+		}
+
+		return {
+			data: response.data,
+			totalCount: response.totalCount,
+		}
 	}
 
 	public async createLabelTemplate(
@@ -962,7 +974,7 @@ export default class SettingController {
 			)
 		}
 
-		const source: LabelTemplateDto =
+		const source: LabelTemplateResponse =
 			templateId === SYSTEM_LABEL_TEMPLATE_ID
 				? systemLabelTemplateDto(false)
 				: toLabelTemplateDto(

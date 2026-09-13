@@ -8,6 +8,7 @@ import ListDesktop from './ProductTableDesktop'
 import EmptyState from '../../common/EmptyState'
 import ListMobil from './ProductTableMobil'
 import AddProductModal from '../../../pages/AddProductModal'
+import WarehouseTransferModal from '../WarehouseTransferModal'
 
 interface ProductTableWithActionBarProps {
 	products?: Product[]
@@ -22,10 +23,16 @@ const ProductTableWithActionBar = ({
 	const { isMobile } = compareBreakpoint(useBreakpoints())
 	const [selectedProductsIds, setSelectedProductsIds] = useState<string[]>([])
 	const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+	const [transferProducts, setTransferProducts] = useState<Product[]>([])
 	const {
 		isOpen: isEditOpen,
 		onOpen: onEditOpen,
 		onClose: onEditClose,
+	} = useDisclosure()
+	const {
+		isOpen: isTransferOpen,
+		onOpen: onTransferOpen,
+		onClose: onTransferClose,
 	} = useDisclosure()
 	const productElements: Product[] = useMemo(() => {
 		return (
@@ -54,10 +61,29 @@ const ProductTableWithActionBar = ({
 		[onEditOpen],
 	)
 
+	const onMovementProducts = useCallback(
+		(nextProducts: Product[]) => {
+			setTransferProducts(nextProducts)
+			onTransferOpen()
+		},
+		[onTransferOpen],
+	)
+
+	const onMovementProduct = useCallback(
+		(product: Product) => onMovementProducts([product]),
+		[onMovementProducts],
+	)
+
 	const handleEditClose = useCallback(() => {
 		onEditClose()
 		setEditingProduct(null)
 	}, [onEditClose])
+
+	const handleTransferClose = useCallback(() => {
+		onTransferClose()
+		setTransferProducts([])
+	}, [onTransferClose])
+
 	const onAllItemsSelectedChange = useCallback(() => {
 		setSelectedProductsIds(prevSelectedIds => {
 			return prevSelectedIds.length === productElements.length
@@ -96,6 +122,7 @@ const ProductTableWithActionBar = ({
 							)
 							.filter(Boolean) as Product[]) ?? []
 					}
+					onMovementProducts={onMovementProducts}
 				/>
 			)}
 			{isMobile ? (
@@ -104,6 +131,7 @@ const ProductTableWithActionBar = ({
 					isLoading={isLoading}
 					onSelect={onSelect}
 					onEditProduct={onEditProduct}
+					onMovementProduct={onMovementProduct}
 					selectedProducts={selectedProductsIds}
 					areAllItemsSelected={areAllItemsSelected}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
@@ -114,6 +142,7 @@ const ProductTableWithActionBar = ({
 					isLoading={isLoading}
 					onSelect={onSelect}
 					onEditProduct={onEditProduct}
+					onMovementProduct={onMovementProduct}
 					selectedProducts={selectedProductsIds}
 					areAllItemsSelected={areAllItemsSelected}
 					onAllItemsSelectedChange={onAllItemsSelectedChange}
@@ -125,6 +154,11 @@ const ProductTableWithActionBar = ({
 				barcode={editingProduct?.barcode ?? ''}
 				product={editingProduct ?? undefined}
 				onSuccess={handleEditClose}
+			/>
+			<WarehouseTransferModal
+				products={transferProducts}
+				isOpen={isTransferOpen}
+				onClose={handleTransferClose}
 			/>
 		</VStack>
 	)

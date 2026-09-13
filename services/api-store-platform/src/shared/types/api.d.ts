@@ -86,6 +86,7 @@ interface DailyAction {
 	partnerName?: string
 	actionId: string
 	entryType: EntryType
+	warehouseId?: string
 	productId?: string
 	productName?: string
 	invoiceNumber?: string
@@ -108,6 +109,8 @@ interface DailyAction {
 
 interface DailyActionRequestBody {
 	entryType: EntryType
+	/** Ignored unless it matches the caller's operational warehouse. */
+	warehouseId?: string
 	productId?: string
 	productName?: string
 	supplierId?: string
@@ -142,6 +145,7 @@ type CreateDailyActionResponse = {
 	actionId?: string
 }
 interface CustomersResponse extends APIResponse<CustomerResponse> {}
+interface LabelTemplatesResponse extends APIResponse<LabelTemplateResponse> {}
 interface CurrenciesResponse extends APIResponse<Currency> {}
 interface UnitsResponse extends APIResponse<Unit> {}
 interface SuppliersResponse extends APIResponse<Supplier> {}
@@ -172,6 +176,27 @@ interface Partner {
 	relatedActions?: PartnerDailyAction[]
 }
 
+export interface LabelTemplateResponse {
+	templateId: string
+	name: string
+	description?: string
+	isDefault: boolean
+	isProtected: boolean
+	layout: LabelLayout
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
+	createdAt?: string
+	updatedAt?: string
+}
 export interface CustomerResponse {
 	customerId: string
 	name: string

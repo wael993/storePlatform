@@ -84,6 +84,7 @@ export interface SellingInvoiceDraft extends InvoiceDiscountDraftFields {
 	customerId: string
 	customerName: string
 	paymentType: SellingInvoicePaymentType
+	warehouseId: string
 	lineItems: SellingInvoiceLineItem[]
 	note: string
 	paidAmount: number
