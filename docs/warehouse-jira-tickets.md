@@ -374,8 +374,8 @@ The server (`warehouseAccess.ts`) is the authority. The UI copies the same rules
 
 | Place | What it duplicates |
 | --- | --- |
-| `web/.../shared/warehouseScope.ts` | `isOperationalWarehouseMode`, `getOperationalWarehouseId` |
-| `web/.../offline/localHandlers.ts` | `filterByWarehouseScope`, `requireOperationalWarehouseIdForOffline`, `assertWarehouseInScope` |
+| `web/.../shared/warehouseScope.ts` | `isOperationalWarehouseMode`, `getOperationalWarehouseId`, `requireOperationalWarehouseId` |
+| `web/.../offline/localHandlers.ts` | `filterByWarehouseScope`, `assertWarehouseInScope` |
 | Invoice / product panels | ad-hoc `isOperational && operationalWarehouseId` |
 
 ### Required helper (frontend only, pure)

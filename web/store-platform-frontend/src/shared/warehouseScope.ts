@@ -48,6 +48,18 @@ export const isOperationalWarehouseMode = (): boolean =>
 export const getOperationalWarehouseId = (): string | null =>
 	selectedWarehouseIds.length === 1 ? selectedWarehouseIds[0] : null
 
+/** Missing body warehouseId uses the current operational selection. */
+export const requireOperationalWarehouseId = (warehouseId?: string): string => {
+	const operationalId = getOperationalWarehouseId()
+	const id = warehouseId?.trim() || operationalId
+	if (!operationalId || id !== operationalId) {
+		throw new Error(
+			'Exactly one warehouse must be selected to post invoices or change stock.',
+		)
+	}
+	return operationalId
+}
+
 const scopeStorageKey = (tenantId: string, userId: string): string =>
 	`store-platform-warehouse-scope:v2:${tenantId}:${userId}`
 

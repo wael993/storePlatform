@@ -1,5 +1,7 @@
 import { Box, Flex, Skeleton, Text } from '@chakra-ui/react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
 import { PAGE_COLORS } from './constants'
 import type { SellingInvoiceSummary } from './types'
 import { formatTrend } from './utils'
@@ -237,6 +239,9 @@ const InvoiceSummaryCards = ({
 }: InvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const [isOnline, setIsOnline] = useState(getIsOnline)
+
+	useEffect(() => subscribeConnectivity(setIsOnline), [])
 
 	const bestSellerValue = summary.bestSeller
 		? t('components.sellingInvoices.summary.bestSellerValue', {
@@ -258,7 +263,7 @@ const InvoiceSummaryCards = ({
 		summary.todaySales > 0
 
 	if (isLoading) {
-		const skeletonCount = showCashBalance ? 9 : 8
+		const skeletonCount = (showCashBalance ? 9 : 8) - (isOnline ? 0 : 1)
 
 		return (
 			<Box mb={6}>
@@ -321,18 +326,20 @@ const InvoiceSummaryCards = ({
 						color: PAGE_COLORS.success,
 					}}
 				/>
-				{/* TODO: Fix before Readding total profit card */}
-				<SummaryCard
-					label={t('components.sellingInvoices.summary.totalProfit')}
-					value={
-						hasPeriodData
-							? formatAmount(summary.totalProfit)
-							: EMPTY_SUMMARY_VALUE
-					}
-					icon={<DollarSignIcon fill="none" />}
-					iconBg="#ECFDF5"
-					iconColor="#047857"
-				/>
+				{/* TODO: SI-BUG-1 — hide offline until COGS is real (docs/later-jira-ticket-implementation.md) */}
+				{isOnline && (
+					<SummaryCard
+						label={t('components.sellingInvoices.summary.totalProfit')}
+						value={
+							hasPeriodData
+								? formatAmount(summary.totalProfit)
+								: EMPTY_SUMMARY_VALUE
+						}
+						icon={<DollarSignIcon fill="none" />}
+						iconBg="#ECFDF5"
+						iconColor="#047857"
+					/>
+				)}
 				<SummaryCard
 					label={t('components.sellingInvoices.summary.bestSeller')}
 					value={bestSellerValue}

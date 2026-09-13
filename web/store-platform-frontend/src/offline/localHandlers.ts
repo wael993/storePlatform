@@ -19,6 +19,7 @@ import { getWorkMode } from './workMode'
 import {
 	getOperationalWarehouseId,
 	getWarehouseScopeIds,
+	requireOperationalWarehouseId,
 } from '../shared/warehouseScope'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
@@ -211,19 +212,6 @@ const aggregateInventoryByProductId = <
 	}
 
 	return map
-}
-
-const requireOperationalWarehouseIdForOffline = (
-	warehouseId?: string,
-): string => {
-	const operationalId = getOperationalWarehouseId()
-	const id = warehouseId?.trim()
-	if (!operationalId || !id || id !== operationalId) {
-		throw new Error(
-			'Exactly one warehouse must be selected to post invoices or change stock.',
-		)
-	}
-	return id
 }
 
 const validateLocalSaleInventory = async (
@@ -748,7 +736,7 @@ const handlePostInvoice = async (
 
 	const clientMutationId = body.clientMutationId ?? generateId()
 	const status = mapInvoiceStatus(body.status)
-	const warehouseId = requireOperationalWarehouseIdForOffline(body.warehouseId)
+	const warehouseId = requireOperationalWarehouseId(body.warehouseId)
 
 	if (
 		status !== InvoiceStatus.DRAFT &&
@@ -838,7 +826,7 @@ const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
 
 	const clientMutationId = body.clientMutationId ?? generateId()
 	const status = mapInvoiceStatus(body.status)
-	const warehouseId = requireOperationalWarehouseIdForOffline(body.warehouseId)
+	const warehouseId = requireOperationalWarehouseId(body.warehouseId)
 	const allocatedNumber = await allocateNextBuyingInvoiceNumber()
 	const invoiceNumber =
 		body.invoiceNumber ?? formatBuyingInvoiceNumber(allocatedNumber)
@@ -1395,6 +1383,9 @@ const applyLocalEntityMutation = async (
 	if (entity === 'dailyAction' && op === 'create') {
 		const actionId = String(payload.actionId ?? generateId())
 		payload.actionId = actionId
+		payload.warehouseId = requireOperationalWarehouseId(
+			typeof payload.warehouseId === 'string' ? payload.warehouseId : undefined,
+		)
 		await offlineDb.dailyActions.put(
 			withLocalMeta(
 				{
