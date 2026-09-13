@@ -196,8 +196,7 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 			}
 
 			if (warehouseScope.length > 0) {
-				headers[WAREHOUSE_SCOPE_HEADER] =
-					toWarehouseScopeHeader(warehouseScope)
+				headers[WAREHOUSE_SCOPE_HEADER] = toWarehouseScopeHeader(warehouseScope)
 			}
 
 			const response = await fetch(

@@ -396,9 +396,7 @@ const AddProductModal = ({
 					? String(initialPurchasePrice)
 					: prev.price.purchasePrice
 			const currency =
-				prev.price.currency ||
-				currencyOptions[0]?.value ||
-				defaultCurrencyCode
+				prev.price.currency || currencyOptions[0]?.value || defaultCurrencyCode
 
 			if (
 				prev.warehouseId === warehouseId &&
