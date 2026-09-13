@@ -45,7 +45,7 @@ import {
 	LabelTemplatesResponse,
 } from '../../shared/types/api'
 
-const assertSettingsMutableWhileOnline = (
+export const assertSettingsMutableWhileOnline = (
 	request: Pick<express.Request, 'headers'>,
 ): void => {
 	const raw = request.headers['x-work-mode']
@@ -182,7 +182,7 @@ export default class SettingController {
 	) {}
 
 	private getTenantId(requestContext: RequestContext): string {
-		return requestContext.tenantId || 'global'
+		return getTenantContext(requestContext).tenantId
 	}
 
 	private escapeRegex(value: string): string {
@@ -728,8 +728,8 @@ export default class SettingController {
 		})
 	}
 
-	private assertOwnerOrAdmin(request: SettingsHttpRequest): void {
-		if (!(request.see || []).includes('settings.products')) {
+	private assertOwnerOrAdmin(requestContext: RequestContext): void {
+		if (!(requestContext.see || []).includes('settings.products')) {
 			throw new AuthorizationError(
 				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 				'Role cannot see product settings.',
@@ -737,28 +737,39 @@ export default class SettingController {
 		}
 	}
 
-	private actor(request: SettingsHttpRequest) {
-		return {
-			_id: request.user?.userId ?? '',
-			displayName:
-				`${request.user?.firstName ?? ''} ${request.user?.lastName ?? ''}`.trim() ||
-				'user',
-			role: request.user?.role,
-			createdAt: new Date(),
+	private parseTemplateLayout(layout: unknown) {
+		try {
+			return validateLabelLayout(layout)
+		} catch (error: unknown) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				error instanceof Error ? error.message : 'Invalid layout',
+			)
 		}
 	}
 
-	private async listCustomTemplates(
-		tenantId: string,
-	): Promise<ILabelTemplate[]> {
-		return LabelTemplate.find({ tenantId }).sort({ createdAt: 1 })
+	private async listCustomTemplates(requestContext: RequestContext) {
+		const templates = await this.mongoDbClient.getDocuments({
+			requestContext,
+			collectionName: COLLECTION_NAMES.LABEL_TEMPLATES,
+			model: LabelTemplate,
+			sort: { createdAt: 1 },
+		})
+
+		return templates.documents as ILabelTemplate[]
 	}
 
 	private async requireCustomTemplate(
-		tenantId: string,
+		requestContext: RequestContext,
 		templateId: string,
 	): Promise<ILabelTemplate> {
-		const template = await LabelTemplate.findOne({ tenantId, templateId })
+		const template =
+			await this.mongoDbClient.getDocumentByField<ILabelTemplate>(
+				requestContext,
+				COLLECTION_NAMES.LABEL_TEMPLATES,
+				LabelTemplate,
+				{ fieldName: 'templateId', fieldValue: templateId },
+			)
 
 		if (!template) {
 			throw new BusinessLogicError(
@@ -773,14 +784,7 @@ export default class SettingController {
 	public async getLabelTemplates(
 		requestContext: RequestContext,
 	): Promise<LabelTemplatesResponse> {
-		const tenantId = this.getTenantId(requestContext)
-
-		if (!tenantId) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-				'Missing tenantId',
-			)
-		}
+		this.getTenantId(requestContext)
 
 		const templates = await this.mongoDbClient.getDocuments({
 			requestContext,
@@ -806,22 +810,13 @@ export default class SettingController {
 	}
 
 	public async createLabelTemplate(
-		request: SettingsHttpRequest,
-		response: express.Response,
-	): Promise<void> {
-		assertSettingsMutableWhileOnline(request)
-		this.assertOwnerOrAdmin(request)
+		requestContext: RequestContext,
+		body: { name?: unknown; layout?: unknown },
+	): Promise<LabelTemplateResponse> {
+		this.assertOwnerOrAdmin(requestContext)
+		this.getTenantId(requestContext)
 
-		const { tenantId } = request.user ?? {}
-
-		if (!tenantId) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-				'Missing tenantId',
-			)
-		}
-
-		const name = String(request.body?.name ?? '').trim()
+		const name = String(body?.name ?? '').trim()
 
 		if (!name) {
 			throw new BusinessLogicError(
@@ -830,42 +825,38 @@ export default class SettingController {
 			)
 		}
 
-		let layout: ReturnType<typeof validateLabelLayout>
+		const templateId = uuidv4()
 
-		try {
-			layout = validateLabelLayout(
-				request.body?.layout ?? cloneLabelLayout(SYSTEM_LABEL_LAYOUT),
-			)
-		} catch (error: unknown) {
-			throw new BusinessLogicError(
-				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
-				error instanceof Error ? error.message : 'Invalid layout',
-			)
-		}
+		await this.mongoDbClient.createDocument(
+			{
+				collectionName: COLLECTION_NAMES.LABEL_TEMPLATES,
+				data: {
+					templateId,
+					name,
+					isDefault: false,
+					layout: this.parseTemplateLayout(
+						body?.layout ?? cloneLabelLayout(SYSTEM_LABEL_LAYOUT),
+					),
+				},
+			},
+			LabelTemplate,
+			requestContext,
+		)
 
-		const template = await LabelTemplate.create({
-			tenantId,
-			templateId: uuidv4(),
-			name,
-			isDefault: false,
-			layout,
-			createdBy: this.actor(request),
-		})
-
-		response.status(201).json(toLabelTemplateDto(template))
+		return toLabelTemplateDto(
+			await this.requireCustomTemplate(requestContext, templateId),
+		)
 	}
 
 	public async patchLabelTemplate(
-		request: SettingsHttpRequest,
-		response: express.Response,
-	): Promise<void> {
-		assertSettingsMutableWhileOnline(request)
-		this.assertOwnerOrAdmin(request)
+		requestContext: RequestContext,
+		templateId: string,
+		body: { name?: unknown; layout?: unknown },
+	): Promise<LabelTemplateResponse> {
+		this.assertOwnerOrAdmin(requestContext)
+		this.getTenantId(requestContext)
 
-		const { tenantId } = request.user ?? {}
-		const templateId = String(request.params.templateId ?? '')
-
-		if (!tenantId || !templateId) {
+		if (!templateId) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 				'Missing tenantId or templateId',
@@ -879,11 +870,12 @@ export default class SettingController {
 			)
 		}
 
-		const template = await this.requireCustomTemplate(tenantId, templateId)
+		const template = await this.requireCustomTemplate(
+			requestContext,
+			templateId,
+		)
 		const name =
-			request.body?.name !== undefined
-				? String(request.body.name).trim()
-				: template.name
+			body?.name !== undefined ? String(body.name).trim() : template.name
 
 		if (!name) {
 			throw new BusinessLogicError(
@@ -892,44 +884,35 @@ export default class SettingController {
 			)
 		}
 
-		let layout = template.layout
+		await this.mongoDbClient.updateDocument(
+			{
+				collectionName: COLLECTION_NAMES.LABEL_TEMPLATES,
+				id: templateId,
+			},
+			requestContext,
+			LabelTemplate,
+			{
+				name,
+				layout:
+					body?.layout !== undefined
+						? this.parseTemplateLayout(body.layout)
+						: template.layout,
+			},
+		)
 
-		if (request.body?.layout !== undefined) {
-			try {
-				layout = validateLabelLayout(request.body.layout)
-			} catch (error: unknown) {
-				throw new BusinessLogicError(
-					ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
-					error instanceof Error ? error.message : 'Invalid layout',
-				)
-			}
-		}
-
-		template.name = name
-		template.layout = layout
-		template.updatedBy = {
-			_id: request.user?.userId ?? '',
-			displayName: this.actor(request).displayName,
-			role: request.user?.role,
-			updatedAt: new Date(),
-		}
-
-		await template.save()
-
-		response.status(200).json(toLabelTemplateDto(template))
+		return toLabelTemplateDto(
+			await this.requireCustomTemplate(requestContext, templateId),
+		)
 	}
 
 	public async deleteLabelTemplate(
-		request: SettingsHttpRequest,
-		response: express.Response,
+		requestContext: RequestContext,
+		templateId: string,
 	): Promise<void> {
-		assertSettingsMutableWhileOnline(request)
-		this.assertOwnerOrAdmin(request)
+		this.assertOwnerOrAdmin(requestContext)
+		this.getTenantId(requestContext)
 
-		const { tenantId } = request.user ?? {}
-		const templateId = String(request.params.templateId ?? '')
-
-		if (!tenantId || !templateId) {
+		if (!templateId) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 				'Missing tenantId or templateId',
@@ -943,7 +926,10 @@ export default class SettingController {
 			)
 		}
 
-		const template = await this.requireCustomTemplate(tenantId, templateId)
+		const template = await this.requireCustomTemplate(
+			requestContext,
+			templateId,
+		)
 
 		if (template.isDefault) {
 			throw new BusinessLogicError(
@@ -952,22 +938,24 @@ export default class SettingController {
 			)
 		}
 
-		await template.deleteOne()
-
-		response.status(204).send()
+		await this.mongoDbClient.deleteDocument(
+			{
+				collectionName: COLLECTION_NAMES.LABEL_TEMPLATES,
+				id: templateId,
+			},
+			requestContext,
+			LabelTemplate,
+		)
 	}
 
 	public async duplicateLabelTemplate(
-		request: SettingsHttpRequest,
-		response: express.Response,
-	): Promise<void> {
-		assertSettingsMutableWhileOnline(request)
-		this.assertOwnerOrAdmin(request)
+		requestContext: RequestContext,
+		templateId: string,
+	): Promise<LabelTemplateResponse> {
+		this.assertOwnerOrAdmin(requestContext)
+		this.getTenantId(requestContext)
 
-		const { tenantId } = request.user ?? {}
-		const templateId = String(request.params.templateId ?? '')
-
-		if (!tenantId || !templateId) {
+		if (!templateId) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 				'Missing tenantId or templateId',
@@ -978,32 +966,39 @@ export default class SettingController {
 			templateId === SYSTEM_LABEL_TEMPLATE_ID
 				? systemLabelTemplateDto(false)
 				: toLabelTemplateDto(
-						await this.requireCustomTemplate(tenantId, templateId),
+						await this.requireCustomTemplate(requestContext, templateId),
 					)
 
-		const template = await LabelTemplate.create({
-			tenantId,
-			templateId: uuidv4(),
-			name: `${source.name} copy`,
-			isDefault: false,
-			layout: cloneLabelLayout(source.layout),
-			createdBy: this.actor(request),
-		})
+		const copyId = uuidv4()
 
-		response.status(201).json(toLabelTemplateDto(template))
+		await this.mongoDbClient.createDocument(
+			{
+				collectionName: COLLECTION_NAMES.LABEL_TEMPLATES,
+				data: {
+					templateId: copyId,
+					name: `${source.name} copy`,
+					isDefault: false,
+					layout: cloneLabelLayout(source.layout),
+				},
+			},
+			LabelTemplate,
+			requestContext,
+		)
+
+		return toLabelTemplateDto(
+			await this.requireCustomTemplate(requestContext, copyId),
+		)
 	}
 
 	public async setDefaultLabelTemplate(
-		request: SettingsHttpRequest,
-		response: express.Response,
-	): Promise<void> {
-		assertSettingsMutableWhileOnline(request)
-		this.assertOwnerOrAdmin(request)
+		requestContext: RequestContext,
+		templateId: string,
+	): Promise<{ templates: LabelTemplateResponse[] }> {
+		this.assertOwnerOrAdmin(requestContext)
 
-		const { tenantId } = request.user ?? {}
-		const templateId = String(request.params.templateId ?? '')
+		const tenantId = this.getTenantId(requestContext)
 
-		if (!tenantId || !templateId) {
+		if (!templateId) {
 			throw new BusinessLogicError(
 				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 				'Missing tenantId or templateId',
@@ -1016,7 +1011,7 @@ export default class SettingController {
 				{ $set: { isDefault: false } },
 			)
 		} else {
-			await this.requireCustomTemplate(tenantId, templateId)
+			await this.requireCustomTemplate(requestContext, templateId)
 			await LabelTemplate.updateMany(
 				{ tenantId },
 				{ $set: { isDefault: false } },
@@ -1045,14 +1040,14 @@ export default class SettingController {
 			}
 		}
 
-		const templates = await this.listCustomTemplates(tenantId)
+		const templates = await this.listCustomTemplates(requestContext)
 		const hasCustomDefault = templates.some(template => template.isDefault)
 
-		response.status(200).json({
+		return {
 			templates: [
 				systemLabelTemplateDto(!hasCustomDefault),
 				...templates.map(toLabelTemplateDto),
 			],
-		})
+		}
 	}
 }

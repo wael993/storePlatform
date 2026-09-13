@@ -1014,6 +1014,7 @@
 			},
 			"noProducts": "لم يتم العثور على منتجات",
 			"printBarcode": "طباعة الباركود",
+			"printBarcodeOffline": "اتصل بالإنترنت لإنشاء باركود.",
 			"editProduct": "تعديل المنتج",
 			"deleteProduct": "حذف المنتج",
 			"deleteProductConfirm": "سيتم حذف هذا المنتج نهائياً. لا يمكن التراجع عن هذا الإجراء.",

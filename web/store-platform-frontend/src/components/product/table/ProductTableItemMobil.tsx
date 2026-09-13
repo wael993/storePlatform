@@ -25,6 +25,7 @@ import { useWarehouseScope } from '../../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
 import { buildRoutePath } from '../../../shared/routes'
+import { displayProductBarcode } from '../../../shared/productBarcode'
 import {
 	compareLanguage,
 	formatNumber,
@@ -207,7 +208,7 @@ const ProductTableMobil = ({
 									<Text sx={styles.titleText}>{t('common.barcode')}</Text>
 									<Skeleton isLoaded={!isLoading}>
 										<Text sx={styles.valueText}>
-											{withNoValueFallback(product.barcode)}
+											{withNoValueFallback(displayProductBarcode(product))}
 										</Text>
 									</Skeleton>
 								</Box>

@@ -352,11 +352,8 @@ export const mappingIsComplete = (mapping: HeaderMapping): boolean =>
 export const mapSourceRows = (
 	rows: SourceRow[],
 	mapping: HeaderMapping,
-	existingBarcodes: Set<string>,
 	matchCatalog: (kind: 'category' | 'supplier', name: string) => CatalogMatch,
 ): MappedImportRow[] => {
-	const seenBarcodes = new Set<string>()
-
 	return rows.map(row => {
 		const name = cell(row, mapping, 'name')
 		const latinName = cell(row, mapping, 'latinName') || undefined
@@ -390,17 +387,6 @@ export const mapSourceRows = (
 		const quantity = nonNegativeOrZero(quantityRaw)
 		const purchasePrice = optionalNonNegative(purchaseRaw)
 		const wholesalePrice = optionalNonNegative(wholesaleRaw)
-
-		let duplicate = false
-
-		if (barcode) {
-			if (existingBarcodes.has(barcode) || seenBarcodes.has(barcode)) {
-				duplicate = true
-				errors.push('Product barcode already exists.')
-			}
-
-			seenBarcodes.add(barcode)
-		}
 
 		let categoryId: string | undefined
 		let supplierId: string | undefined
@@ -439,7 +425,7 @@ export const mapSourceRows = (
 			supplierId,
 			errors,
 			warnings,
-			duplicate,
+			duplicate: false,
 		}
 	})
 }

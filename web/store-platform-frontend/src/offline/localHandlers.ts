@@ -2313,6 +2313,7 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 		'sync/push',
 	])
 	if (unsupported.has(path)) return false
+	if (/^products\/[^/]+\/barcode$/.test(path)) return false
 	if (path.startsWith('buying-invoices/extract')) return false
 	if (path.startsWith('buying-invoices/invoice-ai-usage')) return false
 	if (path.startsWith('buying-invoices/confirm-match')) return false

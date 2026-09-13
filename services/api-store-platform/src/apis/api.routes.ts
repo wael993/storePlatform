@@ -173,6 +173,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/products/:id/barcode`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.generateProductBarcode.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/products/:id`)
 			.get(
 				this.startCalc.bind(this),
@@ -1241,6 +1250,26 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async generateProductBarcode(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.generateProductBarcode(
+				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

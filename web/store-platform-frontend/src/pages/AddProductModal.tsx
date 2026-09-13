@@ -46,6 +46,7 @@ import {
 	buildDisplayCurrencyOptions,
 	resolveDefaultDisplayCurrencyId,
 } from '../components/SellingInvoice/currencyDisplay'
+import { displayProductBarcode } from '../shared/productBarcode'
 import { compareLanguage } from '../shared/utils'
 import i18n from '../i18n'
 
@@ -109,7 +110,7 @@ const parseExpiryDate = (value?: string): Date | undefined => {
 const productToForm = (product: Product): typeof INITIAL_FORM => ({
 	name: product.name ?? '',
 	latinName: product.latinName ?? '',
-	barcode: product.barcode ?? '',
+	barcode: displayProductBarcode(product),
 	internalCode: product.internalCode ?? '',
 	productFactoryCode: product.productFactoryCode ?? '',
 	categoryId: product.categoryId ?? '',
@@ -514,7 +515,7 @@ const AddProductModal = ({
 		name: form.name.trim() || (isEdit ? undefined : form.latinName.trim()),
 		latinName: form.latinName.trim() || undefined,
 		productFactoryCode: form.productFactoryCode.trim() || undefined,
-		barcode: form.barcode.trim(),
+		barcode: form.barcode.trim() || undefined,
 		internalCode: form.internalCode.trim() || undefined,
 		categoryId: form.categoryId.trim() || undefined,
 		brandId: form.brandId.trim() || undefined,

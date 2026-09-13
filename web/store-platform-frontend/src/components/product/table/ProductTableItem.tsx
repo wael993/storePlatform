@@ -21,6 +21,7 @@ import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import { formatDate } from '../../../shared/dateUtils'
+import { displayProductBarcode } from '../../../shared/productBarcode'
 import { formatNumber, withNoValueFallback } from '../../../shared/utils'
 import { useProductInlineEdit } from '../useProductInlineEdit'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
@@ -253,7 +254,7 @@ const ProductTableItem = memo(
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading} width="100%">
 									<EditableCellField
-										value={productData.barcode ?? ''}
+										value={displayProductBarcode(productData)}
 										ariaLabel={t('common.barcode')}
 										onEdit={value => editField('barcode', value)}
 										isEditable={canEditProductBarcode}

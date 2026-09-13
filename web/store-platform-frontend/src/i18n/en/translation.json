@@ -1014,6 +1014,7 @@
 			},
 			"noProducts": "No products found",
 			"printBarcode": "Print barcode",
+			"printBarcodeOffline": "Connect to the internet to generate a barcode.",
 			"editProduct": "Edit Product",
 			"deleteProduct": "Delete product",
 			"deleteProductConfirm": "This product will be permanently deleted. This cannot be undone.",

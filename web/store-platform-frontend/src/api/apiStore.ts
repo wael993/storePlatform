@@ -920,6 +920,22 @@ const getQuery = (
 				)
 			},
 		}),
+		generateProductBarcode: builder.mutation<{ barcode: string }, string>({
+			query: productId => ({
+				url: `products/${productId}/barcode`,
+				method: 'POST',
+			}),
+			async onQueryStarted(productId, { dispatch, queryFulfilled, getState }) {
+				try {
+					const { data } = await queryFulfilled
+					applyOptimisticProductPatch(dispatch, getState, productId, {
+						barcode: data.barcode,
+					})
+				} catch {
+					// keep the list unchanged when generate fails
+				}
+			},
+		}),
 		deleteProduct: builder.mutation<void, string>({
 			query: (productId: string) => {
 				return {
@@ -2304,6 +2320,7 @@ export const {
 	useGetUnitsQuery,
 	useGetSingleProductQuery,
 	useEditProductMutation,
+	useGenerateProductBarcodeMutation,
 	useDeleteProductMutation,
 	usePostProductMutation,
 	useCreateSupplierMutation,

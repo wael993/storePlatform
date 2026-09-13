@@ -150,6 +150,10 @@ import { SEE, SeeId, stripProductSeeFields } from '../shared/seeCatalog'
 import { COLLECTION_NAMES } from '../shared/general'
 import { searchProducts, type SearchableProduct } from '../shared/productSearch'
 import {
+	ensurePrintableProductBarcode,
+	persistableProductBarcode,
+} from '../shared/productBarcode'
+import {
 	assertProductDeletable,
 	deleteProductInventory,
 	findProductDeleteBlocks,
@@ -1718,23 +1722,8 @@ export default class ProductController {
 			)
 		}
 
-		const normalizedBarcode = barcode?.trim()
-
-		if (normalizedBarcode) {
-			const existing = await withTenantScope(
-				Product.findOne({ barcode: normalizedBarcode }),
-				tenantContext.tenantId,
-			).lean()
-
-			if (existing) {
-				throw new BusinessLogicError(
-					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-					'Product barcode already exists in this tenant.',
-				)
-			}
-		}
-
 		const productId = resolveSyncClientId(requestBody.productId)
+		const normalizedBarcode = persistableProductBarcode(productId, barcode)
 
 		const existingById = await withTenantScope(
 			Product.findOne({ productId }).lean(),
@@ -1764,9 +1753,7 @@ export default class ProductController {
 			productId,
 			name,
 			latinName,
-			// note: unique partial index on {tenantId, barcode} matches any non-empty
-			// string, so a shared placeholder would collide on the second product.
-			barcode: normalizedBarcode === '' ? productId : normalizedBarcode,
+			barcode: normalizedBarcode,
 			internalCode: internalCode?.trim(),
 			productFactoryCode: productFactoryCode?.trim(),
 			categoryId,
@@ -1863,24 +1850,12 @@ export default class ProductController {
 			tenantContext.tenantId,
 		)
 
-		await ensureProductPatchSee(requestContext, allowedUpdates, existingProduct)
-
-		if (allowedUpdates.barcode) {
-			const existingWithBarcode = await withTenantScope(
-				Product.findOne({
-					barcode: allowedUpdates.barcode,
-					productId: { $ne: productId },
-				}),
-				tenantContext.tenantId,
-			).lean()
-
-			if (existingWithBarcode) {
-				throw new BusinessLogicError(
-					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-					'Product barcode already exists in this tenant.',
-				)
-			}
+		if (allowedUpdates.barcode !== undefined) {
+			allowedUpdates.barcode =
+				persistableProductBarcode(productId, allowedUpdates.barcode) ?? ''
 		}
+
+		await ensureProductPatchSee(requestContext, allowedUpdates, existingProduct)
 
 		if (allowedUpdates.price) {
 			if (!existingProduct) {
@@ -1910,6 +1885,29 @@ export default class ProductController {
 		await this.invalidateEntityCache('inventory', requestContext)
 
 		return updateResponse
+	}
+
+	public async generateProductBarcode(
+		productId: string,
+		requestContext: RequestContext,
+	) {
+		return ensurePrintableProductBarcode(productId, requestContext, {
+			findProduct: (id, tenantId) =>
+				withTenantScope(Product.findOne({ productId: id }).lean(), tenantId),
+			persistBarcode: async (id, barcode) => {
+				await this.mongoDbClient.updateDocument(
+					{
+						collectionName: COLLECTION_NAMES.PRODUCTS,
+						id,
+					},
+					requestContext,
+					Product,
+					{ barcode },
+				)
+
+				await this.invalidateEntityCache('products', requestContext, id)
+			},
+		})
 	}
 
 	public async deleteProduct(

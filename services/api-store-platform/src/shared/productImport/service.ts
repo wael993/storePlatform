@@ -5,6 +5,7 @@ import {
 	BusinessLogicError,
 } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
+import { persistableProductBarcode } from '../productBarcode'
 import { ensureTenantAccess, getTenantContext } from '../tenant'
 import { COLLECTION_NAMES } from '../general'
 import { withTenantScope } from '../mongodb/tenantScopedModel'
@@ -434,25 +435,6 @@ const rowProductIds = (
 	uuidv5(`${row.fileName}:${row.rowNumber}`, sessionId),
 ]
 
-const foreignBarcodes = async (
-	tenantId: string,
-	sessionProductIds: string[],
-) => {
-	const existing = await withTenantScope(
-		Product.find({ barcode: { $gt: '' } })
-			.select({ barcode: 1, productId: 1 })
-			.lean(),
-		tenantId,
-	)
-	const fromSession = new Set(sessionProductIds)
-
-	return new Set(
-		existing.flatMap(item =>
-			item.barcode && !fromSession.has(item.productId) ? [item.barcode] : [],
-		),
-	)
-}
-
 export const previewProductImport = async (
 	requestContext: RequestContext,
 	sessionId: unknown,
@@ -475,13 +457,9 @@ export const previewProductImport = async (
 	session.mapping = mapping
 	await session.save()
 	const rows = flattenSessionRows(session)
-	const sessionProductIds = rows.flatMap(row =>
-		rowProductIds(session.sessionId, row),
-	)
-	const existingBarcodes = await foreignBarcodes(tenantId, sessionProductIds)
 	const matchCatalog = await catalogMatcher(tenantId)
 	const { mapped, valid, duplicates, invalid } = summarizeRows(
-		mapSourceRows(rows, mapping, existingBarcodes, matchCatalog),
+		mapSourceRows(rows, mapping, matchCatalog),
 	)
 
 	return {
@@ -566,9 +544,8 @@ export const commitProductImport = async (
 	}
 
 	const matchCatalog = await catalogMatcher(tenantId)
-	const existingBarcodes = await foreignBarcodes(tenantId, sessionProductIds)
 	const { valid, duplicates, invalid } = summarizeRows(
-		mapSourceRows(rows, mapping, existingBarcodes, matchCatalog),
+		mapSourceRows(rows, mapping, matchCatalog),
 	)
 	const offset = readBatchOffset(offsetRaw)
 	const limit = readBatchLimit(limitRaw)
@@ -615,7 +592,7 @@ export const commitProductImport = async (
 				productId,
 				name: row.name,
 				latinName: row.latinName,
-				barcode: row.barcode?.trim() || productId,
+				barcode: persistableProductBarcode(productId, row.barcode),
 				internalCode: row.internalCode?.trim(),
 				productFactoryCode: row.productFactoryCode?.trim(),
 				categoryId: row.categoryId,

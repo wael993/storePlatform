@@ -1014,6 +1014,7 @@
 			},
 			"noProducts": "Keine Produkte gefunden",
 			"printBarcode": "Barcode drucken",
+			"printBarcodeOffline": "Stellen Sie eine Internetverbindung her, um einen Barcode zu erzeugen.",
 			"editProduct": "Produkt bearbeiten",
 			"deleteProduct": "Produkt löschen",
 			"deleteProductConfirm": "Dieses Produkt wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",

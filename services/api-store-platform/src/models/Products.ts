@@ -131,14 +131,5 @@ tenantScopedSchema(ProductSchema)
 ProductSchema.index({ tenantId: 1, productId: 1 }, { unique: true })
 ProductSchema.index({ tenantId: 1, name: 1 })
 ProductSchema.index({ tenantId: 1, status: 1, name: 1 })
-ProductSchema.index(
-	{ tenantId: 1, barcode: 1 },
-	{
-		unique: true,
-		partialFilterExpression: {
-			barcode: { $exists: true, $type: 'string', $gt: '' },
-		},
-	},
-)
 
 export const Product = mongoose.model<IProduct>('Products', ProductSchema)
