@@ -384,26 +384,46 @@ const AddProductModal = ({
 	useEffect(() => {
 		if (!isOpen || product) return
 
-		setForm(prev => ({
-			...prev,
-			warehouseId:
+		setForm(prev => {
+			const warehouseId =
 				operationalWarehouseId ??
-				(prev.warehouseId || warehouseOptions[0]?.value || ''),
-			unitId: prev.unitId || unitOptions[0]?.value || '',
-			name: initialName || prev.name,
-			barcode: barcode || prev.barcode,
-			price: {
-				...prev.price,
-				purchasePrice:
-					initialPurchasePrice != null
-						? String(initialPurchasePrice)
-						: prev.price.purchasePrice,
-				currency:
-					prev.price.currency ||
-					currencyOptions[0]?.value ||
-					defaultCurrencyCode,
-			},
-		}))
+				(prev.warehouseId || warehouseOptions[0]?.value || '')
+			const unitId = prev.unitId || unitOptions[0]?.value || ''
+			const name = initialName || prev.name
+			const nextBarcode = barcode || prev.barcode
+			const purchasePrice =
+				initialPurchasePrice != null
+					? String(initialPurchasePrice)
+					: prev.price.purchasePrice
+			const currency =
+				prev.price.currency ||
+				currencyOptions[0]?.value ||
+				defaultCurrencyCode
+
+			if (
+				prev.warehouseId === warehouseId &&
+				prev.unitId === unitId &&
+				prev.name === name &&
+				prev.barcode === nextBarcode &&
+				prev.price.purchasePrice === purchasePrice &&
+				prev.price.currency === currency
+			) {
+				return prev
+			}
+
+			return {
+				...prev,
+				warehouseId,
+				unitId,
+				name,
+				barcode: nextBarcode,
+				price: {
+					...prev.price,
+					purchasePrice,
+					currency,
+				},
+			}
+		})
 	}, [
 		isOpen,
 		product,
