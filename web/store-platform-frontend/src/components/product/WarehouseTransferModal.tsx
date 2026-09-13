@@ -181,9 +181,7 @@ const WarehouseTransferModal = ({
 		useWarehouseScope()
 	const [toWarehouseId, setToWarehouseId] = useState('')
 	const [quantities, setQuantities] = useState<Record<string, string>>({})
-	const [sourceQtyById, setSourceQtyById] = useState<Record<string, number>>(
-		{},
-	)
+	const [sourceQtyById, setSourceQtyById] = useState<Record<string, number>>({})
 	const [postTransfer, { isLoading }] = usePostWarehouseTransferMutation()
 	const productIdsKey = products.map(p => p.productId).join(',')
 
