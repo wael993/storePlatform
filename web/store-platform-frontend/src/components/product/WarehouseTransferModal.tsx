@@ -20,11 +20,11 @@ import {
 	Tr,
 } from '@chakra-ui/react'
 import {
+	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useState,
-	type Dispatch,
-	type SetStateAction,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -36,6 +36,7 @@ import useCustomToast from '../common/CustomToast'
 import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { compareLanguage, formatNumber } from '../../shared/utils'
+import { isTransferQtyValid, parseTransferQty } from './warehouseTransferQty'
 
 interface WarehouseTransferModalProps {
 	products: Product[]
@@ -80,14 +81,14 @@ const ProductStockRow = ({
 	quantityText,
 	onQuantityChange,
 	toWarehouseId,
-	setLineOk,
+	onAvailable,
 }: {
 	product: Product
 	warehouseId: string | null
 	quantityText: string
 	onQuantityChange: (value: string) => void
 	toWarehouseId: string
-	setLineOk: Dispatch<SetStateAction<Record<string, boolean>>>
+	onAvailable: (productId: string, available: number) => void
 }) => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -109,37 +110,27 @@ const ProductStockRow = ({
 	}, [inventoryByWarehouse])
 
 	const sourceRow = warehouseId ? qtyByWarehouse.get(warehouseId) : undefined
-	// note: product.inventory is display-only until by-product query settles (avoid false canConfirm).
+	const listAvailable = Number(
+		product.inventory?.availableQuantity ?? product.inventory?.quantity ?? 0,
+	)
+	// List stock is good enough to confirm; by-product corrects after it settles.
 	const sourceAvailable = stockReady
 		? (sourceRow?.available ?? 0)
-		: Number(
-				product.inventory?.availableQuantity ??
-					product.inventory?.quantity ??
-					0,
-			)
+		: listAvailable
 	const destinationQty = toWarehouseId
 		? (qtyByWarehouse.get(toWarehouseId)?.quantity ?? 0)
 		: 0
-	const quantity = Number.parseInt(quantityText, 10)
-	const gatedAvailable = stockReady ? (sourceRow?.available ?? 0) : -1
-	const quantityValid =
-		stockReady &&
-		Number.isInteger(quantity) &&
-		quantity >= 1 &&
-		quantity <= gatedAvailable
+	const quantity = parseTransferQty(quantityText)
+	const quantityValid = isTransferQtyValid(quantity, sourceAvailable)
 	const oversold =
 		stockReady &&
 		Number.isInteger(quantity) &&
 		quantity >= 1 &&
-		quantity > gatedAvailable
+		quantity > sourceAvailable
 
-	useEffect(() => {
-		setLineOk(prev =>
-			prev[product.productId] === quantityValid
-				? prev
-				: { ...prev, [product.productId]: quantityValid },
-		)
-	}, [setLineOk, product.productId, quantityValid])
+	useLayoutEffect(() => {
+		onAvailable(product.productId, sourceAvailable)
+	}, [onAvailable, product.productId, sourceAvailable])
 
 	return (
 		<Tr>
@@ -194,18 +185,25 @@ const WarehouseTransferModal = ({
 		useWarehouseScope()
 	const [toWarehouseId, setToWarehouseId] = useState('')
 	const [quantities, setQuantities] = useState<Record<string, string>>({})
-	const [lineOk, setLineOk] = useState<Record<string, boolean>>({})
+	const [availableById, setAvailableById] = useState<Record<string, number>>({})
 	const [postTransfer, { isLoading }] = usePostWarehouseTransferMutation()
 	const productIdsKey = products.map(p => p.productId).join(',')
+
+	const onAvailable = useCallback((productId: string, available: number) => {
+		setAvailableById(prev =>
+			prev[productId] === available
+				? prev
+				: { ...prev, [productId]: available },
+		)
+	}, [])
 
 	useEffect(() => {
 		if (!isOpen) return
 		setToWarehouseId('')
-		setLineOk({})
 		setQuantities(
 			Object.fromEntries(products.map(product => [product.productId, '1'])),
 		)
-		// note: key off productIdsKey so a new array ref from parent doesn't reset the form
+		// note: do not clear availableById here — that runs after the row reports and leaves confirm stuck. key off productIdsKey so a new array ref from parent doesn't reset the form
 	}, [isOpen, productIdsKey])
 
 	const fromWarehouse = warehouses.find(
@@ -224,10 +222,20 @@ const WarehouseTransferModal = ({
 
 	const items = products.map(product => ({
 		productId: product.productId,
-		quantity: Number.parseInt(quantities[product.productId] ?? '1', 10),
+		quantity: parseTransferQty(quantities[product.productId] ?? '1'),
 	}))
+
 	const stockOk =
-		products.length > 0 && products.every(p => lineOk[p.productId] === true)
+		products.length > 0 &&
+		products.every(product => {
+			const available = availableById[product.productId]
+			if (available === undefined) return false
+			return isTransferQtyValid(
+				parseTransferQty(quantities[product.productId] ?? '1'),
+				available,
+			)
+		})
+
 	const canConfirm =
 		isOperational &&
 		Boolean(operationalWarehouseId) &&
@@ -339,7 +347,7 @@ const WarehouseTransferModal = ({
 												}))
 											}
 											toWarehouseId={toWarehouseId}
-											setLineOk={setLineOk}
+											onAvailable={onAvailable}
 										/>
 									))}
 								</Tbody>

@@ -71,8 +71,7 @@ const ProductTableActionBar = ({
 		canEditStockQuantity &&
 		isOperational &&
 		hasMultipleAccessible &&
-		// A single product moves from its own row action; the bar is for grouped moves.
-		selectedActivities.length >= 2
+		selectedActivities.length >= 1
 
 	const handleDelete = async () => {
 		try {
