@@ -24,6 +24,10 @@ const clerkCtx = {
 } as unknown as RequestContext
 
 assert.deepEqual(parseWarehouseScopeHeader('w1, w2'), ['w1', 'w2'])
+assert.deepEqual(parseWarehouseScopeHeader(encodeURIComponent('المستودع')), [
+	'المستودع',
+])
+
 assert.equal(parseWarehouseScopeHeader(undefined), undefined)
 
 assert.equal(resolveWarehouseScope(ownerCtx, undefined), null)

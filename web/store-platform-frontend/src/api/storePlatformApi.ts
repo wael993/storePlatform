@@ -22,6 +22,7 @@ import { getWorkMode } from '../offline/workMode'
 import {
 	getWarehouseScopeIds,
 	hydrateWarehouseScopeForUser,
+	toWarehouseScopeHeader,
 	WAREHOUSE_SCOPE_HEADER,
 } from '../shared/warehouseScope'
 
@@ -122,7 +123,10 @@ const baseQuery = fetchBaseQuery({
 		headers.set('x-work-mode', getWorkMode())
 		const warehouseScope = getWarehouseScopeIds()
 		if (warehouseScope.length > 0) {
-			headers.set(WAREHOUSE_SCOPE_HEADER, warehouseScope.join(','))
+			headers.set(
+				WAREHOUSE_SCOPE_HEADER,
+				toWarehouseScopeHeader(warehouseScope),
+			)
 		}
 		return headers
 	},

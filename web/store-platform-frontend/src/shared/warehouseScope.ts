@@ -6,6 +6,10 @@
 
 export const WAREHOUSE_SCOPE_HEADER = 'x-warehouse-scope'
 
+/** Header values must be ISO-8859-1; production warehouseIds can be Arabic names. */
+export const toWarehouseScopeHeader = (ids: string[]): string =>
+	ids.map(id => encodeURIComponent(id)).join(',')
+
 type Listener = (ids: string[]) => void
 
 let selectedWarehouseIds: string[] = []

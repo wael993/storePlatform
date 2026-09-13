@@ -15,6 +15,7 @@ import { getSyncMeta, offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
 import type { LocalCatalogProduct } from './types'
 import {
 	getWarehouseScopeIds,
+	toWarehouseScopeHeader,
 	WAREHOUSE_SCOPE_HEADER,
 } from '../shared/warehouseScope'
 
@@ -195,7 +196,7 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 			}
 
 			if (warehouseScope.length > 0) {
-				headers[WAREHOUSE_SCOPE_HEADER] = scopeKey
+				headers[WAREHOUSE_SCOPE_HEADER] = toWarehouseScopeHeader(warehouseScope)
 			}
 
 			const response = await fetch(

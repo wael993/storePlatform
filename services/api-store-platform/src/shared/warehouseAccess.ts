@@ -41,7 +41,15 @@ export const parseWarehouseScopeHeader = (
 		...new Set(
 			value
 				.split(',')
-				.map(part => part.trim())
+				.map(part => {
+					const trimmed = part.trim()
+
+					try {
+						return decodeURIComponent(trimmed)
+					} catch {
+						return trimmed
+					}
+				})
 				.filter(Boolean),
 		),
 	]
