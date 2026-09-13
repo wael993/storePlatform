@@ -103,6 +103,27 @@ export class StorePlatformOfflineDB extends Dexie {
 			syncMeta: 'key',
 			outbox: 'id, clientMutationId, status, createdAt, entity',
 		})
+
+		// Rows cached before warehouse scoping carry no warehouseId. Forget when we
+		// last synced so the next online session re-bootstraps them with one; the rows
+		// themselves stay so an offline user keeps working in the meantime.
+		this.version(5)
+			.stores({})
+			.upgrade(async transaction => {
+				const table = transaction.table('syncMeta')
+				const keys = await table.toCollection().primaryKeys()
+				const stale = keys.filter(
+					(key): key is string =>
+						typeof key === 'string' &&
+						(key === 'lastSyncedAt' ||
+							key.startsWith('catalogLastSyncedAt') ||
+							key.startsWith('catalogScope')),
+				)
+
+				if (stale.length > 0) {
+					await table.bulkDelete(stale)
+				}
+			})
 	}
 }
 
@@ -125,6 +146,7 @@ export const SYNC_META_KEYS = {
 	workMode: 'workMode',
 	workModePreference: 'workModePreference',
 	catalogLastSyncedAt: 'catalogLastSyncedAt',
+	catalogScope: 'catalogScope',
 	productNotifications: 'productNotifications',
 	productNotificationDigest: 'productNotificationDigest',
 } as const

@@ -319,10 +319,7 @@ export const Dropdown = ({
 			<Menu
 				isOpen={isOpen}
 				autoSelect={false}
-				onClose={() => {
-					onClose()
-					// onPopoverClose?.()
-				}}
+				onClose={onClose}
 				offset={[0, 10]}
 				matchWidth={true}
 				isLazy={true}

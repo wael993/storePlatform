@@ -61,7 +61,7 @@ const PrintBarcodeModal = ({
 	const printTimeoutRef = useRef<number | null>(null)
 	const previewRef = useRef<HTMLDivElement | null>(null)
 
-	const template = pickDefaultTemplate(templatesData?.templates ?? [])
+	const template = pickDefaultTemplate(templatesData?.data ?? [])
 	const values = resolveLabelValues({
 		product,
 		barcode,

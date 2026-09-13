@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 import { config } from '../config/config'
 
 const STALE_INDEXES: Record<string, string[]> = {
-	products: ['id_1', 'tenantId_1_id_1'],
+	products: ['id_1', 'tenantId_1_id_1', 'tenantId_1_barcode_1'],
 	customers: ['tenantId_1_internalCode_1'],
 	// suppliers: ['tenantId_1_supplierId_1'],
 	// expenses: ['tenantId_1_expenseId_1'],

@@ -50,7 +50,7 @@ export interface IBuyingInvoice extends Document {
 	notes?: string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
-	warehouseId?: string
+	warehouseId: string
 	issuedAt: Date
 	createdBy: {
 		_id: string
@@ -171,6 +171,7 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 		},
 		warehouseId: {
 			type: String,
+			required: [true, 'warehouseId is required'],
 			trim: true,
 		},
 		issuedAt: {
@@ -183,6 +184,7 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 
 tenantScopedSchema(BuyingInvoiceSchema)
 BuyingInvoiceSchema.index({ tenantId: 1, invoiceNumber: 1 })
+BuyingInvoiceSchema.index({ tenantId: 1, warehouseId: 1 })
 
 export const BuyingInvoice = mongoose.model<IBuyingInvoice>(
 	'BuyingInvoice',

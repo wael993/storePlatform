@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import { onAuthLogout } from '../../offline/offlineTenantAccess'
+import { clearWarehouseScope } from '../../shared/warehouseScope'
 
 interface AuthState {
 	user: Omit<LoginAPI, 'accessToken'> | null
@@ -55,6 +56,7 @@ const authSlice = createSlice({
 		},
 		logout: state => {
 			onAuthLogout()
+			clearWarehouseScope()
 			state.user = null
 			state.accessToken = null
 			state.isAuthenticated = false

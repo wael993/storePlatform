@@ -21,9 +21,11 @@ import NotificationCircle from '../../NotificationCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
 import { PRODUCT_STATE_CONFIG } from '../../list/shared/constants'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
+import { useWarehouseScope } from '../../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
 import { buildRoutePath } from '../../../shared/routes'
+import { displayProductBarcode } from '../../../shared/productBarcode'
 import {
 	compareLanguage,
 	formatNumber,
@@ -35,6 +37,8 @@ import PrintBarcodeModal from '../PrintBarcodeModal'
 import ConfirmationDialog from '../../ConfirmationDialog'
 import { useDeleteProductMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
+import { useUser } from '../../../shared/hooks/useUser'
+import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
 
 const styles = {
 	listItemGridItem: {
@@ -103,6 +107,7 @@ interface ProductTableMobilProps {
 	isLoading: boolean
 	onSelect: (id: string) => void
 	onEditProduct: (product: Product) => void
+	onMovementProduct: (product: Product) => void
 	selectedProducts: string[]
 	isOpen: boolean
 	onToggle: () => void
@@ -113,6 +118,7 @@ const ProductTableMobil = ({
 	isLoading,
 	onSelect,
 	onEditProduct,
+	onMovementProduct,
 	selectedProducts,
 	isOpen,
 	onToggle,
@@ -132,8 +138,14 @@ const ProductTableMobil = ({
 		seeLocationShelf,
 		canDeleteProduct,
 		canEditProduct,
+		canEditStockQuantity,
 		canPrintBarcode,
 	} = useAllowedActions()
+	const { isOperational, hasMultipleAccessible } = useWarehouseScope()
+	const { user } = useUser()
+	const { isOnline } = useOfflineSync(user?.tenantId)
+	const canMoveProduct =
+		canEditStockQuantity && isOperational && hasMultipleAccessible && isOnline
 	const { canSee } = useSee()
 	const canSeeCategories = canSee(SEE.categories)
 	const {
@@ -196,7 +208,7 @@ const ProductTableMobil = ({
 									<Text sx={styles.titleText}>{t('common.barcode')}</Text>
 									<Skeleton isLoaded={!isLoading}>
 										<Text sx={styles.valueText}>
-											{withNoValueFallback(product.barcode)}
+											{withNoValueFallback(displayProductBarcode(product))}
 										</Text>
 									</Skeleton>
 								</Box>
@@ -405,7 +417,10 @@ const ProductTableMobil = ({
 								</NotificationCircle>
 							</Skeleton>
 							<Skeleton isLoaded={!isLoading}>
-								{(canEditProduct || canPrintBarcode || canDeleteProduct) && (
+								{(canEditProduct ||
+									canPrintBarcode ||
+									canMoveProduct ||
+									canDeleteProduct) && (
 									<OptionsPopover
 										onEdit={
 											canEditProduct ? () => onEditProduct(product) : undefined
@@ -418,6 +433,11 @@ const ProductTableMobil = ({
 												: undefined
 										}
 										isPrintLoading={isEnsuringBarcode}
+										onMovement={
+											canMoveProduct
+												? () => onMovementProduct(product)
+												: undefined
+										}
 										onDelete={
 											canDeleteProduct
 												? () => {

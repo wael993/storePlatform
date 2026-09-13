@@ -53,6 +53,7 @@ export interface ApiSellingInvoice {
 	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts?: InvoiceCurrencyAmount[]
 	notes?: string
+	warehouseId?: string
 	issuedAt?: string
 	createdAt?: string
 	invoiceDiscount?: number
@@ -141,6 +142,7 @@ export const mapApiInvoiceToDraft = (
 		customerId: invoice.customerId || 'walk-in',
 		customerName: invoice.customerName ?? fallbackCustomerName,
 		paymentType: invoice.paymentType ?? InvoicePaymentType.CASH,
+		warehouseId: invoice.warehouseId ?? '',
 		lineItems: (invoice.items ?? []).map(item => ({
 			id: generateId(),
 			productId: item.productId,
@@ -244,6 +246,7 @@ export const buildInvoiceRequestBody = (
 		paymentStatus,
 		currencyAmounts,
 		notes: draft.note || undefined,
+		warehouseId: draft.warehouseId,
 		issuedAt,
 		invoiceDiscount: draft.useInvoiceDiscount ? draft.invoiceDiscount : 0,
 		invoiceDiscountIsPercent: draft.useInvoiceDiscount
@@ -258,13 +261,19 @@ export const mapInventoryByProductId = (
 		quantity?: number
 		availableQuantity?: number
 	}>,
-) =>
-	new Map(
-		inventoryItems.map(item => [
+) => {
+	const map = new Map<string, number>()
+
+	for (const item of inventoryItems) {
+		const prev = map.get(item.productId) ?? 0
+		map.set(
 			item.productId,
-			Number(item.availableQuantity ?? item.quantity ?? 0),
-		]),
-	)
+			prev + Number(item.availableQuantity ?? item.quantity ?? 0),
+		)
+	}
+
+	return map
+}
 
 export const getAvailableStock = (
 	inventoryByProductId: Map<string, number>,

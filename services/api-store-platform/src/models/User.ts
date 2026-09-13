@@ -12,6 +12,7 @@ export interface IUser extends Document {
 	role: UserRole
 	tokenVersion: number
 	avatarColorId: number
+	warehouseIds?: string[]
 	createdBy: {
 		_id: string
 		displayName: string
@@ -85,6 +86,10 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
 		avatarColorId: {
 			type: Number,
 			trim: false,
+		},
+		warehouseIds: {
+			type: [String],
+			default: undefined,
 		},
 	},
 	{ timestamps: true },

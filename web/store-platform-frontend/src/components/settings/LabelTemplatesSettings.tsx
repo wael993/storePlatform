@@ -36,7 +36,8 @@ const LabelTemplatesSettings = () => {
 	)
 	const { data: invoiceSettings } = useGetInvoiceSettingsQuery()
 	const { data: currencySettings } = useGetCurrencySettingsQuery()
-	const { data } = useGetLabelTemplatesQuery()
+	const { data: templates } = useGetLabelTemplatesQuery()
+
 	const [createTemplate, { isLoading: isCreating }] =
 		useCreateLabelTemplateMutation()
 	const [updateTemplate, { isLoading: isUpdating }] =
@@ -46,7 +47,6 @@ const LabelTemplatesSettings = () => {
 	const [setDefaultTemplate] = useSetDefaultLabelTemplateMutation()
 	const [editor, setEditor] = useState<LabelTemplate | 'create' | null>(null)
 
-	const templates = data?.templates ?? []
 	const sampleCurrency =
 		currencySettings?.primaryCurrency?.internalCode?.trim() ||
 		currencySettings?.primaryCurrency?.name?.trim() ||
@@ -84,7 +84,7 @@ const LabelTemplatesSettings = () => {
 				{t('components.labelTemplates.description')}
 			</Text>
 			<VStack align="stretch" spacing={3}>
-				{templates.map(template => (
+				{templates?.data.map(template => (
 					<Flex
 						key={template.templateId}
 						justify="space-between"

@@ -32,7 +32,7 @@ const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.CURRENCIES]: 'currencyId',
 	[COLLECTION_NAMES.UNITS]: 'unitId',
 	[COLLECTION_NAMES.PARTNERS]: 'partnerId',
-	[COLLECTION_NAMES.BRANDS]: '_id',
+	[COLLECTION_NAMES.BRANDS]: 'brandId',
 	[COLLECTION_NAMES.SHELVES]: 'shelfId',
 	[COLLECTION_NAMES.WAREHOUSES]: 'warehouseId',
 	[COLLECTION_NAMES.STOCK_MOVINGS]: 'stockMovingId',
@@ -40,6 +40,7 @@ const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.USERS]: '_id',
 	[COLLECTION_NAMES.TENANTS]: '_id',
 	[COLLECTION_NAMES.EMPLOYEES]: 'employeeId',
+	[COLLECTION_NAMES.LABEL_TEMPLATES]: 'templateId',
 }
 
 export const omitIdentityFields = (payload: Record<string, unknown>) => {

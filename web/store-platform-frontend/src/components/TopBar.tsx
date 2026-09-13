@@ -45,7 +45,9 @@ import AddQuickNewEntryModal from './AddQuickNewEntryModal.tsx'
 import { config } from '../config'
 import { useOfflineSync } from '../shared/hooks/useOfflineSync'
 import { useUser } from '../shared/hooks/useUser'
+import { useWarehouseScope } from '../shared/hooks/useWarehouseScope'
 import { AsDragGripIcon } from '../shared/icons/DragGrip'
+import { StoreIcon } from '../shared/icons/Store'
 import {
 	useGetProductNotificationsQuery,
 	useGetRenewalRequestsQuery,
@@ -96,13 +98,13 @@ const styles = {
 	},
 	notificationBadge: {
 		position: 'absolute',
-		top: '-0.25rem',
-		right: '-0.25rem',
+		top: '-0.15rem',
+		right: '0rem',
 		minW: '1rem',
 		h: '1rem',
 		px: '0.2rem',
 		borderRadius: 'full',
-		bg: '#F6655B',
+		bg: '#2663eb',
 		color: 'white',
 		fontSize: '0.625rem',
 		fontWeight: 700,
@@ -207,10 +209,21 @@ const TopBar = ({
 		onClose: onCloseAddQuickModal,
 	} = useDisclosure()
 	const { user } = useUser()
+	const {
+		warehouses,
+		selectedWarehouseIds,
+		setSelectedWarehouseIds,
+		isOperational,
+	} = useWarehouseScope()
+	const warehouseOptions = warehouses.map(warehouse => ({
+		value: warehouse.warehouseId,
+		label: warehouse.name,
+	}))
 	const { seeNotifications } = useAllowedActions(RoutePaths.PRODUCTS)
 	const digestModal = useDisclosure()
 	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
 	const notificationPopover = useDisclosure()
+	const warehousePopover = useDisclosure()
 	const skipSubscription = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
 	const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN
 	const { data: subscriptionData } = useGetSubscriptionQuery(undefined, {
@@ -381,6 +394,111 @@ const TopBar = ({
 				</Flex>
 
 				<Flex align="center" gap={2}>
+					{warehouseOptions.length > 1 && (
+						<Box position="relative">
+							<Popover
+								placement="bottom-end"
+								isLazy
+								isOpen={warehousePopover.isOpen}
+								onOpen={warehousePopover.onOpen}
+								onClose={warehousePopover.onClose}
+							>
+								<PopoverTrigger>
+									<IconButton
+										aria-label={t('components.topBar.warehouseScope')}
+										icon={<StoreIcon boxSize={5} />}
+										sx={styles.iconButton}
+									/>
+								</PopoverTrigger>
+								<PopoverContent width="22rem" maxW="90vw">
+									<Flex
+										align="center"
+										justify="space-between"
+										sx={styles.notificationHeader}
+									>
+										<Flex align="center" gap={2} minW={0}>
+											<Text fontWeight={700} noOfLines={1}>
+												{t('components.topBar.warehouseScope')}
+											</Text>
+											{selectedWarehouseIds.length > 0 && (
+												<Box sx={styles.notificationPanelBadge}>
+													{selectedWarehouseIds.length}
+												</Box>
+											)}
+										</Flex>
+										<IconButton
+											aria-label={t('components.topBar.closeNotifications')}
+											icon={<CloseIcon boxSize={2.5} />}
+											size="sm"
+											variant="ghost"
+											onClick={warehousePopover.onClose}
+										/>
+									</Flex>
+									<Divider />
+									{!isOperational && warehouseOptions.length > 1 && (
+										<Text
+											px={4}
+											py={2}
+											fontSize="xs"
+											fontWeight={600}
+											color="gray.500"
+											borderBottom="1px solid #ECECEC"
+										>
+											{t('components.topBar.warehouseScopeCombined')}
+										</Text>
+									)}
+									<PopoverBody p={0} maxH="20rem" overflowY="auto">
+										{warehouseOptions.map(option => {
+											const isSelected = selectedWarehouseIds.includes(
+												option.value,
+											)
+											return (
+												<Flex
+													key={option.value}
+													as="button"
+													type="button"
+													align="center"
+													justify="space-between"
+													gap={3}
+													w="full"
+													sx={styles.notificationRow}
+													onClick={() => {
+														if (isSelected) {
+															if (selectedWarehouseIds.length <= 1) return
+															setSelectedWarehouseIds(
+																selectedWarehouseIds.filter(
+																	id => id !== option.value,
+																),
+															)
+															return
+														}
+														setSelectedWarehouseIds([
+															...selectedWarehouseIds,
+															option.value,
+														])
+													}}
+												>
+													<Text noOfLines={1}>{option.label}</Text>
+													{isSelected ? (
+														<CheckIcon boxSize={3} color="#1A365D" />
+													) : (
+														<Box boxSize={3} />
+													)}
+												</Flex>
+											)
+										})}
+									</PopoverBody>
+								</PopoverContent>
+							</Popover>
+							{selectedWarehouseIds.length > 1 && (
+								<Box sx={styles.notificationBadge} pointerEvents="none">
+									{selectedWarehouseIds.length > 9
+										? '9+'
+										: selectedWarehouseIds.length}
+								</Box>
+							)}
+						</Box>
+					)}
 					{showBell && (
 						<Box position="relative">
 							<Popover

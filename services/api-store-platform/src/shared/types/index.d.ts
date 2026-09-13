@@ -17,6 +17,8 @@ interface RequestContext {
 	user?: AuthorizedUser
 	allowedFields: string[]
 	see?: string[]
+	/** Working warehouse scope from `x-warehouse-scope` (ACL ∩ selection). `null` = unrestricted. */
+	warehouseScope?: string[] | null
 }
 
 interface HttpError {
@@ -191,7 +193,7 @@ export type InvoiceRequestBody = {
 	}>
 	notes?: string
 	printAfterPayment?: boolean
-	warehouseId?: string
+	warehouseId: string
 	issuedAt?: Date | string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
@@ -278,7 +280,7 @@ export type BuyingInvoiceRequestBody = {
 		discount: number
 	}>
 	notes?: string
-	warehouseId?: string
+	warehouseId: string
 	issuedAt?: Date | string
 	invoiceDiscount?: number
 	invoiceDiscountIsPercent?: boolean
@@ -380,6 +382,7 @@ export type CategoryRequestBody = {
 	parentCategoryId?: string
 }
 export type BrandRequestBody = {
+	brandId?: string
 	name: string
 	description?: string
 }
@@ -389,9 +392,12 @@ export type ShelfRequestBody = {
 	description?: string
 }
 export type WarehouseRequestBody = {
-	warehouseId: string
+	warehouseId?: string
 	name: string
 	code?: string
+	address?: string
+	status?: 'active' | 'inactive'
+	description?: string
 }
 export type InventoryRequestBody = {
 	productId: string
@@ -418,6 +424,7 @@ export type UpdateTenantUserRequestBody = {
 	firstName?: string
 	lastName?: string
 	role?: TenantRole
+	warehouseIds?: string[]
 	// isInternal?: boolean
 }
 export type AddTenantRequestBody = {
@@ -471,6 +478,7 @@ export type CreateShelfResponse = {
 }
 export type CreateWarehouseResponse = {
 	_id: string
+	warehouseId?: string
 }
 export type CategoryAPI = {
 	categoryId: string
@@ -501,6 +509,7 @@ export type TenantUserSummary = {
 	role: UserRole
 	firstName: string
 	lastName: string
+	warehouseIds: string[]
 }
 export type AddTenantResponse = {
 	tenantId: string
@@ -610,6 +619,7 @@ interface SupplierDocument {
 interface BrandDocument {
 	tenantId: string
 	_id?: string
+	brandId?: string
 	name: string
 	description?: string
 	createdBy?: UserAPIFormat
@@ -648,7 +658,7 @@ interface WarehouseDocument {
 export interface InventoryDocument {
 	inventoryId: string
 	productId: string
-	warehouseId?: string
+	warehouseId: string
 	shelfId?: string
 	quantity?: number
 	averageCost?: number // weighted moving average cost, updated on each purchase

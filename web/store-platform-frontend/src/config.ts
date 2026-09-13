@@ -12,7 +12,7 @@ const resolveApiEndpoint = (): string => {
 		)
 	}
 
-	// Same-origin path proxied to Render via vercel.json (first-party cookies on mobile).
+	// Same-origin path proxied to Render via vercel.ts rewrite (first-party cookies).
 	return '/api/data'
 }
 

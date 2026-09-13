@@ -12,6 +12,7 @@ import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
 import { getTenantContext } from '../../shared/tenant'
+import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CreatePartnerResponse,
 	PartnerDocument,
@@ -37,16 +38,6 @@ export default class PartnerController {
 
 	private escapeRegex(value: string): string {
 		return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-	}
-
-	private resolveSyncClientId(clientId?: string): string {
-		const trimmed = clientId?.trim()
-
-		if (trimmed && /^[0-9a-f-]{36}$/i.test(trimmed)) {
-			return trimmed
-		}
-
-		return uuidv4()
 	}
 
 	public async getPartners(
@@ -179,7 +170,7 @@ export default class PartnerController {
 			)
 		}
 
-		const partnerId = this.resolveSyncClientId(requestBody.partnerId)
+		const partnerId = resolveSyncClientId(requestBody.partnerId)
 
 		const existingById = await withTenantScope(
 			Partner.findOne({ partnerId }).lean(),

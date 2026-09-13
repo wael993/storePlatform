@@ -17,6 +17,7 @@ export interface IDailyAction extends Document {
 		| 'PAYMENT_ENTRY'
 		| 'RECEIPT_ENTRY'
 		| 'EXPENSE_ENTRY'
+	warehouseId: string
 	productId?: string
 	invoiceNumber?: string
 	invoiceDate: Date
@@ -71,6 +72,11 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 				'EXPENSE_ENTRY',
 			],
 			required: [true, 'entryType is required'],
+		},
+		warehouseId: {
+			type: String,
+			required: [true, 'warehouseId is required'],
+			trim: true,
 		},
 		productId: {
 			type: String,
@@ -165,6 +171,7 @@ tenantScopedSchema(DailyActionSchema)
 
 // Create indexes
 DailyActionSchema.index({ tenantId: 1, entryType: 1 })
+DailyActionSchema.index({ tenantId: 1, warehouseId: 1, invoiceDate: -1 })
 DailyActionSchema.index({ tenantId: 1, createdAt: -1 })
 
 export const DailyAction = mongoose.model<IDailyAction>(

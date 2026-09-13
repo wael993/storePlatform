@@ -50,6 +50,7 @@ export interface ApiBuyingInvoice {
 	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts?: InvoiceCurrencyAmount[]
 	notes?: string
+	warehouseId?: string
 	issuedAt?: string
 	createdAt?: string
 	invoiceDiscount?: number
@@ -105,6 +106,7 @@ export const mapApiBuyingInvoiceToDraft = (
 		supplierInvoiceNumber: invoice.supplierInvoiceNumber ?? '',
 		sourceSupplierName: invoice.sourceSupplierName,
 		paymentType: invoice.paymentType ?? InvoicePaymentType.CASH,
+		warehouseId: invoice.warehouseId ?? '',
 		lineItems: (invoice.items ?? []).map(item => ({
 			id: generateId(),
 			productId: item.productId,
@@ -182,6 +184,7 @@ export const buildBuyingInvoiceRequestBody = (
 		paymentStatus,
 		currencyAmounts,
 		notes: draft.note || undefined,
+		warehouseId: draft.warehouseId,
 		issuedAt,
 		invoiceDiscount: draft.useInvoiceDiscount ? draft.invoiceDiscount : 0,
 		invoiceDiscountIsPercent: draft.useInvoiceDiscount

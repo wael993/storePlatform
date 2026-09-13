@@ -47,11 +47,13 @@ export const useBuyingInvoiceDraftSessions = ({
 		(options?: {
 			paymentType?: BuyingInvoicePaymentType
 			productSearch?: string
+			warehouseId?: string
 		}) => {
 			const session = createBuyingInvoiceDraftSession(salesPerson, {
 				paymentType: options?.paymentType,
 				invoiceNumber: nextInvoiceNumber,
 				productSearch: options?.productSearch,
+				warehouseId: options?.warehouseId,
 			})
 
 			setState(current => ({

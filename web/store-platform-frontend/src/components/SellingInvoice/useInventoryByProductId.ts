@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useGetInventoryQuery, type InventoryItem } from '../../api/apiStore'
 import { offlineDb } from '../../offline/db'
 import { useUser } from '../../shared/hooks/useUser'
+import { getWarehouseScopeIds } from '../../shared/warehouseScope'
 import { mapInventoryByProductId } from './invoiceApiMappers'
 
 export const useInventoryByProductId = () => {
@@ -20,10 +21,19 @@ export const useInventoryByProductId = () => {
 		}
 
 		let cancelled = false
+		const scope = getWarehouseScopeIds()
 
 		void offlineDb.inventory.toArray().then(items => {
 			if (cancelled || items.length === 0) return
-			setOfflineInventory(items)
+			const scoped =
+				scope.length === 0
+					? []
+					: items.filter(
+							item =>
+								Boolean(item.warehouseId) &&
+								scope.includes(String(item.warehouseId)),
+						)
+			setOfflineInventory(scoped as InventoryItem[])
 		})
 
 		return () => {

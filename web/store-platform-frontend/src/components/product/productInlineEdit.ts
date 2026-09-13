@@ -12,6 +12,7 @@ export type ProductInlineField =
 type ProductPatchBody = Partial<Omit<Product, 'productId'>>
 
 type InventoryPatchBody = {
+	readonly warehouseId: string
 	readonly quantity?: number
 	readonly minQuantity?: number
 }
@@ -67,14 +68,17 @@ const buildPriceBody = (
 	},
 })
 
-const requireInventoryId = (product: Product): string => {
-	const inventoryId = product.inventory?.inventoryId
+const requireInventoryTarget = (
+	product: Product,
+): { inventoryId: string; warehouseId: string } => {
+	const inventoryId = product.inventory?.inventoryId?.trim()
+	const warehouseId = product.inventory?.warehouseId?.trim()
 
-	if (!inventoryId) {
+	if (!inventoryId || !warehouseId) {
 		throw new Error('NO_INVENTORY')
 	}
 
-	return inventoryId
+	return { inventoryId, warehouseId }
 }
 
 export const PRODUCT_INLINE_FIELD_CONFIG = {
@@ -118,24 +122,30 @@ export const PRODUCT_INLINE_FIELD_CONFIG = {
 	quantity: {
 		errorKey: 'productModal.quantityRequired',
 		buildPatch: (product, raw) => {
-			requireInventoryId(product)
+			const { warehouseId } = requireInventoryTarget(product)
 
 			return {
 				persist: 'inventory',
 				productId: product.productId,
-				body: { quantity: parseInlineNumber(raw) },
+				body: {
+					warehouseId,
+					quantity: parseInlineNumber(raw),
+				},
 			}
 		},
 	},
 	minQuantity: {
 		errorKey: 'productModal.minQuantityInvalid',
 		buildPatch: (product, raw) => {
-			requireInventoryId(product)
+			const { warehouseId } = requireInventoryTarget(product)
 
 			return {
 				persist: 'inventory',
 				productId: product.productId,
-				body: { minQuantity: parseInlineNumber(raw) },
+				body: {
+					warehouseId,
+					minQuantity: parseInlineNumber(raw),
+				},
 			}
 		},
 	},

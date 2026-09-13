@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useDisclosure } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
-import { useEditProductMutation } from '../../api/apiStore'
+import { useGenerateProductBarcodeMutation } from '../../api/apiStore'
 import { enqueueProductWrite } from '../../api/optimisticData'
+import { getIsOnline } from '../../offline/connectivity'
+import { displayProductBarcode } from '../../shared/productBarcode'
 import useCustomToast from '../common/CustomToast'
 
 export const usePrintProductBarcode = (product: Product) => {
@@ -10,10 +12,15 @@ export const usePrintProductBarcode = (product: Product) => {
 	const showToastMessage = useCustomToast()
 	const preview = useDisclosure()
 	const [barcode, setBarcode] = useState('')
-	const [editProduct, { isLoading }] = useEditProductMutation()
+	const [generateBarcode, { isLoading }] = useGenerateProductBarcodeMutation()
+	const inFlight = useRef(false)
 
 	const printBarcode = async () => {
-		const existing = product.barcode?.trim()
+		if (inFlight.current || isLoading) {
+			return
+		}
+
+		const existing = displayProductBarcode(product)
 
 		if (existing) {
 			setBarcode(existing)
@@ -21,14 +28,21 @@ export const usePrintProductBarcode = (product: Product) => {
 			return
 		}
 
+		if (!getIsOnline()) {
+			showToastMessage({
+				status: 'error',
+				description: t('components.product.printBarcodeOffline'),
+			})
+			return
+		}
+
+		inFlight.current = true
+
 		try {
-			await enqueueProductWrite(product.productId, () =>
-				editProduct({
-					id: product.productId,
-					body: { barcode: product.productId },
-				}).unwrap(),
+			const result = await enqueueProductWrite(product.productId, () =>
+				generateBarcode(product.productId).unwrap(),
 			)
-			setBarcode(product.productId)
+			setBarcode(result.barcode)
 			preview.onOpen()
 		} catch {
 			showToastMessage({
@@ -37,6 +51,8 @@ export const usePrintProductBarcode = (product: Product) => {
 					'components.activityDetail.topSection.failUpdateMessage',
 				),
 			})
+		} finally {
+			inFlight.current = false
 		}
 	}
 

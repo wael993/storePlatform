@@ -7,7 +7,10 @@ import logger from '../../shared/logger/logger'
 import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { ERROR_CODES } from '../../shared/errorCodes'
-import SettingController from './api.controller'
+import SettingController, {
+	assertSettingsMutableWhileOnline,
+} from './api.controller'
+import { buildRequestContext } from '../../shared/buildRequestContext'
 
 type SettingHttpRequest = express.Request & {
 	user?: RequestContext['user'] & {
@@ -87,6 +90,10 @@ export default class SettingRoutes {
 		const duration = Date.now() - this.startTime
 
 		logger.info(`(end-to-end): ${duration}ms`)
+	}
+
+	private getRequestContext(request: SettingHttpRequest): RequestContext {
+		return buildRequestContext(request)
 	}
 
 	public setRoutes(app: express.Application): void {
@@ -268,8 +275,13 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.getLabelTemplates(request, response)
+			const resp =
+				await this.settingController.getLabelTemplates(requestContext)
+
+			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {
@@ -281,8 +293,16 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.createLabelTemplate(request, response)
+			assertSettingsMutableWhileOnline(request)
+			const resp = await this.settingController.createLabelTemplate(
+				requestContext,
+				request.body,
+			)
+
+			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {
@@ -294,8 +314,17 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.patchLabelTemplate(request, response)
+			assertSettingsMutableWhileOnline(request)
+			const resp = await this.settingController.patchLabelTemplate(
+				requestContext,
+				String(request.params.templateId ?? ''),
+				request.body,
+			)
+
+			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {
@@ -307,8 +336,16 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.deleteLabelTemplate(request, response)
+			assertSettingsMutableWhileOnline(request)
+			await this.settingController.deleteLabelTemplate(
+				requestContext,
+				String(request.params.templateId ?? ''),
+			)
+
+			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {
@@ -320,8 +357,16 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.duplicateLabelTemplate(request, response)
+			assertSettingsMutableWhileOnline(request)
+			const resp = await this.settingController.duplicateLabelTemplate(
+				requestContext,
+				String(request.params.templateId ?? ''),
+			)
+
+			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {
@@ -333,8 +378,16 @@ export default class SettingRoutes {
 		request: SettingHttpRequest,
 		response: express.Response,
 	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
 		try {
-			await this.settingController.setDefaultLabelTemplate(request, response)
+			assertSettingsMutableWhileOnline(request)
+			const resp = await this.settingController.setDefaultLabelTemplate(
+				requestContext,
+				String(request.params.templateId ?? ''),
+			)
+
+			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
 		} finally {

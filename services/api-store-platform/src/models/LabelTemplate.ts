@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
+import { LabelTemplateResponse } from '../shared/types/api'
 
 export const SYSTEM_LABEL_TEMPLATE_ID = 'system'
 
@@ -90,14 +91,6 @@ export const SYSTEM_LABEL_LAYOUT: LabelLayout = {
 	],
 }
 
-export interface LabelTemplateDto {
-	templateId: string
-	name: string
-	isDefault: boolean
-	isProtected: boolean
-	layout: LabelLayout
-}
-
 export interface ILabelTemplate extends Document {
 	tenantId: string
 	templateId: string
@@ -153,7 +146,7 @@ const LabelTemplateSchema = new Schema<ILabelTemplate>(
 )
 
 tenantScopedSchema(LabelTemplateSchema)
-
+LabelTemplateSchema.path('tenantId').index(false)
 LabelTemplateSchema.index({ tenantId: 1, templateId: 1 }, { unique: true })
 LabelTemplateSchema.index(
 	{ tenantId: 1 },
@@ -257,7 +250,7 @@ export const validateLabelLayout = (layout: unknown): LabelLayout => {
 
 export const systemLabelTemplateDto = (
 	isDefault: boolean,
-): LabelTemplateDto => ({
+): LabelTemplateResponse => ({
 	templateId: SYSTEM_LABEL_TEMPLATE_ID,
 	name: 'System default',
 	isDefault,
@@ -270,7 +263,7 @@ export const toLabelTemplateDto = (
 		ILabelTemplate,
 		'templateId' | 'name' | 'isDefault' | 'layout'
 	>,
-): LabelTemplateDto => ({
+): LabelTemplateResponse => ({
 	templateId: template.templateId,
 	name: template.name,
 	isDefault: Boolean(template.isDefault),

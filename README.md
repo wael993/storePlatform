@@ -10,19 +10,19 @@ cp .env.example .env
 docker compose up --build
 ```
 
-| Service | URL |
-|---------|-----|
+| Service  | URL                   |
+| -------- | --------------------- |
 | Frontend | http://localhost:3000 |
-| API | http://localhost:3001 |
+| API      | http://localhost:3001 |
 
 The frontend nginx container proxies `/api/data` to the API (same pattern as Vercel → Render).
 
 ### Environment (Docker)
 
-| File | Used by | Purpose |
-|------|---------|---------|
-| `.env` (repo root) | `docker compose` → `api` | **Same vars as** `services/api-store-platform/.env` (Atlas Mongo, JWT, Redis, AI) |
-| `services/api-store-platform/.env` | `npm run dev` only | Not read by compose — keep root `.env` in sync |
+| File                               | Used by                  | Purpose                                                                           |
+| ---------------------------------- | ------------------------ | --------------------------------------------------------------------------------- |
+| `.env` (repo root)                 | `docker compose` → `api` | **Same vars as** `services/api-store-platform/.env` (Atlas Mongo, JWT, Redis, AI) |
+| `services/api-store-platform/.env` | `npm run dev` only       | Not read by compose — keep root `.env` in sync                                    |
 
 The API container uses whatever `BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING` is in root `.env` — typically **Atlas**, same as local dev.
 
@@ -43,10 +43,10 @@ With **Atlas** (shared DB): use your normal super-admin / tenant logins — all 
 
 With **isolated Mongo** (ci overlay), first start auto-seeds:
 
-| Account | Email | Password |
-|---------|-------|----------|
+| Account     | Email                         | Password               |
+| ----------- | ----------------------------- | ---------------------- |
 | Super admin | `SUPER_ADMIN_EMAIL` in `.env` | `SUPER_ADMIN_PASSWORD` |
-| Demo tenant | `user@app.com` | `W123-456z` |
+| Demo tenant | `user@app.com`                | `W123-456z`            |
 
 Reset isolated DB only: `docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v`
 
@@ -71,6 +71,19 @@ cd services/api-store-platform && cp .env.example .env && npm ci && npm run dev
 
 If you previously used `src/.env`, merge into `services/api-store-platform/.env`.
 
+How warehouse ACL, working scope, operational vs combined mode, transfers, and dashboard filtering work: [docs/warehouse.md](docs/warehouse.md).
+
+### Warehouse scope migration
+
+Before deploying inventory/invoice/daily-action `warehouseId` required + unique `(tenantId, warehouseId, productId)`:
+
+```bash
+cd services/api-store-platform && npm run migrate:inventory-warehouse-scope
+```
+
+Run this **before** rolling out the API that enforces required `warehouseId`.
+Daily-action cash rows that cannot be matched to an invoice number stay on the oldest warehouse.
+
 ---
 
 ### TO_DO
@@ -79,3 +92,5 @@ If you previously used `src/.env`, merge into `services/api-store-platform/.env`
 - user get popup about new updates (releases) (by click on 'understand' not show again)
 - user can bulk update in product table
 - use Optimistic
+
+### Hot Fix

@@ -8,11 +8,14 @@ import {
 	HStack,
 	Flex,
 	useDisclosure,
+	Tooltip,
 } from '@chakra-ui/react'
 import { Outlet } from 'react-router-dom'
 import {
-	useGetProductsQuery,
+	useGetCurrencySettingsQuery,
 	useGetFilterValuesQuery,
+	useGetProductsQuery,
+	useGetUnitsQuery,
 } from '../../api/apiStore'
 import { useSettings } from '../../shared/context/SettingsContext'
 import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
@@ -31,6 +34,7 @@ import Filters from '../filters/Filters'
 import { FilterSelectOption, ProductFilterValues } from '../filters/FilterModal'
 import { PRODUCT_STATE_CONFIG } from '../list/shared/constants'
 import AddProductModal from '../../pages/AddProductModal'
+import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 
 const EMPTY_PRODUCT_FILTERS: ProductFilterValues = {
 	searchText: '',
@@ -90,6 +94,10 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	const { canAddProduct, seeSupplier } = useAllowedActions()
 	const { canSee } = useSee()
 	const { productsPerPage } = useSettings()
+	const { isOperational, warehouses, isWarehousesReady } = useWarehouseScope()
+	const { data: currencySettings, isSuccess: isCurrenciesReady } =
+		useGetCurrencySettingsQuery()
+	const { data: units = [], isSuccess: isUnitsReady } = useGetUnitsQuery({})
 
 	const [productFilters, setProductFilters] = useState<ProductFilterValues>(
 		EMPTY_PRODUCT_FILTERS,
@@ -154,6 +162,16 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 	}
 
 	const { t } = useTranslation()
+	const addProductDisabledReason =
+		isCurrenciesReady && !currencySettings?.primaryCurrency
+			? t('productModal.addRequiresCurrency')
+			: isUnitsReady && units.length === 0
+				? t('productModal.addRequiresUnit')
+				: isWarehousesReady && warehouses.length === 0
+					? t('productModal.addRequiresWarehouse')
+					: !isOperational
+						? t('components.topBar.warehouseScopePostingBlocked')
+						: undefined
 	const productColumnCatalog = useProductColumnCatalog()
 
 	return (
@@ -181,16 +199,24 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 						{t('components.pageHeaders.products')}
 					</Heading>
 					{canAddProduct && (
-						<Button
-							leftIcon={<AddSquareIcon />}
-							onClick={openAdd}
-							sx={styles.addProductButton}
-							variant="ghost"
+						<Tooltip
+							label={addProductDisabledReason}
+							isDisabled={!addProductDisabledReason}
 						>
-							<Text sx={styles.addProductButtonText}>
-								{t('common.addProduct')}
-							</Text>
-						</Button>
+							<Box as="span" display="inline-block">
+								<Button
+									leftIcon={<AddSquareIcon />}
+									onClick={openAdd}
+									sx={styles.addProductButton}
+									variant="ghost"
+									isDisabled={Boolean(addProductDisabledReason)}
+								>
+									<Text sx={styles.addProductButtonText}>
+										{t('common.addProduct')}
+									</Text>
+								</Button>
+							</Box>
+						</Tooltip>
 					)}
 				</HStack>
 

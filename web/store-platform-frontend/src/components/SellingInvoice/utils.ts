@@ -51,7 +51,9 @@ export const sortInvoices = (
 }
 
 const getRowSortNumber = (row: InvoiceTableRow) =>
-	row.kind === 'entry' ? row.sortKey : row.invoiceNumber
+	row.kind === 'entry' || row.kind === 'transfer'
+		? row.sortKey
+		: row.invoiceNumber
 
 export const sortTableRows = (
 	rows: InvoiceTableRow[],

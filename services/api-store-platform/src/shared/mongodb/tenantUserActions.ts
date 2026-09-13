@@ -1,5 +1,6 @@
 import User, { IUser } from '../../models/User'
 import RefreshToken from '../../models/RefreshToken'
+import { Warehouse } from '../../models/Warehaus'
 import { RequestContext, UpdateTenantUserRequestBody } from '../types'
 import {
 	assertAssignableTenantRole,
@@ -13,6 +14,7 @@ import {
 } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import { COLLECTION_NAMES } from '../general'
+import { isUuidV4 } from '../uuid'
 
 export const updateTenantUser = async (
 	userId: string,
@@ -39,9 +41,6 @@ export const updateTenantUser = async (
 		updates['user.lastName'] = requestBody.lastName
 	}
 
-	// if (typeof requestBody.isInternal === 'boolean') {
-	// 	updates['user.isInternal'] = requestBody.isInternal
-	// }
 	if (requestBody.role) {
 		assertAssignableTenantRole(requestBody.role)
 		if (requestBody.role === 'owner' && requestContext.role !== 'owner') {
@@ -51,7 +50,66 @@ export const updateTenantUser = async (
 			)
 		}
 
+		const targetUser = (await withTenantScope(
+			User.findOne({ userId }).lean(),
+			tenantContext.tenantId,
+		)) as Pick<IUser, 'userId' | 'role'> | null
+
+		if (
+			targetUser?.role === 'owner' &&
+			targetUser.userId === requestContext.user?.userId &&
+			requestBody.role !== 'owner'
+		) {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Owner cannot change their own role.',
+			)
+		}
+
 		updates.role = requestBody.role
+	}
+
+	if (requestBody.warehouseIds !== undefined) {
+		if (requestContext.role !== 'owner') {
+			throw new AuthorizationError(
+				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+				'Only owner can assign warehouse access.',
+			)
+		}
+
+		const uniqueIds = [
+			...new Set(
+				requestBody.warehouseIds
+					.map(id => id?.trim())
+					.filter((id): id is string => Boolean(id)),
+			),
+		]
+
+		if (uniqueIds.some(id => !isUuidV4(id))) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				'warehouseIds must be UUID v4 values.',
+			)
+		}
+
+		if (uniqueIds.length > 0) {
+			const warehouses = await withTenantScope(
+				Warehouse.find({ warehouseId: { $in: uniqueIds } }).lean(),
+				tenantContext.tenantId,
+			)
+			const found = new Set(
+				warehouses.map(warehouse => warehouse.warehouseId as string),
+			)
+
+			if (uniqueIds.some(id => !found.has(id))) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+					'One or more warehouseIds are invalid for this tenant.',
+				)
+			}
+		}
+
+		updates.warehouseIds = uniqueIds
 	}
 
 	if (requestBody.firstName || requestBody.lastName) {
@@ -110,10 +168,20 @@ export const deleteTenantUser = async (
 		)
 	}
 
-	if (String(targetUser._id) === requestContext.userId) {
-		throw new BusinessLogicError(
+	if (
+		targetUser.userId === requestContext.user?.userId ||
+		targetUser.userId === requestContext.userId
+	) {
+		throw new AuthorizationError(
 			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
 			'You cannot delete your own account.',
+		)
+	}
+
+	if (targetUser.role === 'owner') {
+		throw new AuthorizationError(
+			ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+			'Owner accounts cannot be deleted.',
 		)
 	}
 

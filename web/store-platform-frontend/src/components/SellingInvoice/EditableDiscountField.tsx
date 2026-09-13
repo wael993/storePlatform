@@ -150,6 +150,7 @@ const EditableDiscountField = ({
 	const fieldContent = !isEditing ? (
 		<Text
 			{...sharedTextStyles}
+			minWidth="0rem"
 			cursor={isEditable ? 'pointer' : 'default'}
 			onClick={e => {
 				e.stopPropagation()
@@ -182,6 +183,8 @@ const EditableDiscountField = ({
 				inputMode="decimal"
 				cursor="text"
 				padding="0.3rem"
+				textAlign="left"
+
 				{...sharedTextStyles}
 			/>
 		</HStack>

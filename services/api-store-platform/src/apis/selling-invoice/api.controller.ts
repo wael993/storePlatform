@@ -28,6 +28,12 @@ import {
 	ensureSeeIds,
 	ensureInvoiceEditFieldSee,
 } from '../../shared/seePermissions'
+import {
+	ensureWarehouseAccess,
+	filterByWarehouseAccess,
+	requireOperationalWarehouseId,
+	requireWarehouseId,
+} from '../../shared/warehouseAccess'
 import { getTenantContext } from '../../shared/tenant'
 import {
 	CustomerInvoiceSummary,
@@ -64,13 +70,14 @@ export type SellingInvoiceCollaborator = {
 	getInventoryByProductId(
 		requestContext: RequestContext,
 		productId: string,
+		warehouseId: string,
 		session?: mongoose.ClientSession,
 	): Promise<InventoryDocument | null>
 	atomicAdjustInventoryQuantity(
 		requestContext: RequestContext,
 		params: {
 			productId: string
-			warehouseId?: string
+			warehouseId: string
 			quantityDelta: number
 		},
 		session: mongoose.ClientSession,
@@ -117,6 +124,7 @@ type StoredSellingInvoice = Record<string, unknown> & {
 	invoiceNumber: string
 	status?: InvoiceRequestBody['status']
 	items?: InvoiceRequestBody['items']
+	warehouseId?: string
 }
 
 const toDate = (value: unknown): Date | null => {
@@ -609,12 +617,16 @@ export default class SellingInvoiceController {
 	private async validateSaleInventory(
 		requestContext: RequestContext,
 		items: NonNullable<InvoiceRequestBody['items']>,
+		warehouseId: string,
 		session?: mongoose.ClientSession,
 	) {
+		const scopedWarehouseId = requireWarehouseId(warehouseId)
+
 		for (const item of items) {
 			const inventory = await this.ops.getInventoryByProductId(
 				requestContext,
 				item.productId,
+				scopedWarehouseId,
 				session,
 			)
 
@@ -683,20 +695,23 @@ export default class SellingInvoiceController {
 		invoiceNumber: string,
 		items: NonNullable<InvoiceRequestBody['items']>,
 		session: mongoose.ClientSession,
+		warehouseId: string,
 	): Promise<string[]> {
+		const scopedWarehouseId = requireWarehouseId(warehouseId)
 		const touchedInventoryIds: string[] = []
 
 		for (const item of items) {
 			const inventory = await this.ops.getInventoryByProductId(
 				requestContext,
 				item.productId,
+				scopedWarehouseId,
 				session,
 			)
 
 			if (!inventory) {
 				throw new BusinessLogicError(
 					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-					`No inventory record found for product ${item.name}.`,
+					`No inventory record found for productss ${item.name}.`,
 				)
 			}
 
@@ -711,7 +726,7 @@ export default class SellingInvoiceController {
 				requestContext,
 				{
 					productId: item.productId,
-					warehouseId: inventory.warehouseId,
+					warehouseId: scopedWarehouseId,
 					quantityDelta: -item.quantity,
 				},
 				session,
@@ -723,7 +738,7 @@ export default class SellingInvoiceController {
 					data: {
 						stockMovingId: uuidv4(),
 						productId: item.productId,
-						warehouseId: inventory.warehouseId,
+						warehouseId: scopedWarehouseId,
 						type: 'sale',
 						quantity: item.quantity,
 						unitCost: costBasis,
@@ -753,13 +768,16 @@ export default class SellingInvoiceController {
 		invoiceNumber: string,
 		items: NonNullable<InvoiceRequestBody['items']>,
 		session: mongoose.ClientSession,
+		warehouseId: string,
 	): Promise<string[]> {
+		const scopedWarehouseId = requireWarehouseId(warehouseId)
 		const touchedInventoryIds: string[] = []
 
 		for (const item of items) {
 			const inventory = await this.ops.getInventoryByProductId(
 				requestContext,
 				item.productId,
+				scopedWarehouseId,
 				session,
 			)
 
@@ -774,7 +792,7 @@ export default class SellingInvoiceController {
 				requestContext,
 				{
 					productId: item.productId,
-					warehouseId: inventory?.warehouseId,
+					warehouseId: scopedWarehouseId,
 					quantityDelta: item.quantity,
 				},
 				session,
@@ -786,7 +804,7 @@ export default class SellingInvoiceController {
 					data: {
 						stockMovingId: uuidv4(),
 						productId: item.productId,
-						warehouseId: inventory?.warehouseId,
+						warehouseId: scopedWarehouseId,
 						type: 'return_in',
 						quantity: item.quantity,
 						unitCost: costBasis,
@@ -835,7 +853,12 @@ export default class SellingInvoiceController {
 
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
-		const filteredInvoices = invoices.filter(
+		const warehouseScopedInvoices = filterByWarehouseAccess(
+			requestContext,
+			invoices as Array<Record<string, unknown> & { warehouseId?: string }>,
+		)
+
+		const filteredInvoices = warehouseScopedInvoices.filter(
 			(invoice: Record<string, unknown>) => {
 				if (
 					filters.customerId &&
@@ -881,10 +904,10 @@ export default class SellingInvoiceController {
 		)
 
 		const scopedInvoices = filters.customerId
-			? invoices.filter(
+			? warehouseScopedInvoices.filter(
 					invoice => String(invoice.customerId ?? '') === filters.customerId,
 				)
-			: invoices
+			: warehouseScopedInvoices
 
 		const canSeeSummary = (requestContext.see || []).includes(
 			SEE.sellingInvoicesSummary,
@@ -950,6 +973,8 @@ export default class SellingInvoiceController {
 		)
 
 		if (cachedInvoice) {
+			ensureWarehouseAccess(requestContext, cachedInvoice.warehouseId)
+
 			return cachedInvoice
 		}
 
@@ -966,6 +991,8 @@ export default class SellingInvoiceController {
 			return null
 		}
 
+		ensureWarehouseAccess(requestContext, invoice.warehouseId)
+
 		await redisCache.setJson(cacheKey, invoice)
 
 		return invoice
@@ -976,6 +1003,17 @@ export default class SellingInvoiceController {
 		requestContext: RequestContext,
 	) {
 		await ensureSeeIds(requestContext, [SEE.sellingInvoicesSellingButton])
+		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
+		const warehouseId = requireWarehouseId(requestBody.warehouseId)
+
+		if (warehouseId !== operationalWarehouseId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Invoice warehouseId must match the selected operational warehouse.',
+			)
+		}
+
+		ensureWarehouseAccess(requestContext, warehouseId)
 		if (requestBody.clientMutationId) {
 			const processed = await this.ops.getProcessedSyncMutation(
 				requestContext,
@@ -1063,7 +1101,11 @@ export default class SellingInvoiceController {
 		}
 
 		if (this.shouldAdjustInventoryForInvoice(status)) {
-			await this.validateSaleInventory(requestContext, invoiceItems)
+			await this.validateSaleInventory(
+				requestContext,
+				invoiceItems,
+				warehouseId,
+			)
 		}
 
 		const { createInvoiceResponse, touchedInventoryIds, invoiceNumber } =
@@ -1096,7 +1138,7 @@ export default class SellingInvoiceController {
 							invoiceDiscountIsPercent:
 								requestBody.invoiceDiscountIsPercent ?? false,
 							printAfterPayment: requestBody.printAfterPayment ?? false,
-							warehouseId: requestBody.warehouseId,
+							warehouseId,
 							issuedAt: requestBody.issuedAt
 								? new Date(requestBody.issuedAt)
 								: new Date(),
@@ -1114,6 +1156,7 @@ export default class SellingInvoiceController {
 							allocatedNumber,
 							invoiceItems,
 							session,
+							warehouseId,
 						)
 					: []
 
@@ -1191,6 +1234,23 @@ export default class SellingInvoiceController {
 
 		const existingInvoice = await this.getInvoice(invoiceId, requestContext)
 
+		if (
+			existingInvoice?.warehouseId &&
+			requestBody.warehouseId &&
+			requestBody.warehouseId !== existingInvoice.warehouseId
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Invoice warehouseId cannot be changed.',
+			)
+		}
+
+		const warehouseId = requireWarehouseId(
+			existingInvoice?.warehouseId ?? requestBody.warehouseId,
+		)
+
+		ensureWarehouseAccess(requestContext, warehouseId)
+
 		await ensureInvoiceEditFieldSee(
 			requestContext,
 			existingInvoice,
@@ -1225,6 +1285,10 @@ export default class SellingInvoiceController {
 			)
 		}
 
+		const reverseWarehouseId = requireWarehouseId(
+			existingInvoice?.warehouseId ?? warehouseId,
+		)
+
 		const { updateResponse, touchedInventoryIds } =
 			await this.ops.runInTransaction(async session => {
 				let inventoryIds: string[] = []
@@ -1236,6 +1300,7 @@ export default class SellingInvoiceController {
 						existingInvoice.invoiceNumber,
 						asInvoiceLines(existingInvoice.items),
 						session,
+						reverseWarehouseId,
 					)
 				}
 
@@ -1243,6 +1308,7 @@ export default class SellingInvoiceController {
 					await this.validateSaleInventory(
 						requestContext,
 						itemsToApply,
+						warehouseId,
 						session,
 					)
 
@@ -1254,6 +1320,7 @@ export default class SellingInvoiceController {
 							existingInvoice.invoiceNumber,
 							itemsToApply,
 							session,
+							warehouseId,
 						)),
 					]
 				}
@@ -1297,6 +1364,13 @@ export default class SellingInvoiceController {
 			this.shouldAdjustInventoryForInvoice(existingInvoice.status),
 		)
 
+		if (existingInvoice) {
+			ensureWarehouseAccess(
+				requestContext,
+				requireWarehouseId(existingInvoice.warehouseId),
+			)
+		}
+
 		const touchedInventoryIds =
 			wasStockAffecting && existingInvoice
 				? await this.ops.runInTransaction(async session =>
@@ -1306,6 +1380,7 @@ export default class SellingInvoiceController {
 							existingInvoice.invoiceNumber,
 							asInvoiceLines(existingInvoice.items),
 							session,
+							requireWarehouseId(existingInvoice.warehouseId),
 						),
 					)
 				: []

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,7 +16,6 @@ import {
 	FormLabel,
 	Heading,
 	Input,
-	Select,
 	SimpleGrid,
 	Spinner,
 	Stack,
@@ -37,10 +36,12 @@ import { BreadCrumbItem, UserRole } from '../shared/globalEnums'
 import {
 	useDeleteTenantUserMutation,
 	useGetTenantUsersQuery,
+	useGetWarehousesQuery,
 	useInviteTenantUserMutation,
 	useUpdateTenantUserMutation,
 } from '../api/apiStore'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import { Dropdown } from '../components/dropdown/Dropdown'
 import RoleAccessPanel from '../components/users/RoleAccessPanel'
 import { generateBreadcrumbs } from '../shared/routes'
 import { useTranslation } from 'react-i18next'
@@ -72,7 +73,7 @@ type InviteUserFormData = z.infer<ReturnType<typeof createInviteUserSchema>>
 
 const UsersLogIn = () => {
 	const { t } = useTranslation()
-	const { isOwner } = useUser()
+	const { isOwner, userId: currentUserId } = useUser()
 	const { canSee } = useSee()
 	const breadCrumbItems = generateBreadcrumbs()
 	const inviteUserSchema = useMemo(() => createInviteUserSchema(t), [t])
@@ -81,6 +82,9 @@ const UsersLogIn = () => {
 		isLoading,
 		isFetching,
 	} = useGetTenantUsersQuery(undefined, {
+		skip: !canSee(SEE.usersList) || !isOwner,
+	})
+	const { data: warehouses = [] } = useGetWarehousesQuery(undefined, {
 		skip: !canSee(SEE.usersList) || !isOwner,
 	})
 	const [inviteTenantUser, { isLoading: isInviting }] =
@@ -92,17 +96,31 @@ const UsersLogIn = () => {
 
 	const [feedback, setFeedback] = useState<string>('')
 	const [tempPassword, setTempPassword] = useState<string>('')
+	const warehousePatchChain = useRef(Promise.resolve())
+
+	const warehouseOptions = useMemo(
+		() =>
+			warehouses.map(warehouse => ({
+				value: warehouse.warehouseId,
+				label: warehouse.name,
+			})),
+		[warehouses],
+	)
 
 	const {
 		register,
 		handleSubmit,
 		reset,
+		setValue,
+		watch,
 		formState: { errors, isValid },
 	} = useForm<InviteUserFormData>({
 		resolver: zodResolver(inviteUserSchema),
 		mode: 'onChange',
 		defaultValues: { role: UserRole.EMPLOYEE },
 	})
+
+	const inviteRole = watch('role')
 
 	const isBusy =
 		isLoading || isFetching || isInviting || isUpdating || isDeleting
@@ -114,6 +132,15 @@ const UsersLogIn = () => {
 	const roleOptions: TenantUserRole[] = isOwner
 		? [...TENANT_USER_ROLES]
 		: TENANT_USER_ROLES.filter(role => role !== UserRole.OWNER)
+
+	const roleDropdownOptions = useMemo(
+		() =>
+			roleOptions.map(roleValue => ({
+				value: roleValue,
+				label: t(`users.roles.${roleValue}`),
+			})),
+		[roleOptions, t],
+	)
 
 	const showInvite = canSee(SEE.usersInvite)
 	const showUsers = canSee(SEE.usersList)
@@ -148,6 +175,28 @@ const UsersLogIn = () => {
 			const err = error as { data?: { message?: string } }
 			setFeedback(err?.data?.message || t('users.roleUpdateFailed'))
 		}
+	}
+
+	const onWarehouseAccessChange = (userId: string, warehouseIds: string[]) => {
+		warehousePatchChain.current = warehousePatchChain.current
+			.catch(() => undefined)
+			.then(async () => {
+				setFeedback('')
+				setTempPassword('')
+
+				try {
+					await updateTenantUser({
+						userId,
+						body: { warehouseIds },
+					}).unwrap()
+					setFeedback(t('users.warehouseAccessUpdateSuccess'))
+				} catch (error: unknown) {
+					const err = error as { data?: { message?: string } }
+					setFeedback(
+						err?.data?.message || t('users.warehouseAccessUpdateFailed'),
+					)
+				}
+			})
 	}
 
 	const onDeleteUser = async (userId: string) => {
@@ -235,13 +284,23 @@ const UsersLogIn = () => {
 
 											<FormControl isRequired>
 												<FormLabel>{t('users.role')}</FormLabel>
-												<Select {...register('role')}>
-													{roleOptions.map(roleValue => (
-														<option key={roleValue} value={roleValue}>
-															{t(`users.roles.${roleValue}`)}
-														</option>
-													))}
-												</Select>
+												<Dropdown
+													placeholder={t('users.role')}
+													dropDownOptions={roleDropdownOptions}
+													selectedValues={[inviteRole]}
+													onSelect={(values: string[]) => {
+														const nextRole = values[0] as TenantUserRole
+														if (!nextRole) return
+														setValue('role', nextRole, {
+															shouldValidate: true,
+															shouldDirty: true,
+														})
+													}}
+													isSingle
+													isSearchable={false}
+													showClearOptions={false}
+													usePortal
+												/>
 											</FormControl>
 										</SimpleGrid>
 
@@ -269,6 +328,7 @@ const UsersLogIn = () => {
 												<Th>{t('users.name')}</Th>
 												<Th>{t('login.email')}</Th>
 												<Th>{t('users.role')}</Th>
+												<Th minW="220px">{t('users.warehouseAccess')}</Th>
 												<Th textAlign="right">{t('tenants.actions')}</Th>
 											</Tr>
 										</Thead>
@@ -279,32 +339,50 @@ const UsersLogIn = () => {
 														{user.firstName} {user.lastName}
 													</Td>
 													<Td>{user.email}</Td>
-													<Td>
-														<Select
-															size="sm"
-															value={user.role}
-															onChange={event =>
-																onRoleChange(
-																	user.userId,
-																	event.target.value as TenantUserRole,
-																)
+													<Td minW="160px">
+														<Dropdown
+															placeholder={t('users.role')}
+															dropDownOptions={roleDropdownOptions}
+															selectedValues={[user.role]}
+															onSelect={(values: string[]) => {
+																const nextRole = values[0] as TenantUserRole
+																if (!nextRole || nextRole === user.role) return
+																onRoleChange(user.userId, nextRole)
+															}}
+															isSingle
+															isSearchable={false}
+															showClearOptions={false}
+															usePortal
+															disabled={
+																user.role === UserRole.OWNER &&
+																user.userId === currentUserId
 															}
-														>
-															{roleOptions.map(roleValue => (
-																<option
-																	key={`${user._id}-${roleValue}`}
-																	value={roleValue}
-																>
-																	{t(`users.roles.${roleValue}`)}
-																</option>
-															))}
-														</Select>
+														/>
+													</Td>
+													<Td>
+														<Dropdown
+															placeholder={t(
+																'users.warehouseAccessPlaceholder',
+															)}
+															dropDownOptions={warehouseOptions}
+															selectedValues={user.warehouseIds ?? []}
+															onSelect={(values: string[]) =>
+																onWarehouseAccessChange(user.userId, values)
+															}
+															disabled={user.role === UserRole.OWNER}
+															showClearOptions
+															usePortal
+														/>
 													</Td>
 													<Td textAlign="right">
 														<Button
 															size="sm"
 															colorScheme="red"
 															variant="outline"
+															isDisabled={
+																user.role === UserRole.OWNER ||
+																user.userId === currentUserId
+															}
 															onClick={() => onDeleteUser(user.userId)}
 														>
 															{t('common.delete')}

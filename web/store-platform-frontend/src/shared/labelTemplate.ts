@@ -40,6 +40,16 @@ export interface LabelTemplate {
 	isDefault: boolean
 	isProtected: boolean
 	layout: LabelLayout
+	createdBy?: {
+		_id: string
+		displayName: string
+		createdAt: string
+	}
+	updatedBy?: {
+		_id: string
+		displayName: string
+		updatedAt: string
+	}
 }
 
 export interface LabelFieldValues {

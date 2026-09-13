@@ -5,6 +5,7 @@ import {
 	BusinessLogicError,
 } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
+import { persistableProductBarcode } from '../productBarcode'
 import { ensureTenantAccess, getTenantContext } from '../tenant'
 import { COLLECTION_NAMES } from '../general'
 import { withTenantScope } from '../mongodb/tenantScopedModel'
@@ -27,6 +28,8 @@ import { getImportAiProvider } from '../importAi/providers'
 import { Product } from '../../models/Products'
 import { Category } from '../../models/Category'
 import { Supplier } from '../../models/Supplier'
+import { Warehouse } from '../../models/Warehaus'
+import { requireOperationalWarehouseId } from '../warehouseAccess'
 import Tenant from '../../models/Tenant'
 import ProductImportSession from '../../models/ProductImportSession'
 import { Invoice } from '../../models/Invoice'
@@ -432,25 +435,6 @@ const rowProductIds = (
 	uuidv5(`${row.fileName}:${row.rowNumber}`, sessionId),
 ]
 
-const foreignBarcodes = async (
-	tenantId: string,
-	sessionProductIds: string[],
-) => {
-	const existing = await withTenantScope(
-		Product.find({ barcode: { $gt: '' } })
-			.select({ barcode: 1, productId: 1 })
-			.lean(),
-		tenantId,
-	)
-	const fromSession = new Set(sessionProductIds)
-
-	return new Set(
-		existing.flatMap(item =>
-			item.barcode && !fromSession.has(item.productId) ? [item.barcode] : [],
-		),
-	)
-}
-
 export const previewProductImport = async (
 	requestContext: RequestContext,
 	sessionId: unknown,
@@ -473,13 +457,9 @@ export const previewProductImport = async (
 	session.mapping = mapping
 	await session.save()
 	const rows = flattenSessionRows(session)
-	const sessionProductIds = rows.flatMap(row =>
-		rowProductIds(session.sessionId, row),
-	)
-	const existingBarcodes = await foreignBarcodes(tenantId, sessionProductIds)
 	const matchCatalog = await catalogMatcher(tenantId)
 	const { mapped, valid, duplicates, invalid } = summarizeRows(
-		mapSourceRows(rows, mapping, existingBarcodes, matchCatalog),
+		mapSourceRows(rows, mapping, matchCatalog),
 	)
 
 	return {
@@ -564,9 +544,8 @@ export const commitProductImport = async (
 	}
 
 	const matchCatalog = await catalogMatcher(tenantId)
-	const existingBarcodes = await foreignBarcodes(tenantId, sessionProductIds)
 	const { valid, duplicates, invalid } = summarizeRows(
-		mapSourceRows(rows, mapping, existingBarcodes, matchCatalog),
+		mapSourceRows(rows, mapping, matchCatalog),
 	)
 	const offset = readBatchOffset(offsetRaw)
 	const limit = readBatchLimit(limitRaw)
@@ -613,7 +592,7 @@ export const commitProductImport = async (
 				productId,
 				name: row.name,
 				latinName: row.latinName,
-				barcode: row.barcode?.trim() || productId,
+				barcode: persistableProductBarcode(productId, row.barcode),
 				internalCode: row.internalCode?.trim(),
 				productFactoryCode: row.productFactoryCode?.trim(),
 				categoryId: row.categoryId,
@@ -633,10 +612,29 @@ export const commitProductImport = async (
 	const quantityByProductId = new Map(
 		batch.map((row, index) => [productIds[index], row.quantity]),
 	)
+	// Imported stock is a stock-changing operation: it lands in the caller's
+	// operational warehouse, never in an arbitrary one.
+	const importWarehouseId = requireOperationalWarehouseId(requestContext)
+
+	const warehouseExists = await withTenantScope(
+		Warehouse.findOne({ warehouseId: importWarehouseId })
+			.select('warehouseId')
+			.lean<{ warehouseId?: string }>(),
+		tenantId,
+	)
+
+	if (!warehouseExists?.warehouseId) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+			'A warehouse is required before importing products with inventory.',
+		)
+	}
+
 	const inventories = products.map(product => ({
 		tenantId,
 		inventoryId: uuidv4(),
 		productId: product.productId,
+		warehouseId: importWarehouseId,
 		quantity: quantityByProductId.get(product.productId) ?? 0,
 		createdBy: { ...createdByBase },
 	}))

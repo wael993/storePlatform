@@ -233,7 +233,14 @@ export const normalizeProductPatchRequest = (
 	}
 
 	if (picked.barcode !== undefined) {
-		normalized.barcode = normalizeOptionalStringField(picked.barcode, 'barcode')
+		if (typeof picked.barcode !== 'string') {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Invalid value for barcode.',
+			)
+		}
+
+		normalized.barcode = picked.barcode.trim()
 	}
 
 	if (picked.internalCode !== undefined) {

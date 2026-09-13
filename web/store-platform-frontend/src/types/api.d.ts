@@ -295,6 +295,25 @@ interface Product {
 	relatedActions?: DailyAction[]
 }
 
+interface WarehouseTransferAction {
+	referenceId: string
+	fromWarehouseId: string
+	fromWarehouseName: string
+	toWarehouseId: string
+	toWarehouseName: string
+	createdAt: string
+	createdByName?: string
+	editable: boolean
+	note?: string
+	items: Array<{
+		productId: string
+		productName: string
+		quantity: number
+		unitName?: string
+	}>
+	totalQuantity: number
+}
+
 type CreateProductInput = Omit<Product, 'productId'> & {
 	quantity: number
 	minQuantity?: number
@@ -325,6 +344,7 @@ interface TenantUser {
 	role: UserRole
 	firstName: string
 	lastName: string
+	warehouseIds: string[]
 
 	createdAt: string
 	updatedAt: string
@@ -351,6 +371,7 @@ interface UpdateTenantUserRequest {
 	firstName?: string
 	lastName?: string
 	role?: UserRole
+	warehouseIds?: string[]
 	isInternal?: boolean
 }
 

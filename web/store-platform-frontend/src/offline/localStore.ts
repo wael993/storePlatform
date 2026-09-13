@@ -7,6 +7,7 @@ import type { Table } from 'dexie'
 import type {
 	BootstrapPayload,
 	LocalBuyingInvoice,
+	LocalInventoryItem,
 	LocalInvoice,
 	OutboxEntity,
 	OutboxOperation,
@@ -557,14 +558,37 @@ export const addOutboxEntry = async (params: {
 	return clientMutationId
 }
 
+/**
+ * Stock row for a product in one warehouse. Rows cached before warehouse scoping
+ * carry no warehouseId; adopting one into the warehouse being written keeps the
+ * local quantity correct instead of starting a second row beside it.
+ */
+export const findLocalInventoryRow = async (
+	productId: string,
+	warehouseId: string,
+): Promise<LocalInventoryItem | undefined> => {
+	const rows = await offlineDb.inventory
+		.where('productId')
+		.equals(productId)
+		.toArray()
+
+	const scoped = rows.find(row => row.warehouseId === warehouseId)
+
+	if (scoped) return scoped
+
+	const legacy = rows.find(row => !row.warehouseId)
+
+	return legacy ? { ...legacy, warehouseId } : undefined
+}
+
 export const decrementLocalInventory = async (
 	productId: string,
 	quantity: number,
+	warehouseId?: string,
 ): Promise<void> => {
-	const inventory = await offlineDb.inventory
-		.where('productId')
-		.equals(productId)
-		.first()
+	if (!warehouseId) return
+
+	const inventory = await findLocalInventoryRow(productId, warehouseId)
 
 	if (!inventory) return
 
@@ -585,13 +609,26 @@ export const decrementLocalInventory = async (
 export const incrementLocalInventory = async (
 	productId: string,
 	quantity: number,
+	warehouseId?: string,
 ): Promise<void> => {
-	const inventory = await offlineDb.inventory
-		.where('productId')
-		.equals(productId)
-		.first()
+	if (!warehouseId) return
 
-	if (!inventory) return
+	const inventory = await findLocalInventoryRow(productId, warehouseId)
+
+	if (!inventory) {
+		// note: first offline purchase creates a local row; averageCost filled on sync.
+		await offlineDb.inventory.put({
+			inventoryId: generateId(),
+			productId,
+			warehouseId,
+			quantity,
+			availableQuantity: Math.max(0, quantity),
+			reservedQuantity: 0,
+			syncStatus: 'pending',
+			updatedAt: nowIso(),
+		})
+		return
+	}
 
 	const currentQty = Number(inventory.quantity ?? 0)
 	const nextQty = currentQty + quantity
@@ -618,7 +655,11 @@ export const saveLocalInvoice = async (
 				invoice.status !== InvoiceStatus.DRAFT &&
 				invoice.status !== InvoiceStatus.CANCELLED
 			) {
-				await decrementLocalInventory(item.productId, item.quantity)
+				await decrementLocalInventory(
+					item.productId,
+					item.quantity,
+					invoice.warehouseId,
+				)
 			}
 		}
 	}
@@ -634,7 +675,11 @@ export const saveLocalBuyingInvoice = async (
 
 	if (invoice.items?.length && shouldAdjustBuyingInventory(invoice.status)) {
 		for (const item of invoice.items) {
-			await incrementLocalInventory(item.productId, item.quantity)
+			await incrementLocalInventory(
+				item.productId,
+				item.quantity,
+				invoice.warehouseId,
+			)
 		}
 	}
 }
