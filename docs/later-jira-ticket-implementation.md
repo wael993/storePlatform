@@ -216,3 +216,155 @@ Keep `formatAmount`. Do not “fix” this by rounding in the card.
 ### Note until this ships
 
 The card is misleading, not corrupting stock or money. Treat Total Profit as untrusted (or hide it again). Do not “fix” it by rounding in `InvoiceSummaryCards.tsx`.
+
+---
+
+## FE-NUM-1 — Amount inputs: thousand separators parsed as decimals
+
+**Type:** Bug / tech debt  
+**Priority:** Medium  
+**Labels:** frontend, input, number-format, selling-invoice, daily-action  
+**Implement:** later (hotfix already shipped on Quick Entry; do not mix into warehouse/barcode work)
+
+### Summary
+
+Live amount fields that display `mapFee` / `formatNumber` (en-US commas) and parse with `parseNumberValue` treat the last `,` as a **decimal**. Typing past `4,000` (e.g. `40000`) collapses the value to `4`.
+
+Hotfix on Quick Entry: stop formatting the live input (`value={form.amount}`). Grouping is gone while typing. The shared parser is still wrong if the user types or pastes `4,000`.
+
+### Symptom
+
+1. Type `4000` in a live-formatted amount box → display `4,000`.
+2. Type one more `0` (want `40000`) → value becomes `4`.
+
+Same class of bug if the user pastes `40,000` into any `parseNumberValue` field.
+
+### Expected
+
+- Typing or pasting `40000` / `40,000` / `4,000` stores **40000** / **40000** / **4000**.
+- Real decimals still work: `4.50`, `4,50` → `4.50`.
+- Money fields may show grouping **after blur** (or in read-only). While focused, the value must stay parse-safe.
+- Online and offline save the same numeric string via existing `formatNumberForDb`.
+
+### Root cause (traced)
+
+`toDotDecimal` in `web/store-platform-frontend/src/shared/numberParse.ts`:
+
+- Last `,` or `.` is always the decimal. Comment already says: `2,511` (thousands) becomes `2.511`.
+- `parseNumberValue(..., 2)` then keeps 2 fraction digits.
+
+Loop when display uses `mapFee` (`toLocaleString('en-US')`):
+
+| Typed | Shown | Next raw | Parsed |
+|---|---|---|---|
+| `4000` | `4,000` | — | `4000` |
+| + `0` | — | `4,0000` | `4.0000` → `4.00` → shown as `4` |
+
+Hotfix (Quick Entry only): `value={form.amount}` so the comma never re-enters the parser. `mapFee` import removed.
+
+`InputLabel` is not the bug. It forwards `value` / `onChange`. Most other `InputLabel`s already pass raw numbers (Add Product prices, daily-action amount in `SecondStep.tsx`).
+
+### Do not do this
+
+- Do **not** render `EditableNumberField` inside `InputLabel` when `inputType === 'number'`. `EditableNumberField` is a click-to-edit **table cell**. `InputLabel` is an always-visible **form field** (debounce, clear, textarea, tooltips). Different UX.
+- Do **not** `mapFee` every `InputLabel`. That recreates the loop wherever the parent also calls `parseNumberValue`.
+- Do **not** switch money fields to HTML `type="number"`. Spinners, locale, and rejected commas.
+
+### How to implement (do this, nothing extra)
+
+**A. Fix the parser (required)**
+
+In `toDotDecimal` / `parseNumberValue`: if the last separator is `,` and the digit count after it is **greater than** `maximumDecimals` (default 2), treat **all** `,` / `.` before the real decimal as thousands.
+
+```
+4,50     → 4.50     (2 digits, decimal)
+4,000    → 4000     (3 digits > 2, thousands)
+4,0000   → 40000
+40,000   → 40000
+1,234.56 → 1234.56  (last sep is `.`)
+1.234,56 → 1234.56  (last sep is `,`, 2 digits)
+```
+
+Pass `maximumDecimals` into `toDotDecimal` (or apply the rule inside `parseNumberValue` only). `formatNumber` also calls `toDotDecimal` on strings — keep that consistent.
+
+**B. Optional money mode on InputLabel (only if you want commas back while using the form)**
+
+Add an opt-in prop, e.g. `isAmount`. Behavior:
+
+- Focused: show raw `parseNumberValue` string (no grouping).
+- Blur / read-only: show `formatNumber` / `mapFee`.
+- `onChange` still emits the **raw** parsed string, never `4,000`.
+
+Reuse `formatNumber` + `parseNumberValue`. No new component. Do not use `EditableNumberField`.
+
+Call sites that want grouping: Quick Entry amount, later any other money `InputLabel`. Leave names, barcodes, qty, notes as they are.
+
+**C. One test file**
+
+`web/store-platform-frontend/src/test/numberParse.test.ts` (or next to `numberParse.ts`). No tests exist today.
+
+### Files to change (later)
+
+| Path | What |
+|---|---|
+| `web/store-platform-frontend/src/shared/numberParse.ts` | thousands vs decimal rule; keep max-decimals trim |
+| `web/store-platform-frontend/src/shared/utils.ts` | `formatNumber` / `formatNumberForDb` stay wrappers; no second parser |
+| `web/store-platform-frontend/src/components/common/InputLabel.tsx` | optional `isAmount` blur/focus format only if doing B |
+| `web/store-platform-frontend/src/components/SellingInvoice/QuickEntryModal.tsx` | turn `isAmount` on if B ships; keep hotfix until then |
+| `web/store-platform-frontend/src/test/numberParse.test.ts` | new |
+
+Read-only `mapFee` on cards / lists (`BudgetOverview`, `DailyPage`, `DailyActionItem`) is display-only. Leave it.
+
+### Concrete examples (use as fixtures)
+
+**Example 1 — hotfix already covers (live format loop)**
+
+- Type `40000` one digit at a time in Quick Entry.
+- **Before hotfix:** becomes `4`.
+- **After parser fix + optional grouping:** stored `40000`, may display `40,000` on blur.
+
+**Example 2 — typed / pasted grouping**
+
+- Paste `4,000` meaning four thousand.
+- **Today (even after hotfix):** `4.00`.
+- **Correct:** `4000`.
+
+**Example 3 — real decimal**
+
+- Type `4,50` or `4.50`.
+- **Correct:** `4.50`. Must not become `450`.
+
+**Example 4 — mixed**
+
+- `1.234,56` → `1234.56`. `1,234.56` → `1234.56`.
+
+### Acceptance
+
+- [ ] `parseNumberValue('4,0000', 2)` → `'40000'` (not `'4.00'`).
+- [ ] `parseNumberValue('4,000', 2)` → `'4000'`.
+- [ ] `parseNumberValue('4,50', 2)` / `'4.50'` → `'4.50'`.
+- [ ] Quick Entry: type `40000`, save, stored amount is 40000 (`formatNumberForDb`).
+- [ ] Paste `40,000` in Quick Entry → 40000.
+- [ ] Product / qty / name `InputLabel`s unchanged (no click-to-edit, no auto commas).
+- [ ] Tests cover examples 2–4. No `numberParse` tests exist now.
+
+### Out of scope
+
+- Replacing `InputLabel` with `EditableNumberField`.
+- Auto-formatting every `InputLabel`.
+- Changing HTML `type="number"` on Add Product / daily-action fields (separate, not this bug).
+- Backend number parsing.
+- Redesigning invoice table inline edit.
+
+### Test plan
+
+1. Quick Entry: type `400`, `4000`, `40000`, `400000` — none collapse to `4`.
+2. Paste `4,000` and `40,000` — stored 4000 and 40000.
+3. Type `4.5` and `4,50` — stored 4.50.
+4. Add Product retail price / stock qty still type normally.
+5. Daily-action amount (`SecondStep`) still saves via `formatNumberForDb`.
+6. View an existing 40000 entry — number is 40000 (grouped only if `isAmount` shipped).
+
+### Note until this ships
+
+Quick Entry hotfix is enough to type large amounts. Do not “fix” grouping by putting `mapFee` back on `value`. Treat pasted `4,000` as untrusted until the parser change lands.

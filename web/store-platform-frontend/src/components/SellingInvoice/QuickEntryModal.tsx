@@ -25,7 +25,6 @@ import { DailyActionType } from '../../shared/globalEnums'
 import {
 	compareLanguage,
 	formatNumberForDb,
-	mapFee,
 	parseNumberValue,
 } from '../../shared/utils'
 import { datePickerStyles, documentNameStyles } from '../../theme/styles'
@@ -459,7 +458,7 @@ const QuickEntryModal = ({
 							inputPlaceholder={t('common.amount')}
 							inputType="text"
 							styles={documentNameStyles}
-							value={mapFee(form.amount) ?? '0'}
+							value={form.amount}
 							isDisabled={isReadOnly}
 							onChange={(value: string) =>
 								setForm(current => ({
