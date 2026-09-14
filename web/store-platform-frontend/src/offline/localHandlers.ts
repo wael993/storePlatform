@@ -1809,6 +1809,9 @@ export const handleOfflineQuery = async (
 			}
 
 			if (path === 'products' || path.startsWith('products/')) {
+				const inventoryByProductId = aggregateInventoryByProductId(
+					filterByWarehouseScope(await offlineDb.inventory.toArray()),
+				)
 				if (path !== 'products') {
 					const productId = path.split('/')[1]
 					const product = await offlineDb.products.get(productId)
@@ -1823,13 +1826,22 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Product not found' } },
 						}
 					}
-					return { data: accessible[0] }
+					return {
+						data: withLocalInventory(accessible[0], inventoryByProductId),
+					}
 				}
 
 				const products = await filterProductsByWarehouseStock(
 					await offlineDb.products.toArray(),
 				)
-				return { data: filterProducts(products, params) }
+				return {
+					data: filterProducts(
+						products.map(product =>
+							withLocalInventory(product, inventoryByProductId),
+						),
+						params,
+					),
+				}
 			}
 
 			if (path === 'inventory') {
