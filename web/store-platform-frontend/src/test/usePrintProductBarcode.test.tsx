@@ -73,7 +73,7 @@ describe('usePrintProductBarcode', () => {
 
 	it('generates once when barcode is empty', async () => {
 		generate.mutate.mockReturnValue({
-			unwrap: () => Promise.resolve({ barcode: 'Bgenerated' }),
+			unwrap: () => Promise.resolve({ barcode: '001010219' }),
 		})
 		const { result } = renderHook(() => usePrintProductBarcode(product('')))
 
@@ -81,14 +81,14 @@ describe('usePrintProductBarcode', () => {
 
 		expect(generate.mutate).toHaveBeenCalledTimes(1)
 		expect(generate.mutate).toHaveBeenCalledWith('prod-1')
-		expect(result.current.barcode).toBe('Bgenerated')
+		expect(result.current.barcode).toBe('001010219')
 		expect(result.current.barcode).not.toBe('prod-1')
 		expect(result.current.preview.isOpen).toBe(true)
 	})
 
 	it('treats a legacy product-id barcode as missing', async () => {
 		generate.mutate.mockReturnValue({
-			unwrap: () => Promise.resolve({ barcode: 'Bgenerated' }),
+			unwrap: () => Promise.resolve({ barcode: '001010219' }),
 		})
 		const { result } = renderHook(() =>
 			usePrintProductBarcode(product('prod-1')),
@@ -97,7 +97,7 @@ describe('usePrintProductBarcode', () => {
 		await act(() => result.current.printBarcode())
 
 		expect(generate.mutate).toHaveBeenCalledTimes(1)
-		expect(result.current.barcode).toBe('Bgenerated')
+		expect(result.current.barcode).toBe('001010219')
 		expect(result.current.preview.isOpen).toBe(true)
 	})
 
@@ -143,12 +143,12 @@ describe('usePrintProductBarcode', () => {
 		await act(async () => {
 			const first = result.current.printBarcode()
 			await result.current.printBarcode()
-			release({ barcode: 'Bgenerated' })
+			release({ barcode: '001010219' })
 			await first
 		})
 
 		expect(generate.mutate).toHaveBeenCalledTimes(1)
 		expect(result.current.preview.isOpen).toBe(true)
-		expect(result.current.barcode).toBe('Bgenerated')
+		expect(result.current.barcode).toBe('001010219')
 	})
 })

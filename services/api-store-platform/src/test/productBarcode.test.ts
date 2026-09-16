@@ -75,7 +75,7 @@ describe('productBarcode', () => {
 		const barcode = generatePrintableBarcode()
 
 		expect(barcode).not.toBe(productId)
-		expect(barcode).toMatch(/^B[a-z0-9]+$/i)
+		expect(barcode).toMatch(/^\d{9}$/)
 		expect(resolvedProductBarcode(productId, barcode)).toBe(barcode)
 	})
 
@@ -126,7 +126,7 @@ describe('ensurePrintableProductBarcode', () => {
 		)
 
 		expect(empty.barcode).not.toBe('prod-1')
-		expect(empty.barcode).toMatch(/^B[a-z0-9]+$/i)
+		expect(empty.barcode).toMatch(/^\d{9}$/)
 		expect(legacy.barcode).not.toBe('prod-1')
 		expect(persistBarcode).toHaveBeenCalledTimes(2)
 		expect(persistBarcode).toHaveBeenCalledWith('prod-1', empty.barcode)
@@ -193,7 +193,7 @@ describe('ensurePrintableProductBarcode', () => {
 			},
 		)
 
-		expect(result.barcode).toMatch(/^B[a-z0-9]+$/i)
+		expect(result.barcode).toMatch(/^\d{9}$/)
 		expect(persistBarcode).toHaveBeenCalledTimes(1)
 		await expect(
 			ensureProductPatchSee(

@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { randomInt } from 'crypto'
 
 import { BusinessLogicError } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
@@ -22,7 +22,8 @@ export const persistableProductBarcode = (
 ): string | undefined => resolvedProductBarcode(productId, barcode) || undefined
 
 export const generatePrintableBarcode = (): string =>
-	`B${Date.now().toString(36)}${randomBytes(4).toString('hex')}`
+	// note: 9-digit random, no uniqueness check; collision grows with catalog size. Upgrade: retry on tenant barcode or a sequential counter.
+	randomInt(0, 1_000_000_000).toString().padStart(9, '0')
 
 export const ensurePrintableProductBarcode = async (
 	productId: string,
