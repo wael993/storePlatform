@@ -1,7 +1,5 @@
 import { Box, Flex, Skeleton, Text } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIsOnline, subscribeConnectivity } from '../../offline/connectivity'
 import { PAGE_COLORS } from './constants'
 import type { SellingInvoiceSummary } from './types'
 import { formatTrend } from './utils'
@@ -239,9 +237,6 @@ const InvoiceSummaryCards = ({
 }: InvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
-	const [isOnline, setIsOnline] = useState(getIsOnline)
-
-	useEffect(() => subscribeConnectivity(setIsOnline), [])
 
 	const bestSellerValue = summary.bestSeller
 		? t('components.sellingInvoices.summary.bestSellerValue', {
@@ -261,9 +256,10 @@ const InvoiceSummaryCards = ({
 		summary.bestSeller !== null ||
 		summary.topProfitProduct !== null ||
 		summary.todaySales > 0
+	const showProfit = summary.profitReliable === true
 
 	if (isLoading) {
-		const skeletonCount = (showCashBalance ? 9 : 8) - (isOnline ? 0 : 1)
+		const skeletonCount = (showCashBalance ? 9 : 8) - (showProfit ? 0 : 2)
 
 		return (
 			<Box mb={6}>
@@ -326,8 +322,8 @@ const InvoiceSummaryCards = ({
 						color: PAGE_COLORS.success,
 					}}
 				/>
-				{/* TODO: SI-BUG-1 — hide offline until COGS is real (docs/later-jira-ticket-implementation.md) */}
-				{isOnline && (
+				{/* Hide profit until COGS is reliable (offline without local cost). */}
+				{showProfit && (
 					<SummaryCard
 						label={t('components.sellingInvoices.summary.totalProfit')}
 						value={
@@ -348,14 +344,16 @@ const InvoiceSummaryCards = ({
 					iconBg="#FEF3C7"
 					iconColor="#B45309"
 				/>
-				<SummaryCard
-					label={t('components.sellingInvoices.summary.topProfitProduct')}
-					value={topProfitValue}
-					valueSx={cardStyles.productValue}
-					icon={<AsPriceActivityFeeIcon />}
-					iconBg="#EDE9FE"
-					iconColor="#6D28D9"
-				/>
+				{showProfit && (
+					<SummaryCard
+						label={t('components.sellingInvoices.summary.topProfitProduct')}
+						value={topProfitValue}
+						valueSx={cardStyles.productValue}
+						icon={<AsPriceActivityFeeIcon />}
+						iconBg="#EDE9FE"
+						iconColor="#6D28D9"
+					/>
+				)}
 				{/* <SummaryCard
 					label={t('components.sellingInvoices.summary.paidInvoices')}
 					value={String(summary.paidInvoices)}

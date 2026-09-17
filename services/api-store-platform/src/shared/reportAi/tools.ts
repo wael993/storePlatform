@@ -14,6 +14,13 @@ import { ERROR_CODES } from '../errorCodes'
 import { SEE, SeeId } from '../seeCatalog'
 import { canSeeAny } from '../seePermissions'
 import { SUPER_ADMIN_ROLE } from '../tenant'
+import {
+	buildPeriodProductAggregates,
+	selectCurrentSaleMovings,
+	totalProfitFromAggregates,
+	type ProfitInvoiceLine,
+	type ProfitStockMoving,
+} from '../sellingInvoiceProfit'
 import { ReportAiAuth, ReportToolName } from './types'
 
 const TOOL_SEE: Record<ReportToolName, SeeId[]> = {
@@ -309,20 +316,28 @@ const sumRevenue = (invoices: InvoiceAmountSource[]): number => {
 	return Math.round(revenue * 100) / 100
 }
 
-const cogsForInvoiceIds = async (tenantId: string, invoiceIds: string[]) => {
-	const movings = invoiceIds.length
-		? await withTenantScope(
-				StockMoving.find({
-					type: 'sale',
-					referenceType: 'selling_invoice',
-					referenceId: { $in: invoiceIds },
-				})
-					.select({ quantity: 1, unitCost: 1 })
-					.limit(20_001)
-					.lean(),
-				tenantId,
-			)
-		: []
+const loadSaleMovings = async (tenantId: string, invoiceIds: string[]) => {
+	if (!invoiceIds.length) return []
+
+	const movings = await withTenantScope(
+		StockMoving.find({
+			type: 'sale',
+			referenceType: 'selling_invoice',
+			referenceId: { $in: invoiceIds },
+		})
+			.select({
+				quantity: 1,
+				unitCost: 1,
+				productId: 1,
+				type: 1,
+				referenceId: 1,
+				createdAt: 1,
+				createdBy: 1,
+			})
+			.limit(20_001)
+			.lean(),
+		tenantId,
+	)
 
 	if (movings.length > 20_000) {
 		throw new BusinessLogicError(
@@ -331,15 +346,41 @@ const cogsForInvoiceIds = async (tenantId: string, invoiceIds: string[]) => {
 		)
 	}
 
-	let cogs = 0
+	return movings as ProfitStockMoving[]
+}
 
-	for (const moving of movings) {
-		cogs += (Number(moving.quantity) || 0) * (Number(moving.unitCost) || 0)
-	}
+const profitForSales = (
+	invoices: Array<
+		InvoiceAmountSource & {
+			invoiceId?: string
+			items?: ProfitInvoiceLine[]
+		}
+	>,
+	movings: ProfitStockMoving[],
+) => {
+	const { aggregates, profitReliable } = buildPeriodProductAggregates(
+		invoices.map(invoice => ({
+			items: invoice.items,
+			grandTotal: getPrimaryInvoiceCurrencyAmounts(invoice).grandTotal,
+		})),
+		selectCurrentSaleMovings(invoices, movings),
+	)
+	const cogs = [...aggregates.values()].reduce(
+		(total, aggregate) => total + aggregate.cogs,
+		0,
+	)
 
 	return {
-		cost: Math.round(cogs * 100) / 100,
-		costSource: movings.length ? 'stock_movings' : 'none',
+		cost: profitReliable ? Math.round(cogs * 100) / 100 : 0,
+		costSource: !invoices.length
+			? 'none'
+			: profitReliable
+				? 'stock_movings'
+				: 'unreliable',
+		reliable: profitReliable,
+		profit: profitReliable
+			? Math.round(totalProfitFromAggregates(aggregates) * 100) / 100
+			: 0,
 	}
 }
 
@@ -401,19 +442,24 @@ const profitSummary = async (
 	const period = periodFromArgs(args, now)
 	const invoices = await loadSales(tenantId, period)
 	const revenue = sumRevenue(invoices)
-	const { cost, costSource } = await cogsForInvoiceIds(
-		tenantId,
-		invoices.map(invoice => invoice.invoiceId).filter(Boolean),
+	const { cost, costSource, reliable, profit } = profitForSales(
+		invoices,
+		await loadSaleMovings(
+			tenantId,
+			invoices.map(invoice => invoice.invoiceId).filter(Boolean),
+		),
 	)
 	const showCost = canUse(auth, [SEE.productsBuyingPrice])
+	const showProfit = showCost && reliable
 
 	return {
 		period,
 		revenue,
-		cost: showCost ? cost : null,
-		profit: showCost ? Math.round((revenue - cost) * 100) / 100 : null,
+		cost: showProfit ? cost : null,
+		profit: showProfit ? profit : null,
 		costHidden: !showCost,
-		costSource,
+		costSource: showCost ? costSource : 'hidden',
+		profitReliable: showProfit,
 	}
 }
 
@@ -630,18 +676,25 @@ const businessWatch = async (
 
 		if (!canUse(auth, [SEE.productsBuyingPrice])) return
 
-		const currentCogs = await cogsForInvoiceIds(
-			tenantId,
-			currentInvoices.map(invoice => invoice.invoiceId).filter(Boolean),
+		const currentCogs = profitForSales(
+			currentInvoices,
+			await loadSaleMovings(
+				tenantId,
+				currentInvoices.map(invoice => invoice.invoiceId).filter(Boolean),
+			),
 		)
-		const previousCogs = await cogsForInvoiceIds(
-			tenantId,
-			previousInvoices.map(invoice => invoice.invoiceId).filter(Boolean),
+		const previousCogs = profitForSales(
+			previousInvoices,
+			await loadSaleMovings(
+				tenantId,
+				previousInvoices.map(invoice => invoice.invoiceId).filter(Boolean),
+			),
 		)
-		const currentProfit =
-			Math.round((currentRevenue - currentCogs.cost) * 100) / 100
-		const previousProfit =
-			Math.round((previousRevenue - previousCogs.cost) * 100) / 100
+
+		if (!currentCogs.reliable || !previousCogs.reliable) return
+
+		const currentProfit = currentCogs.profit
+		const previousProfit = previousCogs.profit
 		const profitPercent = changePercent(currentProfit, previousProfit)
 
 		if (profitPercent != null && Math.abs(profitPercent) >= 5) {

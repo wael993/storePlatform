@@ -35,6 +35,15 @@ import {
 	requireWarehouseId,
 } from '../../shared/warehouseAccess'
 import { getTenantContext } from '../../shared/tenant'
+import { finiteCost } from '../../shared/inventoryCost'
+import {
+	buildPeriodProductAggregates,
+	originalSaleUnitCostByProduct,
+	pickBestSellerSummaryProduct,
+	pickTopProfitSummaryProduct,
+	selectCurrentSaleMovings,
+	totalProfitFromAggregates,
+} from '../../shared/sellingInvoiceProfit'
 import {
 	CustomerInvoiceSummary,
 	InventoryDocument,
@@ -355,16 +364,6 @@ export default class SellingInvoiceController {
 		)
 	}
 
-	private getInvoiceLineRevenue(item: {
-		lineTotal?: number
-		quantity?: number
-		unitPrice?: number
-	}): number {
-		if (item.lineTotal != null) return Number(item.lineTotal)
-
-		return Number(item.quantity ?? 0) * Number(item.unitPrice ?? 0)
-	}
-
 	private async getSaleStockMovingsForInvoices(
 		requestContext: RequestContext,
 		invoiceIds: string[],
@@ -383,167 +382,40 @@ export default class SellingInvoiceController {
 		)
 	}
 
-	private buildPeriodProductAggregates(
-		periodInvoices: Array<Record<string, unknown>>,
-		stockMovings: Array<Record<string, unknown>>,
-	): Map<
-		string,
-		{
-			productId: string
-			productName: string
-			quantitySold: number
-			revenue: number
-			cogs: number
-			profit: number
-		}
-	> {
-		const aggregates = new Map<
-			string,
-			{
-				productId: string
-				productName: string
-				quantitySold: number
-				revenue: number
-				cogs: number
-				profit: number
-			}
-		>()
+	private async getSaleStockMovingsForInvoice(
+		requestContext: RequestContext,
+		invoiceId: string,
+		session?: mongoose.ClientSession,
+	): Promise<Array<Record<string, unknown>>> {
+		const tenantContext = getTenantContext(requestContext)
+		const query = StockMoving.find({
+			type: 'sale',
+			referenceType: 'selling_invoice',
+			referenceId: invoiceId,
+		})
+			.sort({ 'createdBy.createdAt': 1 })
+			.lean()
 
-		const getAggregate = (productId: string, productName = '') => {
-			const existing = aggregates.get(productId)
-
-			if (existing) {
-				if (!existing.productName && productName) {
-					existing.productName = productName
-				}
-
-				return existing
-			}
-
-			const created = {
-				productId,
-				productName,
-				quantitySold: 0,
-				revenue: 0,
-				cogs: 0,
-				profit: 0,
-			}
-
-			aggregates.set(productId, created)
-
-			return created
+		if (session) {
+			query.session(session)
 		}
 
-		for (const invoice of periodInvoices) {
-			for (const item of asInvoiceLines(invoice.items)) {
-				const productId = item.productId
-
-				if (!productId) continue
-
-				const aggregate = getAggregate(productId, item.name)
-
-				aggregate.revenue += this.getInvoiceLineRevenue({
-					lineTotal: item.lineTotal,
-					quantity: item.quantity,
-					unitPrice: item.unitPrice,
-				})
-			}
-		}
-
-		for (const moving of stockMovings) {
-			const productId = String(moving.productId ?? '')
-
-			if (!productId) continue
-
-			const aggregate = getAggregate(productId)
-			const quantity = Number(moving.quantity ?? 0)
-			const unitCost = Number(moving.unitCost ?? 0)
-
-			aggregate.quantitySold += quantity
-			aggregate.cogs += quantity * unitCost
-		}
-
-		for (const aggregate of aggregates.values()) {
-			aggregate.profit = aggregate.revenue - aggregate.cogs
-		}
-
-		return aggregates
+		return withTenantScope(query, tenantContext.tenantId)
 	}
 
-	private pickBestSellerSummaryProduct(
-		aggregates: Map<
-			string,
-			{
-				productId: string
-				productName: string
-				quantitySold: number
-				profit: number
-			}
-		>,
-	): SellingInvoicesSummary['bestSeller'] {
-		const candidates = [...aggregates.values()].filter(
-			aggregate => aggregate.quantitySold > 0,
-		)
+	private async deleteSaleStockMovingsForInvoice(
+		requestContext: RequestContext,
+		invoiceId: string,
+		session: mongoose.ClientSession,
+	) {
+		const tenantContext = getTenantContext(requestContext)
 
-		if (!candidates.length) return null
-
-		candidates.sort((left, right) => {
-			if (right.quantitySold !== left.quantitySold) {
-				return right.quantitySold - left.quantitySold
-			}
-
-			if (right.profit !== left.profit) {
-				return right.profit - left.profit
-			}
-
-			return left.productName.localeCompare(right.productName)
-		})
-
-		const winner = candidates[0]
-
-		return {
-			productId: winner.productId,
-			productName: winner.productName || winner.productId,
-			quantity: winner.quantitySold,
-		}
-	}
-
-	private pickTopProfitSummaryProduct(
-		aggregates: Map<
-			string,
-			{
-				productId: string
-				productName: string
-				quantitySold: number
-				profit: number
-			}
-		>,
-	): SellingInvoicesSummary['topProfitProduct'] {
-		const candidates = [...aggregates.values()].filter(
-			aggregate => aggregate.quantitySold > 0,
-		)
-
-		if (!candidates.length) return null
-
-		candidates.sort((left, right) => {
-			if (right.profit !== left.profit) {
-				return right.profit - left.profit
-			}
-
-			if (right.quantitySold !== left.quantitySold) {
-				return right.quantitySold - left.quantitySold
-			}
-
-			return left.productName.localeCompare(right.productName)
-		})
-
-		const winner = candidates[0]
-
-		return {
-			productId: winner.productId,
-			productName: winner.productName || winner.productId,
-			profit: winner.profit,
-		}
+		await StockMoving.deleteMany({
+			tenantId: tenantContext.tenantId,
+			type: 'sale',
+			referenceType: 'selling_invoice',
+			referenceId: invoiceId,
+		}).session(session)
 	}
 
 	private async buildSellingInvoicesSummary(
@@ -593,13 +465,14 @@ export default class SellingInvoiceController {
 			requestContext,
 			invoiceIds,
 		)
-		const productAggregates = this.buildPeriodProductAggregates(
-			periodInvoices,
-			stockMovings,
-		)
-		const totalProfit = [...productAggregates.values()].reduce(
-			(total, aggregate) => total + aggregate.profit,
-			0,
+		const { aggregates, profitReliable } = buildPeriodProductAggregates(
+			periodInvoices.map(invoice => ({
+				items: asInvoiceLines(invoice.items),
+				grandTotal: getPrimaryInvoiceCurrencyAmounts(
+					asInvoiceAmountSource(invoice),
+				).grandTotal,
+			})),
+			selectCurrentSaleMovings(periodInvoices, stockMovings),
 		)
 
 		return {
@@ -608,9 +481,12 @@ export default class SellingInvoiceController {
 			creditInvoices,
 			totalReceivable,
 			averageOrder,
-			totalProfit,
-			bestSeller: this.pickBestSellerSummaryProduct(productAggregates),
-			topProfitProduct: this.pickTopProfitSummaryProduct(productAggregates),
+			totalProfit: profitReliable ? totalProfitFromAggregates(aggregates) : 0,
+			profitReliable,
+			bestSeller: pickBestSellerSummaryProduct(aggregates),
+			topProfitProduct: profitReliable
+				? pickTopProfitSummaryProduct(aggregates)
+				: null,
 		}
 	}
 
@@ -653,17 +529,17 @@ export default class SellingInvoiceController {
 
 	/**
 	 * COGS for a sale line: Inventory.averageCost first, then product purchasePrice,
-	 * never the sale unitPrice. Falls back to 0 with a warn if neither exists.
+	 * never the sale unitPrice. Missing cost stays unset (not 0).
 	 */
 	private async resolveSaleUnitCost(
 		requestContext: RequestContext,
 		productId: string,
 		averageCost: number | undefined,
 		session: mongoose.ClientSession,
-	): Promise<number> {
-		if (averageCost != null && Number.isFinite(averageCost)) {
-			return Number(averageCost)
-		}
+	): Promise<number | undefined> {
+		const inventoryCost = finiteCost(averageCost)
+
+		if (inventoryCost != null) return inventoryCost
 
 		const product = await this.mongoDbClient.getDocumentByField<{
 			price?: { purchasePrice?: number }
@@ -675,18 +551,16 @@ export default class SellingInvoiceController {
 			session,
 		)
 
-		const purchasePrice = product?.price?.purchasePrice
+		const purchasePrice = finiteCost(product?.price?.purchasePrice)
 
-		if (purchasePrice != null && Number.isFinite(purchasePrice)) {
-			return Number(purchasePrice)
-		}
+		if (purchasePrice != null) return purchasePrice
 
 		logger.warn(
-			`No averageCost or purchasePrice for product ${productId}; recording sale unitCost as 0.`,
+			`No averageCost or purchasePrice for product ${productId}; sale unitCost left unset.`,
 			{ entity: EntityType.MONGODB, productId },
 		)
 
-		return 0
+		return undefined
 	}
 
 	private async applySaleInventoryAdjustments(
@@ -696,6 +570,7 @@ export default class SellingInvoiceController {
 		items: NonNullable<InvoiceRequestBody['items']>,
 		session: mongoose.ClientSession,
 		warehouseId: string,
+		unitCostByProduct?: Map<string, number>,
 	): Promise<string[]> {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
 		const touchedInventoryIds: string[] = []
@@ -715,12 +590,17 @@ export default class SellingInvoiceController {
 				)
 			}
 
-			const costBasis = await this.resolveSaleUnitCost(
-				requestContext,
-				item.productId,
-				inventory.averageCost,
-				session,
-			)
+			// Extra qty of a product that already has a sale snapshot keeps that
+			// unitCost. A new productId on the edit has no snapshot and resolves live WAC.
+			const snapshotCost = unitCostByProduct?.get(item.productId)
+			const costBasis =
+				finiteCost(snapshotCost) ??
+				(await this.resolveSaleUnitCost(
+					requestContext,
+					item.productId,
+					inventory.averageCost,
+					session,
+				))
 
 			await this.ops.atomicAdjustInventoryQuantity(
 				requestContext,
@@ -741,7 +621,7 @@ export default class SellingInvoiceController {
 						warehouseId: scopedWarehouseId,
 						type: 'sale',
 						quantity: item.quantity,
-						unitCost: costBasis,
+						...(costBasis != null ? { unitCost: costBasis } : {}),
 						referenceType: 'selling_invoice',
 						referenceId: invoiceId,
 						note: `Invoice #${invoiceNumber}`,
@@ -769,6 +649,7 @@ export default class SellingInvoiceController {
 		items: NonNullable<InvoiceRequestBody['items']>,
 		session: mongoose.ClientSession,
 		warehouseId: string,
+		unitCostByProduct?: Map<string, number>,
 	): Promise<string[]> {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
 		const touchedInventoryIds: string[] = []
@@ -781,12 +662,15 @@ export default class SellingInvoiceController {
 				session,
 			)
 
-			const costBasis = await this.resolveSaleUnitCost(
-				requestContext,
-				item.productId,
-				inventory?.averageCost,
-				session,
-			)
+			const snapshotCost = unitCostByProduct?.get(item.productId)
+			const costBasis =
+				finiteCost(snapshotCost) ??
+				(await this.resolveSaleUnitCost(
+					requestContext,
+					item.productId,
+					inventory?.averageCost,
+					session,
+				))
 
 			const updatedInventory = await this.ops.atomicAdjustInventoryQuantity(
 				requestContext,
@@ -807,7 +691,7 @@ export default class SellingInvoiceController {
 						warehouseId: scopedWarehouseId,
 						type: 'return_in',
 						quantity: item.quantity,
-						unitCost: costBasis,
+						...(costBasis != null ? { unitCost: costBasis } : {}),
 						referenceType: 'selling_invoice',
 						referenceId: invoiceId,
 						note: `Cancelled invoice #${invoiceNumber}`,
@@ -820,6 +704,12 @@ export default class SellingInvoiceController {
 
 			touchedInventoryIds.push(updatedInventory.inventoryId)
 		}
+
+		await this.deleteSaleStockMovingsForInvoice(
+			requestContext,
+			invoiceId,
+			session,
+		)
 
 		return touchedInventoryIds
 	}
@@ -1292,6 +1182,16 @@ export default class SellingInvoiceController {
 		const { updateResponse, touchedInventoryIds } =
 			await this.ops.runInTransaction(async session => {
 				let inventoryIds: string[] = []
+				const originalUnitCosts =
+					shouldReverse && existingInvoice
+						? originalSaleUnitCostByProduct(
+								await this.getSaleStockMovingsForInvoice(
+									requestContext,
+									existingInvoice.invoiceId,
+									session,
+								),
+							)
+						: undefined
 
 				if (shouldReverse && existingInvoice) {
 					inventoryIds = await this.reverseSaleInventoryAdjustments(
@@ -1301,6 +1201,7 @@ export default class SellingInvoiceController {
 						asInvoiceLines(existingInvoice.items),
 						session,
 						reverseWarehouseId,
+						originalUnitCosts,
 					)
 				}
 
@@ -1321,6 +1222,7 @@ export default class SellingInvoiceController {
 							itemsToApply,
 							session,
 							warehouseId,
+							originalUnitCosts,
 						)),
 					]
 				}
@@ -1373,16 +1275,25 @@ export default class SellingInvoiceController {
 
 		const touchedInventoryIds =
 			wasStockAffecting && existingInvoice
-				? await this.ops.runInTransaction(async session =>
-						this.reverseSaleInventoryAdjustments(
+				? await this.ops.runInTransaction(async session => {
+						const originalUnitCosts = originalSaleUnitCostByProduct(
+							await this.getSaleStockMovingsForInvoice(
+								requestContext,
+								existingInvoice.invoiceId,
+								session,
+							),
+						)
+
+						return this.reverseSaleInventoryAdjustments(
 							requestContext,
 							existingInvoice.invoiceId,
 							existingInvoice.invoiceNumber,
 							asInvoiceLines(existingInvoice.items),
 							session,
 							requireWarehouseId(existingInvoice.warehouseId),
-						),
-					)
+							originalUnitCosts,
+						)
+					})
 				: []
 
 		const deleteResponse = await this.mongoDbClient.deleteDocument(

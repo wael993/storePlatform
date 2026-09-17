@@ -1,0 +1,1 @@
+export const PRODUCT_NAME_MAX_LENGTH = 100

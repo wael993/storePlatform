@@ -48,6 +48,7 @@ export interface ApiSellingInvoice {
 		discountIsPercent?: boolean
 		taxRate?: number
 		lineTotal?: number
+		unitCost?: number
 	}>
 	status?: string
 	paymentStatus?: `${InvoicePaymentStatus}`
@@ -77,6 +78,7 @@ export interface ApiSellingInvoicesResponse {
 		totalReceivable: number
 		averageOrder: number
 		totalProfit: number
+		profitReliable?: boolean
 		bestSeller: {
 			productId: string
 			productName: string
@@ -175,6 +177,7 @@ export const mapApiSummaryToUi = (
 	totalReceivable: summary.totalReceivable,
 	averageOrder: summary.averageOrder,
 	totalProfit: summary.totalProfit ?? 0,
+	profitReliable: summary.profitReliable === true,
 	bestSeller: summary.bestSeller?.productId
 		? {
 				productId: summary.bestSeller.productId,

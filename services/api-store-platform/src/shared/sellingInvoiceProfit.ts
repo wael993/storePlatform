@@ -1,0 +1,15 @@
+export {
+	allocateNetLineRevenues,
+	buildPeriodProductAggregates,
+	getProductProfitAggregate,
+	invoiceLineRevenue,
+	mergeInvoiceItemsPreservingUnitCost,
+	originalSaleUnitCostByProduct,
+	pickBestSellerSummaryProduct,
+	pickTopProfitSummaryProduct,
+	selectCurrentSaleMovings,
+	totalProfitFromAggregates,
+	type ProductProfitAggregate,
+	type ProfitInvoiceLine,
+	type ProfitStockMoving,
+} from './store-domain/sellingInvoiceProfit'

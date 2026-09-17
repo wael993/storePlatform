@@ -35,6 +35,14 @@ import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
 import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
+import {
+	ESTABLISHED_COST_MOVING_TYPES,
+	establishedWarehouseIdsFromMovings,
+	availableQuantityFromStock,
+	finiteCost,
+	mergeQtyWeightedAverageCost,
+	openingAverageCostFromPurchasePrice,
+} from '../shared/inventoryCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import { resolveSyncClientId } from '../shared/uuid'
 import {
@@ -51,6 +59,7 @@ import {
 import { groupWarehouseTransferMovings } from '../shared/warehouseTransfer'
 import { StockMoving } from '../models/StockMovings'
 import {
+	assertProductNameMaxLength,
 	mergeProductPricePatch,
 	normalizeInventoryPatchRequest,
 	normalizeProductPatchRequest,
@@ -198,21 +207,26 @@ const aggregateInventoryByProductId = (
 	inventory: InventoryDocument[],
 ): Map<string, InventoryDocument> => {
 	const inventoryByProductId = new Map<string, InventoryDocument>()
+	const costQtyByProductId = new Map<string, number>()
 
 	for (const inventoryItem of inventory) {
 		const existing = inventoryByProductId.get(inventoryItem.productId)
+		const nextQty = Number(inventoryItem.quantity ?? 0)
+		const nextCost = finiteCost(inventoryItem.averageCost)
 
 		if (!existing) {
 			inventoryByProductId.set(inventoryItem.productId, inventoryItem)
+			costQtyByProductId.set(
+				inventoryItem.productId,
+				nextCost != null ? nextQty : 0,
+			)
 
 			continue
 		}
 
 		const existingQty = Number(existing.quantity ?? 0)
-		const nextQty = Number(inventoryItem.quantity ?? 0)
+		const existingCostQty = costQtyByProductId.get(inventoryItem.productId) ?? 0
 		const totalQty = existingQty + nextQty
-		const existingCost = Number(existing.averageCost ?? 0)
-		const nextCost = Number(inventoryItem.averageCost ?? 0)
 
 		inventoryByProductId.set(inventoryItem.productId, {
 			...existing,
@@ -227,11 +241,18 @@ const aggregateInventoryByProductId = (
 			reservedQuantity:
 				Number(existing.reservedQuantity ?? 0) +
 				Number(inventoryItem.reservedQuantity ?? 0),
-			averageCost:
-				totalQty > 0
-					? (existingCost * existingQty + nextCost * nextQty) / totalQty
-					: existing.averageCost,
+			averageCost: mergeQtyWeightedAverageCost(
+				existing.averageCost,
+				existingCostQty,
+				nextCost,
+				nextQty,
+			),
 		})
+
+		costQtyByProductId.set(
+			inventoryItem.productId,
+			existingCostQty + (nextCost != null ? nextQty : 0),
+		)
 	}
 
 	return inventoryByProductId
@@ -1349,21 +1370,32 @@ export default class ProductController {
 			)
 
 			// note: qty-weighted averageCost across scoped warehouses.
-			const totals = new Map<string, { cost: number; qty: number }>()
+			const totals = new Map<
+				string,
+				{ cost: number | undefined; costQty: number }
+			>()
 
 			for (const row of scopedInventory) {
 				const qty = Number(row.quantity ?? 0)
-				const unitCost = Number(row.averageCost ?? 0)
-				const current = totals.get(row.productId) ?? { cost: 0, qty: 0 }
+				const unitCost = finiteCost(row.averageCost)
+				const current = totals.get(row.productId) ?? {
+					cost: undefined,
+					costQty: 0,
+				}
 
 				totals.set(row.productId, {
-					cost: current.cost + unitCost * qty,
-					qty: current.qty + qty,
+					cost: mergeQtyWeightedAverageCost(
+						current.cost,
+						current.costQty,
+						unitCost,
+						qty,
+					),
+					costQty: current.costQty + (unitCost != null ? qty : 0),
 				})
 			}
 
-			for (const [productId, { cost, qty }] of totals) {
-				if (qty > 0) averageCostByProductId.set(productId, cost / qty)
+			for (const [productId, { cost }] of totals) {
+				if (cost != null) averageCostByProductId.set(productId, cost)
 			}
 		}
 
@@ -1708,6 +1740,9 @@ export default class ProductController {
 			)
 		}
 
+		assertProductNameMaxLength(name, 'name')
+		assertProductNameMaxLength(latinName, 'latinName')
+
 		if (!price?.retailPrice && price?.retailPrice !== 0) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
@@ -1749,6 +1784,10 @@ export default class ProductController {
 
 		ensureWarehouseAccess(requestContext, scopedWarehouseId)
 
+		const openingAverageCost = openingAverageCostFromPurchasePrice(
+			price.purchasePrice,
+		)
+
 		const productData: ProductDocument = {
 			productId,
 			name,
@@ -1783,6 +1822,9 @@ export default class ProductController {
 			shelfId,
 			quantity,
 			minQuantity,
+			...(openingAverageCost != null
+				? { averageCost: openingAverageCost }
+				: {}),
 		}
 
 		logger.info('Saving product to database....', {
@@ -1871,20 +1913,96 @@ export default class ProductController {
 			)
 		}
 
-		const updateResponse = await this.mongoDbClient.updateDocument(
-			{
-				collectionName: COLLECTION_NAMES.PRODUCTS,
-				id: productId,
-			},
-			requestContext,
-			Product,
-			allowedUpdates,
-		)
+		const previousPurchasePrice = existingProduct?.price?.purchasePrice
+		const nextPurchasePrice = allowedUpdates.price?.purchasePrice
+		const shouldSyncOpeningCost =
+			nextPurchasePrice != null &&
+			Number.isFinite(nextPurchasePrice) &&
+			Number(previousPurchasePrice) !== Number(nextPurchasePrice)
+
+		const persistProduct = (session?: mongoose.ClientSession) =>
+			this.mongoDbClient.updateDocument(
+				{
+					collectionName: COLLECTION_NAMES.PRODUCTS,
+					id: productId,
+					session,
+				},
+				requestContext,
+				Product,
+				allowedUpdates,
+			)
+
+		const updateResponse = shouldSyncOpeningCost
+			? await this.runInTransaction(async session => {
+					const updated = await persistProduct(session)
+
+					await this.syncOpeningAverageCostOnPurchasePriceEdit(
+						requestContext,
+						productId,
+						previousPurchasePrice,
+						nextPurchasePrice,
+						session,
+					)
+
+					return updated
+				})
+			: await persistProduct()
 
 		await this.invalidateEntityCache('products', requestContext, productId)
 		await this.invalidateEntityCache('inventory', requestContext)
 
 		return updateResponse
+	}
+
+	/**
+	 * Opening stock has no purchase history; catalog purchasePrice is its cost
+	 * basis. Purchase and transfer_in establish WAC per warehouse and must not
+	 * be overwritten. Cancelled purchases (return_out on the same reference)
+	 * do not lock the warehouse.
+	 */
+	private async syncOpeningAverageCostOnPurchasePriceEdit(
+		requestContext: RequestContext,
+		productId: string,
+		previousPurchasePrice: number | undefined,
+		nextPurchasePrice: number | undefined,
+		session: mongoose.ClientSession,
+	) {
+		const openingCost = openingAverageCostFromPurchasePrice(nextPurchasePrice)
+
+		if (
+			openingCost == null ||
+			Number(previousPurchasePrice) === Number(nextPurchasePrice)
+		) {
+			return
+		}
+
+		const tenantContext = getTenantContext(requestContext)
+		const query = StockMoving.find({
+			productId,
+			type: { $in: [...ESTABLISHED_COST_MOVING_TYPES, 'return_out'] },
+		})
+			.select('warehouseId type referenceId referenceType')
+			.lean()
+
+		if (session) {
+			query.session(session)
+		}
+
+		const movings = await withTenantScope(query, tenantContext.tenantId)
+		const establishedWarehouseIds = [
+			...establishedWarehouseIdsFromMovings(movings),
+		]
+
+		await Inventory.updateMany(
+			{
+				tenantId: tenantContext.tenantId,
+				productId,
+				...(establishedWarehouseIds.length
+					? { warehouseId: { $nin: establishedWarehouseIds } }
+					: {}),
+			},
+			{ $set: { averageCost: openingCost } },
+		).session(session)
 	}
 
 	public async generateProductBarcode(
@@ -2208,6 +2326,7 @@ export default class ProductController {
 				$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
 			},
 			availableQuantity: {
+				// same rule as availableQuantityFromStock(quantity, reserved)
 				$max: [
 					0,
 					{
@@ -2321,6 +2440,7 @@ export default class ProductController {
 							$add: [{ $ifNull: ['$quantity', 0] }, purchaseQuantity],
 						},
 						availableQuantity: {
+							// same rule as availableQuantityFromStock(quantity, reserved)
 							$max: [
 								0,
 								{
@@ -2919,7 +3039,7 @@ export default class ProductController {
 				)
 			}
 
-			const unitCost = Number(sourceInventory.averageCost ?? 0)
+			const unitCost = finiteCost(sourceInventory.averageCost)
 
 			await this.atomicAdjustInventoryQuantity(
 				requestContext,
@@ -2940,7 +3060,7 @@ export default class ProductController {
 					accessMode: 'acl',
 					// note: an uncosted source row must not dilute the destination's
 					// averageCost towards zero, so only seed a real cost.
-					seedAverageCost: unitCost > 0 ? unitCost : undefined,
+					seedAverageCost: unitCost,
 				},
 				session,
 			)
@@ -2954,7 +3074,7 @@ export default class ProductController {
 						warehouseId: params.fromWarehouseId,
 						type: 'transfer_out',
 						quantity: item.quantity,
-						unitCost,
+						...(unitCost != null ? { unitCost } : {}),
 						referenceType: 'warehouse_transfer',
 						referenceId: params.referenceId,
 						note,
@@ -2974,7 +3094,7 @@ export default class ProductController {
 						warehouseId: params.toWarehouseId,
 						type: 'transfer_in',
 						quantity: item.quantity,
-						unitCost,
+						...(unitCost != null ? { unitCost } : {}),
 						referenceType: 'warehouse_transfer',
 						referenceId: params.referenceId,
 						note,
@@ -3852,6 +3972,13 @@ export default class ProductController {
 			await this.ensureInventoryProductBelongsToTenant(
 				requestContext,
 				allowedUpdates.productId,
+			)
+		}
+
+		if (allowedUpdates.quantity !== undefined) {
+			allowedUpdates.availableQuantity = availableQuantityFromStock(
+				allowedUpdates.quantity,
+				Number((existingInventory as InventoryDocument).reservedQuantity ?? 0),
 			)
 		}
 
@@ -6551,7 +6678,25 @@ export default class ProductController {
 					requestContext,
 				)
 
-				data = { success: true }
+				data = { success: true, productId }
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'inventory' && entry.method === 'PATCH') {
+				const productId = this.extractSyncPathId(entry.url)
+
+				await this.patchInventoryByProductId(
+					productId,
+					payload as Partial<InventoryRequestBody>,
+					requestContext,
+				)
+
+				data = { success: true, productId }
 
 				await this.recordSyncMutation(
 					requestContext,

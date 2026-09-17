@@ -1,0 +1,8 @@
+{
+	"name": "store-domain",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Environment-independent inventory cost, quantity, and selling-profit rules.",
+	"main": "src/index.ts",
+	"types": "src/index.ts"
+}

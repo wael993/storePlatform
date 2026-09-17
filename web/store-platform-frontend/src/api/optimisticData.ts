@@ -1,5 +1,6 @@
 import { InventoryItem, storeApi } from './apiStore'
 import { RootState } from '../store/store'
+import { availableQuantityFromStock } from 'store-domain'
 
 export type CachePatch = { undo: () => void }
 
@@ -7,7 +8,9 @@ type OptimisticDispatch = (
 	action: ReturnType<typeof storeApi.util.updateQueryData>,
 ) => CachePatch
 
-type ProductPatchBody = Partial<Omit<Product, 'id' | 'productId'>>
+type ProductPatchBody = Partial<Omit<Product, 'id' | 'productId' | 'price'>> & {
+	price?: Partial<Product['price']>
+}
 type InventoryPatchBody = Partial<
 	Pick<
 		InventoryItem,
@@ -130,17 +133,23 @@ export const applyOptimisticProductPatch = (
 		assignProductFields(product, body)
 	})
 
-	patches.push(
-		dispatch(
-			storeApi.util.updateQueryData('getProductCatalog', undefined, draft => {
-				const product = draft.products.find(item => item.productId === id)
+	const state = getState() as RootState
+	for (const args of storeApi.util.selectCachedArgsForQuery(
+		state,
+		'getProductCatalog',
+	)) {
+		patches.push(
+			dispatch(
+				storeApi.util.updateQueryData('getProductCatalog', args, draft => {
+					const product = draft.products.find(item => item.productId === id)
 
-				if (product) {
-					assignProductFields(product, body)
-				}
-			}),
-		),
-	)
+					if (product) {
+						assignProductFields(product, body)
+					}
+				}),
+			),
+		)
+	}
 
 	return patches
 }
@@ -157,6 +166,13 @@ export const applyOptimisticInventoryPatch = (
 		}
 
 		Object.assign(product.inventory, body)
+
+		if (body.quantity !== undefined) {
+			product.inventory.availableQuantity = availableQuantityFromStock(
+				body.quantity,
+				Number(product.inventory.reservedQuantity ?? 0),
+			)
+		}
 
 		const state = getState() as RootState
 		if (body.warehouseId !== undefined) {
@@ -186,6 +202,12 @@ export const applyOptimisticInventoryPatch = (
 
 				if (item) {
 					Object.assign(item, body)
+					if (body.quantity !== undefined) {
+						item.availableQuantity = availableQuantityFromStock(
+							body.quantity,
+							Number(item.reservedQuantity ?? 0),
+						)
+					}
 				}
 			}),
 		),

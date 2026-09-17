@@ -71,7 +71,9 @@ interface LoginRequestBody {
 
 interface EditProductQueryArgument {
 	id: string
-	body: Partial<Omit<Product, 'id' | 'productId'>>
+	body: Partial<Omit<Product, 'id' | 'productId' | 'price'>> & {
+		price?: Partial<Product['price']>
+	}
 }
 
 export type ListColumnConfigType =
@@ -344,6 +346,7 @@ export interface PostSellingInvoiceBody {
 		discountIsPercent?: boolean
 		taxRate?: number
 		lineTotal?: number
+		unitCost?: number
 	}>
 	status?: string
 	paymentStatus?: `${InvoicePaymentStatus}`
@@ -376,6 +379,7 @@ export interface SellingInvoicesApiResponse {
 		totalReceivable: number
 		averageOrder: number
 		totalProfit: number
+		profitReliable?: boolean
 		bestSeller: {
 			productId: string
 			productName: string
@@ -918,6 +922,15 @@ const getQuery = (
 					applyOptimisticProductPatch(dispatch, getState, id, body),
 					queryFulfilled,
 				)
+				try {
+					await queryFulfilled
+					const { mergeProductEditIntoLocalCatalog } =
+						await import('../offline/productCatalogStore')
+					await mergeProductEditIntoLocalCatalog(id, body)
+					await syncProductCatalogFromNetwork({ getState })
+				} catch {
+					// catalog sync is best-effort after a successful edit
+				}
 			},
 		}),
 		generateProductBarcode: builder.mutation<{ barcode: string }, string>({
@@ -931,6 +944,12 @@ const getQuery = (
 					applyOptimisticProductPatch(dispatch, getState, productId, {
 						barcode: data.barcode,
 					})
+					const { mergeProductEditIntoLocalCatalog } =
+						await import('../offline/productCatalogStore')
+					await mergeProductEditIntoLocalCatalog(productId, {
+						barcode: data.barcode,
+					})
+					await syncProductCatalogFromNetwork({ getState })
 				} catch {
 					// keep the list unchanged when generate fails
 				}

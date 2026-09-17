@@ -209,6 +209,8 @@ export const bootstrapOfflineData = async (tenantId: string): Promise<void> => {
 
 		const payload = (await response.json()) as BootstrapPayload
 		await applyBootstrapPayload(payload, tenantId)
+		const { syncFromNetwork } = await import('./productCatalogStore')
+		await syncFromNetwork(tenantId)
 		markOnline()
 
 		emit({
@@ -382,6 +384,13 @@ const runPushOutbox = async (options?: { force?: boolean }): Promise<void> => {
 
 		await markInventorySyncedAfterPush(result.serverTime)
 		await pullSyncChanges()
+		const tenantId =
+			(await getSyncMeta(SYNC_META_KEYS.sessionTenantId)) ||
+			(await getSyncMeta(SYNC_META_KEYS.tenantId))
+		if (tenantId) {
+			const { syncFromNetwork } = await import('./productCatalogStore')
+			await syncFromNetwork(tenantId)
+		}
 		markOnline()
 		await refreshPendingCount()
 

@@ -1,5 +1,6 @@
 import type { OutboxEntry, SyncPushResult } from './types'
 import { offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
+import { findLocalInventoryRow } from './localStore'
 
 const markSynced = async <T extends { syncStatus: string; updatedAt: string }>(
 	table: {
@@ -91,8 +92,23 @@ export const applyPushResultToLocalStore = async (
 			return
 		}
 		case 'product': {
-			const productId = String(data.productId ?? payload.productId ?? '')
+			const productId = String(
+				data.productId ?? payload.productId ?? entry.url.split('/').pop() ?? '',
+			)
 			if (productId) await markSynced(offlineDb.products, productId, serverTime)
+			return
+		}
+		case 'inventory': {
+			const productId = String(
+				data.productId ?? payload.productId ?? entry.url.split('/').pop() ?? '',
+			)
+			const warehouseId = String(payload.warehouseId ?? '')
+			if (!productId) return
+			const row = warehouseId
+				? await findLocalInventoryRow(productId, warehouseId)
+				: undefined
+			const key = row?.inventoryId ?? productId
+			await markSynced(offlineDb.inventory, key, serverTime)
 			return
 		}
 		case 'customer': {

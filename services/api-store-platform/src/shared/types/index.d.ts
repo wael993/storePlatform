@@ -230,6 +230,7 @@ export type SellingInvoicesSummary = {
 	totalReceivable: number
 	averageOrder: number
 	totalProfit: number
+	profitReliable?: boolean
 	bestSeller: SellingInvoicesSummaryProduct | null
 	topProfitProduct: SellingInvoicesSummaryProduct | null
 }
@@ -405,6 +406,7 @@ export type InventoryRequestBody = {
 	shelfId?: string
 	quantity?: number
 	minQuantity?: number
+	availableQuantity?: number
 }
 export type ReportRequestBody = {
 	name: string

@@ -1,6 +1,7 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import type { InventoryRequestBody } from '../../shared/types'
+import { PRODUCT_NAME_MAX_LENGTH } from '../../shared/store-domain/productRules'
 
 type ProductPrice = {
 	purchasePrice?: number
@@ -12,6 +13,18 @@ type ProductPrice = {
 }
 
 type ProductPricePatch = Partial<ProductPrice>
+
+export const assertProductNameMaxLength = (
+	value: string | undefined,
+	fieldName: string,
+) => {
+	if (value != null && value.length > PRODUCT_NAME_MAX_LENGTH) {
+		throw new BusinessLogicError(
+			ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+			`Invalid value for ${fieldName}.`,
+		)
+	}
+}
 
 export type ProductPatchBody = {
 	name?: string
@@ -348,6 +361,9 @@ export const normalizeProductPatchRequest = (
 			'No valid fields to update.',
 		)
 	}
+
+	assertProductNameMaxLength(normalized.name, 'name')
+	assertProductNameMaxLength(normalized.latinName, 'latinName')
 
 	return normalized
 }

@@ -14,7 +14,7 @@ module.exports = {
 		sourceType: 'module',
 	},
 	plugins: ['@typescript-eslint', 'unused-imports', '@stylistic/js'],
-	ignorePatterns: ['dist/'],
+	ignorePatterns: ['dist/', 'src/shared/store-domain/'],
 	settings: {},
 	rules: {
 		'linebreak-style': ['error', 'unix'],

@@ -15,7 +15,7 @@ export interface IStockMoving extends Document {
 		| 'transfer_out'
 		| 'adjustment'
 	quantity: number
-	unitCost: number
+	unitCost?: number
 	referenceType: string //buying_invoice//selling_invoice
 	referenceId: string //BI-1001//SI-1001
 	note?: string
@@ -70,7 +70,6 @@ const StockMovingSchema: Schema<IStockMoving> = new mongoose.Schema({
 	},
 	unitCost: {
 		type: Number,
-		required: [true, 'unitCost is required'],
 		min: 0,
 	},
 	referenceType: {

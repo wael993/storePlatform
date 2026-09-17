@@ -32,6 +32,7 @@ export interface SellingInvoiceSummary {
 	totalReceivable: number
 	averageOrder: number
 	totalProfit: number
+	profitReliable?: boolean
 	bestSeller: {
 		productId: string
 		productName: string

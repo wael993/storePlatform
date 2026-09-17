@@ -109,3 +109,6 @@ styled-system-studio
 
 # Local notes / tickets — not for the remote
 docs/
+
+# Generated from packages/store-domain (npm run sync-domain)
+services/api-store-platform/src/shared/store-domain/

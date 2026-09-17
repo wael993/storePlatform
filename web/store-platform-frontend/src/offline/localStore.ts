@@ -28,6 +28,10 @@ import {
 	normalizeBootstrapRecords,
 } from './utils'
 import { InvoiceStatus } from '../shared/globalEnums'
+import {
+	availableQuantityFromStock,
+	mergeInvoiceItemsPreservingUnitCost,
+} from 'store-domain'
 
 const INVOICE_NUMBER_BLOCK_SIZE = 500
 
@@ -62,14 +66,16 @@ export const getLocalNextBuyingInvoiceNumber = async (): Promise<number> => {
 	return Number.isFinite(current) && current > 0 ? current : 1
 }
 
-export const findDuplicateOutboxEntry = async (
+/** Identity for create retries; PATCH/PUT also fingerprints the body so sequential updates are not collapsed. */
+export const outboxIdempotencyKey = (
 	url: string,
 	method: string,
 	payload: Record<string, unknown>,
-) => {
-	const idempotencyKey = [
+): string => {
+	const normalizedMethod = method.toUpperCase()
+	const identity = [
 		url,
-		method,
+		normalizedMethod,
 		payload.invoiceId,
 		payload.actionId,
 		payload.productId,
@@ -87,6 +93,20 @@ export const findDuplicateOutboxEntry = async (
 		.filter(Boolean)
 		.join(':')
 
+	if (normalizedMethod !== 'PATCH' && normalizedMethod !== 'PUT') {
+		return identity
+	}
+
+	return `${identity}:${JSON.stringify(payload)}`
+}
+
+export const findDuplicateOutboxEntry = async (
+	url: string,
+	method: string,
+	payload: Record<string, unknown>,
+) => {
+	const idempotencyKey = outboxIdempotencyKey(url, method, payload)
+
 	if (!idempotencyKey) return null
 
 	const candidates = await offlineDb.outbox
@@ -98,29 +118,25 @@ export const findDuplicateOutboxEntry = async (
 		candidates.find(entry => {
 			if (entry.url !== url || entry.method !== method) return false
 			const entryPayload = (entry.payload ?? {}) as Record<string, unknown>
-			const entryKey = [
-				entry.url,
-				entry.method,
-				entryPayload.invoiceId,
-				entryPayload.actionId,
-				entryPayload.productId,
-				entryPayload.customerId,
-				entryPayload.supplierId,
-				entryPayload.partnerId,
-				entryPayload.expenseId,
-				entryPayload.categoryId,
-				entryPayload.brandId,
-				entryPayload.shelfId,
-				entryPayload.warehouseId,
-				entryPayload.currencyId,
-				entryPayload.unitId,
-			]
-				.filter(Boolean)
-				.join(':')
-			return entryKey === idempotencyKey
+			return (
+				outboxIdempotencyKey(entry.url, entry.method, entryPayload) ===
+				idempotencyKey
+			)
 		}) ?? null
 	)
 }
+
+export const hasPendingProductOrInventoryOutbox =
+	async (): Promise<boolean> => {
+		const pending = await offlineDb.outbox
+			.where('status')
+			.anyOf(['pending', 'processing', 'failed'])
+			.toArray()
+
+		return pending.some(
+			entry => entry.entity === 'product' || entry.entity === 'inventory',
+		)
+	}
 
 export const allocateNextInvoiceNumber = async (): Promise<number> => {
 	const current = Number(await getSyncMeta(SYNC_META_KEYS.nextInvoiceNumber))
@@ -193,6 +209,7 @@ export const applyBootstrapPayload = async (
 			offlineDb.dailyActions,
 			offlineDb.invoices,
 			offlineDb.buyingInvoices,
+			offlineDb.catalogProducts,
 			offlineDb.syncMeta,
 			offlineDb.outbox,
 		],
@@ -212,6 +229,7 @@ export const applyBootstrapPayload = async (
 			await offlineDb.dailyActions.clear()
 			await offlineDb.invoices.clear()
 			await offlineDb.buyingInvoices.clear()
+			await offlineDb.catalogProducts.clear()
 			await offlineDb.outbox.clear()
 
 			await putBootstrapRecords(
@@ -469,9 +487,26 @@ export const applySyncChanges = async (
 		payload.dailyActions?.map(d => withLocalMeta(d, 'synced')),
 		item => (item as DailyAction).actionId,
 	)
+
+	const invoicesWithFrozenCost = []
+
+	for (const invoice of payload.invoices ?? []) {
+		const existing = invoice.invoiceId
+			? await offlineDb.invoices.get(invoice.invoiceId)
+			: undefined
+
+		invoicesWithFrozenCost.push({
+			...invoice,
+			invoiceId: invoice.invoiceId,
+			items:
+				mergeInvoiceItemsPreservingUnitCost(existing?.items, invoice.items) ??
+				invoice.items,
+		})
+	}
+
 	await upsertIfNotPending(
 		offlineDb.invoices,
-		payload.invoices?.map(inv =>
+		invoicesWithFrozenCost.map(inv =>
 			withLocalMeta({ ...inv, invoiceId: inv.invoiceId }, 'synced'),
 		),
 		item => item.invoiceId,
@@ -523,13 +558,21 @@ export const subscribeOutboxChanges = (listener: () => void): (() => void) => {
 	return () => outboxChangeListeners.delete(listener)
 }
 
-const notifyOutboxChanged = () => {
+export const notifyOutboxChanged = () => {
 	for (const listener of outboxChangeListeners) {
 		listener()
 	}
 }
 
-export const addOutboxEntry = async (params: {
+let lastOutboxTime = 0
+
+const nextOutboxCreatedAt = (): string => {
+	const now = Date.now()
+	lastOutboxTime = Math.max(now, lastOutboxTime + 1)
+	return new Date(lastOutboxTime).toISOString()
+}
+
+export const putOutboxEntry = async (params: {
 	entity: OutboxEntity
 	operation: OutboxOperation
 	url: string
@@ -548,13 +591,24 @@ export const addOutboxEntry = async (params: {
 		method: params.method,
 		payload: params.payload,
 		clientMutationId,
-		createdAt: nowIso(),
+		createdAt: nextOutboxCreatedAt(),
 		retryCount: 0,
 		status: 'pending',
 	})
 
-	notifyOutboxChanged()
+	return clientMutationId
+}
 
+export const addOutboxEntry = async (params: {
+	entity: OutboxEntity
+	operation: OutboxOperation
+	url: string
+	method: string
+	payload: unknown
+	clientMutationId?: string
+}): Promise<string> => {
+	const clientMutationId = await putOutboxEntry(params)
+	notifyOutboxChanged()
 	return clientMutationId
 }
 
@@ -599,7 +653,7 @@ export const decrementLocalInventory = async (
 	await offlineDb.inventory.put({
 		...inventory,
 		quantity: nextQty,
-		availableQuantity: Math.max(0, nextQty - reserved),
+		availableQuantity: availableQuantityFromStock(nextQty, reserved),
 		syncStatus:
 			inventory.syncStatus === 'synced' ? 'pending' : inventory.syncStatus,
 		updatedAt: nowIso(),
@@ -622,7 +676,7 @@ export const incrementLocalInventory = async (
 			productId,
 			warehouseId,
 			quantity,
-			availableQuantity: Math.max(0, quantity),
+			availableQuantity: availableQuantityFromStock(quantity),
 			reservedQuantity: 0,
 			syncStatus: 'pending',
 			updatedAt: nowIso(),
@@ -637,7 +691,7 @@ export const incrementLocalInventory = async (
 	await offlineDb.inventory.put({
 		...inventory,
 		quantity: nextQty,
-		availableQuantity: Math.max(0, nextQty - reserved),
+		availableQuantity: availableQuantityFromStock(nextQty, reserved),
 		syncStatus:
 			inventory.syncStatus === 'synced' ? 'pending' : inventory.syncStatus,
 		updatedAt: nowIso(),
@@ -742,6 +796,7 @@ export const clearOfflineData = async (): Promise<void> => {
 			offlineDb.dailyActions,
 			offlineDb.invoices,
 			offlineDb.buyingInvoices,
+			offlineDb.catalogProducts,
 			offlineDb.syncMeta,
 			offlineDb.outbox,
 		],
@@ -761,6 +816,7 @@ export const clearOfflineData = async (): Promise<void> => {
 			await offlineDb.dailyActions.clear()
 			await offlineDb.invoices.clear()
 			await offlineDb.buyingInvoices.clear()
+			await offlineDb.catalogProducts.clear()
 			await offlineDb.syncMeta.clear()
 			await offlineDb.outbox.clear()
 		},

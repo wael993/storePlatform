@@ -1,7 +1,9 @@
 # Root .env → api (Mongo, JWT, Redis, AI). Same DB as npm run dev when .env matches services/api-store-platform/.env
 services:
   api:
-    build: ./services/api-store-platform
+    build:
+      context: .
+      dockerfile: services/api-store-platform/Dockerfile
     restart: unless-stopped
     ports:
       - '3001:3001'
@@ -25,7 +27,9 @@ services:
       start_period: 180s
 
   web:
-    build: ./web/store-platform-frontend
+    build:
+      context: .
+      dockerfile: web/store-platform-frontend/Dockerfile
     restart: unless-stopped
     ports:
       - '3000:80'

@@ -12,6 +12,7 @@ import { config } from '../config'
 import store from '../store/store'
 import { getIsNetworkOnline } from './connectivity'
 import { getSyncMeta, offlineDb, setSyncMeta, SYNC_META_KEYS } from './db'
+import { hasPendingProductOrInventoryOutbox } from './localStore'
 import type { LocalCatalogProduct } from './types'
 import {
 	getWarehouseScopeIds,
@@ -155,6 +156,44 @@ export const hydrateFromIndexedDB = async (tenantId: string): Promise<void> => {
 	emit({ lastSyncedAt })
 }
 
+export const reloadTenantCatalogMemory = async (
+	tenantId: string,
+): Promise<void> => {
+	const records = await offlineDb.catalogProducts
+		.where('tenantId')
+		.equals(tenantId)
+		.toArray()
+
+	activeTenantId = tenantId
+	loadMemoryFromItems(tenantId, records)
+}
+
+export const upsertLocalCatalogProduct = async (
+	item: LocalCatalogProduct,
+): Promise<void> => {
+	await offlineDb.catalogProducts.put(item)
+	await reloadTenantCatalogMemory(item.tenantId)
+}
+
+export const mergeProductEditIntoLocalCatalog = async (
+	productId: string,
+	body: Partial<Omit<Product, 'productId' | 'price'>> & {
+		price?: Partial<Product['price']>
+	},
+): Promise<void> => {
+	const { applyOnlineProductCatalogEdit } =
+		await import('./localProductInventoryMutations')
+	await applyOnlineProductCatalogEdit(productId, body)
+}
+
+export const removeLocalCatalogProduct = async (
+	tenantId: string,
+	productId: string,
+): Promise<void> => {
+	await offlineDb.catalogProducts.delete(productId)
+	await reloadTenantCatalogMemory(tenantId)
+}
+
 export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 	const warehouseScope = getWarehouseScopeIds()
 	const scopeKey = warehouseScope.join(',')
@@ -168,6 +207,10 @@ export const syncFromNetwork = async (tenantId: string): Promise<void> => {
 				isReady: false,
 			})
 		}
+		return
+	}
+
+	if (await hasPendingProductOrInventoryOutbox()) {
 		return
 	}
 

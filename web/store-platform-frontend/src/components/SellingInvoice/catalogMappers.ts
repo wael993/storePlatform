@@ -51,3 +51,31 @@ export const mapProductToCatalogItem = (
 	lastBuyingPrice: product.lastBuyingPrice,
 	images: product.images?.length ? [product.images[0]] : undefined,
 })
+
+/** Overlay product identity/price onto an existing catalog row without dropping invoice-derived fields. */
+export const mergeProductIntoCatalogItem = (
+	existing: ProductCatalogItem | undefined,
+	product: Product,
+	options: { seeBuying: boolean; averageCost?: number },
+): ProductCatalogItem => {
+	const mapped = mapProductToCatalogItem(product)
+	const seeBuying = options.seeBuying
+
+	return {
+		...existing,
+		...mapped,
+		barcode: mapped.barcode,
+		price: {
+			retailPrice: mapped.price.retailPrice,
+			discount: mapped.price.discount,
+			currency: mapped.price.currency,
+			...(seeBuying ? { purchasePrice: mapped.price.purchasePrice } : {}),
+		},
+		averageCost: seeBuying ? options.averageCost : undefined,
+		lastSellingPrice: existing?.lastSellingPrice ?? mapped.lastSellingPrice,
+		lastBuyingPrice: seeBuying
+			? (existing?.lastBuyingPrice ?? mapped.lastBuyingPrice)
+			: undefined,
+		images: existing?.images ?? mapped.images,
+	}
+}

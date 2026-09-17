@@ -369,6 +369,7 @@ const SellingInvoicesPage = () => {
 						totalReceivable: 0,
 						averageOrder: 0,
 						totalProfit: 0,
+						profitReliable: false,
 						bestSeller: null,
 						topProfitProduct: null,
 						salesSparkline: [],

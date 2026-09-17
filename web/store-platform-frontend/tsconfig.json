@@ -15,7 +15,11 @@
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"noEmit": true,
-		"jsx": "react-jsx"
+		"jsx": "react-jsx",
+		"baseUrl": ".",
+		"paths": {
+			"store-domain": ["../../packages/store-domain/src/index.ts"]
+		}
 	},
-	"include": ["src", "vercel.ts"]
+	"include": ["src", "vercel.ts", "../../packages/store-domain/src"]
 }

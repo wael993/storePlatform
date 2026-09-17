@@ -9,7 +9,9 @@ export type ProductInlineField =
 	| 'quantity'
 	| 'minQuantity'
 
-type ProductPatchBody = Partial<Omit<Product, 'productId'>>
+type ProductPatchBody = Partial<Omit<Product, 'productId' | 'price'>> & {
+	price?: Partial<Product['price']>
+}
 
 type InventoryPatchBody = {
 	readonly warehouseId: string
@@ -58,14 +60,10 @@ export function parseInlineString(value?: string): string {
 	return trimmed
 }
 
-const buildPriceBody = (
-	product: Product,
+const buildPriceFieldPatch = (
 	pricePatch: Partial<Product['price']>,
 ): ProductPatchBody => ({
-	price: {
-		...product.price,
-		...pricePatch,
-	},
+	price: pricePatch,
 })
 
 const requireInventoryTarget = (
@@ -98,25 +96,25 @@ export const PRODUCT_INLINE_FIELD_CONFIG = {
 	},
 	purchasePrice: {
 		errorKey: 'components.activityDetail.topSection.buyCostNoValue',
-		buildPatch: (product, raw) => ({
+		buildPatch: (_product, raw) => ({
 			persist: 'product',
-			body: buildPriceBody(product, {
+			body: buildPriceFieldPatch({
 				purchasePrice: parseInlineNumber(raw),
 			}),
 		}),
 	},
 	retailPrice: {
 		errorKey: 'common.sellPrice',
-		buildPatch: (product, raw) => ({
+		buildPatch: (_product, raw) => ({
 			persist: 'product',
-			body: buildPriceBody(product, { retailPrice: parseInlineNumber(raw) }),
+			body: buildPriceFieldPatch({ retailPrice: parseInlineNumber(raw) }),
 		}),
 	},
 	discount: {
 		errorKey: 'common.discount',
-		buildPatch: (product, raw) => ({
+		buildPatch: (_product, raw) => ({
 			persist: 'product',
-			body: buildPriceBody(product, { discount: parseInlineNumber(raw) }),
+			body: buildPriceFieldPatch({ discount: parseInlineNumber(raw) }),
 		}),
 	},
 	quantity: {

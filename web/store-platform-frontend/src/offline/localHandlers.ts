@@ -17,12 +17,24 @@ import {
 } from '../api/apiStore'
 import { getWorkMode } from './workMode'
 import {
-	getOperationalWarehouseId,
 	getWarehouseScopeIds,
 	requireOperationalWarehouseId,
 } from '../shared/warehouseScope'
+import {
+	applyLocalInventoryMutation,
+	applyLocalProductMutation,
+} from './localProductInventoryMutations'
 import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
+import {
+	buildLocalPeriodProductAggregates,
+	mergeQtyWeightedAverageCost,
+	pickBestSellerSummaryProduct,
+	pickTopProfitSummaryProduct,
+	resolveLocalSaleUnitCost,
+	totalProfitFromAggregates,
+} from '../components/SellingInvoice/invoiceProfitSummary'
+import { finiteCost, mergeInvoiceItemsPreservingUnitCost } from 'store-domain'
 import {
 	filterDailyActionsByParams,
 	parseDailyActionFiltersFromParams,
@@ -35,6 +47,8 @@ import {
 } from './offlineRetention'
 import {
 	addOutboxEntry,
+	notifyOutboxChanged,
+	putOutboxEntry,
 	allocateNextInvoiceNumber,
 	allocateNextBuyingInvoiceNumber,
 	findDuplicateOutboxEntry,
@@ -180,20 +194,23 @@ const aggregateInventoryByProductId = <
 	items: T[],
 ): Map<string, T> => {
 	const map = new Map<string, T>()
+	const costQtyByProductId = new Map<string, number>()
 
 	for (const item of items) {
 		if (!item.productId) continue
 		const existing = map.get(item.productId)
+		const nextQty = Number(item.quantity ?? 0)
+		const nextCost = finiteCost(item.averageCost)
+
 		if (!existing) {
 			map.set(item.productId, item)
+			costQtyByProductId.set(item.productId, nextCost != null ? nextQty : 0)
 			continue
 		}
 
 		const existingQty = Number(existing.quantity ?? 0)
-		const nextQty = Number(item.quantity ?? 0)
+		const existingCostQty = costQtyByProductId.get(item.productId) ?? 0
 		const totalQty = existingQty + nextQty
-		const existingCost = Number(existing.averageCost ?? 0)
-		const nextCost = Number(item.averageCost ?? 0)
 
 		map.set(item.productId, {
 			...existing,
@@ -204,11 +221,17 @@ const aggregateInventoryByProductId = <
 			reservedQuantity:
 				Number(existing.reservedQuantity ?? 0) +
 				Number(item.reservedQuantity ?? 0),
-			averageCost:
-				totalQty > 0
-					? (existingCost * existingQty + nextCost * nextQty) / totalQty
-					: existing.averageCost,
+			averageCost: mergeQtyWeightedAverageCost(
+				existing.averageCost,
+				existingCostQty,
+				nextCost,
+				nextQty,
+			),
 		})
+		costQtyByProductId.set(
+			item.productId,
+			existingCostQty + (nextCost != null ? nextQty : 0),
+		)
 	}
 
 	return map
@@ -261,15 +284,10 @@ const PERIOD_EXCLUDED_STATUSES = new Set<string>([
 	InvoiceStatus.PENDING,
 ])
 
-const getInvoiceLineRevenue = (item: {
-	lineTotal?: number
-	quantity?: number
-	unitPrice?: number
-}) => {
-	if (item.lineTotal != null) return Number(item.lineTotal)
-
-	return Number(item.quantity ?? 0) * Number(item.unitPrice ?? 0)
-}
+const isPeriodSummaryInvoice = (invoice: LocalInvoice) =>
+	!PERIOD_EXCLUDED_STATUSES.has(
+		String(invoice.status ?? InvoiceStatus.CONFIRMED),
+	)
 
 const parseSummaryDateRange = (params: URLSearchParams) => {
 	const defaultDay = new Date()
@@ -297,12 +315,7 @@ const parseSummaryDateRange = (params: URLSearchParams) => {
 	return { start, end }
 }
 
-const isPeriodSummaryInvoice = (invoice: LocalInvoice) =>
-	!PERIOD_EXCLUDED_STATUSES.has(
-		String(invoice.status ?? InvoiceStatus.CONFIRMED),
-	)
-
-const buildSellingInvoicesSummary = (
+const buildSellingInvoicesSummary = async (
 	invoices: LocalInvoice[],
 	params: URLSearchParams,
 ) => {
@@ -323,121 +336,11 @@ const buildSellingInvoicesSummary = (
 		return total + grandTotal
 	}, 0)
 
-	const productAggregates = new Map<
-		string,
-		{
-			productId: string
-			productName: string
-			quantitySold: number
-			revenue: number
-			cogs: number
-			profit: number
-		}
-	>()
-
-	const getAggregate = (productId: string, productName = '') => {
-		const existing = productAggregates.get(productId)
-
-		if (existing) {
-			if (!existing.productName && productName) {
-				existing.productName = productName
-			}
-
-			return existing
-		}
-
-		const created = {
-			productId,
-			productName,
-			quantitySold: 0,
-			revenue: 0,
-			cogs: 0,
-			profit: 0,
-		}
-
-		productAggregates.set(productId, created)
-
-		return created
-	}
-
-	for (const invoice of periodInvoices) {
-		for (const item of invoice.items ?? []) {
-			const productId = String(item.productId ?? '')
-
-			if (!productId) continue
-
-			const aggregate = getAggregate(productId, String(item.name ?? ''))
-			const quantity = Number(item.quantity ?? 0)
-
-			aggregate.revenue += getInvoiceLineRevenue(item)
-			// ponytail: offline has no StockMoving COGS; qty/revenue only until sync.
-			aggregate.quantitySold += quantity
-		}
-	}
-
-	for (const aggregate of productAggregates.values()) {
-		aggregate.profit = aggregate.revenue - aggregate.cogs
-	}
-
-	const pickBestSeller = () => {
-		const candidates = [...productAggregates.values()].filter(
-			aggregate => aggregate.quantitySold > 0,
-		)
-
-		if (!candidates.length) return null
-
-		candidates.sort((left, right) => {
-			if (right.quantitySold !== left.quantitySold) {
-				return right.quantitySold - left.quantitySold
-			}
-
-			if (right.profit !== left.profit) {
-				return right.profit - left.profit
-			}
-
-			return left.productName.localeCompare(right.productName)
-		})
-
-		const winner = candidates[0]
-
-		return {
-			productId: winner.productId,
-			productName: winner.productName || winner.productId,
-			quantity: winner.quantitySold,
-		}
-	}
-
-	const pickTopProfitProduct = () => {
-		const candidates = [...productAggregates.values()].filter(
-			aggregate => aggregate.quantitySold > 0,
-		)
-
-		if (!candidates.length) return null
-
-		candidates.sort((left, right) => {
-			if (right.profit !== left.profit) {
-				return right.profit - left.profit
-			}
-
-			if (right.quantitySold !== left.quantitySold) {
-				return right.quantitySold - left.quantitySold
-			}
-
-			return left.productName.localeCompare(right.productName)
-		})
-
-		const winner = candidates[0]
-
-		return {
-			productId: winner.productId,
-			productName: winner.productName || winner.productId,
-			profit: winner.profit,
-		}
-	}
-
-	const totalProfit = [...productAggregates.values()].reduce(
-		(total, aggregate) => total + aggregate.profit,
-		0,
+	const { aggregates, profitReliable } = buildLocalPeriodProductAggregates(
+		periodInvoices.map(invoice => ({
+			items: invoice.items,
+			grandTotal: getPrimaryInvoiceCurrencyAmounts(invoice).grandTotal,
+		})),
 	)
 
 	return {
@@ -456,9 +359,12 @@ const buildSellingInvoicesSummary = (
 		}, 0),
 		averageOrder:
 			periodInvoices.length > 0 ? todaySales / periodInvoices.length : 0,
-		totalProfit,
-		bestSeller: pickBestSeller(),
-		topProfitProduct: pickTopProfitProduct(),
+		totalProfit: profitReliable ? totalProfitFromAggregates(aggregates) : 0,
+		profitReliable,
+		bestSeller: pickBestSellerSummaryProduct(aggregates),
+		topProfitProduct: profitReliable
+			? pickTopProfitSummaryProduct(aggregates)
+			: null,
 	}
 }
 
@@ -701,6 +607,41 @@ const operationFromMethod = (
 	return 'delete'
 }
 
+const stampMissingLocalInvoiceUnitCosts = async <
+	T extends { productId: string; unitCost?: number },
+>(
+	items: T[],
+	warehouseId: string,
+	existingItems?: T[],
+): Promise<T[]> => {
+	const unused = existingItems ? [...existingItems] : []
+
+	return Promise.all(
+		items.map(async item => {
+			const existingIndex = unused.findIndex(
+				row => row.productId && row.productId === item.productId,
+			)
+
+			if (existingIndex >= 0) {
+				unused.splice(existingIndex, 1)
+
+				return item
+			}
+
+			if (finiteCost(item.unitCost) != null) return item
+
+			const inventory = await findLocalInventoryRow(item.productId, warehouseId)
+			const product = await offlineDb.products.get(item.productId)
+			const unitCost = resolveLocalSaleUnitCost(
+				inventory?.averageCost,
+				product?.price?.purchasePrice,
+			)
+
+			return unitCost == null ? item : { ...item, unitCost }
+		}),
+	)
+}
+
 const handlePostInvoice = async (
 	body: PostSellingInvoiceBody & { invoiceId?: string },
 ) => {
@@ -748,47 +689,66 @@ const handlePostInvoice = async (
 
 	const allocatedNumber = await allocateNextInvoiceNumber()
 	const invoiceNumber = formatSellingInvoiceNumber(allocatedNumber)
+	let invoice: LocalInvoice | undefined
 
-	const invoice: LocalInvoice = withLocalMeta(
-		{
-			invoiceId,
-			invoiceNumber,
-			customerId: body.customerId,
-			customerName: body.customerName,
-			salesPerson: body.salesPerson,
-			paymentType: body.paymentType,
-			items: body.items,
-			status,
-			paymentStatus: body.paymentStatus,
-			currencyAmounts: body.currencyAmounts,
-			notes: body.notes,
-			warehouseId,
-			issuedAt: body.issuedAt ?? nowIso(),
-			createdAt: nowIso(),
+	await offlineDb.transaction(
+		'rw',
+		[
+			offlineDb.invoices,
+			offlineDb.inventory,
+			offlineDb.products,
+			offlineDb.syncMeta,
+			offlineDb.outbox,
+		],
+		async () => {
+			const items = body.items
+				? await stampMissingLocalInvoiceUnitCosts(body.items, warehouseId)
+				: body.items
+
+			invoice = withLocalMeta(
+				{
+					invoiceId,
+					invoiceNumber,
+					customerId: body.customerId,
+					customerName: body.customerName,
+					salesPerson: body.salesPerson,
+					paymentType: body.paymentType,
+					items,
+					status,
+					paymentStatus: body.paymentStatus,
+					currencyAmounts: body.currencyAmounts,
+					notes: body.notes,
+					warehouseId,
+					issuedAt: body.issuedAt ?? nowIso(),
+					createdAt: nowIso(),
+				},
+				'pending',
+				clientMutationId,
+			)
+
+			await saveLocalInvoice(invoice)
+			await putOutboxEntry({
+				entity: 'invoice',
+				operation: 'create',
+				url: 'selling-invoices',
+				method: 'POST',
+				payload: {
+					...body,
+					invoiceId,
+					clientMutationId,
+					invoiceNumber,
+					items: body.items.map(({ unitCost: _unitCost, ...item }) => item),
+				},
+				clientMutationId,
+			})
 		},
-		'pending',
-		clientMutationId,
 	)
-
-	await saveLocalInvoice(invoice)
-	await addOutboxEntry({
-		entity: 'invoice',
-		operation: 'create',
-		url: 'selling-invoices',
-		method: 'POST',
-		payload: {
-			...body,
-			invoiceId,
-			clientMutationId,
-			invoiceNumber,
-		},
-		clientMutationId,
-	})
+	notifyOutboxChanged()
 
 	return {
 		_id: invoiceId,
 		invoiceId,
-		invoiceNumber: invoice.invoiceNumber,
+		invoiceNumber: invoice?.invoiceNumber ?? invoiceNumber,
 	}
 }
 
@@ -853,20 +813,32 @@ const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
 		clientMutationId,
 	)
 
-	await saveLocalBuyingInvoice(invoice)
-	await addOutboxEntry({
-		entity: 'buyingInvoice',
-		operation: 'create',
-		url: 'buying-invoices',
-		method: 'POST',
-		payload: {
-			...body,
-			buyingInvoiceId,
-			clientMutationId,
-			invoiceNumber,
+	await offlineDb.transaction(
+		'rw',
+		[
+			offlineDb.buyingInvoices,
+			offlineDb.inventory,
+			offlineDb.syncMeta,
+			offlineDb.outbox,
+		],
+		async () => {
+			await saveLocalBuyingInvoice(invoice)
+			await putOutboxEntry({
+				entity: 'buyingInvoice',
+				operation: 'create',
+				url: 'buying-invoices',
+				method: 'POST',
+				payload: {
+					...body,
+					buyingInvoiceId,
+					clientMutationId,
+					invoiceNumber,
+				},
+				clientMutationId,
+			})
 		},
-		clientMutationId,
-	})
+	)
+	notifyOutboxChanged()
 
 	return {
 		_id: buyingInvoiceId,
@@ -1128,16 +1100,38 @@ const handleGenericMutation = async (
 
 	const clientMutationId = generateId()
 
-	await applyLocalEntityMutation(entity, method, path, payload)
-
-	await addOutboxEntry({
+	const outbox = {
 		entity,
 		operation: operationFromMethod(method),
 		url: path,
 		method,
 		payload,
 		clientMutationId,
-	})
+	}
+
+	if (entity === 'product') {
+		await applyLocalProductMutation(method, path, payload, outbox)
+	} else if (entity === 'inventory') {
+		await applyLocalInventoryMutation(method, path, payload, outbox)
+	} else if (entity === 'invoice') {
+		await offlineDb.transaction(
+			'rw',
+			[
+				offlineDb.invoices,
+				offlineDb.products,
+				offlineDb.inventory,
+				offlineDb.outbox,
+			],
+			async () => {
+				await applyLocalEntityMutation(entity, method, path, payload)
+				await putOutboxEntry(outbox)
+			},
+		)
+		notifyOutboxChanged()
+	} else {
+		await applyLocalEntityMutation(entity, method, path, payload)
+		await addOutboxEntry(outbox)
+	}
 
 	return { success: true, clientMutationId, offline: true }
 }
@@ -1280,68 +1274,6 @@ const applyLocalEntityMutation = async (
 
 	if (entity === 'partner' && op === 'delete') {
 		await offlineDb.partners.delete(path.split('/')[1])
-		return
-	}
-
-	if (entity === 'product' && op === 'create') {
-		const productId = String(payload.productId ?? generateId())
-		payload.productId = productId
-		await offlineDb.products.put(
-			withLocalMeta(
-				{
-					...payload,
-					productId,
-					name: String(payload.name ?? ''),
-					price: payload.price ?? { retailPrice: 0, currency: 'USD' },
-					status: (payload.status as Product['status']) ?? 'active',
-				} as Product,
-				'pending',
-				productId,
-			),
-		)
-		if (payload.quantity !== undefined) {
-			const warehouseId =
-				String(payload.warehouseId ?? '').trim() ||
-				getOperationalWarehouseId() ||
-				''
-			if (!warehouseId) {
-				throw new Error(
-					'Exactly one warehouse must be selected to post invoices or change stock.',
-				)
-			}
-			await offlineDb.inventory.put(
-				withLocalMeta(
-					{
-						inventoryId: generateId(),
-						productId,
-						warehouseId,
-						quantity: Number(payload.quantity),
-						availableQuantity: Number(payload.quantity),
-					},
-					'pending',
-				),
-			)
-		}
-		return
-	}
-
-	if (entity === 'product' && op === 'update') {
-		const productId = path.split('/')[1]
-		const existing = await offlineDb.products.get(productId)
-		if (existing) {
-			await offlineDb.products.put({
-				...existing,
-				...payload,
-				syncStatus: 'pending',
-				updatedAt: nowIso(),
-			})
-		}
-		return
-	}
-
-	if (entity === 'product' && op === 'delete') {
-		const productId = path.split('/')[1]
-		await offlineDb.products.delete(productId)
 		return
 	}
 
@@ -1551,15 +1483,31 @@ const applyLocalEntityMutation = async (
 	if (entity === 'invoice' && op === 'update') {
 		const invoiceId = path.split('/')[1]
 		const existing = await offlineDb.invoices.get(invoiceId)
-		if (existing) {
-			await offlineDb.invoices.put({
-				...existing,
-				...payload,
-				invoiceId,
-				syncStatus: 'pending',
-				updatedAt: nowIso(),
-			})
+		if (!existing) {
+			throw new Error('Invoice not found.')
 		}
+
+		const nextItems = Array.isArray(payload.items)
+			? mergeInvoiceItemsPreservingUnitCost(
+					existing.items,
+					payload.items as NonNullable<LocalInvoice['items']>,
+				)
+			: undefined
+		if (nextItems) {
+			payload.items = await stampMissingLocalInvoiceUnitCosts(
+				nextItems,
+				String(payload.warehouseId ?? existing.warehouseId ?? ''),
+				existing.items,
+			)
+		}
+
+		await offlineDb.invoices.put({
+			...existing,
+			...payload,
+			invoiceId,
+			syncStatus: 'pending',
+			updatedAt: nowIso(),
+		})
 		return
 	}
 
@@ -2077,7 +2025,7 @@ export const handleOfflineQuery = async (
 				return {
 					data: {
 						invoices: filtered,
-						summary: buildSellingInvoicesSummary(invoices, params),
+						summary: await buildSellingInvoicesSummary(invoices, params),
 						nextInvoiceNumber,
 						totalCount: filtered.length,
 					},
