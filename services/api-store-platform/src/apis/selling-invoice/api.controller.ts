@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { Invoice } from '../../models/Invoice'
+import InvoiceSettings from '../../models/InvoiceSettings'
 import { Product } from '../../models/Products'
 import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -35,7 +36,7 @@ import {
 	requireWarehouseId,
 } from '../../shared/warehouseAccess'
 import { getTenantContext } from '../../shared/tenant'
-import { finiteCost } from '../../shared/inventoryCost'
+import { finiteCost, findOversellLines } from '../../shared/inventoryCost'
 import {
 	buildPeriodProductAggregates,
 	originalSaleUnitCostByProduct,
@@ -88,6 +89,7 @@ export type SellingInvoiceCollaborator = {
 			productId: string
 			warehouseId: string
 			quantityDelta: number
+			allowNegative?: boolean
 		},
 		session: mongoose.ClientSession,
 	): Promise<InventoryDocument>
@@ -490,6 +492,17 @@ export default class SellingInvoiceController {
 		}
 	}
 
+	private async tenantAllowsOversell(
+		requestContext: RequestContext,
+	): Promise<boolean> {
+		const { tenantId } = getTenantContext(requestContext)
+		const settings = await InvoiceSettings.findOne({ tenantId })
+			.select('allowOversell')
+			.lean<{ allowOversell?: boolean }>()
+
+		return settings?.allowOversell === true
+	}
+
 	private async validateSaleInventory(
 		requestContext: RequestContext,
 		items: NonNullable<InvoiceRequestBody['items']>,
@@ -497,6 +510,7 @@ export default class SellingInvoiceController {
 		session?: mongoose.ClientSession,
 	) {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
+		const availableByProductId = new Map<string, number>()
 
 		for (const item of items) {
 			const inventory = await this.ops.getInventoryByProductId(
@@ -513,18 +527,23 @@ export default class SellingInvoiceController {
 				)
 			}
 
-			const currentQuantity = Number(inventory.quantity ?? 0)
-
-			if (currentQuantity < item.quantity) {
-				// throw new BusinessLogicError(
-				// 	ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				// 	`Insufficient stock for ${item.name}. Available: ${currentQuantity}, requested: ${item.quantity}.`,
-				// )
-				logger.error(
-					`Insufficient stock for ${item.name}. Available: ${currentQuantity}, requested: ${item.quantity}.`,
-				)
-			}
+			availableByProductId.set(item.productId, Number(inventory.quantity ?? 0))
 		}
+
+		const oversell = findOversellLines(
+			items,
+			availableByProductId,
+			await this.tenantAllowsOversell(requestContext),
+		)
+
+		if (oversell.length === 0) return
+
+		const first = oversell[0]!
+
+		throw new BusinessLogicError(
+			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+			`Insufficient stock for ${first.name}. Available: ${first.available}, requested: ${first.requested}.`,
+		)
 	}
 
 	/**
@@ -574,6 +593,7 @@ export default class SellingInvoiceController {
 	): Promise<string[]> {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
 		const touchedInventoryIds: string[] = []
+		const allowNegative = await this.tenantAllowsOversell(requestContext)
 
 		for (const item of items) {
 			const inventory = await this.ops.getInventoryByProductId(
@@ -608,6 +628,7 @@ export default class SellingInvoiceController {
 					productId: item.productId,
 					warehouseId: scopedWarehouseId,
 					quantityDelta: -item.quantity,
+					allowNegative,
 				},
 				session,
 			)

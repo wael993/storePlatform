@@ -31,6 +31,8 @@ import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
+import { findOversellLines } from 'store-domain'
+import { requestInsufficientStockConfirmation } from '../../offline/insufficientStockConfirmation'
 import useCustomToast from '../common/CustomToast'
 import { PAGE_COLORS } from './constants'
 import { calculateInvoiceTotals } from './invoiceCalculations'
@@ -47,6 +49,7 @@ import {
 import { createInvoiceDraft, WALK_IN_CUSTOMER_ID } from './invoiceDraftSessions'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
+import { useInventoryByProductId } from './useInventoryByProductId'
 import {
 	addProductToLineItems,
 	syncLineItemCostReferences,
@@ -228,6 +231,7 @@ const NewSellingInvoicePanel = ({
 	const { data: invoiceSettings } = useGetInvoiceSettingsQuery(undefined, {
 		refetchOnMountOrArgChange: false,
 	})
+	const inventoryByProductId = useInventoryByProductId()
 	const customers = customersProp ?? fetchedCustomers
 	const [postSellingInvoice, { isLoading: isCreating }] =
 		usePostSellingInvoiceMutation()
@@ -393,8 +397,12 @@ const NewSellingInvoicePanel = ({
 		setDraft,
 	])
 
-	const changeAmount = Math.max(0, draft.paidAmount - totals.grandTotal)
-
+	const changeAmount = draft.paidAmount - totals.grandTotal
+	const isPayedButtonDisabled =
+		draft.lineItems.length === 0 ||
+		(draft.paymentType === InvoicePaymentType.CREDIT &&
+			draft.customerId === WALK_IN_CUSTOMER_ID) ||
+		totals.grandTotal > draft.paidAmount
 	const customerOptions = useMemo(
 		(): Pick<Customer, 'customerId' | 'name'>[] => [
 			{
@@ -497,6 +505,33 @@ const NewSellingInvoicePanel = ({
 		setSaveError(null)
 
 		try {
+			const shouldCheckOversell =
+				status !== InvoiceStatus.DRAFT && status !== InvoiceStatus.CANCELLED
+
+			if (
+				shouldCheckOversell &&
+				mode !== 'edit' &&
+				invoiceSettings?.allowOversell !== true &&
+				inventoryByProductId.size > 0
+			) {
+				const availableByProductId = new Map(
+					draft.lineItems.map(item => [
+						item.productId,
+						inventoryByProductId.get(item.productId) ?? 0,
+					]),
+				)
+				const oversell = findOversellLines(
+					draft.lineItems,
+					availableByProductId,
+					false,
+				)
+
+				if (oversell.length > 0) {
+					await requestInsufficientStockConfirmation(oversell)
+					return
+				}
+			}
+
 			const body = buildInvoiceRequestBody(draft, status, currencySettings)
 
 			if (mode === 'edit') {
@@ -521,15 +556,17 @@ const NewSellingInvoicePanel = ({
 			}
 		} catch (error) {
 			const apiError = error as {
-				data?: { message?: string; code?: string }
+				data?: { message?: string; code?: string; errorCode?: string }
 			}
-			// Offline selling can cancel after insufficient-stock confirm dialog.
 			if (apiError.data?.code === 'INSUFFICIENT_STOCK_CANCELLED') return
 
-			setSaveError(
-				apiError.data?.message ??
-					t('components.sellingInvoices.drawer.saveFailed'),
-			)
+			const message = apiError.data?.message ?? ''
+			if (message.startsWith('Insufficient stock')) {
+				setSaveError(message)
+				return
+			}
+
+			setSaveError(message || t('components.sellingInvoices.drawer.saveFailed'))
 		}
 	}
 
@@ -1187,11 +1224,7 @@ const NewSellingInvoicePanel = ({
 											borderLeft="1px solid"
 											borderColor="#1D4ED8"
 											_hover={{ bg: '#1D4ED8' }}
-											isDisabled={
-												draft.lineItems.length === 0 ||
-												(draft.paymentType === InvoicePaymentType.CREDIT &&
-													draft.customerId === WALK_IN_CUSTOMER_ID)
-											}
+											isDisabled={isPayedButtonDisabled}
 										>
 											<ChevronDownIcon />
 										</MenuButton>
@@ -1222,11 +1255,7 @@ const NewSellingInvoicePanel = ({
 										fontWeight={600}
 										flex={1}
 										_hover={{ bg: '#1D4ED8' }}
-										isDisabled={
-											draft.lineItems.length === 0 ||
-											(draft.paymentType === InvoicePaymentType.CREDIT &&
-												draft.customerId === WALK_IN_CUSTOMER_ID)
-										}
+										isDisabled={isPayedButtonDisabled}
 										isLoading={isSaving}
 										onClick={() => {
 											if (draft.paymentType === InvoicePaymentType.CREDIT) {

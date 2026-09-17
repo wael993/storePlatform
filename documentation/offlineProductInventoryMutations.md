@@ -120,6 +120,27 @@ old server snapshot.
 Quantity PATCH is an absolute `$set` (last write wins on reconnect). It is
 not a delta against concurrent sales.
 
+## Oversell
+
+Tenant invoice setting `allowOversell` (Settings → Invoice → Allow Oversell)
+is the one switch for selling-invoice oversell, online and offline.
+
+- **On:** local POST skips the stock modal, `validateSaleInventory` does not
+  throw, and sale quantity adjustments pass `allowNegative` so stock can go
+  below zero. Search still shows `availableQuantity` as `max(0, qty − reserved)`.
+- **Off (default):** local POST shows an informational oversell modal and does
+  not queue the invoice. The server throws `Insufficient stock…` and the
+  atomic inventory gate still blocks concurrent oversell. The cashier cannot
+  confirm-and-continue.
+
+The same document is bootstrapped into Dexie `syncMeta` (`invoiceSettings`)
+and patched through `PATCH invoice-settings`. Warehouse transfers ignore this
+flag and stay stock-gated.
+
+`findOversellLines` in `store-domain` is the shared comparison. Callers that
+mean “zero stock” must put `0` in the availability map; a missing entry is
+unknown, not oversell.
+
 ## RTK caches
 
 `onQueryStarted` still owns optimistic `getProducts` / `getInventory` /
@@ -145,7 +166,7 @@ store after a successful barcode write.
 
 ## Files
 
-- `packages/store-domain/src` (cost, quantity, profit, name-length rules)
+- `packages/store-domain/src` (cost, quantity, profit, name-length, oversell)
 - `web/store-platform-frontend/src/offline/localProductInventoryMutations.ts`
 - `web/store-platform-frontend/src/offline/localHandlers.ts`
 - `web/store-platform-frontend/src/offline/productCatalogStore.ts`

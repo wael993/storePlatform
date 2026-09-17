@@ -914,6 +914,7 @@
 			"title": "الفاتورة",
 			"description": "تحكم في كيفية إضافة المنتجات إلى فواتير البيع والشراء، وخصص رأس الفاتورة للطباعة والتنزيل.",
 			"noMergeInvoiceLines": "عدم دمج المنتجات المكررة",
+			"allowOversell": "السماح بالبيع بأكثر من المخزون",
 			"pdfHeaderTitle": "رأس فاتورة PDF",
 			"pdfHeaderDescription": "تظهر هذه البيانات في الفواتير المطبوعة والمنزّلة. تُحذف الحقول الفارغة.",
 			"displayName": "اسم المتجر / الشركة",
@@ -1286,7 +1287,7 @@
 		"conflictTitle": "تعارضات المزامنة",
 		"conflictMessage": "تعذر مزامنة بعض التغييرات. يرجى المراجعة.",
 		"insufficientStockTitle": "مخزون غير كافٍ",
-		"insufficientStockMessage": "بعض العناصر تتجاوز المخزون المتاح. هل تريد المتابعة على أي حال؟",
+		"insufficientStockMessage": "ستؤدي هذه العملية إلى بيع بأكثر من المخزون المتاح ولا يمكن إتمامها.",
 		"insufficientStockItem": "{{name}}: مطلوب {{requested}}، متاح {{available}}",
 		"unsyncedLogoutWarning": "لديك تغييرات غير متزامنة. هل تريد تسجيل الخروج؟"
 	}

@@ -16,20 +16,18 @@ import type { InsufficientStockItem } from '../offline/insufficientStockConfirma
 interface InsufficientStockModalProps {
 	isOpen: boolean
 	items: InsufficientStockItem[]
-	onConfirm: () => void
-	onCancel: () => void
+	onClose: () => void
 }
 
 const InsufficientStockModal = ({
 	isOpen,
 	items,
-	onConfirm,
-	onCancel,
+	onClose,
 }: InsufficientStockModalProps) => {
 	const { t } = useTranslation()
 
 	return (
-		<Modal isOpen={isOpen} onClose={onCancel} isCentered>
+		<Modal isOpen={isOpen} onClose={onClose} isCentered>
 			<ModalOverlay />
 			<ModalContent>
 				<ModalHeader>{t('offline.insufficientStockTitle')}</ModalHeader>
@@ -48,11 +46,8 @@ const InsufficientStockModal = ({
 					</VStack>
 				</ModalBody>
 				<ModalFooter>
-					<Button variant="ghost" mr={3} onClick={onCancel}>
-						{t('common.cancel')}
-					</Button>
-					<Button colorScheme="blue" onClick={onConfirm}>
-						{t('common.confirm')}
+					<Button colorScheme="blue" onClick={onClose}>
+						{t('common.ok')}
 					</Button>
 				</ModalFooter>
 			</ModalContent>

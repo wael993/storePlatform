@@ -464,6 +464,7 @@ export default class SettingController {
 				invoiceSettings = await InvoiceSettings.create({
 					tenantId,
 					noMergeInvoiceLines: false,
+					allowOversell: false,
 				})
 			}
 
@@ -508,6 +509,7 @@ export default class SettingController {
 		requestContext: RequestContext,
 		body: {
 			noMergeInvoiceLines?: boolean
+			allowOversell?: boolean
 			displayName?: string
 			address?: string
 			phone?: string
@@ -523,6 +525,10 @@ export default class SettingController {
 
 		if (body.noMergeInvoiceLines !== undefined) {
 			updateData.noMergeInvoiceLines = Boolean(body.noMergeInvoiceLines)
+		}
+
+		if (body.allowOversell !== undefined) {
+			updateData.allowOversell = Boolean(body.allowOversell)
 		}
 
 		const stringFields = [

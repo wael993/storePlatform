@@ -399,6 +399,12 @@ This must hold:
 optimistic result = server result = refetched result
 ```
 
+Selling invoices may go below zero quantity only when the tenant invoice
+setting `allowOversell` is true. That flag is stored on `InvoiceSettings` and
+synced into Dexie `syncMeta`. When it is false, both the local POST handler and
+`validateSaleInventory` / the atomic stock gate block the sale and the UI
+shows an informational modal. Warehouse transfers stay gated either way.
+
 ---
 
 ## 13. Shared domain logic
@@ -410,8 +416,8 @@ filesystem, or backend runtime state. Frontend and backend may both consume
 that package.
 
 Business-critical rules have one owner: `finiteCost`,
-`availableQuantityFromStock`, `selectCurrentSaleMovings`, profit aggregation,
-WAC. Adapters are allowed. Duplicate business logic is not.
+`availableQuantityFromStock`, `findOversellLines`, `selectCurrentSaleMovings`,
+profit aggregation, WAC. Adapters are allowed. Duplicate business logic is not.
 
 ---
 

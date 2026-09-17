@@ -7,4 +7,7 @@ export {
 	openingAverageCostFromPurchasePrice,
 	shouldReplaceOpeningAverageCost,
 } from './store-domain/inventoryCost'
-export { availableQuantityFromStock } from './store-domain/inventoryQuantity'
+export {
+	availableQuantityFromStock,
+	findOversellLines,
+} from './store-domain/inventoryQuantity'

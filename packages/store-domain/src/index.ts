@@ -7,7 +7,11 @@ export {
 	openingAverageCostFromPurchasePrice,
 	shouldReplaceOpeningAverageCost,
 } from './inventoryCost'
-export { availableQuantityFromStock } from './inventoryQuantity'
+export {
+	availableQuantityFromStock,
+	findOversellLines,
+	type OversellLine,
+} from './inventoryQuantity'
 export { PRODUCT_NAME_MAX_LENGTH } from './productRules'
 export {
 	allocateNetLineRevenues,

@@ -24,11 +24,6 @@ export const useInsufficientStockConfirmation = () => {
 		return () => setInsufficientStockConfirmationHandler(null)
 	}, [])
 
-	const confirm = useCallback(() => {
-		pending?.resolve(true)
-		setPending(null)
-	}, [pending])
-
 	const cancel = useCallback(() => {
 		pending?.resolve(false)
 		setPending(null)
@@ -37,7 +32,6 @@ export const useInsufficientStockConfirmation = () => {
 	return {
 		isOpen: pending !== null,
 		items: pending?.items ?? [],
-		confirm,
 		cancel,
 	}
 }

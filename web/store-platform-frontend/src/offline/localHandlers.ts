@@ -34,7 +34,11 @@ import {
 	resolveLocalSaleUnitCost,
 	totalProfitFromAggregates,
 } from '../components/SellingInvoice/invoiceProfitSummary'
-import { finiteCost, mergeInvoiceItemsPreservingUnitCost } from 'store-domain'
+import {
+	finiteCost,
+	findOversellLines,
+	mergeInvoiceItemsPreservingUnitCost,
+} from 'store-domain'
 import {
 	filterDailyActionsByParams,
 	parseDailyActionFiltersFromParams,
@@ -67,7 +71,6 @@ import type {
 import {
 	InsufficientStockCancelledError,
 	requestInsufficientStockConfirmation,
-	type InsufficientStockItem,
 } from './insufficientStockConfirmation'
 import {
 	formatSellingInvoiceNumber,
@@ -241,31 +244,27 @@ const validateLocalSaleInventory = async (
 	items: PostSellingInvoiceBody['items'],
 	warehouseId: string,
 ): Promise<void> => {
-	const insufficientItems: InsufficientStockItem[] = []
+	const allowOversell = (await getLocalInvoiceSettings()).allowOversell === true
+	const availableByProductId = new Map<string, number>()
 
 	for (const item of items) {
 		const inventory = await findLocalInventoryRow(item.productId, warehouseId)
-		const available = Number(
-			inventory?.availableQuantity ?? inventory?.quantity ?? 0,
+		availableByProductId.set(
+			item.productId,
+			Number(inventory?.availableQuantity ?? inventory?.quantity ?? 0),
 		)
-
-		if (available < item.quantity) {
-			insufficientItems.push({
-				productId: item.productId,
-				name: item.name,
-				requested: item.quantity,
-				available,
-			})
-		}
 	}
+
+	const insufficientItems = findOversellLines(
+		items,
+		availableByProductId,
+		allowOversell,
+	)
 
 	if (insufficientItems.length === 0) return
 
-	const confirmed =
-		await requestInsufficientStockConfirmation(insufficientItems)
-	if (!confirmed) {
-		throw new InsufficientStockCancelledError()
-	}
+	await requestInsufficientStockConfirmation(insufficientItems)
+	throw new InsufficientStockCancelledError()
 }
 
 const mapInvoiceStatus = (status?: string) => {
@@ -871,6 +870,7 @@ const getLocalInvoiceSettings = async (): Promise<InvoiceSettings> => {
 
 	return {
 		noMergeInvoiceLines: false,
+		allowOversell: false,
 		displayName: '',
 		address: '',
 		phone: '',
@@ -1011,6 +1011,7 @@ const applyLocalInvoiceSettingsUpdate = async (
 		...payload,
 		noMergeInvoiceLines:
 			payload.noMergeInvoiceLines ?? current.noMergeInvoiceLines ?? false,
+		allowOversell: payload.allowOversell ?? current.allowOversell ?? false,
 		updatedAt: nowIso(),
 	}
 

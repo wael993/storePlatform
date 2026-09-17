@@ -36,7 +36,6 @@ const OfflineSyncBanner = () => {
 	const {
 		isOpen: isInsufficientStockOpen,
 		items: insufficientStockItems,
-		confirm: confirmInsufficientStock,
 		cancel: cancelInsufficientStock,
 	} = useInsufficientStockConfirmation()
 
@@ -203,8 +202,7 @@ const OfflineSyncBanner = () => {
 			<InsufficientStockModal
 				isOpen={isInsufficientStockOpen}
 				items={insufficientStockItems}
-				onConfirm={confirmInsufficientStock}
-				onCancel={cancelInsufficientStock}
+				onClose={cancelInsufficientStock}
 			/>
 		</>
 	)

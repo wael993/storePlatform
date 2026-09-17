@@ -23,17 +23,21 @@ export interface InvoiceBrandFormValues {
 
 interface InvoiceSettingsProps {
 	noMergeInvoiceLines: boolean
+	allowOversell: boolean
 	brand: InvoiceBrandFormValues
 	displayNameFallback?: string
 	onNoMergeInvoiceLinesChange: (checked: boolean) => void
+	onAllowOversellChange: (checked: boolean) => void
 	onBrandChange: (field: keyof InvoiceBrandFormValues, value: string) => void
 }
 
 const InvoiceSettings = ({
 	noMergeInvoiceLines,
+	allowOversell,
 	brand,
 	displayNameFallback,
 	onNoMergeInvoiceLinesChange,
+	onAllowOversellChange,
 	onBrandChange,
 }: InvoiceSettingsProps) => {
 	const { t } = useTranslation()
@@ -47,12 +51,22 @@ const InvoiceSettings = ({
 				<Text fontSize="sm" color="gray.600" mb={4}>
 					{t('components.invoiceSettings.description')}
 				</Text>
-				<Checkbox
-					isChecked={noMergeInvoiceLines}
-					onChange={event => onNoMergeInvoiceLinesChange(event.target.checked)}
-				>
-					{t('components.invoiceSettings.noMergeInvoiceLines')}
-				</Checkbox>
+				<VStack align="start" spacing={4}>
+					<Checkbox
+						isChecked={noMergeInvoiceLines}
+						onChange={event =>
+							onNoMergeInvoiceLinesChange(event.target.checked)
+						}
+					>
+						{t('components.invoiceSettings.noMergeInvoiceLines')}
+					</Checkbox>
+					<Checkbox
+						isChecked={allowOversell}
+						onChange={event => onAllowOversellChange(event.target.checked)}
+					>
+						{t('components.invoiceSettings.allowOversell')}
+					</Checkbox>
+				</VStack>
 			</FormControl>
 			<Divider
 				sx={{

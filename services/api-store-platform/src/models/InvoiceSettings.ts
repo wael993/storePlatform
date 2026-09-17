@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose'
 export interface IInvoiceSettings extends Document {
 	tenantId: string
 	noMergeInvoiceLines: boolean
+	allowOversell: boolean
 	displayName?: string
 	address?: string
 	phone?: string
@@ -25,6 +26,10 @@ const InvoiceSettingsSchema = new Schema<IInvoiceSettings>(
 			unique: true,
 		},
 		noMergeInvoiceLines: {
+			type: Boolean,
+			default: false,
+		},
+		allowOversell: {
 			type: Boolean,
 			default: false,
 		},

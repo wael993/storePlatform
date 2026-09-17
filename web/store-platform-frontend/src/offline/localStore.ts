@@ -639,6 +639,7 @@ export const decrementLocalInventory = async (
 	productId: string,
 	quantity: number,
 	warehouseId?: string,
+	allowNegative = false,
 ): Promise<void> => {
 	if (!warehouseId) return
 
@@ -647,7 +648,9 @@ export const decrementLocalInventory = async (
 	if (!inventory) return
 
 	const currentQty = Number(inventory.quantity ?? 0)
-	const nextQty = Math.max(0, currentQty - quantity)
+	const nextQty = allowNegative
+		? currentQty - quantity
+		: Math.max(0, currentQty - quantity)
 	const reserved = Number(inventory.reservedQuantity ?? 0)
 
 	await offlineDb.inventory.put({
@@ -704,6 +707,14 @@ export const saveLocalInvoice = async (
 	await offlineDb.invoices.put(invoice)
 
 	if (invoice.items?.length) {
+		const settingsRaw = (
+			await offlineDb.syncMeta.get(SYNC_META_KEYS.invoiceSettings)
+		)?.value
+		const allowNegative = settingsRaw
+			? (JSON.parse(settingsRaw) as { allowOversell?: boolean })
+					.allowOversell === true
+			: false
+
 		for (const item of invoice.items) {
 			if (
 				invoice.status !== InvoiceStatus.DRAFT &&
@@ -713,6 +724,7 @@ export const saveLocalInvoice = async (
 					item.productId,
 					item.quantity,
 					invoice.warehouseId,
+					allowNegative,
 				)
 			}
 		}

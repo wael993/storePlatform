@@ -148,6 +148,7 @@ const SettingsPage = () => {
 	>([])
 	const [hasCurrencyChanges, setHasCurrencyChanges] = useState(false)
 	const [noMergeInvoiceLines, setNoMergeInvoiceLines] = useState(false)
+	const [allowOversell, setAllowOversell] = useState(false)
 	const [invoiceBrand, setInvoiceBrand] =
 		useState<InvoiceBrandFormValues>(emptyInvoiceBrand())
 	const [hasInvoiceChanges, setHasInvoiceChanges] = useState(false)
@@ -184,6 +185,7 @@ const SettingsPage = () => {
 		}
 
 		setNoMergeInvoiceLines(invoiceSettingsData.noMergeInvoiceLines ?? false)
+		setAllowOversell(invoiceSettingsData.allowOversell ?? false)
 		setInvoiceBrand({
 			// Keep empty when unset — PDF falls back to tenant name at read time.
 			displayName: invoiceSettingsData.displayName ?? '',
@@ -264,6 +266,11 @@ const SettingsPage = () => {
 
 	const handleNoMergeInvoiceLinesChange = (checked: boolean) => {
 		setNoMergeInvoiceLines(checked)
+		setHasInvoiceChanges(true)
+	}
+
+	const handleAllowOversellChange = (checked: boolean) => {
+		setAllowOversell(checked)
 		setHasInvoiceChanges(true)
 	}
 
@@ -358,6 +365,7 @@ const SettingsPage = () => {
 			if (hasInvoiceChanges) {
 				await updateInvoiceSettings({
 					noMergeInvoiceLines,
+					allowOversell,
 					displayName: invoiceBrand.displayName.trim(),
 					address: invoiceBrand.address.trim(),
 					phone: invoiceBrand.phone.trim(),
@@ -528,11 +536,13 @@ const SettingsPage = () => {
 								>
 									<InvoiceSettings
 										noMergeInvoiceLines={noMergeInvoiceLines}
+										allowOversell={allowOversell}
 										brand={invoiceBrand}
 										displayNameFallback={user?.tenantName?.trim() || undefined}
 										onNoMergeInvoiceLinesChange={
 											handleNoMergeInvoiceLinesChange
 										}
+										onAllowOversellChange={handleAllowOversellChange}
 										onBrandChange={handleInvoiceBrandChange}
 									/>
 								</Box>

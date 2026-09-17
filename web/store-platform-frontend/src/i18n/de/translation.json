@@ -914,6 +914,7 @@
 			"title": "Rechnung",
 			"description": "Steuern Sie, wie Produkte zu Verkaufs- und Einkaufsrechnungen hinzugefügt werden, und passen Sie den PDF-Kopf an.",
 			"noMergeInvoiceLines": "Doppelte Produkte nicht zusammenführen",
+			"allowOversell": "Überverkauf erlauben",
 			"pdfHeaderTitle": "PDF-Rechnungskopf",
 			"pdfHeaderDescription": "Diese Angaben erscheinen auf gedruckten und heruntergeladenen Rechnungen. Leere Felder werden weggelassen.",
 			"displayName": "Geschäfts-/Firmenname",
@@ -1286,7 +1287,7 @@
 		"conflictTitle": "Synchronisationskonflikte",
 		"conflictMessage": "Einige Änderungen konnten nicht synchronisiert werden. Bitte prüfen.",
 		"insufficientStockTitle": "Unzureichender Bestand",
-		"insufficientStockMessage": "Einige Artikel überschreiten den verfügbaren Bestand. Möchten Sie trotzdem fortfahren?",
+		"insufficientStockMessage": "Dieser Vorgang würde zu einem Überverkauf führen und kann nicht abgeschlossen werden.",
 		"insufficientStockItem": "{{name}}: angefordert {{requested}}, verfügbar {{available}}",
 		"unsyncedLogoutWarning": "Es gibt nicht synchronisierte Änderungen. Wirklich abmelden?"
 	}

@@ -5937,6 +5937,7 @@ export default class ProductController {
 			invoiceSettings: (invoiceSettings ?? {
 				tenantId: tenantContext.tenantId,
 				noMergeInvoiceLines: false,
+				allowOversell: false,
 				displayName: '',
 				address: '',
 				phone: '',
@@ -6484,6 +6485,7 @@ export default class ProductController {
 						requestContext,
 						payload as {
 							noMergeInvoiceLines?: boolean
+							allowOversell?: boolean
 							displayName?: string
 							address?: string
 							phone?: string

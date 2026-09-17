@@ -201,6 +201,7 @@ async function seedAppTenant() {
 	await InvoiceSettings.create({
 		tenantId: TENANT_ID,
 		noMergeInvoiceLines: false,
+		allowOversell: false,
 		displayName: 'آب للإلكترونيات',
 		address: 'عمّان، فرع التكت، شارع المدينة',
 		phone: '+962 6 555 0101',

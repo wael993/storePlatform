@@ -914,6 +914,7 @@
 			"title": "Invoice",
 			"description": "Control how products are added to selling and buying invoices, and customize the printable invoice header.",
 			"noMergeInvoiceLines": "Don't merge duplicate products",
+			"allowOversell": "Allow Oversell",
 			"pdfHeaderTitle": "Invoice PDF header",
 			"pdfHeaderDescription": "These details appear on printed and downloaded invoices. Empty fields are omitted.",
 			"displayName": "Store / company name",
@@ -1286,7 +1287,7 @@
 		"conflictTitle": "Sync conflicts",
 		"conflictMessage": "Some changes could not be synced. Please review.",
 		"insufficientStockTitle": "Insufficient stock",
-		"insufficientStockMessage": "Some items exceed available stock. Do you want to continue anyway?",
+		"insufficientStockMessage": "This transaction would result in an oversell and cannot be completed.",
 		"insufficientStockItem": "{{name}}: requested {{requested}}, available {{available}}",
 		"unsyncedLogoutWarning": "You have unsynced changes. Are you sure you want to log out?"
 	}

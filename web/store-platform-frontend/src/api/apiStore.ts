@@ -146,6 +146,7 @@ export interface InvoiceSettings {
 	_id?: string
 	tenantId?: string
 	noMergeInvoiceLines: boolean
+	allowOversell: boolean
 	displayName?: string
 	address?: string
 	phone?: string
@@ -161,6 +162,7 @@ export interface InvoiceSettings {
 export type InvoiceSettingsUpdate = Pick<
 	InvoiceSettings,
 	| 'noMergeInvoiceLines'
+	| 'allowOversell'
 	| 'displayName'
 	| 'address'
 	| 'phone'
@@ -1614,6 +1616,25 @@ const getQuery = (
 				method: 'PATCH',
 				body,
 			}),
+			async onQueryStarted(_body, { dispatch, queryFulfilled }) {
+				try {
+					const { data } = await queryFulfilled
+					dispatch(
+						storeApi.util.updateQueryData(
+							'getInvoiceSettings',
+							undefined,
+							() => data,
+						),
+					)
+					const { setSyncMeta, SYNC_META_KEYS } = await import('../offline/db')
+					await setSyncMeta(
+						SYNC_META_KEYS.invoiceSettings,
+						JSON.stringify(data),
+					)
+				} catch {
+					// invalidatesTags will refetch
+				}
+			},
 			invalidatesTags: ['invoice-settings'],
 		}),
 
