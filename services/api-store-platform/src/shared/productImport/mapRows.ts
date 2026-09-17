@@ -10,8 +10,23 @@ export type SourceRow = {
 	fileName: string
 	rowNumber: number
 	fileIndex?: number
-	values: Record<string, string>
+	values?: Record<string, string>
 }
+
+/** Copy fields — `{ ...mongooseSubdoc }` drops getter-backed `values`. */
+export const toPlainSourceRow = (
+	row: {
+		fileName: string
+		rowNumber: number
+		values?: Record<string, string> | null
+	},
+	fileIndex?: number,
+): SourceRow => ({
+	fileName: row.fileName,
+	rowNumber: row.rowNumber,
+	values: row.values ?? {},
+	...(fileIndex !== undefined ? { fileIndex } : {}),
+})
 
 export type CatalogMatch = {
 	categoryId?: string
@@ -343,7 +358,7 @@ const cell = (
 
 	if (!header) return ''
 
-	return row.values[header]?.trim() ?? ''
+	return row.values?.[header]?.trim() ?? ''
 }
 
 export const mappingIsComplete = (mapping: HeaderMapping): boolean =>

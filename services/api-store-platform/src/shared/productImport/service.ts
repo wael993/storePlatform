@@ -21,6 +21,7 @@ import {
 	mappingIsComplete,
 	mapSourceRows,
 	suggestHeaderMapping,
+	toPlainSourceRow,
 	type SourceRow,
 } from './mapRows'
 import { assertImportLimits, parseImportFile } from './parse'
@@ -419,7 +420,7 @@ const flattenSessionRows = (session: {
 	files: Array<{ rows: SourceRow[] }>
 }): SourceRow[] =>
 	session.files.flatMap((file, fileIndex) =>
-		file.rows.map(row => ({ ...row, fileIndex })),
+		file.rows.map(row => toPlainSourceRow(row, fileIndex)),
 	)
 
 const importProductId = (

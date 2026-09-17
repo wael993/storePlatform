@@ -88,7 +88,7 @@ export type ProductImportCommitResponse = {
 	errors: Array<{ fileName: string; rowNumber: number; errors: string[] }>
 }
 
-export const PRODUCT_IMPORT_COMMIT_BATCH_SIZE = 25
+export const PRODUCT_IMPORT_COMMIT_BATCH_SIZE = 100
 
 export const isExcelImportFileName = (fileName: string) =>
 	/\.(xlsx|xlsm)$/i.test(fileName)

@@ -41,6 +41,6 @@ export const PRODUCT_IMPORT_LIMITS = {
 	maxRows: 10_000,
 	sessionTtlMs: 24 * 60 * 60 * 1000,
 	previewRows: 50,
-	commitBatchSize: 25,
+	commitBatchSize: 100,
 	maxCommitBatchSize: 200,
 } as const
