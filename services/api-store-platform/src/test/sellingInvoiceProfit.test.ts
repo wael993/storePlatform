@@ -64,6 +64,7 @@ describe('catalogCostToPrimary', () => {
 		expect(catalogCostToPrimary(360, 'SYP', usdPrimaryRates)).toBe(
 			Math.round((360 / 132) * 1e8) / 1e8,
 		)
+
 		expect(catalogCostToPrimary(20, 'USD', usdPrimaryRates)).toBe(20)
 	})
 
@@ -74,6 +75,7 @@ describe('catalogCostToPrimary', () => {
 	it('opening USD+SYP costs sum to primary COGS 3000', () => {
 		const a = catalogCostToPrimary(20, 'USD', sypPrimaryRates)!
 		const b = catalogCostToPrimary(360, 'SYP', sypPrimaryRates)!
+
 		expect(a + b).toBe(3000)
 
 		const { aggregates, profitReliable } = buildPeriodProductAggregates(
