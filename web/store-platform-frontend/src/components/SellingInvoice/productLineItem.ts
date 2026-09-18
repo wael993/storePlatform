@@ -4,6 +4,7 @@ import {
 	resolveCurrencyIdFromCode,
 	type DisplayCurrencyOption,
 } from './currencyDisplay'
+import { finiteCost } from 'store-domain'
 
 const DEFAULT_TAX_RATE = 15
 
@@ -70,11 +71,7 @@ export const syncLineItemCostReferences = (
 		if (!product) return item
 
 		const averageCost =
-			toPrimaryAmount(
-				product.inventory?.averageCost,
-				product,
-				currencyOptions,
-			) ?? item.averageCost
+			finiteCost(product.inventory?.averageCost) ?? item.averageCost
 		const lastBuyingPrice =
 			getLastBuyingPrice(product, currencyOptions) ?? item.lastBuyingPrice
 		const lastSellingPrice =
@@ -116,11 +113,7 @@ export const createLineItemFromProduct = (
 		discount: product.price?.discount ?? 0,
 		discountIsPercent: true,
 		taxRate,
-		averageCost: toPrimaryAmount(
-			product.inventory?.averageCost,
-			product,
-			currencyOptions,
-		),
+		averageCost: product.inventory?.averageCost,
 		lastBuyingPrice: getLastBuyingPrice(product, currencyOptions),
 		lastSellingPrice: toPrimaryAmount(
 			product.lastSellingPrice,
@@ -165,11 +158,7 @@ export const addProductToLineItems = (
 					...item,
 					quantity: item.quantity + 1,
 					averageCost:
-						toPrimaryAmount(
-							product.inventory?.averageCost,
-							product,
-							currencyOptions,
-						) ?? item.averageCost,
+						finiteCost(product.inventory?.averageCost) ?? item.averageCost,
 					lastBuyingPrice:
 						getLastBuyingPrice(product, currencyOptions) ??
 						item.lastBuyingPrice,

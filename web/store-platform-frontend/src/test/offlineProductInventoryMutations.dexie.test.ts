@@ -75,6 +75,54 @@ describe('offline product/inventory Dexie transactions', () => {
 		expect(pending[0].clientMutationId).toBe('create-1')
 	})
 
+	it('seeds opening averageCost in primary currency from catalog FX', async () => {
+		await setSyncMeta(
+			SYNC_META_KEYS.currencySettings,
+			JSON.stringify({
+				primaryCurrency: {
+					currencyId: 'syp',
+					name: 'Syrian Pound',
+					internalCode: 'SYP',
+				},
+				secondaryCurrencies: [
+					{
+						currencyId: 'usd',
+						name: 'US Dollar',
+						internalCode: 'USD',
+						exchangeRate: 1 / 132,
+					},
+				],
+			}),
+		)
+
+		await applyLocalProductMutation('POST', 'products', {
+			productId: 'a',
+			name: 'A',
+			price: { retailPrice: 30, purchasePrice: 20, currency: 'USD' },
+			quantity: 1,
+			warehouseId,
+		})
+		await applyLocalProductMutation('POST', 'products', {
+			productId: 'b',
+			name: 'B',
+			price: { retailPrice: 500, purchasePrice: 360, currency: 'SYP' },
+			quantity: 1,
+			warehouseId,
+		})
+
+		const invA = await offlineDb.inventory
+			.where('productId')
+			.equals('a')
+			.first()
+		const invB = await offlineDb.inventory
+			.where('productId')
+			.equals('b')
+			.first()
+
+		expect(invA?.averageCost).toBe(2640)
+		expect(invB?.averageCost).toBe(360)
+	})
+
 	it('keeps catalog cost in lockstep on purchasePrice PATCH', async () => {
 		await applyLocalProductMutation('POST', 'products', {
 			productId: 'coke',

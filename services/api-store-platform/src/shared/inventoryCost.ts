@@ -11,3 +11,11 @@ export {
 	availableQuantityFromStock,
 	findOversellLines,
 } from './store-domain/inventoryQuantity'
+export {
+	amountToPrimary,
+	catalogCostToPrimary,
+	ratesFromCurrencySettings,
+	resolveCurrencyIdFromCode,
+	roundPrimaryAmount,
+	type CostCurrencyRate,
+} from './store-domain/primaryCost'

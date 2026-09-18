@@ -38,6 +38,7 @@ import {
 	finiteCost,
 	findOversellLines,
 	mergeInvoiceItemsPreservingUnitCost,
+	ratesFromCurrencySettings,
 } from 'store-domain'
 import {
 	filterDailyActionsByParams,
@@ -614,6 +615,7 @@ const stampMissingLocalInvoiceUnitCosts = async <
 	existingItems?: T[],
 ): Promise<T[]> => {
 	const unused = existingItems ? [...existingItems] : []
+	const rates = ratesFromCurrencySettings(await getLocalCurrencySettings())
 
 	return Promise.all(
 		items.map(async item => {
@@ -634,6 +636,8 @@ const stampMissingLocalInvoiceUnitCosts = async <
 			const unitCost = resolveLocalSaleUnitCost(
 				inventory?.averageCost,
 				product?.price?.purchasePrice,
+				product?.price?.currency,
+				rates,
 			)
 
 			return unitCost == null ? item : { ...item, unitCost }
@@ -1121,6 +1125,7 @@ const handleGenericMutation = async (
 				offlineDb.invoices,
 				offlineDb.products,
 				offlineDb.inventory,
+				offlineDb.syncMeta,
 				offlineDb.outbox,
 			],
 			async () => {

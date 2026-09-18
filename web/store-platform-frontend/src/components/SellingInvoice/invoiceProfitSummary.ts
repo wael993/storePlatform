@@ -1,8 +1,10 @@
 import {
 	allocateNetLineRevenues,
+	catalogCostToPrimary,
 	finiteCost,
 	getProductProfitAggregate,
 	mergeQtyWeightedAverageCost,
+	type CostCurrencyRate,
 	type ProductProfitAggregate,
 	type ProfitInvoiceLine,
 } from 'store-domain'
@@ -19,10 +21,15 @@ export {
 
 export { mergeQtyWeightedAverageCost }
 
+/** Prefer primary averageCost; else convert catalog purchasePrice at stamp time. */
 export const resolveLocalSaleUnitCost = (
 	averageCost: number | undefined,
 	purchasePrice: number | undefined,
-): number | undefined => finiteCost(averageCost) ?? finiteCost(purchasePrice)
+	currencyCode?: string,
+	rates: readonly CostCurrencyRate[] = [],
+): number | undefined =>
+	finiteCost(averageCost) ??
+	catalogCostToPrimary(purchasePrice, currencyCode, rates)
 
 export const buildLocalPeriodProductAggregates = (
 	periodInvoices: Array<{

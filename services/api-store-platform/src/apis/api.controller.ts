@@ -39,9 +39,10 @@ import {
 	ESTABLISHED_COST_MOVING_TYPES,
 	establishedWarehouseIdsFromMovings,
 	availableQuantityFromStock,
+	catalogCostToPrimary,
 	finiteCost,
 	mergeQtyWeightedAverageCost,
-	openingAverageCostFromPurchasePrice,
+	ratesFromCurrencySettings,
 } from '../shared/inventoryCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import { resolveSyncClientId } from '../shared/uuid'
@@ -1784,8 +1785,15 @@ export default class ProductController {
 
 		ensureWarehouseAccess(requestContext, scopedWarehouseId)
 
-		const openingAverageCost = openingAverageCostFromPurchasePrice(
+		const currencySettings = await CurrencySettings.findOne({
+			tenantId: tenantContext.tenantId,
+		})
+			.select('primaryCurrency secondaryCurrencies')
+			.lean()
+		const openingAverageCost = catalogCostToPrimary(
 			price.purchasePrice,
+			price.currency,
+			ratesFromCurrencySettings(currencySettings),
 		)
 
 		const productData: ProductDocument = {
@@ -1915,6 +1923,8 @@ export default class ProductController {
 
 		const previousPurchasePrice = existingProduct?.price?.purchasePrice
 		const nextPurchasePrice = allowedUpdates.price?.purchasePrice
+		const nextCurrency =
+			allowedUpdates.price?.currency ?? existingProduct?.price?.currency
 		const shouldSyncOpeningCost =
 			nextPurchasePrice != null &&
 			Number.isFinite(nextPurchasePrice) &&
@@ -1942,6 +1952,7 @@ export default class ProductController {
 						previousPurchasePrice,
 						nextPurchasePrice,
 						session,
+						nextCurrency,
 					)
 
 					return updated
@@ -1955,10 +1966,10 @@ export default class ProductController {
 	}
 
 	/**
-	 * Opening stock has no purchase history; catalog purchasePrice is its cost
-	 * basis. Purchase and transfer_in establish WAC per warehouse and must not
-	 * be overwritten. Cancelled purchases (return_out on the same reference)
-	 * do not lock the warehouse.
+	 * Opening stock has no purchase history; catalog purchasePrice (converted to
+	 * primary at edit time) is its cost basis. Purchase and transfer_in establish
+	 * WAC per warehouse and must not be overwritten. Cancelled purchases
+	 * (return_out on the same reference) do not lock the warehouse.
 	 */
 	private async syncOpeningAverageCostOnPurchasePriceEdit(
 		requestContext: RequestContext,
@@ -1966,8 +1977,20 @@ export default class ProductController {
 		previousPurchasePrice: number | undefined,
 		nextPurchasePrice: number | undefined,
 		session: mongoose.ClientSession,
+		currencyCode?: string,
 	) {
-		const openingCost = openingAverageCostFromPurchasePrice(nextPurchasePrice)
+		const tenantContext = getTenantContext(requestContext)
+		const currencySettings = await CurrencySettings.findOne({
+			tenantId: tenantContext.tenantId,
+		})
+			.session(session)
+			.select('primaryCurrency secondaryCurrencies')
+			.lean()
+		const openingCost = catalogCostToPrimary(
+			nextPurchasePrice,
+			currencyCode,
+			ratesFromCurrencySettings(currencySettings),
+		)
 
 		if (
 			openingCost == null ||
@@ -1976,7 +1999,6 @@ export default class ProductController {
 			return
 		}
 
-		const tenantContext = getTenantContext(requestContext)
 		const query = StockMoving.find({
 			productId,
 			type: { $in: [...ESTABLISHED_COST_MOVING_TYPES, 'return_out'] },

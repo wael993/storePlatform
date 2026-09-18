@@ -138,12 +138,27 @@ Established vs opening is **per warehouse**.
 
 Recognized revenue is **not** catalog `retailPrice`. COGS is **not** catalog `purchasePrice` once a warehouse has established WAC.
 
+### Primary-currency cost invariant
+
+`Inventory.averageCost` and sale `StockMoving.unitCost` are amounts in the tenant **primary** currency.
+
+| Cost source | FX policy |
+| --- | --- |
+| Opening / catalog `purchasePrice` | Convert with currency-settings rate at **cost-write** time (create or unestablished purchasePrice edit). |
+| Buying invoice | Use the purchase line amount already in primary (invoice FX). Do not convert again. |
+| Transfer-in | Copy source `averageCost` (already primary). |
+| Sale stamp | Prefer `averageCost` as-is; catalog fallback converts at sale time. |
+
+Do **not** re-interpret an existing cost using live `Product.price.currency`. Legacy rows without a known cost currency are not auto-migrated; unestablished warehouses get corrected on the next catalog `purchasePrice` edit.
+
+**Established (Option A):** purchase or transfer-in per warehouse. Opening stock alone does not lock cost — mistyped buy-price corrections still update unestablished `averageCost` (converted at edit-time FX).
+
 ### Cost basis policy
 
 **Unestablished opening inventory** (that warehouse has no `purchase` and no `transfer_in` moving):
 
-- Opening `averageCost` is seeded from `purchasePrice`.
-- A later catalog `purchasePrice` correction updates `averageCost` on those warehouses only.
+- Opening `averageCost` is seeded from `purchasePrice` **converted to primary**.
+- A later catalog `purchasePrice` correction updates `averageCost` on those warehouses only (again in primary at edit-time FX).
 - The next sale snapshots that cost onto `StockMoving.unitCost`.
 
 Rationale: there is no purchase invoice or transfer to defend a historical cost. The catalog buy price is the only cost basis.
@@ -231,8 +246,8 @@ flowchart TD
   D --> E{snapshot from prior sale edit?}
   E -->|no| F[resolveSaleUnitCost]
   F --> G{Inventory.averageCost set?}
-  G -->|yes| H[use averageCost]
-  G -->|no| I[use product.purchasePrice]
+  G -->|yes| H[use averageCost primary]
+  G -->|no| I[catalogCostToPrimary purchasePrice]
   I --> J[else omit unitCost + warn]
   E -->|yes| K[reuse original StockMoving.unitCost]
   H --> L[StockMoving type sale]
@@ -247,7 +262,7 @@ flowchart TD
   R --> S[InvoiceSummaryCards Total Profit]
 ```
 
-`resolveSaleUnitCost` never uses invoice `unitPrice`. The request body has no client cost field. Missing cost is omitted on the moving (`unitCost` is optional), not stored as 0.
+`resolveSaleUnitCost` never uses invoice `unitPrice`. Prefer primary `averageCost`; catalog fallback converts with settings FX at sale time. The request body has no client cost field. Missing cost is omitted on the moving (`unitCost` is optional), not stored as 0.
 
 ### Opening-cost correction workflow
 
@@ -322,6 +337,7 @@ Frontend re-exports `allocateNetLineRevenues` / pickers from
 | Layer | File / symbol |
 | --- | --- |
 | Opening vs WAC (per warehouse) | `packages/store-domain/src/inventoryCost.ts` (`establishedWarehouseIdsFromMovings`) |
+| Catalog → primary cost | `packages/store-domain/src/primaryCost.ts` (`catalogCostToPrimary`, `ratesFromCurrencySettings`) |
 | Purchase WAC | `purchaseAverageCostExpression` in `movingAverageCost.ts` |
 | Sale cost | `resolveSaleUnitCost`, `applySaleInventoryAdjustments`, `reverseSaleInventoryAdjustments` in `selling-invoice/api.controller.ts` |
 | Catalog buy-price edit | `patchProduct` → `syncOpeningAverageCostOnPurchasePriceEdit` in `api.controller.ts` |
@@ -350,7 +366,7 @@ Titles only. Not in the current implementation.
 
 1. **Explicit inventory cost adjustment for established WAC** — revalue on-hand stock without a buying invoice; audit log; do not use catalog `purchasePrice` for this.
 2. **Profit by warehouse, cashier, and customer** — same COGS rule, extra group-by.
-3. **Profit in display currency** — convert net revenue and COGS with the same rate policy as invoice totals.
+3. **Profit in display currency** — convert the final Total Profit for display only; COGS/revenue must already be primary (see Primary-currency cost invariant).
 4. **Include tax in profit (or exclude it consistently in the UI label)** — line tax is currently 0.
 5. **FIFO / specific identification option** — alternative to WAC for tenants that need lot cost.
 6. **Cancelled-purchase WAC unwind** — cancelling a buying invoice unlocks catalog overwrite, but remaining `averageCost` is not recalculated.
@@ -359,3 +375,4 @@ Titles only. Not in the current implementation.
 9. **Treat transfer-in as established cost offline** — local catalog buy-price edit currently only checks buying invoices.
 10. **Gross margin % card** — Total Profit / Period Sales for the same date range.
 11. **Per-invoice profit on the invoice detail / PDF** — same snapshot as `StockMoving.unitCost`, not live catalog prices.
+12. **Legacy cost-currency migration** — classify ambiguous historical `averageCost` / sale `unitCost`; do not guess from live `price.currency`.

@@ -8,6 +8,14 @@ export {
 	shouldReplaceOpeningAverageCost,
 } from './inventoryCost'
 export {
+	amountToPrimary,
+	catalogCostToPrimary,
+	ratesFromCurrencySettings,
+	resolveCurrencyIdFromCode,
+	roundPrimaryAmount,
+	type CostCurrencyRate,
+} from './primaryCost'
+export {
 	availableQuantityFromStock,
 	findOversellLines,
 	type OversellLine,

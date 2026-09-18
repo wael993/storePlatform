@@ -19,6 +19,26 @@ describe('resolveLocalSaleUnitCost', () => {
 		expect(resolveLocalSaleUnitCost(undefined, 10)).toBe(10)
 	})
 
+	it('converts catalog fallback to primary when rates are provided', () => {
+		const rates = [
+			{
+				currencyId: 'syp',
+				label: 'SYP',
+				name: 'SYP',
+				exchangeRate: 1,
+			},
+			{
+				currencyId: 'usd',
+				label: 'USD',
+				name: 'USD',
+				exchangeRate: 1 / 132,
+			},
+		]
+
+		expect(resolveLocalSaleUnitCost(undefined, 20, 'USD', rates)).toBe(2640)
+		expect(resolveLocalSaleUnitCost(2640, 20, 'USD', rates)).toBe(2640)
+	})
+
 	it('does not treat missing cost as zero', () => {
 		expect(resolveLocalSaleUnitCost(undefined, undefined)).toBeUndefined()
 	})

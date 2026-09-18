@@ -36,7 +36,13 @@ import {
 	requireWarehouseId,
 } from '../../shared/warehouseAccess'
 import { getTenantContext } from '../../shared/tenant'
-import { finiteCost, findOversellLines } from '../../shared/inventoryCost'
+import {
+	catalogCostToPrimary,
+	finiteCost,
+	findOversellLines,
+	ratesFromCurrencySettings,
+} from '../../shared/inventoryCost'
+import CurrencySettings from '../../models/CurrencySettings'
 import {
 	buildPeriodProductAggregates,
 	originalSaleUnitCostByProduct,
@@ -547,8 +553,9 @@ export default class SellingInvoiceController {
 	}
 
 	/**
-	 * COGS for a sale line: Inventory.averageCost first, then product purchasePrice,
-	 * never the sale unitPrice. Missing cost stays unset (not 0).
+	 * COGS for a sale line: Inventory.averageCost (primary) first, then catalog
+	 * purchasePrice converted to primary at sale time. Never the sale unitPrice.
+	 * Missing cost stays unset (not 0).
 	 */
 	private async resolveSaleUnitCost(
 		requestContext: RequestContext,
@@ -558,10 +565,12 @@ export default class SellingInvoiceController {
 	): Promise<number | undefined> {
 		const inventoryCost = finiteCost(averageCost)
 
+		// note: averageCost is primary after opening/purchase writers; legacy rows
+		// may still be catalog-currency — do not re-infer from live price.currency.
 		if (inventoryCost != null) return inventoryCost
 
 		const product = await this.mongoDbClient.getDocumentByField<{
-			price?: { purchasePrice?: number }
+			price?: { purchasePrice?: number; currency?: string }
 		}>(
 			requestContext,
 			COLLECTION_NAMES.PRODUCTS,
@@ -570,9 +579,18 @@ export default class SellingInvoiceController {
 			session,
 		)
 
-		const purchasePrice = finiteCost(product?.price?.purchasePrice)
+		const tenantId = getTenantContext(requestContext).tenantId
+		const currencySettings = await CurrencySettings.findOne({ tenantId })
+			.session(session)
+			.select('primaryCurrency secondaryCurrencies')
+			.lean()
+		const purchaseCost = catalogCostToPrimary(
+			product?.price?.purchasePrice,
+			product?.price?.currency,
+			ratesFromCurrencySettings(currencySettings),
+		)
 
-		if (purchasePrice != null) return purchasePrice
+		if (purchaseCost != null) return purchaseCost
 
 		logger.warn(
 			`No averageCost or purchasePrice for product ${productId}; sale unitCost left unset.`,

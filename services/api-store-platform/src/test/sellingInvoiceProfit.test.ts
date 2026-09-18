@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	catalogCostToPrimary,
 	establishedWarehouseIdsFromMovings,
 	isEstablishedCostMovingType,
 	mergeQtyWeightedAverageCost,
 	openingAverageCostFromPurchasePrice,
+	ratesFromCurrencySettings,
 	shouldReplaceOpeningAverageCost,
 } from '../shared/inventoryCost'
 import {
@@ -18,6 +20,138 @@ import {
 	selectCurrentSaleMovings,
 	totalProfitFromAggregates,
 } from '../shared/sellingInvoiceProfit'
+
+/** Primary SYP; 1 USD = 132 SYP → USD.exchangeRate = 1/132 (primary→display). */
+const sypPrimaryRates = ratesFromCurrencySettings({
+	primaryCurrency: {
+		currencyId: 'syp',
+		name: 'Syrian Pound',
+		internalCode: 'SYP',
+	},
+	secondaryCurrencies: [
+		{
+			currencyId: 'usd',
+			name: 'US Dollar',
+			internalCode: 'USD',
+			exchangeRate: 1 / 132,
+		},
+	],
+})
+
+const usdPrimaryRates = ratesFromCurrencySettings({
+	primaryCurrency: {
+		currencyId: 'usd',
+		name: 'US Dollar',
+		internalCode: 'USD',
+	},
+	secondaryCurrencies: [
+		{
+			currencyId: 'syp',
+			name: 'Syrian Pound',
+			internalCode: 'SYP',
+			exchangeRate: 132,
+		},
+	],
+})
+
+describe('catalogCostToPrimary', () => {
+	it('converts USD catalog cost to primary SYP at settings rate', () => {
+		expect(catalogCostToPrimary(20, 'USD', sypPrimaryRates)).toBe(2640)
+		expect(catalogCostToPrimary(360, 'SYP', sypPrimaryRates)).toBe(360)
+	})
+
+	it('converts SYP catalog cost to primary USD', () => {
+		expect(catalogCostToPrimary(360, 'SYP', usdPrimaryRates)).toBe(
+			Math.round((360 / 132) * 1e8) / 1e8,
+		)
+		expect(catalogCostToPrimary(20, 'USD', usdPrimaryRates)).toBe(20)
+	})
+
+	it('does not convert again when rates are empty (treat as primary)', () => {
+		expect(catalogCostToPrimary(2640, 'USD', [])).toBe(2640)
+	})
+
+	it('opening USD+SYP costs sum to primary COGS 3000', () => {
+		const a = catalogCostToPrimary(20, 'USD', sypPrimaryRates)!
+		const b = catalogCostToPrimary(360, 'SYP', sypPrimaryRates)!
+		expect(a + b).toBe(3000)
+
+		const { aggregates, profitReliable } = buildPeriodProductAggregates(
+			[
+				{
+					grandTotal: 4460,
+					items: [
+						{
+							productId: 'a',
+							name: 'A',
+							quantity: 1,
+							unitPrice: 3960,
+							lineTotal: 3960,
+						},
+						{
+							productId: 'b',
+							name: 'B',
+							quantity: 1,
+							unitPrice: 500,
+							lineTotal: 500,
+						},
+					],
+				},
+			],
+			[
+				{
+					type: 'sale',
+					productId: 'a',
+					quantity: 1,
+					unitCost: a,
+					referenceId: 'inv-1',
+				},
+				{
+					type: 'sale',
+					productId: 'b',
+					quantity: 1,
+					unitCost: b,
+					referenceId: 'inv-1',
+				},
+			],
+		)
+
+		expect(profitReliable).toBe(true)
+		expect(totalProfitFromAggregates(aggregates)).toBe(1460)
+	})
+
+	it('does not double-convert an already-primary WAC on sale stamp path', () => {
+		// averageCost already 2640 primary; sale uses it as-is (resolve prefers averageCost)
+		expect(catalogCostToPrimary(2640, 'USD', sypPrimaryRates)).not.toBe(2640)
+		const primaryWac = 2640
+		const { aggregates } = buildPeriodProductAggregates(
+			[
+				{
+					grandTotal: 3960,
+					items: [
+						{
+							productId: 'a',
+							quantity: 1,
+							unitPrice: 3960,
+							lineTotal: 3960,
+						},
+					],
+				},
+			],
+			[
+				{
+					type: 'sale',
+					productId: 'a',
+					quantity: 1,
+					unitCost: primaryWac,
+					referenceId: 'inv-1',
+				},
+			],
+		)
+
+		expect(totalProfitFromAggregates(aggregates)).toBe(1320)
+	})
+})
 
 describe('opening inventory cost', () => {
 	it('seeds averageCost from the catalog purchase price', () => {

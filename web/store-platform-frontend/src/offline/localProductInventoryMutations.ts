@@ -10,10 +10,11 @@ import {
 import { InvoiceStatus } from '../shared/globalEnums'
 import {
 	availableQuantityFromStock,
+	catalogCostToPrimary,
 	finiteCost,
 	mergeQtyWeightedAverageCost,
-	openingAverageCostFromPurchasePrice,
 	PRODUCT_NAME_MAX_LENGTH,
+	ratesFromCurrencySettings,
 } from 'store-domain'
 import { offlineDb, getSyncMeta, SYNC_META_KEYS } from './db'
 import {
@@ -28,8 +29,24 @@ import type {
 	OutboxOperation,
 } from './types'
 import { generateId, nowIso, withLocalMeta } from './utils'
+import type { CurrencySettings } from '../api/apiStore'
 
 export { availableQuantityFromStock }
+
+const getLocalCostCurrencyRates = async () => {
+	const settingsRaw = (
+		await offlineDb.syncMeta.get(SYNC_META_KEYS.currencySettings)
+	)?.value
+	if (!settingsRaw) return ratesFromCurrencySettings(null)
+
+	try {
+		return ratesFromCurrencySettings(
+			JSON.parse(settingsRaw) as CurrencySettings,
+		)
+	} catch {
+		return ratesFromCurrencySettings(null)
+	}
+}
 
 export type LocalMutationOutbox = {
 	entity: OutboxEntity
@@ -211,8 +228,13 @@ const hasLocalEstablishedPurchase = async (productId: string) => {
 export const syncLocalOpeningAverageCost = async (
 	productId: string,
 	purchasePrice: number | undefined,
+	currencyCode?: string,
 ) => {
-	const openingCost = openingAverageCostFromPurchasePrice(purchasePrice)
+	const openingCost = catalogCostToPrimary(
+		purchasePrice,
+		currencyCode,
+		await getLocalCostCurrencyRates(),
+	)
 
 	if (openingCost == null) return
 
@@ -289,8 +311,11 @@ const applyLocalProductCreate = async (
 		}
 
 		const quantity = requireNonNegativeNumber(payload.quantity, 'quantity')
-		const openingCost = finiteCost(
-			(payload.price as Product['price'] | undefined)?.purchasePrice,
+		const price = payload.price as Product['price'] | undefined
+		const openingCost = catalogCostToPrimary(
+			price?.purchasePrice,
+			price?.currency,
+			await getLocalCostCurrencyRates(),
 		)
 
 		await offlineDb.inventory.put(
@@ -375,7 +400,11 @@ const applyLocalProductPatch = async (
 		nextPurchase != null &&
 		nextPurchase !== finiteCost(existing.price?.purchasePrice)
 	) {
-		await syncLocalOpeningAverageCost(productId, nextPurchase)
+		await syncLocalOpeningAverageCost(
+			productId,
+			nextPurchase,
+			nextPrice?.currency ?? existing.price?.currency,
+		)
 	}
 
 	await offlineDb.catalogProducts.put(
@@ -540,10 +569,11 @@ export const applyOnlineProductCatalogEdit = async (
 
 	const seeBuying = await canSeeBuyingPrice()
 	const purchasePrice = finiteCost(body.price?.purchasePrice)
+	const nextCurrency = body.price?.currency ?? product.price?.currency
 
 	await runProductInventoryMutation(async () => {
 		if (purchasePrice != null) {
-			await syncLocalOpeningAverageCost(productId, purchasePrice)
+			await syncLocalOpeningAverageCost(productId, purchasePrice, nextCurrency)
 		}
 
 		const nextPrice = body.price
