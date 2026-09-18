@@ -107,8 +107,9 @@ styled-system-studio
 # Next.js
 .next
 
-# Local notes / tickets — not for the remote
+# Local notes / tickets / architecture drafts — not for the remote
 docs/
+documentation/
 
 # Generated from packages/store-domain (npm run sync-domain)
 services/api-store-platform/src/shared/store-domain/

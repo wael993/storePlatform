@@ -71,7 +71,7 @@ cd services/api-store-platform && cp .env.example .env && npm ci && npm run dev
 
 If you previously used `src/.env`, merge into `services/api-store-platform/.env`.
 
-How warehouse ACL, working scope, operational vs combined mode, transfers, and dashboard filtering work: [docs/warehouse.md](docs/warehouse.md).
+How warehouse ACL, working scope, operational vs combined mode, transfers, and dashboard filtering work: `docs/reference/warehouse.md` (local; `docs/` is gitignored).
 
 ### Warehouse scope migration
 
@@ -89,8 +89,6 @@ Daily-action cash rows that cannot be matched to an invoice number stay on the o
 ### TO_DO
 
 - update the login logic that the user login one time then he has only to writ the password
-- user get popup about new updates (releases) (by click on 'understand' not show again)
-- user can bulk update in product table
-- use Optimistic
+- later backlog / architecture notes: `docs/` (see `docs/README.md`; gitignored)
 
 ### Hot Fix
