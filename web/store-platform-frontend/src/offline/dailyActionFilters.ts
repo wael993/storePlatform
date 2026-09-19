@@ -7,12 +7,18 @@ const getInvoiceDateBoundary = (
 	const trimmedDateValue = dateValue?.trim()
 	if (!trimmedDateValue) return undefined
 
+	// Local day bounds so entries match invoice issuedDate (getFullYear/Month/Date).
 	const isDateOnlyValue = /^\d{4}-\d{2}-\d{2}$/.test(trimmedDateValue)
-	const date = isDateOnlyValue
-		? new Date(
-				`${trimmedDateValue}T${boundary === 'start' ? '00:00:00.000' : '23:59:59.999'}Z`,
-			)
-		: new Date(trimmedDateValue)
+	if (isDateOnlyValue) {
+		const [year, month, day] = trimmedDateValue.split('-').map(Number)
+		if (!year || !month || !day) return undefined
+
+		return boundary === 'start'
+			? new Date(year, month - 1, day, 0, 0, 0, 0)
+			: new Date(year, month - 1, day, 23, 59, 59, 999)
+	}
+
+	const date = new Date(trimmedDateValue)
 
 	return Number.isNaN(date.getTime()) ? undefined : date
 }

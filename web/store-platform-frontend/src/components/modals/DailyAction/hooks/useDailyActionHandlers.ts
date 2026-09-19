@@ -12,6 +12,7 @@ import {
 	useGetPartnersQuery,
 	AddDailyActionRequestBody,
 } from '../../../../api/apiStore'
+import { buildEntryInvoiceDateIso } from '../../../../shared/dateUtils'
 import { DailyActionType, StepKeys } from '../../../../shared/globalEnums'
 import { formatNumberForDb, mapFee } from '../../../../shared/utils'
 import useCustomToast from '../../../common/CustomToast'
@@ -312,7 +313,9 @@ export const useDailyActionHandlers = ({
 				singleUnitPrice:
 					formatNumberForDb(formData.singleUnitPrice ?? '', 2) ?? undefined,
 				invoiceNumber: formData.invoiceNumber ?? undefined,
-				invoiceDate: formData.invoiceDate ?? '',
+				invoiceDate: formData.invoiceDate
+					? buildEntryInvoiceDateIso(formData.invoiceDate)
+					: '',
 			}
 
 			const isProductEntry =

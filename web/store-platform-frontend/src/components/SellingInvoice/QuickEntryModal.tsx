@@ -21,6 +21,7 @@ import {
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
 } from '../../api/apiStore'
+import { buildEntryInvoiceDateIso } from '../../shared/dateUtils'
 import { DailyActionType } from '../../shared/globalEnums'
 import {
 	compareLanguage,
@@ -340,7 +341,7 @@ const QuickEntryModal = ({
 			currencyId: form.currencyId,
 			currencyName: form.currencyName,
 			singleUnitPrice: formatNumberForDb(form.amount, 2) ?? undefined,
-			invoiceDate: form.invoiceDate,
+			invoiceDate: buildEntryInvoiceDateIso(form.invoiceDate),
 			note: optionalString(form.note),
 		}
 	}

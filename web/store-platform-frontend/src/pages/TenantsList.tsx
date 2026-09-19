@@ -68,10 +68,12 @@ import {
 	formatRenewalDate,
 	subscriptionRemainingMessage,
 } from '../components/SubscriptionRenewalBanner'
+import { compareLanguage } from '../shared/utils'
 
 const TenantsList = () => {
 	const { t, i18n } = useTranslation()
 	const breadCrumbItems = generateBreadcrumbs()
+	const { isArabic } = compareLanguage(i18n.language)
 	const { data: tenants = [], isLoading, isFetching } = useGetTenantsQuery()
 	const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation()
 	const [deleteTenant, { isLoading: isDeleting }] = useDeleteTenantMutation()
@@ -573,7 +575,14 @@ const TenantsList = () => {
 							</Text>
 						</Stack>
 					</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						size="lg"
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<Divider />
 					<ModalBody py={6}>
 						<Grid templateColumns={{ base: '1fr', lg: '1.4fr 1fr' }} gap={8}>

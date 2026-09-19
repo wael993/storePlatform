@@ -3,9 +3,10 @@ import {
 	Button,
 	FormControl,
 	FormLabel,
+	IconButton,
 	Input,
 	InputGroup,
-	InputRightElement,
+	InputLeftElement,
 	Modal,
 	ModalBody,
 	ModalContent,
@@ -24,6 +25,7 @@ import {
 import { logout } from '../store/user/reducer'
 import { RoutePaths } from '../shared/routes'
 import { useTranslation } from 'react-i18next'
+import { FiEye, FiEyeOff } from 'react-icons/fi'
 
 interface ChangePasswordModalProps {
 	isOpen: boolean
@@ -102,16 +104,17 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 									onChange={e => setCurrentPassword(e.target.value)}
 									autoComplete="current-password"
 								/>
-								<InputRightElement width="4rem">
-									<Button
-										h="1.75rem"
+								<InputLeftElement width="4rem">
+									<IconButton
 										size="sm"
 										variant="ghost"
+										aria-label={
+											showCurrent ? t('common.hide') : t('common.show')
+										}
+										icon={showCurrent ? <FiEye /> : <FiEyeOff />}
 										onClick={() => setShowCurrent(v => !v)}
-									>
-										{showCurrent ? t('common.hide') : t('common.show')}
-									</Button>
-								</InputRightElement>
+									/>
+								</InputLeftElement>
 							</InputGroup>
 						</FormControl>
 
@@ -124,16 +127,15 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 									onChange={e => setNewPassword(e.target.value)}
 									autoComplete="new-password"
 								/>
-								<InputRightElement width="4rem">
-									<Button
-										h="1.75rem"
+								<InputLeftElement width="4rem">
+									<IconButton
 										size="sm"
 										variant="ghost"
+										aria-label={showNew ? t('common.hide') : t('common.show')}
+										icon={showNew ? <FiEye /> : <FiEyeOff />}
 										onClick={() => setShowNew(v => !v)}
-									>
-										{showNew ? t('common.hide') : t('common.show')}
-									</Button>
-								</InputRightElement>
+									/>
+								</InputLeftElement>
 							</InputGroup>
 						</FormControl>
 

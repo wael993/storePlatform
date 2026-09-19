@@ -20,7 +20,7 @@ import {
 	RequestContext,
 } from '../../shared/types'
 import { DailyActionResponse, SuppliersResponse } from '../../shared/types/api'
-import { mapSuppliers } from '../mappings/mapper'
+import { filterSupplierRelatedActions, mapSuppliers } from '../mappings/mapper'
 
 export type SupplierInvoiceCollaborator = {
 	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
@@ -118,9 +118,7 @@ export default class SupplierController {
 		}
 
 		const data = suppliers.documents.map((supplier: SupplierDocument) => {
-			const actions = dailyActions.data.filter(
-				action => action.supplierId === supplier.supplierId,
-			)
+			const actions = filterSupplierRelatedActions(dailyActions.data, supplier)
 			const { totalPayable } =
 				this.invoiceCollaborator.buildSupplierInvoiceSummary(
 					invoicesBySupplierId.get(supplier.supplierId) ?? [],
@@ -187,11 +185,7 @@ export default class SupplierController {
 
 		const dailyActions =
 			await this.invoiceCollaborator.getDailyActions(requestContext)
-		const actions = dailyActions.data.filter(
-			action =>
-				action.supplierId === supplier.supplierId ||
-				action.supplierId === supplier.internalCode,
-		)
+		const actions = filterSupplierRelatedActions(dailyActions.data, supplier)
 
 		const mappedSuppliers = mapSuppliers([
 			{

@@ -46,6 +46,14 @@ export const buildInvoiceIssuedAtIso = (
 	return parsed.toISOString()
 }
 
+/** Same instant rules as invoice issuedAt: form date + current local time → ISO. */
+export const buildEntryInvoiceDateIso = (invoiceDate: string): string => {
+	const now = new Date()
+	const hours = String(now.getHours()).padStart(2, '0')
+	const minutes = String(now.getMinutes()).padStart(2, '0')
+	return buildInvoiceIssuedAtIso(invoiceDate, `${hours}:${minutes}`)
+}
+
 export const formatDateFromAndDateTo = (
 	dateFrom?: string,
 	dateTo?: string,

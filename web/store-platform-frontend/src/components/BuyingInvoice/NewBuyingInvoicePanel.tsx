@@ -484,7 +484,7 @@ const NewBuyingInvoicePanel = ({
 		setDraft,
 	])
 
-	const changeAmount = Math.max(0, draft.paidAmount - totals.grandTotal)
+	const changeAmount = draft.paidAmount - totals.grandTotal
 
 	const supplierOptions = useMemo(
 		(): Pick<Supplier, 'supplierId' | 'name'>[] => suppliers,
@@ -1709,6 +1709,7 @@ const NewBuyingInvoicePanel = ({
 												borderColor="#1D4ED8"
 												_hover={{ bg: '#1D4ED8' }}
 												isDisabled={!canSave}
+												isLoading={isSaving}
 											>
 												<ChevronDownIcon />
 											</MenuButton>
@@ -1726,14 +1727,6 @@ const NewBuyingInvoicePanel = ({
 											</MenuList>
 										</Menu>
 										<Button
-											rightIcon={
-												<Icon
-													as={AsSaveIcon}
-													fill="none"
-													color={PAGE_COLORS.cardShadow}
-													boxSize={5}
-												/>
-											}
 											bg={PAGE_COLORS.primary}
 											color="white"
 											borderTopLeftRadius="lg"
@@ -1757,6 +1750,14 @@ const NewBuyingInvoicePanel = ({
 														: InvoiceStatus.PARTIAL,
 												)
 											}}
+											rightIcon={
+												<Icon
+													as={AsSaveIcon}
+													fill="none"
+													color={PAGE_COLORS.cardShadow}
+													boxSize={5}
+												/>
+											}
 										>
 											{draft.paymentType === InvoicePaymentType.CASH
 												? t('components.buyingInvoices.drawer.payCashAndSave')

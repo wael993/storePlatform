@@ -162,8 +162,9 @@ export const mapDailyActionToQuickEntryForm = (
 	}
 
 	const rawAmount = dailyAction.singleUnitPrice ?? dailyAction.totalPrice ?? ''
-	const invoiceDate =
-		dailyAction.invoiceDate?.split('T')[0] ?? getTodayDateInputValue()
+	const invoiceDate = dailyAction.invoiceDate
+		? dayjs(dailyAction.invoiceDate).format('YYYY-MM-DD')
+		: getTodayDateInputValue()
 
 	return {
 		entryType,

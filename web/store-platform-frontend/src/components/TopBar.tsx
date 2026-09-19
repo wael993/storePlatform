@@ -394,7 +394,7 @@ const TopBar = ({
 				</Flex>
 
 				<Flex align="center" gap={2}>
-					{warehouseOptions.length > 1 && (
+					{warehouseOptions.length > 1 && !isSuperAdmin && (
 						<Box position="relative">
 							<Popover
 								placement="bottom-end"
@@ -725,7 +725,7 @@ const TopBar = ({
 						</Box>
 					)}
 
-					{!isMobile && (
+					{!isMobile && !isSuperAdmin && (
 						<>
 							<IconButton
 								aria-label={t('components.topBar.icons')}
@@ -737,7 +737,7 @@ const TopBar = ({
 								}}
 							/>
 
-							{offlineEnabled ? (
+							{offlineEnabled && (
 								<IconButton
 									aria-label={t('components.topBar.sync')}
 									icon={<RepeatIcon boxSize={4} />}
@@ -749,7 +749,7 @@ const TopBar = ({
 									isLoading={isSyncing}
 									isDisabled={!isOnline}
 								/>
-							) : null}
+							)}
 							{config.environment === 'local' ? (
 								<IconButton
 									aria-label={t('components.topBar.releaseNotes')}

@@ -400,9 +400,10 @@ const NewSellingInvoicePanel = ({
 	const changeAmount = draft.paidAmount - totals.grandTotal
 	const isPayedButtonDisabled =
 		draft.lineItems.length === 0 ||
-		(draft.paymentType === InvoicePaymentType.CREDIT &&
-			draft.customerId === WALK_IN_CUSTOMER_ID) ||
-		totals.grandTotal > draft.paidAmount
+		(draft.customerId === WALK_IN_CUSTOMER_ID &&
+			(draft.paymentType === InvoicePaymentType.CREDIT ||
+				totals.grandTotal > draft.paidAmount))
+
 	const customerOptions = useMemo(
 		(): Pick<Customer, 'customerId' | 'name'>[] => [
 			{
@@ -1225,6 +1226,7 @@ const NewSellingInvoicePanel = ({
 											borderColor="#1D4ED8"
 											_hover={{ bg: '#1D4ED8' }}
 											isDisabled={isPayedButtonDisabled}
+											isLoading={isSaving}
 										>
 											<ChevronDownIcon />
 										</MenuButton>
@@ -1238,14 +1240,6 @@ const NewSellingInvoicePanel = ({
 										</MenuList>
 									</Menu>
 									<Button
-										rightIcon={
-											<Icon
-												as={AsSaveIcon}
-												fill="none"
-												color={PAGE_COLORS.cardShadow}
-												boxSize={5}
-											/>
-										}
 										bg={PAGE_COLORS.primary}
 										color="white"
 										borderTopLeftRadius="lg"
@@ -1269,6 +1263,14 @@ const NewSellingInvoicePanel = ({
 													: InvoiceStatus.PARTIAL,
 											)
 										}}
+										rightIcon={
+											<Icon
+												as={AsSaveIcon}
+												fill="none"
+												color={PAGE_COLORS.cardShadow}
+												boxSize={5}
+											/>
+										}
 									>
 										{draft.paymentType === InvoicePaymentType.CASH
 											? t('components.sellingInvoices.drawer.payCashAndSave')

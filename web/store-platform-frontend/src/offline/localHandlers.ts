@@ -1844,7 +1844,7 @@ export const handleOfflineQuery = async (
 						action =>
 							action.entryType !== DailyActionType.BUYING_ENTRY &&
 							(action.customerId === customer.customerId ||
-								action.customerName === customer.name ||
+								// Legacy rows may still store internalCode as customerId.
 								(!!customer.internalCode &&
 									action.customerId === customer.internalCode)),
 					)
@@ -1864,7 +1864,13 @@ export const handleOfflineQuery = async (
 					}
 					const relatedActions = (
 						await getLocalDailyActionsForOffline()
-					).filter(action => action.supplierId === supplier.supplierId)
+					).filter(
+						action =>
+							action.supplierId === supplier.supplierId ||
+							// Legacy rows may still store internalCode as supplierId.
+							(!!supplier.internalCode &&
+								action.supplierId === supplier.internalCode),
+					)
 					return { data: { ...supplier, relatedActions } }
 				}
 				const data = await offlineDb.suppliers.toArray()

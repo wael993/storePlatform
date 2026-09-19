@@ -2,6 +2,7 @@ import {
 	CustomerDocument,
 	PartnerDocument,
 	ProductAPI,
+	SupplierDocument,
 	TenantSummary,
 } from '../../shared/types'
 import { DailyActionType } from '../../shared/globalEnums'
@@ -38,14 +39,26 @@ export const filterProductRelatedActions = (
 
 export const filterCustomerRelatedActions = (
 	actions: CustomerDailyAction[],
-	customer: Pick<CustomerDocument, 'customerId' | 'internalCode' | 'name'>,
+	customer: Pick<CustomerDocument, 'customerId' | 'internalCode'>,
 ): CustomerDailyAction[] =>
 	actions.filter(
 		action =>
 			action.entryType !== DailyActionType.BUYING_ENTRY &&
 			(action.customerId === customer.customerId ||
-				action.customerName === customer.name ||
-				action.customerId === customer.internalCode),
+				// Legacy rows may still store internalCode as customerId.
+				(!!customer.internalCode &&
+					action.customerId === customer.internalCode)),
+	)
+
+export const filterSupplierRelatedActions = (
+	actions: DailyAction[],
+	supplier: Pick<SupplierDocument, 'supplierId' | 'internalCode'>,
+): DailyAction[] =>
+	actions.filter(
+		action =>
+			action.supplierId === supplier.supplierId ||
+			// Legacy rows may still store internalCode as supplierId.
+			(!!supplier.internalCode && action.supplierId === supplier.internalCode),
 	)
 
 export const filterPartnerRelatedActions = (
