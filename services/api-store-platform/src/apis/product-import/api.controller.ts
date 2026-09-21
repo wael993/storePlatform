@@ -26,16 +26,18 @@ export default class ProductImportController {
 			mimeType?: unknown
 			fileName?: unknown
 		}>,
+		currency: unknown,
 	) {
-		return parseProductImportFiles(requestContext, files)
+		return parseProductImportFiles(requestContext, files, currency)
 	}
 
 	public preview(
 		requestContext: RequestContext,
 		sessionId: unknown,
 		mapping: unknown,
+		currency: unknown,
 	) {
-		return previewProductImport(requestContext, sessionId, mapping)
+		return previewProductImport(requestContext, sessionId, mapping, currency)
 	}
 
 	public commit(
@@ -44,6 +46,7 @@ export default class ProductImportController {
 		mapping: unknown,
 		offset: unknown,
 		limit: unknown,
+		currency: unknown,
 	) {
 		return commitProductImport(
 			requestContext,
@@ -51,6 +54,7 @@ export default class ProductImportController {
 			mapping,
 			offset,
 			limit,
+			currency,
 			async () => {
 				await this.productController.invalidateEntityCache(
 					'products',

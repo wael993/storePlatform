@@ -1,6 +1,8 @@
 import {
 	Button,
 	Flex,
+	FormControl,
+	FormLabel,
 	Modal,
 	ModalBody,
 	ModalContent,
@@ -18,10 +20,11 @@ import {
 	Tr,
 	VStack,
 } from '@chakra-ui/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
 	useCommitProductImportMutation,
+	useGetCurrencySettingsQuery,
 	useParseProductImportMutation,
 	usePreviewProductImportMutation,
 	useSkipProductImportMutation,
@@ -37,6 +40,7 @@ import {
 	type ProductImportCommitResponse,
 	type ProductImportStatusResponse,
 } from '../../shared/productImport'
+import { buildDisplayCurrencyOptions } from '../SellingInvoice/currencyDisplay'
 import useCustomToast from '../common/CustomToast'
 
 const COMMIT_RETRIES = 3
@@ -102,6 +106,7 @@ const ProductImportWizardModal = ({
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const [step, setStep] = useState<WizardStep>('upload')
 	const [files, setFiles] = useState<File[]>([])
+	const [currency, setCurrency] = useState('')
 	const [parsed, setParsed] = useState<ProductImportParseResponse | null>(null)
 	const [mapping, setMapping] = useState<ProductImportMapping>({})
 	const [preview, setPreview] = useState<ProductImportPreviewResponse | null>(
@@ -112,6 +117,16 @@ const ProductImportWizardModal = ({
 		null,
 	)
 	const [now, setNow] = useState(() => Date.now())
+	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
+		skip: !isOpen,
+	})
+	const currencyOptions = useMemo(() => {
+		return buildDisplayCurrencyOptions(currencySettings).map(option => ({
+			value: option.label,
+			label: option.name,
+		}))
+	}, [currencySettings])
+	const primaryCurrencyLabel = currencyOptions[0]?.value ?? ''
 	const [parseImport, { isLoading: isParsing }] =
 		useParseProductImportMutation()
 	const [previewImport, { isLoading: isPreviewing }] =
@@ -138,12 +153,20 @@ const ProductImportWizardModal = ({
 
 		setParsed(resume)
 		setMapping(resume.suggestedMapping)
+		setCurrency(current => resume.currency || current || primaryCurrencyLabel)
 		setStep('mapping')
-	}, [isOpen, status?.resume?.sessionId])
+	}, [isOpen, primaryCurrencyLabel, status?.resume?.sessionId])
+
+	useEffect(() => {
+		if (!isOpen || status?.resume || currency || !primaryCurrencyLabel) return
+
+		setCurrency(primaryCurrencyLabel)
+	}, [currency, isOpen, primaryCurrencyLabel, status?.resume])
 
 	const reset = () => {
 		setStep('upload')
 		setFiles([])
+		setCurrency(primaryCurrencyLabel)
 		setParsed(null)
 		setMapping({})
 		setPreview(null)
@@ -161,6 +184,7 @@ const ProductImportWizardModal = ({
 	const requiredMapped = (status?.fields ?? [])
 		.filter(field => field.required)
 		.every(field => Boolean(mapping[field.key]?.trim()))
+	const currencyReady = Boolean(currency.trim()) && currencyOptions.length > 0
 
 	const rejectNonExcel = () => {
 		showToast({
@@ -170,6 +194,14 @@ const ProductImportWizardModal = ({
 	}
 
 	const handleParse = async () => {
+		if (!currencyReady) {
+			showToast({
+				status: 'error',
+				description: t('productImport.currencyRequired'),
+			})
+			return
+		}
+
 		if (files.some(file => !isExcelImportFileName(file.name))) {
 			rejectNonExcel()
 			return
@@ -183,9 +215,13 @@ const ProductImportWizardModal = ({
 					fileName: file.name,
 				})),
 			)
-			const response = await parseImport({ files: payload }).unwrap()
+			const response = await parseImport({
+				files: payload,
+				currency,
+			}).unwrap()
 
 			setParsed(response)
+			if (response.currency) setCurrency(response.currency)
 			setMapping(response.suggestedMapping)
 			setStep('mapping')
 		} catch (error) {
@@ -199,15 +235,17 @@ const ProductImportWizardModal = ({
 	}
 
 	const handlePreview = async () => {
-		if (!parsed) return
+		if (!parsed || !currencyReady) return
 
 		try {
 			const response = await previewImport({
 				sessionId: parsed.sessionId,
 				mapping,
+				currency,
 			}).unwrap()
 
 			setPreview(response)
+			if (response.currency) setCurrency(response.currency)
 			setStep('preview')
 		} catch (error) {
 			const err = error as { data?: { message?: string } }
@@ -220,7 +258,7 @@ const ProductImportWizardModal = ({
 	}
 
 	const handleCommit = async () => {
-		if (!parsed) return
+		if (!parsed || !currencyReady) return
 
 		let total = preview?.valid ?? 0
 
@@ -254,6 +292,7 @@ const ProductImportWizardModal = ({
 							mapping,
 							offset,
 							limit: PRODUCT_IMPORT_COMMIT_BATCH_SIZE,
+							currency,
 						}).unwrap()
 						break
 					} catch (error) {
@@ -340,6 +379,31 @@ const ProductImportWizardModal = ({
 					) : step === 'upload' ? (
 						<VStack align="stretch" gap={4}>
 							<Text color="gray.600">{t('productImport.uploadHint')}</Text>
+							<FormControl isRequired isInvalid={!currencyReady}>
+								<FormLabel>{t('productImport.currency')}</FormLabel>
+								<Select
+									value={currency}
+									placeholder={t('productImport.selectCurrency')}
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
+									onChange={event => setCurrency(event.target.value)}
+								>
+									{currencyOptions.map(option => (
+										<option key={option.value} value={option.value}>
+											{option.label} ({option.value})
+										</option>
+									))}
+								</Select>
+								{currencyOptions.length === 0 ? (
+									<Text fontSize="sm" color="red.500" mt={1}>
+										{t('productImport.currencySettingsRequired')}
+									</Text>
+								) : null}
+							</FormControl>
 							<input
 								ref={fileInputRef}
 								type="file"
@@ -372,6 +436,25 @@ const ProductImportWizardModal = ({
 
 					{!hasExistingProducts && step === 'mapping' && parsed ? (
 						<VStack align="stretch" gap={3}>
+							<FormControl isRequired>
+								<FormLabel>{t('productImport.currency')}</FormLabel>
+								<Select
+									value={currency}
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
+									onChange={event => setCurrency(event.target.value)}
+								>
+									{currencyOptions.map(option => (
+										<option key={option.value} value={option.value}>
+											{option.label} ({option.value})
+										</option>
+									))}
+								</Select>
+							</FormControl>
 							<Text color="gray.600">{t('productImport.mappingHint')}</Text>
 							{(status?.fields ?? []).map(field => (
 								<Flex key={field.key} align="center" gap={4}>
@@ -417,6 +500,11 @@ const ProductImportWizardModal = ({
 
 					{!hasExistingProducts && step === 'confirm' && (
 						<VStack align="stretch" gap={2}>
+							<Text>
+								{t('productImport.currency')}
+								{' → '}
+								{currency}
+							</Text>
 							{(status?.fields ?? [])
 								.filter(field => mapping[field.key])
 								.map(field => (
@@ -555,7 +643,7 @@ const ProductImportWizardModal = ({
 							{step === 'upload' ? (
 								<Button
 									onClick={() => void handleParse()}
-									isDisabled={files.length === 0}
+									isDisabled={files.length === 0 || !currencyReady}
 									isLoading={isParsing}
 								>
 									{t('productImport.continue')}
@@ -564,7 +652,7 @@ const ProductImportWizardModal = ({
 							{step === 'mapping' ? (
 								<Button
 									onClick={() => setStep('confirm')}
-									isDisabled={!requiredMapped}
+									isDisabled={!requiredMapped || !currencyReady}
 								>
 									{t('productImport.continue')}
 								</Button>

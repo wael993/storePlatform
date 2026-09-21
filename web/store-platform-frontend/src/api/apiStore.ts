@@ -2045,6 +2045,7 @@ const getQuery = (
 					mimeType: string
 					fileName: string
 				}>
+				currency: string
 			}
 		>({
 			query: body => ({
@@ -2057,7 +2058,7 @@ const getQuery = (
 
 		previewProductImport: builder.mutation<
 			ProductImportPreviewResponse,
-			{ sessionId: string; mapping: ProductImportMapping }
+			{ sessionId: string; mapping: ProductImportMapping; currency: string }
 		>({
 			query: body => ({
 				url: 'product-import/preview',
@@ -2073,6 +2074,7 @@ const getQuery = (
 				mapping: ProductImportMapping
 				offset: number
 				limit: number
+				currency: string
 			}
 		>({
 			query: body => ({

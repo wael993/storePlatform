@@ -53,6 +53,7 @@ export type ProductImportMapping = Partial<
 
 export type ProductImportParseResponse = {
 	sessionId: string
+	currency?: string
 	files: Array<{ fileName: string; headers: string[]; rowCount: number }>
 	headers: string[]
 	suggestedMapping: ProductImportMapping
@@ -61,6 +62,7 @@ export type ProductImportParseResponse = {
 
 export type ProductImportPreviewResponse = {
 	sessionId: string
+	currency?: string
 	fileCount: number
 	detected: number
 	valid: number

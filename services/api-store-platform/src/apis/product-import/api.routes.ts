@@ -173,6 +173,7 @@ export default class ProductImportRoutes {
 			const result = await this.productImportController.parse(
 				this.getRequestContext(request),
 				files,
+				request.body?.currency,
 			)
 
 			response.status(200).json(result)
@@ -192,6 +193,7 @@ export default class ProductImportRoutes {
 				this.getRequestContext(request),
 				request.body?.sessionId,
 				request.body?.mapping,
+				request.body?.currency,
 			)
 
 			response.status(200).json(result)
@@ -210,6 +212,7 @@ export default class ProductImportRoutes {
 				request.body?.mapping,
 				request.body?.offset,
 				request.body?.limit,
+				request.body?.currency,
 			)
 
 			response.status(200).json(result)

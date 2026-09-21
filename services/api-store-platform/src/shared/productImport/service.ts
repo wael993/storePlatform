@@ -39,6 +39,12 @@ import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { Order } from '../../models/Order'
 import { StockMoving } from '../../models/StockMovings'
 import { Inventory } from '../../models/Inventory'
+import CurrencySettings from '../../models/CurrencySettings'
+import {
+	catalogCostToPrimary,
+	ratesFromCurrencySettings,
+} from '../inventoryCost'
+import { matchConfiguredCurrencyLabel } from './importCurrency'
 import { RequestContext } from '../types'
 
 const OWNER_ADMIN = new Set(['owner', 'admin'])
@@ -178,6 +184,7 @@ export const getProductImportStatus = async (
 		resume: session
 			? {
 					sessionId: session.sessionId,
+					currency: session.currency,
 					files: session.files.map(file => ({
 						fileName: file.fileName,
 						headers: file.headers,
@@ -241,6 +248,56 @@ const assertImportAllowed = async (
 	return tenantId
 }
 
+const loadCurrencySettings = async (tenantId: string) => {
+	const settings = await CurrencySettings.findOne({ tenantId })
+		.select('primaryCurrency secondaryCurrencies')
+		.lean()
+
+	if (!settings?.primaryCurrency) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+			'Set a primary currency in Currency Settings before importing products.',
+		)
+	}
+
+	return settings
+}
+
+/** Validate client currency against tenant settings; return canonical catalog label. */
+const requireImportCurrency = async (
+	tenantId: string,
+	currencyRaw: unknown,
+) => {
+	const settings = await loadCurrencySettings(tenantId)
+	const currency = matchConfiguredCurrencyLabel(currencyRaw, settings)
+
+	if (!currency) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+			'Select a currency configured in Currency Settings.',
+		)
+	}
+
+	return { currency, settings }
+}
+
+const resolveSessionCurrency = async (
+	tenantId: string,
+	session: { currency?: string },
+	currencyRaw: unknown,
+) => {
+	const raw =
+		typeof currencyRaw === 'string' && currencyRaw.trim()
+			? currencyRaw
+			: session.currency
+
+	const { currency, settings } = await requireImportCurrency(tenantId, raw)
+
+	session.currency = currency
+
+	return { currency, settings }
+}
+
 export const parseProductImportFiles = async (
 	requestContext: RequestContext,
 	files: Array<{
@@ -248,8 +305,10 @@ export const parseProductImportFiles = async (
 		mimeType?: unknown
 		fileName?: unknown
 	}>,
+	currencyRaw: unknown,
 ) => {
 	const tenantId = await assertImportAllowed(requestContext)
+	const { currency } = await requireImportCurrency(tenantId, currencyRaw)
 
 	if (!Array.isArray(files) || files.length === 0) {
 		throw new BusinessLogicError(
@@ -305,6 +364,7 @@ export const parseProductImportFiles = async (
 		tenantId,
 		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
 		files: parsed,
+		currency,
 		expiresAt: new Date(Date.now() + PRODUCT_IMPORT_LIMITS.sessionTtlMs),
 	})
 
@@ -312,6 +372,7 @@ export const parseProductImportFiles = async (
 
 	return {
 		sessionId,
+		currency,
 		files: parsed.map(file => ({
 			fileName: file.fileName,
 			headers: file.headers,
@@ -440,6 +501,7 @@ export const previewProductImport = async (
 	requestContext: RequestContext,
 	sessionId: unknown,
 	mappingRaw: unknown,
+	currencyRaw: unknown,
 ) => {
 	const tenantId = await assertImportAllowed(requestContext, {
 		ignoreExistingProducts: true,
@@ -454,6 +516,11 @@ export const previewProductImport = async (
 
 	const mapping = readMapping(mappingRaw)
 	const session = await loadSession(tenantId, sessionId.trim())
+	const { currency } = await resolveSessionCurrency(
+		tenantId,
+		session,
+		currencyRaw,
+	)
 
 	session.mapping = mapping
 	await session.save()
@@ -465,6 +532,7 @@ export const previewProductImport = async (
 
 	return {
 		sessionId: session.sessionId,
+		currency,
 		fileCount: session.files.length,
 		detected: mapped.length,
 		valid: valid.length,
@@ -501,6 +569,7 @@ export const commitProductImport = async (
 	mappingRaw: unknown,
 	offsetRaw: unknown,
 	limitRaw: unknown,
+	currencyRaw: unknown,
 	invalidateCaches: () => Promise<void>,
 ) => {
 	const tenantId = await assertImportAllowed(requestContext, {
@@ -518,6 +587,16 @@ export const commitProductImport = async (
 
 	const mapping = readMapping(mappingRaw)
 	const session = await loadSession(tenantId, sessionId.trim())
+	const { currency, settings } = await resolveSessionCurrency(
+		tenantId,
+		session,
+		currencyRaw,
+	)
+
+	session.mapping = mapping
+	await session.save()
+
+	const rates = ratesFromCurrencySettings(settings)
 	const rows = flattenSessionRows(session)
 	const sessionProductIds = rows.flatMap(row =>
 		rowProductIds(session.sessionId, row),
@@ -603,7 +682,7 @@ export const commitProductImport = async (
 					retailPrice: row.retailPrice,
 					purchasePrice: row.purchasePrice,
 					wholesalePrice: row.wholesalePrice,
-					currency: 'SYP',
+					currency,
 				},
 				status: 'active' as const,
 				createdBy: { ...createdByBase },
@@ -612,6 +691,9 @@ export const commitProductImport = async (
 	})
 	const quantityByProductId = new Map(
 		batch.map((row, index) => [productIds[index], row.quantity]),
+	)
+	const purchasePriceByProductId = new Map(
+		batch.map((row, index) => [productIds[index], row.purchasePrice]),
 	)
 	// Imported stock is a stock-changing operation: it lands in the caller's
 	// operational warehouse, never in an arbitrary one.
@@ -631,14 +713,25 @@ export const commitProductImport = async (
 		)
 	}
 
-	const inventories = products.map(product => ({
-		tenantId,
-		inventoryId: uuidv4(),
-		productId: product.productId,
-		warehouseId: importWarehouseId,
-		quantity: quantityByProductId.get(product.productId) ?? 0,
-		createdBy: { ...createdByBase },
-	}))
+	const inventories = products.map(product => {
+		const openingAverageCost = catalogCostToPrimary(
+			purchasePriceByProductId.get(product.productId),
+			currency,
+			rates,
+		)
+
+		return {
+			tenantId,
+			inventoryId: uuidv4(),
+			productId: product.productId,
+			warehouseId: importWarehouseId,
+			quantity: quantityByProductId.get(product.productId) ?? 0,
+			...(openingAverageCost != null
+				? { averageCost: openingAverageCost }
+				: {}),
+			createdBy: { ...createdByBase },
+		}
+	})
 
 	if (products.length) {
 		const mongoSession = await mongoose.startSession()

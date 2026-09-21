@@ -17,6 +17,8 @@ export interface IProductImportSession {
 	status: ProductImportStatus
 	files: ProductImportSessionFile[]
 	mapping?: HeaderMapping
+	/** Canonical catalog currency label (internalCode || name) for this import. */
+	currency?: string
 	expiresAt: Date
 	createdAt: Date
 	updatedAt: Date
@@ -49,6 +51,7 @@ const productImportSessionSchema = new Schema<IProductImportSession>(
 			},
 		],
 		mapping: { type: Schema.Types.Mixed, default: undefined },
+		currency: { type: String, trim: true },
 		expiresAt: { type: Date, required: true, index: { expires: 0 } },
 	},
 	{ timestamps: true, versionKey: false },
