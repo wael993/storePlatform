@@ -16,6 +16,7 @@ import type { ComponentType } from 'react'
 import type { IconProps } from '@chakra-ui/react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 import {
 	useCreateBrandMutation,
 	useCreateCategoryMutation,
@@ -42,7 +43,6 @@ import { StoreIcon } from '../shared/icons/Store'
 import { TruckIcon } from '../shared/icons/Truck'
 import { generateId } from '../offline/utils'
 import QuickAddFormModal from './modals/AddQuickModal'
-import { compareLanguage } from '../shared/utils'
 import useCustomToast from './common/CustomToast'
 
 interface AddQuickModalProps {
@@ -126,9 +126,9 @@ const ADD_SEE_FOR: Partial<Record<AddQuickModalType, string>> = {
 
 const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const { isOwnerOrAdmin } = useUser()
 	const { canSee } = useSee()
-	const { isArabic } = compareLanguage(i18n.language)
 	const showToast = useCustomToast()
 
 	const {

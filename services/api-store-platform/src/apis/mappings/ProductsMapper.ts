@@ -24,6 +24,7 @@ export default class ProductsMapper {
 			productFactoryCode: product.productFactoryCode,
 			name: product.name,
 			barcode: product.barcode || '',
+			additionalBarcodes: product.additionalBarcodes ?? [],
 			internalCode: product.internalCode,
 			latinName: product.latinName,
 			categoryId: product.categoryId,

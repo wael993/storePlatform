@@ -5,6 +5,7 @@ export const mapCatalogItemToProduct = (item: ProductCatalogItem): Product => ({
 	name: item.name,
 	latinName: item.latinName,
 	barcode: item.barcode,
+	additionalBarcodes: item.additionalBarcodes,
 	internalCode: item.internalCode,
 	productFactoryCode: item.productFactoryCode,
 	unitId: item.unitId,
@@ -36,6 +37,7 @@ export const mapProductToCatalogItem = (
 	name: product.name,
 	latinName: product.latinName,
 	barcode: product.barcode ?? '',
+	additionalBarcodes: product.additionalBarcodes,
 	internalCode: product.internalCode,
 	productFactoryCode: product.productFactoryCode,
 	unitId: product.unitId,
@@ -65,6 +67,7 @@ export const mergeProductIntoCatalogItem = (
 		...existing,
 		...mapped,
 		barcode: mapped.barcode,
+		additionalBarcodes: mapped.additionalBarcodes,
 		price: {
 			retailPrice: mapped.price.retailPrice,
 			discount: mapped.price.discount,

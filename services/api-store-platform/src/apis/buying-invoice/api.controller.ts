@@ -1012,7 +1012,7 @@ export default class BuyingInvoiceController {
 			const products = await withTenantScope(
 				Product.find({ status: { $ne: 'discontinued' } })
 					.select(
-						'productId name latinName barcode internalCode productFactoryCode aliases unitId categoryId supplierId',
+						'productId name latinName barcode additionalBarcodes internalCode productFactoryCode aliases unitId categoryId supplierId',
 					)
 					.lean(),
 				tenantId,

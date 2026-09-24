@@ -63,6 +63,7 @@ import {
 	subscriptionRemainingMessage,
 } from './SubscriptionRenewalBanner'
 import { UserRole } from '../shared/globalEnums'
+import { AsAnnouncementIcon } from '../shared/icons/Announcement'
 
 interface TopBarProps {
 	navItems: {
@@ -78,6 +79,13 @@ interface TopBarProps {
 }
 
 const styles = {
+	announcementText: {
+		fontSize: 'sm',
+		fontWeight: 400,
+		color: '#64748B',
+		lineHeight: '1.5',
+		textAlign: 'start',
+	},
 	iconButton: {
 		boxSize: 6,
 		bg: 'transparent',
@@ -224,6 +232,7 @@ const TopBar = ({
 	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
 	const notificationPopover = useDisclosure()
 	const warehousePopover = useDisclosure()
+	const announcementPopover = useDisclosure()
 	const skipSubscription = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
 	const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN
 	const { data: subscriptionData } = useGetSubscriptionQuery(undefined, {
@@ -727,6 +736,217 @@ const TopBar = ({
 
 					{!isMobile && !isSuperAdmin && (
 						<>
+							<Box position="relative">
+								<Popover
+									placement="bottom-end"
+									isLazy
+									isOpen={announcementPopover.isOpen}
+									onOpen={announcementPopover.onOpen}
+									onClose={announcementPopover.onClose}
+								>
+									<PopoverTrigger>
+										<IconButton
+											aria-label={t('components.topBar.notifications')}
+											icon={<AsAnnouncementIcon />}
+											sx={{
+												...styles.iconButton,
+												transition: 'all 0.2s ease',
+												_hover: {
+													transform: 'translateY(-1px)',
+												},
+											}}
+										/>
+									</PopoverTrigger>
+
+									<PopoverContent
+										width="30rem"
+										maxW="calc(100vw - 2rem)"
+										overflow="hidden"
+										border="1px solid"
+										borderColor="blackAlpha.100"
+										borderRadius="xl"
+										boxShadow="0 20px 50px rgba(0, 0, 0, 0.14)"
+										bg="white"
+									>
+										{/* Header */}
+										<Box
+											position="relative"
+											px={5}
+											py={4}
+											bgGradient="linear(to-br, blue.50, purple.50, white)"
+										>
+											{/* Decorative glow */}
+											<Box
+												position="absolute"
+												top="-35px"
+												right="-25px"
+												w="100px"
+												h="100px"
+												borderRadius="full"
+												bg="blue.100"
+												opacity={0.45}
+												filter="blur(25px)"
+											/>
+
+											<Flex
+												position="relative"
+												align="center"
+												justify="space-between"
+											>
+												<Flex align="center" gap={3}>
+													{/* Announcement icon */}
+													<Flex
+														align="center"
+														justify="center"
+														w="42px"
+														h="42px"
+														borderRadius="xl"
+														bg="white"
+														boxShadow="0 6px 18px rgba(59, 130, 246, 0.14)"
+														color="blue.500"
+													>
+														<AsAnnouncementIcon />
+													</Flex>
+
+													<Box>
+														<Flex align="center" gap={2}>
+															<Text
+																fontSize="md"
+																fontWeight={800}
+																color="gray.800"
+															>
+																{t('components.topBar.announcements')}
+															</Text>
+
+															<Box
+																px={2}
+																py="2px"
+																borderRadius="full"
+																bg="blue.500"
+																color="white"
+																fontSize="10px"
+																fontWeight={800}
+																lineHeight="normal"
+															>
+																{t('components.topBar.new', {
+																	defaultValue: 'جديد',
+																})}
+															</Box>
+														</Flex>
+
+														<Text mt={0.5} fontSize="xs" color="gray.500">
+															{t('components.topBar.latestUpdates', {
+																defaultValue: 'آخر التحديثات والأخبار',
+															})}
+														</Text>
+													</Box>
+												</Flex>
+
+												<IconButton
+													aria-label={t('components.topBar.closeAnnouncements')}
+													icon={<CloseIcon boxSize={2.5} />}
+													size="sm"
+													variant="ghost"
+													borderRadius="full"
+													color="gray.500"
+													_hover={{
+														bg: 'blackAlpha.100',
+														color: 'gray.700',
+													}}
+													onClick={announcementPopover.onClose}
+												/>
+											</Flex>
+										</Box>
+
+										<Divider borderColor="blackAlpha.100" />
+
+										{/* Announcement */}
+										<PopoverBody p={4}>
+											<Box
+												position="relative"
+												p={4}
+												border="1px solid"
+												borderColor="blue.100"
+												borderRadius="xl"
+												bgGradient="linear(to-br, blue.50, white)"
+												overflow="hidden"
+											>
+												{/* Accent line */}
+												<Box
+													position="absolute"
+													top={0}
+													bottom={0}
+													right={0}
+													w="4px"
+													bgGradient="linear(to-b, blue.400, purple.400)"
+												/>
+
+												<Flex align="flex-start" gap={3}>
+													<Flex
+														flexShrink={0}
+														align="center"
+														justify="center"
+														w="34px"
+														h="34px"
+														borderRadius="lg"
+														bg="blue.100"
+														color="blue.600"
+													>
+														<AsAnnouncementIcon />
+													</Flex>
+
+													<Box>
+														<Text
+															fontSize="sm"
+															fontWeight={700}
+															color="gray.800"
+															mb={1}
+														>
+															{t('components.topBar.announcements')}
+														</Text>
+
+														<Text
+															fontSize="sm"
+															lineHeight="1.9"
+															color="gray.600"
+															sx={{
+																...styles.announcementText,
+															}}
+														>
+															{t('components.topBar.announcementsText')}
+														</Text>
+													</Box>
+												</Flex>
+											</Box>
+										</PopoverBody>
+									</PopoverContent>
+								</Popover>
+
+								{/* Unread badge */}
+								<Box
+									position="absolute"
+									top="-1px"
+									right="-1px"
+									pointerEvents="none"
+									display="flex"
+									alignItems="center"
+									justifyContent="center"
+									minW="18px"
+									h="18px"
+									px="4px"
+									border="2px solid"
+									borderColor="white"
+									borderRadius="full"
+									bgGradient="linear(to-br, red.400, pink.500)"
+									color="white"
+									fontSize="9px"
+									fontWeight={800}
+									boxShadow="0 3px 8px rgba(236, 72, 153, 0.3)"
+								>
+									{1}
+								</Box>
+							</Box>
+
 							<IconButton
 								aria-label={t('components.topBar.icons')}
 								icon={<GridIcon boxSize={4} />}

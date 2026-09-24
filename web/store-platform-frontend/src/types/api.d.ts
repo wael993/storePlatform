@@ -240,6 +240,7 @@ interface Product {
 	name: string
 	latinName?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	categoryId?: string

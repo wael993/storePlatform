@@ -1,11 +1,9 @@
 import {
 	Box,
 	Flex,
+	Icon,
 	IconButton,
 	Image,
-	// NumberInput,
-	// NumberInputField,
-	// Select,
 	Table,
 	Tbody,
 	Td,
@@ -32,12 +30,19 @@ import EditableNumberField from './EditableNumberField'
 import ConfidenceMark from '../BuyingInvoice/ConfidenceMark'
 import type { LineExtractReview } from '../../shared/invoiceExtraction'
 import {
+	catalogAmountFromPrimary,
 	roundPrimaryAmount,
 	type DisplayCurrencyOption,
 } from './currencyDisplay'
 import { formatNumber } from '../../shared/utils'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
+import { AsEditIcon } from '../../shared/icons/Edit'
+import { useEditProductMutation } from '../../api/apiStore'
+import { enqueueProductWrite } from '../../api/optimisticData'
+import { buildProductInlinePatch } from '../product/productInlineEdit'
+import useCustomToast from '../common/CustomToast'
+import { useProductCatalog } from './useProductCatalog'
 
 interface InvoiceLineItemsTableProps {
 	lineItems: SellingInvoiceLineItem[]
@@ -91,6 +96,9 @@ const ProductThumbnail = ({
 	)
 }
 
+const hasRealProductId = (productId: string | undefined) =>
+	Boolean(productId?.trim())
+
 const InvoiceLineItemsTable = ({
 	lineItems,
 	onUpdateItem,
@@ -106,10 +114,27 @@ const InvoiceLineItemsTable = ({
 }: InvoiceLineItemsTableProps) => {
 	const { t } = useTranslation()
 	const { canSee } = useSee()
+	const showToastMessage = useCustomToast()
+	const [editProduct] = useEditProductMutation()
+	const { products: catalogProducts } = useProductCatalog()
 	const canEditLinePrice = !isReadOnly && canSee(SEE.invoicesLinePrice)
 	const canEditLineDiscount = !isReadOnly && canSee(SEE.invoicesLineDiscount)
 	const canEditLineTotal = !isReadOnly && canSee(SEE.invoicesLineTotal)
+	const canEditCatalogRetailPrice =
+		invoiceKind === 'selling' &&
+		!isReadOnly &&
+		canSee(SEE.productsEdit) &&
+		canSee(SEE.productsEditSellingPrice)
 	const editStartRefs = useRef(new Map<string, () => void>())
+	const pendingRetailPersistIds = useRef(new Set<string>())
+
+	const catalogByProductId = useMemo(() => {
+		const map = new Map<string, Product>()
+		for (const product of catalogProducts) {
+			map.set(product.productId, product)
+		}
+		return map
+	}, [catalogProducts])
 
 	// Newest line items are appended last; show newest first in the table.
 	const displayLineItems = useMemo(() => [...lineItems].reverse(), [lineItems])
@@ -118,6 +143,9 @@ const InvoiceLineItemsTable = ({
 
 	const lineItemFieldId = (itemId: string, field: LineItemField) =>
 		`${itemId}-${field}`
+
+	const canPersistRetailForItem = (item: SellingInvoiceLineItem) =>
+		canEditCatalogRetailPrice && hasRealProductId(item.productId)
 
 	const registerEditStart = useCallback(
 		(fieldId: string, start: (() => void) | null) => {
@@ -144,6 +172,16 @@ const InvoiceLineItemsTable = ({
 		[displayLineItems],
 	)
 
+	const clearPendingRetailPersist = (itemId: string) => {
+		pendingRetailPersistIds.current.delete(itemId)
+	}
+
+	const startRetailPriceEdit = (item: SellingInvoiceLineItem) => {
+		if (!canPersistRetailForItem(item)) return
+		pendingRetailPersistIds.current.add(item.id)
+		editStartRefs.current.get(lineItemFieldId(item.id, 'unitPrice'))?.()
+	}
+
 	const handleQuantityEdit = (
 		item: SellingInvoiceLineItem,
 		quantity: number,
@@ -151,13 +189,64 @@ const InvoiceLineItemsTable = ({
 		onUpdateItem(item.id, { quantity })
 	}
 
-	const handleUnitPriceEdit = (
+	const handleUnitPriceEdit = async (
 		item: SellingInvoiceLineItem,
 		unitPrice: number,
 	) => {
-		onUpdateItem(item.id, {
-			unitPrice: roundPrimaryAmount(unitPrice),
-		})
+		const shouldPersistRetail = pendingRetailPersistIds.current.delete(item.id)
+		const rounded = roundPrimaryAmount(unitPrice)
+
+		if (!shouldPersistRetail) {
+			if (canEditLinePrice) {
+				onUpdateItem(item.id, { unitPrice: rounded })
+			}
+			return
+		}
+
+		if (!canPersistRetailForItem(item)) return
+
+		const catalogProduct = catalogByProductId.get(item.productId)
+		const retailPrice = catalogProduct
+			? catalogAmountFromPrimary(
+					rounded,
+					catalogProduct.price?.currency,
+					currencyOptions,
+				)
+			: null
+
+		if (!catalogProduct || retailPrice == null) {
+			showToastMessage({
+				status: 'error',
+				description: t(
+					'components.activityDetail.topSection.failUpdateMessage',
+				),
+			})
+			return
+		}
+
+		try {
+			const patch = buildProductInlinePatch(
+				catalogProduct,
+				'retailPrice',
+				String(retailPrice),
+			)
+			if (patch.persist !== 'product') return
+
+			await enqueueProductWrite(item.productId, () =>
+				editProduct({
+					id: item.productId,
+					body: patch.body,
+				}).unwrap(),
+			)
+			onUpdateItem(item.id, { unitPrice: rounded })
+		} catch {
+			showToastMessage({
+				status: 'error',
+				description: t(
+					'components.activityDetail.topSection.failUpdateMessage',
+				),
+			})
+		}
 	}
 
 	const handleDiscountEdit = (
@@ -196,12 +285,7 @@ const InvoiceLineItemsTable = ({
 	}
 
 	return (
-		<Box
-			// overflowX="auto"
-			border="1px solid"
-			borderColor={PAGE_COLORS.border}
-			borderRadius="lg"
-		>
+		<Box border="1px solid" borderColor={PAGE_COLORS.border} borderRadius="lg">
 			<Table variant="simple" size="sm">
 				<Thead bg="gray.50">
 					<Tr textAlign="right">
@@ -217,179 +301,213 @@ const InvoiceLineItemsTable = ({
 					</Tr>
 				</Thead>
 				<Tbody>
-					{displayLineItems.map((item, index) => (
-						<Tr key={item.id}>
-							<Td color={PAGE_COLORS.muted}>{index + 1}</Td>
-							<Td>
-								<Flex align="center" gap={3}>
-									<ProductThumbnail name={item.name} imageUrl={item.imageUrl} />
-									<Box minW={0}>
-										<Flex align="center" gap={1} minW={0}>
-											<Text fontWeight={600} fontSize="sm" noOfLines={1}>
-												{item.name ||
-													t('components.buyingInvoices.extract.couldNotRead')}
-											</Text>
-											<ConfidenceMark
-												review={extractionLines?.[item.id]?.name}
-												onConfirm={() => onConfirmLineField?.(item.id, 'name')}
-											/>
-										</Flex>
-										{productCaption?.(item)}
-										{invoiceKind === 'buying' &&
-											item.sourceName &&
-											item.sourceName !== item.name && (
+					{displayLineItems.map((item, index) => {
+						const canPersistRetail = canPersistRetailForItem(item)
+						const unitPriceOnEdit =
+							canEditLinePrice || canPersistRetail
+								? (unitPrice: number) => handleUnitPriceEdit(item, unitPrice)
+								: undefined
+
+						return (
+							<Tr key={item.id}>
+								<Td color={PAGE_COLORS.muted}>{index + 1}</Td>
+								<Td>
+									<Flex align="center" gap={3}>
+										<ProductThumbnail
+											name={item.name}
+											imageUrl={item.imageUrl}
+										/>
+										<Box minW={0}>
+											<Flex align="center" gap={1} minW={0}>
+												<Text fontWeight={600} fontSize="sm" noOfLines={1}>
+													{item.name ||
+														t('components.buyingInvoices.extract.couldNotRead')}
+												</Text>
+												<ConfidenceMark
+													review={extractionLines?.[item.id]?.name}
+													onConfirm={() =>
+														onConfirmLineField?.(item.id, 'name')
+													}
+												/>
+											</Flex>
+											{productCaption?.(item)}
+											{invoiceKind === 'buying' &&
+												item.sourceName &&
+												item.sourceName !== item.name && (
+													<Text
+														fontSize="xs"
+														color={PAGE_COLORS.muted}
+														noOfLines={1}
+													>
+														{t(
+															'components.buyingInvoices.extract.match.rawName',
+															{ name: item.sourceName },
+														)}
+													</Text>
+												)}
+											{item.modelCode && (
 												<Text
 													fontSize="xs"
 													color={PAGE_COLORS.muted}
 													noOfLines={1}
 												>
-													{t(
-														'components.buyingInvoices.extract.match.rawName',
-														{ name: item.sourceName },
-													)}
+													{item.modelCode}
 												</Text>
 											)}
-										{item.modelCode && (
-											<Text
-												fontSize="xs"
-												color={PAGE_COLORS.muted}
-												noOfLines={1}
-											>
-												{item.modelCode}
-											</Text>
+										</Box>
+									</Flex>
+								</Td>
+								<Td>
+									<Flex align="center" gap={1}>
+										{isReadOnly ? (
+											<TextLabel
+												label=""
+												value={
+													formatNumber(item.quantity) ??
+													item.quantity.toString()
+												}
+											/>
+										) : (
+											<EditableNumberField
+												value={item.quantity}
+												isEditable
+												fontSize="sm"
+												fontWeight={600}
+												fieldId={lineItemFieldId(item.id, 'quantity')}
+												registerEditStart={registerEditStart}
+												onEnterCommit={() => focusNextField(index, 'quantity')}
+												onSave={quantity => handleQuantityEdit(item, quantity)}
+											/>
 										)}
-									</Box>
-								</Flex>
-							</Td>
-							{/* <Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
-								{item.barcode ?? '-'}
-							</Td> */}
-							<Td>
-								<Flex align="center" gap={1}>
-									{isReadOnly ? (
-										<TextLabel
-											label=""
-											value={
-												formatNumber(item.quantity) ?? item.quantity.toString()
+										<ConfidenceMark
+											review={extractionLines?.[item.id]?.quantity}
+											onConfirm={() =>
+												onConfirmLineField?.(item.id, 'quantity')
 											}
 										/>
+									</Flex>
+								</Td>
+								<Td>
+									<Flex align="center" gap={1}>
+										<CurrencyAmountTooltip
+											amount={item.unitPrice ?? 0}
+											displayText={formatAmount(item.unitPrice ?? 0)}
+											options={currencyOptions}
+											displayCurrencyId={displayCurrencyId}
+											fieldId={lineItemFieldId(item.id, 'unitPrice')}
+											registerEditStart={registerEditStart}
+											onEnterCommit={() => focusNextField(index, 'unitPrice')}
+											onCancel={() => clearPendingRetailPersist(item.id)}
+											onEdit={unitPriceOnEdit}
+											clickToEdit={canEditLinePrice}
+											costReference={
+												invoiceKind === 'selling'
+													? {
+															averageBuying:
+																item.averageCost != null
+																	? formatAmount(item.averageCost)
+																	: '-',
+															lastBuying:
+																item.lastBuyingPrice != null
+																	? formatAmount(item.lastBuyingPrice)
+																	: '-',
+															lastSelling:
+																item.lastSellingPrice != null
+																	? formatAmount(item.lastSellingPrice)
+																	: '-',
+														}
+													: undefined
+											}
+										/>
+										<ConfidenceMark
+											review={extractionLines?.[item.id]?.unitPrice}
+											onConfirm={() =>
+												onConfirmLineField?.(item.id, 'unitPrice')
+											}
+										/>
+									</Flex>
+								</Td>
+								<Td>
+									{!canEditLineDiscount ? (
+										<Text fontSize="sm" fontWeight={600}>
+											{formatAmount(getLineDiscountAmount(item))}
+										</Text>
 									) : (
-										<EditableNumberField
-											value={item.quantity}
-											isEditable
+										<EditableDiscountField
+											discount={item.discount}
+											discountIsPercent={item.discountIsPercent}
+											discountAmount={getLineDiscountAmount(item)}
+											formatAmount={formatAmount}
 											fontSize="sm"
 											fontWeight={600}
-											fieldId={lineItemFieldId(item.id, 'quantity')}
+											fieldId={lineItemFieldId(item.id, 'discount')}
 											registerEditStart={registerEditStart}
-											onEnterCommit={() => focusNextField(index, 'quantity')}
-											onSave={quantity => handleQuantityEdit(item, quantity)}
+											onEnterCommit={() => focusNextField(index, 'discount')}
+											currencyOptions={currencyOptions}
+											displayCurrencyId={displayCurrencyId}
+											onSave={(discount, discountIsPercent) =>
+												handleDiscountEdit(item, discount, discountIsPercent)
+											}
 										/>
 									)}
-									<ConfidenceMark
-										review={extractionLines?.[item.id]?.quantity}
-										onConfirm={() => onConfirmLineField?.(item.id, 'quantity')}
-									/>
-								</Flex>
-							</Td>
-							<Td>
-								<Flex align="center" gap={1}>
+								</Td>
+								<Td>
 									<CurrencyAmountTooltip
-										amount={item.unitPrice ?? '0'}
-										displayText={formatAmount(item.unitPrice ?? '0')}
+										amount={calculateLineItemTotal(item)}
+										displayText={formatAmount(calculateLineItemTotal(item))}
 										options={currencyOptions}
 										displayCurrencyId={displayCurrencyId}
-										fieldId={lineItemFieldId(item.id, 'unitPrice')}
+										fieldId={lineItemFieldId(item.id, 'total')}
 										registerEditStart={registerEditStart}
-										onEnterCommit={() => focusNextField(index, 'unitPrice')}
+										onEnterCommit={() => focusNextField(index, 'total')}
 										onEdit={
-											canEditLinePrice
-												? unitPrice => handleUnitPriceEdit(item, unitPrice)
+											canEditLineTotal
+												? total => handleTotalEdit(item, total)
 												: undefined
 										}
-										costReference={
-											invoiceKind === 'selling'
-												? {
-														averageBuying:
-															item.averageCost != null
-																? formatAmount(item.averageCost)
-																: '-',
-														lastBuying:
-															item.lastBuyingPrice != null
-																? formatAmount(item.lastBuyingPrice)
-																: '-',
-														lastSelling:
-															item.lastSellingPrice != null
-																? formatAmount(item.lastSellingPrice)
-																: '-',
-													}
-												: undefined
-										}
-									/>
-									<ConfidenceMark
-										review={extractionLines?.[item.id]?.unitPrice}
-										onConfirm={() => onConfirmLineField?.(item.id, 'unitPrice')}
-									/>
-								</Flex>
-							</Td>
-							<Td>
-								{!canEditLineDiscount ? (
-									<Text fontSize="sm" fontWeight={600}>
-										{formatAmount(getLineDiscountAmount(item))}
-									</Text>
-								) : (
-									<EditableDiscountField
-										discount={item.discount}
-										discountIsPercent={item.discountIsPercent}
-										discountAmount={getLineDiscountAmount(item)}
-										formatAmount={formatAmount}
-										fontSize="sm"
-										fontWeight={600}
-										fieldId={lineItemFieldId(item.id, 'discount')}
-										registerEditStart={registerEditStart}
-										onEnterCommit={() => focusNextField(index, 'discount')}
-										onSave={(discount, discountIsPercent) =>
-											handleDiscountEdit(item, discount, discountIsPercent)
-										}
-									/>
-								)}
-							</Td>
-							<Td>
-								<CurrencyAmountTooltip
-									amount={calculateLineItemTotal(item)}
-									displayText={formatAmount(calculateLineItemTotal(item))}
-									options={currencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									fieldId={lineItemFieldId(item.id, 'total')}
-									registerEditStart={registerEditStart}
-									onEnterCommit={() => focusNextField(index, 'total')}
-									onEdit={
-										canEditLineTotal
-											? total => handleTotalEdit(item, total)
-											: undefined
-									}
-								/>
-							</Td>
-							{!isReadOnly && (
-								<Td>
-									<IconButton
-										size="xs"
-										variant="ghost"
-										aria-label={t(
-											'components.sellingInvoices.drawer.removeItem',
-										)}
-										icon={
-											<AsTrashIcon
-												fill="none"
-												color={PAGE_COLORS.danger}
-												boxSize={4}
-											/>
-										}
-										onClick={() => onRemoveItem(item.id)}
 									/>
 								</Td>
-							)}
-						</Tr>
-					))}
+								{!isReadOnly && (
+									<Td>
+										<Flex>
+											<IconButton
+												size="xs"
+												variant="ghost"
+												aria-label={t(
+													'components.sellingInvoices.drawer.removeItem',
+												)}
+												icon={
+													<AsTrashIcon
+														fill="none"
+														color={PAGE_COLORS.danger}
+														boxSize={4}
+													/>
+												}
+												onClick={() => onRemoveItem(item.id)}
+											/>
+											{canPersistRetail && (
+												<IconButton
+													size="xs"
+													variant="ghost"
+													aria-label={t(
+														'components.sellingInvoices.drawer.editItem',
+													)}
+													icon={
+														<Icon
+															as={AsEditIcon}
+															color={PAGE_COLORS.primary}
+															boxSize={4}
+														/>
+													}
+													onClick={() => startRetailPriceEdit(item)}
+												/>
+											)}
+										</Flex>
+									</Td>
+								)}
+							</Tr>
+						)
+					})}
 				</Tbody>
 			</Table>
 		</Box>

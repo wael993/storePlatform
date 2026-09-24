@@ -865,6 +865,44 @@ const NewBuyingInvoicePanel = ({
 		}
 	}
 
+	const handlePayAndSave = () => {
+		if (draft.paymentType === InvoicePaymentType.CREDIT) {
+			void handleSaveInvoice(InvoiceStatus.CONFIRMED)
+			return
+		}
+
+		void handleSaveInvoice(
+			draft.paidAmount + 0.009 >= totals.grandTotal
+				? InvoiceStatus.PAID
+				: InvoiceStatus.PARTIAL,
+		)
+	}
+
+	const payAndSaveRef = useRef(handlePayAndSave)
+	payAndSaveRef.current = handlePayAndSave
+
+	useEffect(() => {
+		if (!isActive) return
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'F10') {
+				if (mode !== 'create' || !onAddDraftTab) return
+				event.preventDefault()
+				onAddDraftTab()
+				return
+			}
+
+			if (event.key !== 'F12') return
+			if (isReadOnly || isSaving || !canSave) return
+
+			event.preventDefault()
+			payAndSaveRef.current()
+		}
+
+		window.addEventListener('keydown', onKeyDown)
+		return () => window.removeEventListener('keydown', onKeyDown)
+	}, [isActive, mode, onAddDraftTab, isReadOnly, isSaving, canSave])
+
 	const panelTitleKey =
 		mode === 'view'
 			? 'components.sellingInvoices.drawer.viewTitle'
@@ -1641,17 +1679,7 @@ const NewBuyingInvoicePanel = ({
 									_hover={{ bg: '#1D4ED8' }}
 									isDisabled={!canSave}
 									isLoading={isSaving}
-									onClick={() => {
-										if (draft.paymentType === InvoicePaymentType.CREDIT) {
-											handleSaveInvoice(InvoiceStatus.CONFIRMED)
-											return
-										}
-										handleSaveInvoice(
-											draft.paidAmount + 0.009 >= totals.grandTotal
-												? InvoiceStatus.PAID
-												: InvoiceStatus.PARTIAL,
-										)
-									}}
+									onClick={handlePayAndSave}
 								>
 									{t('components.buyingInvoices.extract.approve')}
 								</Button>
@@ -1738,18 +1766,7 @@ const NewBuyingInvoicePanel = ({
 											_hover={{ bg: '#1D4ED8' }}
 											isDisabled={!canSave}
 											isLoading={isSaving}
-											onClick={() => {
-												if (draft.paymentType === InvoicePaymentType.CREDIT) {
-													handleSaveInvoice(InvoiceStatus.CONFIRMED)
-													return
-												}
-
-												handleSaveInvoice(
-													draft.paidAmount + 0.009 >= totals.grandTotal
-														? InvoiceStatus.PAID
-														: InvoiceStatus.PARTIAL,
-												)
-											}}
+											onClick={handlePayAndSave}
 											rightIcon={
 												<Icon
 													as={AsSaveIcon}

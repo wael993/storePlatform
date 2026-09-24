@@ -5,7 +5,12 @@ import {
 	BusinessLogicError,
 } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
-import { persistableProductBarcode } from '../productBarcode'
+import {
+	allBarcodes,
+	barcodeCompareKey,
+	normalizeProductBarcodes,
+} from '../productBarcode'
+import { assertNoTenantBarcodeCollisionsForProducts } from '../productBarcodeCollision'
 import { ensureTenantAccess, getTenantContext } from '../tenant'
 import { COLLECTION_NAMES } from '../general'
 import { withTenantScope } from '../mongodb/tenantScopedModel'
@@ -14,9 +19,14 @@ import {
 	PRODUCT_IMPORT_LIMITS,
 	PRODUCT_IMPORT_STATUS,
 	REQUIRED_PRODUCT_IMPORT_FIELDS,
+	MASTER_DATA_IMPORT_FIELDS,
 	isProductImportField,
+	isMasterDataImportField,
+	type ProductImportField,
+	type MasterDataImportField,
 } from '../constants/productImport'
 import {
+	applyImportBarcodeCollisions,
 	HeaderMapping,
 	mappingIsComplete,
 	mapSourceRows,
@@ -24,11 +34,17 @@ import {
 	toPlainSourceRow,
 	type SourceRow,
 } from './mapRows'
+import {
+	applyMasterDecisions,
+	loadMasterCandidates,
+	proposeMasterMatches,
+	rollbackCreatedMasterData,
+	type MasterDecision,
+	type MasterProposal,
+} from './masterData'
 import { assertImportLimits, parseImportFile } from './parse'
 import { getImportAiProvider } from '../importAi/providers'
 import { Product } from '../../models/Products'
-import { Category } from '../../models/Category'
-import { Supplier } from '../../models/Supplier'
 import { Warehouse } from '../../models/Warehaus'
 import { requireOperationalWarehouseId } from '../warehouseAccess'
 import Tenant from '../../models/Tenant'
@@ -306,9 +322,11 @@ export const parseProductImportFiles = async (
 		fileName?: unknown
 	}>,
 	currencyRaw: unknown,
+	selectedFieldsRaw?: unknown,
 ) => {
 	const tenantId = await assertImportAllowed(requestContext)
 	const { currency } = await requireImportCurrency(tenantId, currencyRaw)
+	const selectedFields = readSelectedFields(selectedFieldsRaw)
 
 	if (!Array.isArray(files) || files.length === 0) {
 		throw new BusinessLogicError(
@@ -333,22 +351,26 @@ export const parseProductImportFiles = async (
 	assertImportLimits(parsed)
 
 	const headers = [...new Set(parsed.flatMap(file => file.headers))]
-	let suggestions = headerSuggestions(headers)
+	let suggestions = headerSuggestions(headers).filter(item =>
+		selectedFields.includes(item.field),
+	)
 
 	try {
 		const aiSuggestions = await getImportAiProvider().mapProductHeaders({
 			headers,
-			fields: [...PRODUCT_IMPORT_FIELDS],
+			fields: [...selectedFields],
 		})
 		const valid = aiSuggestions.flatMap(item =>
-			isProductImportField(item.field)
+			isProductImportField(item.field) && selectedFields.includes(item.field)
 				? [{ field: item.field, header: item.header }]
 				: [],
 		)
 
 		if (valid.length) suggestions = valid
 	} catch {
-		suggestions = headerSuggestions(headers)
+		suggestions = headerSuggestions(headers).filter(item =>
+			selectedFields.includes(item.field),
+		)
 	}
 
 	const suggestedMapping: HeaderMapping = {}
@@ -365,6 +387,7 @@ export const parseProductImportFiles = async (
 		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
 		files: parsed,
 		currency,
+		selectedFields,
 		expiresAt: new Date(Date.now() + PRODUCT_IMPORT_LIMITS.sessionTtlMs),
 	})
 
@@ -373,6 +396,7 @@ export const parseProductImportFiles = async (
 	return {
 		sessionId,
 		currency,
+		selectedFields,
 		files: parsed.map(file => ({
 			fileName: file.fileName,
 			headers: file.headers,
@@ -397,7 +421,26 @@ const loadSession = async (tenantId: string, sessionId: string) => {
 	return session
 }
 
-const readMapping = (raw: unknown): HeaderMapping => {
+const readSelectedFields = (raw: unknown): ProductImportField[] => {
+	if (!Array.isArray(raw) || raw.length === 0) {
+		return [...PRODUCT_IMPORT_FIELDS]
+	}
+
+	const selected = raw.flatMap(item =>
+		typeof item === 'string' && isProductImportField(item) ? [item] : [],
+	)
+
+	for (const required of REQUIRED_PRODUCT_IMPORT_FIELDS) {
+		if (!selected.includes(required)) selected.push(required)
+	}
+
+	return PRODUCT_IMPORT_FIELDS.filter(field => selected.includes(field))
+}
+
+const readMapping = (
+	raw: unknown,
+	selectedFields: ProductImportField[],
+): HeaderMapping => {
 	if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
 		throw new BusinessLogicError(
 			ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
@@ -409,6 +452,12 @@ const readMapping = (raw: unknown): HeaderMapping => {
 	const record = raw as Record<string, unknown>
 
 	for (const field of PRODUCT_IMPORT_FIELDS) {
+		if (!selectedFields.includes(field)) {
+			mapping[field] = null
+
+			continue
+		}
+
 		const value = record[field]
 
 		if (typeof value === 'string' && value.trim()) {
@@ -418,7 +467,7 @@ const readMapping = (raw: unknown): HeaderMapping => {
 		}
 	}
 
-	if (!mappingIsComplete(mapping)) {
+	if (!mappingIsComplete(mapping, selectedFields)) {
 		throw new BusinessLogicError(
 			ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 			'Map Product Name and Selling Price before continuing.',
@@ -428,53 +477,64 @@ const readMapping = (raw: unknown): HeaderMapping => {
 	return mapping
 }
 
-const catalogMatcher = async (tenantId: string) => {
-	const [categories, suppliers] = await Promise.all([
-		withTenantScope(
-			Category.find().select({ categoryId: 1, name: 1 }).lean(),
-			tenantId,
-		),
-		withTenantScope(
-			Supplier.find().select({ supplierId: 1, name: 1 }).lean(),
-			tenantId,
-		),
-	])
-	const categoryByName = new Map(
-		categories.map(item => [item.name.trim().toLowerCase(), item.categoryId]),
-	)
-	const supplierByName = new Map(
-		suppliers.map(item => [item.name.trim().toLowerCase(), item.supplierId]),
-	)
-
-	return (kind: 'category' | 'supplier', name: string) => {
-		const key = name.trim().toLowerCase()
-
-		if (kind === 'category') {
-			const categoryId = categoryByName.get(key)
-
-			return categoryId
-				? { categoryId }
-				: {
-						warning: `Category "${name}" could not be matched to an existing category.`,
-					}
-		}
-
-		const supplierId = supplierByName.get(key)
-
-		return supplierId
-			? { supplierId }
-			: {
-					warning: `Supplier "${name}" could not be matched to an existing supplier.`,
-				}
-	}
-}
-
 const summarizeRows = (mapped: ReturnType<typeof mapSourceRows>) => {
 	const valid = mapped.filter(row => row.errors.length === 0)
 	const duplicates = mapped.filter(row => row.duplicate)
 	const invalid = mapped.filter(row => row.errors.length > 0 && !row.duplicate)
 
 	return { mapped, valid, duplicates, invalid }
+}
+
+const loadExistingBarcodeKeys = async (tenantId: string) => {
+	const products = await withTenantScope(
+		Product.find({})
+			.select({ productId: 1, barcode: 1, additionalBarcodes: 1 })
+			.lean(),
+		tenantId,
+	)
+	const keys = new Set<string>()
+
+	for (const product of products) {
+		for (const code of allBarcodes(product)) {
+			keys.add(barcodeCompareKey(code))
+		}
+	}
+
+	return keys
+}
+
+const collectMasterExcelValues = (
+	rows: SourceRow[],
+	mapping: HeaderMapping,
+	kind: MasterDataImportField,
+): string[] => {
+	const header = mapping[kind]
+
+	if (!header) return []
+
+	const values: string[] = []
+
+	for (const row of rows) {
+		const value = row.values?.[header]?.trim()
+
+		if (value) values.push(value)
+	}
+
+	return values
+}
+
+const mapImportRows = async (
+	rows: SourceRow[],
+	mapping: HeaderMapping,
+	tenantId: string,
+	resolutions: import('./masterData').MasterResolutions | undefined,
+) => {
+	const existingBarcodeKeys = await loadExistingBarcodeKeys(tenantId)
+
+	return applyImportBarcodeCollisions(
+		mapSourceRows(rows, mapping, resolutions),
+		existingBarcodeKeys,
+	)
 }
 
 const flattenSessionRows = (session: {
@@ -497,6 +557,168 @@ const rowProductIds = (
 	uuidv5(`${row.fileName}:${row.rowNumber}`, sessionId),
 ]
 
+export const prepareProductImportMasterData = async (
+	requestContext: RequestContext,
+	sessionId: unknown,
+	mappingRaw: unknown,
+) => {
+	const tenantId = await assertImportAllowed(requestContext, {
+		ignoreExistingProducts: true,
+	})
+
+	if (typeof sessionId !== 'string' || !sessionId.trim()) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+			'sessionId is required.',
+		)
+	}
+
+	const session = await loadSession(tenantId, sessionId.trim())
+	const selectedFields = readSelectedFields(session.selectedFields)
+	const mapping = readMapping(mappingRaw, selectedFields)
+
+	session.mapping = mapping
+	await session.save()
+
+	const rows = flattenSessionRows(session)
+	const candidates = await loadMasterCandidates(tenantId)
+	const proposals: MasterProposal[] = []
+
+	for (const kind of MASTER_DATA_IMPORT_FIELDS) {
+		if (!selectedFields.includes(kind) || !mapping[kind]) continue
+
+		proposals.push(
+			...proposeMasterMatches(
+				kind,
+				collectMasterExcelValues(rows, mapping, kind),
+				candidates[kind],
+			),
+		)
+	}
+
+	return {
+		sessionId: session.sessionId,
+		proposals,
+	}
+}
+
+export const confirmProductImportMasterData = async (
+	requestContext: RequestContext,
+	sessionId: unknown,
+	decisionsRaw: unknown,
+) => {
+	const tenantId = await assertImportAllowed(requestContext, {
+		ignoreExistingProducts: true,
+	})
+
+	if (typeof sessionId !== 'string' || !sessionId.trim()) {
+		throw new BusinessLogicError(
+			ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+			'sessionId is required.',
+		)
+	}
+
+	const session = await loadSession(tenantId, sessionId.trim())
+
+	if (session.createdMasterData) {
+		await rollbackCreatedMasterData(tenantId, session.createdMasterData)
+		session.createdMasterData = undefined
+		session.masterResolutions = undefined
+	}
+
+	const decisions: MasterDecision[] = Array.isArray(decisionsRaw)
+		? decisionsRaw.flatMap(item => {
+				if (typeof item !== 'object' || item === null) return []
+
+				const record = item as Record<string, unknown>
+				const kind =
+					typeof record.kind === 'string' &&
+					isMasterDataImportField(record.kind)
+						? record.kind
+						: null
+				const excelValue =
+					typeof record.excelValue === 'string' ? record.excelValue : ''
+				const action =
+					record.action === 'match' ||
+					record.action === 'create' ||
+					record.action === 'skip'
+						? record.action
+						: null
+
+				if (!kind || !excelValue || !action) return []
+
+				return [
+					{
+						kind,
+						excelValue,
+						action,
+						matchedId:
+							typeof record.matchedId === 'string'
+								? record.matchedId
+								: undefined,
+						createName:
+							typeof record.createName === 'string'
+								? record.createName
+								: undefined,
+					},
+				]
+			})
+		: []
+
+	for (const decision of decisions) {
+		if (decision.action === 'match' && !decision.matchedId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				`Pick an existing match for "${decision.excelValue}".`,
+			)
+		}
+
+		if (
+			decision.action === 'create' &&
+			!(decision.createName?.trim() || decision.excelValue.trim())
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+				`Create name for "${decision.excelValue}" is required.`,
+			)
+		}
+	}
+
+	const createdBy = {
+		_id: requestContext.userId ?? '',
+		displayName:
+			`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim() ||
+			'Import',
+		role: requestContext.user?.role ?? requestContext.role,
+		createdAt: new Date(),
+	}
+
+	try {
+		const { resolutions, created } = await applyMasterDecisions(
+			tenantId,
+			decisions,
+			createdBy,
+		)
+
+		session.masterResolutions = resolutions
+		session.createdMasterData = created
+		await session.save()
+
+		return {
+			sessionId: session.sessionId,
+			createdCounts: {
+				category: created.categoryIds.length,
+				supplier: created.supplierIds.length,
+				unit: created.unitIds.length,
+			},
+		}
+	} catch (error) {
+		await rollbackCreatedMasterData(tenantId, session.createdMasterData)
+
+		throw error
+	}
+}
+
 export const previewProductImport = async (
 	requestContext: RequestContext,
 	sessionId: unknown,
@@ -514,8 +736,9 @@ export const previewProductImport = async (
 		)
 	}
 
-	const mapping = readMapping(mappingRaw)
 	const session = await loadSession(tenantId, sessionId.trim())
+	const selectedFields = readSelectedFields(session.selectedFields)
+	const mapping = readMapping(mappingRaw, selectedFields)
 	const { currency } = await resolveSessionCurrency(
 		tenantId,
 		session,
@@ -525,9 +748,13 @@ export const previewProductImport = async (
 	session.mapping = mapping
 	await session.save()
 	const rows = flattenSessionRows(session)
-	const matchCatalog = await catalogMatcher(tenantId)
 	const { mapped, valid, duplicates, invalid } = summarizeRows(
-		mapSourceRows(rows, mapping, matchCatalog),
+		await mapImportRows(
+			rows,
+			mapping,
+			tenantId,
+			session.masterResolutions ?? undefined,
+		),
 	)
 
 	return {
@@ -540,10 +767,13 @@ export const previewProductImport = async (
 		invalid: invalid.length,
 		preview: valid.slice(0, PRODUCT_IMPORT_LIMITS.previewRows).map(row => ({
 			name: row.name,
-			internalCode: row.internalCode,
 			barcode: row.barcode,
+			category: row.categoryName,
+			supplier: row.supplierName,
+			unit: row.unitName,
 			purchasePrice: row.purchasePrice,
 			retailPrice: row.retailPrice,
+			wholesalePrice: row.wholesalePrice,
 			quantity: row.quantity,
 		})),
 		errors: [...invalid, ...duplicates].slice(0, 100).map(row => ({
@@ -585,8 +815,9 @@ export const commitProductImport = async (
 		)
 	}
 
-	const mapping = readMapping(mappingRaw)
 	const session = await loadSession(tenantId, sessionId.trim())
+	const selectedFields = readSelectedFields(session.selectedFields)
+	const mapping = readMapping(mappingRaw, selectedFields)
 	const { currency, settings } = await resolveSessionCurrency(
 		tenantId,
 		session,
@@ -623,9 +854,13 @@ export const commitProductImport = async (
 		}
 	}
 
-	const matchCatalog = await catalogMatcher(tenantId)
 	const { valid, duplicates, invalid } = summarizeRows(
-		mapSourceRows(rows, mapping, matchCatalog),
+		await mapImportRows(
+			rows,
+			mapping,
+			tenantId,
+			session.masterResolutions ?? undefined,
+		),
 	)
 	const offset = readBatchOffset(offsetRaw)
 	const limit = readBatchLimit(limitRaw)
@@ -671,13 +906,14 @@ export const commitProductImport = async (
 				tenantId,
 				productId,
 				name: row.name,
-				latinName: row.latinName,
-				barcode: persistableProductBarcode(productId, row.barcode),
-				internalCode: row.internalCode?.trim(),
-				productFactoryCode: row.productFactoryCode?.trim(),
+				...normalizeProductBarcodes(
+					productId,
+					row.barcode,
+					row.additionalBarcodes,
+				),
 				categoryId: row.categoryId,
 				supplierId: row.supplierId,
-				description: row.description,
+				unitId: row.unitId,
 				price: {
 					retailPrice: row.retailPrice,
 					purchasePrice: row.purchasePrice,
@@ -734,6 +970,9 @@ export const commitProductImport = async (
 	})
 
 	if (products.length) {
+		// Write-path check: preview map is not enough (post-preview races).
+		await assertNoTenantBarcodeCollisionsForProducts(tenantId, products)
+
 		const mongoSession = await mongoose.startSession()
 
 		try {
@@ -748,6 +987,15 @@ export const commitProductImport = async (
 					ordered: true,
 				})
 			})
+		} catch (error) {
+			if (!sessionStarted && session.createdMasterData) {
+				await rollbackCreatedMasterData(tenantId, session.createdMasterData)
+				session.createdMasterData = undefined
+				session.masterResolutions = undefined
+				await session.save()
+			}
+
+			throw error
 		} finally {
 			await mongoSession.endSession()
 		}
@@ -764,6 +1012,8 @@ export const commitProductImport = async (
 	if (reachedEnd) {
 		await setTenantImportStatus(tenantId, PRODUCT_IMPORT_STATUS.COMPLETED)
 		session.status = PRODUCT_IMPORT_STATUS.COMPLETED
+		// Keep created master rows; drop rollback tags.
+		session.createdMasterData = undefined
 		await session.save()
 		await invalidateCaches()
 	}

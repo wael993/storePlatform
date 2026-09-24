@@ -118,6 +118,24 @@ export default class ProductImportRoutes {
 			)
 
 		app
+			.route(`${base}/master-data/prepare`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.prepareMasterData.bind(this),
+			)
+
+		app
+			.route(`${base}/master-data/confirm`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.confirmMasterData.bind(this),
+			)
+
+		app
 			.route(`${base}/preview`)
 			.post(
 				this.startCalc.bind(this),
@@ -174,6 +192,45 @@ export default class ProductImportRoutes {
 				this.getRequestContext(request),
 				files,
 				request.body?.currency,
+				request.body?.selectedFields,
+			)
+
+			response.status(200).json(result)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async prepareMasterData(
+		request: ImportHttpRequest,
+		response: express.Response,
+	) {
+		try {
+			const result = await this.productImportController.prepareMasterData(
+				this.getRequestContext(request),
+				request.body?.sessionId,
+				request.body?.mapping,
+			)
+
+			response.status(200).json(result)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async confirmMasterData(
+		request: ImportHttpRequest,
+		response: express.Response,
+	) {
+		try {
+			const result = await this.productImportController.confirmMasterData(
+				this.getRequestContext(request),
+				request.body?.sessionId,
+				request.body?.decisions,
 			)
 
 			response.status(200).json(result)

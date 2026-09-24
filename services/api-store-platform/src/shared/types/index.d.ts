@@ -78,6 +78,7 @@ export type ProductRequestBody = {
 	name: string
 	latinName?: string
 	barcode: string
+	additionalBarcodes?: string[]
 	categoryId?: string
 	categoryName?: string
 	brandId?: string
@@ -123,6 +124,7 @@ export type ProductCatalogItem = {
 	name: string
 	latinName?: string
 	barcode: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	unitId?: string
@@ -690,6 +692,7 @@ interface ProductDocument {
 	supplierId?: string
 	brandId?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	taxRate?: string
 	unitId?: string
 	price: {
@@ -734,6 +737,7 @@ interface ProductAPI {
 	supplierId?: string
 	brandId?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	taxRate?: string
 	unitId?: string
 	price: {

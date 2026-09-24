@@ -152,6 +152,21 @@ export const convertToPrimaryAmount = (
 	return roundPrimaryAmount(displayAmount / rate)
 }
 
+/**
+ * Invoice line unitPrice (primary) → amount stored on product.price.retailPrice.
+ * null when product currency cannot be resolved — callers must not invent primary→retail.
+ */
+export const catalogAmountFromPrimary = (
+	primaryAmount: number,
+	productCurrencyCode: string | undefined,
+	options: DisplayCurrencyOption[],
+): number | null => {
+	const currencyId = resolveCurrencyIdFromCode(productCurrencyCode, options)
+	if (!currencyId) return null
+
+	return convertPrimaryAmount(primaryAmount, currencyId, options)
+}
+
 export const getCurrencyLabel = (
 	currencyId: string | null,
 	options: DisplayCurrencyOption[],

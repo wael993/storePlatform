@@ -1,7 +1,11 @@
 import { Box, HStack, Input, Text, Tooltip, VStack } from '@chakra-ui/react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { formatDiscountEditValue, parseDiscountInput } from './discountInput'
+import {
+	formatDiscountEditDraft,
+	parseDiscountInput,
+	toPrimaryDiscountSave,
+} from './discountInput'
 import {
 	getOtherCurrencyAmountLines,
 	type DisplayCurrencyOption,
@@ -48,7 +52,12 @@ const EditableDiscountField = ({
 	const committingEnterRef = useRef(false)
 	const [isEditing, setIsEditing] = useState(false)
 	const [draft, setDraft] = useState(() =>
-		formatDiscountEditValue(discount, discountIsPercent),
+		formatDiscountEditDraft(
+			discount,
+			discountIsPercent,
+			displayCurrencyId,
+			currencyOptions,
+		),
 	)
 
 	const displayText = formatAmount(discountAmount)
@@ -63,9 +72,22 @@ const EditableDiscountField = ({
 
 	useEffect(() => {
 		if (!isEditing) {
-			setDraft(formatDiscountEditValue(discount, discountIsPercent))
+			setDraft(
+				formatDiscountEditDraft(
+					discount,
+					discountIsPercent,
+					displayCurrencyId,
+					currencyOptions,
+				),
+			)
 		}
-	}, [discount, discountIsPercent, isEditing])
+	}, [
+		discount,
+		discountIsPercent,
+		displayCurrencyId,
+		currencyOptions,
+		isEditing,
+	])
 
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
@@ -77,7 +99,14 @@ const EditableDiscountField = ({
 	const startEditing = () => {
 		if (!isEditable) return
 		skipBlurCommitRef.current = false
-		setDraft(formatDiscountEditValue(discount, discountIsPercent))
+		setDraft(
+			formatDiscountEditDraft(
+				discount,
+				discountIsPercent,
+				displayCurrencyId,
+				currencyOptions,
+			),
+		)
 		setIsEditing(true)
 	}
 
@@ -93,7 +122,14 @@ const EditableDiscountField = ({
 
 	const cancelEditing = () => {
 		skipBlurCommitRef.current = true
-		setDraft(formatDiscountEditValue(discount, discountIsPercent))
+		setDraft(
+			formatDiscountEditDraft(
+				discount,
+				discountIsPercent,
+				displayCurrencyId,
+				currencyOptions,
+			),
+		)
 		setIsEditing(false)
 	}
 
@@ -109,14 +145,20 @@ const EditableDiscountField = ({
 			return false
 		}
 
+		const primary = toPrimaryDiscountSave(
+			parsed,
+			displayCurrencyId,
+			currencyOptions,
+		)
+
 		skipBlurCommitRef.current = true
 		setIsEditing(false)
 
 		if (
-			parsed.discount !== discount ||
-			parsed.discountIsPercent !== discountIsPercent
+			primary.discount !== discount ||
+			primary.discountIsPercent !== discountIsPercent
 		) {
-			await onSave(parsed.discount, parsed.discountIsPercent)
+			await onSave(primary.discount, primary.discountIsPercent)
 		}
 
 		return true

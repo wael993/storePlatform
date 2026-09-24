@@ -236,10 +236,6 @@ const ProductsPage = (_targetType: ProductsPageProps) => {
 					fieldVisibility={{ category: canSee(SEE.categories) }}
 				/>
 
-				{!isLoading && products.length === 0 && (
-					<Text color="gray.500">{t('components.product.noProducts')}</Text>
-				)}
-
 				<TableWithActionBar
 					products={products as Product[]}
 					isLoading={isLoading}

@@ -17,7 +17,7 @@ import {
 	VStack,
 } from '@chakra-ui/react'
 import { AddIcon, ChevronDownIcon, CloseIcon } from '@chakra-ui/icons'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
 	useGetCustomersQuery,
@@ -570,6 +570,58 @@ const NewSellingInvoicePanel = ({
 			setSaveError(message || t('components.sellingInvoices.drawer.saveFailed'))
 		}
 	}
+
+	const isPrimarySaveDisabled =
+		mode === 'edit'
+			? draft.lineItems.length === 0 ||
+				(draft.paymentType === InvoicePaymentType.CREDIT &&
+					draft.customerId === WALK_IN_CUSTOMER_ID)
+			: isPayedButtonDisabled
+
+	const handlePayAndSave = () => {
+		if (draft.paymentType === InvoicePaymentType.CREDIT) {
+			void handleSaveInvoice(InvoiceStatus.CONFIRMED)
+			return
+		}
+
+		void handleSaveInvoice(
+			draft.paidAmount + 0.009 >= totals.grandTotal
+				? InvoiceStatus.PAID
+				: InvoiceStatus.PARTIAL,
+		)
+	}
+
+	const payAndSaveRef = useRef(handlePayAndSave)
+	payAndSaveRef.current = handlePayAndSave
+
+	useEffect(() => {
+		if (!isActive) return
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'F10') {
+				if (mode !== 'create' || !onAddDraftTab) return
+				event.preventDefault()
+				onAddDraftTab()
+				return
+			}
+
+			if (event.key !== 'F12') return
+			if (isReadOnly || isSaving || isPrimarySaveDisabled) return
+
+			event.preventDefault()
+			payAndSaveRef.current()
+		}
+
+		window.addEventListener('keydown', onKeyDown)
+		return () => window.removeEventListener('keydown', onKeyDown)
+	}, [
+		isActive,
+		mode,
+		onAddDraftTab,
+		isReadOnly,
+		isSaving,
+		isPrimarySaveDisabled,
+	])
 
 	const panelTitleKey =
 		mode === 'view'
@@ -1156,18 +1208,7 @@ const NewSellingInvoicePanel = ({
 											draft.customerId === WALK_IN_CUSTOMER_ID)
 									}
 									isLoading={isSaving}
-									onClick={() => {
-										if (draft.paymentType === InvoicePaymentType.CREDIT) {
-											handleSaveInvoice(InvoiceStatus.CONFIRMED)
-											return
-										}
-
-										handleSaveInvoice(
-											draft.paidAmount + 0.009 >= totals.grandTotal
-												? InvoiceStatus.PAID
-												: InvoiceStatus.PARTIAL,
-										)
-									}}
+									onClick={handlePayAndSave}
 								>
 									{t('components.sellingInvoices.drawer.saveChanges')}
 								</Button>
@@ -1251,18 +1292,7 @@ const NewSellingInvoicePanel = ({
 										_hover={{ bg: '#1D4ED8' }}
 										isDisabled={isPayedButtonDisabled}
 										isLoading={isSaving}
-										onClick={() => {
-											if (draft.paymentType === InvoicePaymentType.CREDIT) {
-												handleSaveInvoice(InvoiceStatus.CONFIRMED)
-												return
-											}
-
-											handleSaveInvoice(
-												draft.paidAmount + 0.009 >= totals.grandTotal
-													? InvoiceStatus.PAID
-													: InvoiceStatus.PARTIAL,
-											)
-										}}
+										onClick={handlePayAndSave}
 										rightIcon={
 											<Icon
 												as={AsSaveIcon}

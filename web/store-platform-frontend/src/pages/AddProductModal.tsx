@@ -46,16 +46,21 @@ import {
 	buildDisplayCurrencyOptions,
 	resolveDefaultDisplayCurrencyId,
 } from '../components/SellingInvoice/currencyDisplay'
-import { displayProductBarcode } from '../shared/productBarcode'
+import {
+	displayProductBarcode,
+	normalizeProductBarcodes,
+} from '../shared/productBarcode'
 import { compareLanguage } from '../shared/utils'
 import i18n from '../i18n'
 
 const TOTAL_STEPS = 3
+const MAX_ADDITIONAL_BARCODES = 9
 
 const INITIAL_FORM = {
 	name: '',
 	latinName: '',
 	barcode: '',
+	additionalBarcodes: [] as string[],
 	internalCode: '',
 	productFactoryCode: '',
 	categoryId: '',
@@ -111,6 +116,7 @@ const productToForm = (product: Product): typeof INITIAL_FORM => ({
 	name: product.name ?? '',
 	latinName: product.latinName ?? '',
 	barcode: displayProductBarcode(product),
+	additionalBarcodes: product.additionalBarcodes ?? [],
 	internalCode: product.internalCode ?? '',
 	productFactoryCode: product.productFactoryCode ?? '',
 	categoryId: product.categoryId ?? '',
@@ -529,51 +535,61 @@ const AddProductModal = ({
 		setBaseline(null)
 	}
 
-	const buildProductBody = () => ({
-		name: form.name.trim() || (isEdit ? undefined : form.latinName.trim()),
-		latinName: form.latinName.trim() || undefined,
-		productFactoryCode: form.productFactoryCode.trim() || undefined,
-		barcode: form.barcode.trim() || undefined,
-		internalCode: form.internalCode.trim() || undefined,
-		categoryId: form.categoryId.trim() || undefined,
-		brandId: form.brandId.trim() || undefined,
-		price: {
-			wholesalePrice: form.price.wholesalePrice
-				? Number(form.price.wholesalePrice)
-				: undefined,
-			retailPrice: Number(form.price.retailPrice),
-			semiWholesalePrice: form.price.semiWholesalePrice
-				? Number(form.price.semiWholesalePrice)
-				: undefined,
-			purchasePrice: form.price.purchasePrice
-				? Number(form.price.purchasePrice)
-				: undefined,
-			discount: form.price.discount ? Number(form.price.discount) : undefined,
-			currency:
-				form.price.currency.trim() ||
-				defaultCurrencyCode ||
-				currencyOptions[0]?.value ||
-				'',
-		},
-		unitId: form.unitId.trim() || undefined,
-		taxRate: form.taxRate.trim() || undefined,
-		supplierId: form.supplierId.trim() || undefined,
-		attributes: {
-			color: form.attributes.color.trim() || undefined,
-			size: form.attributes.size.trim() || undefined,
-			weight: form.attributes.weight.trim() || undefined,
-			length: form.attributes.length.trim() || undefined,
-			width: form.attributes.width.trim() || undefined,
-			height: form.attributes.height.trim() || undefined,
-			flavor: form.attributes.flavor.trim() || undefined,
-			expiryDate: (() => {
-				const parsed = parseExpiryDate(form.attributes.expiryDate)
-				return parsed ? formatDateInputValue(parsed) : undefined
-			})(),
-		},
-		status: form.status,
-		description: form.description.trim(),
-	})
+	const buildProductBody = () => {
+		const productId = product?.productId ?? ''
+		const normalized = normalizeProductBarcodes(
+			productId,
+			form.barcode,
+			form.additionalBarcodes,
+		)
+
+		return {
+			name: form.name.trim() || (isEdit ? undefined : form.latinName.trim()),
+			latinName: form.latinName.trim() || undefined,
+			productFactoryCode: form.productFactoryCode.trim() || undefined,
+			barcode: normalized.barcode,
+			additionalBarcodes: normalized.additionalBarcodes,
+			internalCode: form.internalCode.trim() || undefined,
+			categoryId: form.categoryId.trim() || undefined,
+			brandId: form.brandId.trim() || undefined,
+			price: {
+				wholesalePrice: form.price.wholesalePrice
+					? Number(form.price.wholesalePrice)
+					: undefined,
+				retailPrice: Number(form.price.retailPrice),
+				semiWholesalePrice: form.price.semiWholesalePrice
+					? Number(form.price.semiWholesalePrice)
+					: undefined,
+				purchasePrice: form.price.purchasePrice
+					? Number(form.price.purchasePrice)
+					: undefined,
+				discount: form.price.discount ? Number(form.price.discount) : undefined,
+				currency:
+					form.price.currency.trim() ||
+					defaultCurrencyCode ||
+					currencyOptions[0]?.value ||
+					'',
+			},
+			unitId: form.unitId.trim() || undefined,
+			taxRate: form.taxRate.trim() || undefined,
+			supplierId: form.supplierId.trim() || undefined,
+			attributes: {
+				color: form.attributes.color.trim() || undefined,
+				size: form.attributes.size.trim() || undefined,
+				weight: form.attributes.weight.trim() || undefined,
+				length: form.attributes.length.trim() || undefined,
+				width: form.attributes.width.trim() || undefined,
+				height: form.attributes.height.trim() || undefined,
+				flavor: form.attributes.flavor.trim() || undefined,
+				expiryDate: (() => {
+					const parsed = parseExpiryDate(form.attributes.expiryDate)
+					return parsed ? formatDateInputValue(parsed) : undefined
+				})(),
+			},
+			status: form.status,
+			description: form.description.trim(),
+		}
+	}
 
 	const handleSubmit = async () => {
 		setError('')
@@ -587,9 +603,22 @@ const AddProductModal = ({
 			return
 		}
 
-		try {
-			const productBody = buildProductBody()
+		let productBody: ReturnType<typeof buildProductBody>
 
+		try {
+			productBody = buildProductBody()
+		} catch (buildError) {
+			const message =
+				buildError instanceof Error ? buildError.message : String(buildError)
+			setError(
+				/at most \d+ barcodes/i.test(message)
+					? t('productModal.maxBarcodesReached')
+					: t('productModal.invalidBarcode'),
+			)
+			return
+		}
+
+		try {
 			if (product) {
 				await enqueueProductWrite(product.productId, async () => {
 					await editProduct({
@@ -688,6 +717,57 @@ const AddProductModal = ({
 				isReadOnly={lock(SEE.productsEditBarcode)}
 				onChange={value => handleFieldChange('barcode', value)}
 			/>
+			{form.additionalBarcodes.map((code, index) => (
+				<HStack key={`additional-barcode-${index}`} align="flex-end" gap={2}>
+					<InputLabel
+						inputType="text"
+						label={t('productModal.additionalBarcode')}
+						value={code}
+						isReadOnly={lock(SEE.productsEditBarcode)}
+						onChange={value =>
+							setForm(prev => ({
+								...prev,
+								additionalBarcodes: prev.additionalBarcodes.map((item, i) =>
+									i === index ? value : item,
+								),
+							}))
+						}
+					/>
+					<Button
+						sx={styles.secondaryButton}
+						isDisabled={lock(SEE.productsEditBarcode)}
+						onClick={() =>
+							setForm(prev => ({
+								...prev,
+								additionalBarcodes: prev.additionalBarcodes.filter(
+									(_, i) => i !== index,
+								),
+							}))
+						}
+					>
+						{t('productModal.removeBarcode')}
+					</Button>
+				</HStack>
+			))}
+			{form.additionalBarcodes.length < MAX_ADDITIONAL_BARCODES ? (
+				<Button
+					alignSelf="flex-start"
+					sx={styles.secondaryButton}
+					isDisabled={lock(SEE.productsEditBarcode)}
+					onClick={() =>
+						setForm(prev => ({
+							...prev,
+							additionalBarcodes: [...prev.additionalBarcodes, ''],
+						}))
+					}
+				>
+					{t('productModal.addBarcode')}
+				</Button>
+			) : (
+				<Text fontSize="sm" color="gray.600">
+					{t('productModal.maxBarcodesReached')}
+				</Text>
+			)}
 			<InputLabel
 				inputType="text"
 				label={t('productModal.internalCode')}
@@ -959,7 +1039,14 @@ const AddProductModal = ({
 				<ModalHeader
 					sx={{ ...styles.header, justifyContent: isArabic ? 'end' : 'start' }}
 				>
-					<ModalCloseButton sx={styles.modalCloseButton} />
+					<ModalCloseButton
+						sx={{
+							...styles.modalCloseButton,
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<VStack sx={styles.headerTitleStepperContainer}>
 						<Text sx={styles.headerText}>
 							{t(

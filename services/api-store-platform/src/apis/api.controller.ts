@@ -160,9 +160,11 @@ import { SEE, SeeId, stripProductSeeFields } from '../shared/seeCatalog'
 import { COLLECTION_NAMES } from '../shared/general'
 import { searchProducts, type SearchableProduct } from '../shared/productSearch'
 import {
+	allBarcodes,
 	ensurePrintableProductBarcode,
-	persistableProductBarcode,
+	normalizeProductBarcodes,
 } from '../shared/productBarcode'
+import { assertNoTenantBarcodeCollision } from '../shared/productBarcodeCollision'
 import {
 	assertProductDeletable,
 	deleteProductInventory,
@@ -1225,7 +1227,7 @@ export default class ProductController {
 			// note: in-memory scan of search fields for tenant products matching other filters; upgrade to Atlas Search at 100k
 			const searchDocs = await withTenantScope(
 				Product.find(mongoQuery).select(
-					'productId name latinName barcode internalCode productFactoryCode',
+					'productId name latinName barcode additionalBarcodes internalCode productFactoryCode',
 				),
 				tenantId,
 			).lean<SearchableProduct[]>()
@@ -1518,6 +1520,7 @@ export default class ProductController {
 			name: product.name,
 			latinName: product.latinName,
 			barcode: product.barcode,
+			additionalBarcodes: product.additionalBarcodes ?? [],
 			internalCode: product.internalCode,
 			productFactoryCode: product.productFactoryCode,
 			unitId: product.unitId,
@@ -1724,6 +1727,7 @@ export default class ProductController {
 			name,
 			latinName,
 			barcode,
+			additionalBarcodes,
 			internalCode,
 			productFactoryCode,
 			categoryId,
@@ -1767,7 +1771,17 @@ export default class ProductController {
 		}
 
 		const productId = resolveSyncClientId(requestBody.productId)
-		const normalizedBarcode = persistableProductBarcode(productId, barcode)
+		const normalizedBarcodes = normalizeProductBarcodes(
+			productId,
+			barcode,
+			additionalBarcodes,
+		)
+
+		await assertNoTenantBarcodeCollision(
+			tenantContext.tenantId,
+			allBarcodes({ productId, ...normalizedBarcodes }),
+			productId,
+		)
 
 		const existingById = await withTenantScope(
 			Product.findOne({ productId }).lean(),
@@ -1808,7 +1822,8 @@ export default class ProductController {
 			productId,
 			name,
 			latinName,
-			barcode: normalizedBarcode,
+			barcode: normalizedBarcodes.barcode,
+			additionalBarcodes: normalizedBarcodes.additionalBarcodes,
 			internalCode: internalCode?.trim(),
 			productFactoryCode: productFactoryCode?.trim(),
 			categoryId,
@@ -1908,9 +1923,28 @@ export default class ProductController {
 			tenantContext.tenantId,
 		)
 
-		if (allowedUpdates.barcode !== undefined) {
-			allowedUpdates.barcode =
-				persistableProductBarcode(productId, allowedUpdates.barcode) ?? ''
+		if (
+			allowedUpdates.barcode !== undefined ||
+			allowedUpdates.additionalBarcodes !== undefined
+		) {
+			const normalizedBarcodes = normalizeProductBarcodes(
+				productId,
+				allowedUpdates.barcode !== undefined
+					? allowedUpdates.barcode
+					: existingProduct?.barcode,
+				allowedUpdates.additionalBarcodes !== undefined
+					? allowedUpdates.additionalBarcodes
+					: existingProduct?.additionalBarcodes,
+			)
+
+			allowedUpdates.barcode = normalizedBarcodes.barcode ?? ''
+			allowedUpdates.additionalBarcodes = normalizedBarcodes.additionalBarcodes
+
+			await assertNoTenantBarcodeCollision(
+				tenantContext.tenantId,
+				allBarcodes({ productId, ...normalizedBarcodes }),
+				productId,
+			)
 		}
 
 		await ensureProductPatchSee(requestContext, allowedUpdates, existingProduct)
@@ -2039,9 +2073,16 @@ export default class ProductController {
 		productId: string,
 		requestContext: RequestContext,
 	) {
+		const { tenantId } = getTenantContext(requestContext)
+
 		return ensurePrintableProductBarcode(productId, requestContext, {
-			findProduct: (id, tenantId) =>
-				withTenantScope(Product.findOne({ productId: id }).lean(), tenantId),
+			findProduct: (id, scopeTenantId) =>
+				withTenantScope(
+					Product.findOne({ productId: id }).lean(),
+					scopeTenantId,
+				),
+			assertBarcodeAvailable: barcode =>
+				assertNoTenantBarcodeCollision(tenantId, [barcode], productId),
 			persistBarcode: async (id, barcode) => {
 				await this.mongoDbClient.updateDocument(
 					{

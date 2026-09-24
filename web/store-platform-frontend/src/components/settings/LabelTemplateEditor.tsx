@@ -21,6 +21,7 @@ import {
 	VStack,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../../shared/utils'
 import LabelPreview from '../product/LabelPreview'
 import {
 	cloneLabelLayout,
@@ -63,7 +64,8 @@ const LabelTemplateEditor = ({
 	onSave,
 	isSaving,
 }: LabelTemplateEditorProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const [name, setName] = useState('')
 	const [layout, setLayout] = useState<LabelLayout>(
 		cloneLabelLayout(SYSTEM_LABEL_LAYOUT),
@@ -124,7 +126,13 @@ const LabelTemplateEditor = ({
 						? t('components.labelTemplates.editTitle')
 						: t('components.labelTemplates.createTitle')}
 				</ModalHeader>
-				<ModalCloseButton />
+				<ModalCloseButton
+					sx={{
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
+				/>
 				<ModalBody>
 					<Flex gap={6} align="flex-start" wrap="wrap">
 						<VStack align="stretch" spacing={3} minW="220px" flex="1">

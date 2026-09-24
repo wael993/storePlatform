@@ -34,6 +34,7 @@ import {
 } from '@chakra-ui/react'
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import { formatRenewalDate } from '../components/SubscriptionRenewalBanner'
 import { BreadCrumbItem } from '../shared/globalEnums'
@@ -67,6 +68,7 @@ const statusColor = (status: RenewalRequestView['status']) => {
 
 const RenewalRequestsPage = () => {
 	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const breadCrumbItems = generateBreadcrumbs()
 	const { data, isLoading } = useGetRenewalRequestsQuery()
 	const { data: paymentSettings } = useGetSubscriptionPaymentSettingsQuery()
@@ -376,7 +378,13 @@ const RenewalRequestsPage = () => {
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>{t('tenants.renewalRequests')}</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<ModalBody>
 						{selected ? (
 							<Stack gap={3}>

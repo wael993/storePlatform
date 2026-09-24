@@ -1,3 +1,5 @@
+import { allBarcodes } from '../../shared/productBarcode'
+
 export const MIN_NAME_TOKEN_LENGTH = 2
 export const SEARCH_RESULTS_LIMIT = 80
 
@@ -31,11 +33,12 @@ export const buildProductSearchIndexes = (
 			)
 		}
 
-		if (product.barcode) {
-			indexes.barcode.set(
-				normalizeSearchQuery(product.barcode).toLowerCase(),
-				product,
-			)
+		for (const code of allBarcodes({
+			productId: product.productId,
+			barcode: product.barcode,
+			additionalBarcodes: product.additionalBarcodes,
+		})) {
+			indexes.barcode.set(normalizeSearchQuery(code).toLowerCase(), product)
 		}
 
 		if (product.internalCode) {
@@ -71,7 +74,11 @@ const getSearchableNames = (product: Product): string[] =>
 
 const getSearchableCodes = (product: Product): string[] =>
 	[
-		product.barcode,
+		...allBarcodes({
+			productId: product.productId,
+			barcode: product.barcode,
+			additionalBarcodes: product.additionalBarcodes,
+		}),
 		product.internalCode,
 		product.productFactoryCode,
 		product.productId,

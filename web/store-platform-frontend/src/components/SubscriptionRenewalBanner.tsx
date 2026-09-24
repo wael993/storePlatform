@@ -21,6 +21,7 @@ import {
 	useDisclosure,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 import { UserRole } from '../shared/globalEnums'
 import { useUser } from '../shared/hooks/useUser'
 import {
@@ -144,6 +145,7 @@ const PaymentDetails = ({
 
 const SubscriptionRenewalBanner = () => {
 	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const { user } = useUser()
 	const skip = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
 	const { data } = useGetSubscriptionQuery(undefined, { skip })
@@ -339,7 +341,13 @@ const SubscriptionRenewalBanner = () => {
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>{t('subscription.renewalTitle')}</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<ModalBody>
 						<Stack gap={4}>
 							{daysMessage ? <Text>{daysMessage}</Text> : null}

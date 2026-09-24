@@ -189,10 +189,12 @@ const WarehouseTransferDetailModal = ({
 					{t('components.product.warehouseTransfer.detailTitle')}
 				</ModalHeader>
 				<ModalCloseButton
-					sx={styles.modalCloseButton}
-					left={isArabic ? '0.4rem' : 'auto'}
-					right={isArabic ? 'auto' : '0.4rem'}
-					marginRight={0}
+					sx={{
+						...styles.modalCloseButton,
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
 				/>
 				<ModalBody>
 					{isError ? (

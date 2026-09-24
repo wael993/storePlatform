@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react'
 import { DragEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../../../shared/utils'
 import { FiEdit2, FiSave, FiSettings } from 'react-icons/fi'
 import { MdDragIndicator } from 'react-icons/md'
 import { CiViewColumn } from 'react-icons/ci'
@@ -82,7 +83,8 @@ const styles = {
 } satisfies StylesObject
 
 const ColumnPicker = () => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const showToast = useCustomToast()
 	const {
 		pickerColumns,
@@ -219,7 +221,13 @@ const ColumnPicker = () => {
 					<ModalHeader>
 						{t('components.columnConfig.savedConfigurations')}
 					</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<ModalBody paddingBottom="1.5rem">
 						<Flex gap="0.5rem" marginBottom="1rem">
 							<Input

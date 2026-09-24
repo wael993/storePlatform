@@ -13,6 +13,7 @@ import {
 	Spinner,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../../shared/utils'
 import { useSelector } from 'react-redux'
 import LabelPreview from './LabelPreview'
 import {
@@ -45,7 +46,8 @@ const PrintBarcodeModal = ({
 	isOpen,
 	onClose,
 }: PrintBarcodeModalProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const tenantName = useSelector(
 		(state: RootState) => state.user.user?.tenantName ?? '',
 	)
@@ -138,7 +140,13 @@ svg{width:100%;height:100%;display:block}
 			<ModalOverlay />
 			<ModalContent>
 				<ModalHeader>{t('components.product.printBarcode')}</ModalHeader>
-				<ModalCloseButton />
+				<ModalCloseButton
+					sx={{
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
+				/>
 				<ModalBody>
 					<Flex direction="column" align="center" py={4}>
 						{isFetching && !templatesData ? (

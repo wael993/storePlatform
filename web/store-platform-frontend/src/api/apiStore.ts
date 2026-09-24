@@ -286,6 +286,7 @@ export interface ProductCatalogItem {
 	name: string
 	latinName?: string
 	barcode: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	unitId?: string
@@ -2046,6 +2047,7 @@ const getQuery = (
 					fileName: string
 				}>
 				currency: string
+				selectedFields: string[]
 			}
 		>({
 			query: body => ({
@@ -2054,6 +2056,38 @@ const getQuery = (
 				body,
 			}),
 			invalidatesTags: ['product-import'],
+		}),
+
+		prepareProductImportMasterData: builder.mutation<
+			import('../shared/productImport').ProductImportMasterPrepareResponse,
+			{ sessionId: string; mapping: ProductImportMapping }
+		>({
+			query: body => ({
+				url: 'product-import/master-data/prepare',
+				method: 'POST',
+				body,
+			}),
+		}),
+
+		confirmProductImportMasterData: builder.mutation<
+			{
+				sessionId: string
+				createdCounts: {
+					category: number
+					supplier: number
+					unit: number
+				}
+			},
+			{
+				sessionId: string
+				decisions: import('../shared/productImport').MasterDataDecision[]
+			}
+		>({
+			query: body => ({
+				url: 'product-import/master-data/confirm',
+				method: 'POST',
+				body,
+			}),
 		}),
 
 		previewProductImport: builder.mutation<
@@ -2451,6 +2485,8 @@ export const {
 	useGetProductImportStatusQuery,
 	useSkipProductImportMutation,
 	useParseProductImportMutation,
+	usePrepareProductImportMasterDataMutation,
+	useConfirmProductImportMasterDataMutation,
 	usePreviewProductImportMutation,
 	useCommitProductImportMutation,
 	useBulkDeleteProductsMutation,

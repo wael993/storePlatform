@@ -1,3 +1,5 @@
+import { allBarcodes } from './productBarcode'
+
 export const MIN_NAME_TOKEN_LENGTH = 2
 // Keep in sync with web/store-platform-frontend/src/components/SellingInvoice/productSearch.ts
 
@@ -8,6 +10,7 @@ export type SearchableProduct = {
 	name?: string
 	latinName?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	productId?: string
@@ -29,7 +32,11 @@ const getSearchableNames = (product: SearchableProduct): string[] =>
 
 const getSearchableCodes = (product: SearchableProduct): string[] =>
 	[
-		product.barcode,
+		...allBarcodes({
+			productId: product.productId ?? '',
+			barcode: product.barcode,
+			additionalBarcodes: product.additionalBarcodes,
+		}),
 		product.internalCode,
 		product.productFactoryCode,
 		product.productId,

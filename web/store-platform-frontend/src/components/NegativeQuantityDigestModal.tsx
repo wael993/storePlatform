@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 import {
 	MISSING_PURCHASE_PRICE_DIGEST,
 	MISSING_RETAIL_PRICE_DIGEST,
@@ -139,7 +140,8 @@ const NegativeQuantityDigestModal = ({
 	isOpen,
 	onClose,
 }: NegativeQuantityDigestModalProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const { data, isError, isFetching, isUninitialized, refetch } =
 		useGetProductNotificationDigestQuery(
 			digestType ?? NEGATIVE_QUANTITY_DIGEST,
@@ -158,7 +160,13 @@ const NegativeQuantityDigestModal = ({
 			<ModalOverlay />
 			<ModalContent>
 				<ModalHeader>{t(`components.topBar.${copyKey}Title`)}</ModalHeader>
-				<ModalCloseButton />
+				<ModalCloseButton
+					sx={{
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
+				/>
 				<ModalBody pb={6} maxH="70vh" overflowY="auto">
 					{showLoading ? (
 						<Flex justify="center" py={8}>

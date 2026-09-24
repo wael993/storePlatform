@@ -30,6 +30,12 @@ import type {
 } from './types'
 import { generateId, nowIso, withLocalMeta } from './utils'
 import type { CurrencySettings } from '../api/apiStore'
+import {
+	allBarcodes,
+	barcodeCompareKey,
+	normalizeProductBarcodes,
+	resolvedProductBarcode,
+} from '../shared/productBarcode'
 
 export { availableQuantityFromStock }
 
@@ -86,9 +92,30 @@ const canSeeBuyingPrice = async (): Promise<boolean> => {
 export const persistableLocalBarcode = (
 	productId: string,
 	barcode?: string | null,
-): string => {
-	const value = barcode?.trim() ?? ''
-	return !value || value === productId ? '' : value
+): string => resolvedProductBarcode(productId, barcode)
+
+const assertLocalBarcodeCollision = async (
+	codes: string[],
+	excludeProductId?: string,
+) => {
+	if (codes.length === 0) return
+
+	const keys = new Set(codes.map(barcodeCompareKey))
+	const products = await offlineDb.products.toArray()
+
+	for (const product of products) {
+		if (excludeProductId && product.productId === excludeProductId) continue
+
+		for (const code of allBarcodes({
+			productId: product.productId,
+			barcode: product.barcode,
+			additionalBarcodes: product.additionalBarcodes,
+		})) {
+			if (keys.has(barcodeCompareKey(code))) {
+				throw new Error(`Barcode "${code}" is already used by another product.`)
+			}
+		}
+	}
 }
 
 const requireNonEmptyString = (value: unknown, fieldName: string): string => {
@@ -278,9 +305,16 @@ const applyLocalProductCreate = async (
 
 	const productId = String(payload.productId ?? generateId())
 	payload.productId = productId
-	const barcode = persistableLocalBarcode(
+	const additionalBarcodes = Array.isArray(payload.additionalBarcodes)
+		? (payload.additionalBarcodes as string[])
+		: undefined
+	const normalizedBarcodes = normalizeProductBarcodes(
 		productId,
 		typeof payload.barcode === 'string' ? payload.barcode : undefined,
+		additionalBarcodes,
+	)
+	await assertLocalBarcodeCollision(
+		allBarcodes({ productId, ...normalizedBarcodes }),
 	)
 	const pricePatch = payload.price as Partial<Product['price']> | undefined
 	if (pricePatch) applyPriceFieldRules(pricePatch)
@@ -289,7 +323,8 @@ const applyLocalProductCreate = async (
 			...payload,
 			productId,
 			name,
-			barcode,
+			barcode: normalizedBarcodes.barcode,
+			additionalBarcodes: normalizedBarcodes.additionalBarcodes,
 			price: payload.price ?? { retailPrice: 0, currency: 'USD' },
 			status: (payload.status as Product['status']) ?? 'active',
 		} as Product,
@@ -371,11 +406,37 @@ const applyLocalProductPatch = async (
 		)
 	}
 
-	if (payload.barcode !== undefined) {
-		if (typeof payload.barcode !== 'string') {
+	if (
+		payload.barcode !== undefined ||
+		payload.additionalBarcodes !== undefined
+	) {
+		if (payload.barcode !== undefined && typeof payload.barcode !== 'string') {
 			throw new Error('Invalid value for barcode.')
 		}
-		payload.barcode = persistableLocalBarcode(productId, payload.barcode)
+		if (
+			payload.additionalBarcodes !== undefined &&
+			!Array.isArray(payload.additionalBarcodes)
+		) {
+			throw new Error('Invalid value for additionalBarcodes.')
+		}
+
+		const normalizedBarcodes = normalizeProductBarcodes(
+			productId,
+			payload.barcode !== undefined
+				? (payload.barcode as string)
+				: existing.barcode,
+			payload.additionalBarcodes !== undefined
+				? (payload.additionalBarcodes as string[])
+				: existing.additionalBarcodes,
+		)
+
+		await assertLocalBarcodeCollision(
+			allBarcodes({ productId, ...normalizedBarcodes }),
+			productId,
+		)
+
+		payload.barcode = normalizedBarcodes.barcode ?? ''
+		payload.additionalBarcodes = normalizedBarcodes.additionalBarcodes
 	}
 
 	const pricePatch = payload.price as Partial<Product['price']> | undefined

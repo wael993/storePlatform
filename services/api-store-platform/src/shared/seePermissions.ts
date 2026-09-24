@@ -22,6 +22,7 @@ import {
 } from './tenant'
 import { COLLECTION_NAMES } from './general'
 import { RequestContext } from './types'
+import { barcodeSetsEqual } from './productBarcode'
 
 const CACHE_TTL_MS = 60_000
 
@@ -190,6 +191,7 @@ export const ensureProductPatchSee = async (
 		name?: string
 		latinName?: string
 		barcode?: string
+		additionalBarcodes?: string[]
 		price?: {
 			purchasePrice?: number
 			retailPrice?: number
@@ -197,9 +199,11 @@ export const ensureProductPatchSee = async (
 		}
 	},
 	existing: {
+		productId?: string
 		name?: string
 		latinName?: string
 		barcode?: string
+		additionalBarcodes?: string[]
 		price?: {
 			purchasePrice?: number
 			retailPrice?: number
@@ -208,6 +212,26 @@ export const ensureProductPatchSee = async (
 	} | null,
 ): Promise<void> => {
 	await ensureSeeIds(requestContext, [SEE.productsEdit])
+	const productId = existing?.productId ?? ''
+	const barcodeTouched =
+		patch.barcode !== undefined || patch.additionalBarcodes !== undefined
+			? !barcodeSetsEqual(
+					productId,
+					{
+						barcode:
+							patch.barcode !== undefined ? patch.barcode : existing?.barcode,
+						additionalBarcodes:
+							patch.additionalBarcodes !== undefined
+								? patch.additionalBarcodes
+								: existing?.additionalBarcodes,
+					},
+					{
+						barcode: existing?.barcode,
+						additionalBarcodes: existing?.additionalBarcodes,
+					},
+				)
+			: false
+
 	await ensurePatchedSeeFields(requestContext, [
 		{
 			id: SEE.productsEditName,
@@ -215,7 +239,7 @@ export const ensureProductPatchSee = async (
 		},
 		{
 			id: SEE.productsEditBarcode,
-			touched: stringsDiffer(patch.barcode, existing?.barcode),
+			touched: barcodeTouched,
 		},
 		{
 			id: SEE.productsEditBuyingPrice,

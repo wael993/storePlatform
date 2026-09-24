@@ -20,6 +20,7 @@ import {
 import React, { useMemo, useState } from 'react'
 import { AddSquareIcon } from '../icons/AddSquare'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../../shared/utils'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { generateBreadcrumbs } from '../../shared/routes'
 import { BreadCrumbItem, TargetType } from '../../shared/globalEnums'
@@ -31,7 +32,6 @@ import {
 } from '../../api/apiStore'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
-import { compareLanguage } from '../../shared/utils'
 
 const fullWidth = '100%'
 

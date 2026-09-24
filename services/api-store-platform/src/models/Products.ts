@@ -7,6 +7,7 @@ export interface IProduct extends Document {
 	name: string
 	latinName?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	categoryId?: string
@@ -84,6 +85,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 		barcode: {
 			type: String,
 		},
+		additionalBarcodes: [{ type: String, trim: true }],
 		unitId: {
 			type: String,
 		},

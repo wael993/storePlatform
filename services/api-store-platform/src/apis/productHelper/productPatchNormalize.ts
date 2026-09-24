@@ -30,6 +30,7 @@ export type ProductPatchBody = {
 	name?: string
 	latinName?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	categoryId?: string
@@ -57,6 +58,7 @@ const PRODUCT_PATCH_KEYS = [
 	'name',
 	'latinName',
 	'barcode',
+	'additionalBarcodes',
 	'internalCode',
 	'productFactoryCode',
 	'categoryId',
@@ -254,6 +256,26 @@ export const normalizeProductPatchRequest = (
 		}
 
 		normalized.barcode = picked.barcode.trim()
+	}
+
+	if (picked.additionalBarcodes !== undefined) {
+		if (!Array.isArray(picked.additionalBarcodes)) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Invalid value for additionalBarcodes.',
+			)
+		}
+
+		normalized.additionalBarcodes = picked.additionalBarcodes.map(item => {
+			if (typeof item !== 'string') {
+				throw new BusinessLogicError(
+					ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+					'Invalid value for additionalBarcodes.',
+				)
+			}
+
+			return item.trim()
+		})
 	}
 
 	if (picked.internalCode !== undefined) {

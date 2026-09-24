@@ -1,8 +1,10 @@
 import ProductController from '../api.controller'
 import {
 	commitProductImport,
+	confirmProductImportMasterData,
 	getProductImportStatus,
 	parseProductImportFiles,
+	prepareProductImportMasterData,
 	previewProductImport,
 	skipProductImport,
 } from '../../shared/productImport/service'
@@ -27,8 +29,30 @@ export default class ProductImportController {
 			fileName?: unknown
 		}>,
 		currency: unknown,
+		selectedFields?: unknown,
 	) {
-		return parseProductImportFiles(requestContext, files, currency)
+		return parseProductImportFiles(
+			requestContext,
+			files,
+			currency,
+			selectedFields,
+		)
+	}
+
+	public prepareMasterData(
+		requestContext: RequestContext,
+		sessionId: unknown,
+		mapping: unknown,
+	) {
+		return prepareProductImportMasterData(requestContext, sessionId, mapping)
+	}
+
+	public confirmMasterData(
+		requestContext: RequestContext,
+		sessionId: unknown,
+		decisions: unknown,
+	) {
+		return confirmProductImportMasterData(requestContext, sessionId, decisions)
 	}
 
 	public preview(

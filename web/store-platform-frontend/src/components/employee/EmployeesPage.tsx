@@ -43,7 +43,7 @@ import {
 	todayCalendarDate,
 } from '../../shared/employee'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
-import { formatNumber } from '../../shared/utils'
+import { compareLanguage, formatNumber } from '../../shared/utils'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 
@@ -65,7 +65,8 @@ const styles = {
 } satisfies StylesObject
 
 const EmployeesPage = () => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const navigate = useNavigate()
 	const breadCrumbItems = generateBreadcrumbs()
 	const { canSee } = useSee()
@@ -231,7 +232,13 @@ const EmployeesPage = () => {
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>{t('employees.add')}</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<ModalBody>
 						<FormControl mb={3} isRequired>
 							<FormLabel>{t('employees.name')}</FormLabel>

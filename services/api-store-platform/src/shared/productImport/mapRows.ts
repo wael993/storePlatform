@@ -3,6 +3,12 @@ import {
 	REQUIRED_PRODUCT_IMPORT_FIELDS,
 	type ProductImportField,
 } from '../constants/productImport'
+import {
+	allBarcodes,
+	barcodeCompareKey,
+	parseImportBarcodeCell,
+} from '../productBarcode'
+import { normalizeMasterName, type MasterResolutions } from './masterData'
 
 export type HeaderMapping = Partial<Record<ProductImportField, string | null>>
 
@@ -28,28 +34,23 @@ export const toPlainSourceRow = (
 	...(fileIndex !== undefined ? { fileIndex } : {}),
 })
 
-export type CatalogMatch = {
-	categoryId?: string
-	supplierId?: string
-	warning?: string
-}
-
 export type MappedImportRow = {
 	fileName: string
 	rowNumber: number
 	fileIndex?: number
 	name: string
-	latinName?: string
-	internalCode?: string
-	productFactoryCode?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	retailPrice: number
 	purchasePrice?: number
 	wholesalePrice?: number
 	quantity: number
-	description?: string
 	categoryId?: string
 	supplierId?: string
+	unitId?: string
+	categoryName?: string
+	supplierName?: string
+	unitName?: string
 	errors: string[]
 	warnings: string[]
 	duplicate: boolean
@@ -62,71 +63,16 @@ const HEADER_HINTS: Record<ProductImportField, string[]> = {
 		'item',
 		'artikel',
 		'produkt',
-		'description',
 		'اسم',
 		'اسم المنتج',
 		'اسم المادة',
 		'اسم الصنف',
 		'اسم السلعة',
 		'المنتج',
-		'المنتجات',
 		'المادة',
-		'المواد',
 		'الصنف',
-		'الأصناف',
 		'السلعة',
-		'السلع',
 		'البيان',
-		'بيان',
-		'وصف المنتج',
-		'وصف الصنف',
-		'الوصف',
-	],
-	latinName: [
-		'latin',
-		'الاسم اللاتيني',
-		'الاسم باللاتينية',
-		'الاسم الانكليزي',
-		'الاسم الإنجليزي',
-		'الاسم الاجنبي',
-		'الاسم الأجنبي',
-	],
-	internalCode: [
-		'internal',
-		'sku',
-		'article number',
-		'artikelnummer',
-		'الكود',
-		'كود',
-		'كود داخلي',
-		'الكود الداخلي',
-		'رمز',
-		'رمز المنتج',
-		'رمز الصنف',
-		'رمز المادة',
-		'رقم المادة',
-		'رقم الصنف',
-		'رقم المنتج',
-		'رقم السلعة',
-		'كود الصنف',
-		'كود المادة',
-		'كود المنتج',
-		'الرقم الداخلي',
-		'الرمز الداخلي',
-	],
-	productFactoryCode: [
-		'factory',
-		'manufacturer',
-		'كود المصنع',
-		'رمز المصنع',
-		'رقم المصنع',
-		'كود الشركة المصنعة',
-		'رمز الشركة المصنعة',
-		'رقم الشركة المصنعة',
-		'كود المنتج من المصنع',
-		'رقم المنتج من المصنع',
-		'رقم الموديل',
-		'رمز الموديل',
 	],
 	barcode: [
 		'barcode',
@@ -134,14 +80,44 @@ const HEADER_HINTS: Record<ProductImportField, string[]> = {
 		'gtin',
 		'upc',
 		'باركود',
-		'باركود',
 		'بار كود',
 		'الباركود',
 		'رمز شريطي',
-		'الرمز الشريطي',
-		'الرمز الشريطي للمنتج',
-		'رقم الباركود',
-		'كود الباركود',
+	],
+	category: [
+		'category',
+		'kategorie',
+		'group',
+		'الفئة',
+		'فئة',
+		'تصنيف',
+		'مجموعة',
+		'القسم',
+	],
+	supplier: ['supplier', 'vendor', 'lieferant', 'المورد', 'مورد', 'المزود'],
+	quantity: [
+		'qty',
+		'quantity',
+		'stock',
+		'menge',
+		'bestand',
+		'الكمية',
+		'كمية',
+		'العدد',
+		'الرصيد',
+		'المخزون',
+	],
+	unit: ['unit', 'uom', 'einheit', 'وحدة', 'الوحدة', 'واحده'],
+	purchasePrice: [
+		'purchase',
+		'buy',
+		'cost',
+		'einkauf',
+		'ek',
+		'سعر الشراء',
+		'سعر التكلفة',
+		'تكلفة',
+		'شراء',
 	],
 	retailPrice: [
 		'retail',
@@ -152,149 +128,18 @@ const HEADER_HINTS: Record<ProductImportField, string[]> = {
 		'selling',
 		'سعر البيع',
 		'سعر المبيع',
-		'سعر المبيع للمستهلك',
-		'سعر المستهلك',
 		'سعر التجزئة',
-		'سعر البيع بالتجزئة',
-		'سعر التجزئة للمستهلك',
-		'سعر السوق',
-		'سعر البيع النهائي',
 		'السعر',
-		'سعر الوحدة',
-		'سعر بيع الوحدة',
-		'ثمن البيع',
-		'قيمة البيع',
 		'مبيع',
 		'بيع',
-	],
-	purchasePrice: [
-		'purchase',
-		'buy',
-		'cost',
-		'einkauf',
-		'ek',
-		'سعر الشراء',
-		'سعر شراء',
-		'سعر التكلفة',
-		'سعر التكلفه',
-		'تكلفة الشراء',
-		'تكلفة المنتج',
-		'تكلفة الصنف',
-		'تكلفة المادة',
-		'تكلفة الوحدة',
-		'سعر التكلفة للوحدة',
-		'سعر التوريد',
-		'سعر التوريد للوحدة',
-		'سعر المورد',
-		'سعر الشراء من المورد',
-		'ثمن الشراء',
-		'قيمة الشراء',
-		'شراء',
-		'تكلفة',
 	],
 	wholesalePrice: [
 		'wholesale',
 		'großhandel',
 		'سعر الجملة',
 		'سعر جملة',
-		'سعر البيع بالجملة',
-		'سعر الجملة للموزع',
-		'سعر الموزع',
-		'سعر التوزيع',
 		'الجملة',
 		'جملة',
-	],
-	quantity: [
-		'qty',
-		'quantity',
-		'stock',
-		'menge',
-		'bestand',
-		'الكمية',
-		'كمية',
-		'كمية المنتج',
-		'كمية الصنف',
-		'كمية المادة',
-		'العدد',
-		'عدد',
-		'عدد القطع',
-		'عدد الوحدات',
-		'الوحدات',
-		'الرصيد',
-		'رصيد',
-		'رصيد المخزون',
-		'المخزون',
-		'كمية المخزون',
-		'مخزون',
-		'رصيد المستودع',
-		'رصيد المخزن',
-		'المتاح',
-		'الكمية المتاحة',
-	],
-	description: [
-		'note',
-		'notes',
-		'desc',
-		'الوصف',
-		'وصف',
-		'وصف المنتج',
-		'وصف الصنف',
-		'وصف المادة',
-		'الملاحظات',
-		'ملاحظات',
-		'ملاحظة',
-		'ملاحظه',
-		'التفاصيل',
-		'تفاصيل',
-		'بيان',
-		'بيانات',
-		'تعليق',
-		'تعليقات',
-		'ملاحظات إضافية',
-		'ملاحظات اضافية',
-	],
-	category: [
-		'category',
-		'kategorie',
-		'group',
-		'الفئة',
-		'فئة',
-		'الفئات',
-		'تصنيف',
-		'التصنيف',
-		'التصنيفات',
-		'مجموعة',
-		'المجموعة',
-		'مجموعات',
-		'مجموعة المنتجات',
-		'مجموعة الأصناف',
-		'مجموعة الاصناف',
-		'مجموعة المواد',
-		'فئة المنتج',
-		'تصنيف المنتج',
-		'نوع المنتج',
-		'نوع الصنف',
-		'نوع المادة',
-		'القسم',
-		'قسم',
-	],
-	supplier: [
-		'supplier',
-		'vendor',
-		'lieferant',
-		'المورد',
-		'مورد',
-		'الموردين',
-		'الموردون',
-		'اسم المورد',
-		'شركة المورد',
-		'الشركة الموردة',
-		'الجهة الموردة',
-		'المزود',
-		'مزود',
-		'اسم المزود',
-		'البائع',
-		'البائع الرئيسي',
 	],
 }
 
@@ -319,17 +164,89 @@ export const suggestHeaderMapping = (headers: string[]): HeaderMapping => {
 	return mapping
 }
 
-export const parseImportNumber = (value: string): number | null => {
-	const trimmed = value.trim().replace(/\s/g, '')
+/** note: fixed symbol/token list; upgrade: tenant currency-settings labels. */
+const IMPORT_CURRENCY_SYMBOLS = ['$', '€', '£', '¥', '₺'] as const
+const IMPORT_CURRENCY_TOKENS = [
+	'dollars',
+	'dollar',
+	'euros',
+	'euro',
+	'pounds',
+	'pound',
+	'usd',
+	'eur',
+	'gbp',
+	'syp',
+	'try',
+	'aed',
+	'sar',
+	'egp',
+	'jod',
+	'iqd',
+	'ل.س',
+	'د.إ',
+] as const
 
-	if (!trimmed) return null
+const stripImportCurrencyDecorators = (value: string): string => {
+	let next = value.trim().replace(/\s+/g, ' ')
+
+	for (const symbol of IMPORT_CURRENCY_SYMBOLS) {
+		next = next.split(symbol).join('')
+	}
+
+	next = next.trim()
+
+	for (const token of IMPORT_CURRENCY_TOKENS) {
+		next = next
+			.replace(new RegExp(`^${token}\\s*`, 'i'), '')
+			.replace(new RegExp(`\\s*${token}$`, 'i'), '')
+			.trim()
+	}
+
+	return next.replace(/\s/g, '')
+}
+
+/** Locale separators only — no currency junk left in `trimmed`. */
+const normalizeImportNumberString = (trimmed: string): string | null => {
+	if (!/^-?\d{1,3}([.,]\d{3})*([.,]\d+)?$|^-?\d+([.,]\d+)?$/.test(trimmed)) {
+		return null
+	}
 
 	const lastComma = trimmed.lastIndexOf(',')
 	const lastDot = trimmed.lastIndexOf('.')
-	const normalized =
-		lastComma > lastDot
+
+	if (lastComma >= 0 && lastDot >= 0) {
+		return lastComma > lastDot
 			? trimmed.replace(/\./g, '').replace(',', '.')
 			: trimmed.replace(/,/g, '')
+	}
+
+	if (lastComma >= 0) {
+		// note: `1,500` → thousands (US/$ sheets). European `1,500` as 1.5 loses;
+		// use `1,50` or `1.500,00`. Upgrade: per-file locale hint.
+		if (/^-?\d{1,3}(,\d{3})+$/.test(trimmed)) {
+			return trimmed.replace(/,/g, '')
+		}
+
+		return trimmed.replace(',', '.')
+	}
+
+	if (lastDot >= 0 && /^-?\d{1,3}(\.\d{3})+$/.test(trimmed)) {
+		return trimmed.replace(/\./g, '')
+	}
+
+	return trimmed
+}
+
+export const parseImportNumber = (value: string): number | null => {
+	const trimmed = stripImportCurrencyDecorators(value)
+
+	if (!trimmed) return null
+
+	const normalized = normalizeImportNumberString(trimmed)
+
+	if (normalized == null) return null
+
 	const parsed = Number(normalized)
 
 	return Number.isFinite(parsed) ? parsed : null
@@ -341,12 +258,32 @@ const nonNegativeOrZero = (value: string): number => {
 	return parsed === null || parsed < 0 ? 0 : parsed
 }
 
-const optionalNonNegative = (value: string): number | undefined => {
-	if (!value.trim()) return undefined
+type ParsedImportPrice =
+	| { ok: true; value: number | undefined }
+	| { ok: false; error: string }
 
-	const parsed = parseImportNumber(value)
+const parseRetailPrice = (raw: string): ParsedImportPrice => {
+	if (!raw.trim()) return { ok: true, value: 0 }
 
-	return parsed === null || parsed < 0 ? 0 : parsed
+	const parsed = parseImportNumber(raw)
+
+	if (parsed === null || parsed < 0) {
+		return { ok: false, error: `Invalid retail price: "${raw}".` }
+	}
+
+	return { ok: true, value: parsed }
+}
+
+const parseOptionalPrice = (raw: string, label: string): ParsedImportPrice => {
+	if (!raw.trim()) return { ok: true, value: undefined }
+
+	const parsed = parseImportNumber(raw)
+
+	if (parsed === null || parsed < 0) {
+		return { ok: false, error: `Invalid ${label}: "${raw}".` }
+	}
+
+	return { ok: true, value: parsed }
 }
 
 const cell = (
@@ -361,86 +298,153 @@ const cell = (
 	return row.values?.[header]?.trim() ?? ''
 }
 
-export const mappingIsComplete = (mapping: HeaderMapping): boolean =>
-	REQUIRED_PRODUCT_IMPORT_FIELDS.every(field => Boolean(mapping[field]?.trim()))
+export const mappingIsComplete = (
+	mapping: HeaderMapping,
+	selectedFields?: ProductImportField[],
+): boolean => {
+	const required = selectedFields?.length
+		? REQUIRED_PRODUCT_IMPORT_FIELDS.filter(field =>
+				selectedFields.includes(field),
+			)
+		: REQUIRED_PRODUCT_IMPORT_FIELDS
+
+	return required.every(field => Boolean(mapping[field]?.trim()))
+}
+
+const resolveMasterId = (
+	resolutions: MasterResolutions | undefined,
+	kind: 'category' | 'supplier' | 'unit',
+	excelValue: string,
+): string | undefined => {
+	if (!excelValue.trim() || !resolutions?.[kind]) return undefined
+
+	return resolutions[kind]?.[normalizeMasterName(excelValue)]
+}
 
 export const mapSourceRows = (
 	rows: SourceRow[],
 	mapping: HeaderMapping,
-	matchCatalog: (kind: 'category' | 'supplier', name: string) => CatalogMatch,
+	resolutions?: MasterResolutions,
 ): MappedImportRow[] => {
 	return rows.map(row => {
 		const name = cell(row, mapping, 'name')
-		const latinName = cell(row, mapping, 'latinName') || undefined
-		const barcode = cell(row, mapping, 'barcode') || undefined
+		const parsedBarcodes = parseImportBarcodeCell(
+			'',
+			cell(row, mapping, 'barcode') || undefined,
+		)
+		const barcode = parsedBarcodes.barcode
+		const additionalBarcodes = parsedBarcodes.additionalBarcodes
 		const retailRaw = cell(row, mapping, 'retailPrice')
 		const purchaseRaw = cell(row, mapping, 'purchasePrice')
 		const wholesaleRaw = cell(row, mapping, 'wholesalePrice')
 		const quantityRaw = cell(row, mapping, 'quantity')
-		const categoryName = cell(row, mapping, 'category')
-		const supplierName = cell(row, mapping, 'supplier')
-		const description = cell(row, mapping, 'description') || undefined
+		const categoryName = cell(row, mapping, 'category') || undefined
+		const supplierName = cell(row, mapping, 'supplier') || undefined
+		const unitName = cell(row, mapping, 'unit') || undefined
 		const errors: string[] = []
 		const warnings: string[] = []
-		const resolvedName = name || latinName || ''
 
-		if (!resolvedName) {
+		if (!name) {
 			errors.push('Product name is required.')
-		} else if (resolvedName.length > 100) {
+		} else if (name.length > 100) {
 			errors.push('Product name cannot exceed 100 characters.')
 		}
 
-		if (latinName && latinName.length > 100) {
-			errors.push('Latin name cannot exceed 100 characters.')
+		if (parsedBarcodes.error) {
+			errors.push(parsedBarcodes.error)
 		}
 
-		if (description && description.length > 500) {
-			errors.push('Description cannot exceed 500 characters.')
-		}
-
-		const retailPrice = nonNegativeOrZero(retailRaw)
+		const retail = parseRetailPrice(retailRaw)
+		const purchase = parseOptionalPrice(purchaseRaw, 'purchase price')
+		const wholesale = parseOptionalPrice(wholesaleRaw, 'wholesale price')
 		const quantity = nonNegativeOrZero(quantityRaw)
-		const purchasePrice = optionalNonNegative(purchaseRaw)
-		const wholesalePrice = optionalNonNegative(wholesaleRaw)
 
-		let categoryId: string | undefined
-		let supplierId: string | undefined
+		if (!retail.ok) errors.push(retail.error)
 
-		if (categoryName) {
-			const match = matchCatalog('category', categoryName)
+		if (!purchase.ok) errors.push(purchase.error)
 
-			categoryId = match.categoryId
+		if (!wholesale.ok) errors.push(wholesale.error)
 
-			if (match.warning) warnings.push(match.warning)
-		}
+		const categoryId = categoryName
+			? resolveMasterId(resolutions, 'category', categoryName)
+			: undefined
+		const supplierId = supplierName
+			? resolveMasterId(resolutions, 'supplier', supplierName)
+			: undefined
+		const unitId = unitName
+			? resolveMasterId(resolutions, 'unit', unitName)
+			: undefined
 
-		if (supplierName) {
-			const match = matchCatalog('supplier', supplierName)
+		// After confirm, missing resolution = user skipped → leave ID unset.
+		// Before confirm (no resolutions object), unresolved mapped values error.
+		if (resolutions === undefined) {
+			if (categoryName && !categoryId) {
+				errors.push(`Category "${categoryName}" is not resolved.`)
+			}
 
-			supplierId = match.supplierId
+			if (supplierName && !supplierId) {
+				errors.push(`Supplier "${supplierName}" is not resolved.`)
+			}
 
-			if (match.warning) warnings.push(match.warning)
+			if (unitName && !unitId) {
+				errors.push(`Unit "${unitName}" is not resolved.`)
+			}
 		}
 
 		return {
 			fileName: row.fileName,
 			rowNumber: row.rowNumber,
 			fileIndex: row.fileIndex,
-			name: resolvedName,
-			latinName,
-			internalCode: cell(row, mapping, 'internalCode') || undefined,
-			productFactoryCode: cell(row, mapping, 'productFactoryCode') || undefined,
+			name,
 			barcode,
-			retailPrice,
-			purchasePrice,
-			wholesalePrice,
+			additionalBarcodes,
+			retailPrice: retail.ok ? (retail.value ?? 0) : 0,
+			purchasePrice: purchase.ok ? purchase.value : undefined,
+			wholesalePrice: wholesale.ok ? wholesale.value : undefined,
 			quantity,
-			description,
 			categoryId,
 			supplierId,
+			unitId,
+			categoryName,
+			supplierName,
+			unitName,
 			errors,
 			warnings,
 			duplicate: false,
 		}
+	})
+}
+
+/** Mark row-vs-row and optional existing-tenant barcode collisions. */
+export const applyImportBarcodeCollisions = (
+	rows: MappedImportRow[],
+	existingBarcodeKeys?: Set<string>,
+): MappedImportRow[] => {
+	const firstOwner = new Map<string, number>()
+
+	return rows.map((row, index) => {
+		const codes = allBarcodes({
+			productId: '',
+			barcode: row.barcode,
+			additionalBarcodes: row.additionalBarcodes,
+		})
+		const errors = [...row.errors]
+
+		for (const code of codes) {
+			const key = barcodeCompareKey(code)
+			const owner = firstOwner.get(key)
+
+			if (owner !== undefined && owner !== index) {
+				errors.push(`Barcode "${code}" is used by another row in this import.`)
+			} else if (owner === undefined) {
+				firstOwner.set(key, index)
+			}
+
+			if (existingBarcodeKeys?.has(key)) {
+				errors.push(`Barcode "${code}" is already used by another product.`)
+			}
+		}
+
+		return errors.length === row.errors.length ? row : { ...row, errors }
 	})
 }

@@ -16,6 +16,7 @@ import {
 import { format } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../../shared/utils'
 import InputLabel from './InputLabel'
 import { AsAddSquareIcon } from '../icons/AddSquare'
 import {
@@ -78,7 +79,8 @@ const AddRequiredDocumentButton = ({
 	requiredDocumentButtonStyles = {},
 	requiredDocumentIconStyles = {},
 }: AddRequiredDocumentButtonProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
 	const [documentName, setDocumentName] = useState<string>('')
 	const [deadline, setDeadline] = useState<string>('')
 	const { isOpen, onOpen, onClose } = useDisclosure()
@@ -125,7 +127,14 @@ const AddRequiredDocumentButton = ({
 			>
 				<ModalOverlay />
 				<ModalContent>
-					<ModalCloseButton size={'lg'} />
+					<ModalCloseButton
+						size={'lg'}
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<ModalHeader sx={{ paddingX: '1.25rem' }}>
 						{t('common.buttonText')}
 					</ModalHeader>

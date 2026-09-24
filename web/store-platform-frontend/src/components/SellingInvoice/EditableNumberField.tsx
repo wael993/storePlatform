@@ -13,6 +13,8 @@ interface EditableNumberFieldProps {
 	fieldId?: string
 	registerEditStart?: (fieldId: string, start: (() => void) | null) => void
 	onEnterCommit?: () => void
+	/** Escape, invalid input, or blur with no value change — no onSave. */
+	onCancel?: () => void
 	onSave: (value: number) => void | Promise<void>
 }
 
@@ -30,6 +32,7 @@ const EditableNumberField = ({
 	fieldId,
 	registerEditStart,
 	onEnterCommit,
+	onCancel,
 	onSave,
 }: EditableNumberFieldProps) => {
 	const inputRef = useRef<HTMLInputElement | null>(null)
@@ -55,8 +58,8 @@ const EditableNumberField = ({
 		}
 	}, [isEditing])
 
-	const startEditing = () => {
-		if (!isEditable) return
+	const startEditing = (opts?: { force?: boolean }) => {
+		if (!isEditable && !opts?.force) return
 		skipBlurCommitRef.current = false
 		setDraft(toEditValue(value))
 		setIsEditing(true)
@@ -68,7 +71,8 @@ const EditableNumberField = ({
 	useEffect(() => {
 		if (!fieldId || !registerEditStart) return
 
-		registerEditStart(fieldId, () => startEditingRef.current())
+		// force: edit-icon / focus-next can open even when click-to-edit is off
+		registerEditStart(fieldId, () => startEditingRef.current({ force: true }))
 		return () => registerEditStart(fieldId, null)
 	}, [fieldId, registerEditStart])
 
@@ -76,6 +80,7 @@ const EditableNumberField = ({
 		skipBlurCommitRef.current = true
 		setDraft(toEditValue(value))
 		setIsEditing(false)
+		onCancel?.()
 	}
 
 	const commitEditing = async (): Promise<boolean> => {
@@ -94,6 +99,8 @@ const EditableNumberField = ({
 		setIsEditing(false)
 		if (parsed !== value) {
 			await onSave(parsed)
+		} else {
+			onCancel?.()
 		}
 
 		return true

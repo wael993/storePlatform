@@ -59,6 +59,7 @@ import {
 	MAX_INVOICE_AI_MONTHLY_LIMIT,
 } from '../shared/invoiceAi'
 import {
+	compareLanguage,
 	getEnabledActions,
 	getGloballyEnabledTenantPages,
 } from '../shared/utils'
@@ -68,12 +69,11 @@ import {
 	formatRenewalDate,
 	subscriptionRemainingMessage,
 } from '../components/SubscriptionRenewalBanner'
-import { compareLanguage } from '../shared/utils'
 
 const TenantsList = () => {
 	const { t, i18n } = useTranslation()
-	const breadCrumbItems = generateBreadcrumbs()
 	const { isArabic } = compareLanguage(i18n.language)
+	const breadCrumbItems = generateBreadcrumbs()
 	const { data: tenants = [], isLoading, isFetching } = useGetTenantsQuery()
 	const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation()
 	const [deleteTenant, { isLoading: isDeleting }] = useDeleteTenantMutation()
@@ -486,7 +486,13 @@ const TenantsList = () => {
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>{t('tenants.updateTenant')}</ModalHeader>
-					<ModalCloseButton />
+					<ModalCloseButton
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<form onSubmit={saveTenant}>
 						<ModalBody>
 							<Stack gap={4}>

@@ -234,6 +234,17 @@ const InvoiceProductSearch = ({
 		inputRef.current?.focus()
 	}, [focusNonce])
 
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== 'F9') return
+			event.preventDefault()
+			inputRef.current?.focus()
+		}
+
+		window.addEventListener('keydown', onKeyDown)
+		return () => window.removeEventListener('keydown', onKeyDown)
+	}, [])
+
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
 		if (showSuggestions && suggestions.length > 0) {
 			if (event.key === 'ArrowDown') {

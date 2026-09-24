@@ -1,5 +1,6 @@
 import { config } from '../../config/config'
 import logger, { EntityType } from '../logger/logger'
+import { allBarcodes } from '../productBarcode'
 import {
 	ConfidenceBand,
 	EntityMatch,
@@ -25,6 +26,7 @@ interface CatalogProduct {
 	name: string
 	latinName?: string
 	barcode?: string
+	additionalBarcodes?: string[]
 	internalCode?: string
 	productFactoryCode?: string
 	aliases?: string[]
@@ -215,9 +217,8 @@ const matchProductDeterministic = (
 
 	if (barcode) {
 		const rows = catalog
-			.filter(
-				product =>
-					product.barcode && normalizeCode(product.barcode) === barcode,
+			.filter(product =>
+				allBarcodes(product).some(code => normalizeCode(code) === barcode),
 			)
 			.map(product => ({
 				id: product.productId,
@@ -457,8 +458,9 @@ const blockProductCandidates = (
 					jaccard(queryTokens, tokens(name)),
 				),
 				query.barcode &&
-					product.barcode &&
-					normalizeCode(product.barcode) === normalizeCode(query.barcode)
+					allBarcodes(product).some(
+						code => normalizeCode(code) === normalizeCode(query.barcode!),
+					)
 					? 1
 					: 0,
 			),

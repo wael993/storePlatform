@@ -31,7 +31,10 @@ interface CurrencyAmountTooltipProps {
 	fieldId?: string
 	registerEditStart?: (fieldId: string, start: (() => void) | null) => void
 	onEnterCommit?: () => void
+	onCancel?: () => void
 	onEdit?: (amount: number) => void | Promise<void>
+	/** When false, amount is not click-editable; registerEditStart can still force-open. */
+	clickToEdit?: boolean
 	costReference?: CostReferenceLines
 }
 
@@ -48,7 +51,9 @@ const CurrencyAmountTooltip = ({
 	fieldId,
 	registerEditStart,
 	onEnterCommit,
+	onCancel,
 	onEdit,
+	clickToEdit = true,
 	costReference,
 }: CurrencyAmountTooltipProps) => {
 	const { t } = useTranslation()
@@ -69,13 +74,14 @@ const CurrencyAmountTooltip = ({
 		<EditableNumberField
 			value={displayAmount}
 			currency={getCurrencyLabel(displayCurrencyId, options)}
-			isEditable
+			isEditable={clickToEdit}
 			fontSize={fontSize}
 			fontWeight={fontWeight}
 			color={color}
 			fieldId={fieldId}
 			registerEditStart={registerEditStart}
 			onEnterCommit={onEnterCommit}
+			onCancel={onCancel}
 			onSave={async editedAmount => {
 				await onEdit(
 					convertToPrimaryAmount(editedAmount, displayCurrencyId, options),

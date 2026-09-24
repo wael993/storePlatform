@@ -2,8 +2,13 @@ import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
 import {
 	PRODUCT_IMPORT_STATUS,
 	ProductImportStatus,
+	type ProductImportField,
 } from '../shared/constants/productImport'
 import { HeaderMapping, SourceRow } from '../shared/productImport/mapRows'
+import type {
+	CreatedMasterData,
+	MasterResolutions,
+} from '../shared/productImport/masterData'
 
 export type ProductImportSessionFile = {
 	fileName: string
@@ -17,6 +22,9 @@ export interface IProductImportSession {
 	status: ProductImportStatus
 	files: ProductImportSessionFile[]
 	mapping?: HeaderMapping
+	selectedFields?: ProductImportField[]
+	masterResolutions?: MasterResolutions
+	createdMasterData?: CreatedMasterData
 	/** Canonical catalog currency label (internalCode || name) for this import. */
 	currency?: string
 	expiresAt: Date
@@ -51,6 +59,9 @@ const productImportSessionSchema = new Schema<IProductImportSession>(
 			},
 		],
 		mapping: { type: Schema.Types.Mixed, default: undefined },
+		selectedFields: { type: [String], default: undefined },
+		masterResolutions: { type: Schema.Types.Mixed, default: undefined },
+		createdMasterData: { type: Schema.Types.Mixed, default: undefined },
 		currency: { type: String, trim: true },
 		expiresAt: { type: Date, required: true, index: { expires: 0 } },
 	},
