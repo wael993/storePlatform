@@ -16,6 +16,7 @@
 		"date-fns": "4.1.0",
 		"dayjs": "^1.11.13",
 		"dexie": "^4.4.4",
+		"echarts": "^6.1.0",
 		"framer-motion": "^12.38.0",
 		"i18next": "^23.14.0",
 		"jsbarcode": "^3.12.3",

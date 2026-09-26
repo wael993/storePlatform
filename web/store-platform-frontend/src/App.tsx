@@ -37,6 +37,7 @@ import SellingInvoicesPage from './components/SellingInvoice/SellingInvoicesPage
 import EmployeesPage from './components/employee/EmployeesPage'
 import EmployeeProfilePage from './components/employee/EmployeeProfilePage'
 import ReportPage from './pages/ReportPage'
+import DashboardPage from './pages/DashboardPage'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -63,6 +64,7 @@ const App = () => {
 		isOrdersEnabled,
 		isSellingInvoicesEnabled,
 		isReportsEnabled,
+		isDashboardEnabled,
 		isUsersEnabled,
 		isEmployeesEnabled,
 		isSettingsEnabled,
@@ -80,6 +82,7 @@ const App = () => {
 		isTenantOrdersEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantReportsEnabled,
+		isTenantDashboardEnabled,
 		isTenantUsersEnabled,
 		isTenantEmployeesEnabled,
 		isTenantSettingsEnabled,
@@ -138,6 +141,14 @@ const App = () => {
 								<Route
 									path={RoutePaths.SELLING_INVOICES}
 									element={<SellingInvoicesPage />}
+								/>
+							)}
+						{isDashboardEnabled &&
+							isTenantDashboardEnabled &&
+							canSee(SEE.dashboard) && (
+								<Route
+									path={RoutePaths.DASHBOARD}
+									element={<DashboardPage />}
 								/>
 							)}
 						{isReportsEnabled &&

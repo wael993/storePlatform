@@ -15,6 +15,7 @@ export const RoutePaths = {
 	ORDERS: withBasePath('/orders'),
 	SELLING_INVOICES: withBasePath('/selling-invoices'),
 	REPORTS: withBasePath('/reports'),
+	DASHBOARD: withBasePath('/dashboard'),
 	CUSTOMERS: withBasePath('/customers'),
 	SINGLE_CUSTOMER: withBasePath('/customers/:customerId'),
 	CATEGORIES: withBasePath('/categories'),
@@ -63,6 +64,7 @@ export const fullPaths = {
 	CUSTOMER_MODAL: RoutePaths.CUSTOMER_MODAL,
 	SELLING_INVOICES: RoutePaths.SELLING_INVOICES,
 	REPORTS: RoutePaths.REPORTS,
+	DASHBOARD: RoutePaths.DASHBOARD,
 }
 
 export const routeLabelKeys = {
@@ -88,6 +90,7 @@ export const routeLabelKeys = {
 	STORE_PLATFORM: 'appTitle',
 	SELLING_INVOICES: 'components.pageHeaders.sellingInvoices',
 	REPORTS: 'components.pageHeaders.reports',
+	DASHBOARD: 'components.pageHeaders.dashboard',
 } as const
 
 export const getRouteLabel = (path: string, fallback = '') => {
@@ -108,6 +111,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.RENEWAL_REQUESTS]: routeLabelKeys.RENEWAL_REQUESTS,
 		[RoutePaths.SELLING_INVOICES]: routeLabelKeys.SELLING_INVOICES,
 		[RoutePaths.REPORTS]: routeLabelKeys.REPORTS,
+		[RoutePaths.DASHBOARD]: routeLabelKeys.DASHBOARD,
 	}
 	const labelKey = routeLabelKeyByPath[path]
 
@@ -444,6 +448,20 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
+	const dashboard: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'dashboard',
+			name: t(routeLabelKeys.DASHBOARD),
+			href: fullPaths.DASHBOARD,
+			isCurrentPage: true,
+		},
+	]
 
 	return {
 		StorePlatform,
@@ -468,5 +486,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		product,
 		sellingInvoices,
 		reports,
+		dashboard,
 	}
 }

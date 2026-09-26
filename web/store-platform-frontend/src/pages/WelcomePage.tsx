@@ -3,6 +3,7 @@ import {
 	Flex,
 	Heading,
 	Image,
+	Badge,
 	SimpleGrid,
 	Stack,
 	Text,
@@ -108,6 +109,7 @@ const WelcomePage = () => {
 
 	const {
 		isProductsEnabled,
+		isDashboardEnabled,
 		isDailyEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
@@ -119,6 +121,7 @@ const WelcomePage = () => {
 
 	const {
 		isTenantProductsEnabled,
+		isTenantDashboardEnabled,
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
 		isTenantSellingInvoicesEnabled,
@@ -139,6 +142,12 @@ const WelcomePage = () => {
 			? {
 					path: RoutePaths.PRODUCTS,
 					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.PRODUCTS,
+				}
+			: null,
+		isDashboardEnabled && isTenantDashboardEnabled && canSee(SEE.dashboard)
+			? {
+					path: RoutePaths.DASHBOARD,
+					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.DASHBOARD,
 				}
 			: null,
 		isCustomersEnabled && isTenantCustomersEnabled && canSee(SEE.customers)
@@ -238,9 +247,23 @@ const WelcomePage = () => {
 											gap={2}
 										>
 											<Flex align="center" justify="space-between" gap={3}>
-												<Text color="gray.900" fontWeight={800}>
-													{getRouteLabel(item.path)}
-												</Text>
+												<Flex align="center" gap={2} minW={0}>
+													<Text color="gray.900" fontWeight={800} noOfLines={1}>
+														{getRouteLabel(item.path)}
+													</Text>
+													{item.path === RoutePaths.DASHBOARD && (
+														<Badge
+															colorScheme="purple"
+															variant="subtle"
+															fontSize="0.65rem"
+															borderRadius="full"
+															px={2}
+															flexShrink={0}
+														>
+															{t('common.beta')}
+														</Badge>
+													)}
+												</Flex>
 												<ArrowForwardIcon
 													boxSize={4}
 													color="blue.500"

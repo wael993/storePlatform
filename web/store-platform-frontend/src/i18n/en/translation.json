@@ -86,6 +86,116 @@
 			}
 		}
 	},
+	"dashboard": {
+		"kpiPlaceholder": "KPI coming soon",
+		"error": "Could not load the dashboard.",
+		"emptyTitle": "Nothing on the dashboard yet",
+		"emptyDescription": "Dashboard metrics will appear here once they are enabled.",
+		"kpi": {
+			"comingSoon": "Coming soon",
+			"comingSoonDescription": "This metric will appear here once it is enabled.",
+			"unavailable": "Unavailable",
+			"error": "Could not load this metric.",
+			"loading": "Loading…"
+		},
+		"kpis": {
+			"registeredCustomers": "Registered Customers",
+			"newCustomers": "New Customers",
+			"inventoryCost": "Inventory Cost",
+			"products": "Products",
+			"invoicesToday": "Invoices Today",
+			"salesToday": "Sales Today",
+			"profit": "Profit",
+			"totalReceivable": "Total Receivable",
+			"cashBalance": "Cash Balance"
+		},
+		"charts": {
+			"salesByCategory": "Sales by category",
+			"salesByMonth": "Sales by month",
+			"salesProfit7Days": "Sales & profit — last 7 days",
+			"series": {
+				"sales": "Sales",
+				"profit": "Profit"
+			},
+			"mockCategories": {
+				"electronics": "Electronics",
+				"food": "Food",
+				"clothing": "Clothing",
+				"toys": "Toys",
+				"other": "Other"
+			},
+			"mockMonths": {
+				"jan": "Jan",
+				"feb": "Feb",
+				"mar": "Mar",
+				"apr": "Apr",
+				"may": "May",
+				"jun": "Jun",
+				"jul": "Jul",
+				"aug": "Aug",
+				"sep": "Sep"
+			},
+			"mockDays": {
+				"mon": "Mon",
+				"tue": "Tue",
+				"wed": "Wed",
+				"thu": "Thu",
+				"fri": "Fri",
+				"sat": "Sat",
+				"sun": "Sun"
+			}
+		},
+		"inventory": {
+			"viewAll": "View all",
+			"soldCount": "{{count}} selling",
+			"cards": {
+				"inventoryWarnings": "Inventory warnings",
+				"bestProfitProducts": "Best profit products",
+				"bestSellerProducts": "Best seller products"
+			},
+			"warnings": {
+				"lowStock": "Low-stock products",
+				"outOfStock": "Out of stock products",
+				"expiringSoon": "Expiring soon"
+			}
+		},
+		"activity": {
+			"viewAll": "View all",
+			"actionCount": "{{count}} actions",
+			"cards": {
+				"recentActivity": "Recent activity",
+				"teamActivity": "Team activity"
+			},
+			"actors": {
+				"mike": { "name": "محمد رضا", "initials": "م ر" },
+				"sara": { "name": "سارة الحسن", "initials": "س ح" },
+				"ali": { "name": "علي خالد", "initials": "ع خ" },
+				"layla": { "name": "ليلى ناصر", "initials": "ل ن" }
+			},
+			"products": {
+				"usbCable": "كابل USB-C",
+				"notebook": "دفتر A5"
+			},
+			"actions": {
+				"createInvoice": "Created invoice #{{id}}",
+				"addCustomer": "Added new customer",
+				"updateStock": "Updated stock · {{product}}",
+				"recordPayment": "Recorded payment · #{{id}}",
+				"addProduct": "Added product · {{product}}"
+			},
+			"time": {
+				"minutesAgo": "{{count}}m ago",
+				"hoursAgo": "{{count}}h ago",
+				"yesterday": "Yesterday"
+			}
+		},
+		"sections": {
+			"overview": "Overview",
+			"salesProfit": "Sales & Profit",
+			"inventory": "Inventory",
+			"activity": "Activity"
+		}
+	},
 	"report": {
 		"chat": {
 			"title": "RIVO",
@@ -195,6 +305,7 @@
 			"usersDescription": "Manage tenant users and roles.",
 			"productsDescription": "Product catalog and pricing.",
 			"dailyDescription": "Daily buying, selling, and expense actions.",
+			"dashboardDescription": "Business overview KPIs and activity.",
 			"suppliersDescription": "Supplier directory and details.",
 			"customersDescription": "Customer directory and details.",
 			"categoriesDescription": "Product category directory.",
@@ -407,6 +518,7 @@
 				"sellingInvoices_summary": "Can see Summary",
 				"sellingInvoices_aiRead": "Can see AI read invoice",
 				"reports": "Can see Reports page",
+				"dashboard": "Can see Dashboard page",
 				"categories": "Can see Categories page",
 				"categories_add": "Can add categories",
 				"categories_delete": "Can delete categories",
@@ -907,7 +1019,8 @@
 			"partner": "Partner",
 			"employees": "Employees",
 			"employee": "Employee",
-			"reports": "Reports"
+			"reports": "Reports",
+			"dashboard": "Dashboard"
 		},
 		"activityDetail": {
 			"topSection": {
@@ -1201,6 +1314,7 @@
 	},
 	"common": {
 		"note": "Note",
+		"beta": "Beta",
 		"notePlaceholder": "Enter note",
 		"delete": "Delete",
 		"confirm": "Confirm",

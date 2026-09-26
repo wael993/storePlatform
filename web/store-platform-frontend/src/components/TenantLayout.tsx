@@ -51,6 +51,7 @@ const TenantLayout = () => {
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
 		isReportsEnabled,
+		isDashboardEnabled,
 		isCategoriesEnabled,
 		isSuppliersEnabled,
 		isPartnersEnabled,
@@ -63,6 +64,7 @@ const TenantLayout = () => {
 		isTenantUsersEnabled,
 		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
+		isTenantDashboardEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantReportsEnabled,
 		isTenantCategoriesEnabled,
@@ -75,6 +77,9 @@ const TenantLayout = () => {
 
 	const topBarItems = [
 		canSee(SEE.welcome) ? { label: 'Welcome', path: RoutePaths.ROOT } : null,
+		isDashboardEnabled && isTenantDashboardEnabled && canSee(SEE.dashboard)
+			? { label: 'Dashboard', path: RoutePaths.DASHBOARD }
+			: null,
 		isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily)
 			? { label: 'Daily', path: RoutePaths.DAILY }
 			: null,

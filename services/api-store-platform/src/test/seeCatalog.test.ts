@@ -12,6 +12,7 @@ import {
 const pages = [
 	TENANT_ACCESSIBLE_PAGE.PRODUCTS,
 	TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES,
+	TENANT_ACCESSIBLE_PAGE.DASHBOARD,
 ]
 
 describe('seeCatalog', () => {
@@ -21,12 +22,14 @@ describe('seeCatalog', () => {
 		expect(ids).toContain(SEE.products)
 		expect(ids).toContain(SEE.invoices)
 		expect(ids).toContain(SEE.welcome)
+		expect(ids).toContain(SEE.dashboard)
 	})
 
 	it('uses role defaults plus locked ids for cashiers without stored see', () => {
 		const ids = defaultSeeIds('cashier', pages)
 
 		expect(ids).toContain(SEE.welcome)
+		expect(ids).toContain(SEE.dashboard)
 		expect(ids).toContain(SEE.products)
 		expect(ids).toContain(SEE.sellingInvoices)
 	})
@@ -73,6 +76,12 @@ describe('seeCatalog', () => {
 
 		expect(ids).toContain(SEE.productsBuyingPrice)
 		expect(ids).toContain(SEE.products)
+	})
+
+	it('keeps locked dashboard even when stored see omits it', () => {
+		const ids = resolveSeeIds('cashier', pages, [SEE.products])
+
+		expect(ids).toContain(SEE.dashboard)
 	})
 
 	it('gives owners every available id from defaultSeeIds', () => {

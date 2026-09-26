@@ -12,6 +12,7 @@ import {
 } from '@chakra-ui/icons'
 import {
 	Avatar,
+	Badge,
 	Box,
 	Divider,
 	Flex,
@@ -225,9 +226,23 @@ const ServiceMenu = ({
 										>
 											<Flex align="center" gap={4} minW={0}>
 												{getNavigationIcon(item.path, isActive)}
-												<Text noOfLines={1}>
-													{getRouteLabel(item.path, item.label)}
-												</Text>
+												<Flex align="center" gap={2} minW={0}>
+													<Text noOfLines={1}>
+														{getRouteLabel(item.path, item.label)}
+													</Text>
+													{item.path === RoutePaths.DASHBOARD && (
+														<Badge
+															colorScheme="purple"
+															variant="subtle"
+															fontSize="0.65rem"
+															borderRadius="full"
+															px={2}
+															flexShrink={0}
+														>
+															{t('common.beta')}
+														</Badge>
+													)}
+												</Flex>
 											</Flex>
 											{isActive && (
 												<CheckIcon boxSize={4} sx={styles.activeMenuIcon} />

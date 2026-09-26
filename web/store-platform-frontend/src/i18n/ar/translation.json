@@ -102,6 +102,118 @@
 			}
 		}
 	},
+	"dashboard": {
+		"kpiPlaceholder": "مؤشر قريباً",
+		"error": "تعذر تحميل لوحة التحكم.",
+		"emptyTitle": "لا يوجد شيء في لوحة التحكم بعد",
+		"emptyDescription": "ستظهر مقاييس لوحة التحكم هنا عند تفعيلها.",
+		"kpi": {
+			"comingSoon": "قادم قريباً",
+			"comingSoonDescription": "سيظهر هذا المؤشر هنا عند تفعيله.",
+			"unavailable": "غير متاح",
+			"error": "تعذر تحميل هذا المؤشر.",
+			"loading": "جارٍ التحميل…"
+		},
+		"kpis": {
+			"registeredCustomers": "الزبائن المسجلون",
+			"newCustomers": "زبائن جدد",
+			"inventoryCost": "تكلفة المخزون",
+			"products": "عدد المنتجات",
+			"invoicesToday": "فواتير اليوم",
+			"salesToday": "مبيعات اليوم",
+			"profit": "الربح",
+			"totalReceivable": "إجمالي المستحقات",
+			"cashBalance": "رصيد الصندوق"
+		},
+		"charts": {
+			"salesByCategory": "المبيعات حسب الفئة",
+			"salesByMonth": "المبيعات حسب الشهر",
+			"salesProfit7Days": "المبيعات والأرباح — آخر 7 أيام",
+			"series": {
+				"sales": "المبيعات",
+				"profit": "الربح"
+			},
+			"mockCategories": {
+				"electronics": "الكترونيات",
+				"food": "اغذية",
+				"clothing": "ملابس",
+				"toys": "العاب",
+				"other": "اخرى"
+			},
+			"mockMonths": {
+				"jan": "يناير",
+				"feb": "فبراير",
+				"mar": "مارس",
+				"apr": "أبريل",
+				"may": "مايو",
+				"jun": "يونيو",
+				"jul": "يوليو",
+				"aug": "أغسطس",
+				"sep": "سبتمبر"
+			},
+			"mockDays": {
+				"mon": "أحد",
+				"tue": "إثنين",
+				"wed": "ثلاثاء",
+				"thu": "أربعاء",
+				"fri": "خميس",
+				"sat": "جمعة",
+				"sun": "سبت"
+			}
+		},
+		"inventory": {
+			"viewAll": "عرض الكل",
+			"soldCount": "{{count}} مبيع",
+			"cards": {
+				"inventoryWarnings": "تحذيرات المخزون",
+				"bestProfitProducts": "أفضل المنتجات ربحاً",
+				"bestSellerProducts": "الأكثر مبيعاً"
+			},
+			"warnings": {
+				"lowStock": "منتجات منخفضة المخزون",
+				"outOfStock": "منتجات نفدت",
+				"expiringSoon": "تنتهي صلاحيتها قريباً",
+				"wrongSellingPrice": "سعر البيع غير صحيح",
+				"wrongCostPrice": "سعر التكلفة غير صحيح"
+			}
+		},
+		"activity": {
+			"viewAll": "عرض الكل",
+			"actionCount": "{{count}} إجراءات",
+			"cards": {
+				"recentActivity": "النشاط الأخير",
+				"teamActivity": "نشاط الفريق"
+			},
+			"actors": {
+				"mike": { "name": "محمد رضا", "initials": "م ر" },
+				"sara": { "name": "سارة الحسن", "initials": "س ح" },
+				"ali": { "name": "علي خالد", "initials": "ع خ" },
+				"layla": { "name": "ليلى ناصر", "initials": "ل ن" }
+			},
+			"products": {
+				"usbCable": "كابل USB-C",
+				"notebook": "دفتر A5"
+			},
+			"actions": {
+				"createInvoice": "أنشأ فاتورة #{{id}}",
+				"addCustomer": "أضاف زبوناً جديداً",
+				"updateStock": "حدّث المخزون · {{product}}",
+				"recordPayment": "سجّل دفعة · #{{id}}",
+				"addProduct": "أضاف منتجاً · {{product}}"
+			},
+			"time": {
+				"minutesAgo": "منذ {{count}} د",
+				"hoursAgo": "منذ {{count}} س",
+				"yesterday": "أمس"
+			}
+		},
+		"sections": {
+			"overview": "نظرة عامة",
+			"salesProfit": "المبيعات والأرباح",
+			"inventory": "المخزون",
+			"activity": "النشاط"
+		}
+	},
 	"report": {
 		"chat": {
 			"title": "ريڤو",
@@ -211,6 +323,7 @@
 			"usersDescription": "إدارة مستخدمي المستأجر والأدوار.",
 			"productsDescription": "كتالوج المنتجات والأسعار.",
 			"dailyDescription": "إجراءات الشراء والبيع والمصروفات اليومية.",
+			"dashboardDescription": "نظرة عامة على مؤشرات النشاط والأداء.",
 			"suppliersDescription": "دليل الموردين والتفاصيل.",
 			"customersDescription": "دليل الزبائن والتفاصيل.",
 			"categoriesDescription": "دليل فئات المنتجات.",
@@ -423,6 +536,7 @@
 				"sellingInvoices_summary": " الملخص",
 				"sellingInvoices_aiRead": " قراءة الفاتورة بالذكاء الاصطناعي",
 				"reports": " صفحة التقارير",
+				"dashboard": " صفحة لوحة التحكم",
 				"categories": " صفحة التصنيفات",
 				"categories_add": "يمكن إضافة تصنيفات",
 				"categories_delete": "يمكن حذف التصنيفات",
@@ -923,7 +1037,8 @@
 			"partner": "الشريك",
 			"employees": "الموظفون",
 			"employee": "موظف",
-			"reports": "التقارير"
+			"reports": "التقارير",
+			"dashboard": "لوحة التحكم"
 		},
 		"activityDetail": {
 			"topSection": {
@@ -1222,6 +1337,7 @@
 	},
 	"common": {
 		"note": "الملاحظة",
+		"beta": "Beta",
 		"notePlaceholder": "أدخل الملاحظة",
 		"delete": "حذف",
 		"confirm": "تأكيد",

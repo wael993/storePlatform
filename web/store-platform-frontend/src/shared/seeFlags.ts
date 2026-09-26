@@ -52,6 +52,7 @@ export const SEE = {
 	sellingInvoicesSummary: 'sellingInvoices.summary',
 	sellingInvoicesAiRead: 'sellingInvoices.aiRead',
 	reports: 'reports',
+	dashboard: 'dashboard',
 	categories: 'categories',
 	categoriesAdd: 'categories.add',
 	categoriesDelete: 'categories.delete',

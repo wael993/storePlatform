@@ -83,6 +83,116 @@
 			}
 		}
 	},
+	"dashboard": {
+		"kpiPlaceholder": "KPI demnächst",
+		"error": "Dashboard konnte nicht geladen werden.",
+		"emptyTitle": "Noch nichts auf dem Dashboard",
+		"emptyDescription": "Dashboard-Kennzahlen erscheinen hier, sobald sie aktiviert sind.",
+		"kpi": {
+			"comingSoon": "Demnächst",
+			"comingSoonDescription": "Diese Kennzahl erscheint hier, sobald sie aktiviert ist.",
+			"unavailable": "Nicht verfügbar",
+			"error": "Kennzahl konnte nicht geladen werden.",
+			"loading": "Wird geladen…"
+		},
+		"kpis": {
+			"registeredCustomers": "Registrierte Kunden",
+			"newCustomers": "Neue Kunden",
+			"inventoryCost": "Lagerwert",
+			"products": "Produkte",
+			"invoicesToday": "Rechnungen heute",
+			"salesToday": "Umsatz heute",
+			"profit": "Gewinn",
+			"totalReceivable": "Offene Forderungen",
+			"cashBalance": "Kassenbestand"
+		},
+		"charts": {
+			"salesByCategory": "Umsatz nach Kategorie",
+			"salesByMonth": "Umsatz nach Monat",
+			"salesProfit7Days": "Umsatz & Gewinn — letzte 7 Tage",
+			"series": {
+				"sales": "Umsatz",
+				"profit": "Gewinn"
+			},
+			"mockCategories": {
+				"electronics": "Elektronik",
+				"food": "Lebensmittel",
+				"clothing": "Kleidung",
+				"toys": "Spielzeug",
+				"other": "Sonstiges"
+			},
+			"mockMonths": {
+				"jan": "Jan",
+				"feb": "Feb",
+				"mar": "Mär",
+				"apr": "Apr",
+				"may": "Mai",
+				"jun": "Jun",
+				"jul": "Jul",
+				"aug": "Aug",
+				"sep": "Sep"
+			},
+			"mockDays": {
+				"mon": "Mo",
+				"tue": "Di",
+				"wed": "Mi",
+				"thu": "Do",
+				"fri": "Fr",
+				"sat": "Sa",
+				"sun": "So"
+			}
+		},
+		"inventory": {
+			"viewAll": "Alle anzeigen",
+			"soldCount": "{{count}} verkauft",
+			"cards": {
+				"inventoryWarnings": "Lagerwarnungen",
+				"bestProfitProducts": "Beste Gewinnprodukte",
+				"bestSellerProducts": "Bestseller"
+			},
+			"warnings": {
+				"lowStock": "Niedriger Bestand",
+				"outOfStock": "Nicht vorrätig",
+				"expiringSoon": "Läuft bald ab"
+			}
+		},
+		"activity": {
+			"viewAll": "Alle anzeigen",
+			"actionCount": "{{count}} Aktionen",
+			"cards": {
+				"recentActivity": "Letzte Aktivität",
+				"teamActivity": "Teamaktivität"
+			},
+			"actors": {
+				"mike": { "name": "محمد رضا", "initials": "مر" },
+				"sara": { "name": "سارة الحسن", "initials": "سح" },
+				"ali": { "name": "علي خالد", "initials": "عخ" },
+				"layla": { "name": "ليلى ناصر", "initials": "لن" }
+			},
+			"products": {
+				"usbCable": "USB-C-Kabel",
+				"notebook": "Notizbuch A5"
+			},
+			"actions": {
+				"createInvoice": "Rechnung #{{id}} erstellt",
+				"addCustomer": "Neuen Kunden hinzugefügt",
+				"updateStock": "Bestand aktualisiert · {{product}}",
+				"recordPayment": "Zahlung erfasst · #{{id}}",
+				"addProduct": "Produkt hinzugefügt · {{product}}"
+			},
+			"time": {
+				"minutesAgo": "vor {{count}} Min.",
+				"hoursAgo": "vor {{count}} Std.",
+				"yesterday": "Gestern"
+			}
+		},
+		"sections": {
+			"overview": "Übersicht",
+			"salesProfit": "Umsatz & Gewinn",
+			"inventory": "Lager",
+			"activity": "Aktivität"
+		}
+	},
 	"report": {
 		"chat": {
 			"title": "RIVO",
@@ -192,6 +302,7 @@
 			"usersDescription": "Mandantenbenutzer und Rollen verwalten.",
 			"productsDescription": "Produktkatalog und Preise.",
 			"dailyDescription": "Tägliche Kauf-, Verkaufs- und Ausgabenaktionen.",
+			"dashboardDescription": "Geschäftsübersicht mit KPIs und Aktivität.",
 			"suppliersDescription": "Lieferantenverzeichnis und Details.",
 			"customersDescription": "Kundenverzeichnis und Details.",
 			"categoriesDescription": "Produktkategorieverzeichnis.",
@@ -404,6 +515,7 @@
 				"sellingInvoices_summary": "Zusammenfassung sehen",
 				"sellingInvoices_aiRead": "KI-Rechnung lesen sehen",
 				"reports": "Berichte sehen",
+				"dashboard": "Dashboard sehen",
 				"categories": "Kategorien sehen",
 				"categories_add": "Kategorien hinzufügen",
 				"categories_delete": "Kategorien löschen",
@@ -904,7 +1016,8 @@
 			"partner": "Partner",
 			"employees": "Mitarbeiter",
 			"employee": "Mitarbeiter",
-			"reports": "Berichte"
+			"reports": "Berichte",
+			"dashboard": "Dashboard"
 		},
 		"activityDetail": {
 			"topSection": {
@@ -1198,6 +1311,7 @@
 	},
 	"common": {
 		"note": "Notiz",
+		"beta": "Beta",
 		"notePlaceholder": "Notiz eingeben",
 		"delete": "Löschen",
 		"confirm": "Bestätigen",

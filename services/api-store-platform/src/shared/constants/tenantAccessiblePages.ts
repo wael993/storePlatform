@@ -1,4 +1,5 @@
 export const TENANT_ACCESSIBLE_PAGE = {
+	DASHBOARD: 'DASHBOARD',
 	USERS: 'USERS',
 	PRODUCTS: 'PRODUCTS',
 	DAILY: 'DAILY',
@@ -21,6 +22,7 @@ export type TenantAccessiblePage =
 	(typeof TENANT_ACCESSIBLE_PAGE)[keyof typeof TENANT_ACCESSIBLE_PAGE]
 
 export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
+	TENANT_ACCESSIBLE_PAGE.DASHBOARD,
 	TENANT_ACCESSIBLE_PAGE.USERS,
 	TENANT_ACCESSIBLE_PAGE.PRODUCTS,
 	TENANT_ACCESSIBLE_PAGE.DAILY,
@@ -37,6 +39,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 ]
 
 export const DEFAULT_TENANT_ACCESSIBLE_PAGES: TenantAccessiblePage[] = [
+	TENANT_ACCESSIBLE_PAGE.DASHBOARD,
 	TENANT_ACCESSIBLE_PAGE.USERS,
 	TENANT_ACCESSIBLE_PAGE.SETTINGS,
 	TENANT_ACCESSIBLE_PAGE.EMPLOYEES,
@@ -67,9 +70,14 @@ export const resolveTenantAccessiblePages = (tenant: {
 }): TenantAccessiblePage[] => {
 	const stored = sanitizeAccessiblePages(tenant.accessiblePages)
 
-	if (stored.length) {
-		return stored
+	if (!stored.length) {
+		return [...DEFAULT_TENANT_ACCESSIBLE_PAGES]
 	}
 
-	return [...DEFAULT_TENANT_ACCESSIBLE_PAGES]
+	// note: soft-enable Dashboard for tenants that predate DASH-001. Ceiling: unchecking DASHBOARD in TenantsList won't stick until this soft-append is removed after rollout.
+	if (!stored.includes(TENANT_ACCESSIBLE_PAGE.DASHBOARD)) {
+		return [...stored, TENANT_ACCESSIBLE_PAGE.DASHBOARD]
+	}
+
+	return stored
 }

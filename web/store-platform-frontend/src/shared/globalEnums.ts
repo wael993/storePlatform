@@ -100,6 +100,7 @@ export enum BreadCrumbItem {
 	EMPLOYEES = 'employees',
 	EMPLOYEE = 'employee',
 	REPORTS = 'reports',
+	DASHBOARD = 'dashboard',
 }
 
 export enum StepKeys {

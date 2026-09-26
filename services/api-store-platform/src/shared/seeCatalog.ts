@@ -58,6 +58,7 @@ export const SEE = {
 	sellingInvoicesSummary: 'sellingInvoices.summary',
 	sellingInvoicesAiRead: 'sellingInvoices.aiRead',
 	reports: 'reports',
+	dashboard: 'dashboard',
 	categories: 'categories',
 	categoriesAdd: 'categories.add',
 	categoriesDelete: 'categories.delete',
@@ -184,6 +185,12 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 		],
 	},
 	{ id: SEE.reports, tenantPage: TENANT_ACCESSIBLE_PAGE.REPORTS },
+	// note: locked so role-custom see can't hide the shell once the tenant has DASHBOARD; KPI ACL stays per-SEE later (SEC-002).
+	{
+		id: SEE.dashboard,
+		tenantPage: TENANT_ACCESSIBLE_PAGE.DASHBOARD,
+		locked: true,
+	},
 	{
 		id: SEE.categories,
 		tenantPage: TENANT_ACCESSIBLE_PAGE.CATEGORIES,
@@ -208,6 +215,7 @@ export const SEE_CATALOG: SeeCatalogNode[] = [
 
 const ROLE_DEFAULTS: SeeId[] = [
 	SEE.welcome,
+	SEE.dashboard,
 	SEE.products,
 	SEE.invoices,
 	SEE.sellingInvoices,

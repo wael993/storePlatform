@@ -57,6 +57,7 @@ export const getEnabledActions = () => {
 		isSellingInvoicesEnabled: enabledActions.has('SELLING_INVOICES'),
 		isInvoiceAiEnabled: enabledActions.has('INVOICE_AI'),
 		isReportsEnabled: enabledActions.has('REPORTS'),
+		isDashboardEnabled: enabledActions.has('DASHBOARD'),
 		isCustomersEnabled: enabledActions.has('CUSTOMERS'),
 		isCategoriesEnabled: enabledActions.has('CATEGORIES'),
 		isSuppliersEnabled: enabledActions.has('SUPPLIERS'),
@@ -72,6 +73,7 @@ export const getGloballyEnabledTenantPages = (
 	enabledActions: ReturnType<typeof getEnabledActions>,
 ): TenantAccessiblePage[] => {
 	const pageFlags: Record<TenantAccessiblePage, boolean> = {
+		DASHBOARD: enabledActions.isDashboardEnabled,
 		USERS: enabledActions.isUsersEnabled,
 		EMPLOYEES: enabledActions.isEmployeesEnabled,
 		PRODUCTS: enabledActions.isProductsEnabled,
@@ -109,6 +111,7 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantSellingInvoicesEnabled: tenantPages.has('SELLING_INVOICES'),
 		isTenantInvoiceAiEnabled: tenantPages.has('INVOICE_AI'),
 		isTenantReportsEnabled: tenantPages.has('REPORTS'),
+		isTenantDashboardEnabled: tenantPages.has('DASHBOARD'),
 		isTenantCustomersEnabled: tenantPages.has('CUSTOMERS'),
 		isTenantCategoriesEnabled: tenantPages.has('CATEGORIES'),
 		isTenantSuppliersEnabled: tenantPages.has('SUPPLIERS'),
@@ -164,6 +167,12 @@ export const isTenantRouteAllowed = (
 			globalActions.isReportsEnabled &&
 				tenantActions.isTenantReportsEnabled &&
 				canSee(SEE.reports),
+		],
+		[
+			RoutePaths.DASHBOARD,
+			globalActions.isDashboardEnabled &&
+				tenantActions.isTenantDashboardEnabled &&
+				canSee(SEE.dashboard),
 		],
 		[
 			RoutePaths.CUSTOMERS,
