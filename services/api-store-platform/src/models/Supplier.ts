@@ -26,7 +26,7 @@ export interface ISupplier extends Document {
 const SupplierSchema = new Schema<ISupplier>({
 	name: { type: String, required: true, index: true },
 	supplierId: { type: String, required: true, index: true },
-	internalCode: { type: String, index: true, uppercase: true },
+	internalCode: { type: String, uppercase: true },
 	email: { type: String },
 	phone: { type: String },
 	country: { type: String },

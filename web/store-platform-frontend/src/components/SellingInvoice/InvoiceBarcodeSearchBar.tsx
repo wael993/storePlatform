@@ -35,11 +35,7 @@ const InvoiceBarcodeSearchBar = ({
 		return () => clearTimeout(timer)
 	}, [autoFocus])
 
-	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-		if (event.key !== 'Enter') return
-
-		event.preventDefault()
-
+	const submitCurrentValue = () => {
 		const value = normalizeSearchQuery(inputRef.current?.value ?? '')
 		if (!value) return
 
@@ -48,6 +44,13 @@ const InvoiceBarcodeSearchBar = ({
 		if (inputRef.current) {
 			inputRef.current.value = ''
 		}
+	}
+
+	const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+		if (event.key !== 'Enter') return
+
+		event.preventDefault()
+		submitCurrentValue()
 	}
 
 	return (
@@ -61,7 +64,13 @@ const InvoiceBarcodeSearchBar = ({
 			boxShadow={PAGE_COLORS.cardShadow}
 		>
 			<InputGroup size="lg">
-				<InputLeftElement pointerEvents="none" h="full" pl={2}>
+				<InputLeftElement
+					h="full"
+					pl={2}
+					cursor="pointer"
+					onClick={submitCurrentValue}
+					aria-label={t('components.sellingInvoices.barcodeSearchPlaceholder')}
+				>
 					<AsQrCodeIcon color={PAGE_COLORS.primary} />
 				</InputLeftElement>
 				<Input

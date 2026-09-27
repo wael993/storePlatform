@@ -310,7 +310,14 @@ const InvoiceProductSearch = ({
 		<Box ref={containerRef} position="relative">
 			<Flex gap={2} direction={{ base: 'column', md: 'row' }}>
 				<InputGroup flex="1" size="md">
-					<InputLeftElement pointerEvents="none" h="full">
+					<InputLeftElement
+						h="full"
+						cursor="pointer"
+						onClick={() => submitSearch(inputRef.current?.value ?? '')}
+						aria-label={t(
+							'components.sellingInvoices.drawer.searchPlaceholder',
+						)}
+					>
 						<Icon as={AsSearchIcon} color={PAGE_COLORS.primary} boxSize={5} />
 					</InputLeftElement>
 					<Input

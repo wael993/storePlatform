@@ -4,7 +4,7 @@ import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 export interface ICustomer extends Document {
 	tenantId: string
 	customerId: string
-	internalCode: string
+	internalCode?: string
 	name: string
 	email?: string
 	phone?: string
@@ -25,7 +25,7 @@ export interface ICustomer extends Document {
 
 const CustomerSchema = new Schema<ICustomer>({
 	customerId: { type: String, required: true, index: true, unique: true },
-	internalCode: { type: String, index: true, uppercase: true },
+	internalCode: { type: String, uppercase: true },
 	name: { type: String, required: true, index: true },
 	email: { type: String },
 	phone: { type: String },

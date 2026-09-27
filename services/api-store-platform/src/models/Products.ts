@@ -61,7 +61,6 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 		internalCode: {
 			type: String,
 			trim: true,
-			index: true,
 			uppercase: true,
 		},
 		productFactoryCode: {

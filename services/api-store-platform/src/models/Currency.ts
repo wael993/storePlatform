@@ -23,14 +23,11 @@ export interface ICurrency extends Document<string> {
 const CurrencySchema = new Schema<ICurrency>({
 	_id: { type: String, required: true },
 	currencyId: { type: String, required: true, index: true },
-	internalCode: { type: String, index: true, uppercase: true },
+	internalCode: { type: String, uppercase: true },
 	name: { type: String, required: true, index: true },
 })
 
 tenantScopedSchema(CurrencySchema)
-CurrencySchema.index(
-	{ tenantId: 1, internalCode: 1 },
-	{ unique: true, sparse: true },
-)
+CurrencySchema.index({ tenantId: 1, currencyId: 1 }, { unique: true })
 
 export const Currency = mongoose.model<ICurrency>('Currency', CurrencySchema)

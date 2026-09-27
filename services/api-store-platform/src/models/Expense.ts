@@ -25,16 +25,12 @@ const ExpenseSchema = new Schema<IExpense>(
 		_id: { type: String, required: true },
 		expenseId: { type: String, required: true, index: true },
 		name: { type: String, required: true, trim: true, index: true },
-		internalCode: { type: String, index: true, uppercase: true },
+		internalCode: { type: String, uppercase: true },
 	},
 	{ timestamps: true },
 )
 
 tenantScopedSchema(ExpenseSchema)
 ExpenseSchema.index({ tenantId: 1, expenseId: 1 }, { unique: true })
-ExpenseSchema.index(
-	{ tenantId: 1, internalCode: 1 },
-	{ unique: true, sparse: true },
-)
 
 export const Expense = mongoose.model<IExpense>('Expense', ExpenseSchema)

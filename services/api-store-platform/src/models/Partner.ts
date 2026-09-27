@@ -27,7 +27,7 @@ const PartnerSchema = new Schema<IPartner>({
 	_id: { type: String, required: true },
 	name: { type: String, required: true, index: true },
 	partnerId: { type: String, required: true, index: true },
-	internalCode: { type: String, index: true, uppercase: true },
+	internalCode: { type: String, uppercase: true },
 	email: { type: String },
 	phone: { type: String },
 	country: { type: String },
