@@ -26,18 +26,10 @@ import {
 	OVERVIEW_KPI_IDS,
 	resolveDashboardShellStatus,
 	SALES_PROFIT_CHART_IDS,
-	type DashboardSectionId,
-	type OverviewKpiId,
 } from '../shared/dashboardShell'
 import { generateBreadcrumbs } from '../shared/routes'
 import { pageContentMinHeight } from '../theme/layout'
 import { datePickerStyles } from '../theme/styles'
-
-const sectionTitleKey = (id: DashboardSectionId) =>
-	`dashboard.sections.${id}` as const
-
-const overviewKpiTitleKey = (id: OverviewKpiId) =>
-	`dashboard.kpis.${id}` as const
 
 const iconBoxSize = { base: '1.75rem', sm: '2rem', lg: '1.35rem' } as const
 
@@ -122,7 +114,7 @@ const DashboardPage = () => {
 									mb={4}
 									color="gray.800"
 								>
-									{t(sectionTitleKey(sectionId))}
+									{t(`dashboard.sections.${sectionId}`)}
 								</Heading>
 								{sectionId === 'overview' ? (
 									<SimpleGrid
@@ -139,7 +131,7 @@ const DashboardPage = () => {
 											return (
 												<KpiCardComingSoon
 													key={kpiId}
-													title={t(overviewKpiTitleKey(kpiId))}
+													title={t(`dashboard.kpis.${kpiId}`)}
 													value={visual.value}
 													trend={visual.trend}
 													titleIcon={
