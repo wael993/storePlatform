@@ -1240,12 +1240,44 @@
 			"brand": "Brand"
 		},
 		"topBar": {
+			"announcementItems": {
+				"priceUpdate": {
+					"title": "Edit catalog prices from the invoice",
+					"description": "While creating a selling or buying invoice, click the pen icon next to a line price to change that product’s saved catalog price — not only the amount on the current invoice.",
+					"imageDescriptions": {
+						"0": "After you confirm, the new price is stored on the product itself. Later invoices and the Products page will use the updated catalog price automatically."
+					}
+				},
+				"dashboard": {
+					"title": "New Dashboard page",
+					"description": "A Dashboard entry is now available under Pages and on the Welcome page cards. You can already open the shell; charts and KPI cards will turn on gradually as each metric is finished.",
+					"imageDescriptions": {
+						"0": "The main Dashboard view brings sales, profit, inventory, and activity into one place so you can monitor the business without jumping between pages.",
+						"1": "Find Dashboard in the Pages menu or open it from the Welcome page cards whenever you want a quick overview.",
+						"2": "Each KPI card starts as “coming soon” and becomes live once its backend metric is ready — no separate release needed for the page itself."
+					}
+				},
+				"multipleBarcodes": {
+					"title": "Multiple barcodes per product",
+					"description": "One product can keep a primary barcode plus extra barcodes. Scanning any of them in invoice search or product lookup still opens the same item — useful when a supplier ships the same goods under different codes.",
+					"imageDescriptions": {
+						"0": "Add or edit additional barcodes on the product form. They are checked for collisions across the tenant, so two products cannot share the same code."
+					}
+				},
+				"productImport": {
+					"title": "Improved Excel product import",
+					"description": "Import is more stable end to end: map Excel columns, review units/categories/suppliers before commit, then load products in batches with clearer error feedback.",
+					"imageDescriptions": {
+						"0": "Start from Products → Import. Choose currency and fields, upload an .xlsx/.xlsm file, then map each selected field to its Excel column.",
+						"1": "In the master-data step you can match or create units, categories, and suppliers from the file values, then preview rows before the batched commit writes Products and stock."
+					}
+				}
+			},
 			"changePassword": "Change Password",
 			"logoAlt": "Rivo Logo",
 			"welcome": "Welcome",
 			"notifications": "Notifications",
 			"announcements": "Updates",
-			"announcementsText": "Stay tuned for system news. Latest updates and changes appear here.",
 			"closeAnnouncements": "Close updates",
 			"new": "New",
 			"latestUpdates": "Latest updates and news",

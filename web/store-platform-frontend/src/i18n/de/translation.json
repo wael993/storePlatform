@@ -1240,12 +1240,44 @@
 			"brand": "Marke"
 		},
 		"topBar": {
+			"announcementItems": {
+				"priceUpdate": {
+					"title": "Katalogpreise direkt aus der Rechnung ändern",
+					"description": "Beim Erstellen einer Verkaufs- oder Einkaufsrechnung öffnen Sie mit dem Stift-Symbol neben dem Positionspreis den gespeicherten Katalogpreis des Produkts — nicht nur den Betrag auf der aktuellen Rechnung.",
+					"imageDescriptions": {
+						"0": "Nach der Bestätigung wird der neue Preis am Produkt selbst gespeichert. Spätere Rechnungen und die Produktseite verwenden den aktualisierten Katalogpreis automatisch."
+					}
+				},
+				"dashboard": {
+					"title": "Neue Dashboard-Seite",
+					"description": "Unter Seiten und auf den Karten der Willkommensseite gibt es jetzt einen Dashboard-Eintrag. Die Oberfläche ist bereits erreichbar; Diagramme und KPI-Karten werden schrittweise freigeschaltet, sobald die jeweilige Kennzahl fertig ist.",
+					"imageDescriptions": {
+						"0": "Die Dashboard-Hauptansicht bündelt Umsatz, Gewinn, Bestand und Aktivität an einem Ort — ohne zwischen vielen Seiten zu wechseln.",
+						"1": "Öffnen Sie das Dashboard über das Seiten-Menü oder die Karten auf der Willkommensseite für einen schnellen Überblick.",
+						"2": "Jede KPI-Karte startet mit „Demnächst“ und wird live, sobald die zugehörige Backend-Kennzahl bereit ist — die Seite selbst braucht kein separates Release."
+					}
+				},
+				"multipleBarcodes": {
+					"title": "Mehrere Barcodes pro Produkt",
+					"description": "Ein Produkt kann einen Hauptbarcode plus weitere Barcodes speichern. Beim Scannen in der Rechnungssuche oder Produktsuche öffnet jeder dieser Codes denselben Artikel — praktisch, wenn Lieferanten denselben Artikel unter verschiedenen Codes liefern.",
+					"imageDescriptions": {
+						"0": "Zusätzliche Barcodes pflegen Sie im Produktformular. Sie werden mandantenweit auf Kollisionen geprüft, damit zwei Produkte denselben Code nicht teilen können."
+					}
+				},
+				"productImport": {
+					"title": "Verbesserter Excel-Produktimport",
+					"description": "Der Import ist durchgängig stabiler: Excel-Spalten zuordnen, Einheiten/Kategorien/Lieferanten vor dem Speichern prüfen, dann Produkte stapelweise mit klarerem Fehlerfeedback laden.",
+					"imageDescriptions": {
+						"0": "Starten Sie unter Produkte → Import. Wählen Sie Währung und Felder, laden Sie eine .xlsx/.xlsm-Datei hoch und ordnen Sie jedes Feld der passenden Excel-Spalte zu.",
+						"1": "Im Stammdaten-Schritt können Sie Einheiten, Kategorien und Lieferanten aus den Dateiwerten zuordnen oder anlegen und die Zeilen vor dem stapelweisen Speichern von Produkten und Bestand prüfen."
+					}
+				}
+			},
 			"changePassword": "Passwort ändern",
 			"logoAlt": "Rivo-Logo",
 			"welcome": "Willkommen",
 			"notifications": "Benachrichtigungen",
 			"announcements": "Updates",
-			"announcementsText": "Bleiben Sie über Systemneuigkeiten informiert. Hier erscheinen die neuesten Updates und Änderungen.",
 			"closeAnnouncements": "Updates schließen",
 			"new": "Neu",
 			"latestUpdates": "Neueste Updates und Nachrichten",

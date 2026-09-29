@@ -64,6 +64,12 @@ import {
 } from './SubscriptionRenewalBanner'
 import { UserRole } from '../shared/globalEnums'
 import { AsAnnouncementIcon } from '../shared/icons/Announcement'
+import {
+	ANNOUNCEMENT_IMAGES,
+	ANNOUNCEMENT_KEYS,
+	AnnouncementModal,
+	type AnnouncementKey,
+} from './AnnouncementModal'
 
 interface TopBarProps {
 	navItems: {
@@ -233,6 +239,8 @@ const TopBar = ({
 	const notificationPopover = useDisclosure()
 	const warehousePopover = useDisclosure()
 	const announcementPopover = useDisclosure()
+	const [activeAnnouncement, setActiveAnnouncement] =
+		useState<AnnouncementKey | null>(null)
 	const skipSubscription = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
 	const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN
 	const { data: subscriptionData } = useGetSubscriptionQuery(undefined, {
@@ -828,16 +836,12 @@ const TopBar = ({
 																fontWeight={800}
 																lineHeight="normal"
 															>
-																{t('components.topBar.new', {
-																	defaultValue: 'جديد',
-																})}
+																{t('components.topBar.new')}
 															</Box>
 														</Flex>
 
 														<Text mt={0.5} fontSize="xs" color="gray.500">
-															{t('components.topBar.latestUpdates', {
-																defaultValue: 'آخر التحديثات والأخبار',
-															})}
+															{t('components.topBar.latestUpdates')}
 														</Text>
 													</Box>
 												</Flex>
@@ -861,63 +865,79 @@ const TopBar = ({
 										<Divider borderColor="blackAlpha.100" />
 
 										{/* Announcement */}
-										<PopoverBody p={4}>
-											<Box
-												position="relative"
-												p={4}
-												border="1px solid"
-												borderColor="blue.100"
-												borderRadius="xl"
-												bgGradient="linear(to-br, blue.50, white)"
-												overflow="hidden"
-											>
-												{/* Accent line */}
-												<Box
-													position="absolute"
-													top={0}
-													bottom={0}
-													right={0}
-													w="4px"
-													bgGradient="linear(to-b, blue.400, purple.400)"
-												/>
-
-												<Flex align="flex-start" gap={3}>
-													<Flex
-														flexShrink={0}
-														align="center"
-														justify="center"
-														w="34px"
-														h="34px"
-														borderRadius="lg"
-														bg="blue.100"
-														color="blue.600"
+										<PopoverBody p={4} maxH="min(28rem, 70vh)" overflowY="auto">
+											<Flex direction="column" gap={3}>
+												{ANNOUNCEMENT_KEYS.map(key => (
+													<Box
+														key={key}
+														as="button"
+														type="button"
+														textAlign="start"
+														w="100%"
+														position="relative"
+														p={4}
+														border="1px solid"
+														borderColor="blue.100"
+														borderRadius="xl"
+														bgGradient="linear(to-br, blue.50, white)"
+														overflow="hidden"
+														cursor="pointer"
+														_hover={{ borderColor: 'blue.200' }}
+														onClick={() => {
+															announcementPopover.onClose()
+															setActiveAnnouncement(key)
+														}}
 													>
-														<AsAnnouncementIcon />
-													</Flex>
+														<Box
+															position="absolute"
+															top={0}
+															bottom={0}
+															right={0}
+															w="4px"
+															bgGradient="linear(to-b, blue.400, purple.400)"
+														/>
 
-													<Box>
-														<Text
-															fontSize="sm"
-															fontWeight={700}
-															color="gray.800"
-															mb={1}
-														>
-															{t('components.topBar.announcements')}
-														</Text>
+														<Flex align="flex-start" gap={3}>
+															<Flex
+																flexShrink={0}
+																align="center"
+																justify="center"
+																w="34px"
+																h="34px"
+																borderRadius="lg"
+																bg="blue.100"
+																color="blue.600"
+															>
+																<AsAnnouncementIcon />
+															</Flex>
 
-														<Text
-															fontSize="sm"
-															lineHeight="1.9"
-															color="gray.600"
-															sx={{
-																...styles.announcementText,
-															}}
-														>
-															{t('components.topBar.announcementsText')}
-														</Text>
+															<Box flex={1}>
+																<Text
+																	fontSize="sm"
+																	fontWeight={700}
+																	color="gray.800"
+																	mb={1}
+																>
+																	{t(
+																		`components.topBar.announcementItems.${key}.title`,
+																	)}
+																</Text>
+
+																<Text
+																	fontSize="sm"
+																	lineHeight="1.8"
+																	color="gray.600"
+																	sx={styles.announcementText}
+																>
+																	{t(
+																		`components.topBar.announcementItems.${key}.description`,
+																	)}
+																</Text>
+															</Box>
+														</Flex>
 													</Box>
-												</Flex>
-											</Box>
+												))}
+											</Flex>
 										</PopoverBody>
 									</PopoverContent>
 								</Popover>
@@ -943,7 +963,7 @@ const TopBar = ({
 									fontWeight={800}
 									boxShadow="0 3px 8px rgba(236, 72, 153, 0.3)"
 								>
-									{1}
+									{ANNOUNCEMENT_KEYS.length}
 								</Box>
 							</Box>
 
@@ -1076,6 +1096,34 @@ const TopBar = ({
 			<AddQuickNewEntryModal
 				isOpen={isAddQuickModalOpen}
 				onClose={onCloseAddQuickModal}
+			/>
+			<AnnouncementModal
+				isOpen={activeAnnouncement != null}
+				onClose={() => setActiveAnnouncement(null)}
+				title={
+					activeAnnouncement
+						? t(
+								`components.topBar.announcementItems.${activeAnnouncement}.title`,
+							)
+						: ''
+				}
+				shortDescription={
+					activeAnnouncement
+						? t(
+								`components.topBar.announcementItems.${activeAnnouncement}.description`,
+							)
+						: ''
+				}
+				images={
+					activeAnnouncement
+						? ANNOUNCEMENT_IMAGES[activeAnnouncement].map((src, index) => ({
+								src,
+								description: t(
+									`components.topBar.announcementItems.${activeAnnouncement}.imageDescriptions.${index}`,
+								),
+							}))
+						: []
+				}
 			/>
 		</Box>
 	)
