@@ -1337,6 +1337,35 @@
 						"0": "Starten Sie unter Produkte → Import. Wählen Sie Währung und Felder, laden Sie eine .xlsx/.xlsm-Datei hoch und ordnen Sie jedes Feld der passenden Excel-Spalte zu.",
 						"1": "Im Stammdaten-Schritt können Sie Einheiten, Kategorien und Lieferanten aus den Dateiwerten zuordnen oder anlegen und die Zeilen vor dem stapelweisen Speichern von Produkten und Bestand prüfen."
 					}
+				},
+				"cashBoxes": {
+					"title": "Live-Bargeldkarten im Dashboard",
+					"description": "Wir erweitern das Dashboard laufend um neue Live-Karten. Die Bargeldboxen sind jetzt verfügbar, damit Sie Salden, Beträge und zugehörige Gebühren direkt in der Übersicht prüfen können.",
+					"imageDescriptions": {
+						"0": "Im Dashboard sehen Sie vier Kacheln: Tageskasse, Barreserve (Safe), Online und Gesamt — so bleiben Schubladenkasse, Reserve, Karten-/Onlinegeld und der Gesamtsaldo gemeinsam sichtbar.",
+						"1": "Auf Rechnungen erscheinen Tageskasse und Online für den gewählten Zahlungsweg, damit Sie vor dem Speichern sehen, in welche Box der bezahlte Betrag fließt (oder welche Box belastet wird)."
+					}
+				},
+				"onlinePayment": {
+					"title": "Online-Zahlung auf Rechnungen",
+					"description": "Beim Erstellen einer Verkaufs- oder Einkaufsrechnung können Sie Online als Zahlungsart wählen. Karten- und Onlinezahlungen buchen automatisch auf das Online-Konto — ohne extra Kassenwahl.",
+					"imageDescriptions": {
+						"0": "Wählen Sie Online in den Zahlungssteuerungen der Rechnung. Der bezahlte Betrag aktualisiert den Online-Saldo des aktiven Lagers; Barzahlungen gehen weiterhin auf die Tageskasse."
+					}
+				},
+				"cashTransfer": {
+					"title": "Transfer zwischen Bargeldboxen",
+					"description": "Verschieben Sie Beträge zwischen Tageskasse, Barreserve und Online — z. B. Schublade auffüllen, Geld in den Safe legen oder Online-Erlöse ausgleichen — ohne Buchung als Einnahme oder Ausgabe.",
+					"imageDescriptions": {
+						"0": "Nutzen Sie Schnelleingabe → Transfer (Online erforderlich). Wählen Sie Quell- und Zielbox, Betrag und optional einen Grund. Das System bucht beide Seiten, damit die Salden von Tageskasse, Reserve und Online synchron bleiben."
+					}
+				},
+				"cashHistory": {
+					"title": "Bargeld-Historie über Dashboard-Karten",
+					"description": "Klicken Sie im Dashboard auf eine Bargeldkarte (Tageskasse, Barreserve, Online oder Gesamt), um das Kontobuch dieser Box zu öffnen und jede Bewegung zu prüfen — Rechnungen, Quittungen, Zahlungen, Ausgaben und Transfers.",
+					"imageDescriptions": {
+						"0": "Die Historienliste zeigt jede Buchung mit Betrag, Richtung und verknüpfter Aktivität, damit Sie nachvollziehen können, wie sich der Saldo der gewählten Box über die Zeit verändert hat."
+					}
 				}
 			},
 			"changePassword": "Passwort ändern",

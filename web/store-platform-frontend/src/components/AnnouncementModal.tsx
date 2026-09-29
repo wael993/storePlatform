@@ -16,6 +16,10 @@ export const ANNOUNCEMENT_KEYS = [
 	'dashboard',
 	'multipleBarcodes',
 	'productImport',
+	'cashBoxes',
+	'onlinePayment',
+	'cashTransfer',
+	'cashHistory',
 ] as const
 
 export type AnnouncementKey = (typeof ANNOUNCEMENT_KEYS)[number]
@@ -26,6 +30,10 @@ export const ANNOUNCEMENT_IMAGES: Record<AnnouncementKey, string[]> = {
 	multipleBarcodes: ['/barcode.png'],
 	dashboard: ['/dashboard.png', '/dashboardTag1.png', '/dashboardTag2.png'],
 	productImport: ['/importProducts.png', '/import1.png'],
+	cashBoxes: ['/cashesDashboard.png', '/cashesInvoice.png'],
+	onlinePayment: ['/onlinePayinvoice.png'],
+	cashTransfer: ['/transfer.png'],
+	cashHistory: ['/historychash.png'],
 }
 
 export interface AnnouncementImage {

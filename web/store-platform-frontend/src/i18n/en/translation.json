@@ -1337,6 +1337,35 @@
 						"0": "Start from Products → Import. Choose currency and fields, upload an .xlsx/.xlsm file, then map each selected field to its Excel column.",
 						"1": "In the master-data step you can match or create units, categories, and suppliers from the file values, then preview rows before the batched commit writes Products and stock."
 					}
+				},
+				"cashBoxes": {
+					"title": "Live cash cards on the Dashboard",
+					"description": "We keep extending the Dashboard with new live cards. Cash boxes are now available so you can check balances, amounts, and related fees without leaving the overview.",
+					"imageDescriptions": {
+						"0": "On the Dashboard you see four cash tiles: Daily Cash, Cash Reserve (safe), Online, and Total — so drawer cash, reserve, card/online money, and the combined balance stay visible together.",
+						"1": "On invoices, Daily Cash and Online appear for the payment path in use, so you can confirm which box the paid amount will land in (or leave from) before you save."
+					}
+				},
+				"onlinePayment": {
+					"title": "Online payment on invoices",
+					"description": "When you create a selling or buying invoice you can choose Online as the payment method. Card and online payments post to the Online cash account automatically — no separate cash-box picker.",
+					"imageDescriptions": {
+						"0": "Select Online on the invoice payment controls. The paid amount updates the Online balance for the active warehouse; cash payments still go to Daily Cash as before."
+					}
+				},
+				"cashTransfer": {
+					"title": "Transfer between cash boxes",
+					"description": "Move money between Daily Cash, Cash Reserve, and Online when you need to top up the drawer, park cash in the safe, or settle online proceeds — without booking it as income or expense.",
+					"imageDescriptions": {
+						"0": "Use Quick Entry → Transfer (online required). Pick the from and to boxes, enter the amount, and optionally a reason. The system posts both legs so balances stay in sync across Daily, Reserve, and Online."
+					}
+				},
+				"cashHistory": {
+					"title": "Cash movement history from Dashboard cards",
+					"description": "Click a cash card on the Dashboard (Daily Cash, Cash Reserve, Online, or Total) to open that box’s ledger and review every movement — invoices, receipts, payments, expenses, and transfers.",
+					"imageDescriptions": {
+						"0": "The history list shows each posting with amount, direction, and linked activity so you can audit how the balance changed over time for the selected cash box."
+					}
 				}
 			},
 			"changePassword": "Change Password",
