@@ -253,7 +253,7 @@ export type BuyingInvoiceRequestBody = {
 	supplierName?: string
 	supplierInvoiceNumber?: string
 	sourceSupplierName?: string
-	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
+	paymentType?: `${InvoicePaymentType}`
 	items?: Array<{
 		productId: string
 		name: string

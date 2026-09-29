@@ -42,7 +42,7 @@ export interface IBuyingInvoice extends Document {
 	supplierName?: string
 	supplierInvoiceNumber?: string
 	sourceSupplierName?: string
-	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
+	paymentType?: `${InvoicePaymentType}`
 	items?: IBuyingInvoiceItem[]
 	status: `${InvoiceStatus}`
 	paymentStatus?: `${InvoicePaymentStatus}`
@@ -132,7 +132,7 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 		},
 		paymentType: {
 			type: String,
-			enum: [InvoicePaymentType.CASH, InvoicePaymentType.CREDIT],
+			enum: Object.values(InvoicePaymentType),
 		},
 		items: {
 			type: [BuyingInvoiceItemSchema],

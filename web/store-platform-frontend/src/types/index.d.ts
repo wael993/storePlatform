@@ -40,6 +40,7 @@ interface DailyAction {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	cashAccountType?: string
 	unitId?: string
 	unitName?: string
 	weight?: string

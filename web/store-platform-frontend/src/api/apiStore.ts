@@ -424,7 +424,7 @@ export interface PostBuyingInvoiceBody {
 	supplierName?: string
 	supplierInvoiceNumber?: string
 	sourceSupplierName?: string
-	paymentType?: `${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
+	paymentType?: `${InvoicePaymentType}`
 	items: Array<{
 		productId: string
 		name: string
@@ -528,6 +528,7 @@ export interface AddDailyActionRequestBody {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	cashAccountType?: string
 	unitId?: string
 	unitName?: string
 	weight?: string
@@ -883,6 +884,97 @@ const getQuery = (
 				method: 'GET',
 			}),
 			providesTags: ['budget-overview'],
+		}),
+
+		getCashAccountBalances: builder.query<
+			{
+				accounts: Array<{ type: string; name: string; balance: number }>
+				total: number
+			},
+			void
+		>({
+			query: () => ({
+				url: 'cash-accounts/balances',
+				method: 'GET',
+			}),
+			providesTags: ['cash-accounts'],
+		}),
+
+		getCashAccountLedger: builder.query<
+			{
+				entries: Array<{
+					ledgerEntryId: string
+					warehouseId: string
+					cashAccountId: string
+					accountType: string
+					amount: number
+					movementType: string
+					referenceType: string
+					referenceId: string
+					referenceLabel?: string
+					transferGroupId?: string
+					reason?: string
+					createdAt: string
+					createdBy: {
+						_id: string
+						displayName: string
+						role?: string
+					}
+				}>
+				totalCount: number
+				page: number
+				limit: number
+			},
+			{
+				accountType?: string
+				movementType?: string
+				dateFrom?: string
+				dateTo?: string
+				page?: number
+				limit?: number
+			} | void
+		>({
+			query: (params = {}) => ({
+				url: 'cash-accounts/ledger',
+				method: 'GET',
+				params: {
+					...(params?.accountType ? { accountType: params.accountType } : {}),
+					...(params?.movementType
+						? { movementType: params.movementType }
+						: {}),
+					...(params?.dateFrom ? { dateFrom: params.dateFrom } : {}),
+					...(params?.dateTo ? { dateTo: params.dateTo } : {}),
+					...(params?.page ? { page: params.page } : {}),
+					...(params?.limit ? { limit: params.limit } : {}),
+				},
+			}),
+			providesTags: ['cash-accounts'],
+		}),
+
+		postCashTransfer: builder.mutation<
+			{
+				transferId: string
+				warehouseId: string
+				fromAccountType: string
+				toAccountType: string
+				amount: number
+				currencyId?: string
+				displayAmount?: number
+			},
+			{
+				fromAccountType: string
+				toAccountType: string
+				amount: number
+				currencyId: string
+				reason?: string
+			}
+		>({
+			query: body => ({
+				url: 'cash-accounts/transfers',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['cash-accounts'],
 		}),
 
 		getUnits: builder.query({
@@ -1770,6 +1862,7 @@ const getQuery = (
 				'partner',
 				'selling-invoices',
 				'buying-invoices',
+				'cash-accounts',
 			],
 		}),
 
@@ -1794,6 +1887,7 @@ const getQuery = (
 				'supplier',
 				'selling-invoices',
 				'buying-invoices',
+				'cash-accounts',
 			],
 		}),
 
@@ -1812,6 +1906,7 @@ const getQuery = (
 				'supplier',
 				'selling-invoices',
 				'buying-invoices',
+				'cash-accounts',
 			],
 		}),
 
@@ -1847,6 +1942,7 @@ const getQuery = (
 				'inventory',
 				'products',
 				'customers',
+				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
@@ -1872,6 +1968,7 @@ const getQuery = (
 				'inventory',
 				'products',
 				'customers',
+				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
@@ -1893,6 +1990,7 @@ const getQuery = (
 				'inventory',
 				'products',
 				'customers',
+				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
@@ -1936,6 +2034,7 @@ const getQuery = (
 				'inventory',
 				'products',
 				'suppliers',
+				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
@@ -1961,6 +2060,7 @@ const getQuery = (
 				'inventory',
 				'products',
 				'suppliers',
+				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
@@ -1982,6 +2082,7 @@ const getQuery = (
 				'inventory',
 				'products',
 				'suppliers',
+				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
 				try {
@@ -2393,6 +2494,9 @@ export const {
 	useGetPartnersQuery,
 	useGetSinglePartnerQuery,
 	useGetBudgetOverviewQuery,
+	useGetCashAccountBalancesQuery,
+	useGetCashAccountLedgerQuery,
+	usePostCashTransferMutation,
 	useGetUnitsQuery,
 	useGetSingleProductQuery,
 	useEditProductMutation,

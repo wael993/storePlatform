@@ -121,6 +121,55 @@
 			"totalReceivable": "إجمالي المستحقات",
 			"cashBalance": "رصيد الصندوق"
 		},
+		"cashAccounts": {
+			"title": "النقد والمدفوعات",
+			"dailyCash": "اليومي",
+			"cashReserve": "الخزنة",
+			"online": "أونلاين",
+			"total": "الإجمالي",
+			"live": "مباشر",
+			"liveDescription": "رصيد الخادم",
+			"historyTitle": "سجل النقد",
+			"historyEmpty": "لا توجد حركات في هذا النطاق",
+			"historyEmptyHint": "جرّب حساباً أو نوعاً أو تاريخاً آخر.",
+			"historyError": "تعذر تحميل سجل النقد.",
+			"historyPagination": "{{from}}–{{to}} من {{total}}",
+			"historyFilters": {
+				"account": "الحساب",
+				"movementType": "النوع",
+				"allAccounts": "كل الحسابات",
+				"allTypes": "كل الأنواع",
+				"apply": "تطبيق"
+			},
+			"historyColumns": {
+				"date": "التاريخ",
+				"account": "الحساب",
+				"type": "النوع",
+				"amount": "المبلغ",
+				"reference": "المرجع",
+				"reason": "السبب",
+				"by": "بواسطة"
+			},
+			"movementTypes": {
+				"SALE": "بيع",
+				"PURCHASE": "شراء",
+				"RECEIPT": "قبض",
+				"PAYMENT": "دفع",
+				"EXPENSE": "مصروف",
+				"TRANSFER": "تحويل",
+				"OPENING_BALANCE": "رصيد افتتاحي",
+				"ADJUSTMENT": "تعديل",
+				"REVERSAL": "عكس"
+			},
+			"referenceTypes": {
+				"selling_invoice": "فاتورة بيع",
+				"buying_invoice": "فاتورة شراء",
+				"daily_action": "قيد يومي",
+				"cash_transfer": "تحويل",
+				"opening_balance": "رصيد افتتاحي",
+				"migration": "ترحيل"
+			}
+		},
 		"charts": {
 			"salesByCategory": "المبيعات حسب الفئة",
 			"salesByMonth": "المبيعات حسب الشهر",
@@ -527,14 +576,22 @@
 				"sellingInvoices_delete": "يمكن حذف فواتير البيع",
 				"sellingInvoices_buyingButton": " فواتير الشراء",
 				"sellingInvoices_sellingButton": " إضافة فاتورة بيع",
-				"sellingInvoices_entriesButton": " القيود",
+				"sellingInvoices_entriesButton": " السندات",
 				"sellingInvoices_summary": " الملخص",
 				"sellingInvoices_aiRead": " قراءة الفاتورة بالذكاء الاصطناعي",
 				"reports": " صفحة التقارير",
 				"dashboard": " صفحة لوحة التحكم",
-				"categories": " صفحة التصنيفات",
-				"categories_add": "يمكن إضافة تصنيفات",
-				"categories_delete": "يمكن حذف التصنيفات",
+				"dashboard_dailyCash": " رؤية النقد اليومي",
+				"dashboard_dailyCash_click": " النقر على النقد اليومي",
+				"dashboard_cashReserve": " رؤية النقد في الخزينة",
+				"dashboard_cashReserve_click": " النقر على النقد في الخزينة",
+				"dashboard_online": " رؤية المدفوعات الإلكترونية",
+				"dashboard_online_click": " النقر على المدفوعات الإلكترونية",
+				"dashboard_cashTotal": " رؤية إجمالي النقد",
+				"dashboard_cashTotal_click": " النقر على إجمالي النقد",
+				"categories": " صفحة الفئات",
+				"categories_add": "يمكن إضافة فئات",
+				"categories_delete": "يمكن حذف الفئات",
 				"partners": " صفحة الشركاء",
 				"partners_add": "يمكن إضافة شركاء",
 				"partners_delete": "يمكن حذف الشركاء",
@@ -812,7 +869,16 @@
 			"entries": {
 				"title": "إضافة سند",
 				"viewTitle": "عرض السند",
-				"editTitle": "تعديل السند"
+				"editTitle": "تعديل السند",
+				"transfer": "تحويل",
+				"fromAccount": "من حساب",
+				"toAccount": "إلى حساب",
+				"transferReason": "السبب (اختياري)",
+				"transferSavedSuccessfully": "تم التحويل بنجاح.",
+				"transferFailed": "فشل التحويل.",
+				"transferOffline": "يتطلب التحويل النقدي اتصالاً بالإنترنت.",
+				"saveFailed": "فشل حفظ السند.",
+				"insufficientBalance": "المبلغ يتجاوز الرصيد المتاح ({{available}} {{currency}})."
 			},
 			"barcodeSearchPlaceholder": "امسح الباركود أو ابحث عن منتج...",
 			"todaysActions": "الإجراءات اليومية",
@@ -826,10 +892,7 @@
 				"bestSellerValue": "{{name}} · {{quantity}} قطعة",
 				"topProfitProduct": "المنتج الأعلى ربحاً",
 				"topProfitProductValue": "{{name}} · {{profit}}",
-				"totalReceivable": "إجمالي المستحقات",
-				"cashBalance": "رصيد الصندوق",
-				"cashBalancePeriod": "الفترة",
-				"cashBalanceAllTime": "كل الوقت"
+				"totalReceivable": "إجمالي المستحقات"
 			},
 			"status": {
 				"all": "الكل",
@@ -914,9 +977,10 @@
 				"change": "الباقي",
 				"displayCurrency": "عملة العرض",
 				"otherCurrencies": "عملات أخرى",
-				"averageBuying": "متوسط الشراء",
-				"lastBuying": "آخر شراء",
-				"lastSelling": "آخر بيع",
+				"productCostInfo": "معلومات تكلفة المنتج",
+				"averageBuying": "متوسط التكلفة",
+				"lastBuying": "آخر سعر شراء",
+				"lastSelling": "آخر سعر بيع",
 				"saveDraft": "حفظ كمسودة",
 				"holdInvoice": "تعليق الفاتورة",
 				"payCashAndSave": "دفع نقداً وحفظ",
@@ -963,6 +1027,7 @@
 				"saveDraft": "حفظ كمسودة",
 				"holdInvoice": "تعليق الفاتورة",
 				"payCashAndSave": "دفع نقداً وحفظ",
+				"payCardAndSave": "دفع بالبطاقة وحفظ",
 				"saveCreditInvoice": "حفظ فاتورة آجلة",
 				"saveFailed": "فشل حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
 				"saveSuccess": "تم حفظ فاتورة الشراء بنجاح.",
@@ -1012,7 +1077,8 @@
 			},
 			"paymentType": {
 				"cash": "نقداً",
-				"credit": "آجل (ادفع لاحقاً)"
+				"credit": "آجل (ادفع لاحقاً)",
+				"card": "بطاقة"
 			}
 		},
 		"pageHeaders": {

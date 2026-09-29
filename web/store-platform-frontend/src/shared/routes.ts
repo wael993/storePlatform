@@ -16,6 +16,7 @@ export const RoutePaths = {
 	SELLING_INVOICES: withBasePath('/selling-invoices'),
 	REPORTS: withBasePath('/reports'),
 	DASHBOARD: withBasePath('/dashboard'),
+	CASH_ACCOUNT_HISTORY: withBasePath('/dashboard/cash-history'),
 	CUSTOMERS: withBasePath('/customers'),
 	SINGLE_CUSTOMER: withBasePath('/customers/:customerId'),
 	CATEGORIES: withBasePath('/categories'),
@@ -65,6 +66,7 @@ export const fullPaths = {
 	SELLING_INVOICES: RoutePaths.SELLING_INVOICES,
 	REPORTS: RoutePaths.REPORTS,
 	DASHBOARD: RoutePaths.DASHBOARD,
+	CASH_ACCOUNT_HISTORY: RoutePaths.CASH_ACCOUNT_HISTORY,
 }
 
 export const routeLabelKeys = {
@@ -91,6 +93,7 @@ export const routeLabelKeys = {
 	SELLING_INVOICES: 'components.pageHeaders.sellingInvoices',
 	REPORTS: 'components.pageHeaders.reports',
 	DASHBOARD: 'components.pageHeaders.dashboard',
+	CASH_ACCOUNT_HISTORY: 'dashboard.cashAccounts.historyTitle',
 } as const
 
 export const getRouteLabel = (path: string, fallback = '') => {
@@ -462,6 +465,26 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
+	const cashAccountHistory: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'dashboard',
+			name: t(routeLabelKeys.DASHBOARD),
+			href: fullPaths.DASHBOARD,
+			isCurrentPage: false,
+		},
+		{
+			id: 'cash-account-history',
+			name: t(routeLabelKeys.CASH_ACCOUNT_HISTORY),
+			href: fullPaths.CASH_ACCOUNT_HISTORY,
+			isCurrentPage: true,
+		},
+	]
 
 	return {
 		StorePlatform,
@@ -487,5 +510,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		sellingInvoices,
 		reports,
 		dashboard,
+		cashAccountHistory,
 	}
 }

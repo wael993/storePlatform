@@ -119,6 +119,55 @@
 			"totalReceivable": "Total Receivable",
 			"cashBalance": "Cash Balance"
 		},
+		"cashAccounts": {
+			"title": "Cash & Payments",
+			"dailyCash": "Daily Cash",
+			"cashReserve": "Cash Reserve",
+			"online": "Online",
+			"total": "Total Cash",
+			"live": "Live",
+			"liveDescription": "Server balance",
+			"historyTitle": "Cash History",
+			"historyEmpty": "No movements in this range",
+			"historyEmptyHint": "Try a different account, type, or date range.",
+			"historyError": "Could not load cash history.",
+			"historyPagination": "{{from}}–{{to}} of {{total}}",
+			"historyFilters": {
+				"account": "Account",
+				"movementType": "Type",
+				"allAccounts": "All accounts",
+				"allTypes": "All types",
+				"apply": "Apply"
+			},
+			"historyColumns": {
+				"date": "Date",
+				"account": "Account",
+				"type": "Type",
+				"amount": "Amount",
+				"reference": "Reference",
+				"reason": "Reason",
+				"by": "By"
+			},
+			"movementTypes": {
+				"SALE": "Sale",
+				"PURCHASE": "Purchase",
+				"RECEIPT": "Receipt",
+				"PAYMENT": "Payment",
+				"EXPENSE": "Expense",
+				"TRANSFER": "Transfer",
+				"OPENING_BALANCE": "Opening balance",
+				"ADJUSTMENT": "Adjustment",
+				"REVERSAL": "Reversal"
+			},
+			"referenceTypes": {
+				"selling_invoice": "Selling invoice",
+				"buying_invoice": "Buying invoice",
+				"daily_action": "Daily entry",
+				"cash_transfer": "Transfer",
+				"opening_balance": "Opening balance",
+				"migration": "Migration"
+			}
+		},
 		"charts": {
 			"salesByCategory": "Sales by category",
 			"salesByMonth": "Sales by month",
@@ -530,6 +579,14 @@
 				"sellingInvoices_aiRead": "Can see AI read invoice",
 				"reports": "Can see Reports page",
 				"dashboard": "Can see Dashboard page",
+				"dashboard_dailyCash": "Can see Daily Cash",
+				"dashboard_dailyCash_click": "Can click Daily Cash",
+				"dashboard_cashReserve": "Can see Cash Reserve",
+				"dashboard_cashReserve_click": "Can click Cash Reserve",
+				"dashboard_online": "Can see Online",
+				"dashboard_online_click": "Can click Online",
+				"dashboard_cashTotal": "Can see Total Cash",
+				"dashboard_cashTotal_click": "Can click Total Cash",
 				"categories": "Can see Categories page",
 				"categories_add": "Can add categories",
 				"categories_delete": "Can delete categories",
@@ -810,7 +867,16 @@
 			"entries": {
 				"title": "Add Entry",
 				"viewTitle": "View Entry",
-				"editTitle": "Edit Entry"
+				"editTitle": "Edit Entry",
+				"transfer": "Transfer",
+				"fromAccount": "From account",
+				"toAccount": "To account",
+				"transferReason": "Reason (optional)",
+				"transferSavedSuccessfully": "Transfer completed successfully.",
+				"transferFailed": "Transfer failed.",
+				"transferOffline": "Cash transfer requires an online connection.",
+				"saveFailed": "Failed to save entry.",
+				"insufficientBalance": "Amount exceeds available balance ({{available}} {{currency}})."
 			},
 			"barcodeSearchPlaceholder": "Scan barcode or search product...",
 			"todaysActions": "Today's Actions",
@@ -824,10 +890,7 @@
 				"bestSellerValue": "{{name}} · {{quantity}} pcs",
 				"topProfitProduct": "Top Profit Product",
 				"topProfitProductValue": "{{name}} · {{profit}}",
-				"totalReceivable": "Total Receivable",
-				"cashBalance": "Cash Balance",
-				"cashBalancePeriod": "Period",
-				"cashBalanceAllTime": "All time"
+				"totalReceivable": "Total Receivable"
 			},
 			"status": {
 				"all": "All",
@@ -912,9 +975,10 @@
 				"change": "Change",
 				"displayCurrency": "Display Currency",
 				"otherCurrencies": "Other currencies",
-				"averageBuying": "Average buying",
-				"lastBuying": "Last buying",
-				"lastSelling": "Last selling",
+				"productCostInfo": "Product Cost Information",
+				"averageBuying": "Average cost",
+				"lastBuying": "Last buying price",
+				"lastSelling": "Last selling price",
 				"saveDraft": "Save Draft",
 				"holdInvoice": "Hold Invoice",
 				"payCashAndSave": "Pay Cash & Save",
@@ -961,6 +1025,7 @@
 				"saveDraft": "Save Draft",
 				"holdInvoice": "Hold Invoice",
 				"payCashAndSave": "Pay Cash & Save",
+				"payCardAndSave": "Pay Card & Save",
 				"saveCreditInvoice": "Save Credit Invoice",
 				"saveFailed": "Failed to save invoice. Please try again.",
 				"saveSuccess": "Buying invoice saved successfully.",
@@ -1010,7 +1075,8 @@
 			},
 			"paymentType": {
 				"cash": "Cash",
-				"credit": "Credit (Pay Later)"
+				"credit": "Credit (Pay Later)",
+				"card": "Card"
 			}
 		},
 		"pageHeaders": {

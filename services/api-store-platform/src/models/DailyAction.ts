@@ -32,6 +32,8 @@ export interface IDailyAction extends Document {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	/** Cash account type for receipt/payment/expense posting. Defaults to daily_cash. */
+	cashAccountType?: string
 	unitId?: string
 	unitName?: string
 	weight?: string
@@ -136,6 +138,10 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			type: String,
 			trim: true,
 			required: [true, 'currencyName is required'],
+		},
+		cashAccountType: {
+			type: String,
+			trim: true,
 		},
 		unitId: {
 			type: String,

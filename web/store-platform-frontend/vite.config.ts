@@ -27,7 +27,6 @@ export default defineConfig({
 			include: [
 				'src/pages/Login.tsx',
 				'src/shared/hooks/useResources.ts',
-				'src/components/SellingInvoice/cashBalance.ts',
 			],
 		},
 	},

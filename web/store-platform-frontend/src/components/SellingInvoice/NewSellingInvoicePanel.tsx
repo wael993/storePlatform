@@ -67,7 +67,6 @@ import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsPauseIcon } from '../../icons/Pause'
 import { AsSaveIcon } from '../icons/Save'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
-// import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsDocumentIcon } from '../../shared/icons/Document'
 import { AsEditIcon } from '../../shared/icons/Edit'
 import DatePickerLabel from '../common/DatePickerLabel'
@@ -75,6 +74,7 @@ import {
 	formatDateInputValue,
 	parseDateInputValue,
 } from '../../shared/dateUtils'
+import { AsCreditCardIcon } from '../../icons/CreditCard'
 
 export type InvoicePanelMode = 'create' | 'view' | 'edit'
 
@@ -489,7 +489,10 @@ const NewSellingInvoicePanel = ({
 			...current,
 			paymentType,
 			paidAmount:
-				paymentType === InvoicePaymentType.CASH ? totals.grandTotal : 0,
+				paymentType === InvoicePaymentType.CASH ||
+				paymentType === InvoicePaymentType.CARD
+					? totals.grandTotal
+					: 0,
 		}))
 	}
 
@@ -896,13 +899,14 @@ const NewSellingInvoicePanel = ({
 							onClick={handlePaymentTypeChange}
 							isDisabled={isReadOnly}
 						/>
-						{/* <PaymentTypeButton
+						<PaymentTypeButton
 							type={InvoicePaymentType.CARD}
 							label={t('components.sellingInvoices.paymentType.card')}
 							icon={<AsCreditCardIcon />}
 							isActive={draft.paymentType === InvoicePaymentType.CARD}
 							onClick={handlePaymentTypeChange}
-						/> */}
+							isDisabled={isReadOnly}
+						/>
 						<PaymentTypeButton
 							type={InvoicePaymentType.CREDIT}
 							label={t('components.sellingInvoices.paymentType.credit')}

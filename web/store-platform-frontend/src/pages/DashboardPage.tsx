@@ -13,6 +13,7 @@ import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import EmptyState from '../components/common/EmptyState'
 import DatePickerLabel from '../components/common/DatePickerLabel'
 import { KpiCardComingSoon } from '../components/dashboard/kpiComponents'
+import CashPaymentsCard from '../components/dashboard/CashPaymentsCard'
 import { ActivityListCard } from '../components/dashboard/activityCards'
 import { InventoryListCard } from '../components/dashboard/inventoryCards'
 import { OVERVIEW_KPI_VISUALS } from '../components/dashboard/overviewKpiVisuals'
@@ -126,6 +127,10 @@ const DashboardPage = () => {
 										spacing={4}
 									>
 										{OVERVIEW_KPI_IDS.map(kpiId => {
+											if (kpiId === 'cashBalance') {
+												return <CashPaymentsCard key={kpiId} />
+											}
+
 											const visual = OVERVIEW_KPI_VISUALS[kpiId]
 											const Icon = visual.Icon
 											return (

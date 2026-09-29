@@ -250,6 +250,7 @@ export const mapDailyAction = (dailyAction: DailyAction) => {
 		expenseName: dailyAction.expenseName,
 		currencyId: dailyAction.currencyId,
 		currencyName: dailyAction.currencyName,
+		cashAccountType: dailyAction.cashAccountType,
 		unitId: dailyAction.unitId,
 		unitName: dailyAction.unitName,
 		weight: dailyAction.weight,

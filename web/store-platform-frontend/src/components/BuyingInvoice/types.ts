@@ -7,8 +7,7 @@ import type {
 import type { InvoicePaymentType } from '../../shared/globalEnums'
 import type { InvoiceExtractionReview } from '../../shared/invoiceExtraction'
 
-export type BuyingInvoicePaymentType =
-	`${InvoicePaymentType.CASH}` | `${InvoicePaymentType.CREDIT}`
+export type BuyingInvoicePaymentType = `${InvoicePaymentType}`
 
 /** Line items share the exact same shape as selling invoices (product/qty/price/discount/tax). */
 export type BuyingInvoiceLineItem = SellingInvoiceLineItem

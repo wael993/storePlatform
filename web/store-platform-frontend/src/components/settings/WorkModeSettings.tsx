@@ -72,7 +72,7 @@ const WorkModeSettings = () => {
 						<Radio value="offline">
 							{t('components.workModeSettings.offline')}
 						</Radio>
-						<Radio value="auto">{t('components.workModeSettings.auto')}</Radio>
+						{/* <Radio value="auto">{t('components.workModeSettings.auto')}</Radio> */}
 					</Stack>
 				</RadioGroup>
 			</FormControl>

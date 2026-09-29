@@ -1,4 +1,4 @@
-import { Box, Divider, Text, Tooltip, VStack } from '@chakra-ui/react'
+import { Box, Text, Tooltip, VStack } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import {
 	convertPrimaryAmount,
@@ -11,12 +11,6 @@ import {
 	type SavedCurrencyAmountField,
 } from './currencyDisplay'
 import EditableNumberField from './EditableNumberField'
-
-export interface CostReferenceLines {
-	averageBuying: string
-	lastBuying: string
-	lastSelling: string
-}
 
 interface CurrencyAmountTooltipProps {
 	amount: number
@@ -35,7 +29,6 @@ interface CurrencyAmountTooltipProps {
 	onEdit?: (amount: number) => void | Promise<void>
 	/** When false, amount is not click-editable; registerEditStart can still force-open. */
 	clickToEdit?: boolean
-	costReference?: CostReferenceLines
 }
 
 const CurrencyAmountTooltip = ({
@@ -54,7 +47,6 @@ const CurrencyAmountTooltip = ({
 	onCancel,
 	onEdit,
 	clickToEdit = true,
-	costReference,
 }: CurrencyAmountTooltipProps) => {
 	const { t } = useTranslation()
 	const otherCurrencies =
@@ -94,7 +86,7 @@ const CurrencyAmountTooltip = ({
 		</Text>
 	)
 
-	if (otherCurrencies.length === 0 && !costReference) {
+	if (otherCurrencies.length === 0) {
 		return content
 	}
 
@@ -105,41 +97,14 @@ const CurrencyAmountTooltip = ({
 			openDelay={200}
 			label={
 				<VStack align="stretch" spacing={1} py={1}>
-					{otherCurrencies.length > 0 && (
-						<>
-							<Text fontSize="xs" fontWeight={700} opacity={0.85}>
-								{t('components.sellingInvoices.drawer.otherCurrencies')}
-							</Text>
-							{otherCurrencies.map(currency => (
-								<Text
-									key={currency.currencyId}
-									fontSize="sm"
-									whiteSpace="nowrap"
-								>
-									{currency.text}
-								</Text>
-							))}
-						</>
-					)}
-					{costReference && (
-						<>
-							{otherCurrencies.length > 0 && (
-								<Divider borderColor="whiteAlpha.400" my={1} />
-							)}
-							<Text fontSize="sm" whiteSpace="nowrap">
-								{t('components.sellingInvoices.drawer.lastBuying')}:{' '}
-								{costReference.lastBuying}
-							</Text>
-							<Text fontSize="sm" whiteSpace="nowrap">
-								{t('components.sellingInvoices.drawer.averageBuying')}:{' '}
-								{costReference.averageBuying}
-							</Text>
-							<Text fontSize="sm" whiteSpace="nowrap">
-								{t('components.sellingInvoices.drawer.lastSelling')}:{' '}
-								{costReference.lastSelling}
-							</Text>
-						</>
-					)}
+					<Text fontSize="xs" fontWeight={700} opacity={0.85}>
+						{t('components.sellingInvoices.drawer.otherCurrencies')}
+					</Text>
+					{otherCurrencies.map(currency => (
+						<Text key={currency.currencyId} fontSize="sm" whiteSpace="nowrap">
+							{currency.text}
+						</Text>
+					))}
 				</VStack>
 			}
 		>

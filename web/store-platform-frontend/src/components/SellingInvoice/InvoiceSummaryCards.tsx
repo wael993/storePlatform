@@ -1,9 +1,18 @@
 import { Box, Flex, Skeleton, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import { FiCreditCard } from 'react-icons/fi'
 import { PAGE_COLORS } from './constants'
 import type { SellingInvoiceSummary } from './types'
 import { formatTrend } from './utils'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
+import {
+	useGetCashAccountBalancesQuery,
+	useGetCurrencySettingsQuery,
+} from '../../api/apiStore'
+import { getWorkMode } from '../../offline/workMode'
+import { formatNumber } from '../../shared/utils'
+import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
+import { useUser } from '../../shared/hooks/useUser'
 // import { AsTimeIcon } from '../../shared/icons/Time'
 import { AsPriceActivityFeeIcon } from '../../shared/icons/price/PriceActivityFeeIcon'
 import { DollarSignIcon } from '../../icons/DollarSign'
@@ -13,11 +22,6 @@ import { AsCashBalanceIcon } from '../../icons/CashBalance'
 import DatePickerLabel from '../common/DatePickerLabel'
 import { datePickerStyles } from '../../theme/styles'
 
-export interface CashBalanceSummaryValues {
-	period: number
-	allTime: number
-}
-
 interface InvoiceSummaryCardsProps {
 	summary: SellingInvoiceSummary
 	isLoading?: boolean
@@ -25,9 +29,8 @@ interface InvoiceSummaryCardsProps {
 	dateTo: Date
 	onDateFromChange: (date: Date | undefined) => void
 	onDateToChange: (date: Date | undefined) => void
-	showCashBalance?: boolean
-	cashBalance?: CashBalanceSummaryValues
-	isCashBalanceLoading?: boolean
+	/** Live Daily Cash + Online from ledger (same API as Dashboard). */
+	showLedgerCash?: boolean
 }
 
 const cardStyles = {
@@ -59,19 +62,6 @@ const cardStyles = {
 		color: 'gray.900',
 		lineHeight: '1.3',
 		noOfLines: 2,
-	},
-	subValue: {
-		fontSize: { base: 'lg', md: 'xl' },
-		fontWeight: '700',
-		color: 'gray.900',
-		lineHeight: '1.2',
-	},
-	subLabel: {
-		fontSize: 'xs',
-		fontWeight: '500',
-		color: PAGE_COLORS.muted,
-		mb: '0.5',
-		mt: '2',
 	},
 	trend: {
 		fontSize: 'xs',
@@ -177,53 +167,6 @@ const SummaryCard = ({
 
 const EMPTY_SUMMARY_VALUE = '—'
 
-interface CashBalanceSummaryCardProps {
-	title: string
-	periodLabel: string
-	allTimeLabel: string
-	periodValue: string
-	allTimeValue: string
-	isLoading?: boolean
-}
-
-const CashBalanceSummaryCard = ({
-	title,
-	periodLabel,
-	allTimeLabel,
-	periodValue,
-	allTimeValue,
-	isLoading = false,
-}: CashBalanceSummaryCardProps) => (
-	<Box sx={cardStyles.base}>
-		<Flex justify="space-between" align="flex-start">
-			<Box flex="1" minW={0}>
-				<Text sx={cardStyles.label}>{title}</Text>
-				<Text sx={cardStyles.subLabel}>{periodLabel}</Text>
-				{isLoading ? (
-					<Skeleton height="1.5rem" width="70%" mt={1} />
-				) : (
-					<Text sx={cardStyles.subValue}>{periodValue}</Text>
-				)}
-				<Text sx={cardStyles.subLabel}>{allTimeLabel}</Text>
-				{isLoading ? (
-					<Skeleton height="1.5rem" width="70%" mt={1} />
-				) : (
-					<Text sx={cardStyles.subValue}>{allTimeValue}</Text>
-				)}
-			</Box>
-			<Flex
-				sx={{
-					...cardStyles.iconCircle,
-					bg: '#E0F2FE',
-					color: '#0369A1',
-				}}
-			>
-				<AsCashBalanceIcon boxSize={5} />
-			</Flex>
-		</Flex>
-	</Box>
-)
-
 const InvoiceSummaryCards = ({
 	summary,
 	isLoading = false,
@@ -231,12 +174,47 @@ const InvoiceSummaryCards = ({
 	dateTo,
 	onDateFromChange,
 	onDateToChange,
-	showCashBalance = false,
-	cashBalance,
-	isCashBalanceLoading = false,
+	showLedgerCash = false,
 }: InvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { user } = useUser()
+	const { isOnline } = useOfflineSync(user?.tenantId)
+	const cashOpsOnline = isOnline && getWorkMode() !== 'offline'
+	const {
+		data: cashBalances,
+		isLoading: isCashLoading,
+		isFetching: isCashFetching,
+		isError: isCashError,
+	} = useGetCashAccountBalancesQuery(undefined, {
+		skip: !showLedgerCash || !cashOpsOnline,
+		refetchOnMountOrArgChange: false,
+	})
+	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
+		skip: !showLedgerCash || !cashOpsOnline,
+		refetchOnMountOrArgChange: false,
+	})
+
+	const currencyLabel =
+		currencySettings?.primaryCurrency?.internalCode ||
+		currencySettings?.primaryCurrency?.name ||
+		''
+
+	const formatLedgerBalance = (amount: number | undefined) => {
+		if (!cashOpsOnline) return t('common.onlineOnly')
+		if (isCashError) return t('dashboard.kpi.error')
+		if (amount == null) return EMPTY_SUMMARY_VALUE
+		const formatted = formatNumber(amount) ?? String(amount)
+		return currencyLabel ? `${formatted} ${currencyLabel}` : formatted
+	}
+
+	const balanceByType = new Map(
+		(cashBalances?.accounts ?? []).map(account => [account.type, account.balance]),
+	)
+	const showCashLoading =
+		showLedgerCash &&
+		cashOpsOnline &&
+		(isCashLoading || (isCashFetching && !cashBalances))
 
 	const bestSellerValue = summary.bestSeller
 		? t('components.sellingInvoices.summary.bestSellerValue', {
@@ -259,7 +237,7 @@ const InvoiceSummaryCards = ({
 	const showProfit = summary.profitReliable === true
 
 	if (isLoading) {
-		const skeletonCount = (showCashBalance ? 9 : 8) - (showProfit ? 0 : 2)
+		const skeletonCount = (showLedgerCash ? 10 : 8) - (showProfit ? 0 : 2)
 
 		return (
 			<Box mb={6}>
@@ -354,24 +332,6 @@ const InvoiceSummaryCards = ({
 						iconColor="#6D28D9"
 					/>
 				)}
-				{/* <SummaryCard
-					label={t('components.sellingInvoices.summary.paidInvoices')}
-					value={String(summary.paidInvoices)}
-					trend={formatTrend(summary.paidInvoicesTrend, '')}
-					trendColor={PAGE_COLORS.success}
-					icon={<DollarSignIcon fill="none" />}
-					iconBg="#DCFCE7"
-					iconColor="#15803D"
-				/> */}
-				{/* <SummaryCard
-					label={t('components.sellingInvoices.summary.creditInvoices')}
-					value={String(summary.creditInvoices)}
-					trend={formatTrend(summary.creditInvoicesTrend, '')}
-					trendColor={PAGE_COLORS.warning}
-					icon={<AsPriceActivityFeeIcon />}
-					iconBg="#FFEDD5"
-					iconColor="#C2410C"
-				/> */}
 				<SummaryCard
 					label={t('components.sellingInvoices.summary.totalReceivable')}
 					value={formatAmount(summary.totalReceivable)}
@@ -379,30 +339,31 @@ const InvoiceSummaryCards = ({
 					iconBg="#FEE2E2"
 					iconColor="#DC2626"
 				/>
-				{/* <SummaryCard
-					label={t('components.sellingInvoices.summary.averageOrder')}
-					value={
-						hasPeriodData
-							? formatAmount(summary.averageOrder)
-							: EMPTY_SUMMARY_VALUE
-					}
-					icon={<AsTimeIcon />}
-					iconBg="#DBEAFE"
-					iconColor="#2563EB"
-				/> */}
-				{showCashBalance && cashBalance && (
-					<CashBalanceSummaryCard
-						title={t('components.sellingInvoices.summary.cashBalance')}
-						periodLabel={t(
-							'components.sellingInvoices.summary.cashBalancePeriod',
-						)}
-						allTimeLabel={t(
-							'components.sellingInvoices.summary.cashBalanceAllTime',
-						)}
-						periodValue={formatAmount(cashBalance.period)}
-						allTimeValue={formatAmount(cashBalance.allTime)}
-						isLoading={isCashBalanceLoading}
-					/>
+				{showLedgerCash && (
+					<>
+						<SummaryCard
+							label={t('dashboard.cashAccounts.dailyCash')}
+							value={
+								showCashLoading
+									? t('dashboard.kpi.loading')
+									: formatLedgerBalance(balanceByType.get('daily_cash'))
+							}
+							icon={<AsCashBalanceIcon boxSize={5} />}
+							iconBg="#ECFDF5"
+							iconColor="#059669"
+						/>
+						<SummaryCard
+							label={t('dashboard.cashAccounts.online')}
+							value={
+								showCashLoading
+									? t('dashboard.kpi.loading')
+									: formatLedgerBalance(balanceByType.get('online'))
+							}
+							icon={<FiCreditCard size={20} />}
+							iconBg="#EFF6FF"
+							iconColor="#2563EB"
+						/>
+					</>
 				)}
 			</Flex>
 		</Box>

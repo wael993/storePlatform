@@ -19,6 +19,7 @@ export interface QuickEntryFormState {
 	amount: string
 	currencyId: string
 	currencyName: string
+	cashAccountType: string
 	invoiceDate: string
 	note: string
 }
@@ -173,6 +174,7 @@ export const mapDailyActionToQuickEntryForm = (
 		amount: rawAmount ? parseNumberValue(String(rawAmount), 2) : '',
 		currencyId: dailyAction.currencyId ?? '',
 		currencyName: dailyAction.currencyName ?? '',
+		cashAccountType: dailyAction.cashAccountType || 'daily_cash',
 		invoiceDate,
 		note: dailyAction.note ?? '',
 	}

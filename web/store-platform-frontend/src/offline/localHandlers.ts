@@ -2211,6 +2211,17 @@ export const handleOfflineQuery = async (
 			}
 		}
 
+		if (method === 'POST' && path === 'cash-accounts/transfers') {
+			return {
+				error: {
+					status: 503,
+					data: {
+						message: 'Cash transfer requires an online connection.',
+					},
+				},
+			}
+		}
+
 		if (
 			(method === 'PATCH' || method === 'DELETE') &&
 			path.startsWith('inventory/warehouse-transfers/')
@@ -2286,6 +2297,7 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	if (path.startsWith('subscription')) return false
 	if (path.startsWith('users')) return false
 	if (path.startsWith('employees')) return false
+	if (path.startsWith('cash-accounts')) return false
 	if (path.startsWith('user/')) return true
 	return true
 }

@@ -25,6 +25,7 @@ import { AsTrashIcon } from '../../icons/Trash'
 import { AsProductIcon } from '../../icons/Product'
 import TextLabel from '../common/TextLabel'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import CostInfoPopover from './CostInfoPopover'
 import EditableDiscountField from './EditableDiscountField'
 import EditableNumberField from './EditableNumberField'
 import ConfidenceMark from '../BuyingInvoice/ConfidenceMark'
@@ -400,25 +401,29 @@ const InvoiceLineItemsTable = ({
 											onCancel={() => clearPendingRetailPersist(item.id)}
 											onEdit={unitPriceOnEdit}
 											clickToEdit={canEditLinePrice}
-											costReference={
-												invoiceKind === 'selling'
-													? {
-															averageBuying:
-																item.averageCost != null
-																	? formatAmount(item.averageCost)
-																	: '-',
-															lastBuying:
-																item.lastBuyingPrice != null
-																	? formatAmount(item.lastBuyingPrice)
-																	: '-',
-															lastSelling:
-																item.lastSellingPrice != null
-																	? formatAmount(item.lastSellingPrice)
-																	: '-',
-														}
-													: undefined
-											}
 										/>
+										{invoiceKind === 'selling' &&
+											(item.averageCost != null ||
+												item.lastBuyingPrice != null ||
+												item.lastSellingPrice != null) && (
+												<CostInfoPopover
+													lastBuying={
+														item.lastBuyingPrice != null
+															? formatAmount(item.lastBuyingPrice)
+															: '-'
+													}
+													averageBuying={
+														item.averageCost != null
+															? formatAmount(item.averageCost)
+															: '-'
+													}
+													lastSelling={
+														item.lastSellingPrice != null
+															? formatAmount(item.lastSellingPrice)
+															: '-'
+													}
+												/>
+											)}
 										<ConfidenceMark
 											review={extractionLines?.[item.id]?.unitPrice}
 											onConfirm={() =>

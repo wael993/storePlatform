@@ -119,6 +119,55 @@
 			"totalReceivable": "Offene Forderungen",
 			"cashBalance": "Kassenbestand"
 		},
+		"cashAccounts": {
+			"title": "Kasse & Zahlungen",
+			"dailyCash": "Tageskasse",
+			"cashReserve": "Barreserve",
+			"online": "Online",
+			"total": "Gesamt Kasse",
+			"live": "Live",
+			"liveDescription": "Server-Saldo",
+			"historyTitle": "Kassenverlauf",
+			"historyEmpty": "Keine Bewegungen in diesem Zeitraum",
+			"historyEmptyHint": "Anderes Konto, Typ oder Datum versuchen.",
+			"historyError": "Kassenverlauf konnte nicht geladen werden.",
+			"historyPagination": "{{from}}–{{to}} von {{total}}",
+			"historyFilters": {
+				"account": "Konto",
+				"movementType": "Typ",
+				"allAccounts": "Alle Konten",
+				"allTypes": "Alle Typen",
+				"apply": "Anwenden"
+			},
+			"historyColumns": {
+				"date": "Datum",
+				"account": "Konto",
+				"type": "Typ",
+				"amount": "Betrag",
+				"reference": "Referenz",
+				"reason": "Grund",
+				"by": "Von"
+			},
+			"movementTypes": {
+				"SALE": "Verkauf",
+				"PURCHASE": "Einkauf",
+				"RECEIPT": "Eingang",
+				"PAYMENT": "Zahlung",
+				"EXPENSE": "Ausgabe",
+				"TRANSFER": "Transfer",
+				"OPENING_BALANCE": "Anfangssaldo",
+				"ADJUSTMENT": "Korrektur",
+				"REVERSAL": "Storno"
+			},
+			"referenceTypes": {
+				"selling_invoice": "Verkaufsrechnung",
+				"buying_invoice": "Einkaufsrechnung",
+				"daily_action": "Tageseintrag",
+				"cash_transfer": "Transfer",
+				"opening_balance": "Anfangssaldo",
+				"migration": "Migration"
+			}
+		},
 		"charts": {
 			"salesByCategory": "Umsatz nach Kategorie",
 			"salesByMonth": "Umsatz nach Monat",
@@ -530,6 +579,14 @@
 				"sellingInvoices_aiRead": "KI-Rechnung lesen sehen",
 				"reports": "Berichte sehen",
 				"dashboard": "Dashboard sehen",
+				"dashboard_dailyCash": "Bargeld (täglich) sehen",
+				"dashboard_dailyCash_click": "Bargeld (täglich) anklicken",
+				"dashboard_cashReserve": "Bargeldreserve sehen",
+				"dashboard_cashReserve_click": "Bargeldreserve anklicken",
+				"dashboard_online": "Online sehen",
+				"dashboard_online_click": "Online anklicken",
+				"dashboard_cashTotal": "Gesamtes Bargeld sehen",
+				"dashboard_cashTotal_click": "Gesamtes Bargeld anklicken",
 				"categories": "Kategorien sehen",
 				"categories_add": "Kategorien hinzufügen",
 				"categories_delete": "Kategorien löschen",
@@ -810,7 +867,16 @@
 			"entries": {
 				"title": "Buchung hinzufügen",
 				"viewTitle": "Buchung anzeigen",
-				"editTitle": "Buchung bearbeiten"
+				"editTitle": "Buchung bearbeiten",
+				"transfer": "Umbuchung",
+				"fromAccount": "Von Konto",
+				"toAccount": "Zu Konto",
+				"transferReason": "Grund (optional)",
+				"transferSavedSuccessfully": "Umbuchung erfolgreich abgeschlossen.",
+				"transferFailed": "Umbuchung fehlgeschlagen.",
+				"transferOffline": "Umbuchung erfordert eine Online-Verbindung.",
+				"saveFailed": "Buchung konnte nicht gespeichert werden.",
+				"insufficientBalance": "Betrag übersteigt den verfügbaren Saldo ({{available}} {{currency}})."
 			},
 			"barcodeSearchPlaceholder": "Barcode scannen oder Produkt suchen...",
 			"todaysActions": "Heutige Aktionen",
@@ -824,10 +890,7 @@
 				"bestSellerValue": "{{name}} · {{quantity}} Stk.",
 				"topProfitProduct": "Produkt mit höchstem Gewinn",
 				"topProfitProductValue": "{{name}} · {{profit}}",
-				"totalReceivable": "Gesamtforderungen",
-				"cashBalance": "Kassenbestand",
-				"cashBalancePeriod": "Zeitraum",
-				"cashBalanceAllTime": "Gesamt"
+				"totalReceivable": "Gesamtforderungen"
 			},
 			"status": {
 				"all": "Alle",
@@ -912,9 +975,10 @@
 				"change": "Wechselgeld",
 				"displayCurrency": "Anzeigewährung",
 				"otherCurrencies": "Andere Währungen",
-				"averageBuying": "Durchschnittlicher Einkauf",
-				"lastBuying": "Letzter Einkauf",
-				"lastSelling": "Letzter Verkauf",
+				"productCostInfo": "Produktkosteninformationen",
+				"averageBuying": "Durchschnittliche Kosten",
+				"lastBuying": "Letzter Einkaufspreis",
+				"lastSelling": "Letzter Verkaufspreis",
 				"saveDraft": "Entwurf speichern",
 				"holdInvoice": "Rechnung zurückstellen",
 				"payCashAndSave": "Bar bezahlen & speichern",
@@ -961,6 +1025,7 @@
 				"saveDraft": "Entwurf speichern",
 				"holdInvoice": "Rechnung zurückstellen",
 				"payCashAndSave": "Bar bezahlen & speichern",
+				"payCardAndSave": "Karte bezahlen & speichern",
 				"saveCreditInvoice": "Kreditrechnung speichern",
 				"saveFailed": "Rechnung konnte nicht gespeichert werden. Bitte erneut versuchen.",
 				"saveSuccess": "Einkaufsrechnung erfolgreich gespeichert.",
@@ -1010,7 +1075,8 @@
 			},
 			"paymentType": {
 				"cash": "Bar",
-				"credit": "Kredit (Später zahlen)"
+				"credit": "Kredit (Später zahlen)",
+				"card": "Karte"
 			}
 		},
 		"pageHeaders": {

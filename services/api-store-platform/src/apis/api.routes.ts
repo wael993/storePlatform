@@ -501,6 +501,33 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/cash-accounts/balances`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getCashAccountBalances.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/cash-accounts/ledger`)
+			.get(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.getCashAccountLedger.bind(this),
+			)
+
+		app
+			.route(`${baseRoute}/cash-accounts/transfers`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postCashTransfer.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/budget-overview/:entityType/:id`)
 			.get(
 				this.startCalc.bind(this),
@@ -932,6 +959,73 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(204).send()
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getCashAccountBalances(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp =
+				await this.productController.getCashAccountBalances(requestContext)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async getCashAccountLedger(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+		const queryString = (value: unknown): string | undefined =>
+			typeof value === 'string' && value.trim() ? value.trim() : undefined
+
+		try {
+			const resp = await this.productController.getCashAccountLedger(
+				{
+					accountType: queryString(request.query.accountType),
+					movementType: queryString(request.query.movementType),
+					dateFrom: queryString(request.query.dateFrom),
+					dateTo: queryString(request.query.dateTo),
+					page: queryString(request.query.page),
+					limit: queryString(request.query.limit),
+				},
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postCashTransfer(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.postCashTransfer(
+				request.body,
+				requestContext,
+			)
+
+			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

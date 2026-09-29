@@ -29,7 +29,7 @@ describe('seeCatalog', () => {
 		const ids = defaultSeeIds('cashier', pages)
 
 		expect(ids).toContain(SEE.welcome)
-		expect(ids).toContain(SEE.dashboard)
+		expect(ids).not.toContain(SEE.dashboard)
 		expect(ids).toContain(SEE.products)
 		expect(ids).toContain(SEE.sellingInvoices)
 	})
@@ -78,10 +78,20 @@ describe('seeCatalog', () => {
 		expect(ids).toContain(SEE.products)
 	})
 
-	it('keeps locked dashboard even when stored see omits it', () => {
+	it('does not force dashboard when stored see omits it', () => {
 		const ids = resolveSeeIds('cashier', pages, [SEE.products])
 
-		expect(ids).toContain(SEE.dashboard)
+		expect(ids).not.toContain(SEE.dashboard)
+	})
+
+	it('keeps cash card click only when the card see is on', () => {
+		const saved = sanitizeSeeIdsForSave(pages, [
+			SEE.dashboard,
+			SEE.dashboardDailyCashClick,
+		])
+
+		expect(saved).toContain(SEE.dashboard)
+		expect(saved).not.toContain(SEE.dashboardDailyCashClick)
 	})
 
 	it('gives owners every available id from defaultSeeIds', () => {

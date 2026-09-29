@@ -51,6 +51,7 @@ export type TagType =
 	| 'partners'
 	| 'partner'
 	| 'budget-overview'
+	| 'cash-accounts'
 	| 'units'
 	| 'expenses'
 	| 'selling-invoices'
@@ -90,6 +91,7 @@ const tagTypes: TagType[] = [
 	'partners',
 	'partner',
 	'budget-overview',
+	'cash-accounts',
 	'units',
 	'expenses',
 	'selling-invoices',

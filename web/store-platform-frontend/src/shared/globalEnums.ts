@@ -101,6 +101,7 @@ export enum BreadCrumbItem {
 	EMPLOYEE = 'employee',
 	REPORTS = 'reports',
 	DASHBOARD = 'dashboard',
+	CASH_ACCOUNT_HISTORY = 'cashAccountHistory',
 }
 
 export enum StepKeys {

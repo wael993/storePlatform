@@ -138,7 +138,7 @@ const InputLabel = ({
 
 	return (
 		<VStack
-			sx={{ ...defaultStyles.container, gap: withGap ? '1.25rem' : 'none' }}
+			sx={{ ...defaultStyles.container, gap: withGap ? '1.25rem' : '0.5rem' }}
 		>
 			<CustomTooltip
 				label={label}

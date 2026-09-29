@@ -3,7 +3,7 @@ import {
 	CheckIcon,
 	CloseIcon,
 	HamburgerIcon,
-	RepeatIcon,
+	// RepeatIcon,
 	SettingsIcon,
 	WarningIcon,
 } from '@chakra-ui/icons'
@@ -977,7 +977,7 @@ const TopBar = ({
 								}}
 							/>
 
-							{offlineEnabled && (
+							{/* {offlineEnabled && (
 								<IconButton
 									aria-label={t('components.topBar.sync')}
 									icon={<RepeatIcon boxSize={4} />}
@@ -989,7 +989,7 @@ const TopBar = ({
 									isLoading={isSyncing}
 									isDisabled={!isOnline}
 								/>
-							)}
+							)} */}
 							{config.environment === 'local' ? (
 								<IconButton
 									aria-label={t('components.topBar.releaseNotes')}

@@ -99,6 +99,7 @@ interface DailyAction {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	cashAccountType?: string
 	unitId?: string
 	unitName?: string
 	weight?: string
@@ -123,6 +124,8 @@ interface DailyActionRequestBody {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	/** Cash account for receipt/payment/expense. Defaults to daily_cash. */
+	cashAccountType?: string
 	unitId?: string
 	unitName?: string
 	weight?: string

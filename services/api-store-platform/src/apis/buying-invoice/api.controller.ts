@@ -36,6 +36,11 @@ import {
 } from '../../shared/warehouseAccess'
 import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
+	clearCashLedgerForReference,
+	syncBuyingInvoiceCashLedger,
+} from '../../shared/cashAccounts/posting'
+import { CASH_REFERENCE_TYPES } from '../../shared/cashAccounts/types'
+import {
 	decodeInvoiceUpload,
 	extractInvoice,
 } from '../../shared/invoiceAi/extract'
@@ -761,6 +766,17 @@ export default class BuyingInvoiceController {
 						)
 					: []
 
+				await syncBuyingInvoiceCashLedger({
+					requestContext,
+					warehouseId,
+					buyingInvoiceId,
+					status,
+					paymentStatus,
+					paymentType: requestBody.paymentType,
+					currencyAmounts,
+					session,
+				})
+
 				return {
 					createInvoiceResponse: created,
 					touchedInventoryIds: inventoryIds,
@@ -905,6 +921,28 @@ export default class BuyingInvoiceController {
 					requestBody,
 				)
 
+				await syncBuyingInvoiceCashLedger({
+					requestContext,
+					warehouseId,
+					buyingInvoiceId,
+					status: (requestBody.status ?? existingInvoice?.status) as
+						| string
+						| undefined,
+					paymentStatus: (requestBody.paymentStatus ??
+						existingInvoice?.paymentStatus) as string | undefined,
+					paymentType: (requestBody.paymentType ??
+						existingInvoice?.paymentType) as string | undefined,
+					currencyAmounts: (requestBody.currencyAmounts ??
+						existingInvoice?.currencyAmounts) as
+						| Array<{
+								isPrimary?: boolean
+								amount?: number
+								paidAmount?: number
+						  }>
+						| undefined,
+					session,
+				})
+
 				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
 			})
 
@@ -945,19 +983,45 @@ export default class BuyingInvoiceController {
 			)
 		}
 
+		const warehouseIdForCash = existingInvoice
+			? requireWarehouseId(existingInvoice.warehouseId)
+			: undefined
+
 		const touchedInventoryIds =
 			wasStockAffecting && existingInvoice
-				? await this.ops.runInTransaction(async session =>
-						this.reversePurchaseInventoryAdjustments(
+				? await this.ops.runInTransaction(async session => {
+						const inventoryIds =
+							await this.reversePurchaseInventoryAdjustments(
+								requestContext,
+								existingInvoice.buyingInvoiceId,
+								existingInvoice.invoiceNumber,
+								asInvoiceLines(existingInvoice.items),
+								session,
+								requireWarehouseId(existingInvoice.warehouseId),
+							)
+
+						await clearCashLedgerForReference({
 							requestContext,
-							existingInvoice.buyingInvoiceId,
-							existingInvoice.invoiceNumber,
-							asInvoiceLines(existingInvoice.items),
+							warehouseId: requireWarehouseId(existingInvoice.warehouseId),
+							referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
+							referenceId: existingInvoice.buyingInvoiceId,
 							session,
-							requireWarehouseId(existingInvoice.warehouseId),
-						),
-					)
-				: []
+						})
+
+						return inventoryIds
+					})
+				: warehouseIdForCash && existingInvoice
+					? await (async () => {
+							await clearCashLedgerForReference({
+								requestContext,
+								warehouseId: warehouseIdForCash,
+								referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
+								referenceId: existingInvoice.buyingInvoiceId,
+							})
+
+							return [] as string[]
+						})()
+					: []
 
 		const deleteResponse = await this.mongoDbClient.deleteDocument(
 			{ collectionName: COLLECTION_NAMES.BUYING_INVOICES, id: buyingInvoiceId },

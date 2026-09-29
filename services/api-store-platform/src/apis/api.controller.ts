@@ -31,6 +31,19 @@ import { Invoice } from '../models/Invoice'
 import { BuyingInvoice } from '../models/BuyingInvoices'
 import { Inventory } from '../models/Inventory'
 import { DailyAction } from '../models/DailyAction'
+import {
+	ensureCashAccountsForWarehouse,
+	buildActor,
+	getCashBalancesForWarehouses,
+	listCashLedgerEntries,
+	postInternalCashTransfer,
+} from '../shared/cashAccounts/ledgerService'
+import {
+	loadCashCurrencyRates,
+	syncDailyActionCashLedger,
+	toPrimaryCashAmount,
+} from '../shared/cashAccounts/posting'
+import { resolveCashAccountType } from '../shared/cashAccounts/types'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
@@ -4360,6 +4373,102 @@ export default class ProductController {
 		return { data: [dailyAction], totalCount: 1 }
 	}
 
+	public async getCashAccountBalances(requestContext: RequestContext) {
+		const tenantId = this.getTenantId(requestContext)
+		const warehouseIds = await this.resolveCashAccountWarehouseIds(requestContext)
+
+		if (warehouseIds.length === 0) {
+			return { accounts: [], total: 0 }
+		}
+
+		return getCashBalancesForWarehouses(tenantId, warehouseIds)
+	}
+
+	private async resolveCashAccountWarehouseIds(
+		requestContext: RequestContext,
+	): Promise<string[]> {
+		const tenantId = this.getTenantId(requestContext)
+		let warehouseIds = getEffectiveWarehouseIds(requestContext)
+
+		if (warehouseIds === null) {
+			const warehouses = await withTenantScope(
+				Warehouse.find({}).select('warehouseId'),
+				tenantId,
+			).lean<Array<{ warehouseId: string }>>()
+
+			warehouseIds = warehouses.map(row => row.warehouseId)
+		}
+
+		return warehouseIds
+	}
+
+	public async getCashAccountLedger(
+		query: {
+			accountType?: string
+			movementType?: string
+			dateFrom?: string
+			dateTo?: string
+			page?: string
+			limit?: string
+		},
+		requestContext: RequestContext,
+	) {
+		const tenantId = this.getTenantId(requestContext)
+		const warehouseIds = await this.resolveCashAccountWarehouseIds(requestContext)
+
+		return listCashLedgerEntries({
+			tenantId,
+			warehouseIds,
+			accountType: query.accountType,
+			movementType: query.movementType,
+			dateFrom: query.dateFrom,
+			dateTo: query.dateTo,
+			page: query.page,
+			limit: query.limit,
+		})
+	}
+
+	public async postCashTransfer(
+		requestBody: {
+			fromAccountType?: string
+			toAccountType?: string
+			amount?: number
+			currencyId?: string
+			reason?: string
+		},
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
+		const warehouseId = requireOperationalWarehouseId(requestContext)
+		const tenantId = this.getTenantId(requestContext)
+		const displayAmount = Number(requestBody.amount)
+		const rates = await loadCashCurrencyRates(tenantId)
+		const primaryAmount = toPrimaryCashAmount(
+			displayAmount,
+			requestBody.currencyId,
+			rates,
+		)
+
+		const result = await postInternalCashTransfer({
+			requestContext,
+			warehouseId,
+			fromAccountType: requestBody.fromAccountType as never,
+			toAccountType: requestBody.toAccountType as never,
+			amount: primaryAmount,
+			reason: requestBody.reason?.trim() || undefined,
+		})
+
+		return {
+			transferId: result.transferId,
+			warehouseId,
+			fromAccountType: requestBody.fromAccountType,
+			toAccountType: requestBody.toAccountType,
+			amount: primaryAmount,
+			currencyId: requestBody.currencyId,
+			displayAmount: Number.isFinite(displayAmount) ? displayAmount : undefined,
+		}
+	}
+
 	public async getBudgetOverview(
 		targetType: TargetType,
 		targetId: string,
@@ -4481,6 +4590,7 @@ export default class ProductController {
 			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
+			cashAccountType: resolveCashAccountType(requestBody.cashAccountType),
 			unitId: optionalString(requestBody.unitId),
 			unitName: optionalString(requestBody.unitName),
 			weight: optionalString(requestBody.weight),
@@ -4490,13 +4600,37 @@ export default class ProductController {
 			createdAt,
 		}
 
-		const createDailyActionResponse = await this.mongoDbClient.createDocument(
-			{
-				collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
-				data: dailyActionData,
+		const createDailyActionResponse = await this.runInTransaction(
+			async session => {
+				const created = await this.mongoDbClient.createDocument(
+					{
+						collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
+						data: dailyActionData,
+						session,
+					},
+					DailyAction,
+					requestContext,
+				)
+
+				const amount = parseFloat(
+					String(
+						dailyActionData.singleUnitPrice ?? dailyActionData.totalPrice ?? '0',
+					).replace(/,/g, ''),
+				)
+
+				await syncDailyActionCashLedger({
+					requestContext,
+					warehouseId: scopedWarehouseId,
+					actionId: dailyActionData.actionId,
+					entryType: dailyActionData.entryType,
+					amount: Number.isFinite(amount) ? amount : 0,
+					currencyId: dailyActionData.currencyId,
+					accountType: dailyActionData.cashAccountType,
+					session,
+				})
+
+				return created
 			},
-			DailyAction,
-			requestContext,
 		)
 
 		await this.invalidateDailyActionsCache(
@@ -4556,6 +4690,7 @@ export default class ProductController {
 			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
+			cashAccountType: resolveCashAccountType(requestBody.cashAccountType),
 			unitId: optionalString(requestBody.unitId),
 			unitName: optionalString(requestBody.unitName),
 			weight: optionalString(requestBody.weight),
@@ -4564,12 +4699,46 @@ export default class ProductController {
 			note: optionalString(requestBody.note),
 		}
 
-		const updateResponse = await this.mongoDbClient.updateDocument(
-			{ collectionName: COLLECTION_NAMES.DAILY_ACTIONS, id: actionId },
-			requestContext,
-			DailyAction,
-			dailyActionData,
-		)
+		const updateResponse = await this.runInTransaction(async session => {
+			const updated = await this.mongoDbClient.updateDocument(
+				{
+					collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
+					id: actionId,
+					session,
+				},
+				requestContext,
+				DailyAction,
+				dailyActionData,
+			)
+
+			const amount = parseFloat(
+				String(
+					dailyActionData.singleUnitPrice ?? dailyActionData.totalPrice ?? '0',
+				).replace(/,/g, ''),
+			)
+
+			const existing = await withTenantScope(
+				DailyAction.findOne({ actionId }).select('warehouseId'),
+				this.getTenantId(requestContext),
+			)
+				.session(session)
+				.lean<{ warehouseId?: string } | null>()
+
+			const warehouseId = requireWarehouseId(existing?.warehouseId)
+
+			await syncDailyActionCashLedger({
+				requestContext,
+				warehouseId,
+				actionId,
+				entryType: dailyActionData.entryType,
+				amount: Number.isFinite(amount) ? amount : 0,
+				currencyId: dailyActionData.currencyId,
+				accountType: dailyActionData.cashAccountType,
+				session,
+			})
+
+			return updated
+		})
 
 		await this.invalidateDailyActionsCache(requestContext, actionId)
 
@@ -4589,21 +4758,37 @@ export default class ProductController {
 			uniqueActionIds,
 		)
 
-		const deleteResponse = await this.mongoDbClient.deleteDocuments(
-			{
-				collectionName: COLLECTION_NAMES.DAILY_ACTIONS,
-				fieldName: 'actionId',
-				fieldValues: uniqueActionIds,
-			},
-			requestContext,
-			DailyAction,
-		)
+		const rows = await withTenantScope(
+			DailyAction.find({ actionId: { $in: uniqueActionIds } }).select(
+				'actionId warehouseId',
+			),
+			this.getTenantId(requestContext),
+		).lean<Array<{ actionId: string; warehouseId?: string }>>()
+
+		await this.runInTransaction(async session => {
+			for (const row of rows) {
+				await syncDailyActionCashLedger({
+					requestContext,
+					warehouseId: requireWarehouseId(row.warehouseId),
+					actionId: row.actionId,
+					amount: 0,
+					clear: true,
+					session,
+				})
+			}
+
+			await DailyAction.deleteMany({ actionId: { $in: uniqueActionIds } })
+				.setOptions({
+					__tenantContext: { tenantId: this.getTenantId(requestContext) },
+				})
+				.session(session)
+		})
 
 		for (const actionId of uniqueActionIds) {
 			await this.invalidateDailyActionsCache(requestContext, actionId)
 		}
 
-		return deleteResponse
+		return { deletedCount: uniqueActionIds.length }
 	}
 
 	private async invalidateDailyActionsCache(
@@ -5650,6 +5835,12 @@ export default class ProductController {
 			{ collectionName: COLLECTION_NAMES.WAREHOUSES, data: warehouseData },
 			Warehouse,
 			requestContext,
+		)
+
+		await ensureCashAccountsForWarehouse(
+			tenantContext.tenantId,
+			warehouseData.warehouseId,
+			buildActor(requestContext),
 		)
 
 		logger.info('Warehouse created successfully.', {

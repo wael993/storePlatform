@@ -10,21 +10,28 @@ import {
 	ModalHeader,
 	ModalOverlay,
 	SimpleGrid,
+	Text,
+	Tooltip,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
+	useGetCashAccountBalancesQuery,
 	useGetCurrencySettingsQuery,
 	useGetExpensesQuery,
 	useGetPartnersQuery,
+	usePostCashTransferMutation,
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
 } from '../../api/apiStore'
+import { getApiErrorMessage } from '../../offline/getApiErrorMessage'
+import { getWorkMode } from '../../offline/workMode'
 import { buildEntryInvoiceDateIso } from '../../shared/dateUtils'
 import { DailyActionType } from '../../shared/globalEnums'
 import {
 	compareLanguage,
+	formatNumber,
 	formatNumberForDb,
 	parseNumberValue,
 } from '../../shared/utils'
@@ -35,8 +42,14 @@ import useCustomToast from '../common/CustomToast'
 import DropdownLabel from '../DropdownLabel'
 import { PAGE_COLORS } from './constants'
 import { useSee } from '../../shared/hooks/useSee'
+import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
+import { useUser } from '../../shared/hooks/useUser'
 import { SEE } from '../../shared/seeFlags'
-import { buildDisplayCurrencyOptions } from './currencyDisplay'
+import {
+	buildDisplayCurrencyOptions,
+	convertPrimaryAmount,
+	convertToPrimaryAmount,
+} from './currencyDisplay'
 import {
 	getDailyActionId,
 	mapDailyActionToQuickEntryForm,
@@ -61,6 +74,24 @@ const ENTRY_TYPES: QuickEntryType[] = [
 	DailyActionType.EXPENSE_ENTRY,
 ]
 
+const TRANSFER_TAB = 'transfer' as const
+type ModalTab = QuickEntryType | typeof TRANSFER_TAB
+
+const CASH_ACCOUNT_OPTIONS = [
+	{ value: 'daily_cash', labelKey: 'dashboard.cashAccounts.dailyCash' },
+	{ value: 'cash_reserve', labelKey: 'dashboard.cashAccounts.cashReserve' },
+	{ value: 'online', labelKey: 'dashboard.cashAccounts.online' },
+] as const
+
+type TransferFormState = {
+	fromAccountType: string
+	toAccountType: string
+	amount: string
+	currencyId: string
+	currencyName: string
+	reason: string
+}
+
 const getTodayDateInputValue = () => {
 	const today = new Date()
 	const month = String(today.getMonth() + 1).padStart(2, '0')
@@ -80,8 +111,18 @@ const createInitialFormState = (): QuickEntryFormState => ({
 	amount: '',
 	currencyId: '',
 	currencyName: '',
+	cashAccountType: 'daily_cash',
 	invoiceDate: getTodayDateInputValue(),
 	note: '',
+})
+
+const createInitialTransferForm = (): TransferFormState => ({
+	fromAccountType: 'daily_cash',
+	toAccountType: 'cash_reserve',
+	amount: '',
+	currencyId: '',
+	currencyName: '',
+	reason: '',
 })
 
 const QuickEntryModal = ({
@@ -94,6 +135,9 @@ const QuickEntryModal = ({
 }: QuickEntryModalProps) => {
 	const showToast = useCustomToast()
 	const { canSee } = useSee()
+	const { user } = useUser()
+	const { isOnline } = useOfflineSync(user?.tenantId)
+	const cashOpsOnline = isOnline && getWorkMode() !== 'offline'
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
 	const hasInitializedCurrency = useRef(false)
@@ -103,35 +147,52 @@ const QuickEntryModal = ({
 
 	const isEditing = mode === 'edit' && canSee(SEE.invoicesEntriesEdit)
 	const isReadOnly = mode === 'view' || (mode === 'edit' && !isEditing)
+	const canShowTransferTab = mode === 'create'
 
 	const [form, setForm] = useState(createInitialFormState)
+	const [transferForm, setTransferForm] = useState(createInitialTransferForm)
+	const [activeTab, setActiveTab] = useState<ModalTab>(
+		DailyActionType.RECEIPT_ENTRY,
+	)
 	const [postDailyAction, { isLoading: isCreating }] =
 		usePostDailyActionMutation()
 	const [updateDailyAction, { isLoading: isUpdating }] =
 		useUpdateDailyActionMutation()
+	const [postCashTransfer, { isLoading: isTransferring }] =
+		usePostCashTransferMutation()
 
-	const isSaving = isCreating || isUpdating
+	const isTransferTab = activeTab === TRANSFER_TAB
+	const isSaving = isCreating || isUpdating || isTransferring
 
 	const { data: currencySettings, isLoading: isCurrenciesLoading } =
 		useGetCurrencySettingsQuery(undefined, { skip: !isOpen })
+	const displayCurrencyOptions = useMemo(
+		() => buildDisplayCurrencyOptions(currencySettings),
+		[currencySettings],
+	)
 	const currencyOptions = useMemo(
 		() =>
-			buildDisplayCurrencyOptions(currencySettings).map(option => ({
+			displayCurrencyOptions.map(option => ({
 				value: option.currencyId,
 				label: option.name,
 			})),
-		[currencySettings],
+		[displayCurrencyOptions],
 	)
+	const { data: cashBalances } = useGetCashAccountBalancesQuery(undefined, {
+		skip: !isOpen || !cashOpsOnline,
+	})
 	const { data: expenses = [], isLoading: isExpensesLoading } =
-		useGetExpensesQuery(undefined, { skip: !isOpen })
+		useGetExpensesQuery(undefined, { skip: !isOpen || isTransferTab })
 	const { data: partners = [], isLoading: isPartnersLoading } =
-		useGetPartnersQuery(undefined, { skip: !isOpen })
+		useGetPartnersQuery(undefined, { skip: !isOpen || isTransferTab })
 
 	useEffect(() => {
 		if (!isOpen) {
 			hasInitializedCurrency.current = false
 			previousEntryType.current = DailyActionType.RECEIPT_ENTRY
 			setForm(createInitialFormState())
+			setTransferForm(createInitialTransferForm())
+			setActiveTab(DailyActionType.RECEIPT_ENTRY)
 			return
 		}
 
@@ -140,16 +201,32 @@ const QuickEntryModal = ({
 			if (mapped) {
 				setForm(mapped)
 				previousEntryType.current = mapped.entryType
+				setActiveTab(mapped.entryType)
 				hasInitializedCurrency.current = true
 			}
 		}
 	}, [initialEntry, isOpen, mode])
 
 	useEffect(() => {
-		if (isReadOnly || form.entryType === previousEntryType.current) return
+		if (cashOpsOnline || activeTab !== TRANSFER_TAB) return
+		setActiveTab(DailyActionType.RECEIPT_ENTRY)
+		setForm(current => ({
+			...current,
+			entryType: DailyActionType.RECEIPT_ENTRY,
+		}))
+	}, [activeTab, cashOpsOnline])
+
+	useEffect(() => {
+		if (
+			isReadOnly ||
+			isTransferTab ||
+			form.entryType === previousEntryType.current
+		) {
+			return
+		}
 		previousEntryType.current = form.entryType
 		setForm(current => ({ ...current, entityId: '', entityName: '' }))
-	}, [form.entryType, isReadOnly])
+	}, [form.entryType, isReadOnly, isTransferTab])
 
 	useEffect(() => {
 		if (
@@ -163,6 +240,11 @@ const QuickEntryModal = ({
 
 		const defaultCurrency = currencyOptions[0]
 		setForm(current => ({
+			...current,
+			currencyId: defaultCurrency.value,
+			currencyName: defaultCurrency.label,
+		}))
+		setTransferForm(current => ({
 			...current,
 			currencyId: defaultCurrency.value,
 			currencyName: defaultCurrency.label,
@@ -186,6 +268,15 @@ const QuickEntryModal = ({
 			[DailyActionType.PAYMENT_ENTRY]: t('common.paymentEntry'),
 			[DailyActionType.EXPENSE_ENTRY]: t('common.expenseEntry'),
 		}),
+		[t],
+	)
+
+	const cashAccountOptions = useMemo(
+		(): DropdownOption[] =>
+			CASH_ACCOUNT_OPTIONS.map(option => ({
+				value: option.value,
+				label: t(option.labelKey),
+			})),
 		[t],
 	)
 
@@ -278,20 +369,224 @@ const QuickEntryModal = ({
 		[currencyOptions, form.currencyId],
 	)
 
+	const selectedFromAccount = useMemo(
+		() =>
+			transferForm.fromAccountType
+				? cashAccountOptions.filter(
+						option => option.value === transferForm.fromAccountType,
+					)
+				: [],
+		[cashAccountOptions, transferForm.fromAccountType],
+	)
+
+	const selectedToAccount = useMemo(
+		() =>
+			transferForm.toAccountType
+				? cashAccountOptions.filter(
+						option => option.value === transferForm.toAccountType,
+					)
+				: [],
+		[cashAccountOptions, transferForm.toAccountType],
+	)
+
+	const selectedTransferCurrencyOption = useMemo(
+		() =>
+			transferForm.currencyId
+				? currencyOptions.filter(
+						option => option.value === transferForm.currencyId,
+					)
+				: [],
+		[currencyOptions, transferForm.currencyId],
+	)
+
+	const fromAccountBalancePrimary = useMemo(() => {
+		const account = cashBalances?.accounts.find(
+			item => item.type === transferForm.fromAccountType,
+		)
+		return account?.balance ?? 0
+	}, [cashBalances?.accounts, transferForm.fromAccountType])
+
+	const transferAmountPrimary = useMemo(() => {
+		const amountRaw = formatNumberForDb(transferForm.amount, 2)
+		const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
+		if (!(displayAmount > 0) || !transferForm.currencyId) return 0
+
+		return convertToPrimaryAmount(
+			displayAmount,
+			transferForm.currencyId,
+			displayCurrencyOptions,
+		)
+	}, [displayCurrencyOptions, transferForm.amount, transferForm.currencyId])
+
+	const hasCashBalances = Boolean(cashBalances)
+	const isInsufficientTransfer =
+		hasCashBalances &&
+		transferAmountPrimary > 0 &&
+		transferAmountPrimary > fromAccountBalancePrimary
+
+	const insufficientTransferMessage = useMemo(() => {
+		if (!isInsufficientTransfer) return null
+
+		const availableDisplay = convertPrimaryAmount(
+			fromAccountBalancePrimary,
+			transferForm.currencyId,
+			displayCurrencyOptions,
+		)
+		const currencyLabel =
+			transferForm.currencyName ||
+			displayCurrencyOptions.find(
+				option => option.currencyId === transferForm.currencyId,
+			)?.label ||
+			''
+
+		return t('components.sellingInvoices.entries.insufficientBalance', {
+			available: formatNumber(availableDisplay) ?? '0.00',
+			currency: currencyLabel,
+		})
+	}, [
+		displayCurrencyOptions,
+		fromAccountBalancePrimary,
+		isInsufficientTransfer,
+		t,
+		transferForm.currencyId,
+		transferForm.currencyName,
+	])
+
+	const isCashOutEntry =
+		form.entryType === DailyActionType.PAYMENT_ENTRY ||
+		form.entryType === DailyActionType.EXPENSE_ENTRY
+
+	const selectedCashAccountBalancePrimary = useMemo(() => {
+		const account = cashBalances?.accounts.find(
+			item => item.type === form.cashAccountType,
+		)
+		return account?.balance ?? 0
+	}, [cashBalances?.accounts, form.cashAccountType])
+
+	const selectedCashAccountOption = useMemo(
+		() =>
+			form.cashAccountType
+				? cashAccountOptions.filter(
+						option => option.value === form.cashAccountType,
+					)
+				: [],
+		[cashAccountOptions, form.cashAccountType],
+	)
+
+	const entryAmountPrimary = useMemo(() => {
+		const amountRaw = formatNumberForDb(form.amount, 2)
+		const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
+		if (!(displayAmount > 0) || !form.currencyId) return 0
+
+		return convertToPrimaryAmount(
+			displayAmount,
+			form.currencyId,
+			displayCurrencyOptions,
+		)
+	}, [displayCurrencyOptions, form.amount, form.currencyId])
+
+	const previousCashOutPrimary = useMemo(() => {
+		if (!isEditing || !initialEntry || !isCashOutEntry) return 0
+
+		const previousAccountType = initialEntry.cashAccountType || 'daily_cash'
+		if (previousAccountType !== form.cashAccountType) return 0
+
+		const amountRaw = formatNumberForDb(
+			initialEntry.singleUnitPrice ?? initialEntry.totalPrice ?? '',
+			2,
+		)
+		const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
+		if (!(displayAmount > 0) || !initialEntry.currencyId) return 0
+
+		return convertToPrimaryAmount(
+			displayAmount,
+			initialEntry.currencyId,
+			displayCurrencyOptions,
+		)
+	}, [
+		displayCurrencyOptions,
+		form.cashAccountType,
+		initialEntry,
+		isCashOutEntry,
+		isEditing,
+	])
+
+	const availableCashOutPrimary =
+		selectedCashAccountBalancePrimary + previousCashOutPrimary
+
+	const isInsufficientCashOut =
+		!isTransferTab &&
+		isCashOutEntry &&
+		!isReadOnly &&
+		hasCashBalances &&
+		entryAmountPrimary > 0 &&
+		entryAmountPrimary > availableCashOutPrimary
+
+	const insufficientCashOutMessage = useMemo(() => {
+		if (!isInsufficientCashOut) return null
+
+		const availableDisplay = convertPrimaryAmount(
+			availableCashOutPrimary,
+			form.currencyId,
+			displayCurrencyOptions,
+		)
+		const currencyLabel =
+			form.currencyName ||
+			displayCurrencyOptions.find(
+				option => option.currencyId === form.currencyId,
+			)?.label ||
+			''
+
+		return t('components.sellingInvoices.entries.insufficientBalance', {
+			available: formatNumber(availableDisplay) ?? '0.00',
+			currency: currencyLabel,
+		})
+	}, [
+		availableCashOutPrimary,
+		displayCurrencyOptions,
+		form.currencyId,
+		form.currencyName,
+		isInsufficientCashOut,
+		t,
+	])
+
+	const cashAccountFieldLabel =
+		form.entryType === DailyActionType.RECEIPT_ENTRY
+			? t('components.sellingInvoices.entries.toAccount')
+			: t('components.sellingInvoices.entries.fromAccount')
+
 	const isEntityLoading =
 		(form.entryType === DailyActionType.EXPENSE_ENTRY && isExpensesLoading) ||
 		((form.entryType === DailyActionType.RECEIPT_ENTRY ||
 			form.entryType === DailyActionType.PAYMENT_ENTRY) &&
 			isPartnersLoading)
 
-	const isSaveDisabled =
+	const isEntrySaveDisabled =
 		isSaving ||
 		isCurrenciesLoading ||
 		isEntityLoading ||
 		!form.entityId ||
 		!form.currencyId ||
+		!form.cashAccountType ||
 		!form.amount.trim() ||
-		!form.invoiceDate
+		!form.invoiceDate ||
+		(isCashOutEntry && isInsufficientCashOut)
+
+	const isTransferSaveDisabled =
+		isSaving ||
+		isCurrenciesLoading ||
+		!cashOpsOnline ||
+		!hasCashBalances ||
+		!transferForm.fromAccountType ||
+		!transferForm.toAccountType ||
+		transferForm.fromAccountType === transferForm.toAccountType ||
+		!transferForm.currencyId ||
+		!transferForm.amount.trim() ||
+		isInsufficientTransfer
+
+	const isSaveDisabled = isTransferTab
+		? isTransferSaveDisabled
+		: isEntrySaveDisabled
 
 	const isPartnerSelection = (entityId: string) =>
 		partnerOptions.some(option => option.value === entityId)
@@ -340,6 +635,7 @@ const QuickEntryModal = ({
 			...selectedPartner,
 			currencyId: form.currencyId,
 			currencyName: form.currencyName,
+			cashAccountType: form.cashAccountType,
 			singleUnitPrice: formatNumberForDb(form.amount, 2) ?? undefined,
 			invoiceDate: buildEntryInvoiceDateIso(form.invoiceDate),
 			note: optionalString(form.note),
@@ -347,9 +643,41 @@ const QuickEntryModal = ({
 	}
 
 	const handleSave = async () => {
-		const payload = buildPayload()
-
 		try {
+			if (isTransferTab) {
+				if (!cashOpsOnline) return
+				const amountRaw = formatNumberForDb(transferForm.amount, 2)
+				const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
+				if (
+					!(displayAmount > 0) ||
+					!transferForm.currencyId ||
+					isInsufficientTransfer
+				) {
+					return
+				}
+
+				await postCashTransfer({
+					fromAccountType: transferForm.fromAccountType,
+					toAccountType: transferForm.toAccountType,
+					amount: displayAmount,
+					currencyId: transferForm.currencyId,
+					reason: transferForm.reason.trim() || undefined,
+				}).unwrap()
+
+				showToast({
+					status: 'success',
+					description: t(
+						'components.sellingInvoices.entries.transferSavedSuccessfully',
+					),
+				})
+				onClose()
+				return
+			}
+
+			const payload = buildPayload()
+
+			if (isInsufficientCashOut) return
+
 			if (isEditing && initialEntry) {
 				const entryId = getDailyActionId(initialEntry)
 				await updateDailyAction({ id: entryId, body: payload }).unwrap()
@@ -364,8 +692,44 @@ const QuickEntryModal = ({
 			onClose()
 		} catch (error) {
 			console.error('Error saving entry:', error)
+			showToast({
+				status: 'error',
+				description: getApiErrorMessage(
+					error,
+					isTransferTab
+						? t('components.sellingInvoices.entries.transferFailed')
+						: t('components.sellingInvoices.entries.saveFailed'),
+				),
+			})
 		}
 	}
+
+	const tabButton = (
+		key: string,
+		label: string,
+		isSelected: boolean,
+		onClick: () => void,
+		disabled = isReadOnly,
+	) => (
+		<Button
+			key={key}
+			flex={1}
+			size="sm"
+			fontWeight={600}
+			borderRadius="lg"
+			variant={isSelected ? 'solid' : 'outline'}
+			bg={isSelected ? PAGE_COLORS.primary : 'transparent'}
+			color={isSelected ? 'white' : 'gray.700'}
+			borderColor={PAGE_COLORS.border}
+			isDisabled={disabled}
+			_hover={{
+				bg: isSelected ? '#1D4ED8' : 'gray.50',
+			}}
+			onClick={onClick}
+		>
+			{label}
+		</Button>
+	)
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -383,120 +747,241 @@ const QuickEntryModal = ({
 					}}
 				/>
 				<ModalBody pt={0} pb={4}>
-					<HStack spacing={2} mb={4}>
-						{ENTRY_TYPES.map(entryType => {
-							const isSelected = form.entryType === entryType
-							return (
-								<Button
-									key={entryType}
-									flex={1}
-									size="sm"
-									fontWeight={600}
-									borderRadius="lg"
-									variant={isSelected ? 'solid' : 'outline'}
-									bg={isSelected ? PAGE_COLORS.primary : 'transparent'}
-									color={isSelected ? 'white' : 'gray.700'}
-									borderColor={PAGE_COLORS.border}
-									isDisabled={isReadOnly}
-									_hover={{
-										bg: isSelected ? '#1D4ED8' : 'gray.50',
-									}}
-									onClick={() =>
-										setForm(current => ({ ...current, entryType }))
-									}
-								>
-									{entryTypeLabels[entryType]}
-								</Button>
-							)
-						})}
+					<HStack spacing={2} mb={4} flexWrap="wrap">
+						{ENTRY_TYPES.map(entryType =>
+							tabButton(
+								entryType,
+								entryTypeLabels[entryType],
+								!isTransferTab && form.entryType === entryType,
+								() => {
+									setActiveTab(entryType)
+									setForm(current => ({ ...current, entryType }))
+								},
+							),
+						)}
+						{canShowTransferTab && (
+							<Tooltip
+								label={t(
+									'components.sellingInvoices.entries.transferOffline',
+								)}
+								isDisabled={cashOpsOnline}
+							>
+								<span style={{ flex: 1, display: 'flex' }}>
+									{tabButton(
+										TRANSFER_TAB,
+										t('components.sellingInvoices.entries.transfer'),
+										isTransferTab,
+										() => setActiveTab(TRANSFER_TAB),
+										!cashOpsOnline,
+									)}
+								</span>
+							</Tooltip>
+						)}
 					</HStack>
 
 					<Divider mb={4} borderColor={PAGE_COLORS.border} />
 
-					<SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
-						<DropdownLabel
-							label={entityLabel}
-							placeholder={entityPlaceholder}
-							options={entityOptions}
-							selectedOptions={selectedEntityOption}
-							isSingle
-							isSearchable
-							isDisabled={isReadOnly}
-							isLoading={isEntityLoading}
-							onSelect={(values: string[]) => {
-								const selected = entityOptions.find(
-									option => option.value === values[0],
-								)
-								setForm(current => ({
-									...current,
-									entityId: selected?.value ?? '',
-									entityName: selected?.label ?? '',
-								}))
-							}}
-						/>
-						<DropdownLabel
-							label={t('common.currency')}
-							placeholder={t('common.currencyName')}
-							options={currencyOptions}
-							selectedOptions={selectedCurrencyOption}
-							isSingle
-							isDisabled={isReadOnly}
-							isLoading={isCurrenciesLoading}
-							onSelect={(values: string[]) => {
-								const selected = currencyOptions.find(
-									option => option.value === values[0],
-								)
-								setForm(current => ({
-									...current,
-									currencyId: selected?.value ?? '',
-									currencyName: selected?.label ?? '',
-								}))
-							}}
-						/>
-						<InputLabel
-							withGap
-							label={t('common.amount')}
-							inputPlaceholder={t('common.amount')}
-							inputType="text"
-							styles={documentNameStyles}
-							value={form.amount}
-							isDisabled={isReadOnly}
-							onChange={(value: string) =>
-								setForm(current => ({
-									...current,
-									amount: parseNumberValue(value, 2),
-								}))
-							}
-						/>
-						<DatePickerLabel
-							key={`${mode}-${initialEntry ? getDailyActionId(initialEntry) : 'new'}-${form.invoiceDate}`}
-							label={t('common.date')}
-							defaultDate={getDateFromInputValue(form.invoiceDate)}
-							styles={datePickerStyles}
-							isDisabled={isReadOnly}
-							onChange={(date: Date | undefined) => {
-								if (!date || isReadOnly) return
-								const month = String(date.getMonth() + 1).padStart(2, '0')
-								const day = String(date.getDate()).padStart(2, '0')
-								setForm(current => ({
-									...current,
-									invoiceDate: `${date.getFullYear()}-${month}-${day}`,
-								}))
-							}}
-						/>
-						<InputLabel
-							withGap
-							label={t('common.note')}
-							inputPlaceholder={t('common.notePlaceholder')}
-							inputType="text"
-							styles={documentNameStyles}
-							value={form.note}
-							isDisabled={isReadOnly}
-							onChange={(value: string) =>
-								setForm(current => ({ ...current, note: value }))
-							}
-						/>
-					</SimpleGrid>
+					{isTransferTab ? (
+						<>
+							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+								<DropdownLabel
+									label={t('components.sellingInvoices.entries.fromAccount')}
+									placeholder={t(
+										'components.sellingInvoices.entries.fromAccount',
+									)}
+									options={cashAccountOptions}
+									selectedOptions={selectedFromAccount}
+									isSingle
+									onSelect={(values: string[]) => {
+										const selected = cashAccountOptions.find(
+											option => option.value === values[0],
+										)
+										setTransferForm(current => ({
+											...current,
+											fromAccountType: selected?.value ?? '',
+										}))
+									}}
+								/>
+								<DropdownLabel
+									label={t('components.sellingInvoices.entries.toAccount')}
+									placeholder={t(
+										'components.sellingInvoices.entries.toAccount',
+									)}
+									options={cashAccountOptions}
+									selectedOptions={selectedToAccount}
+									isSingle
+									onSelect={(values: string[]) => {
+										const selected = cashAccountOptions.find(
+											option => option.value === values[0],
+										)
+										setTransferForm(current => ({
+											...current,
+											toAccountType: selected?.value ?? '',
+										}))
+									}}
+								/>
+								<DropdownLabel
+									label={t('common.currency')}
+									placeholder={t('common.currencyName')}
+									options={currencyOptions}
+									selectedOptions={selectedTransferCurrencyOption}
+									isSingle
+									isLoading={isCurrenciesLoading}
+									onSelect={(values: string[]) => {
+										const selected = currencyOptions.find(
+											option => option.value === values[0],
+										)
+										setTransferForm(current => ({
+											...current,
+											currencyId: selected?.value ?? '',
+											currencyName: selected?.label ?? '',
+										}))
+									}}
+								/>
+								<InputLabel
+									label={t('common.amount')}
+									inputPlaceholder={t('common.amount')}
+									inputType="text"
+									styles={documentNameStyles}
+									value={transferForm.amount}
+									onChange={(value: string) =>
+										setTransferForm(current => ({
+											...current,
+											amount: parseNumberValue(value, 2),
+										}))
+									}
+								/>
+								<InputLabel
+									label={t('components.sellingInvoices.entries.transferReason')}
+									inputPlaceholder={t(
+										'components.sellingInvoices.entries.transferReason',
+									)}
+									inputType="text"
+									styles={documentNameStyles}
+									value={transferForm.reason}
+									onChange={(value: string) =>
+										setTransferForm(current => ({
+											...current,
+											reason: value,
+										}))
+									}
+								/>
+							</SimpleGrid>
+							{insufficientTransferMessage && (
+								<Text mt={3} fontSize="sm" color="red.500">
+									{insufficientTransferMessage}
+								</Text>
+							)}
+						</>
+					) : (
+						<>
+							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+								<DropdownLabel
+									label={entityLabel}
+									placeholder={entityPlaceholder}
+									options={entityOptions}
+									selectedOptions={selectedEntityOption}
+									isSingle
+									isSearchable
+									isDisabled={isReadOnly}
+									isLoading={isEntityLoading}
+									onSelect={(values: string[]) => {
+										const selected = entityOptions.find(
+											option => option.value === values[0],
+										)
+										setForm(current => ({
+											...current,
+											entityId: selected?.value ?? '',
+											entityName: selected?.label ?? '',
+										}))
+									}}
+								/>
+								<DropdownLabel
+									label={cashAccountFieldLabel}
+									placeholder={cashAccountFieldLabel}
+									options={cashAccountOptions}
+									selectedOptions={selectedCashAccountOption}
+									isSingle
+									isDisabled={isReadOnly}
+									onSelect={(values: string[]) => {
+										const selected = cashAccountOptions.find(
+											option => option.value === values[0],
+										)
+										setForm(current => ({
+											...current,
+											cashAccountType: selected?.value ?? 'daily_cash',
+										}))
+									}}
+								/>
+
+								<InputLabel
+									label={t('common.amount')}
+									inputPlaceholder={t('common.amount')}
+									inputType="text"
+									styles={documentNameStyles}
+									value={form.amount}
+									isDisabled={isReadOnly}
+									onChange={(value: string) =>
+										setForm(current => ({
+											...current,
+											amount: parseNumberValue(value, 2),
+										}))
+									}
+								/>
+								<DropdownLabel
+									label={t('common.currency')}
+									placeholder={t('common.currencyName')}
+									options={currencyOptions}
+									selectedOptions={selectedCurrencyOption}
+									isSingle
+									isDisabled={isReadOnly}
+									isLoading={isCurrenciesLoading}
+									onSelect={(values: string[]) => {
+										const selected = currencyOptions.find(
+											option => option.value === values[0],
+										)
+										setForm(current => ({
+											...current,
+											currencyId: selected?.value ?? '',
+											currencyName: selected?.label ?? '',
+										}))
+									}}
+								/>
+								<DatePickerLabel
+									key={`${mode}-${initialEntry ? getDailyActionId(initialEntry) : 'new'}-${form.invoiceDate}`}
+									label={t('common.date')}
+									defaultDate={getDateFromInputValue(form.invoiceDate)}
+									styles={datePickerStyles}
+									isDisabled={isReadOnly}
+									onChange={(date: Date | undefined) => {
+										if (!date || isReadOnly) return
+										const month = String(date.getMonth() + 1).padStart(2, '0')
+										const day = String(date.getDate()).padStart(2, '0')
+										setForm(current => ({
+											...current,
+											invoiceDate: `${date.getFullYear()}-${month}-${day}`,
+										}))
+									}}
+								/>
+								<InputLabel
+									label={t('common.note')}
+									inputPlaceholder={t('common.notePlaceholder')}
+									inputType="text"
+									styles={documentNameStyles}
+									value={form.note}
+									isDisabled={isReadOnly}
+									onChange={(value: string) =>
+										setForm(current => ({ ...current, note: value }))
+									}
+								/>
+							</SimpleGrid>
+							{insufficientCashOutMessage && (
+								<Text mt={3} fontSize="sm" color="red.500">
+									{insufficientCashOutMessage}
+								</Text>
+							)}
+						</>
+					)}
 				</ModalBody>
 				<ModalFooter
 					gap={2}

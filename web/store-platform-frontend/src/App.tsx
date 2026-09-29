@@ -38,6 +38,7 @@ import EmployeesPage from './components/employee/EmployeesPage'
 import EmployeeProfilePage from './components/employee/EmployeeProfilePage'
 import ReportPage from './pages/ReportPage'
 import DashboardPage from './pages/DashboardPage'
+import CashAccountHistoryPage from './pages/CashAccountHistoryPage'
 
 const TENANT_ROLES = [
 	UserRole.OWNER,
@@ -146,10 +147,21 @@ const App = () => {
 						{isDashboardEnabled &&
 							isTenantDashboardEnabled &&
 							canSee(SEE.dashboard) && (
-								<Route
-									path={RoutePaths.DASHBOARD}
-									element={<DashboardPage />}
-								/>
+								<>
+									<Route
+										path={RoutePaths.DASHBOARD}
+										element={<DashboardPage />}
+									/>
+									{(canSee(SEE.dashboardDailyCashClick) ||
+										canSee(SEE.dashboardCashReserveClick) ||
+										canSee(SEE.dashboardOnlineClick) ||
+										canSee(SEE.dashboardCashTotalClick)) && (
+										<Route
+											path={RoutePaths.CASH_ACCOUNT_HISTORY}
+											element={<CashAccountHistoryPage />}
+										/>
+									)}
+								</>
 							)}
 						{isReportsEnabled &&
 							isTenantReportsEnabled &&

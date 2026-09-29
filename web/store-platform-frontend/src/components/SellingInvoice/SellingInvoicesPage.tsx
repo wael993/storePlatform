@@ -26,14 +26,9 @@ import {
 	useDeleteSellingInvoiceMutation,
 	useGetBuyingInvoicesQuery,
 	useGetCustomersQuery,
-	useGetDailyActionsQuery,
 	useGetSellingInvoicesQuery,
 	useGetSuppliersQuery,
 } from '../../api/apiStore'
-import type { ApiBuyingInvoice } from '../BuyingInvoice/buyingInvoiceApiMappers'
-import { CASH_BALANCE_ALL_TIME_FROM, calculateCashBalance } from './cashBalance'
-import type { ApiSellingInvoice } from './invoiceApiMappers'
-import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
 import { BreadCrumbItem, InvoicePaymentType } from '../../shared/globalEnums'
@@ -195,39 +190,6 @@ const SellingInvoicesPage = () => {
 		{ skip: !canSeeBuying, refetchOnMountOrArgChange: false },
 	)
 
-	const cashBalancePeriodQuery = useMemo(
-		() => ({
-			entryType: ['RECEIPT_ENTRY', 'PAYMENT_ENTRY', 'EXPENSE_ENTRY'],
-			invoiceDateFrom: dayjs(summaryDateFrom).format('YYYY-MM-DD'),
-			invoiceDateTo: dayjs(summaryDateTo).format('YYYY-MM-DD'),
-		}),
-		[summaryDateFrom, summaryDateTo],
-	)
-
-	const cashBalanceAllTimeQuery = useMemo(
-		() => ({
-			entryType: ['RECEIPT_ENTRY', 'PAYMENT_ENTRY', 'EXPENSE_ENTRY'],
-			invoiceDateFrom: CASH_BALANCE_ALL_TIME_FROM,
-		}),
-		[],
-	)
-
-	const {
-		data: periodDailyActions = [],
-		isLoading: isPeriodCashBalanceLoading,
-	} = useGetDailyActionsQuery(cashBalancePeriodQuery, {
-		skip: !canSeeSummary,
-		refetchOnMountOrArgChange: false,
-	})
-	const {
-		data: allTimeDailyActions = [],
-		isLoading: isAllTimeCashBalanceLoading,
-	} = useGetDailyActionsQuery(cashBalanceAllTimeQuery, {
-		skip: !canSeeSummary,
-		refetchOnMountOrArgChange: false,
-	})
-
-	const { options: cashBalanceCurrencyOptions } = useInvoiceDisplayCurrency()
 	const { data: invoiceCustomers = [] } = useGetCustomersQuery(undefined, {
 		skip:
 			!canSeeSellingList &&
@@ -375,65 +337,6 @@ const SellingInvoicesPage = () => {
 						salesSparkline: [],
 					},
 		[invoicesMeta?.summary],
-	)
-
-	const sellingInvoicesForCashBalance = useMemo(
-		() => (invoicesMeta?.invoices ?? []) as ApiSellingInvoice[],
-		[invoicesMeta?.invoices],
-	)
-
-	const buyingInvoicesForCashBalance = useMemo(
-		() => (buyingInvoicesMeta?.invoices ?? []) as ApiBuyingInvoice[],
-		[buyingInvoicesMeta?.invoices],
-	)
-
-	const periodCashBalanceRange = useMemo(
-		() => ({
-			dateFrom: dayjs(summaryDateFrom).format('YYYY-MM-DD'),
-			dateTo: dayjs(summaryDateTo).format('YYYY-MM-DD'),
-		}),
-		[summaryDateFrom, summaryDateTo],
-	)
-
-	const allTimeCashBalanceRange = useMemo(
-		() => ({ dateFrom: CASH_BALANCE_ALL_TIME_FROM }),
-		[],
-	)
-
-	const periodCashBalance = useMemo(
-		() =>
-			calculateCashBalance({
-				dailyActions: periodDailyActions,
-				sellingInvoices: sellingInvoicesForCashBalance,
-				buyingInvoices: buyingInvoicesForCashBalance,
-				range: periodCashBalanceRange,
-				displayCurrencyOptions: cashBalanceCurrencyOptions,
-			}),
-		[
-			periodDailyActions,
-			sellingInvoicesForCashBalance,
-			buyingInvoicesForCashBalance,
-			periodCashBalanceRange,
-			cashBalanceCurrencyOptions,
-		],
-	)
-
-	const allTimeCashBalance = useMemo(
-		() =>
-			calculateCashBalance({
-				dailyActions: allTimeDailyActions,
-				sellingInvoices: sellingInvoicesForCashBalance,
-				buyingInvoices: buyingInvoicesForCashBalance,
-				range: allTimeCashBalanceRange,
-				displayCurrencyOptions: cashBalanceCurrencyOptions,
-			}),
-		[
-			allTimeDailyActions,
-			sellingInvoicesForCashBalance,
-			buyingInvoicesForCashBalance,
-			allTimeCashBalanceRange,
-			cashBalanceCurrencyOptions,
-		],
 	)
 
 	const draftTabs = useMemo(
@@ -896,15 +799,7 @@ const SellingInvoicesPage = () => {
 											dateTo={summaryDateTo}
 											onDateFromChange={handleSummaryDateFromChange}
 											onDateToChange={handleSummaryDateToChange}
-											showCashBalance={canSeeSummary}
-											cashBalance={{
-												period: periodCashBalance,
-												allTime: allTimeCashBalance,
-											}}
-											isCashBalanceLoading={
-												isPeriodCashBalanceLoading ||
-												isAllTimeCashBalanceLoading
-											}
+											showLedgerCash={canSeeSummary}
 										/>
 									</AccordionPanel>
 								</AccordionItem>

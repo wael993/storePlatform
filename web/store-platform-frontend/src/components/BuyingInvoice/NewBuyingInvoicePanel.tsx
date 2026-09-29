@@ -36,8 +36,15 @@ import {
 	useGetInvoiceAiUsageQuery,
 	useConfirmBuyingInvoiceMatchMutation,
 	useCreateSupplierMutation,
+	useGetCashAccountBalancesQuery,
 } from '../../api/apiStore'
-import { PAGE_COLORS } from '../SellingInvoice/constants'
+import {
+	PAGE_COLORS,
+	defaultInvoiceCashAccountType,
+} from '../SellingInvoice/constants'
+import { AsDollarSignIcon } from '../../icons/DollarSign'
+import { AsCreditCardIcon } from '../../icons/CreditCard'
+import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { calculateInvoiceTotals } from '../SellingInvoice/invoiceCalculations'
 import {
 	applyInvoiceLevelDiscount,
@@ -56,16 +63,17 @@ import { mapCatalogItemToProduct } from '../SellingInvoice/useProductCatalog'
 import AddProductModal from '../../pages/AddProductModal'
 import CurrencyAmountTooltip from '../SellingInvoice/CurrencyAmountTooltip'
 import DropdownLabel from '../DropdownLabel'
-import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsPauseIcon } from '../../icons/Pause'
 import { AsSaveIcon } from '../icons/Save'
-import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import { AsDocumentIcon } from '../../shared/icons/Document'
 import DatePickerLabel from '../common/DatePickerLabel'
 import {
 	formatDateInputValue,
 	parseDateInputValue,
 } from '../../shared/dateUtils'
+import { getApiErrorMessage } from '../../offline/getApiErrorMessage'
+import { getWorkMode } from '../../offline/workMode'
+import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
 import { useUser } from '../../shared/hooks/useUser'
 import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
@@ -76,6 +84,7 @@ import {
 	buildBuyingInvoiceRequestBody,
 	mapApiBuyingInvoiceToDraft,
 } from './buyingInvoiceApiMappers'
+import { getPrimaryInvoiceCurrencyAmounts } from '../SellingInvoice/currencyDisplay'
 import { createBuyingInvoiceDraft } from './buyingInvoiceDraftSessions'
 import useCustomToast from '../common/CustomToast'
 import type {
@@ -152,6 +161,11 @@ const PaymentTypeButton = ({
 			bg: '#DCFCE7',
 			color: '#15803D',
 			borderColor: '#86EFAC',
+		},
+		[InvoicePaymentType.CARD]: {
+			bg: '#DBEAFE',
+			color: '#1D4ED8',
+			borderColor: '#93C5FD',
 		},
 		[InvoicePaymentType.CREDIT]: {
 			bg: '#FFEDD5',
@@ -251,6 +265,8 @@ const NewBuyingInvoicePanel = ({
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
 	const { user } = useUser()
+	const { isOnline } = useOfflineSync(user?.tenantId)
+	const cashOpsOnline = isOnline && getWorkMode() !== 'offline'
 	const { canSee } = useSee()
 	const canAddProduct = canSee(SEE.productsAdd)
 	const canAddBuying = canSee(SEE.invoicesBuyingAdd)
@@ -271,6 +287,9 @@ const NewBuyingInvoicePanel = ({
 	)
 	const { data: invoiceSettings } = useGetInvoiceSettingsQuery(undefined, {
 		refetchOnMountOrArgChange: false,
+	})
+	const { data: cashBalances } = useGetCashAccountBalancesQuery(undefined, {
+		skip: !isActive || !cashOpsOnline,
 	})
 	const suppliers = suppliersProp ?? fetchedSuppliers
 	const salesPerson =
@@ -465,7 +484,13 @@ const NewBuyingInvoicePanel = ({
 	)
 
 	useEffect(() => {
-		if (isReadOnly || draft.paymentType !== InvoicePaymentType.CASH) return
+		if (
+			isReadOnly ||
+			(draft.paymentType !== InvoicePaymentType.CASH &&
+				draft.paymentType !== InvoicePaymentType.CARD)
+		) {
+			return
+		}
 
 		setDraft(current => ({
 			...current,
@@ -493,6 +518,51 @@ const NewBuyingInvoicePanel = ({
 
 	const hasSupplier = Boolean(draft.supplierId)
 	const hasSalesPerson = Boolean((draft.salesPerson || salesPerson).trim())
+
+	const isCashOutPayment =
+		draft.paymentType === InvoicePaymentType.CASH ||
+		draft.paymentType === InvoicePaymentType.CARD
+
+	const fromAccountBalancePrimary = useMemo(() => {
+		const accountType = defaultInvoiceCashAccountType(draft.paymentType)
+		const account = cashBalances?.accounts.find(
+			item => item.type === accountType,
+		)
+		return account?.balance ?? 0
+	}, [cashBalances?.accounts, draft.paymentType])
+
+	const previousCashOutPrimary = useMemo(() => {
+		if (mode !== 'edit' || !existingInvoice || !isCashOutPayment) return 0
+		const previousType = defaultInvoiceCashAccountType(
+			existingInvoice.paymentType ?? InvoicePaymentType.CASH,
+		)
+		const currentType = defaultInvoiceCashAccountType(draft.paymentType)
+		if (previousType !== currentType) return 0
+		const { paidAmount } = getPrimaryInvoiceCurrencyAmounts(existingInvoice)
+		return paidAmount > 0 ? paidAmount : 0
+	}, [
+		draft.paymentType,
+		existingInvoice,
+		isCashOutPayment,
+		mode,
+	])
+
+	const availableCashOutPrimary =
+		fromAccountBalancePrimary + previousCashOutPrimary
+
+	const isInsufficientCashOut =
+		!isReadOnly &&
+		isCashOutPayment &&
+		Boolean(cashBalances) &&
+		draft.paidAmount > 0 &&
+		draft.paidAmount > availableCashOutPrimary
+
+	const insufficientCashOutMessage = isInsufficientCashOut
+		? t('components.sellingInvoices.entries.insufficientBalance', {
+				available: formatAmount(availableCashOutPrimary),
+				currency: '',
+			}).replace(' )', ')')
+		: null
 
 	const handleAddProduct = (product: Product, targetLineId?: string) => {
 		setDraft(current => {
@@ -707,7 +777,10 @@ const NewBuyingInvoicePanel = ({
 			...current,
 			paymentType,
 			paidAmount:
-				paymentType === InvoicePaymentType.CASH ? totals.grandTotal : 0,
+				paymentType === InvoicePaymentType.CASH ||
+				paymentType === InvoicePaymentType.CARD
+					? totals.grandTotal
+					: 0,
 		}))
 	}
 
@@ -718,7 +791,8 @@ const NewBuyingInvoicePanel = ({
 		draft.lineItems.every(
 			item => !isPendingProductId(item.productId) && item.quantity >= 1,
 		) &&
-		!draftHasUnresolvedExtraction(draft)
+		!draftHasUnresolvedExtraction(draft) &&
+		!isInsufficientCashOut
 
 	const isAiImport = Boolean(draft.extraction)
 	const importStatus: InvoiceImportStatus | null = isExtracting
@@ -1309,6 +1383,14 @@ const NewBuyingInvoicePanel = ({
 								onClick={handlePaymentTypeChange}
 							/>
 							<PaymentTypeButton
+								type={InvoicePaymentType.CARD}
+								label={t('components.buyingInvoices.paymentType.card')}
+								icon={<AsCreditCardIcon />}
+								isActive={draft.paymentType === InvoicePaymentType.CARD}
+								isDisabled={isReadOnly}
+								onClick={handlePaymentTypeChange}
+							/>
+							<PaymentTypeButton
 								type={InvoicePaymentType.CREDIT}
 								label={t('components.buyingInvoices.paymentType.credit')}
 								icon={<AsPriceTagIcon fill="none" />}
@@ -1647,11 +1729,16 @@ const NewBuyingInvoicePanel = ({
 							{t('components.buyingInvoices.extract.unresolved')}
 						</Text>
 					)}
-					{saveError && (
-						<Text fontSize="sm" color={PAGE_COLORS.danger}>
-							{saveError}
-						</Text>
-					)}
+						{insufficientCashOutMessage && (
+							<Text fontSize="sm" color={PAGE_COLORS.danger}>
+								{insufficientCashOutMessage}
+							</Text>
+						)}
+						{saveError && (
+							<Text fontSize="sm" color={PAGE_COLORS.danger}>
+								{saveError}
+							</Text>
+						)}
 
 					{!isReadOnly && (
 						<Flex
@@ -1778,9 +1865,13 @@ const NewBuyingInvoicePanel = ({
 										>
 											{draft.paymentType === InvoicePaymentType.CASH
 												? t('components.buyingInvoices.drawer.payCashAndSave')
-												: t(
-														'components.buyingInvoices.drawer.saveCreditInvoice',
-													)}
+												: draft.paymentType === InvoicePaymentType.CARD
+													? t(
+															'components.buyingInvoices.drawer.payCardAndSave',
+														)
+													: t(
+															'components.buyingInvoices.drawer.saveCreditInvoice',
+														)}
 										</Button>
 									</HStack>
 								</>
