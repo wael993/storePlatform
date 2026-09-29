@@ -36,13 +36,15 @@ const ACCOUNT_SEE: Record<(typeof ACCOUNT_ORDER)[number] | 'total', string> = {
 	total: SEE.dashboardCashTotal,
 }
 
-const ACCOUNT_CLICK_SEE: Record<(typeof ACCOUNT_ORDER)[number] | 'total', string> =
-	{
-		daily_cash: SEE.dashboardDailyCashClick,
-		cash_reserve: SEE.dashboardCashReserveClick,
-		online: SEE.dashboardOnlineClick,
-		total: SEE.dashboardCashTotalClick,
-	}
+const ACCOUNT_CLICK_SEE: Record<
+	(typeof ACCOUNT_ORDER)[number] | 'total',
+	string
+> = {
+	daily_cash: SEE.dashboardDailyCashClick,
+	cash_reserve: SEE.dashboardCashReserveClick,
+	online: SEE.dashboardOnlineClick,
+	total: SEE.dashboardCashTotalClick,
+}
 
 const ACCOUNT_LABEL_KEYS: Record<string, string> = {
 	daily_cash: 'dashboard.cashAccounts.dailyCash',

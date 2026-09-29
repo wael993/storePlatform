@@ -990,15 +990,14 @@ export default class BuyingInvoiceController {
 		const touchedInventoryIds =
 			wasStockAffecting && existingInvoice
 				? await this.ops.runInTransaction(async session => {
-						const inventoryIds =
-							await this.reversePurchaseInventoryAdjustments(
-								requestContext,
-								existingInvoice.buyingInvoiceId,
-								existingInvoice.invoiceNumber,
-								asInvoiceLines(existingInvoice.items),
-								session,
-								requireWarehouseId(existingInvoice.warehouseId),
-							)
+						const inventoryIds = await this.reversePurchaseInventoryAdjustments(
+							requestContext,
+							existingInvoice.buyingInvoiceId,
+							existingInvoice.invoiceNumber,
+							asInvoiceLines(existingInvoice.items),
+							session,
+							requireWarehouseId(existingInvoice.warehouseId),
+						)
 
 						await clearCashLedgerForReference({
 							requestContext,

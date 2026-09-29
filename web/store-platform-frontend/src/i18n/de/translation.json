@@ -120,13 +120,11 @@
 			"cashBalance": "Kassenbestand"
 		},
 		"cashAccounts": {
-			"title": "Kasse & Zahlungen",
 			"dailyCash": "Tageskasse",
 			"cashReserve": "Barreserve",
 			"online": "Online",
 			"total": "Gesamt Kasse",
 			"live": "Live",
-			"liveDescription": "Server-Saldo",
 			"historyTitle": "Kassenverlauf",
 			"historyEmpty": "Keine Bewegungen in diesem Zeitraum",
 			"historyEmptyHint": "Anderes Konto, Typ oder Datum versuchen.",
@@ -228,10 +226,22 @@
 				"teamActivity": "Teamaktivität"
 			},
 			"actors": {
-				"mike": { "name": "محمد رضا", "initials": "مر" },
-				"sara": { "name": "سارة الحسن", "initials": "سح" },
-				"ali": { "name": "علي خالد", "initials": "عخ" },
-				"layla": { "name": "ليلى ناصر", "initials": "لن" }
+				"mike": {
+					"name": "محمد رضا",
+					"initials": "مر"
+				},
+				"sara": {
+					"name": "سارة الحسن",
+					"initials": "سح"
+				},
+				"ali": {
+					"name": "علي خالد",
+					"initials": "عخ"
+				},
+				"layla": {
+					"name": "ليلى ناصر",
+					"initials": "لن"
+				}
 			},
 			"products": {
 				"usbCable": "USB-C-Kabel",
@@ -1124,7 +1134,6 @@
 			"description": "Wählen Sie, ob die App den Server oder lokale Offline-Daten nutzt. Im automatischen Modus wechselt die App je nach Internetverbindung.",
 			"online": "Online — Live-Serverdaten",
 			"offline": "Offline — mit lokalen Daten arbeiten",
-			"auto": "Automatisch — je nach Internetverbindung wechseln",
 			"notAvailable": "Offline-Modus ist für diesen Mandanten nicht aktiviert.",
 			"switching": "Arbeitsmodus wird gewechselt…",
 			"settingsLockedOffline": "Andere Einstellungen sind offline nicht verfügbar. Wechseln Sie in den Online-Modus, um sie zu ändern."
@@ -1311,60 +1320,60 @@
 					"title": "Katalogpreise direkt aus der Rechnung ändern",
 					"description": "Beim Erstellen einer Verkaufs- oder Einkaufsrechnung öffnen Sie mit dem Stift-Symbol neben dem Positionspreis den gespeicherten Katalogpreis des Produkts — nicht nur den Betrag auf der aktuellen Rechnung.",
 					"imageDescriptions": {
-						"0": "Nach der Bestätigung wird der neue Preis am Produkt selbst gespeichert. Spätere Rechnungen und die Produktseite verwenden den aktualisierten Katalogpreis automatisch."
+						"img0": "Nach der Bestätigung wird der neue Preis am Produkt selbst gespeichert. Spätere Rechnungen und die Produktseite verwenden den aktualisierten Katalogpreis automatisch."
 					}
 				},
 				"dashboard": {
 					"title": "Neue Dashboard-Seite",
 					"description": "Unter Seiten und auf den Karten der Willkommensseite gibt es jetzt einen Dashboard-Eintrag. Die Oberfläche ist bereits erreichbar; Diagramme und KPI-Karten werden schrittweise freigeschaltet, sobald die jeweilige Kennzahl fertig ist.",
 					"imageDescriptions": {
-						"0": "Die Dashboard-Hauptansicht bündelt Umsatz, Gewinn, Bestand und Aktivität an einem Ort — ohne zwischen vielen Seiten zu wechseln.",
-						"1": "Öffnen Sie das Dashboard über das Seiten-Menü oder die Karten auf der Willkommensseite für einen schnellen Überblick.",
-						"2": "Jede KPI-Karte startet mit „Demnächst“ und wird live, sobald die zugehörige Backend-Kennzahl bereit ist — die Seite selbst braucht kein separates Release."
+						"img0": "Die Dashboard-Hauptansicht bündelt Umsatz, Gewinn, Bestand und Aktivität an einem Ort — ohne zwischen vielen Seiten zu wechseln.",
+						"img1": "Öffnen Sie das Dashboard über das Seiten-Menü oder die Karten auf der Willkommensseite für einen schnellen Überblick.",
+						"img2": "Jede KPI-Karte startet mit „Demnächst“ und wird live, sobald die zugehörige Backend-Kennzahl bereit ist — die Seite selbst braucht kein separates Release."
 					}
 				},
 				"multipleBarcodes": {
 					"title": "Mehrere Barcodes pro Produkt",
 					"description": "Ein Produkt kann einen Hauptbarcode plus weitere Barcodes speichern. Beim Scannen in der Rechnungssuche oder Produktsuche öffnet jeder dieser Codes denselben Artikel — praktisch, wenn Lieferanten denselben Artikel unter verschiedenen Codes liefern.",
 					"imageDescriptions": {
-						"0": "Zusätzliche Barcodes pflegen Sie im Produktformular. Sie werden mandantenweit auf Kollisionen geprüft, damit zwei Produkte denselben Code nicht teilen können."
+						"img0": "Zusätzliche Barcodes pflegen Sie im Produktformular. Sie werden mandantenweit auf Kollisionen geprüft, damit zwei Produkte denselben Code nicht teilen können."
 					}
 				},
 				"productImport": {
 					"title": "Verbesserter Excel-Produktimport",
 					"description": "Der Import ist durchgängig stabiler: Excel-Spalten zuordnen, Einheiten/Kategorien/Lieferanten vor dem Speichern prüfen, dann Produkte stapelweise mit klarerem Fehlerfeedback laden.",
 					"imageDescriptions": {
-						"0": "Starten Sie unter Produkte → Import. Wählen Sie Währung und Felder, laden Sie eine .xlsx/.xlsm-Datei hoch und ordnen Sie jedes Feld der passenden Excel-Spalte zu.",
-						"1": "Im Stammdaten-Schritt können Sie Einheiten, Kategorien und Lieferanten aus den Dateiwerten zuordnen oder anlegen und die Zeilen vor dem stapelweisen Speichern von Produkten und Bestand prüfen."
+						"img0": "Starten Sie unter Produkte → Import. Wählen Sie Währung und Felder, laden Sie eine .xlsx/.xlsm-Datei hoch und ordnen Sie jedes Feld der passenden Excel-Spalte zu.",
+						"img1": "Im Stammdaten-Schritt können Sie Einheiten, Kategorien und Lieferanten aus den Dateiwerten zuordnen oder anlegen und die Zeilen vor dem stapelweisen Speichern von Produkten und Bestand prüfen."
 					}
 				},
 				"cashBoxes": {
 					"title": "Live-Bargeldkarten im Dashboard",
 					"description": "Wir erweitern das Dashboard laufend um neue Live-Karten. Die Bargeldboxen sind jetzt verfügbar, damit Sie Salden, Beträge und zugehörige Gebühren direkt in der Übersicht prüfen können.",
 					"imageDescriptions": {
-						"0": "Im Dashboard sehen Sie vier Kacheln: Tageskasse, Barreserve (Safe), Online und Gesamt — so bleiben Schubladenkasse, Reserve, Karten-/Onlinegeld und der Gesamtsaldo gemeinsam sichtbar.",
-						"1": "Auf Rechnungen erscheinen Tageskasse und Online für den gewählten Zahlungsweg, damit Sie vor dem Speichern sehen, in welche Box der bezahlte Betrag fließt (oder welche Box belastet wird)."
+						"img0": "Im Dashboard sehen Sie vier Kacheln: Tageskasse, Barreserve (Safe), Online und Gesamt — so bleiben Schubladenkasse, Reserve, Karten-/Onlinegeld und der Gesamtsaldo gemeinsam sichtbar.",
+						"img1": "Auf Rechnungen erscheinen Tageskasse und Online für den gewählten Zahlungsweg, damit Sie vor dem Speichern sehen, in welche Box der bezahlte Betrag fließt (oder welche Box belastet wird)."
 					}
 				},
 				"onlinePayment": {
 					"title": "Online-Zahlung auf Rechnungen",
 					"description": "Beim Erstellen einer Verkaufs- oder Einkaufsrechnung können Sie Online als Zahlungsart wählen. Karten- und Onlinezahlungen buchen automatisch auf das Online-Konto — ohne extra Kassenwahl.",
 					"imageDescriptions": {
-						"0": "Wählen Sie Online in den Zahlungssteuerungen der Rechnung. Der bezahlte Betrag aktualisiert den Online-Saldo des aktiven Lagers; Barzahlungen gehen weiterhin auf die Tageskasse."
+						"img0": "Wählen Sie Online in den Zahlungssteuerungen der Rechnung. Der bezahlte Betrag aktualisiert den Online-Saldo des aktiven Lagers; Barzahlungen gehen weiterhin auf die Tageskasse."
 					}
 				},
 				"cashTransfer": {
 					"title": "Transfer zwischen Bargeldboxen",
 					"description": "Verschieben Sie Beträge zwischen Tageskasse, Barreserve und Online — z. B. Schublade auffüllen, Geld in den Safe legen oder Online-Erlöse ausgleichen — ohne Buchung als Einnahme oder Ausgabe.",
 					"imageDescriptions": {
-						"0": "Nutzen Sie Schnelleingabe → Transfer (Online erforderlich). Wählen Sie Quell- und Zielbox, Betrag und optional einen Grund. Das System bucht beide Seiten, damit die Salden von Tageskasse, Reserve und Online synchron bleiben."
+						"img0": "Nutzen Sie Schnelleingabe → Transfer (Online erforderlich). Wählen Sie Quell- und Zielbox, Betrag und optional einen Grund. Das System bucht beide Seiten, damit die Salden von Tageskasse, Reserve und Online synchron bleiben."
 					}
 				},
 				"cashHistory": {
 					"title": "Bargeld-Historie über Dashboard-Karten",
 					"description": "Klicken Sie im Dashboard auf eine Bargeldkarte (Tageskasse, Barreserve, Online oder Gesamt), um das Kontobuch dieser Box zu öffnen und jede Bewegung zu prüfen — Rechnungen, Quittungen, Zahlungen, Ausgaben und Transfers.",
 					"imageDescriptions": {
-						"0": "Die Historienliste zeigt jede Buchung mit Betrag, Richtung und verknüpfter Aktivität, damit Sie nachvollziehen können, wie sich der Saldo der gewählten Box über die Zeit verändert hat."
+						"img0": "Die Historienliste zeigt jede Buchung mit Betrag, Richtung und verknüpfter Aktivität, damit Sie nachvollziehen können, wie sich der Saldo der gewählten Box über die Zeit verändert hat."
 					}
 				}
 			},
@@ -1452,6 +1461,7 @@
 		"requestFailed": "Verlängerungsantrag konnte nicht gesendet werden."
 	},
 	"common": {
+		"onlineOnly": "Nur online",
 		"note": "Notiz",
 		"beta": "Beta",
 		"notePlaceholder": "Notiz eingeben",

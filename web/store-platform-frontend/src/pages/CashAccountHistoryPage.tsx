@@ -50,12 +50,18 @@ const MOVEMENT_OPTIONS = [
 		value: 'PURCHASE',
 		labelKey: 'dashboard.cashAccounts.movementTypes.PURCHASE',
 	},
-	{ value: 'RECEIPT', labelKey: 'dashboard.cashAccounts.movementTypes.RECEIPT' },
+	{
+		value: 'RECEIPT',
+		labelKey: 'dashboard.cashAccounts.movementTypes.RECEIPT',
+	},
 	{
 		value: 'PAYMENT',
 		labelKey: 'dashboard.cashAccounts.movementTypes.PAYMENT',
 	},
-	{ value: 'EXPENSE', labelKey: 'dashboard.cashAccounts.movementTypes.EXPENSE' },
+	{
+		value: 'EXPENSE',
+		labelKey: 'dashboard.cashAccounts.movementTypes.EXPENSE',
+	},
 	{
 		value: 'TRANSFER',
 		labelKey: 'dashboard.cashAccounts.movementTypes.TRANSFER',
@@ -100,11 +106,11 @@ const CashAccountHistoryPage = () => {
 	const [draftAccountType, setDraftAccountType] = useState(appliedAccountType)
 	const [draftMovementType, setDraftMovementType] =
 		useState(appliedMovementType)
-	const [draftDateFrom, setDraftDateFrom] = useState<Date>(
-		() => dayjs(appliedDateFrom).toDate(),
+	const [draftDateFrom, setDraftDateFrom] = useState<Date>(() =>
+		dayjs(appliedDateFrom).toDate(),
 	)
-	const [draftDateTo, setDraftDateTo] = useState<Date>(
-		() => dayjs(appliedDateTo).toDate(),
+	const [draftDateTo, setDraftDateTo] = useState<Date>(() =>
+		dayjs(appliedDateTo).toDate(),
 	)
 
 	useEffect(() => {
@@ -179,9 +185,7 @@ const CashAccountHistoryPage = () => {
 	}) => {
 		if (!entry.referenceLabel) return entry.referenceId
 		if (entry.referenceType === 'cash_transfer') {
-			return t(
-				ACCOUNT_LABEL_KEYS[entry.referenceLabel] ?? entry.referenceLabel,
-			)
+			return t(ACCOUNT_LABEL_KEYS[entry.referenceLabel] ?? entry.referenceLabel)
 		}
 		return entry.referenceLabel
 	}
@@ -326,9 +330,7 @@ const CashAccountHistoryPage = () => {
 										<Th>
 											{t('dashboard.cashAccounts.historyColumns.reference')}
 										</Th>
-										<Th>
-											{t('dashboard.cashAccounts.historyColumns.reason')}
-										</Th>
+										<Th>{t('dashboard.cashAccounts.historyColumns.reason')}</Th>
 										<Th>{t('dashboard.cashAccounts.historyColumns.by')}</Th>
 									</Tr>
 								</Thead>

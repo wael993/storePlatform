@@ -7,9 +7,8 @@ import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
 import type { SellingInvoicePaymentType, SellingInvoiceStatus } from './types'
 
 /** paymentType → ledger account (cash→daily_cash, card→online). */
-export const defaultInvoiceCashAccountType = (
-	paymentType: string,
-): string => (paymentType === InvoicePaymentType.CARD ? 'online' : 'daily_cash')
+export const defaultInvoiceCashAccountType = (paymentType: string): string =>
+	paymentType === InvoicePaymentType.CARD ? 'online' : 'daily_cash'
 
 export const INVOICES_PER_PAGE = 10
 

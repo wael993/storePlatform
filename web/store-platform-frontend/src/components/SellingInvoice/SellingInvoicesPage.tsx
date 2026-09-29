@@ -688,6 +688,7 @@ const SellingInvoicesPage = () => {
 				body={t('components.sellingInvoices.actions.deleteConfirmBody')}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
+				isTemporaryDisabled={true}
 				isConfirmationButtonLoading={
 					isDeletingInvoice || isDeletingBuyingInvoice
 				}

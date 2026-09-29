@@ -32,7 +32,6 @@ export const defaultCashAccountForInvoicePayment = (
 		? CASH_ACCOUNT_TYPES.ONLINE
 		: CASH_ACCOUNT_TYPES.DAILY_CASH
 
-
 const isExcludedInvoiceStatus = (status?: string) =>
 	status === InvoiceStatus.DRAFT || status === InvoiceStatus.CANCELLED
 

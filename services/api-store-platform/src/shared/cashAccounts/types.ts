@@ -24,9 +24,7 @@ export const isCashAccountType = (value: unknown): value is CashAccountType =>
 	typeof value === 'string' &&
 	(INITIAL_CASH_ACCOUNT_TYPES as readonly string[]).includes(value)
 
-export const resolveCashAccountType = (
-	value: unknown,
-): CashAccountType =>
+export const resolveCashAccountType = (value: unknown): CashAccountType =>
 	isCashAccountType(value) ? value : CASH_ACCOUNT_TYPES.DAILY_CASH
 
 /** Pure transfer input checks (no DB). */

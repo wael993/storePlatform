@@ -4375,7 +4375,8 @@ export default class ProductController {
 
 	public async getCashAccountBalances(requestContext: RequestContext) {
 		const tenantId = this.getTenantId(requestContext)
-		const warehouseIds = await this.resolveCashAccountWarehouseIds(requestContext)
+		const warehouseIds =
+			await this.resolveCashAccountWarehouseIds(requestContext)
 
 		if (warehouseIds.length === 0) {
 			return { accounts: [], total: 0 }
@@ -4414,7 +4415,8 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		const tenantId = this.getTenantId(requestContext)
-		const warehouseIds = await this.resolveCashAccountWarehouseIds(requestContext)
+		const warehouseIds =
+			await this.resolveCashAccountWarehouseIds(requestContext)
 
 		return listCashLedgerEntries({
 			tenantId,
@@ -4614,7 +4616,9 @@ export default class ProductController {
 
 				const amount = parseFloat(
 					String(
-						dailyActionData.singleUnitPrice ?? dailyActionData.totalPrice ?? '0',
+						dailyActionData.singleUnitPrice ??
+							dailyActionData.totalPrice ??
+							'0',
 					).replace(/,/g, ''),
 				)
 

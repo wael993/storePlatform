@@ -209,7 +209,10 @@ const InvoiceSummaryCards = ({
 	}
 
 	const balanceByType = new Map(
-		(cashBalances?.accounts ?? []).map(account => [account.type, account.balance]),
+		(cashBalances?.accounts ?? []).map(account => [
+			account.type,
+			account.balance,
+		]),
 	)
 	const showCashLoading =
 		showLedgerCash &&

@@ -265,6 +265,7 @@ const SupplierListItemMobil = ({
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
+				isTemporaryDisabled={true}
 			/>
 		</>
 	)

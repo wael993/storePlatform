@@ -761,9 +761,7 @@ const QuickEntryModal = ({
 						)}
 						{canShowTransferTab && (
 							<Tooltip
-								label={t(
-									'components.sellingInvoices.entries.transferOffline',
-								)}
+								label={t('components.sellingInvoices.entries.transferOffline')}
 								isDisabled={cashOpsOnline}
 							>
 								<span style={{ flex: 1, display: 'flex' }}>

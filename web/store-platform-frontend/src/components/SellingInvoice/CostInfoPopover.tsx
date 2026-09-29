@@ -51,7 +51,8 @@ const CostInfoPopover = ({
 								{t('components.sellingInvoices.drawer.productCostInfo')}
 							</Text>
 							<Text fontSize="sm" whiteSpace="nowrap">
-								{t('components.sellingInvoices.drawer.lastBuying')}: {lastBuying}
+								{t('components.sellingInvoices.drawer.lastBuying')}:{' '}
+								{lastBuying}
 							</Text>
 							<Text fontSize="sm" whiteSpace="nowrap">
 								{t('components.sellingInvoices.drawer.averageBuying')}:{' '}

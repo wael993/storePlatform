@@ -31,7 +31,11 @@ import {
 	CASH_ACCOUNT_TYPES,
 	CASH_REFERENCE_TYPES,
 } from '../shared/cashAccounts/types'
-import { primaryInvoiceTotals, loadCashCurrencyRates, toPrimaryCashAmount } from '../shared/cashAccounts/posting'
+import {
+	primaryInvoiceTotals,
+	loadCashCurrencyRates,
+	toPrimaryCashAmount,
+} from '../shared/cashAccounts/posting'
 
 const parseArg = (name: string) => {
 	const prefix = `--${name}=`

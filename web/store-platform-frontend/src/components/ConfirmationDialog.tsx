@@ -27,6 +27,7 @@ interface ConfirmationDialogProps {
 	buttonsAlignment?: 'start' | 'end'
 	confirmIsPrimary?: boolean
 	isConfirmationButtonLoading?: boolean
+	isTemporaryDisabled?: boolean
 }
 const styles = {
 	AlertDialogHeaderSection: {
@@ -77,6 +78,7 @@ const ConfirmationDialog = ({
 	buttonsAlignment = 'end',
 	confirmIsPrimary = false,
 	isConfirmationButtonLoading = false,
+	isTemporaryDisabled = false,
 }: ConfirmationDialogProps) => {
 	const leastDestructiveRef = useRef<HTMLButtonElement>(
 		null,
@@ -117,6 +119,7 @@ const ConfirmationDialog = ({
 							<Button sx={styles.secondaryButton} onClick={onClose}>
 								{cancelButtonText}
 							</Button>
+
 							{confirmIsPrimary ? (
 								<Button
 									sx={styles.primaryButton}
@@ -124,6 +127,7 @@ const ConfirmationDialog = ({
 									onClick={handleOnConfirm}
 									ml={3}
 									isLoading={isConfirmationButtonLoading}
+									isDisabled={isTemporaryDisabled}
 								>
 									{confirmationButtonText}
 								</Button>
@@ -133,6 +137,7 @@ const ConfirmationDialog = ({
 									colorScheme="red"
 									onClick={handleOnConfirm}
 									ml={3}
+									isDisabled={isTemporaryDisabled}
 								>
 									{confirmationButtonText}
 								</Button>

@@ -71,7 +71,6 @@ import {
 	formatDateInputValue,
 	parseDateInputValue,
 } from '../../shared/dateUtils'
-import { getApiErrorMessage } from '../../offline/getApiErrorMessage'
 import { getWorkMode } from '../../offline/workMode'
 import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
 import { useUser } from '../../shared/hooks/useUser'
@@ -540,12 +539,7 @@ const NewBuyingInvoicePanel = ({
 		if (previousType !== currentType) return 0
 		const { paidAmount } = getPrimaryInvoiceCurrencyAmounts(existingInvoice)
 		return paidAmount > 0 ? paidAmount : 0
-	}, [
-		draft.paymentType,
-		existingInvoice,
-		isCashOutPayment,
-		mode,
-	])
+	}, [draft.paymentType, existingInvoice, isCashOutPayment, mode])
 
 	const availableCashOutPrimary =
 		fromAccountBalancePrimary + previousCashOutPrimary
@@ -1729,16 +1723,16 @@ const NewBuyingInvoicePanel = ({
 							{t('components.buyingInvoices.extract.unresolved')}
 						</Text>
 					)}
-						{insufficientCashOutMessage && (
-							<Text fontSize="sm" color={PAGE_COLORS.danger}>
-								{insufficientCashOutMessage}
-							</Text>
-						)}
-						{saveError && (
-							<Text fontSize="sm" color={PAGE_COLORS.danger}>
-								{saveError}
-							</Text>
-						)}
+					{insufficientCashOutMessage && (
+						<Text fontSize="sm" color={PAGE_COLORS.danger}>
+							{insufficientCashOutMessage}
+						</Text>
+					)}
+					{saveError && (
+						<Text fontSize="sm" color={PAGE_COLORS.danger}>
+							{saveError}
+						</Text>
+					)}
 
 					{!isReadOnly && (
 						<Flex
@@ -1866,9 +1860,7 @@ const NewBuyingInvoicePanel = ({
 											{draft.paymentType === InvoicePaymentType.CASH
 												? t('components.buyingInvoices.drawer.payCashAndSave')
 												: draft.paymentType === InvoicePaymentType.CARD
-													? t(
-															'components.buyingInvoices.drawer.payCardAndSave',
-														)
+													? t('components.buyingInvoices.drawer.payCardAndSave')
 													: t(
 															'components.buyingInvoices.drawer.saveCreditInvoice',
 														)}

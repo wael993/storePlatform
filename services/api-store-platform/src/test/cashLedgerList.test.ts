@@ -29,6 +29,7 @@ describe('cash ledger list filters', () => {
 		})
 
 		const createdAt = filter?.createdAt as { $gte: Date; $lte: Date }
+
 		expect(createdAt.$gte).toEqual(parseLedgerDateBound('2026-09-01', false))
 		expect(createdAt.$lte).toEqual(parseLedgerDateBound('2026-09-28', true))
 		expect(createdAt.$gte.getHours()).toBe(0)

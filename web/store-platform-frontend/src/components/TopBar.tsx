@@ -311,19 +311,17 @@ const TopBar = ({
 		Boolean(pendingRequest) ||
 		pendingRenewalCount > 0
 	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
-	const { offlineEnabled, isOnline, syncState, sync } = useOfflineSync(
-		user?.tenantId,
-	)
+	const { isOnline } = useOfflineSync(user?.tenantId)
 
-	const isSyncing = syncState === 'syncing' || syncState === 'bootstrapping'
+	// const isSyncing = syncState === 'syncing' || syncState === 'bootstrapping'
 
-	const handleSync = async () => {
-		try {
-			await sync()
-		} catch {
-			// Error state handled by sync service
-		}
-	}
+	// const handleSync = async () => {
+	// 	try {
+	// 		await sync()
+	// 	} catch {
+	// 		// Error state handled by sync service
+	// 	}
+	// }
 
 	const activePath =
 		navItems.find(
@@ -1119,7 +1117,7 @@ const TopBar = ({
 						? ANNOUNCEMENT_IMAGES[activeAnnouncement].map((src, index) => ({
 								src,
 								description: t(
-									`components.topBar.announcementItems.${activeAnnouncement}.imageDescriptions.${index}`,
+									`components.topBar.announcementItems.${activeAnnouncement}.imageDescriptions.img${index}`,
 								),
 							}))
 						: []

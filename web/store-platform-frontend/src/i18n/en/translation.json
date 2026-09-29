@@ -120,13 +120,11 @@
 			"cashBalance": "Cash Balance"
 		},
 		"cashAccounts": {
-			"title": "Cash & Payments",
 			"dailyCash": "Daily Cash",
 			"cashReserve": "Cash Reserve",
 			"online": "Online",
 			"total": "Total Cash",
 			"live": "Live",
-			"liveDescription": "Server balance",
 			"historyTitle": "Cash History",
 			"historyEmpty": "No movements in this range",
 			"historyEmptyHint": "Try a different account, type, or date range.",
@@ -228,10 +226,22 @@
 				"teamActivity": "Team activity"
 			},
 			"actors": {
-				"mike": { "name": "محمد رضا", "initials": "م ر" },
-				"sara": { "name": "سارة الحسن", "initials": "س ح" },
-				"ali": { "name": "علي خالد", "initials": "ع خ" },
-				"layla": { "name": "ليلى ناصر", "initials": "ل ن" }
+				"mike": {
+					"name": "محمد رضا",
+					"initials": "م ر"
+				},
+				"sara": {
+					"name": "سارة الحسن",
+					"initials": "س ح"
+				},
+				"ali": {
+					"name": "علي خالد",
+					"initials": "ع خ"
+				},
+				"layla": {
+					"name": "ليلى ناصر",
+					"initials": "ل ن"
+				}
 			},
 			"products": {
 				"usbCable": "كابل USB-C",
@@ -1124,7 +1134,6 @@
 			"description": "Choose whether the app uses the server or local offline data. Automatic mode switches based on your internet connection.",
 			"online": "Online — use live server data",
 			"offline": "Offline — work from local data",
-			"auto": "Automatic — switch based on internet connection",
 			"notAvailable": "Offline mode is not enabled for this tenant.",
 			"switching": "Switching work mode…",
 			"settingsLockedOffline": "Other settings are unavailable offline. Switch to online mode to change them."
@@ -1311,60 +1320,60 @@
 					"title": "Edit catalog prices from the invoice",
 					"description": "While creating a selling or buying invoice, click the pen icon next to a line price to change that product’s saved catalog price — not only the amount on the current invoice.",
 					"imageDescriptions": {
-						"0": "After you confirm, the new price is stored on the product itself. Later invoices and the Products page will use the updated catalog price automatically."
+						"img0": "After you confirm, the new price is stored on the product itself. Later invoices and the Products page will use the updated catalog price automatically."
 					}
 				},
 				"dashboard": {
 					"title": "New Dashboard page",
 					"description": "A Dashboard entry is now available under Pages and on the Welcome page cards. You can already open the shell; charts and KPI cards will turn on gradually as each metric is finished.",
 					"imageDescriptions": {
-						"0": "The main Dashboard view brings sales, profit, inventory, and activity into one place so you can monitor the business without jumping between pages.",
-						"1": "Find Dashboard in the Pages menu or open it from the Welcome page cards whenever you want a quick overview.",
-						"2": "Each KPI card starts as “coming soon” and becomes live once its backend metric is ready — no separate release needed for the page itself."
+						"img0": "The main Dashboard view brings sales, profit, inventory, and activity into one place so you can monitor the business without jumping between pages.",
+						"img1": "Find Dashboard in the Pages menu or open it from the Welcome page cards whenever you want a quick overview.",
+						"img2": "Each KPI card starts as “coming soon” and becomes live once its backend metric is ready — no separate release needed for the page itself."
 					}
 				},
 				"multipleBarcodes": {
 					"title": "Multiple barcodes per product",
 					"description": "One product can keep a primary barcode plus extra barcodes. Scanning any of them in invoice search or product lookup still opens the same item — useful when a supplier ships the same goods under different codes.",
 					"imageDescriptions": {
-						"0": "Add or edit additional barcodes on the product form. They are checked for collisions across the tenant, so two products cannot share the same code."
+						"img0": "Add or edit additional barcodes on the product form. They are checked for collisions across the tenant, so two products cannot share the same code."
 					}
 				},
 				"productImport": {
 					"title": "Improved Excel product import",
 					"description": "Import is more stable end to end: map Excel columns, review units/categories/suppliers before commit, then load products in batches with clearer error feedback.",
 					"imageDescriptions": {
-						"0": "Start from Products → Import. Choose currency and fields, upload an .xlsx/.xlsm file, then map each selected field to its Excel column.",
-						"1": "In the master-data step you can match or create units, categories, and suppliers from the file values, then preview rows before the batched commit writes Products and stock."
+						"img0": "Start from Products → Import. Choose currency and fields, upload an .xlsx/.xlsm file, then map each selected field to its Excel column.",
+						"img1": "In the master-data step you can match or create units, categories, and suppliers from the file values, then preview rows before the batched commit writes Products and stock."
 					}
 				},
 				"cashBoxes": {
 					"title": "Live cash cards on the Dashboard",
 					"description": "We keep extending the Dashboard with new live cards. Cash boxes are now available so you can check balances, amounts, and related fees without leaving the overview.",
 					"imageDescriptions": {
-						"0": "On the Dashboard you see four cash tiles: Daily Cash, Cash Reserve (safe), Online, and Total — so drawer cash, reserve, card/online money, and the combined balance stay visible together.",
-						"1": "On invoices, Daily Cash and Online appear for the payment path in use, so you can confirm which box the paid amount will land in (or leave from) before you save."
+						"img0": "On the Dashboard you see four cash tiles: Daily Cash, Cash Reserve (safe), Online, and Total — so drawer cash, reserve, card/online money, and the combined balance stay visible together.",
+						"img1": "On invoices, Daily Cash and Online appear for the payment path in use, so you can confirm which box the paid amount will land in (or leave from) before you save."
 					}
 				},
 				"onlinePayment": {
 					"title": "Online payment on invoices",
 					"description": "When you create a selling or buying invoice you can choose Online as the payment method. Card and online payments post to the Online cash account automatically — no separate cash-box picker.",
 					"imageDescriptions": {
-						"0": "Select Online on the invoice payment controls. The paid amount updates the Online balance for the active warehouse; cash payments still go to Daily Cash as before."
+						"img0": "Select Online on the invoice payment controls. The paid amount updates the Online balance for the active warehouse; cash payments still go to Daily Cash as before."
 					}
 				},
 				"cashTransfer": {
 					"title": "Transfer between cash boxes",
 					"description": "Move money between Daily Cash, Cash Reserve, and Online when you need to top up the drawer, park cash in the safe, or settle online proceeds — without booking it as income or expense.",
 					"imageDescriptions": {
-						"0": "Use Quick Entry → Transfer (online required). Pick the from and to boxes, enter the amount, and optionally a reason. The system posts both legs so balances stay in sync across Daily, Reserve, and Online."
+						"img0": "Use Quick Entry → Transfer (online required). Pick the from and to boxes, enter the amount, and optionally a reason. The system posts both legs so balances stay in sync across Daily, Reserve, and Online."
 					}
 				},
 				"cashHistory": {
 					"title": "Cash movement history from Dashboard cards",
 					"description": "Click a cash card on the Dashboard (Daily Cash, Cash Reserve, Online, or Total) to open that box’s ledger and review every movement — invoices, receipts, payments, expenses, and transfers.",
 					"imageDescriptions": {
-						"0": "The history list shows each posting with amount, direction, and linked activity so you can audit how the balance changed over time for the selected cash box."
+						"img0": "The history list shows each posting with amount, direction, and linked activity so you can audit how the balance changed over time for the selected cash box."
 					}
 				}
 			},
@@ -1452,6 +1461,7 @@
 		"requestFailed": "Failed to submit the renewal request."
 	},
 	"common": {
+		"onlineOnly": "Online only",
 		"note": "Note",
 		"beta": "Beta",
 		"notePlaceholder": "Enter note",
