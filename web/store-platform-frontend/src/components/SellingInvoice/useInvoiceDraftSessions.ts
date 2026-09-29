@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import type { SellingInvoiceDraft, SellingInvoicePaymentType } from './types'
+import type { SellingInvoiceDraft } from './types'
 import {
 	createInvoiceDraftSession,
 	loadInvoiceDraftSessions,
 	saveInvoiceDraftSessions,
 	withSyncedInvoiceNumbers,
 } from './invoiceDraftSessions'
+import { PricingLabelsType } from '../../shared/globalEnums'
 
 interface UseInvoiceDraftSessionsOptions {
 	nextInvoiceNumber: number
@@ -44,12 +45,12 @@ export const useInvoiceDraftSessions = ({
 
 	const createSession = useCallback(
 		(options?: {
-			paymentType?: SellingInvoicePaymentType
+			pricingLabels?: PricingLabelsType
 			productSearch?: string
 			warehouseId?: string
 		}) => {
 			const session = createInvoiceDraftSession(salesPerson, {
-				paymentType: options?.paymentType,
+				pricingLabels: options?.pricingLabels,
 				invoiceNumber: nextInvoiceNumber,
 				customerName: walkInCustomerName,
 				productSearch: options?.productSearch,
@@ -88,15 +89,6 @@ export const useInvoiceDraftSessions = ({
 		[],
 	)
 
-	const setShowNote = useCallback((sessionId: string, showNote: boolean) => {
-		setState(current => ({
-			...current,
-			sessions: current.sessions.map(session =>
-				session.id === sessionId ? { ...session, showNote } : session,
-			),
-		}))
-	}, [])
-
 	const clearInitialProductSearch = useCallback((sessionId: string) => {
 		setState(current => ({
 			...current,
@@ -133,7 +125,6 @@ export const useInvoiceDraftSessions = ({
 		setActiveSessionId,
 		createSession,
 		updateDraft,
-		setShowNote,
 		clearInitialProductSearch,
 		removeSession,
 		clearAllSessions,

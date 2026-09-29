@@ -31,7 +31,7 @@ import {
 } from '../../api/apiStore'
 import CustomBreadcrumb from '../CustomBreadcrumb'
 import ConfirmationDialog from '../ConfirmationDialog'
-import { BreadCrumbItem, InvoicePaymentType } from '../../shared/globalEnums'
+import { BreadCrumbItem, PricingLabelsType } from '../../shared/globalEnums'
 import { useUser } from '../../shared/hooks/useUser'
 import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
@@ -54,7 +54,7 @@ import InvoiceTableSection from './InvoiceTableSection'
 import NewSellingInvoicePanel, {
 	type InvoicePanelMode,
 } from './NewSellingInvoicePanel'
-import type { SellingInvoiceDraft, SellingInvoicePaymentType } from './types'
+import type { SellingInvoiceDraft } from './types'
 import { useInvoiceDraftSessions } from './useInvoiceDraftSessions'
 import { normalizeSearchQuery as normalizeBarcode } from './productSearch'
 import { AsInvoiceIcon } from '../../icons/Invoice'
@@ -117,6 +117,8 @@ const SellingInvoicesPage = () => {
 	const canEditBuying = canSee(SEE.invoicesBuyingEdit)
 	const canEditEntries = canSee(SEE.invoicesEntriesEdit)
 	const canSeeSummary = canSee(SEE.sellingInvoicesSummary)
+	const canSeeWholesalePrice = canSee(SEE.productsWholesalePrice)
+	const canSeeSemiWholesalePrice = canSee(SEE.productsSemiWholesalePrice)
 	const canSeeInvoiceLists = canSeeBuying || canSeeSellingList || canSeeEntries
 	const breadCrumbItems = generateBreadcrumbs()
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
@@ -220,7 +222,6 @@ const SellingInvoicesPage = () => {
 		setActiveSessionId,
 		createSession,
 		updateDraft,
-		setShowNote,
 		clearInitialProductSearch,
 		removeSession,
 	} = useInvoiceDraftSessions({
@@ -238,7 +239,6 @@ const SellingInvoicesPage = () => {
 		setActiveSessionId: setActiveBuyingSessionId,
 		createSession: createBuyingSession,
 		updateDraft: updateBuyingDraft,
-		setShowNote: setBuyingShowNote,
 		clearInitialProductSearch: clearBuyingInitialProductSearch,
 		removeSession: removeBuyingSession,
 	} = useBuyingInvoiceDraftSessions({
@@ -279,14 +279,6 @@ const SellingInvoicesPage = () => {
 		[activeSessionId, updateDraft],
 	)
 
-	const handleShowNoteChange = useCallback(
-		(showNote: boolean) => {
-			if (!activeSessionId) return
-			setShowNote(activeSessionId, showNote)
-		},
-		[activeSessionId, setShowNote],
-	)
-
 	const handleBuyingDraftChange = useCallback(
 		(
 			updater:
@@ -297,14 +289,6 @@ const SellingInvoicesPage = () => {
 			updateBuyingDraft(activeBuyingSessionId, updater)
 		},
 		[activeBuyingSessionId, updateBuyingDraft],
-	)
-
-	const handleBuyingShowNoteChange = useCallback(
-		(showNote: boolean) => {
-			if (!activeBuyingSessionId) return
-			setBuyingShowNote(activeBuyingSessionId, showNote)
-		},
-		[activeBuyingSessionId, setBuyingShowNote],
 	)
 
 	const handleSummaryDateFromChange = useCallback((date: Date | undefined) => {
@@ -363,23 +347,18 @@ const SellingInvoicesPage = () => {
 
 	const openNewInvoicePanel = (options?: {
 		productSearch?: string
-		paymentType?: SellingInvoicePaymentType
+		pricingLabels?: PricingLabelsType
 	}) => {
 		if (!canPostInvoices || !operationalWarehouseId) return
-		createSession({ ...options, warehouseId: operationalWarehouseId })
-	}
-
-	const handleNewInvoice = () => {
-		openNewInvoicePanel()
+		createSession({
+			...options,
+			warehouseId: operationalWarehouseId,
+		})
 	}
 
 	const handleNewBuyingInvoice = () => {
 		if (!canPostInvoices || !operationalWarehouseId) return
 		createBuyingSession({ warehouseId: operationalWarehouseId })
-	}
-
-	const handleNewCreditInvoice = () => {
-		openNewInvoicePanel({ paymentType: InvoicePaymentType.CREDIT })
 	}
 
 	const handleBarcodeSearchSubmit = (value: string) => {
@@ -559,34 +538,51 @@ const SellingInvoicesPage = () => {
 	const newInvoiceButton = (
 		<HStack spacing={0}>
 			<Menu>
-				<MenuButton
-					as={Button}
-					bg={PAGE_COLORS.primary}
-					color="white"
-					borderTopLeftRadius={0}
-					borderBottomLeftRadius={0}
-					borderTopRightRadius="lg"
-					borderBottomRightRadius="lg"
-					minW="auto"
-					px={2}
-					borderLeft="1px solid"
-					borderColor="#1D4ED8"
-					_hover={{ bg: '#1D4ED8' }}
-					aria-label={t('components.sellingInvoices.newInvoiceOptions')}
-					isDisabled={!canPostInvoices}
-				>
-					<ChevronDownIcon />
-				</MenuButton>
-				<MenuList>
-					<MenuItem onClick={handleNewInvoice} isDisabled={!canPostInvoices}>
-						{t('components.sellingInvoices.newInvoice')}
-					</MenuItem>
-					<MenuItem
-						onClick={handleNewCreditInvoice}
+				{(canSeeWholesalePrice || canSeeSemiWholesalePrice) && (
+					<MenuButton
+						as={Button}
+						bg={PAGE_COLORS.primary}
+						color="white"
+						borderTopLeftRadius={0}
+						borderBottomLeftRadius={0}
+						borderTopRightRadius="lg"
+						borderBottomRightRadius="lg"
+						minW="auto"
+						px={2}
+						borderLeft="1px solid"
+						borderColor="#1D4ED8"
+						_hover={{ bg: '#1D4ED8' }}
+						aria-label={t('components.sellingInvoices.newInvoiceOptions')}
 						isDisabled={!canPostInvoices}
 					>
-						{t('components.sellingInvoices.newCreditInvoice')}
-					</MenuItem>
+						<ChevronDownIcon />
+					</MenuButton>
+				)}
+				<MenuList>
+					{canSeeWholesalePrice && (
+						<MenuItem
+							onClick={() =>
+								openNewInvoicePanel({
+									pricingLabels: PricingLabelsType.WHOLESALE_PRICE,
+								})
+							}
+							isDisabled={!canPostInvoices}
+						>
+							{t('components.sellingInvoices.newWholesaleInvoice')}
+						</MenuItem>
+					)}
+					{canSeeSemiWholesalePrice && (
+						<MenuItem
+							onClick={() =>
+								openNewInvoicePanel({
+									pricingLabels: PricingLabelsType.SEMI_WHOLESALE_PRICE,
+								})
+							}
+							isDisabled={!canPostInvoices}
+						>
+							{t('components.sellingInvoices.newSemiWholesaleInvoice')}
+						</MenuItem>
+					)}
 				</MenuList>
 			</Menu>
 			<Button
@@ -607,7 +603,7 @@ const SellingInvoicesPage = () => {
 				fontWeight={600}
 				px={5}
 				_hover={{ bg: '#1D4ED8' }}
-				onClick={handleNewInvoice}
+				onClick={() => openNewInvoicePanel()}
 				isDisabled={!canPostInvoices}
 				title={
 					canPostInvoices
@@ -688,7 +684,6 @@ const SellingInvoicesPage = () => {
 				body={t('components.sellingInvoices.actions.deleteConfirmBody')}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
-				isTemporaryDisabled={true}
 				isConfirmationButtonLoading={
 					isDeletingInvoice || isDeletingBuyingInvoice
 				}
@@ -837,8 +832,6 @@ const SellingInvoicesPage = () => {
 								}
 								draft={activeBuyingSession.draft}
 								onDraftChange={handleBuyingDraftChange}
-								showNote={activeBuyingSession.showNote}
-								onShowNoteChange={handleBuyingShowNoteChange}
 								draftTabs={buyingDraftTabs}
 								activeDraftTabId={activeBuyingSessionId ?? undefined}
 								onSelectDraftTab={setActiveBuyingSessionId}
@@ -861,8 +854,6 @@ const SellingInvoicesPage = () => {
 								initialProductSearch={activeSession.initialProductSearch ?? ''}
 								draft={activeSession.draft}
 								onDraftChange={handleDraftChange}
-								showNote={activeSession.showNote}
-								onShowNoteChange={handleShowNoteChange}
 								draftTabs={draftTabs}
 								activeDraftTabId={activeSessionId ?? undefined}
 								onSelectDraftTab={setActiveSessionId}

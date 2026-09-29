@@ -5,6 +5,8 @@ export type ProductInlineField =
 	| 'barcode'
 	| 'purchasePrice'
 	| 'retailPrice'
+	| 'wholesalePrice'
+	| 'semiWholesalePrice'
 	| 'discount'
 	| 'quantity'
 	| 'minQuantity'
@@ -108,6 +110,22 @@ export const PRODUCT_INLINE_FIELD_CONFIG = {
 		buildPatch: (_product, raw) => ({
 			persist: 'product',
 			body: buildPriceFieldPatch({ retailPrice: parseInlineNumber(raw) }),
+		}),
+	},
+	wholesalePrice: {
+		errorKey: 'productModal.wholesalePrice',
+		buildPatch: (_product, raw) => ({
+			persist: 'product',
+			body: buildPriceFieldPatch({ wholesalePrice: parseInlineNumber(raw) }),
+		}),
+	},
+	semiWholesalePrice: {
+		errorKey: 'productModal.semiWholesalePrice',
+		buildPatch: (_product, raw) => ({
+			persist: 'product',
+			body: buildPriceFieldPatch({
+				semiWholesalePrice: parseInlineNumber(raw),
+			}),
 		}),
 	},
 	discount: {

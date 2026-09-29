@@ -44,6 +44,12 @@ import { enqueueProductWrite } from '../../api/optimisticData'
 import { buildProductInlinePatch } from '../product/productInlineEdit'
 import useCustomToast from '../common/CustomToast'
 import { useProductCatalog } from './useProductCatalog'
+import { PricingLabelsType } from '../../shared/globalEnums'
+import {
+	hasSellingCatalogPrice,
+	sellingCatalogPriceField,
+	type SellingCatalogPriceField,
+} from './productLineItem'
 
 interface InvoiceLineItemsTableProps {
 	lineItems: SellingInvoiceLineItem[]
@@ -54,6 +60,7 @@ interface InvoiceLineItemsTableProps {
 	currencyOptions: DisplayCurrencyOption[]
 	isReadOnly?: boolean
 	invoiceKind?: 'selling' | 'buying'
+	pricingLabels?: PricingLabelsType
 	extractionLines?: Record<string, LineExtractReview>
 	onConfirmLineField?: (
 		lineId: string,
@@ -100,6 +107,18 @@ const ProductThumbnail = ({
 const hasRealProductId = (productId: string | undefined) =>
 	Boolean(productId?.trim())
 
+const canSeeCatalogPriceEdit = (
+	canSee: (flag: string) => boolean,
+	field: SellingCatalogPriceField,
+) => {
+	if (!canSee(SEE.productsEdit)) return false
+	if (field === 'wholesalePrice') return canSee(SEE.productsWholesalePrice)
+	if (field === 'semiWholesalePrice') {
+		return canSee(SEE.productsSemiWholesalePrice)
+	}
+	return canSee(SEE.productsEditSellingPrice)
+}
+
 const InvoiceLineItemsTable = ({
 	lineItems,
 	onUpdateItem,
@@ -109,6 +128,7 @@ const InvoiceLineItemsTable = ({
 	currencyOptions,
 	isReadOnly = false,
 	invoiceKind = 'selling',
+	pricingLabels,
 	extractionLines,
 	onConfirmLineField,
 	productCaption,
@@ -121,13 +141,16 @@ const InvoiceLineItemsTable = ({
 	const canEditLinePrice = !isReadOnly && canSee(SEE.invoicesLinePrice)
 	const canEditLineDiscount = !isReadOnly && canSee(SEE.invoicesLineDiscount)
 	const canEditLineTotal = !isReadOnly && canSee(SEE.invoicesLineTotal)
-	const canEditCatalogRetailPrice =
+	// pricingLabels omitted (e.g. API re-edit) → no catalog pencil; inventing RETAIL would mis-patch
+	const catalogPriceField =
+		pricingLabels != null ? sellingCatalogPriceField(pricingLabels) : null
+	const canEditCatalogPrice =
+		catalogPriceField != null &&
 		invoiceKind === 'selling' &&
 		!isReadOnly &&
-		canSee(SEE.productsEdit) &&
-		canSee(SEE.productsEditSellingPrice)
+		canSeeCatalogPriceEdit(canSee, catalogPriceField)
 	const editStartRefs = useRef(new Map<string, () => void>())
-	const pendingRetailPersistIds = useRef(new Set<string>())
+	const pendingCatalogPersistIds = useRef(new Set<string>())
 
 	const catalogByProductId = useMemo(() => {
 		const map = new Map<string, Product>()
@@ -145,8 +168,18 @@ const InvoiceLineItemsTable = ({
 	const lineItemFieldId = (itemId: string, field: LineItemField) =>
 		`${itemId}-${field}`
 
-	const canPersistRetailForItem = (item: SellingInvoiceLineItem) =>
-		canEditCatalogRetailPrice && hasRealProductId(item.productId)
+	const canPersistCatalogPriceForItem = (item: SellingInvoiceLineItem) => {
+		if (
+			!canEditCatalogPrice ||
+			!catalogPriceField ||
+			pricingLabels == null ||
+			!hasRealProductId(item.productId)
+		) {
+			return false
+		}
+		const catalogProduct = catalogByProductId.get(item.productId)
+		return hasSellingCatalogPrice(catalogProduct?.price, pricingLabels)
+	}
 
 	const registerEditStart = useCallback(
 		(fieldId: string, start: (() => void) | null) => {
@@ -173,13 +206,13 @@ const InvoiceLineItemsTable = ({
 		[displayLineItems],
 	)
 
-	const clearPendingRetailPersist = (itemId: string) => {
-		pendingRetailPersistIds.current.delete(itemId)
+	const clearPendingCatalogPersist = (itemId: string) => {
+		pendingCatalogPersistIds.current.delete(itemId)
 	}
 
-	const startRetailPriceEdit = (item: SellingInvoiceLineItem) => {
-		if (!canPersistRetailForItem(item)) return
-		pendingRetailPersistIds.current.add(item.id)
+	const startCatalogPriceEdit = (item: SellingInvoiceLineItem) => {
+		if (!canPersistCatalogPriceForItem(item)) return
+		pendingCatalogPersistIds.current.add(item.id)
 		editStartRefs.current.get(lineItemFieldId(item.id, 'unitPrice'))?.()
 	}
 
@@ -194,20 +227,22 @@ const InvoiceLineItemsTable = ({
 		item: SellingInvoiceLineItem,
 		unitPrice: number,
 	) => {
-		const shouldPersistRetail = pendingRetailPersistIds.current.delete(item.id)
+		const shouldPersistCatalog = pendingCatalogPersistIds.current.delete(
+			item.id,
+		)
 		const rounded = roundPrimaryAmount(unitPrice)
 
-		if (!shouldPersistRetail) {
+		if (!shouldPersistCatalog) {
 			if (canEditLinePrice) {
 				onUpdateItem(item.id, { unitPrice: rounded })
 			}
 			return
 		}
 
-		if (!canPersistRetailForItem(item)) return
+		if (!canPersistCatalogPriceForItem(item) || !catalogPriceField) return
 
 		const catalogProduct = catalogByProductId.get(item.productId)
-		const retailPrice = catalogProduct
+		const catalogAmount = catalogProduct
 			? catalogAmountFromPrimary(
 					rounded,
 					catalogProduct.price?.currency,
@@ -215,7 +250,7 @@ const InvoiceLineItemsTable = ({
 				)
 			: null
 
-		if (!catalogProduct || retailPrice == null) {
+		if (!catalogProduct || catalogAmount == null) {
 			showToastMessage({
 				status: 'error',
 				description: t(
@@ -228,8 +263,8 @@ const InvoiceLineItemsTable = ({
 		try {
 			const patch = buildProductInlinePatch(
 				catalogProduct,
-				'retailPrice',
-				String(retailPrice),
+				catalogPriceField,
+				String(catalogAmount),
 			)
 			if (patch.persist !== 'product') return
 
@@ -303,9 +338,9 @@ const InvoiceLineItemsTable = ({
 				</Thead>
 				<Tbody>
 					{displayLineItems.map((item, index) => {
-						const canPersistRetail = canPersistRetailForItem(item)
+						const canPersistCatalog = canPersistCatalogPriceForItem(item)
 						const unitPriceOnEdit =
-							canEditLinePrice || canPersistRetail
+							canEditLinePrice || canPersistCatalog
 								? (unitPrice: number) => handleUnitPriceEdit(item, unitPrice)
 								: undefined
 
@@ -398,7 +433,7 @@ const InvoiceLineItemsTable = ({
 											fieldId={lineItemFieldId(item.id, 'unitPrice')}
 											registerEditStart={registerEditStart}
 											onEnterCommit={() => focusNextField(index, 'unitPrice')}
-											onCancel={() => clearPendingRetailPersist(item.id)}
+											onCancel={() => clearPendingCatalogPersist(item.id)}
 											onEdit={unitPriceOnEdit}
 											clickToEdit={canEditLinePrice}
 										/>
@@ -490,7 +525,7 @@ const InvoiceLineItemsTable = ({
 												}
 												onClick={() => onRemoveItem(item.id)}
 											/>
-											{canPersistRetail && (
+											{canPersistCatalog && (
 												<IconButton
 													size="xs"
 													variant="ghost"
@@ -504,7 +539,7 @@ const InvoiceLineItemsTable = ({
 															boxSize={4}
 														/>
 													}
-													onClick={() => startRetailPriceEdit(item)}
+													onClick={() => startCatalogPriceEdit(item)}
 												/>
 											)}
 										</Flex>

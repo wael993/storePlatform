@@ -39,6 +39,24 @@ describe('buildProductInlinePatch', () => {
 		})
 	})
 
+	it('sends only wholesalePrice for a wholesale-price edit', () => {
+		const patch = buildProductInlinePatch(product, 'wholesalePrice', '12')
+
+		expect(patch).toEqual({
+			persist: 'product',
+			body: { price: { wholesalePrice: 12 } },
+		})
+	})
+
+	it('sends only semiWholesalePrice for a semi-wholesale edit', () => {
+		const patch = buildProductInlinePatch(product, 'semiWholesalePrice', '13')
+
+		expect(patch).toEqual({
+			persist: 'product',
+			body: { price: { semiWholesalePrice: 13 } },
+		})
+	})
+
 	it('does not include the stale sibling price from row props', () => {
 		const buy = buildProductInlinePatch(product, 'purchasePrice', '10')
 		const sell = buildProductInlinePatch(product, 'retailPrice', '15')

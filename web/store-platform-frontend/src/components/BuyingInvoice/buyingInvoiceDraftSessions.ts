@@ -9,7 +9,6 @@ const STORAGE_KEY = 'store-platform:buying-invoice-drafts'
 export interface BuyingInvoiceDraftSession {
 	id: string
 	draft: BuyingInvoiceDraft
-	showNote: boolean
 	initialProductSearch?: string
 }
 
@@ -56,7 +55,6 @@ export const createBuyingInvoiceDraftSession = (
 	return {
 		id: draft.invoiceId,
 		draft,
-		showNote: false,
 		initialProductSearch: options?.productSearch || undefined,
 	}
 }

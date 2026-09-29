@@ -5,6 +5,7 @@ import {
 	type DisplayCurrencyOption,
 } from './currencyDisplay'
 import { finiteCost } from 'store-domain'
+import { PricingLabelsType } from '../../shared/globalEnums'
 
 const DEFAULT_TAX_RATE = 15
 
@@ -31,15 +32,51 @@ const toPrimaryAmount = (
 	return convertEntryAmountToPrimary(amount, entryCurrencyId, currencyOptions)
 }
 
+export type SellingCatalogPriceField =
+	'retailPrice' | 'wholesalePrice' | 'semiWholesalePrice'
+
+/** Which product.price field the invoice pricing label should read/write. */
+export const sellingCatalogPriceField = (
+	pricingLabels: PricingLabelsType = PricingLabelsType.RETAIL_PRICE,
+): SellingCatalogPriceField => {
+	if (pricingLabels === PricingLabelsType.WHOLESALE_PRICE) {
+		return 'wholesalePrice'
+	}
+	if (pricingLabels === PricingLabelsType.SEMI_WHOLESALE_PRICE) {
+		return 'semiWholesalePrice'
+	}
+	return 'retailPrice'
+}
+
+/** True when the labeled catalog field is set (do not invent wholesale/semi from retail). */
+export const hasSellingCatalogPrice = (
+	price: Product['price'] | undefined,
+	pricingLabels: PricingLabelsType,
+): boolean => price?.[sellingCatalogPriceField(pricingLabels)] != null
+
+/** Catalog amount (product currency) for a selling invoice's pricing label. */
+export const pickSellingCatalogPrice = (
+	price: Product['price'] | undefined,
+	pricingLabels: PricingLabelsType = PricingLabelsType.RETAIL_PRICE,
+): number => {
+	const field = sellingCatalogPriceField(pricingLabels)
+	if (field === 'retailPrice') {
+		return price?.retailPrice ?? 0
+	}
+	// note: line prefill only — catalog pencil must use hasSellingCatalogPrice first
+	return price?.[field] ?? price?.retailPrice ?? 0
+}
+
 const getDefaultUnitPrice = (
 	product: Product,
 	kind: InvoiceLineItemKind,
 	currencyOptions: DisplayCurrencyOption[],
+	pricingLabels: PricingLabelsType = PricingLabelsType.RETAIL_PRICE,
 ) => {
 	const raw =
 		kind === 'buying'
 			? (product.price?.purchasePrice ?? 0)
-			: (product.price?.retailPrice ?? 0)
+			: pickSellingCatalogPrice(product.price, pricingLabels)
 
 	return toPrimaryAmount(raw, product, currencyOptions) ?? raw
 }
@@ -97,6 +134,7 @@ export const createLineItemFromProduct = (
 	product: Product,
 	kind: InvoiceLineItemKind = 'selling',
 	currencyOptions: DisplayCurrencyOption[] = [],
+	pricingLabels: PricingLabelsType = PricingLabelsType.RETAIL_PRICE,
 ): SellingInvoiceLineItem => {
 	const taxRate = Number.parseFloat(product.taxRate ?? '') || DEFAULT_TAX_RATE
 
@@ -109,7 +147,12 @@ export const createLineItemFromProduct = (
 		imageUrl: product.images?.[0],
 		quantity: 1,
 		unit: product.unitId ?? 'pcs',
-		unitPrice: getDefaultUnitPrice(product, kind, currencyOptions),
+		unitPrice: getDefaultUnitPrice(
+			product,
+			kind,
+			currencyOptions,
+			pricingLabels,
+		),
 		discount: product.price?.discount ?? 0,
 		discountIsPercent: true,
 		taxRate,
@@ -130,14 +173,16 @@ export const addProductToLineItems = (
 	options?: {
 		noMergeInvoiceLines?: boolean
 		currencyOptions?: DisplayCurrencyOption[]
+		pricingLabels?: PricingLabelsType
 	},
 ) => {
 	const currencyOptions = options?.currencyOptions ?? []
+	const pricingLabels = options?.pricingLabels ?? PricingLabelsType.RETAIL_PRICE
 
 	if (options?.noMergeInvoiceLines) {
 		return [
 			...lineItems,
-			createLineItemFromProduct(product, kind, currencyOptions),
+			createLineItemFromProduct(product, kind, currencyOptions, pricingLabels),
 		]
 	}
 
@@ -148,7 +193,7 @@ export const addProductToLineItems = (
 	if (existingIndex === -1) {
 		return [
 			...lineItems,
-			createLineItemFromProduct(product, kind, currencyOptions),
+			createLineItemFromProduct(product, kind, currencyOptions, pricingLabels),
 		]
 	}
 

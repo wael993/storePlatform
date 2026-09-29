@@ -13,6 +13,8 @@ export const mapCatalogItemToProduct = (item: ProductCatalogItem): Product => ({
 	price: {
 		retailPrice: item.price.retailPrice,
 		purchasePrice: item.price.purchasePrice,
+		wholesalePrice: item.price.wholesalePrice,
+		semiWholesalePrice: item.price.semiWholesalePrice,
 		discount: item.price.discount,
 		currency: item.price.currency,
 	},
@@ -45,6 +47,8 @@ export const mapProductToCatalogItem = (
 	price: {
 		retailPrice: product.price?.retailPrice ?? 0,
 		purchasePrice: product.price?.purchasePrice,
+		wholesalePrice: product.price?.wholesalePrice,
+		semiWholesalePrice: product.price?.semiWholesalePrice,
 		discount: product.price?.discount,
 		currency: product.price?.currency ?? '',
 	},
@@ -72,6 +76,8 @@ export const mergeProductIntoCatalogItem = (
 			retailPrice: mapped.price.retailPrice,
 			discount: mapped.price.discount,
 			currency: mapped.price.currency,
+			wholesalePrice: mapped.price.wholesalePrice,
+			semiWholesalePrice: mapped.price.semiWholesalePrice,
 			...(seeBuying ? { purchasePrice: mapped.price.purchasePrice } : {}),
 		},
 		averageCost: seeBuying ? options.averageCost : undefined,

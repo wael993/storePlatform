@@ -1377,6 +1377,12 @@ export default class ProductController {
 		const seeBuying = (requestContext.see || []).includes(
 			SEE.productsBuyingPrice,
 		)
+		const seeWholesale = (requestContext.see || []).includes(
+			SEE.productsWholesalePrice,
+		)
+		const seeSemiWholesale = (requestContext.see || []).includes(
+			SEE.productsSemiWholesalePrice,
+		)
 
 		const averageCostByProductId = new Map<string, number>()
 
@@ -1430,6 +1436,8 @@ export default class ProductController {
 				lastBuyingByProductId.get(product.productId),
 				seeBuying,
 				averageCostByProductId.get(product.productId),
+				seeWholesale,
+				seeSemiWholesale,
 			),
 		)
 
@@ -1527,6 +1535,8 @@ export default class ProductController {
 		lastBuyingPrice?: number,
 		seeBuying = false,
 		scopedAverageCost?: number,
+		seeWholesale = false,
+		seeSemiWholesale = false,
 	): ProductCatalogItem {
 		return {
 			productId: product.productId,
@@ -1541,6 +1551,12 @@ export default class ProductController {
 			price: {
 				retailPrice: product.price.retailPrice,
 				...(seeBuying ? { purchasePrice: product.price.purchasePrice } : {}),
+				...(seeWholesale
+					? { wholesalePrice: product.price.wholesalePrice }
+					: {}),
+				...(seeSemiWholesale
+					? { semiWholesalePrice: product.price.semiWholesalePrice }
+					: {}),
 				discount: product.price.discount,
 				currency: product.price.currency,
 			},

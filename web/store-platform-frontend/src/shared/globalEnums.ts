@@ -146,6 +146,11 @@ export enum InvoicePaymentType {
 	CARD = 'card',
 }
 
+export enum PricingLabelsType {
+	RETAIL_PRICE = 'retailPrice',
+	WHOLESALE_PRICE = 'wholesalePrice',
+	SEMI_WHOLESALE_PRICE = 'semiWholesalePrice',
+}
 export enum InvoiceUiStatus {
 	DRAFT = 'draft',
 	CANCELLED = 'cancelled',

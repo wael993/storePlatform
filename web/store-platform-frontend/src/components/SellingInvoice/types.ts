@@ -2,6 +2,7 @@ import type { InvoiceCurrencyAmount } from './currencyDisplay'
 import type {
 	InvoicePaymentType,
 	InvoiceUiStatus,
+	PricingLabelsType,
 } from '../../shared/globalEnums'
 
 export type SellingInvoiceStatus = `${InvoiceUiStatus}`
@@ -85,6 +86,9 @@ export interface SellingInvoiceDraft extends InvoiceDiscountDraftFields {
 	customerId: string
 	customerName: string
 	paymentType: SellingInvoicePaymentType
+	/** Which catalog price to prefill on new line items (retail / wholesale / semi).
+	 * Omit when unknown (e.g. re-opened API invoice) so catalog pencil does not invent a field. */
+	pricingLabels?: PricingLabelsType
 	warehouseId: string
 	lineItems: SellingInvoiceLineItem[]
 	note: string

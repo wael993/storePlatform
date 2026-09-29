@@ -129,8 +129,6 @@ interface NewBuyingInvoicePanelProps {
 			| BuyingInvoiceDraft
 			| ((current: BuyingInvoiceDraft) => BuyingInvoiceDraft),
 	) => void
-	showNote?: boolean
-	onShowNoteChange?: (showNote: boolean) => void
 	draftTabs?: BuyingInvoiceDraftTab[]
 	activeDraftTabId?: string
 	onSelectDraftTab?: (tabId: string) => void
@@ -251,8 +249,6 @@ const NewBuyingInvoicePanel = ({
 	initialPaymentType = InvoicePaymentType.CASH,
 	draft: controlledDraft,
 	onDraftChange,
-	showNote: controlledShowNote,
-	onShowNoteChange,
 	draftTabs = [],
 	activeDraftTabId,
 	onSelectDraftTab,
@@ -352,18 +348,11 @@ const NewBuyingInvoicePanel = ({
 	const [internalDraft, setInternalDraft] = useState<BuyingInvoiceDraft>(() =>
 		createBuyingInvoiceDraft(salesPerson, { paymentType: initialPaymentType }),
 	)
-	const [internalShowNote, setInternalShowNote] = useState(false)
 
 	const draft =
 		isControlledCreate && controlledDraft ? controlledDraft : internalDraft
 	const setDraft =
 		isControlledCreate && onDraftChange ? onDraftChange : setInternalDraft
-	const showNote = isControlledCreate
-		? Boolean(controlledShowNote)
-		: internalShowNote
-	const setShowNote = isControlledCreate
-		? (value: boolean) => onShowNoteChange?.(value)
-		: setInternalShowNote
 
 	const { operationalWarehouseId, isOperational } = useWarehouseScope()
 
@@ -437,7 +426,6 @@ const NewBuyingInvoicePanel = ({
 				warehouseId: operationalWarehouseId ?? '',
 			}),
 		)
-		setInternalShowNote(false)
 		setSaveError(null)
 	}, [
 		isActive,
@@ -453,7 +441,6 @@ const NewBuyingInvoicePanel = ({
 		if (!isActive || !isExistingInvoice || !existingInvoice) return
 
 		setInternalDraft(mapApiBuyingInvoiceToDraft(existingInvoice))
-		setInternalShowNote(Boolean(existingInvoice.notes?.trim()))
 		setSaveError(null)
 	}, [existingInvoice, isActive, isExistingInvoice])
 
@@ -1527,39 +1514,32 @@ const NewBuyingInvoicePanel = ({
 						mt="auto"
 						pt={2}
 					>
-						<Box>
-							{showNote ? (
-								<Button
-									variant="link"
-									color={PAGE_COLORS.primary}
-									fontWeight={600}
-									fontSize="sm"
-									onClick={() => setShowNote(true)}
-								>
-									{t('components.buyingInvoices.drawer.addNote')}
-								</Button>
-							) : (
-								<VStack align="stretch" spacing={2}>
-									<Text fontSize="sm" fontWeight={600} color="gray.700">
-										{t('components.buyingInvoices.drawer.additionalInfo')}
-									</Text>
-									<Textarea
-										value={draft.note}
-										onChange={event =>
-											setDraft(current => ({
-												...current,
-												note: event.target.value,
-											}))
-										}
-										placeholder={t(
-											'components.buyingInvoices.drawer.notePlaceholder',
-										)}
-										borderRadius="lg"
-										borderColor={PAGE_COLORS.border}
-										rows={3}
-									/>
-								</VStack>
-							)}
+						<Box
+							bg="gray.50"
+							borderRadius="lg"
+							p={4}
+							border="1px solid"
+							borderColor={PAGE_COLORS.border}
+						>
+							<Text fontSize="sm" fontWeight={600} color="gray.700" mb={2}>
+								{t('components.buyingInvoices.drawer.additionalInfo')}
+							</Text>
+							<Textarea
+								value={draft.note}
+								onChange={event =>
+									setDraft(current => ({
+										...current,
+										note: event.target.value,
+									}))
+								}
+								isReadOnly={isReadOnly}
+								placeholder={t(
+									'components.buyingInvoices.drawer.notePlaceholder',
+								)}
+								borderRadius="lg"
+								borderColor={PAGE_COLORS.border}
+								rows={3}
+							/>
 						</Box>
 
 						<Box

@@ -7,16 +7,12 @@ import {
 	Icon,
 	IconButton,
 	Input,
-	Menu,
-	MenuButton,
-	MenuItem,
-	MenuList,
 	Spinner,
 	Text,
 	Textarea,
 	VStack,
 } from '@chakra-ui/react'
-import { AddIcon, ChevronDownIcon, CloseIcon } from '@chakra-ui/icons'
+import { AddIcon, CloseIcon } from '@chakra-ui/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -30,7 +26,11 @@ import { useUser } from '../../shared/hooks/useUser'
 import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
-import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
+import {
+	InvoicePaymentType,
+	InvoiceStatus,
+	PricingLabelsType,
+} from '../../shared/globalEnums'
 import { findOversellLines } from 'store-domain'
 import { requestInsufficientStockConfirmation } from '../../offline/insufficientStockConfirmation'
 import useCustomToast from '../common/CustomToast'
@@ -75,6 +75,7 @@ import {
 	parseDateInputValue,
 } from '../../shared/dateUtils'
 import { AsCreditCardIcon } from '../../icons/CreditCard'
+// import { AsPrintIcon } from '../../icons/Print'
 
 export type InvoicePanelMode = 'create' | 'view' | 'edit'
 
@@ -89,7 +90,7 @@ interface NewSellingInvoicePanelProps {
 	onSaved?: () => void
 	nextInvoiceNumber?: number
 	initialProductSearch?: string
-	initialPaymentType?: SellingInvoicePaymentType
+	initialPricingLabels?: PricingLabelsType
 	mode?: InvoicePanelMode
 	invoiceId?: string
 	onRequestEdit?: () => void
@@ -100,8 +101,6 @@ interface NewSellingInvoicePanelProps {
 			| SellingInvoiceDraft
 			| ((current: SellingInvoiceDraft) => SellingInvoiceDraft),
 	) => void
-	showNote?: boolean
-	onShowNoteChange?: (showNote: boolean) => void
 	draftTabs?: InvoiceDraftTab[]
 	activeDraftTabId?: string
 	onSelectDraftTab?: (tabId: string) => void
@@ -203,14 +202,12 @@ const NewSellingInvoicePanel = ({
 	onSaved,
 	nextInvoiceNumber = 1,
 	initialProductSearch = '',
-	initialPaymentType = InvoicePaymentType.CASH,
+	initialPricingLabels = PricingLabelsType.RETAIL_PRICE,
 	mode = 'create',
 	invoiceId,
 	onRequestEdit,
 	draft: controlledDraft,
 	onDraftChange,
-	showNote: controlledShowNote,
-	onShowNoteChange,
 	draftTabs = [],
 	activeDraftTabId,
 	onSelectDraftTab,
@@ -238,6 +235,7 @@ const NewSellingInvoicePanel = ({
 	const [updateSellingInvoice, { isLoading: isUpdating }] =
 		useUpdateSellingInvoiceMutation()
 	const [saveError, setSaveError] = useState<string | null>(null)
+	// const [printInvoiceAfterSave, setPrintInvoiceAfterSave] = useState(false)
 	const isReadOnly = mode === 'view'
 	const isExistingInvoice = mode === 'view' || mode === 'edit'
 	const isSaving = isCreating || isUpdating
@@ -258,21 +256,14 @@ const NewSellingInvoicePanel = ({
 
 	const [internalDraft, setInternalDraft] = useState<SellingInvoiceDraft>(() =>
 		createInvoiceDraft(salesPerson || user?.email || 'User', {
-			paymentType: initialPaymentType,
+			pricingLabels: initialPricingLabels,
 		}),
 	)
-	const [internalShowNote, setInternalShowNote] = useState(false)
 
 	const draft =
 		isControlledCreate && controlledDraft ? controlledDraft : internalDraft
 	const setDraft =
 		isControlledCreate && onDraftChange ? onDraftChange : setInternalDraft
-	const showNote = isControlledCreate
-		? Boolean(controlledShowNote)
-		: internalShowNote
-	const setShowNote = isControlledCreate
-		? (value: boolean) => onShowNoteChange?.(value)
-		: setInternalShowNote
 	const { products: catalogProducts } = useProductCatalog()
 	const { operationalWarehouseId, isOperational } = useWarehouseScope()
 
@@ -310,19 +301,18 @@ const NewSellingInvoicePanel = ({
 
 		setInternalDraft(
 			createInvoiceDraft(salesPerson || user?.email || 'User', {
-				paymentType: initialPaymentType,
+				pricingLabels: initialPricingLabels,
 				invoiceNumber: nextInvoiceNumber,
 				customerName: t('components.sellingInvoices.drawer.walkInCustomer'),
 				warehouseId: operationalWarehouseId ?? '',
 			}),
 		)
-		setInternalShowNote(false)
 		setSaveError(null)
 	}, [
 		isActive,
 		isExistingInvoice,
 		isControlledCreate,
-		initialPaymentType,
+		initialPricingLabels,
 		nextInvoiceNumber,
 		salesPerson,
 		user?.email,
@@ -339,7 +329,6 @@ const NewSellingInvoicePanel = ({
 				t('components.sellingInvoices.drawer.walkInCustomer'),
 			),
 		)
-		setInternalShowNote(false)
 		setSaveError(null)
 	}, [isActive, isExistingInvoice, existingInvoice, t])
 
@@ -421,6 +410,7 @@ const NewSellingInvoicePanel = ({
 			lineItems: addProductToLineItems(current.lineItems, product, 'selling', {
 				noMergeInvoiceLines: invoiceSettings?.noMergeInvoiceLines ?? false,
 				currencyOptions: displayCurrencyOptions,
+				pricingLabels: current.pricingLabels,
 			}),
 		}))
 	}
@@ -937,6 +927,7 @@ const NewSellingInvoicePanel = ({
 					currencyOptions={displayCurrencyOptions}
 					isReadOnly={isReadOnly}
 					invoiceKind="selling"
+					pricingLabels={draft.pricingLabels}
 				/>
 
 				{hasCurrencyOptions && (
@@ -982,41 +973,56 @@ const NewSellingInvoicePanel = ({
 					mt="auto"
 					pt={2}
 				>
-					<Box>
+					<Box
+						bg="gray.50"
+						borderRadius="lg"
+						p={4}
+						border="1px solid"
+						borderColor={PAGE_COLORS.border}
+					>
+						{/* 
+						
+						TODO: Update the print invoice button to use the new button component
+						
+						<Button
+							flex={1}
+							variant="outline"
+							leftIcon={<AsPrintIcon width={'1rem'} />}
+							size="sm"
+							fontWeight={600}
+							borderRadius="lg"
+							bg={printInvoiceAfterSave ? '#DBEAFE' : 'white'}
+							color={printInvoiceAfterSave ? '#2563EB' : PAGE_COLORS.muted}
+							borderColor={
+								printInvoiceAfterSave ? '#93C5FD' : PAGE_COLORS.border
+							}
+
+							onClick={() => setPrintInvoiceAfterSave(!printInvoiceAfterSave)}
+						>
+							{t('components.sellingInvoices.actions.print')}
+						</Button> */}
+
 						{/* TODO: Update the note section to use the new note component */}
-						{showNote ? (
-							<Button
-								variant="link"
-								color={PAGE_COLORS.primary}
-								fontWeight={600}
-								fontSize="sm"
-								onClick={() => setShowNote(true)}
-							>
-								{t('components.sellingInvoices.drawer.addNote')}
-							</Button>
-						) : (
-							<VStack align="stretch" spacing={2}>
-								<Text fontSize="sm" fontWeight={600} color="gray.700">
-									{t('components.sellingInvoices.drawer.additionalInfo')}
-								</Text>
-								<Textarea
-									value={draft.note}
-									onChange={event =>
-										setDraft(current => ({
-											...current,
-											note: event.target.value,
-										}))
-									}
-									placeholder={t(
-										'components.sellingInvoices.drawer.notePlaceholder',
-									)}
-									borderRadius="lg"
-									borderColor={PAGE_COLORS.border}
-									rows={3}
-									isReadOnly={isReadOnly}
-								/>
-							</VStack>
-						)}
+
+						<Text fontSize="sm" fontWeight={600} color="gray.700" mb={2}>
+							{t('components.sellingInvoices.drawer.additionalInfo')}
+						</Text>
+						<Textarea
+							value={draft.note}
+							onChange={event =>
+								setDraft(current => ({
+									...current,
+									note: event.target.value,
+								}))
+							}
+							placeholder={t(
+								'components.sellingInvoices.drawer.notePlaceholder',
+							)}
+							borderRadius="lg"
+							borderColor={PAGE_COLORS.border}
+							rows={3}
+							isReadOnly={isReadOnly}
+						/>
 					</Box>
 
 					<Box
@@ -1256,41 +1262,10 @@ const NewSellingInvoicePanel = ({
 									{t('components.sellingInvoices.drawer.holdInvoice')}
 								</Button>
 								<HStack spacing={0} flex={1}>
-									<Menu>
-										<MenuButton
-											as={Button}
-											bg={PAGE_COLORS.primary}
-											color="white"
-											borderTopLeftRadius={0}
-											borderBottomLeftRadius={0}
-											borderTopRightRadius="lg"
-											borderBottomRightRadius="lg"
-											minW="auto"
-											px={2}
-											borderLeft="1px solid"
-											borderColor="#1D4ED8"
-											_hover={{ bg: '#1D4ED8' }}
-											isDisabled={isPayedButtonDisabled}
-											isLoading={isSaving}
-										>
-											<ChevronDownIcon />
-										</MenuButton>
-										<MenuList>
-											<MenuItem>
-												{t('components.sellingInvoices.drawer.saveDraft')}
-											</MenuItem>
-											<MenuItem>
-												{t('components.sellingInvoices.drawer.holdInvoice')}
-											</MenuItem>
-										</MenuList>
-									</Menu>
 									<Button
 										bg={PAGE_COLORS.primary}
 										color="white"
-										borderTopLeftRadius="lg"
-										borderBottomLeftRadius="lg"
-										borderTopRightRadius={0}
-										borderBottomRightRadius={0}
+										borderRadius="lg"
 										fontWeight={600}
 										flex={1}
 										_hover={{ bg: '#1D4ED8' }}

@@ -153,8 +153,8 @@ export const convertToPrimaryAmount = (
 }
 
 /**
- * Invoice line unitPrice (primary) → amount stored on product.price.retailPrice.
- * null when product currency cannot be resolved — callers must not invent primary→retail.
+ * Invoice line unitPrice (primary) → amount stored on product.price.* catalog fields.
+ * null when product currency cannot be resolved — callers must not invent primary→catalog.
  */
 export const catalogAmountFromPrimary = (
 	primaryAmount: number,

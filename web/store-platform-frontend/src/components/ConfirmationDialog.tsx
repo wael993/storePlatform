@@ -14,6 +14,8 @@ import {
 } from '@chakra-ui/react'
 import { ComponentType, RefObject, useRef } from 'react'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
+import { useTranslation } from 'react-i18next'
+import { compareLanguage } from '../shared/utils'
 
 interface ConfirmationDialogProps {
 	header: string
@@ -61,9 +63,6 @@ const styles = {
 		backgroundColor: '#376288',
 		color: '#FFFFFF',
 	},
-	closeButton: {
-		...hoverFocusActiveButtonStyles,
-	},
 } satisfies StylesObject
 
 const ConfirmationDialog = ({
@@ -80,6 +79,9 @@ const ConfirmationDialog = ({
 	isConfirmationButtonLoading = false,
 	isTemporaryDisabled = false,
 }: ConfirmationDialogProps) => {
+	const { i18n } = useTranslation()
+	const { isArabic } = compareLanguage(i18n.language)
+
 	const leastDestructiveRef = useRef<HTMLButtonElement>(
 		null,
 	) as RefObject<HTMLElement>
@@ -100,13 +102,17 @@ const ConfirmationDialog = ({
 		>
 			<AlertDialogOverlay>
 				<AlertDialogContent>
-					<AlertDialogCloseButton sx={styles.closeButton} />
+					<AlertDialogCloseButton
+						sx={{
+							left: isArabic ? '0.4rem' : 'auto',
+							right: isArabic ? 'auto' : '0.4rem',
+							marginRight: 0,
+						}}
+					/>
 					<AlertDialogHeader sx={styles.AlertDialogHeaderSection}>
-						<Flex>
-							{headerIcon && (
-								<Icon as={headerIcon} fontSize="1.5rem" mr={'1rem'} />
-							)}
+						<Flex sx={{ gap: '1rem', alignItems: 'center' }}>
 							<Text sx={styles.headerText}>{header}</Text>
+							{headerIcon && <Icon as={headerIcon} boxSize="1.5rem" />}
 						</Flex>
 					</AlertDialogHeader>
 

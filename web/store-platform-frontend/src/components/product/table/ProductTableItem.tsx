@@ -22,7 +22,7 @@ import NotificationCircle from '../../NotificationCircle'
 import StateCircle from '../../StateCircle'
 import { formatDate } from '../../../shared/dateUtils'
 import { displayProductBarcode } from '../../../shared/productBarcode'
-import { formatNumber, withNoValueFallback } from '../../../shared/utils'
+import { withNoValueFallback } from '../../../shared/utils'
 import { useProductInlineEdit } from '../useProductInlineEdit'
 import { usePrintProductBarcode } from '../usePrintProductBarcode'
 import PrintBarcodeModal from '../PrintBarcodeModal'
@@ -66,6 +66,8 @@ const ProductTableItem = memo(
 			canEditDiscount,
 			canEditBuyCost,
 			canEditSellingPrice,
+			canEditWholesalePrice,
+			canEditSemiWholesalePrice,
 			canEditStockQuantity,
 			canEditMinStockQuantity,
 			canDeleteProduct,
@@ -413,14 +415,42 @@ const ProductTableItem = memo(
 				case 'LOCATION_SHELF':
 					return textCell(columnId, productData.shelfName)
 				case 'WHOLESALE_PRICE':
-					return textCell(
-						columnId,
-						formatNumber(productData.price.wholesalePrice),
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={productData.price.wholesalePrice}
+										isNumberField={true}
+										ariaLabel={t('productModal.wholesalePrice')}
+										onEdit={value => editField('wholesalePrice', value)}
+										isEditable={canEditWholesalePrice}
+										customStyles={centeredFieldStyles}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('wholesalePrice')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
 					)
 				case 'SEMI_WHOLESALE_PRICE':
-					return textCell(
-						columnId,
-						formatNumber(productData.price.semiWholesalePrice),
+					return (
+						<Td key={columnId} sx={styles.tableRow}>
+							<Flex sx={editablePadding}>
+								<Skeleton isLoaded={!isLoading}>
+									<EditableCellField
+										value={productData.price.semiWholesalePrice}
+										isNumberField={true}
+										ariaLabel={t('productModal.semiWholesalePrice')}
+										onEdit={value => editField('semiWholesalePrice', value)}
+										isEditable={canEditSemiWholesalePrice}
+										customStyles={centeredFieldStyles}
+										fontColor={'#1E1E1E'}
+										isLoading={isFieldInProgress('semiWholesalePrice')}
+									/>
+								</Skeleton>
+							</Flex>
+						</Td>
 					)
 				case 'CURRENCY':
 					return textCell(columnId, productData.price.currency)

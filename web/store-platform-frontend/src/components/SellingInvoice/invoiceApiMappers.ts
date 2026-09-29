@@ -144,6 +144,7 @@ export const mapApiInvoiceToDraft = (
 		customerId: invoice.customerId || 'walk-in',
 		customerName: invoice.customerName ?? fallbackCustomerName,
 		paymentType: invoice.paymentType ?? InvoicePaymentType.CASH,
+		// note: pricingLabels not on API invoice — omit so catalog pencil stays off on re-edit
 		warehouseId: invoice.warehouseId ?? '',
 		lineItems: (invoice.items ?? []).map(item => ({
 			id: generateId(),

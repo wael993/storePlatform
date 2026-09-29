@@ -70,6 +70,7 @@ import {
 	AnnouncementModal,
 	type AnnouncementKey,
 } from './AnnouncementModal'
+import { IoCheckmarkDoneOutline } from 'react-icons/io5'
 
 interface TopBarProps {
 	navItems: {
@@ -145,7 +146,7 @@ const styles = {
 	markAllButton: {
 		display: 'flex',
 		alignItems: 'center',
-		gap: 1,
+		gap: '0.5rem',
 		fontSize: 'sm',
 		fontWeight: 600,
 		color: '#4A5568',
@@ -570,8 +571,7 @@ const TopBar = ({
 														)
 													}}
 												>
-													<CheckIcon boxSize={2.5} />
-													<CheckIcon boxSize={2.5} ml="-0.35rem" />
+													<IoCheckmarkDoneOutline fontSize={'1.25rem'} />
 													{t('components.topBar.markAllAsRead')}
 												</Box>
 											)}

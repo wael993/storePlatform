@@ -157,7 +157,7 @@ const styles = {
 	header: {
 		display: 'flex',
 		alignItems: 'center',
-		justifyContent: 'space-between',
+		justifyContent: 'start',
 		gap: '0.625rem',
 		borderBottom: '1px solid #EAEAEA',
 	},
@@ -1036,9 +1036,7 @@ const AddProductModal = ({
 		<Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
 			<ModalOverlay />
 			<ModalContent borderRadius="0">
-				<ModalHeader
-					sx={{ ...styles.header, justifyContent: isArabic ? 'end' : 'start' }}
-				>
+				<ModalHeader sx={styles.header}>
 					<ModalCloseButton
 						sx={{
 							...styles.modalCloseButton,
@@ -1055,7 +1053,7 @@ const AddProductModal = ({
 						</Text>
 						<MultiStepper
 							numberOfSteps={TOTAL_STEPS}
-							currentStep={step}
+							currentStep={step + 1}
 							setStep={setStep}
 						/>
 					</VStack>

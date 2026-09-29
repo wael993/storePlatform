@@ -294,6 +294,8 @@ export interface ProductCatalogItem {
 	price: {
 		retailPrice: number
 		purchasePrice?: number
+		wholesalePrice?: number
+		semiWholesalePrice?: number
 		discount?: number
 		currency: string
 	}

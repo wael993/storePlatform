@@ -91,15 +91,6 @@ export const useBuyingInvoiceDraftSessions = ({
 		[],
 	)
 
-	const setShowNote = useCallback((sessionId: string, showNote: boolean) => {
-		setState(current => ({
-			...current,
-			sessions: current.sessions.map(session =>
-				session.id === sessionId ? { ...session, showNote } : session,
-			),
-		}))
-	}, [])
-
 	const clearInitialProductSearch = useCallback((sessionId: string) => {
 		setState(current => ({
 			...current,
@@ -132,7 +123,6 @@ export const useBuyingInvoiceDraftSessions = ({
 		setActiveSessionId,
 		createSession,
 		updateDraft,
-		setShowNote,
 		clearInitialProductSearch,
 		removeSession,
 	}

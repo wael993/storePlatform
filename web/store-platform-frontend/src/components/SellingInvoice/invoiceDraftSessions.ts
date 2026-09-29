@@ -1,7 +1,7 @@
 import dayjs from 'dayjs'
 
 import { generateId } from '../../offline/utils'
-import { InvoicePaymentType } from '../../shared/globalEnums'
+import { InvoicePaymentType, PricingLabelsType } from '../../shared/globalEnums'
 import type { SellingInvoiceDraft, SellingInvoicePaymentType } from './types'
 
 export const WALK_IN_CUSTOMER_ID = 'walk-in'
@@ -11,7 +11,6 @@ const STORAGE_KEY = 'store-platform:selling-invoice-drafts'
 export interface InvoiceDraftSession {
 	id: string
 	draft: SellingInvoiceDraft
-	showNote: boolean
 	initialProductSearch?: string
 }
 
@@ -24,6 +23,7 @@ export const createInvoiceDraft = (
 	salesPerson: string,
 	options?: {
 		paymentType?: SellingInvoicePaymentType
+		pricingLabels?: PricingLabelsType
 		invoiceNumber?: number
 		customerName?: string
 		warehouseId?: string
@@ -37,6 +37,7 @@ export const createInvoiceDraft = (
 	customerId: WALK_IN_CUSTOMER_ID,
 	customerName: options?.customerName ?? 'Walk-in Customer',
 	paymentType: options?.paymentType ?? InvoicePaymentType.CASH,
+	pricingLabels: options?.pricingLabels ?? PricingLabelsType.RETAIL_PRICE,
 	warehouseId: options?.warehouseId ?? '',
 	lineItems: [],
 	note: '',
@@ -50,6 +51,7 @@ export const createInvoiceDraftSession = (
 	salesPerson: string,
 	options?: {
 		paymentType?: SellingInvoicePaymentType
+		pricingLabels?: PricingLabelsType
 		invoiceNumber?: number
 		customerName?: string
 		productSearch?: string
@@ -60,7 +62,6 @@ export const createInvoiceDraftSession = (
 	return {
 		id: draft.invoiceId,
 		draft,
-		showNote: false,
 		initialProductSearch: options?.productSearch || undefined,
 	}
 }
@@ -86,7 +87,14 @@ export const loadInvoiceDraftSessions = (): InvoiceDraftSessionsState => {
 
 		const parsed = JSON.parse(raw) as InvoiceDraftSessionsState
 		const sessions = Array.isArray(parsed.sessions)
-			? parsed.sessions.filter(isValidSession)
+			? parsed.sessions.filter(isValidSession).map(session => ({
+					...session,
+					draft: {
+						...session.draft,
+						pricingLabels:
+							session.draft.pricingLabels ?? PricingLabelsType.RETAIL_PRICE,
+					},
+				}))
 			: []
 
 		if (sessions.length === 0) {
