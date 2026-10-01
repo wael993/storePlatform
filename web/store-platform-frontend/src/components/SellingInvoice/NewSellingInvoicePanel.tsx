@@ -621,7 +621,11 @@ const NewSellingInvoicePanel = ({
 			? 'components.sellingInvoices.drawer.viewTitle'
 			: mode === 'edit'
 				? 'components.sellingInvoices.drawer.editTitle'
-				: 'components.sellingInvoices.drawer.title'
+				: draft.pricingLabels === PricingLabelsType.WHOLESALE_PRICE
+					? 'components.sellingInvoices.newWholesaleInvoice'
+					: draft.pricingLabels === PricingLabelsType.SEMI_WHOLESALE_PRICE
+						? 'components.sellingInvoices.newSemiWholesaleInvoice'
+						: 'components.sellingInvoices.drawer.title'
 
 	if (!isActive) return null
 

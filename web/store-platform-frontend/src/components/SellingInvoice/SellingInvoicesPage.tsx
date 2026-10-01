@@ -14,6 +14,7 @@ import {
 	MenuButton,
 	MenuItem,
 	MenuList,
+	Tooltip,
 	useDisclosure,
 } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
@@ -644,6 +645,7 @@ const SellingInvoicesPage = () => {
 					borderColor={PAGE_COLORS.border}
 					fontWeight={600}
 					onClick={handleNewEntry}
+					isDisabled={!isOperational}
 				>
 					{t('components.sellingInvoices.newEntry')}
 				</Button>
@@ -771,10 +773,15 @@ const SellingInvoicesPage = () => {
 								{t('components.sellingInvoices.title')}
 							</Heading>
 							{!isDraftOpen && (
-								<HStack spacing={3} flexWrap="wrap">
-									{adminActionButtons}
-									{canSeeAddSelling ? newInvoiceButton : null}
-								</HStack>
+								<Tooltip
+									label={t('components.topBar.warehouseScopePostingBlocked')}
+									isDisabled={isOperational}
+								>
+									<HStack spacing={3} flexWrap="wrap">
+										{adminActionButtons}
+										{canSeeAddSelling ? newInvoiceButton : null}
+									</HStack>
+								</Tooltip>
 							)}
 						</Flex>
 

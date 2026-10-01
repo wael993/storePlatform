@@ -18,6 +18,7 @@ const SCOPE_INVALIDATE_TAGS = [
 	'daily-actions',
 	'customers',
 	'suppliers',
+	'cash-accounts',
 ] as const
 
 export const useWarehouseScope = () => {
