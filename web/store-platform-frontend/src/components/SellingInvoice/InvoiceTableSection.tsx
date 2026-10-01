@@ -359,14 +359,18 @@ const InvoiceTableSection = ({
 		return pages
 	}, [currentPage, totalPages])
 
+	const submitTableSearch = () => {
+		setTableSearch(normalizeSearchQuery(searchInputRef.current?.value ?? ''))
+		setCurrentPage(1)
+	}
+
 	const handleSearchKeyDown = (
 		event: React.KeyboardEvent<HTMLInputElement>,
 	) => {
 		if (event.key !== 'Enter') return
 
 		event.preventDefault()
-		setTableSearch(normalizeSearchQuery(searchInputRef.current?.value ?? ''))
-		setCurrentPage(1)
+		submitTableSearch()
 	}
 
 	const handleStatusFilterChange = (status: string) => {
@@ -499,7 +503,12 @@ const InvoiceTableSection = ({
 						justify={{ base: 'stretch', lg: 'flex-end' }}
 					>
 						<InputGroup maxW={{ base: '100%', md: '16rem' }} size="sm">
-							<InputLeftElement pointerEvents="none">
+							<InputLeftElement
+								h="full"
+								cursor="pointer"
+								onClick={submitTableSearch}
+								aria-label={t('components.sellingInvoices.searchPlaceholder')}
+							>
 								<Icon
 									as={AsSearchIcon}
 									color={PAGE_COLORS.primary}

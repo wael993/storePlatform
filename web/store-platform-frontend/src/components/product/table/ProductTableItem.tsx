@@ -232,7 +232,10 @@ const ProductTableItem = memo(
 			switch (columnId) {
 				case 'NAME':
 					return (
-						<Td key={columnId} sx={styles.tableRow}>
+						<Td
+							key={columnId}
+							sx={{ ...styles.tableRow, paddingLeft: '0.5rem' }}
+						>
 							<Flex sx={editablePadding}>
 								<Skeleton isLoaded={!isLoading} width="100%">
 									<EditableCellField

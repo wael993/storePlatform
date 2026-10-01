@@ -2,6 +2,7 @@ import {
 	Box,
 	Button,
 	Flex,
+	Icon,
 	Modal,
 	ModalBody,
 	ModalCloseButton,
@@ -37,6 +38,7 @@ import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { hoverFocusActiveButtonStyles } from '../../theme/styles'
 import { compareLanguage, formatNumber } from '../../shared/utils'
 import { isTransferQtyValid, parseTransferQty } from './warehouseTransferQty'
+import { TrashIcon } from '../../shared/icons/Trash'
 
 interface WarehouseTransferModalProps {
 	products: Product[]
@@ -72,7 +74,6 @@ const styles = {
 		backgroundColor: '#EAEAEA',
 		fontSize: '0.875rem',
 	},
-	modalCloseButton: { marginTop: '0.9rem', marginRight: '0.4rem' },
 } satisfies StylesObject
 
 const ProductStockRow = ({
@@ -82,6 +83,7 @@ const ProductStockRow = ({
 	onQuantityChange,
 	toWarehouseId,
 	onSourceQty,
+	onRemove,
 }: {
 	product: Product
 	warehouseId: string | null
@@ -89,6 +91,7 @@ const ProductStockRow = ({
 	onQuantityChange: (value: string) => void
 	toWarehouseId: string
 	onSourceQty: (productId: string, sourceQty: number) => void
+	onRemove: (productId: string) => void
 }) => {
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -130,6 +133,15 @@ const ProductStockRow = ({
 
 	return (
 		<Tr>
+			<Td>
+				<Icon
+					as={TrashIcon}
+					color="red.500"
+					boxSize={4}
+					cursor="pointer"
+					onClick={() => onRemove(product.productId)}
+				/>
+			</Td>
 			<Td fontWeight={600}>{product.name}</Td>
 			<Td>
 				<NumberInput
@@ -179,6 +191,7 @@ const WarehouseTransferModal = ({
 	const { isArabic } = compareLanguage(i18n.language)
 	const { warehouses, operationalWarehouseId, isOperational } =
 		useWarehouseScope()
+	const [rows, setRows] = useState<Product[]>(products)
 	const [toWarehouseId, setToWarehouseId] = useState('')
 	const [quantities, setQuantities] = useState<Record<string, string>>({})
 	const [sourceQtyById, setSourceQtyById] = useState<Record<string, number>>({})
@@ -193,8 +206,23 @@ const WarehouseTransferModal = ({
 		)
 	}, [])
 
+	const onRemove = useCallback((productId: string) => {
+		setRows(prev => prev.filter(p => p.productId !== productId))
+		setQuantities(prev => {
+			const next = { ...prev }
+			delete next[productId]
+			return next
+		})
+		setSourceQtyById(prev => {
+			const next = { ...prev }
+			delete next[productId]
+			return next
+		})
+	}, [])
+
 	useEffect(() => {
 		if (!isOpen) return
+		setRows(products)
 		setToWarehouseId('')
 		setQuantities(
 			Object.fromEntries(products.map(product => [product.productId, '1'])),
@@ -216,14 +244,14 @@ const WarehouseTransferModal = ({
 		[warehouses, operationalWarehouseId],
 	)
 
-	const items = products.map(product => ({
+	const items = rows.map(product => ({
 		productId: product.productId,
 		quantity: parseTransferQty(quantities[product.productId] ?? '1'),
 	}))
 
 	const stockOk =
-		products.length > 0 &&
-		products.every(product => {
+		rows.length > 0 &&
+		rows.every(product => {
 			const sourceQty = sourceQtyById[product.productId]
 			if (sourceQty === undefined) return false
 			return isTransferQtyValid(
@@ -236,7 +264,7 @@ const WarehouseTransferModal = ({
 		isOperational &&
 		Boolean(operationalWarehouseId) &&
 		Boolean(toWarehouseId) &&
-		products.length > 0 &&
+		rows.length > 0 &&
 		stockOk
 
 	const handleConfirm = async () => {
@@ -265,108 +293,639 @@ const WarehouseTransferModal = ({
 	}
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} isCentered size="4xl">
-			<ModalOverlay />
-			<ModalContent>
-				<ModalHeader>
+		// <Modal isOpen={isOpen} onClose={onClose} isCentered size="4xl">
+		// 	<ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
+
+		// 	<ModalContent
+		// 		borderRadius="xl"
+		// 		overflow="hidden"
+		// 		boxShadow="2xl"
+		// 		bg="white"
+		// 	>
+		// 		{/* Header */}
+		// 		<ModalHeader
+		// 			px={6}
+		// 			py={5}
+		// 			borderBottom="1px solid"
+		// 			borderColor="gray.100"
+		// 			fontSize="lg"
+		// 			fontWeight={700}
+		// 			color="gray.800"
+		// 		>
+		// 			{t('components.product.warehouseTransfer.title')}
+		// 		</ModalHeader>
+
+		// 		<ModalCloseButton
+		// 			size="lg"
+		// 			top={4}
+		// 			sx={{
+		// 				left: isArabic ? '0.4rem' : 'auto',
+		// 				right: isArabic ? 'auto' : '0.4rem',
+		// 				marginRight: 0,
+		// 			}}
+		// 			// Keep your existing RTL positioning if required by your styles
+		// 		/>
+
+		// 		{/* Body */}
+		// 		<ModalBody px={6} py={6}>
+		// 			<Flex direction="column" gap={6}>
+		// 				{/* Warehouse information */}
+		// 				<Box border="1px solid" borderColor="gray.200" borderRadius="lg">
+		// 					<Box
+		// 						px={4}
+		// 						py={3}
+		// 						bg="gray.50"
+		// 						borderBottom="1px solid"
+		// 						borderColor="gray.200"
+		// 					>
+		// 						<Text fontSize="sm" fontWeight={700} color="gray.700">
+		// 							{t('components.product.warehouseTransfer.title')}
+		// 						</Text>
+		// 					</Box>
+
+		// 					<Flex direction="column" px={4} py={4} gap={4}>
+		// 						{/* From warehouse */}
+		// 						<Flex align="center" justify="space-between" gap={4}>
+		// 							<Text
+		// 								fontSize="sm"
+		// 								fontWeight={600}
+		// 								color="gray.500"
+		// 								minW="140px"
+		// 							>
+		// 								{t('components.product.warehouseTransfer.fromWarehouse')}
+		// 							</Text>
+
+		// 							<Box
+		// 								flex={1}
+		// 								px={3}
+		// 								py={2}
+		// 								bg="gray.50"
+		// 								borderRadius="md"
+		// 								border="1px solid"
+		// 								borderColor="gray.100"
+		// 							>
+		// 								<Text fontSize="sm" fontWeight={600} color="gray.800">
+		// 									{fromWarehouse?.name ?? operationalWarehouseId ?? '—'}
+		// 								</Text>
+		// 							</Box>
+		// 						</Flex>
+
+		// 						{/* To warehouse */}
+		// 						<Flex
+		// 							align="flex-start"
+		// 							justify="space-between"
+		// 							gap={4}
+		// 							position="relative"
+		// 							zIndex={10}
+		// 						>
+		// 							<Text
+		// 								fontSize="sm"
+		// 								fontWeight={600}
+		// 								color="gray.500"
+		// 								minW="140px"
+		// 								pt={2}
+		// 							>
+		// 								{t('components.product.warehouseTransfer.toWarehouse')}
+		// 							</Text>
+
+		// 							<Box flex={1} position="relative" zIndex={20}>
+		// 								<Dropdown
+		// 									placeholder={t(
+		// 										'components.product.warehouseTransfer.selectWarehouse',
+		// 									)}
+		// 									dropDownOptions={destinationOptions}
+		// 									selectedValues={toWarehouseId ? [toWarehouseId] : []}
+		// 									onSelect={(values: string[]) =>
+		// 										setToWarehouseId(values[0] ?? '')
+		// 									}
+		// 									isSingle
+		// 									showClearOptions={false}
+		// 									disabled={destinationOptions.length === 0}
+		// 								/>
+		// 							</Box>
+		// 						</Flex>
+		// 					</Flex>
+		// 				</Box>
+
+		// 				{/* Products */}
+		// 				<Box>
+		// 					<Flex align="center" justify="space-between" mb={3}>
+		// 						<Box>
+		// 							<Text fontSize="md" fontWeight={700} color="gray.800">
+		// 								{t('components.product.warehouseTransfer.product')}
+		// 							</Text>
+
+		// 							<Text fontSize="xs" color="gray.500" mt={0.5}>
+		// 								{rows.length} {rows.length === 1 ? 'item' : 'items'}
+		// 							</Text>
+		// 						</Box>
+		// 					</Flex>
+
+		// 					<Box
+		// 						border="1px solid"
+		// 						borderColor="gray.200"
+		// 						borderRadius="lg"
+		// 						zIndex={10}
+		// 					>
+		// 						<Table size="sm">
+		// 							<Thead bg="gray.50">
+		// 								<Tr>
+		// 									<Th borderColor="gray.200" py={3} w="40px" />
+		// 									<Th
+		// 										borderColor="gray.200"
+		// 										py={3}
+		// 										fontSize="xs"
+		// 										color="gray.500"
+		// 										fontWeight={700}
+		// 										textTransform="uppercase"
+		// 										letterSpacing="0.04em"
+		// 									>
+		// 										{t('components.product.warehouseTransfer.product')}
+		// 									</Th>
+		// 									<Th
+		// 										borderColor="gray.200"
+		// 										py={3}
+		// 										fontSize="xs"
+		// 										color="gray.500"
+		// 										fontWeight={700}
+		// 										textTransform="uppercase"
+		// 										letterSpacing="0.04em"
+		// 									>
+		// 										{t('components.product.warehouseTransfer.quantity')}
+		// 									</Th>
+		// 									<Th
+		// 										isNumeric
+		// 										borderColor="gray.200"
+		// 										py={3}
+		// 										fontSize="xs"
+		// 										color="gray.500"
+		// 										fontWeight={700}
+		// 										textTransform="uppercase"
+		// 										letterSpacing="0.04em"
+		// 									>
+		// 										{t('components.product.warehouseTransfer.sourceStock')}
+		// 									</Th>
+		// 									<Th
+		// 										isNumeric
+		// 										borderColor="gray.200"
+		// 										py={3}
+		// 										fontSize="xs"
+		// 										color="gray.500"
+		// 										fontWeight={700}
+		// 										textTransform="uppercase"
+		// 										letterSpacing="0.04em"
+		// 									>
+		// 										{t(
+		// 											'components.product.warehouseTransfer.destinationStock',
+		// 										)}
+		// 									</Th>
+		// 									<Th borderColor="gray.200" py={3} w="50px" />
+		// 								</Tr>
+		// 							</Thead>
+
+		// 							<Tbody>
+		// 								{rows.map(product => (
+		// 									<ProductStockRow
+		// 										key={product.productId}
+		// 										product={product}
+		// 										warehouseId={operationalWarehouseId}
+		// 										quantityText={quantities[product.productId] ?? '1'}
+		// 										onQuantityChange={value =>
+		// 											setQuantities(prev => ({
+		// 												...prev,
+		// 												[product.productId]: value,
+		// 											}))
+		// 										}
+		// 										toWarehouseId={toWarehouseId}
+		// 										onSourceQty={onSourceQty}
+		// 										onRemove={onRemove}
+		// 									/>
+		// 								))}
+		// 							</Tbody>
+		// 						</Table>
+		// 					</Box>
+		// 				</Box>
+
+		// 				{/* Warning */}
+		// 				{!isOperational ? (
+		// 					<Box
+		// 						display="flex"
+		// 						alignItems="flex-start"
+		// 						gap={3}
+		// 						px={4}
+		// 						py={3}
+		// 						borderRadius="lg"
+		// 						bg="red.50"
+		// 						border="1px solid"
+		// 						borderColor="red.100"
+		// 					>
+		// 						<Box
+		// 							mt="2px"
+		// 							w="7px"
+		// 							h="7px"
+		// 							borderRadius="full"
+		// 							bg="red.500"
+		// 							flexShrink={0}
+		// 						/>
+
+		// 						<Text color="red.700" fontSize="sm" fontWeight={600}>
+		// 							{t('components.topBar.warehouseScopePostingBlocked')}
+		// 						</Text>
+		// 					</Box>
+		// 				) : null}
+		// 			</Flex>
+		// 		</ModalBody>
+
+		// 		{/* Footer */}
+		// 		<ModalFooter
+		// 			px={6}
+		// 			py={4}
+		// 			bg="gray.50"
+		// 			borderTop="1px solid"
+		// 			borderColor="gray.100"
+		// 			gap={3}
+		// 		>
+		// 			<Button
+		// 				variant="ghost"
+		// 				color="gray.600"
+		// 				fontWeight={600}
+		// 				px={5}
+		// 				onClick={onClose}
+		// 				_hover={{
+		// 					bg: 'gray.100',
+		// 					color: 'gray.800',
+		// 				}}
+		// 			>
+		// 				{t('common.cancel')}
+		// 			</Button>
+
+		// 			<Button
+		// 				sx={{
+		// 					...styles.confirm,
+		// 					color: '#FFFFFF',
+		// 				}}
+		// 				px={6}
+		// 				fontWeight={600}
+		// 				borderRadius="md"
+		// 				boxShadow="sm"
+		// 				onClick={() => {
+		// 					void handleConfirm()
+		// 				}}
+		// 				isLoading={isLoading}
+		// 				isDisabled={!canConfirm}
+		// 				_hover={{
+		// 					opacity: 0.9,
+		// 					transform: 'translateY(-1px)',
+		// 					boxShadow: 'md',
+		// 				}}
+		// 				_active={{
+		// 					transform: 'translateY(0)',
+		// 				}}
+		// 			>
+		// 				{t('components.product.warehouseTransfer.confirm')}
+		// 			</Button>
+		// 		</ModalFooter>
+		// 	</ModalContent>
+		// </Modal>
+
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			isCentered
+			size={{ base: 'full', md: '4xl' }}
+		>
+			<ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
+
+			<ModalContent
+				borderRadius={{ base: 0, md: 'xl' }}
+				overflow="hidden"
+				boxShadow="2xl"
+				bg="white"
+				maxW={{ base: '100%', md: '56rem' }}
+				w={{ base: '100%', md: 'calc(100% - 2rem)' }}
+				maxH={{ base: '100dvh', md: '90vh' }}
+				my={{ base: 0, md: 4 }}
+			>
+				{/* Header */}
+				<ModalHeader
+					px={{ base: 4, md: 6 }}
+					py={{ base: 4, md: 5 }}
+					pr={{ base: 12, md: 14 }}
+					borderBottom="1px solid"
+					borderColor="gray.100"
+					fontSize={{ base: 'md', md: 'lg' }}
+					fontWeight={700}
+					color="gray.800"
+				>
 					{t('components.product.warehouseTransfer.title')}
 				</ModalHeader>
+
 				<ModalCloseButton
 					size="lg"
+					top={{ base: 3, md: 4 }}
 					sx={{
-						...styles.modalCloseButton,
 						left: isArabic ? '0.4rem' : 'auto',
 						right: isArabic ? 'auto' : '0.4rem',
 						marginRight: 0,
 					}}
 				/>
-				<ModalBody>
-					<Flex direction="column" gap={4}>
-						<Flex sx={styles.row}>
-							<Text sx={styles.label}>
-								{t('components.product.warehouseTransfer.fromWarehouse')}
-							</Text>
-							<Text sx={styles.value}>
-								{fromWarehouse?.name ?? operationalWarehouseId ?? '—'}
-							</Text>
-						</Flex>
-						<Flex sx={styles.row} align="flex-start">
-							<Text sx={styles.label} pt={2}>
-								{t('components.product.warehouseTransfer.toWarehouse')}
-							</Text>
-							<Box sx={styles.value}>
-								<Dropdown
-									placeholder={t(
-										'components.product.warehouseTransfer.selectWarehouse',
-									)}
-									dropDownOptions={destinationOptions}
-									selectedValues={toWarehouseId ? [toWarehouseId] : []}
-									onSelect={(values: string[]) =>
-										setToWarehouseId(values[0] ?? '')
-									}
-									isSingle
-									showClearOptions={false}
-									disabled={destinationOptions.length === 0}
-								/>
+
+				{/* Body */}
+				<ModalBody
+					px={{ base: 4, md: 6 }}
+					py={{ base: 4, md: 6 }}
+					overflowY="auto"
+					overflowX="hidden"
+				>
+					<Flex direction="column" gap={{ base: 4, md: 6 }}>
+						{/* Warehouse information */}
+						<Box
+							border="1px solid"
+							borderColor="gray.200"
+							borderRadius="lg"
+							position="relative"
+							zIndex={20}
+						>
+							<Box
+								px={{ base: 3, md: 4 }}
+								py={3}
+								bg="gray.50"
+								borderBottom="1px solid"
+								borderColor="gray.200"
+							>
+								<Text fontSize="sm" fontWeight={700} color="gray.700">
+									{t('components.product.warehouseTransfer.title')}
+								</Text>
 							</Box>
-						</Flex>
-						<Box overflowX="auto">
-							<Table size="sm">
-								<Thead>
-									<Tr>
-										<Th>{t('components.product.warehouseTransfer.product')}</Th>
-										<Th>
-											{t('components.product.warehouseTransfer.quantity')}
-										</Th>
-										<Th isNumeric>
-											{t('components.product.warehouseTransfer.sourceStock')}
-										</Th>
-										<Th isNumeric>
-											{t(
-												'components.product.warehouseTransfer.destinationStock',
+
+							<Flex
+								direction="column"
+								px={{ base: 3, md: 4 }}
+								py={{ base: 3, md: 4 }}
+								gap={{ base: 4, md: 4 }}
+							>
+								{/* From warehouse */}
+								<Flex
+									align={{ base: 'flex-start', md: 'center' }}
+									direction={{ base: 'column', md: 'row' }}
+									justify="space-between"
+									gap={{ base: 2, md: 4 }}
+								>
+									<Text
+										fontSize="sm"
+										fontWeight={600}
+										color="gray.500"
+										minW={{ base: 'auto', md: '140px' }}
+									>
+										{t('components.product.warehouseTransfer.fromWarehouse')}
+									</Text>
+
+									<Box
+										flex={1}
+										w="full"
+										px={3}
+										py={2}
+										bg="gray.50"
+										borderRadius="md"
+										border="1px solid"
+										borderColor="gray.100"
+									>
+										<Text
+											fontSize="sm"
+											fontWeight={600}
+											color="gray.800"
+											noOfLines={1}
+										>
+											{fromWarehouse?.name ?? operationalWarehouseId ?? '—'}
+										</Text>
+									</Box>
+								</Flex>
+
+								{/* To warehouse */}
+								<Flex
+									align={{ base: 'stretch', md: 'flex-start' }}
+									direction={{ base: 'column', md: 'row' }}
+									justify="space-between"
+									gap={{ base: 2, md: 4 }}
+									position="relative"
+									zIndex={30}
+								>
+									<Text
+										fontSize="sm"
+										fontWeight={600}
+										color="gray.500"
+										minW={{ base: 'auto', md: '140px' }}
+										pt={{ base: 0, md: 2 }}
+									>
+										{t('components.product.warehouseTransfer.toWarehouse')}
+									</Text>
+
+									<Box flex={1} w="full" position="relative" zIndex={40}>
+										<Dropdown
+											placeholder={t(
+												'components.product.warehouseTransfer.selectWarehouse',
 											)}
-										</Th>
-										<Th />
-									</Tr>
-								</Thead>
-								<Tbody>
-									{products.map(product => (
-										<ProductStockRow
-											key={product.productId}
-											product={product}
-											warehouseId={operationalWarehouseId}
-											quantityText={quantities[product.productId] ?? '1'}
-											onQuantityChange={value =>
-												setQuantities(prev => ({
-													...prev,
-													[product.productId]: value,
-												}))
+											dropDownOptions={destinationOptions}
+											selectedValues={toWarehouseId ? [toWarehouseId] : []}
+											onSelect={(values: string[]) =>
+												setToWarehouseId(values[0] ?? '')
 											}
-											toWarehouseId={toWarehouseId}
-											onSourceQty={onSourceQty}
+											isSingle
+											showClearOptions={false}
+											disabled={destinationOptions.length === 0}
 										/>
-									))}
-								</Tbody>
-							</Table>
+									</Box>
+								</Flex>
+							</Flex>
 						</Box>
+
+						{/* Products */}
+						<Box minW={0}>
+							<Flex align="center" justify="space-between" mb={3}>
+								<Box>
+									<Text fontSize="md" fontWeight={700} color="gray.800">
+										{t('components.product.warehouseTransfer.product')}
+									</Text>
+
+									<Text fontSize="xs" color="gray.500" mt={0.5}>
+										{rows.length} {rows.length === 1 ? 'item' : 'items'}
+									</Text>
+								</Box>
+							</Flex>
+
+							{/* Table scroll container */}
+							<Box
+								border="1px solid"
+								borderColor="gray.200"
+								borderRadius="lg"
+								overflowX="auto"
+								overflowY="hidden"
+								// WebkitOverflowScrolling="touch"
+								maxW="100%"
+							>
+								<Table size="sm" minW={{ base: '720px', md: 'auto' }}>
+									<Thead bg="gray.50">
+										<Tr>
+											<Th borderColor="gray.200" py={3} w="40px" />
+
+											<Th
+												borderColor="gray.200"
+												py={3}
+												fontSize="xs"
+												color="gray.500"
+												fontWeight={700}
+												textTransform="uppercase"
+												letterSpacing="0.04em"
+											>
+												{t('components.product.warehouseTransfer.product')}
+											</Th>
+
+											<Th
+												borderColor="gray.200"
+												py={3}
+												fontSize="xs"
+												color="gray.500"
+												fontWeight={700}
+												textTransform="uppercase"
+												letterSpacing="0.04em"
+											>
+												{t('components.product.warehouseTransfer.quantity')}
+											</Th>
+
+											<Th
+												isNumeric
+												borderColor="gray.200"
+												py={3}
+												fontSize="xs"
+												color="gray.500"
+												fontWeight={700}
+												textTransform="uppercase"
+												letterSpacing="0.04em"
+											>
+												{t('components.product.warehouseTransfer.sourceStock')}
+											</Th>
+
+											<Th
+												isNumeric
+												borderColor="gray.200"
+												py={3}
+												fontSize="xs"
+												color="gray.500"
+												fontWeight={700}
+												textTransform="uppercase"
+												letterSpacing="0.04em"
+											>
+												{t(
+													'components.product.warehouseTransfer.destinationStock',
+												)}
+											</Th>
+
+											<Th borderColor="gray.200" py={3} w="50px" />
+										</Tr>
+									</Thead>
+
+									<Tbody>
+										{rows.map(product => (
+											<ProductStockRow
+												key={product.productId}
+												product={product}
+												warehouseId={operationalWarehouseId}
+												quantityText={quantities[product.productId] ?? '1'}
+												onQuantityChange={value =>
+													setQuantities(prev => ({
+														...prev,
+														[product.productId]: value,
+													}))
+												}
+												toWarehouseId={toWarehouseId}
+												onSourceQty={onSourceQty}
+												onRemove={onRemove}
+											/>
+										))}
+									</Tbody>
+								</Table>
+							</Box>
+						</Box>
+
+						{/* Warning */}
 						{!isOperational ? (
-							<Text color="red.500" fontSize="sm" fontWeight={600}>
-								{t('components.topBar.warehouseScopePostingBlocked')}
-							</Text>
+							<Box
+								display="flex"
+								alignItems="flex-start"
+								gap={3}
+								px={{ base: 3, md: 4 }}
+								py={3}
+								borderRadius="lg"
+								bg="red.50"
+								border="1px solid"
+								borderColor="red.100"
+							>
+								<Box
+									mt="2px"
+									w="7px"
+									h="7px"
+									borderRadius="full"
+									bg="red.500"
+									flexShrink={0}
+								/>
+
+								<Text color="red.700" fontSize="sm" fontWeight={600}>
+									{t('components.topBar.warehouseScopePostingBlocked')}
+								</Text>
+							</Box>
 						) : null}
 					</Flex>
 				</ModalBody>
-				<ModalFooter gap={2}>
-					<Button sx={styles.cancel} onClick={onClose}>
+
+				{/* Footer */}
+				<ModalFooter
+					px={{ base: 4, md: 6 }}
+					py={{ base: 3, md: 4 }}
+					bg="gray.50"
+					borderTop="1px solid"
+					borderColor="gray.100"
+					gap={3}
+					flexDirection={{ base: 'column-reverse', sm: 'row' }}
+					alignItems={{ base: 'stretch', sm: 'center' }}
+				>
+					<Button
+						variant="ghost"
+						color="gray.600"
+						fontWeight={600}
+						px={5}
+						w={{ base: 'full', sm: 'auto' }}
+						onClick={onClose}
+						_hover={{
+							bg: 'gray.100',
+							color: 'gray.800',
+						}}
+					>
 						{t('common.cancel')}
 					</Button>
+
 					<Button
-						sx={{ ...styles.confirm, color: '#FFFFFF' }}
+						sx={{
+							...styles.confirm,
+							color: '#FFFFFF',
+						}}
+						px={6}
+						w={{ base: 'full', sm: 'auto' }}
+						fontWeight={600}
+						borderRadius="md"
+						boxShadow="sm"
 						onClick={() => {
 							void handleConfirm()
 						}}
 						isLoading={isLoading}
 						isDisabled={!canConfirm}
+						_hover={{
+							opacity: 0.9,
+							transform: 'translateY(-1px)',
+							boxShadow: 'md',
+						}}
+						_active={{
+							transform: 'translateY(0)',
+						}}
 					>
 						{t('components.product.warehouseTransfer.confirm')}
 					</Button>

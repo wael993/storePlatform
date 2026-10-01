@@ -62,7 +62,6 @@ interface FiltersProps {
 	categoryOptions: FilterSelectOption[]
 	entryTypeOptions?: FilterSelectOption[]
 	productNameOptions?: FilterSelectOption[]
-	customerOptions?: FilterSelectOption[]
 	showSupplierFilter: boolean
 	fieldVisibility?: FilterFieldVisibility
 	searchPlaceholder?: string
@@ -78,7 +77,6 @@ const Filters = ({
 	categoryOptions,
 	entryTypeOptions = [],
 	productNameOptions = [],
-	customerOptions = [],
 	showSupplierFilter,
 	fieldVisibility,
 	searchPlaceholder,
@@ -104,7 +102,6 @@ const Filters = ({
 		(isFieldVisible('productName', false)
 			? (filters.productName ?? []).length
 			: 0) +
-		(isFieldVisible('customer', false) ? (filters.customer ?? []).length : 0) +
 		(isFieldVisible('invoiceDate', false) && filters.invoiceDateFrom ? 1 : 0) +
 		(isFieldVisible('invoiceDate', false) && filters.invoiceDateTo ? 1 : 0)
 
@@ -137,7 +134,6 @@ const Filters = ({
 					categoryOptions={categoryOptions}
 					entryTypeOptions={entryTypeOptions}
 					productNameOptions={productNameOptions}
-					customerOptions={customerOptions}
 					showSupplierFilter={showSupplierFilter}
 					fieldVisibility={fieldVisibility}
 					showSavedFilterOptions={false}

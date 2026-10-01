@@ -1308,7 +1308,6 @@
 			"nameOrCodeSearchPlaceholder": "Nach Name oder Code suchen",
 			"dailySearchPlaceholder": "Aktions-ID, Produkt, Lieferant, Kunde, Rechnungsnummer",
 			"saveFilterPreset": "Filter-Preset speichern",
-			"supplier": "Lieferant",
 			"category": "Kategorie",
 			"state": "Status",
 			"brand": "Marke"
@@ -1373,6 +1372,13 @@
 					"description": "Klicken Sie im Dashboard auf eine Bargeldkarte (Tageskasse, Barreserve, Online oder Gesamt), um das Kontobuch dieser Box zu öffnen und jede Bewegung zu prüfen — Rechnungen, Quittungen, Zahlungen, Ausgaben und Transfers.",
 					"imageDescriptions": {
 						"img0": "Die Historienliste zeigt jede Buchung mit Betrag, Richtung und verknüpfter Aktivität, damit Sie nachvollziehen können, wie sich der Saldo der gewählten Box über die Zeit verändert hat."
+					}
+				},
+				"warehouseInvoice": {
+					"title": "Großhandels- und Halbgroßhandelsrechnungen",
+					"description": "Sie können jetzt Großhandels- und Halbgroßhandelsrechnungen einfach erstellen. Wählen Sie den Rechnungstyp, fügen Sie Produkte hinzu — die Preise werden je nach Typ angewendet.",
+					"imageDescriptions": {
+						"img0": "Erstellen Sie eine Großhandels- oder Halbgroßhandelsrechnung über den Pfeil neben Neue Rechnung → Großhandel / Halbgroßhandel."
 					}
 				}
 			},
@@ -1514,6 +1520,7 @@
 		"barcode": "Barcode",
 		"brand": "Markenname",
 		"category": "Kategoriename",
+		"state": "Status",
 		"buyCost": "Einkaufspreis",
 		"addBuyCost": "Einkaufspreis hinzufügen",
 		"sellPrice": "Verkaufspreis",

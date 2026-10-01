@@ -1,5 +1,6 @@
 import {
 	Box,
+	Divider,
 	Flex,
 	Image,
 	Modal,
@@ -20,6 +21,7 @@ export const ANNOUNCEMENT_KEYS = [
 	'onlinePayment',
 	'cashTransfer',
 	'cashHistory',
+	'warehouseInvoice',
 ] as const
 
 export type AnnouncementKey = (typeof ANNOUNCEMENT_KEYS)[number]
@@ -34,6 +36,7 @@ export const ANNOUNCEMENT_IMAGES: Record<AnnouncementKey, string[]> = {
 	onlinePayment: ['/onlinePayinvoice.png'],
 	cashTransfer: ['/transfer.png'],
 	cashHistory: ['/historychash.png'],
+	warehouseInvoice: ['/warehouseInvoice.png'],
 }
 
 export interface AnnouncementImage {
@@ -99,11 +102,22 @@ export const AnnouncementModal = ({
 										objectFit="contain"
 									/>
 								</Box>
+
 								{image.description && (
 									<Text mt={2} fontSize="sm" lineHeight="1.7" color="gray.600">
 										{image.description}
 									</Text>
 								)}
+
+								<Divider
+									sx={{
+										width: { base: '100%' },
+										height: '0.2rem',
+										border: 'none',
+										backgroundColor: '#376288',
+										my: 2,
+									}}
+								/>
 							</Box>
 						))}
 					</Flex>

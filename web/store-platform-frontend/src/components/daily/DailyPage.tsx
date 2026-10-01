@@ -65,7 +65,6 @@ const getDefaultDailyFilters = (): ProductFilterValues => {
 		category: [],
 		entryType: [],
 		productName: [],
-		customer: [],
 		invoiceDateFrom: getDateInputValueFromDate(startOfCurrentMonth),
 		invoiceDateTo: getDateInputValueFromDate(endOfCurrentMonth),
 	}
@@ -369,14 +368,12 @@ const DailyPage = ({ targetType }: DailyPageProps) => {
 				categoryOptions={[]}
 				entryTypeOptions={entryTypeOptions}
 				productNameOptions={dailyFilterValues?.productName ?? []}
-				customerOptions={dailyFilterValues?.customer ?? []}
 				showSupplierFilter={true}
 				searchPlaceholder={t('components.filters.dailySearchPlaceholder')}
 				fieldVisibility={{
 					entryType: true,
 					productName: true,
 					supplier: true,
-					customer: true,
 					invoiceDate: true,
 					brand: false,
 					state: false,

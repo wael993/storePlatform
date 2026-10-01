@@ -11,6 +11,7 @@ import {
 	Icon,
 	IconProps,
 	Text,
+	Tooltip,
 } from '@chakra-ui/react'
 import { ComponentType, RefObject, useRef } from 'react'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
@@ -125,29 +126,33 @@ const ConfirmationDialog = ({
 							<Button sx={styles.secondaryButton} onClick={onClose}>
 								{cancelButtonText}
 							</Button>
-
-							{confirmIsPrimary ? (
-								<Button
-									sx={styles.primaryButton}
-									variant="primary"
-									onClick={handleOnConfirm}
-									ml={3}
-									isLoading={isConfirmationButtonLoading}
-									isDisabled={isTemporaryDisabled}
-								>
-									{confirmationButtonText}
-								</Button>
-							) : (
-								<Button
-									isLoading={isConfirmationButtonLoading}
-									colorScheme="red"
-									onClick={handleOnConfirm}
-									ml={3}
-									isDisabled={isTemporaryDisabled}
-								>
-									{confirmationButtonText}
-								</Button>
-							)}
+							<Tooltip
+								label={'سيتم اعادة تفعبل عملية الحدف في التحديث القادم.'}
+								isDisabled={!isTemporaryDisabled}
+							>
+								{confirmIsPrimary ? (
+									<Button
+										sx={styles.primaryButton}
+										variant="primary"
+										onClick={handleOnConfirm}
+										ml={3}
+										isLoading={isConfirmationButtonLoading}
+										isDisabled={isTemporaryDisabled}
+									>
+										{confirmationButtonText}
+									</Button>
+								) : (
+									<Button
+										isLoading={isConfirmationButtonLoading}
+										colorScheme="red"
+										onClick={handleOnConfirm}
+										ml={3}
+										isDisabled={isTemporaryDisabled}
+									>
+										{confirmationButtonText}
+									</Button>
+								)}
+							</Tooltip>
 						</Flex>
 					</AlertDialogFooter>
 				</AlertDialogContent>
