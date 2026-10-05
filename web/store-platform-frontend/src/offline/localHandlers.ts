@@ -21,6 +21,7 @@ import {
 	requireOperationalWarehouseId,
 } from '../shared/warehouseScope'
 import {
+	applyLocalBulkEditProducts,
 	applyLocalInventoryMutation,
 	applyLocalProductMutation,
 } from './localProductInventoryMutations'
@@ -2209,6 +2210,13 @@ export const handleOfflineQuery = async (
 					},
 				},
 			}
+		}
+
+		if (method === 'POST' && path === 'products/bulk-edit') {
+			const data = await applyLocalBulkEditProducts(
+				(body ?? {}) as Record<string, unknown>,
+			)
+			return { data }
 		}
 
 		if (method === 'POST' && path === 'cash-accounts/transfers') {

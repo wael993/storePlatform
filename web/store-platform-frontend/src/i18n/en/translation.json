@@ -1251,6 +1251,18 @@
 			"deleteSelected": "Delete selected products",
 			"deleteSelectedConfirm": "{{count}} products will be permanently deleted. This cannot be undone.",
 			"deleteSelectedSuccess": "{{count}} products deleted.",
+			"bulkEdit": {
+				"title": "Bulk edit",
+				"selectedCount": "products selected",
+				"sectionTitle": "Edit product fields",
+				"sectionHint": "Only filled fields are applied to all selected products.",
+				"stockDiscountTitle": "Stock and discount",
+				"selectedList": "Selected products",
+				"applyHint": "Changes here apply to every selected product. Leave a field empty to leave it unchanged.",
+				"success": "{{count}} products updated.",
+				"error": "Could not update the selected products.",
+				"offline": "Bulk edit is not available in offline mode."
+			},
 			"print": "Print",
 			"warehouseTransfer": {
 				"movement": "Movement",

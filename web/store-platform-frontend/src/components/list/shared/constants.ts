@@ -1,4 +1,4 @@
-import { ActivityState } from './globalEnums'
+import { ProductState } from './globalEnums'
 
 export const PRODUCT_LIST_WIDTHS_MAP_IN_REM = {
 	CHECKBOX: 2,
@@ -82,30 +82,30 @@ export const DAILY_ACTION_LIST_WIDTHS_MAP_IN_REM = {
 
 export const LIST_INTERNAL_ONLY_COLUMNS: string[] = ['SUPPLIER']
 
-export const PRODUCT_STATE_CONFIG: ActivityStateMap = {
-	[ActivityState.ACTIVE]: {
+export const PRODUCT_STATE_CONFIG: ProductStateMap = {
+	[ProductState.ACTIVE]: {
 		translationKey: 'components.product.states.active',
 		color: '#36CE4E',
 	},
-	[ActivityState.INACTIVE]: {
+	[ProductState.INACTIVE]: {
 		translationKey: 'components.product.states.inactive',
 		color: '#C7C7C7',
 	},
-	[ActivityState.DISCONTINUED]: {
+	[ProductState.DISCONTINUED]: {
 		translationKey: 'components.product.states.discontinued',
 		color: '#5698E6',
 	},
-	[ActivityState.READY_FOR_RESTOCK]: {
+	[ProductState.READY_FOR_RESTOCK]: {
 		translationKey: 'components.product.states.readyForRestock',
 		color: '#F0BB35',
 	},
 
-	[ActivityState.OUT_OF_STOCK]: {
+	[ProductState.OUT_OF_STOCK]: {
 		translationKey: 'components.product.states.outOfStock',
 		color: '#E45151',
 	},
 
-	[ActivityState.DRAFT]: {
+	[ProductState.DRAFT]: {
 		translationKey: 'components.product.states.draft',
 		color: '#FFFFFF',
 	},

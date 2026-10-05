@@ -25,7 +25,7 @@ import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
 import PartyInvoiceSummaryCards from './common/PartyInvoiceSummaryCards'
 import { PRODUCT_STATE_CONFIG } from './list/shared/constants'
-import { ActivityState } from './list/shared/globalEnums'
+import { ProductState } from './list/shared/globalEnums'
 
 const fullWidth = '100%'
 const mutedTextColor = '#929494'
@@ -210,7 +210,7 @@ const TopSection = ({
 		BreadCrumbItem.SUPPLIER
 
 	const productState = product
-		? PRODUCT_STATE_CONFIG[product.status as ActivityState]
+		? PRODUCT_STATE_CONFIG[product.status as ProductState]
 		: undefined
 	const typeChip = TYPE_CHIP[targetType]
 	const chip = isProductTarget

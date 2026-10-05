@@ -1251,6 +1251,18 @@
 			"deleteSelected": "Ausgewählte Produkte löschen",
 			"deleteSelectedConfirm": "{{count}} Produkte werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
 			"deleteSelectedSuccess": "{{count}} Produkte gelöscht.",
+			"bulkEdit": {
+				"title": "Massenbearbeitung",
+				"selectedCount": "Produkte ausgewählt",
+				"sectionTitle": "Produktfelder bearbeiten",
+				"sectionHint": "Nur ausgefüllte Felder werden auf alle ausgewählten Produkte angewendet.",
+				"stockDiscountTitle": "Bestand und Rabatt",
+				"selectedList": "Ausgewählte Produkte",
+				"applyHint": "Änderungen gelten für alle ausgewählten Produkte. Leere Felder bleiben unverändert.",
+				"success": "{{count}} Produkte aktualisiert.",
+				"error": "Die ausgewählten Produkte konnten nicht aktualisiert werden.",
+				"offline": "Massenbearbeitung ist offline nicht verfügbar."
+			},
 			"print": "Drucken",
 			"warehouseTransfer": {
 				"movement": "Umlagerung",

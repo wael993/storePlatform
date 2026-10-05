@@ -173,6 +173,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/products/bulk-edit`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.bulkEditProducts.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/products/:id/barcode`)
 			.post(
 				this.startCalc.bind(this),
@@ -1405,6 +1414,26 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const result = await this.productController.bulkDeleteProducts(
 				productIds,
+				requestContext,
+			)
+
+			response.status(200).json(result)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async bulkEditProducts(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const result = await this.productController.bulkEditProducts(
+				request.body,
 				requestContext,
 			)
 

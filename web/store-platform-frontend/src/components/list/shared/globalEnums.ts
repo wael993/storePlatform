@@ -69,7 +69,7 @@ export enum DailyActionSortHeaderKey {
 	NOTE = 'note',
 }
 
-export enum ActivityState {
+export enum ProductState {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive',
 	DISCONTINUED = 'discontinued',

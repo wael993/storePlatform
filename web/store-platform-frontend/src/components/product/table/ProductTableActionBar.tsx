@@ -16,6 +16,8 @@ import { AsTrashIcon } from '../../../icons/Trash'
 import { AsTruckIcon } from '../../../shared/icons/Truck'
 import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
 import { useUser } from '../../../shared/hooks/useUser'
+import { AsEditIcon } from '../../icons/Edit'
+import BulkEditModal from '../BulkEditModal'
 
 const styles = {
 	mainFlexWrapper: {
@@ -48,35 +50,46 @@ const styles = {
 } satisfies StylesObject
 
 interface ProductTableActionBarProps {
-	selectedActivities: Product[]
+	selectedProducts: Product[]
 	onMovementProducts: (products: Product[]) => void
 }
 
 const ProductTableActionBar = ({
-	selectedActivities,
+	selectedProducts,
 	onMovementProducts,
 }: ProductTableActionBarProps) => {
 	const { t } = useTranslation()
-	const { canDeleteProduct, canEditStockQuantity } = useAllowedActions()
-	const { isOperational, hasMultipleAccessible } = useWarehouseScope()
+	const {
+		canDeleteProduct,
+		canEditProduct,
+		canEditStockQuantity,
+		canEditMinStockQuantity,
+	} = useAllowedActions()
+	const { isOperational, hasMultipleAccessible, operationalWarehouseId } =
+		useWarehouseScope()
 	const { user } = useUser()
 	const { isOpen, onOpen, onClose } = useDisclosure()
 	const { isOnline } = useOfflineSync(user?.tenantId)
-
+	const {
+		isOpen: isBulkEditModalOpen,
+		onOpen: onOpenBulkEditModal,
+		onClose: onCloseBulkEditModal,
+	} = useDisclosure()
 	const showToast = useCustomToast()
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeleteProductsMutation()
 	const canDelete = canDeleteProduct
+	const canBulkEdit = canEditProduct
 	const canMove =
 		canEditStockQuantity &&
 		isOperational &&
 		hasMultipleAccessible &&
-		selectedActivities.length >= 1
+		selectedProducts.length >= 1
 
 	const handleDelete = async () => {
 		try {
 			const result = await bulkDelete(
-				selectedActivities.map(product => product.productId),
+				selectedProducts.map(product => product.productId),
 			).unwrap()
 
 			onClose()
@@ -111,9 +124,20 @@ const ProductTableActionBar = ({
 	return (
 		<Flex sx={styles.mainFlexWrapper}>
 			<Text sx={styles.text}>
-				{`${selectedActivities.length} 	${t('common.selected')}`}
+				{`${selectedProducts.length} 	${t('common.selected')}`}
 			</Text>
+
 			<Flex sx={styles.iconWrapper}>
+				{canBulkEdit ? (
+					<IconButton
+						sx={styles.iconButton}
+						aria-label={t('components.product.bulkEdit.title')}
+						icon={<AsEditIcon boxSize={5} />}
+						size="sm"
+						isDisabled={!selectedProducts.length}
+						onClick={onOpenBulkEditModal}
+					/>
+				) : null}
 				{canMove ? (
 					<Tooltip
 						label={t('components.product.warehouseTransfer.movementOffline')}
@@ -126,7 +150,7 @@ const ProductTableActionBar = ({
 								icon={<AsTruckIcon boxSize={5} />}
 								size="sm"
 								isDisabled={!isOnline}
-								onClick={() => onMovementProducts(selectedActivities)}
+								onClick={() => onMovementProducts(selectedProducts)}
 							/>
 						</span>
 					</Tooltip>
@@ -144,7 +168,7 @@ const ProductTableActionBar = ({
 			<ConfirmationDialog
 				header={t('components.product.deleteSelected')}
 				body={t('components.product.deleteSelectedConfirm', {
-					count: selectedActivities.length,
+					count: selectedProducts.length,
 				})}
 				isOpen={isOpen}
 				onClose={onClose}
@@ -153,6 +177,18 @@ const ProductTableActionBar = ({
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
 				isTemporaryDisabled={true}
+			/>
+
+			<BulkEditModal
+				isOpen={isBulkEditModalOpen}
+				onClose={onCloseBulkEditModal}
+				selectedProducts={selectedProducts}
+				canEditMinQuantity={
+					canEditMinStockQuantity &&
+					isOperational &&
+					Boolean(operationalWarehouseId)
+				}
+				operationalWarehouseId={operationalWarehouseId ?? undefined}
 			/>
 		</Flex>
 	)

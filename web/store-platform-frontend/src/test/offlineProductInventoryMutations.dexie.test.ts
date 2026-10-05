@@ -11,6 +11,7 @@ vi.mock('../store/store', () => ({
 
 import { offlineDb, setSyncMeta, SYNC_META_KEYS } from '../offline/db'
 import {
+	applyLocalBulkEditProducts,
 	applyLocalInventoryMutation,
 	applyLocalProductMutation,
 	applyOnlineProductCatalogEdit,
@@ -440,5 +441,61 @@ describe('offline product/inventory Dexie transactions', () => {
 
 		expect(await offlineDb.products.count()).toBe(0)
 		expect(await offlineDb.outbox.count()).toBe(0)
+	})
+
+	it('bulk-edit updates local products and queues per-product PATCH outbox rows', async () => {
+		await applyLocalProductMutation('POST', 'products', {
+			productId: 'coke',
+			name: 'Coca Cola',
+			price: { retailPrice: 15, purchasePrice: 10, currency: 'USD' },
+			quantity: 5,
+			warehouseId,
+		})
+		await applyLocalProductMutation('POST', 'products', {
+			productId: 'pepsi',
+			name: 'Pepsi',
+			price: { retailPrice: 12, purchasePrice: 8, currency: 'USD' },
+			quantity: 3,
+			warehouseId,
+		})
+		await offlineDb.outbox.clear()
+
+		const result = await applyLocalBulkEditProducts({
+			productIds: ['coke', 'pepsi', 'missing'],
+			brandId: 'brand-1',
+			discount: 5,
+			minQuantity: 2,
+			warehouseId,
+		})
+
+		expect(result.updated).toEqual(['coke', 'pepsi'])
+		expect(result.blocked).toEqual([
+			{ productId: 'missing', reason: expect.stringContaining('not found') },
+		])
+
+		expect((await offlineDb.products.get('coke'))?.brandId).toBe('brand-1')
+		expect((await offlineDb.products.get('coke'))?.price.discount).toBe(5)
+		expect((await offlineDb.products.get('pepsi'))?.brandId).toBe('brand-1')
+
+		const cokeInventory = await offlineDb.inventory
+			.where('productId')
+			.equals('coke')
+			.first()
+		expect(cokeInventory?.minQuantity).toBe(2)
+
+		const outbox = await offlineDb.outbox.toArray()
+		expect(
+			outbox.filter(
+				entry => entry.entity === 'product' && entry.url === 'products/coke',
+			),
+		).toHaveLength(1)
+		expect(
+			outbox.filter(
+				entry =>
+					entry.entity === 'inventory' &&
+					entry.url === 'inventory/by-product/coke',
+			),
+		).toHaveLength(1)
+		expect(outbox).toHaveLength(4)
 	})
 })

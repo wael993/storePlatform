@@ -91,13 +91,13 @@ type SeeCatalogNode = {
 
 type TranslationKey = import('i18next').ParseKeys
 
-interface ActivityStateMapProps {
+interface ProductStateMapProps {
 	translationKey: TranslationKey
 	color: string
 }
 
-type ActivityStateMap = {
-	[k in ActivityState]: ActivityStateMapProps
+type ProductStateMap = {
+	[k in ProductState]: ProductStateMapProps
 }
 
 interface BreadcrumbItem {

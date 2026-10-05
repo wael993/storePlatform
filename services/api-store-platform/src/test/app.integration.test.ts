@@ -23,6 +23,16 @@ describe('HTTP app', () => {
 		).toBe(401)
 	})
 
+	it('registers POST /products/bulk-edit behind auth', async () => {
+		expect(
+			(
+				await request(createApp())
+					.post('/api/data/products/bulk-edit')
+					.send({ productIds: ['x'], categoryId: 'c' })
+			).status,
+		).toBe(401)
+	})
+
 	it('accepts a Base64 logo payload on invoice-settings without 413', async () => {
 		const app = createApp()
 		const logoUrl = `data:image/png;base64,${'A'.repeat(250_000)}`

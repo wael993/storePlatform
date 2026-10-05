@@ -78,6 +78,7 @@ import {
 	normalizeInventoryPatchRequest,
 	normalizeProductPatchRequest,
 } from './productHelper/productPatchNormalize'
+import { parseBulkEditProductsBody } from './productHelper/productBulkEdit'
 import {
 	filterProductRelatedActions,
 	mapProductAction,
@@ -2199,6 +2200,53 @@ export default class ProductController {
 		}
 
 		return { deleted, blocked: blockedRows }
+	}
+
+	public async bulkEditProducts(
+		requestBody: unknown,
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.productsEdit])
+
+		const { productIds, productPatch, minQuantity, warehouseId } =
+			parseBulkEditProductsBody(requestBody)
+
+		const updated: string[] = []
+		const blocked: Array<{ productId: string; reason: string }> = []
+
+		for (const productId of productIds) {
+			try {
+				if (productPatch) {
+					await this.patchProduct(
+						productId,
+						productPatch as ProductDocument,
+						requestContext,
+					)
+				}
+
+				if (minQuantity !== undefined && warehouseId) {
+					await this.patchInventoryByProductId(
+						productId,
+						{ warehouseId, minQuantity },
+						requestContext,
+					)
+				}
+
+				updated.push(productId)
+			} catch (error) {
+				// note: product patch may already have applied if inventory step fails;
+				// upgrade: one txn per product covering both writes.
+				blocked.push({
+					productId,
+					reason:
+						error instanceof Error
+							? error.message
+							: 'Product could not be updated.',
+				})
+			}
+		}
+
+		return { updated, blocked }
 	}
 
 	public async getDailyActionsExcel(

@@ -607,6 +607,115 @@ export const applyLocalInventoryMutation = async (
 	}, outbox)
 }
 
+const BULK_EDIT_PRODUCT_KEYS = [
+	'categoryId',
+	'supplierId',
+	'unitId',
+	'brandId',
+] as const
+
+/** Expand bulk-edit into per-product PATCH outbox rows sync/push already replays. */
+export const applyLocalBulkEditProducts = async (
+	body: Record<string, unknown>,
+): Promise<{
+	updated: string[]
+	blocked: Array<{ productId: string; reason: string }>
+}> => {
+	const productIds = [
+		...new Set(
+			(Array.isArray(body.productIds) ? body.productIds : [])
+				.map(id => (typeof id === 'string' ? id.trim() : ''))
+				.filter(Boolean),
+		),
+	]
+
+	if (!productIds.length) {
+		throw new Error('productIds is required.')
+	}
+
+	const productPatch: Record<string, unknown> = {}
+	for (const key of BULK_EDIT_PRODUCT_KEYS) {
+		const value = body[key]
+		if (typeof value === 'string' && value.trim()) {
+			productPatch[key] = value.trim()
+		}
+	}
+
+	if (
+		body.discount !== undefined &&
+		body.discount !== null &&
+		body.discount !== ''
+	) {
+		productPatch.price = {
+			discount: requireNonNegativeNumber(body.discount, 'discount'),
+		}
+	}
+
+	const hasProductPatch = Object.keys(productPatch).length > 0
+	const minQuantity =
+		body.minQuantity !== undefined &&
+		body.minQuantity !== null &&
+		body.minQuantity !== ''
+			? requireNonNegativeNumber(body.minQuantity, 'minQuantity')
+			: undefined
+	const warehouseId =
+		typeof body.warehouseId === 'string' && body.warehouseId.trim()
+			? body.warehouseId.trim()
+			: undefined
+
+	if (!hasProductPatch && minQuantity === undefined) {
+		throw new Error('No valid fields to update.')
+	}
+
+	if (minQuantity !== undefined && !warehouseId) {
+		throw new Error('warehouseId is required when minQuantity is set.')
+	}
+
+	const updated: string[] = []
+	const blocked: Array<{ productId: string; reason: string }> = []
+
+	for (const productId of productIds) {
+		try {
+			if (hasProductPatch) {
+				const url = `products/${productId}`
+				await applyLocalProductMutation('PATCH', url, productPatch, {
+					entity: 'product',
+					operation: 'update',
+					url,
+					method: 'PATCH',
+					payload: productPatch,
+					clientMutationId: generateId(),
+				})
+			}
+
+			if (minQuantity !== undefined && warehouseId) {
+				const url = `inventory/by-product/${productId}`
+				const payload = { warehouseId, minQuantity }
+				await applyLocalInventoryMutation('PATCH', url, payload, {
+					entity: 'inventory',
+					operation: 'update',
+					url,
+					method: 'PATCH',
+					payload,
+					clientMutationId: generateId(),
+				})
+			}
+
+			updated.push(productId)
+		} catch (error) {
+			blocked.push({
+				productId,
+				reason:
+					error instanceof Error
+						? error.message
+						: 'Product could not be updated.',
+			})
+		}
+	}
+
+	return { updated, blocked }
+}
+
 /** Online product PATCH: keep catalog cost in lockstep without a full catalog GET. */
 export const applyOnlineProductCatalogEdit = async (
 	productId: string,

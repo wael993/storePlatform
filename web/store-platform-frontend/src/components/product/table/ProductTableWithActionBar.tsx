@@ -97,7 +97,7 @@ const ProductTableWithActionBar = ({
 	useEffect(() => {
 		setSelectedProductsIds(prevSelectedIds =>
 			prevSelectedIds.filter(id =>
-				productElements.some(activity => activity.productId === id),
+				productElements.some(product => product.productId === id),
 			),
 		)
 	}, [productElements])
@@ -115,10 +115,10 @@ const ProductTableWithActionBar = ({
 		<VStack w="100%" p={0}>
 			{selectedProductsIds.length > 0 && (
 				<ListActionBar
-					selectedActivities={
+					selectedProducts={
 						(selectedProductsIds
 							.map(id =>
-								productElements?.find(activity => activity.productId === id),
+								productElements?.find(product => product.productId === id),
 							)
 							.filter(Boolean) as Product[]) ?? []
 					}

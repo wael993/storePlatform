@@ -2,10 +2,12 @@ import {
 	Icon,
 	Input,
 	InputGroup,
+	InputLeftElement,
 	InputRightElement,
 	Textarea,
 	Tooltip,
 	VStack,
+	Text,
 } from '@chakra-ui/react'
 import { ChangeEvent, RefObject, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -89,6 +91,8 @@ interface InputLabelProps {
 	disabledTooltip?: string
 	invalidTooltip?: string
 	withGap?: boolean
+	currency?: string
+	hasCurrency?: boolean
 }
 
 const InputLabel = ({
@@ -107,6 +111,8 @@ const InputLabel = ({
 	styles,
 	inputRef,
 	disabledTooltip,
+	currency,
+	hasCurrency = false,
 	invalidTooltip,
 }: InputLabelProps) => {
 	const { t } = useTranslation()
@@ -175,7 +181,11 @@ const InputLabel = ({
 							isInvalid={isInvalid}
 							isDisabled={isDisabled}
 							type={inputType}
-							sx={{ ...defaultStyles.input, ...styles?.input }}
+							sx={{
+								...defaultStyles.input,
+								...(hasCurrency ? { paddingInlineStart: '2.5rem' } : {}),
+								...styles?.input,
+							}}
 							variant={variant}
 							value={value ?? inputValue}
 							placeholder={
@@ -196,6 +206,11 @@ const InputLabel = ({
 							onClick={() => handleChange('')}
 						/>
 					</InputRightElement>
+				)}
+				{hasCurrency && (
+					<InputLeftElement pointerEvents="none">
+						<Text>{currency}</Text>
+					</InputLeftElement>
 				)}
 			</InputGroup>
 		</VStack>

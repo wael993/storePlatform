@@ -1091,6 +1091,37 @@ const getQuery = (
 				}
 			},
 		}),
+		bulkEditProducts: builder.mutation<
+			{
+				updated: string[]
+				blocked: Array<{ productId: string; reason: string }>
+			},
+			{
+				productIds: string[]
+				categoryId?: string
+				supplierId?: string
+				unitId?: string
+				brandId?: string
+				discount?: number
+				minQuantity?: number
+				warehouseId?: string
+			}
+		>({
+			query: body => ({
+				url: 'products/bulk-edit',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['products', 'product', 'inventory', 'product-import'],
+			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
+				try {
+					await queryFulfilled
+					await syncProductCatalogFromNetwork(api)
+				} catch {
+					// catalog sync is best-effort after a successful edit
+				}
+			},
+		}),
 		postProduct: builder.mutation<CreateProductAPIResponse, CreateProductInput>(
 			{
 				query: (newProduct: CreateProductInput) => {
@@ -2596,6 +2627,7 @@ export const {
 	usePreviewProductImportMutation,
 	useCommitProductImportMutation,
 	useBulkDeleteProductsMutation,
+	useBulkEditProductsMutation,
 	useGetInventoryQuery,
 	useGetInventoryByProductQuery,
 	useGetWarehouseTransfersQuery,
