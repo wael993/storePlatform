@@ -66,6 +66,18 @@ const MOVEMENT_OPTIONS = [
 		value: 'TRANSFER',
 		labelKey: 'dashboard.cashAccounts.movementTypes.TRANSFER',
 	},
+	{
+		value: 'OPENING_BALANCE',
+		labelKey: 'dashboard.cashAccounts.movementTypes.OPENING_BALANCE',
+	},
+	{
+		value: 'ADJUSTMENT',
+		labelKey: 'dashboard.cashAccounts.movementTypes.ADJUSTMENT',
+	},
+	{
+		value: 'REVERSAL',
+		labelKey: 'dashboard.cashAccounts.movementTypes.REVERSAL',
+	},
 ] as const
 
 const ACCOUNT_LABEL_KEYS: Record<string, string> = {

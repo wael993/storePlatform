@@ -30,6 +30,7 @@ import NotificationController from './apis/notification/api.controller'
 import NotificationRoutes from './apis/notification/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
+// import { requestLogger } from './middleware/middleware'
 
 export const createApp = () => {
 	const mongoDbClient = new MongodbController()
@@ -149,6 +150,9 @@ export const createApp = () => {
 	})
 
 	app.use(cookieParser())
+
+	//TODO: improve this middleware to see the logger better in the requestLogger
+	// app.use(requestLogger)
 
 	app.use(
 		cors({

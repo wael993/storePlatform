@@ -53,6 +53,7 @@ export enum EntityType {
 	STORAGE = 'STORAGE_SERVICE',
 	MONGODB = 'MONGO_DB',
 	PRODUCTS = 'PRODUCTS',
+	API = 'API',
 }
 
 export default logger

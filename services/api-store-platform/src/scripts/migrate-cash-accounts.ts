@@ -66,7 +66,9 @@ const main = async () => {
 	const reserveAmount =
 		reserveRaw !== undefined ? asFiniteNumber(reserveRaw) : undefined
 
-	await mongoose.connect(config.mongoDB.connectionString)
+	await mongoose.connect(config.mongoDB.connectionString, {
+		dbName: config.mongoDB.databaseName,
+	})
 
 	const tenants = await Tenant.find(
 		tenantFilter ? { tenantId: tenantFilter } : {},

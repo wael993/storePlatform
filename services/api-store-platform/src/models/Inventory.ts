@@ -84,7 +84,6 @@ InventorySchema.index(
 )
 
 InventorySchema.index({ tenantId: 1, warehouseId: 1 })
-InventorySchema.index({ tenantId: 1, productId: 1 })
 
 export const Inventory = mongoose.model<IInventory>(
 	'Inventory',
