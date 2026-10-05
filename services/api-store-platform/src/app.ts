@@ -130,6 +130,7 @@ export const createApp = () => {
 	const jsonParser = express.json({ limit: '100kb' })
 	const extractJsonParser = express.json({ limit: '12mb' })
 	const productImportJsonParser = express.json({ limit: '45mb' })
+	const invoiceSettingsJsonParser = express.json({ limit: '2mb' })
 
 	app.use((req, res, next) => {
 		if (req.path.includes('/buying-invoices/extract')) {
@@ -138,6 +139,10 @@ export const createApp = () => {
 
 		if (req.path.includes('/product-import/parse')) {
 			return productImportJsonParser(req, res, next)
+		}
+
+		if (req.path.includes('/invoice-settings')) {
+			return invoiceSettingsJsonParser(req, res, next)
 		}
 
 		return jsonParser(req, res, next)

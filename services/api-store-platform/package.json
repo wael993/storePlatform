@@ -17,7 +17,6 @@
 		"typecheck": "tsc --noEmit -p tsconfig.build.json",
 		"format:check": "prettier --check --config ../../.prettierrc src",
 		"audit:ci": "npm audit --audit-level=high",
-		"format-and-lint": "npm run lint && npm run format",
 		"predev": "npm run sync-domain",
 		"dev": "nodemon src/server.ts",
 		"pretest": "npm run sync-domain",
@@ -38,7 +37,10 @@
 		"cron:negative-quantity-snapshot": "ts-node src/scripts/run-negative-quantity-snapshot.ts",
 		"cron:subscription-lifecycle": "ts-node src/scripts/run-subscription-lifecycle.ts",
 		"test": "vitest run",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"vp": "npm version patch",
+		"vm": "npm version minor",
+		"vma": "npm version major"
 	},
 	"keywords": [],
 	"author": "",

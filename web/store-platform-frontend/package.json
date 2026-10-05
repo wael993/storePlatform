@@ -46,9 +46,11 @@
 		"format:check": "prettier --check --config ../../.prettierrc src",
 		"checkTranslations": "node scripts/checkTranslations.mjs",
 		"audit:ci": "npm audit --audit-level=high",
-		"format-and-lint": "npm run lint && npm run format",
 		"test": "vitest run",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"vp": "npm version patch",
+		"vm": "npm version minor",
+		"vma": "npm version major"
 	},
 	"browserslist": {
 		"production": [
