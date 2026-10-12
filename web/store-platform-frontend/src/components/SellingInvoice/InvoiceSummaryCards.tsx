@@ -5,12 +5,8 @@ import { PAGE_COLORS } from './constants'
 import type { SellingInvoiceSummary } from './types'
 import { formatTrend } from './utils'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
-import {
-	useGetCashAccountBalancesQuery,
-	useGetCurrencySettingsQuery,
-} from '../../api/apiStore'
+import { useGetCashAccountBalancesQuery } from '../../api/apiStore'
 import { getWorkMode } from '../../offline/workMode'
-import { formatNumber } from '../../shared/utils'
 import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
 import { useUser } from '../../shared/hooks/useUser'
 // import { AsTimeIcon } from '../../shared/icons/Time'
@@ -190,22 +186,12 @@ const InvoiceSummaryCards = ({
 		skip: !showLedgerCash || !cashOpsOnline,
 		refetchOnMountOrArgChange: false,
 	})
-	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
-		skip: !showLedgerCash || !cashOpsOnline,
-		refetchOnMountOrArgChange: false,
-	})
-
-	const currencyLabel =
-		currencySettings?.primaryCurrency?.internalCode ||
-		currencySettings?.primaryCurrency?.name ||
-		''
 
 	const formatLedgerBalance = (amount: number | undefined) => {
 		if (!cashOpsOnline) return t('common.onlineOnly')
 		if (isCashError) return t('dashboard.kpi.error')
 		if (amount == null) return EMPTY_SUMMARY_VALUE
-		const formatted = formatNumber(amount) ?? String(amount)
-		return currencyLabel ? `${formatted} ${currencyLabel}` : formatted
+		return formatAmount(amount)
 	}
 
 	const balanceByType = new Map(

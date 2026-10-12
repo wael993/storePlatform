@@ -334,9 +334,9 @@ const QuickEntryModal = ({
 	const entityOptions = useMemo((): DropdownOption[] => {
 		switch (form.entryType) {
 			case DailyActionType.RECEIPT_ENTRY:
-				return [...partnerOptions, ...customerOptions]
+				return [...partnerOptions, ...customerOptions, ...supplierOptions]
 			case DailyActionType.PAYMENT_ENTRY:
-				return [...partnerOptions, ...supplierOptions]
+				return [...partnerOptions, ...supplierOptions, ...customerOptions]
 			case DailyActionType.EXPENSE_ENTRY:
 				return expenses
 					.map(expense => ({

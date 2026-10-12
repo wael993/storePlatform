@@ -3798,7 +3798,7 @@ export default class ProductController {
 			DailyActionType.RECEIPT_ENTRY,
 		)
 
-		const totalReceivable = Math.max(0, totalInvoiced - totalPaid)
+		const totalReceivable = totalInvoiced - totalPaid
 
 		return {
 			totalInvoiced,
