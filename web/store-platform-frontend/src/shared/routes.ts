@@ -11,7 +11,6 @@ export const RoutePaths = {
 	LOGIN: withBasePath('/login'),
 	PRODUCTS: withBasePath('/products'),
 	SINGLE_PRODUCT: withBasePath('/products/:productId'),
-	DAILY: withBasePath('/daily'),
 	ORDERS: withBasePath('/orders'),
 	SELLING_INVOICES: withBasePath('/selling-invoices'),
 	REPORTS: withBasePath('/reports'),
@@ -50,7 +49,6 @@ export const fullPaths = {
 	ROOT: RoutePaths.ROOT,
 	PRODUCTS: RoutePaths.PRODUCTS,
 	ALL_PRODUCTS: RoutePaths.PRODUCTS,
-	DAILY: RoutePaths.DAILY,
 	ORDERS: RoutePaths.ORDERS,
 	CUSTOMERS: RoutePaths.CUSTOMERS,
 	CATEGORIES: RoutePaths.CATEGORIES,
@@ -73,7 +71,6 @@ export const routeLabelKeys = {
 	ROOT: 'navigation.welcome',
 	PRODUCTS: 'components.pageHeaders.products',
 	ALL_PRODUCTS: 'navigation.allProducts',
-	DAILY: 'components.pageHeaders.daily',
 	ORDERS: 'components.pageHeaders.orders',
 	CUSTOMERS: 'components.pageHeaders.customers',
 	CUSTOMER: 'components.pageHeaders.customer',
@@ -100,7 +97,6 @@ export const getRouteLabel = (path: string, fallback = '') => {
 	const routeLabelKeyByPath: Record<string, string> = {
 		[RoutePaths.ROOT]: routeLabelKeys.ROOT,
 		[RoutePaths.PRODUCTS]: routeLabelKeys.PRODUCTS,
-		[RoutePaths.DAILY]: routeLabelKeys.DAILY,
 		[RoutePaths.ORDERS]: routeLabelKeys.ORDERS,
 		[RoutePaths.CUSTOMERS]: routeLabelKeys.CUSTOMERS,
 		[RoutePaths.CATEGORIES]: routeLabelKeys.CATEGORIES,
@@ -180,20 +176,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			id: 'orders',
 			name: t(routeLabelKeys.ORDERS),
 			href: fullPaths.ORDERS,
-			isCurrentPage: true,
-		},
-	]
-	const daily: BreadcrumbItem[] = [
-		{
-			id: 'store-platform',
-			name: t(routeLabelKeys.STORE_PLATFORM),
-			href: fullPaths.ROOT,
-			isCurrentPage: false,
-		},
-		{
-			id: 'daily',
-			name: t(routeLabelKeys.DAILY),
-			href: fullPaths.DAILY,
 			isCurrentPage: true,
 		},
 	]
@@ -492,7 +474,6 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		allActivities,
 		products,
 		orders,
-		daily,
 		customers,
 		categories,
 		customer,

@@ -8,8 +8,6 @@ export const DASHBOARD_SECTIONS = [
 	'activity',
 ] as const
 
-export type DashboardSectionId = (typeof DASHBOARD_SECTIONS)[number]
-
 /** DASH-004 Overview cards — Coming Soon titles only, no values. */
 export const OVERVIEW_KPI_IDS = [
 	'products',

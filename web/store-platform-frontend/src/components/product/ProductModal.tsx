@@ -15,7 +15,6 @@ import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
 import TopSection from '../TopSection'
-import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
 import {
 	entityDetailModalContainerZIndex,
 	entityDetailModalStyles,
@@ -92,13 +91,7 @@ const ProductModal = ({ targetType }: ProductModalProps) => {
 							)
 						)}
 					</Grid>
-					<Box sx={entityDetailModalStyles.listSection}>
-						<DailyActionsListWithActionBar
-							dailyActions={product?.relatedActions ?? []}
-							isLoading={isProductLoading && !product}
-							embedded
-						/>
-					</Box>
+					{/* <Box sx={entityDetailModalStyles.listSection}></Box> */}
 				</ModalBody>
 			</ModalContent>
 		</Modal>

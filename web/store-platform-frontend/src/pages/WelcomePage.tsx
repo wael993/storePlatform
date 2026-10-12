@@ -110,7 +110,6 @@ const WelcomePage = () => {
 	const {
 		isProductsEnabled,
 		isDashboardEnabled,
-		isDailyEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
 		isReportsEnabled,
@@ -122,7 +121,6 @@ const WelcomePage = () => {
 	const {
 		isTenantProductsEnabled,
 		isTenantDashboardEnabled,
-		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantReportsEnabled,
@@ -132,12 +130,6 @@ const WelcomePage = () => {
 	} = tenantActions
 
 	const quickLinks = [
-		isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily)
-			? {
-					path: RoutePaths.DAILY,
-					descriptionKey: TENANT_PAGE_DESCRIPTION_KEYS.DAILY,
-				}
-			: null,
 		isProductsEnabled && isTenantProductsEnabled && canSee(SEE.products)
 			? {
 					path: RoutePaths.PRODUCTS,

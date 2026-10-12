@@ -1,29 +1,45 @@
-import { Modal, ModalBody, ModalContent, ModalOverlay } from '@chakra-ui/react'
+import {
+	Flex,
+	Modal,
+	ModalBody,
+	ModalContent,
+	ModalOverlay,
+	Spinner,
+} from '@chakra-ui/react'
 
 import NewSellingInvoicePanel, {
 	type InvoicePanelMode,
 } from './NewSellingInvoicePanel'
+import type { ApiSellingInvoice } from './invoiceApiMappers'
 
 interface InvoiceDetailModalProps {
 	isOpen: boolean
-	invoiceId: string | null
-	mode: Extract<InvoicePanelMode, 'view' | 'edit'>
+	invoiceId?: string | null
+	invoice?: ApiSellingInvoice
+	mode: InvoicePanelMode
 	customers?: Customer[]
 	onClose: () => void
 	onSaved?: () => void
 	onRequestEdit?: () => void
+	initialCustomerId?: string
+	initialCustomerName?: string
+	nextInvoiceNumber?: number
 }
 
 const InvoiceDetailModal = ({
 	isOpen,
 	invoiceId,
+	invoice,
 	mode,
 	customers,
 	onClose,
 	onSaved,
 	onRequestEdit,
+	initialCustomerId,
+	initialCustomerName,
+	nextInvoiceNumber,
 }: InvoiceDetailModalProps) => {
-	if (!invoiceId) return null
+	if (mode !== 'create' && !invoiceId) return null
 
 	return (
 		<Modal
@@ -42,15 +58,25 @@ const InvoiceDetailModal = ({
 				boxShadow="none"
 			>
 				<ModalBody p={0} display="flex" flexDirection="column" maxH="90vh">
-					<NewSellingInvoicePanel
-						isActive={isOpen}
-						mode={mode}
-						invoiceId={invoiceId}
-						customers={customers}
-						onClose={onClose}
-						onSaved={onSaved}
-						onRequestEdit={onRequestEdit}
-					/>
+					{mode === 'create' && nextInvoiceNumber == null ? (
+						<Flex justify="center" py={16} bg="white" borderRadius="xl">
+							<Spinner />
+						</Flex>
+					) : (
+						<NewSellingInvoicePanel
+							isActive={isOpen}
+							mode={mode}
+							invoiceId={invoiceId ?? undefined}
+							invoice={invoice}
+							customers={customers}
+							onClose={onClose}
+							onSaved={onSaved}
+							onRequestEdit={onRequestEdit}
+							initialCustomerId={initialCustomerId}
+							initialCustomerName={initialCustomerName}
+							nextInvoiceNumber={nextInvoiceNumber}
+						/>
+					)}
 				</ModalBody>
 			</ModalContent>
 		</Modal>

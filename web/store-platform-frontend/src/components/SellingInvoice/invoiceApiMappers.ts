@@ -23,7 +23,6 @@ import {
 import type {
 	SellingInvoice,
 	SellingInvoiceDraft,
-	SellingInvoiceLineItem,
 	SellingInvoicePaymentType,
 	SellingInvoiceSummary,
 } from './types'
@@ -278,8 +277,3 @@ export const mapInventoryByProductId = (
 
 	return map
 }
-
-export const getAvailableStock = (
-	inventoryByProductId: Map<string, number>,
-	item: SellingInvoiceLineItem,
-) => inventoryByProductId.get(item.productId)

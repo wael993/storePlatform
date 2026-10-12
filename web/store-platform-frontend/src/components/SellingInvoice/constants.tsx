@@ -91,6 +91,16 @@ export const ENTRY_KIND_BADGE = {
 		color: '#7C3AED',
 		labelKey: 'common.expenseEntry',
 	},
+	selling: {
+		bg: '#FEF3C7',
+		color: '#B45309',
+		labelKey: 'common.sellingEntry',
+	},
+	buying: {
+		bg: '#DCFCE7',
+		color: '#15803D',
+		labelKey: 'common.buyingEntry',
+	},
 } as const
 
 export const PAYMENT_TYPE_CONFIG = {

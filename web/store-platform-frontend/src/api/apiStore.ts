@@ -510,12 +510,6 @@ export interface ProductFilterValuesResponse {
 	category: ProductFilterValueOption[]
 }
 
-export interface DailyActionFilterValuesResponse {
-	entryType: ProductFilterValueOption[]
-	productName: ProductFilterValueOption[]
-	supplier: ProductFilterValueOption[]
-	customer: ProductFilterValueOption[]
-}
 export interface AddDailyActionRequestBody {
 	entryType: DailyAction['entryType']
 	productId?: string
@@ -876,18 +870,6 @@ const getQuery = (
 			},
 			providesTags: ['partner'],
 		}),
-
-		getBudgetOverview: builder.query<
-			BudgetOverviewAPIResponse | null,
-			BudgetOverviewQueryArgument
-		>({
-			query: ({ entityType, id }: BudgetOverviewQueryArgument) => ({
-				url: `budget-overview/${entityType}/${id}`,
-				method: 'GET',
-			}),
-			providesTags: ['budget-overview'],
-		}),
-
 		getCashAccountBalances: builder.query<
 			{
 				accounts: Array<{ type: string; name: string; balance: number }>
@@ -1858,24 +1840,6 @@ const getQuery = (
 			providesTags: ['daily-actions'],
 		}),
 
-		getDailyActionFilterValues: builder.query<
-			DailyActionFilterValuesResponse,
-			void
-		>({
-			query: () => ({
-				url: 'daily-actions/filter-values',
-				method: 'GET',
-			}),
-		}),
-
-		getSingleDailyAction: builder.query<DailyActionsAPIResponse, string>({
-			query: (actionId: string) => ({
-				url: `daily-actions/${actionId}`,
-				method: 'GET',
-			}),
-			providesTags: ['daily-action'],
-		}),
-
 		postDailyAction: builder.mutation<void, AddDailyActionRequestBody>({
 			query: (body: AddDailyActionRequestBody) => {
 				return {
@@ -1886,7 +1850,6 @@ const getQuery = (
 			},
 			invalidatesTags: [
 				'daily-actions',
-				'budget-overview',
 				'customers',
 				'customer',
 				'suppliers',
@@ -1913,7 +1876,6 @@ const getQuery = (
 			invalidatesTags: [
 				'daily-actions',
 				'daily-action',
-				'budget-overview',
 				'customers',
 				'customer',
 				'suppliers',
@@ -1932,7 +1894,6 @@ const getQuery = (
 			}),
 			invalidatesTags: [
 				'daily-actions',
-				'budget-overview',
 				'customers',
 				'customer',
 				'suppliers',
@@ -1975,6 +1936,9 @@ const getQuery = (
 				'inventory',
 				'products',
 				'customers',
+				'customer',
+				'supplier',
+				'partner',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2001,6 +1965,9 @@ const getQuery = (
 				'inventory',
 				'products',
 				'customers',
+				'customer',
+				'supplier',
+				'partner',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2023,6 +1990,9 @@ const getQuery = (
 				'inventory',
 				'products',
 				'customers',
+				'customer',
+				'supplier',
+				'partner',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2067,6 +2037,9 @@ const getQuery = (
 				'inventory',
 				'products',
 				'suppliers',
+				'customer',
+				'supplier',
+				'partner',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2093,6 +2066,9 @@ const getQuery = (
 				'inventory',
 				'products',
 				'suppliers',
+				'customer',
+				'supplier',
+				'partner',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2115,6 +2091,9 @@ const getQuery = (
 				'inventory',
 				'products',
 				'suppliers',
+				'customer',
+				'supplier',
+				'partner',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2526,11 +2505,11 @@ export const {
 	useGetSingleCustomerQuery,
 	useGetPartnersQuery,
 	useGetSinglePartnerQuery,
-	useGetBudgetOverviewQuery,
 	useGetCashAccountBalancesQuery,
 	useGetCashAccountLedgerQuery,
 	usePostCashTransferMutation,
 	useGetUnitsQuery,
+	useLazyGetUnitsQuery,
 	useGetSingleProductQuery,
 	useEditProductMutation,
 	useGenerateProductBarcodeMutation,
@@ -2580,10 +2559,13 @@ export const {
 	useUpdateSubscriptionPaymentSettingsMutation,
 	useChangePasswordMutation,
 	useGetUserSettingsQuery,
+	useLazyGetUserSettingsQuery,
 	useUpdateUserSettingsMutation,
 	useGetCurrencySettingsQuery,
+	useLazyGetCurrencySettingsQuery,
 	useUpdateCurrencySettingsMutation,
 	useGetInvoiceSettingsQuery,
+	useLazyGetInvoiceSettingsQuery,
 	useUpdateInvoiceSettingsMutation,
 	useGetLabelTemplatesQuery,
 	useCreateLabelTemplateMutation,
@@ -2592,8 +2574,6 @@ export const {
 	useDuplicateLabelTemplateMutation,
 	useSetDefaultLabelTemplateMutation,
 	useGetDailyActionsQuery,
-	useGetDailyActionFilterValuesQuery,
-	useGetSingleDailyActionQuery,
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
 	useDeleteDailyActionMutation,

@@ -1,4 +1,4 @@
-import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
+import mongoose, { Model, Schema } from 'mongoose'
 import {
 	TENANT_STATUS,
 	TenantStatus,
@@ -36,8 +36,6 @@ export interface ITenant {
 	createdAt: Date
 	updatedAt: Date
 }
-
-export type TenantDocument = HydratedDocument<ITenant>
 
 const tenantSchema = new Schema<ITenant>(
 	{

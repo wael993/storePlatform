@@ -5,7 +5,9 @@ import { useUser } from './useUser'
 
 export function useSee() {
 	const { user, userId } = useUser()
-	const { data } = useGetUserFrontendResourcesQuery(userId ?? skipToken)
+	const { data } = useGetUserFrontendResourcesQuery(userId ?? skipToken, {
+		refetchOnMountOrArgChange: false,
+	})
 
 	const ids = useMemo(() => {
 		if (data?.see?.length) return data.see

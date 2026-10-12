@@ -28,18 +28,6 @@ type CategoriesAPIResponse = APIResponse<Category>
 type ExpensesAPIResponse = APIResponse<Expense>
 type UnitsAPIResponse = APIResponse<Unit>
 type DailyActionsAPIResponse = APIResponse<DailyAction>
-interface BudgetOverviewAPIResponse {
-	payments: string
-	purchase: string
-	currency?: string
-	balance: string
-	sumBuyingWeight: string
-	sumSellingWeight: string
-}
-interface BudgetOverviewQueryArgument {
-	entityType: 'customer' | 'supplier' | 'partner' | 'product'
-	id: string
-}
 
 type accessLevel = 'admin' | 'editor' | 'customer'
 
@@ -63,7 +51,14 @@ interface Supplier {
 		displayName: string
 		updatedAt: string
 	}
-	relatedActions?: DailyAction[]
+	supplierEntries?: DailyAction[]
+	invoices?: unknown[]
+	sellingInvoices?: unknown[]
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 
 interface Expense {
@@ -101,7 +96,9 @@ interface Partner {
 		displayName: string
 		updatedAt: string
 	}
-	relatedActions?: DailyAction[]
+	partnerEntries?: DailyAction[]
+	sellingInvoices?: unknown[]
+	buyingInvoices?: unknown[]
 }
 interface Customer {
 	customerId: string
@@ -120,7 +117,14 @@ interface Customer {
 		displayName: string
 		updatedAt: string
 	}
-	relatedActions?: DailyAction[]
+	customerEntries?: DailyAction[]
+	invoices?: unknown[]
+	buyingInvoices?: unknown[]
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 
 interface Category {

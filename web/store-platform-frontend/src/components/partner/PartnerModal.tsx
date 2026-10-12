@@ -14,8 +14,10 @@ import { fullPaths } from '../../shared/routes'
 import { TargetType } from '../../shared/globalEnums'
 import CenteredText from '../common/CenteredText'
 import DetailModalSkeleton from '../common/DetailModalSkeleton'
+import PartyActivityTable from '../common/PartyActivityTable'
+import type { ApiBuyingInvoice } from '../BuyingInvoice/buyingInvoiceApiMappers'
+import type { ApiSellingInvoice } from '../SellingInvoice/invoiceApiMappers'
 import TopSection from '../TopSection'
-import DailyActionsListWithActionBar from '../daily/list/DailyActionsListWithActionBar'
 import {
 	entityDetailModalContainerZIndex,
 	entityDetailModalStyles,
@@ -92,11 +94,20 @@ const PartnerModal = ({ targetType }: PartnerModalProps) => {
 						)}
 					</Grid>
 					<Box sx={entityDetailModalStyles.listSection}>
-						<DailyActionsListWithActionBar
-							dailyActions={partner?.relatedActions ?? []}
-							isLoading={isPartnerLoading && !partner}
-							embedded
-						/>
+						{partner ? (
+							<PartyActivityTable
+								party="partner"
+								partyId={partner.partnerId}
+								partyName={partner.name}
+								entries={partner.partnerEntries ?? []}
+								sellingInvoices={
+									(partner.sellingInvoices ?? []) as ApiSellingInvoice[]
+								}
+								buyingInvoices={
+									(partner.buyingInvoices ?? []) as ApiBuyingInvoice[]
+								}
+							/>
+						) : null}
 					</Box>
 				</ModalBody>
 			</ModalContent>

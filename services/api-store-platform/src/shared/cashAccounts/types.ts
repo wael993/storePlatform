@@ -87,9 +87,6 @@ export const CASH_REFERENCE_TYPES = {
 	MIGRATION: 'migration',
 } as const
 
-export type CashReferenceType =
-	(typeof CASH_REFERENCE_TYPES)[keyof typeof CASH_REFERENCE_TYPES]
-
 export type DesiredCashPost = {
 	accountType: CashAccountType
 	/** Signed primary-currency amount: + in, − out. */

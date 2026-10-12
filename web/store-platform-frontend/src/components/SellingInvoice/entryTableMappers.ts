@@ -10,7 +10,12 @@ export type QuickEntryType =
 	| DailyActionType.PAYMENT_ENTRY
 	| DailyActionType.EXPENSE_ENTRY
 
-export type EntrySubType = 'receipt' | 'payment' | 'expense'
+export type EntrySubType =
+	| 'receipt'
+	| 'payment'
+	| 'expense'
+	| 'selling'
+	| 'buying'
 
 export interface QuickEntryFormState {
 	entryType: QuickEntryType

@@ -42,9 +42,6 @@ const notify = (): void => {
 
 export const getWarehouseScopeIds = (): string[] => selectedWarehouseIds
 
-export const isOperationalWarehouseMode = (): boolean =>
-	selectedWarehouseIds.length === 1
-
 export const getOperationalWarehouseId = (): string | null =>
 	selectedWarehouseIds.length === 1 ? selectedWarehouseIds[0] : null
 

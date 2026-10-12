@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { Breakpoints, DailyActionType, TargetType } from './globalEnums'
+import { Breakpoints, TargetType } from './globalEnums'
 import { parseNumberValue, toDotDecimal } from './numberParse'
 import { RoutePaths } from './routes'
 import { SEE } from './seeFlags'
@@ -23,17 +23,6 @@ export function compareTargetType(entryType: TargetType) {
 		isSupplierTarget: entryType === TargetType.SUPPLIER,
 		isPartnerTarget: entryType === TargetType.PARTNER,
 		isProductTarget: entryType === TargetType.PRODUCT,
-		isDailyActionTarget: entryType === TargetType.DAILY_ACTION,
-	}
-}
-
-export function compareEntryType(entryType: DailyActionType) {
-	return {
-		isSellingEntry: entryType === DailyActionType.SELLING_ENTRY,
-		isBuyingEntry: entryType === DailyActionType.BUYING_ENTRY,
-		isReceiptEntry: entryType === DailyActionType.RECEIPT_ENTRY,
-		isPaymentEntry: entryType === DailyActionType.PAYMENT_ENTRY,
-		isExpenseEntry: entryType === DailyActionType.EXPENSE_ENTRY,
 	}
 }
 
@@ -51,7 +40,6 @@ export const getEnabledActions = () => {
 	return {
 		isAddNewTenantEnabled: enabledActions.has('ADD_NEW_TENANT'),
 		isTenantsListEnabled: enabledActions.has('TENANTS_LIST'),
-		isDailyEnabled: enabledActions.has('DAILY'),
 		isProductsEnabled: enabledActions.has('PRODUCTS'),
 		isOrdersEnabled: enabledActions.has('ORDERS'),
 		isSellingInvoicesEnabled: enabledActions.has('SELLING_INVOICES'),
@@ -77,7 +65,6 @@ export const getGloballyEnabledTenantPages = (
 		USERS: enabledActions.isUsersEnabled,
 		EMPLOYEES: enabledActions.isEmployeesEnabled,
 		PRODUCTS: enabledActions.isProductsEnabled,
-		DAILY: enabledActions.isDailyEnabled,
 		SUPPLIERS: enabledActions.isSuppliersEnabled,
 		CUSTOMERS: enabledActions.isCustomersEnabled,
 		CATEGORIES: enabledActions.isCategoriesEnabled,
@@ -103,7 +90,6 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantAddNewTenantEnabled: tenantPages.has('ADD_NEW_TENANT'),
 		isTenantTenantsListEnabled: tenantPages.has('TENANTS_LIST'),
 		isTenantProductsEnabled: tenantPages.has('PRODUCTS'),
-		isTenantDailyEnabled: tenantPages.has('DAILY'),
 		isTenantOrdersEnabled: tenantPages.has('ORDERS'),
 		isTenantUsersEnabled: tenantPages.has('USERS'),
 		isTenantEmployeesEnabled: tenantPages.has('EMPLOYEES'),
@@ -143,12 +129,6 @@ export const isTenantRouteAllowed = (
 			globalActions.isProductsEnabled &&
 				tenantActions.isTenantProductsEnabled &&
 				canSee(SEE.products),
-		],
-		[
-			RoutePaths.DAILY,
-			globalActions.isDailyEnabled &&
-				tenantActions.isTenantDailyEnabled &&
-				canSee(SEE.daily),
 		],
 		[
 			RoutePaths.ORDERS,
@@ -246,12 +226,8 @@ export const tenantHomePath = (canSee: (id: string) => boolean): string => {
 	if (canSee(SEE.welcome)) return RoutePaths.ROOT
 	if (canSee(SEE.products)) return RoutePaths.PRODUCTS
 	if (canSee(SEE.invoices)) return RoutePaths.SELLING_INVOICES
-	if (canSee(SEE.daily)) return RoutePaths.DAILY
 	return RoutePaths.ROOT
 }
-
-export const mapFee = (fee?: string | number | null): string | undefined =>
-	formatNumber(fee)
 
 export { parseNumberValue }
 

@@ -28,6 +28,7 @@ export const useWarehouseScope = () => {
 		undefined,
 		{
 			skip: !user?.userId,
+			refetchOnMountOrArgChange: false,
 		},
 	)
 	const [selectedIds, setSelectedIds] = useState(getWarehouseScopeIds)

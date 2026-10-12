@@ -1,4 +1,4 @@
-import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
+import mongoose, { Model, Schema } from 'mongoose'
 
 export const RENEWAL_REQUEST_STATUS = {
 	PENDING: 'pending',
@@ -28,9 +28,6 @@ export interface ISubscriptionRenewalRequest {
 	createdAt: Date
 	updatedAt: Date
 }
-
-export type SubscriptionRenewalRequestDocument =
-	HydratedDocument<ISubscriptionRenewalRequest>
 
 const actorSchema = new Schema(
 	{

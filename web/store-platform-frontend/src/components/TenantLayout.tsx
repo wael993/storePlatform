@@ -47,7 +47,6 @@ const TenantLayout = () => {
 		isProductsEnabled,
 		isOrdersEnabled,
 		isUsersEnabled,
-		isDailyEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
 		isReportsEnabled,
@@ -62,7 +61,6 @@ const TenantLayout = () => {
 		isTenantProductsEnabled,
 		isTenantOrdersEnabled,
 		isTenantUsersEnabled,
-		isTenantDailyEnabled,
 		isTenantCustomersEnabled,
 		isTenantDashboardEnabled,
 		isTenantSellingInvoicesEnabled,
@@ -79,9 +77,6 @@ const TenantLayout = () => {
 		canSee(SEE.welcome) ? { label: 'Welcome', path: RoutePaths.ROOT } : null,
 		isDashboardEnabled && isTenantDashboardEnabled && canSee(SEE.dashboard)
 			? { label: 'Dashboard', path: RoutePaths.DASHBOARD }
-			: null,
-		isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily)
-			? { label: 'Daily', path: RoutePaths.DAILY }
 			: null,
 		isProductsEnabled && isTenantProductsEnabled && canSee(SEE.products)
 			? { label: 'Products', path: RoutePaths.PRODUCTS }

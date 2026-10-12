@@ -87,16 +87,6 @@ export const getTableWidth = (
 	return `${width + stickyRightWidth + additionalPadding}rem`
 }
 
-export const safelyParseJSON = (
-	json: unknown,
-): Record<string, unknown> | undefined => {
-	try {
-		return JSON.parse(json as string)
-	} catch (err) {
-		return
-	}
-}
-
 export const parseNumberForSorting = (
 	value: string | number | undefined,
 ): number | undefined => {

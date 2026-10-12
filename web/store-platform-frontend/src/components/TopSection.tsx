@@ -1,26 +1,10 @@
-import {
-	Box,
-	Button,
-	Flex,
-	HStack,
-	Text,
-	useDisclosure,
-} from '@chakra-ui/react'
+import { Box, Flex, HStack, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from './CustomBreadcrumb'
 import { generateBreadcrumbs } from '../shared/routes'
 import { compareTargetType, formatNumber } from '../shared/utils'
-import {
-	AllowedActions,
-	BreadCrumbItem,
-	TargetType,
-} from '../shared/globalEnums'
+import { BreadCrumbItem, TargetType } from '../shared/globalEnums'
 import { CloseButton } from './common/CloseButton'
-import { AddSquareIcon } from './icons/AddSquare'
-import { hoverFocusActiveButtonStyles } from '../theme/styles'
-import AddDailyActionModal from './modals/DailyAction/AddDailyActionModal'
-import { useResources } from '../shared/hooks/useResources'
-import { useUser } from '../shared/hooks/useUser'
 import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
 import PartyInvoiceSummaryCards from './common/PartyInvoiceSummaryCards'
@@ -108,15 +92,6 @@ const styles = {
 		color: mutedTextColor,
 		lineHeight: '1.2',
 	},
-	addButton: {
-		...hoverFocusActiveButtonStyles,
-		gap: '0.25rem',
-	},
-	addButtonText: {
-		fontSize: '0.875rem',
-		fontWeight: 700,
-		color: '#1E1E1E',
-	},
 	divider: {
 		borderWidth: 0,
 		height: '1px',
@@ -179,15 +154,7 @@ const TopSection = ({
 	onClose,
 }: TopSectionProps) => {
 	const { isProductTarget } = compareTargetType(targetType)
-	const {
-		isOpen: isAddDailyActionModalOpen,
-		onOpen: onAddDailyActionModalOpen,
-		onClose: onAddDailyActionModalClose,
-	} = useDisclosure()
-	const { isActionAllowed } = useResources()
-	const { isAdmin } = useUser()
 	const { canSee } = useSee()
-	const canAddEntries = canSee(SEE.invoicesEntriesAdd)
 	const { t } = useTranslation()
 	const entry = customer ?? supplier ?? partner ?? product
 
@@ -276,10 +243,6 @@ const TopSection = ({
 
 	const showInvoiceFacts = Boolean(customer?.customerId || supplier?.supplierId)
 	const showFacts = showInvoiceFacts || productFacts.length > 0
-	const canAddDailyAction =
-		isActionAllowed(AllowedActions.CAN_ADD_DAILY_ACTION) &&
-		isAdmin &&
-		canAddEntries
 
 	return (
 		<Flex sx={styles.wrapper}>
@@ -303,16 +266,6 @@ const TopSection = ({
 						)}
 					</Box>
 					<HStack spacing="0.5rem" flexShrink={0} alignItems="center">
-						{canAddDailyAction && (
-							<Button
-								leftIcon={<AddSquareIcon />}
-								onClick={onAddDailyActionModalOpen}
-								sx={styles.addButton}
-								variant="ghost"
-							>
-								<Text sx={styles.addButtonText}>{t('common.addEntry')}</Text>
-							</Button>
-						)}
 						<CloseButton onClose={onClose} />
 					</HStack>
 				</Flex>
@@ -322,8 +275,10 @@ const TopSection = ({
 						<Box sx={styles.divider} />
 						{showInvoiceFacts && (
 							<PartyInvoiceSummaryCards
-								customerId={customer?.customerId}
-								supplierId={supplier?.supplierId}
+								party={supplier ? 'supplier' : 'customer'}
+								totals={
+									supplier?.invoiceSummary ?? customer?.invoiceSummary
+								}
 							/>
 						)}
 						{productFacts.length > 0 && (
@@ -342,13 +297,6 @@ const TopSection = ({
 				)}
 			</Flex>
 			<Box sx={styles.divider} />
-
-			<AddDailyActionModal
-				isOpen={isAddDailyActionModalOpen && canAddEntries}
-				onClose={onAddDailyActionModalClose}
-				targetType={targetType}
-				entryTargetId={entryTargetId}
-			/>
 		</Flex>
 	)
 }

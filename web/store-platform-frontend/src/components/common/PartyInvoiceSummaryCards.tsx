@@ -1,10 +1,6 @@
-import { Box, Flex, Skeleton, Text } from '@chakra-ui/react'
+import { Box, Flex, Text } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 
-import {
-	useGetBuyingInvoicesQuery,
-	useGetSellingInvoicesQuery,
-} from '../../api/apiStore'
 import { DollarSignIcon } from '../../icons/DollarSign'
 import { WalletIcon } from '../../icons/Wallet'
 import { PAGE_COLORS } from '../SellingInvoice/constants'
@@ -91,75 +87,38 @@ const SummaryRow = ({
 )
 
 interface PartyInvoiceSummaryCardsProps {
-	customerId?: string
-	supplierId?: string
+	party: 'customer' | 'supplier'
+	totals?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 
 const PartyInvoiceSummaryCards = ({
-	customerId,
-	supplierId,
+	party,
+	totals,
 }: PartyInvoiceSummaryCardsProps) => {
 	const { t } = useTranslation()
 	const { formatAmount } = useInvoiceDisplayCurrency()
 	const { canSee } = useSee()
-	const isSupplier = Boolean(supplierId) && !customerId
-	const canSeeOutstanding = isSupplier
-		? canSee(SEE.suppliersTotalPayable)
-		: canSee(SEE.customersTotalReceivable)
-
-	const sellingQuery = useGetSellingInvoicesQuery(
-		{ customerId: customerId ?? '' },
-		{ skip: !customerId },
-	)
-	const buyingQuery = useGetBuyingInvoicesQuery(
-		{ supplierId: supplierId ?? '' },
-		{ skip: !isSupplier },
-	)
-
-	const customerSummary = sellingQuery.data?.customerSummary
-	const supplierSummary = buyingQuery.data?.supplierSummary
-	const totals = isSupplier
-		? supplierSummary && {
-				totalInvoiced: supplierSummary.totalInvoiced,
-				totalPaid: supplierSummary.totalPaid,
-				outstanding: supplierSummary.totalPayable,
-			}
-		: customerSummary && {
-				totalInvoiced: customerSummary.totalInvoiced,
-				totalPaid: customerSummary.totalPaid,
-				outstanding: customerSummary.totalReceivable,
-			}
-	const isLoading = isSupplier ? buyingQuery.isLoading : sellingQuery.isLoading
-	const isFetching = isSupplier
-		? buyingQuery.isFetching
-		: sellingQuery.isFetching
-	const showSkeleton = isLoading && !totals
-
-	if (!customerId && !supplierId) return null
-
-	if (showSkeleton) {
-		return (
-			<Box sx={styles.container}>
-				{Array.from({ length: canSeeOutstanding ? 3 : 2 }).map((_, index) => (
-					<Skeleton
-						key={index}
-						height="2.5rem"
-						width="100%"
-						borderRadius="md"
-					/>
-				))}
-			</Box>
-		)
-	}
+	const canSeeOutstanding =
+		party === 'supplier'
+			? canSee(SEE.suppliersTotalPayable)
+			: canSee(SEE.customersTotalReceivable)
 
 	if (!totals) return null
 
-	const outstandingLabel = isSupplier
-		? t('components.invoiceSummary.totalPayable')
-		: t('components.invoiceSummary.totalReceivable')
+	const owedToUs =
+		(party === 'supplier' ? -totals.outstanding : totals.outstanding) >= 0
+	const outstandingLabel = t(
+		owedToUs
+			? 'components.invoiceSummary.forUs'
+			: 'components.invoiceSummary.forThem',
+	)
 
 	return (
-		<Box width="100%" opacity={isFetching ? 0.7 : 1}>
+		<Box width="100%">
 			<Box sx={styles.container}>
 				<SummaryRow
 					label={t('components.invoiceSummary.totalInvoiced')}
@@ -178,7 +137,7 @@ const PartyInvoiceSummaryCards = ({
 				{canSeeOutstanding && (
 					<SummaryRow
 						label={outstandingLabel}
-						value={formatAmount(totals.outstanding)}
+						value={formatAmount(Math.abs(totals.outstanding))}
 						icon={<WalletIcon fill="none" />}
 						iconBg="#FEE2E2"
 						iconColor="#DC2626"

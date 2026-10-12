@@ -27,7 +27,6 @@ import { RoutePaths } from './shared/routes'
 import SupplierPage from './components/supplier/SupplierPage'
 import CustomerPage from './components/customer/CustomerPage'
 import PartnerPage from './components/partner/PartnerPage'
-import DailyPage from './components/daily/DailyPage'
 import CustomerModal from './components/customer/CustomerModal'
 import CategoryPage from './components/category/CategoryPage'
 import SupplierModal from './components/supplier/SupplierModal'
@@ -60,7 +59,6 @@ const App = () => {
 	const {
 		isAddNewTenantEnabled,
 		isTenantsListEnabled,
-		isDailyEnabled,
 		isProductsEnabled,
 		isOrdersEnabled,
 		isSellingInvoicesEnabled,
@@ -79,7 +77,6 @@ const App = () => {
 		isTenantAddNewTenantEnabled,
 		isTenantTenantsListEnabled,
 		isTenantProductsEnabled,
-		isTenantDailyEnabled,
 		isTenantOrdersEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantReportsEnabled,
@@ -127,13 +124,6 @@ const App = () => {
 							)}
 						{isOrdersEnabled && isTenantOrdersEnabled && canSee(SEE.orders) && (
 							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
-						)}
-
-						{isDailyEnabled && isTenantDailyEnabled && canSee(SEE.daily) && (
-							<Route
-								path={RoutePaths.DAILY}
-								element={<DailyPage targetType={TargetType.DAILY_ACTION} />}
-							/>
 						)}
 
 						{isSellingInvoicesEnabled &&

@@ -32,12 +32,6 @@ export const calculateLineItemTotal = (item: SellingInvoiceLineItem) => {
 	return afterDiscount + taxAmount
 }
 
-/** Derive unit price from a desired line total (resets discount semantics). */
-export const unitPriceFromLineTotal = (total: number, quantity: number) => {
-	if (quantity <= 0) return 0
-	return roundPrimaryAmount(total / quantity)
-}
-
 export const unitPriceFromLineTotalWithDiscount = (
 	total: number,
 	quantity: number,

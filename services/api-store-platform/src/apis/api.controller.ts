@@ -82,6 +82,7 @@ import { parseBulkEditProductsBody } from './productHelper/productBulkEdit'
 import {
 	filterProductRelatedActions,
 	mapProductAction,
+	partyEntryQuery,
 } from './mappings/mapper'
 import CustomerController from './customer/api.controller'
 import SupplierController from './supplier/api.controller'
@@ -3793,6 +3794,11 @@ export default class ProductController {
 			DailyActionType.SELLING_ENTRY,
 		)
 
+		totalInvoiced += this.sumActionAmounts(
+			customerEntries,
+			DailyActionType.PAYMENT_ENTRY,
+		)
+
 		totalPaid += this.sumActionAmounts(
 			customerEntries,
 			DailyActionType.RECEIPT_ENTRY,
@@ -3854,6 +3860,11 @@ export default class ProductController {
 		totalPaid += this.sumActionAmounts(
 			supplierEntries,
 			DailyActionType.PAYMENT_ENTRY,
+		)
+
+		totalPaid += this.sumActionAmounts(
+			supplierEntries,
+			DailyActionType.RECEIPT_ENTRY,
 		)
 
 		const totalPayable = Math.max(0, totalInvoiced - totalPaid)
@@ -4186,9 +4197,29 @@ export default class ProductController {
 		return deleteResponse
 	}
 
+	public async getPartyEntries(
+		requestContext: RequestContext,
+		ids: string[],
+		fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+	): Promise<DailyActionResponse['data']> {
+		const uniqueIds = [...new Set(ids.filter(Boolean))]
+
+		if (uniqueIds.length === 0 || fields.length === 0) return []
+
+		const rows = await withTenantScope(
+			DailyAction.find(partyEntryQuery(uniqueIds, fields)).sort({
+				createdAt: 'desc',
+			}),
+			this.getTenantId(requestContext),
+		).lean<DailyActionResponse['data']>()
+
+		return filterByWarehouseAcl(requestContext, rows)
+	}
+
 	public async getDailyActions(
 		requestContext: RequestContext,
 		filters: DailyActionFilterQuery = {},
+		warehouseScope: 'working' | 'acl' = 'working',
 	): Promise<DailyActionResponse> {
 		const tenantId = this.getTenantId(requestContext)
 		const hasFilters =
@@ -4206,7 +4237,11 @@ export default class ProductController {
 				await redisCache.getJson<DailyActionResponse>(cacheKey)
 
 			if (cachedDailyActions) {
-				return this.scopeDailyActions(requestContext, cachedDailyActions.data)
+				return this.scopeDailyActions(
+					requestContext,
+					cachedDailyActions.data,
+					warehouseScope,
+				)
 			}
 		}
 
@@ -4308,15 +4343,19 @@ export default class ProductController {
 		//TO_DO : map daily action
 
 		// const mappedDailyAction = mapDailyAction([dailyAction])
-		return this.scopeDailyActions(requestContext, dailyActions)
+		return this.scopeDailyActions(requestContext, dailyActions, warehouseScope)
 	}
 
 	/** The entries cache is tenant-wide, so narrow it to the caller's scope on read. */
 	private scopeDailyActions(
 		requestContext: RequestContext,
 		data: DailyActionResponse['data'],
+		warehouseScope: 'working' | 'acl' = 'working',
 	): DailyActionResponse {
-		const scoped = filterByWarehouseAccess(requestContext, data)
+		const scoped =
+			warehouseScope === 'acl'
+				? filterByWarehouseAcl(requestContext, data)
+				: filterByWarehouseAccess(requestContext, data)
 
 		return { data: scoped, totalCount: scoped.length }
 	}

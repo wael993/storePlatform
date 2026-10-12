@@ -64,6 +64,8 @@ interface QuickEntryModalProps {
 	onClose: () => void
 	mode?: QuickEntryModalMode
 	initialEntry?: DailyAction | null
+	initialPartyId?: string
+	initialPartyName?: string
 	customers: Customer[]
 	suppliers: Supplier[]
 }
@@ -130,6 +132,8 @@ const QuickEntryModal = ({
 	onClose,
 	mode = 'create',
 	initialEntry = null,
+	initialPartyId,
+	initialPartyName,
 	customers,
 	suppliers,
 }: QuickEntryModalProps) => {
@@ -165,7 +169,10 @@ const QuickEntryModal = ({
 	const isSaving = isCreating || isUpdating || isTransferring
 
 	const { data: currencySettings, isLoading: isCurrenciesLoading } =
-		useGetCurrencySettingsQuery(undefined, { skip: !isOpen })
+		useGetCurrencySettingsQuery(undefined, {
+			skip: !isOpen || isReadOnly,
+			refetchOnMountOrArgChange: false,
+		})
 	const displayCurrencyOptions = useMemo(
 		() => buildDisplayCurrencyOptions(currencySettings),
 		[currencySettings],
@@ -179,12 +186,19 @@ const QuickEntryModal = ({
 		[displayCurrencyOptions],
 	)
 	const { data: cashBalances } = useGetCashAccountBalancesQuery(undefined, {
-		skip: !isOpen || !cashOpsOnline,
+		skip: !isOpen || isReadOnly || !cashOpsOnline,
+		refetchOnMountOrArgChange: false,
 	})
 	const { data: expenses = [], isLoading: isExpensesLoading } =
-		useGetExpensesQuery(undefined, { skip: !isOpen || isTransferTab })
+		useGetExpensesQuery(undefined, {
+			skip: !isOpen || isReadOnly || isTransferTab,
+			refetchOnMountOrArgChange: false,
+		})
 	const { data: partners = [], isLoading: isPartnersLoading } =
-		useGetPartnersQuery(undefined, { skip: !isOpen || isTransferTab })
+		useGetPartnersQuery(undefined, {
+			skip: !isOpen || isReadOnly || isTransferTab,
+			refetchOnMountOrArgChange: false,
+		})
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -204,8 +218,17 @@ const QuickEntryModal = ({
 				setActiveTab(mapped.entryType)
 				hasInitializedCurrency.current = true
 			}
+			return
 		}
-	}, [initialEntry, isOpen, mode])
+
+		if (mode === 'create' && initialPartyId) {
+			setForm(current => ({
+				...current,
+				entityId: initialPartyId,
+				entityName: initialPartyName ?? '',
+			}))
+		}
+	}, [initialEntry, initialPartyId, initialPartyName, isOpen, mode])
 
 	useEffect(() => {
 		if (cashOpsOnline || activeTab !== TRANSFER_TAB) return
@@ -215,18 +238,6 @@ const QuickEntryModal = ({
 			entryType: DailyActionType.RECEIPT_ENTRY,
 		}))
 	}, [activeTab, cashOpsOnline])
-
-	useEffect(() => {
-		if (
-			isReadOnly ||
-			isTransferTab ||
-			form.entryType === previousEntryType.current
-		) {
-			return
-		}
-		previousEntryType.current = form.entryType
-		setForm(current => ({ ...current, entityId: '', entityName: '' }))
-	}, [form.entryType, isReadOnly, isTransferTab])
 
 	useEffect(() => {
 		if (
@@ -353,21 +364,53 @@ const QuickEntryModal = ({
 		supplierOptions,
 	])
 
-	const selectedEntityOption = useMemo(
-		() =>
-			form.entityId
-				? entityOptions.filter(option => option.value === form.entityId)
-				: [],
-		[entityOptions, form.entityId],
-	)
+	useEffect(() => {
+		if (
+			isReadOnly ||
+			isTransferTab ||
+			form.entryType === previousEntryType.current
+		) {
+			return
+		}
+		if (
+			isPartnersLoading &&
+			form.entryType !== DailyActionType.EXPENSE_ENTRY
+		) {
+			return
+		}
+		previousEntryType.current = form.entryType
+		setForm(current =>
+			entityOptions.some(option => option.value === current.entityId)
+				? current
+				: { ...current, entityId: '', entityName: '' },
+		)
+	}, [
+		entityOptions,
+		form.entryType,
+		isPartnersLoading,
+		isReadOnly,
+		isTransferTab,
+	])
 
-	const selectedCurrencyOption = useMemo(
-		() =>
-			form.currencyId
-				? currencyOptions.filter(option => option.value === form.currencyId)
-				: [],
-		[currencyOptions, form.currencyId],
-	)
+	const selectedEntityOption = useMemo(() => {
+		if (!form.entityId) return []
+		const match = entityOptions.filter(option => option.value === form.entityId)
+		if (match.length > 0) return match
+		return form.entityName
+			? [{ value: form.entityId, label: form.entityName }]
+			: []
+	}, [entityOptions, form.entityId, form.entityName])
+
+	const selectedCurrencyOption = useMemo(() => {
+		if (!form.currencyId) return []
+		const match = currencyOptions.filter(
+			option => option.value === form.currencyId,
+		)
+		if (match.length > 0) return match
+		return form.currencyName
+			? [{ value: form.currencyId, label: form.currencyName }]
+			: []
+	}, [currencyOptions, form.currencyId, form.currencyName])
 
 	const selectedFromAccount = useMemo(
 		() =>

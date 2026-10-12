@@ -435,16 +435,6 @@ const FilterModal = ({
 												}
 											/>
 										</Box>
-										{/* <StateDropdown
-											options={stateOptions}
-											selectedValues={localFilters.state}
-											onChange={(state: string[]) =>
-												setLocalFilters(prev => ({
-													...prev,
-													state,
-												}))
-											}
-										/> */}
 									</Box>
 								)}
 							</Grid>

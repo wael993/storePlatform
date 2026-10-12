@@ -6,7 +6,6 @@ import { TenantRole } from './tenant'
 
 export const SEE = {
 	welcome: 'welcome',
-	daily: 'daily',
 	orders: 'orders',
 	settings: 'settings',
 	settingsProducts: 'settings.products',
@@ -88,15 +87,8 @@ export type SeeCatalogNode = {
 	children?: SeeCatalogNode[]
 }
 
-export const PACKAGE_SEE_IDS: SeeId[] = [
-	SEE.productsAdd,
-	SEE.supplier,
-	SEE.productsBuyingPrice,
-]
-
 export const SEE_CATALOG: SeeCatalogNode[] = [
 	{ id: SEE.welcome, tenantPage: null },
-	{ id: SEE.daily, tenantPage: TENANT_ACCESSIBLE_PAGE.DAILY },
 	{ id: SEE.orders, tenantPage: TENANT_ACCESSIBLE_PAGE.ORDERS },
 	{
 		id: SEE.settings,

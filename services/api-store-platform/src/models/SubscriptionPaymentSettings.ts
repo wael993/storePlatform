@@ -1,4 +1,4 @@
-import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
+import mongoose, { Model, Schema } from 'mongoose'
 
 export const SUBSCRIPTION_PAYMENT_SETTINGS_ID = 'default'
 
@@ -18,9 +18,6 @@ export interface ISubscriptionPaymentSettings {
 	createdAt: Date
 	updatedAt: Date
 }
-
-export type SubscriptionPaymentSettingsDocument =
-	HydratedDocument<ISubscriptionPaymentSettings>
 
 const methodSchema = new Schema<SubscriptionPaymentMethod>(
 	{

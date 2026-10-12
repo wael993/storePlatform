@@ -6,11 +6,12 @@ import { useUser } from '../../shared/hooks/useUser'
 import { getWarehouseScopeIds } from '../../shared/warehouseScope'
 import { mapInventoryByProductId } from './invoiceApiMappers'
 
-export const useInventoryByProductId = () => {
+export const useInventoryByProductId = (enabled = true) => {
 	const { user } = useUser()
 	const tenantId = user?.tenantId
 	const { data: inventory = [] } = useGetInventoryQuery(undefined, {
-		skip: !tenantId,
+		skip: !enabled || !tenantId,
+		refetchOnMountOrArgChange: false,
 	})
 	const [offlineInventory, setOfflineInventory] = useState<InventoryItem[]>([])
 

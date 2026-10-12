@@ -750,7 +750,9 @@
 			"totalInvoiced": "Gesamt fakturiert",
 			"totalPaid": "Gesamt bezahlt",
 			"totalReceivable": "Gesamtforderungen",
-			"totalPayable": "Gesamtverbindlichkeiten"
+			"totalPayable": "Gesamtverbindlichkeiten",
+			"forUs": "Uns geschuldet",
+			"forThem": "Wir schulden"
 		},
 		"supplier": {
 			"invoices": "Rechnungen",
@@ -893,6 +895,7 @@
 			"todaysActions": "Heutige Aktionen",
 			"searchPlaceholder": "Rechnung, Kunde suchen...",
 			"empty": "Keine Rechnungen gefunden.",
+			"loadFailed": "Rechnungen konnten nicht geladen werden.",
 			"summaryTitle": "Zusammenfassung",
 			"summary": {
 				"periodSales": "Umsatz im Zeitraum",
@@ -939,7 +942,8 @@
 				"delete": "Löschen",
 				"more": "Weitere Optionen",
 				"deleteConfirmTitle": "Rechnung löschen",
-				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+				"deleteConfirmBody": "Möchten Sie diese Rechnung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+				"deleteFailed": "Rechnung konnte nicht gelöscht werden."
 			},
 			"document": {
 				"invoiceNumber": "Rechnungsnr.",
@@ -1491,7 +1495,6 @@
 		"inactive": "Inaktiv",
 		"emptyStateTitle": "Noch nichts anzuzeigen",
 		"emptyStateDescription": "Passen Sie die Suche an oder fügen Sie ein neues Element hinzu, um zu beginnen.",
-		"addDailyAction": "Tagesaktion hinzufügen",
 		"downloadExcel": "Excel herunterladen",
 		"downloadExcelError": "Excel-Datei konnte nicht heruntergeladen werden.",
 		"entryType": "Eintragsart",

@@ -59,6 +59,25 @@ describe('filterSupplierRelatedActions', () => {
 		expect(filterSupplierRelatedActions(actions, supplier)).toHaveLength(0)
 	})
 
+	it('keeps a receipt stored on customerId for this supplier', () => {
+		const actions = [
+			action({
+				actionId: 'rec',
+				entryType: DailyActionType.RECEIPT_ENTRY,
+				customerId: 'sup-1',
+			}),
+			action({
+				actionId: 'sale',
+				entryType: DailyActionType.SELLING_ENTRY,
+				customerId: 'sup-1',
+			}),
+		]
+
+		expect(
+			filterSupplierRelatedActions(actions, supplier).map(row => row.actionId),
+		).toEqual(['rec'])
+	})
+
 	it('matches legacy internalCode stored as supplierId', () => {
 		const actions = [
 			action({

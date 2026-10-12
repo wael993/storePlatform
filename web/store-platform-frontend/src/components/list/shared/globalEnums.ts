@@ -57,18 +57,6 @@ export enum CategorySortHeaderKey {
 	CREATED_AT = 'createdAt',
 }
 
-export enum DailyActionSortHeaderKey {
-	ENTRY_TYPE = 'entryType',
-	PRODUCT_NAME = 'productName',
-	SUPPLIER_CUSTOMER = 'supplierName',
-	WEIGHT = 'weight',
-	UNIT_PRICE = 'singleUnitPrice',
-	TOTAL_PRICE = 'totalPrice',
-	INVOICE_DATE = 'invoiceDate',
-	INVOICE_NUMBER = 'invoiceNumber',
-	NOTE = 'note',
-}
-
 export enum ProductState {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive',

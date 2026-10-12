@@ -168,13 +168,6 @@ export const reloadTenantCatalogMemory = async (
 	loadMemoryFromItems(tenantId, records)
 }
 
-export const upsertLocalCatalogProduct = async (
-	item: LocalCatalogProduct,
-): Promise<void> => {
-	await offlineDb.catalogProducts.put(item)
-	await reloadTenantCatalogMemory(item.tenantId)
-}
-
 export const mergeProductEditIntoLocalCatalog = async (
 	productId: string,
 	body: Partial<Omit<Product, 'productId' | 'price'>> & {

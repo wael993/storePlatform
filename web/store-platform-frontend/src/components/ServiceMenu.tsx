@@ -1,6 +1,5 @@
 import {
 	ArrowForwardIcon,
-	CalendarIcon,
 	CheckIcon,
 	ChevronDownIcon,
 	CloseIcon,
@@ -111,8 +110,6 @@ const getNavigationIcon = (path: string, isActive: boolean): ReactElement => {
 	}
 
 	switch (path) {
-		case RoutePaths.DAILY:
-			return <CalendarIcon {...iconProps} />
 		case RoutePaths.PRODUCTS:
 			return <ViewIcon {...iconProps} />
 		case RoutePaths.SETTINGS:

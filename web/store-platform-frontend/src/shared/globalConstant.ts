@@ -6,14 +6,6 @@ import {
 	InvoiceUiStatus,
 } from './globalEnums'
 
-export const ENTRY_TYPE_LABELS_MAP: Record<string, string> = {
-	BUYING_ENTRY: 'common.buyingEntry',
-	SELLING_ENTRY: 'common.sellingEntry',
-	PAYMENT_ENTRY: 'common.paymentEntry',
-	RECEIPT_ENTRY: 'common.receiptEntry',
-	EXPENSE_ENTRY: 'common.expenseEntry',
-}
-
 export const MODAL_CONFIG = {
 	[AddQuickStateEnum.PRODUCT]: {
 		title: 'components.daily.addQuickProduct',

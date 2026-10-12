@@ -176,7 +176,9 @@ interface Partner {
 		displayName: string
 		updatedAt: string
 	}
-	relatedActions?: PartnerDailyAction[]
+	partnerEntries?: PartnerDailyAction[]
+	sellingInvoices?: Array<Record<string, unknown>>
+	buyingInvoices?: Array<Record<string, unknown>>
 }
 
 type LabelFieldType =
@@ -250,7 +252,14 @@ export interface CustomerResponse {
 		updatedAt: string
 	}
 
-	relatedActions?: CustomerDailyAction[]
+	customerEntries?: CustomerDailyAction[]
+	invoices?: Array<Record<string, unknown>>
+	buyingInvoices?: Array<Record<string, unknown>>
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 
 interface Supplier {
@@ -271,7 +280,14 @@ interface Supplier {
 		updatedAt: string
 	}
 	actions?: DailyAction[]
-	relatedActions?: DailyAction[]
+	supplierEntries?: DailyAction[]
+	invoices?: Array<Record<string, unknown>>
+	sellingInvoices?: Array<Record<string, unknown>>
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 
 interface Brand {
@@ -404,5 +420,5 @@ interface Customer {
 		displayName: string
 		updatedAt: string
 	}
-	relatedActions?: CustomerDailyAction[]
+	customerEntries?: CustomerDailyAction[]
 }

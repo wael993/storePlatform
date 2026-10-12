@@ -32,9 +32,3 @@ export class InvalidParameterError extends HttpErrorHandler {
 		super(errorCode, 400, message, hint)
 	}
 }
-
-export class DocumentError extends HttpErrorHandler {
-	constructor(errorCode: ErrorCodes, message: string, hint?: string) {
-		super(errorCode, 404, message, hint)
-	}
-}

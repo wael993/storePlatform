@@ -1,4 +1,3 @@
-export const BASE_ENDPOINT = '/api'
 export const COLLECTION_NAMES = {
 	PRODUCTS: 'products',
 	CATEGORIES: 'categories',

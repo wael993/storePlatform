@@ -1,13 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose'
 import { tenantScopedSchema } from '../shared/mongodb/tenantScopedModel'
 
-export type ActionType =
-	| 'purchase'
-	| 'procurement'
-	| 'receipt'
-	| 'expense'
-	| 'test'
-
 export interface IDailyAction extends Document {
 	tenantId: string
 	actionId: string

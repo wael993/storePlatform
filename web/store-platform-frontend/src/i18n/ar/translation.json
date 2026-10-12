@@ -774,7 +774,9 @@
 			"totalInvoiced": "إجمالي الفواتير",
 			"totalPaid": "إجمالي المدفوع",
 			"totalReceivable": "إجمالي المستحق",
-			"totalPayable": "إجمالي المستحق للدفع"
+			"totalPayable": "إجمالي المستحق للدفع",
+			"forUs": "مستحق لنا",
+			"forThem": "مستحق علينا"
 		},
 		"supplier": {
 			"invoices": "الفواتير",
@@ -893,6 +895,7 @@
 			"todaysActions": "الإجراءات اليومية",
 			"searchPlaceholder": "ابحث عن فاتورة أو زبون...",
 			"empty": "لا توجد فواتير.",
+			"loadFailed": "تعذر تحميل الفواتير.",
 			"summaryTitle": "ملخص",
 			"summary": {
 				"periodSales": "مبيعات الفترة",
@@ -939,7 +942,8 @@
 				"delete": "حذف",
 				"more": "المزيد",
 				"deleteConfirmTitle": "حذف الفاتورة",
-				"deleteConfirmBody": "هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء."
+				"deleteConfirmBody": "هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.",
+				"deleteFailed": "تعذر حذف هذه الفاتورة."
 			},
 			"document": {
 				"invoiceNumber": "رقم الفاتورة",
@@ -1491,7 +1495,6 @@
 		"inactive": "غير نشط",
 		"emptyStateTitle": "لا يوجد شيء لعرضه بعد",
 		"emptyStateDescription": "جرّب تعديل البحث أو أضف عنصرًا جديدًا للبدء.",
-		"addDailyAction": "إضافة إجراء يومي",
 		"downloadExcel": "تنزيل Excel",
 		"downloadExcelError": "فشل تنزيل ملف Excel.",
 		"entryType": "نوع الإدخال",

@@ -22,6 +22,8 @@ export const createBuyingInvoiceDraft = (
 	options?: {
 		paymentType?: BuyingInvoicePaymentType
 		invoiceNumber?: number
+		supplierId?: string
+		supplierName?: string
 		warehouseId?: string
 	},
 ): BuyingInvoiceDraft => ({
@@ -30,8 +32,8 @@ export const createBuyingInvoiceDraft = (
 	invoiceDate: dayjs().format('YYYY-MM-DD'),
 	invoiceTime: dayjs().format('HH:mm'),
 	salesPerson,
-	supplierId: '',
-	supplierName: '',
+	supplierId: options?.supplierId ?? '',
+	supplierName: options?.supplierName ?? '',
 	paymentType: options?.paymentType ?? InvoicePaymentType.CASH,
 	warehouseId: options?.warehouseId ?? '',
 	lineItems: [],

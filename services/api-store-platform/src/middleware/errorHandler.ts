@@ -39,14 +39,6 @@ export class AuthorizationError extends HttpErrorHandler {
 		super(errorCode, 403, message, hint)
 	}
 }
-// Custom error handler middleware
-export const sendErrorResponse = (
-	res: Response,
-	statusCode: number,
-	message: string,
-) => {
-	res.status(statusCode).json({ success: false, message })
-}
 
 // General error handling middleware
 export const errorHandler = (

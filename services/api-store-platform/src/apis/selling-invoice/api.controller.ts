@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import { v4 as uuidv4 } from 'uuid'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Invoice } from '../../models/Invoice'
 import InvoiceSettings from '../../models/InvoiceSettings'
 import { Product } from '../../models/Products'
@@ -32,6 +33,7 @@ import {
 import {
 	ensureWarehouseAccess,
 	filterByWarehouseAccess,
+	filterByWarehouseAcl,
 	requireOperationalWarehouseId,
 	requireWarehouseId,
 } from '../../shared/warehouseAccess'
@@ -73,6 +75,11 @@ export type SellingInvoiceCollaborator = {
 		requestContext: RequestContext,
 		filters?: { customer?: string[]; entryType?: string[] },
 	): Promise<DailyActionResponse>
+	getPartyEntries(
+		requestContext: RequestContext,
+		ids: string[],
+		fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+	): Promise<DailyActionResponse['data']>
 	buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		customerEntries?: DailyActionResponse['data'],
@@ -787,7 +794,10 @@ export default class SellingInvoiceController {
 
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
-		const warehouseScopedInvoices = filterByWarehouseAccess(
+		const scopeInvoices = filters.customerId
+			? filterByWarehouseAcl
+			: filterByWarehouseAccess
+		const warehouseScopedInvoices = scopeInvoices(
 			requestContext,
 			invoices as Array<Record<string, unknown> & { warehouseId?: string }>,
 		)
@@ -856,21 +866,46 @@ export default class SellingInvoiceController {
 		let customerSummary: CustomerInvoiceSummary | undefined
 
 		if (filters.customerId) {
-			const { data: customerEntries } = await this.ops.getDailyActions(
-				requestContext,
-				{
-					customer: [filters.customerId],
-					entryType: [
-						DailyActionType.SELLING_ENTRY,
-						DailyActionType.RECEIPT_ENTRY,
-					],
-				},
+			const [{ data: customerEntries }, partyPayments, buyingInvoices] =
+				await Promise.all([
+					this.ops.getDailyActions(requestContext, {
+						customer: [filters.customerId],
+						entryType: [
+							DailyActionType.SELLING_ENTRY,
+							DailyActionType.RECEIPT_ENTRY,
+						],
+					}),
+					this.ops.getPartyEntries(
+						requestContext,
+						[filters.customerId],
+						['supplierId'],
+					),
+					withTenantScope(
+						BuyingInvoice.find({ supplierId: filters.customerId }).sort({
+							createdAt: 'desc',
+						}),
+						tenantId,
+					).lean<
+						Array<Record<string, unknown> & { warehouseId?: string }>
+					>(),
+				])
+			const own = this.ops.buildCustomerInvoiceSummary(scopedInvoices, [
+				...customerEntries,
+				...partyPayments.filter(
+					entry => entry.entryType === DailyActionType.PAYMENT_ENTRY,
+				),
+			])
+			const buyingOwed = this.ops.buildCustomerInvoiceSummary(
+				filterByWarehouseAcl(requestContext, buyingInvoices),
+				[],
 			)
 
-			customerSummary = this.ops.buildCustomerInvoiceSummary(
-				scopedInvoices,
-				customerEntries,
-			)
+			customerSummary = {
+				...own,
+				totalReceivable:
+					own.totalReceivable -
+					(buyingOwed.totalInvoiced - buyingOwed.totalPaid),
+			}
 		}
 
 		const nextInvoiceNumber =

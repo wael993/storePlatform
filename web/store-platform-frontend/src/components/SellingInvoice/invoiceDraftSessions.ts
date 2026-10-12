@@ -25,6 +25,7 @@ export const createInvoiceDraft = (
 		paymentType?: SellingInvoicePaymentType
 		pricingLabels?: PricingLabelsType
 		invoiceNumber?: number
+		customerId?: string
 		customerName?: string
 		warehouseId?: string
 	},
@@ -34,7 +35,7 @@ export const createInvoiceDraft = (
 	invoiceDate: dayjs().format('YYYY-MM-DD'),
 	invoiceTime: dayjs().format('HH:mm'),
 	salesPerson,
-	customerId: WALK_IN_CUSTOMER_ID,
+	customerId: options?.customerId ?? WALK_IN_CUSTOMER_ID,
 	customerName: options?.customerName ?? 'Walk-in Customer',
 	paymentType: options?.paymentType ?? InvoicePaymentType.CASH,
 	pricingLabels: options?.pricingLabels ?? PricingLabelsType.RETAIL_PRICE,

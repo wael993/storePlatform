@@ -66,6 +66,7 @@ import {
 } from './localStore'
 import type {
 	LocalBuyingInvoice,
+	LocalDailyAction,
 	LocalInvoice,
 	LocalInventoryItem,
 	OutboxEntity,
@@ -1670,6 +1671,36 @@ const buildOfflineDigest = async (
 	}
 }
 
+const entryTypeValue = (entryType: LocalDailyAction['entryType']) =>
+	typeof entryType === 'string' ? entryType : entryType.value
+
+const matchesPartyId = (value: string | undefined, ids: string[]) =>
+	Boolean(value && ids.includes(value))
+
+const partyReceiptAndPaymentEntries = (
+	actions: LocalDailyAction[],
+	ids: Array<string | undefined>,
+	fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+): LocalDailyAction[] => {
+	const partyIds = new Set(ids.filter((id): id is string => Boolean(id)))
+
+	return actions.filter(action => {
+		const entryType = entryTypeValue(action.entryType)
+
+		if (
+			entryType !== DailyActionType.RECEIPT_ENTRY &&
+			entryType !== DailyActionType.PAYMENT_ENTRY
+		) {
+			return false
+		}
+
+		return fields.some(field => {
+			const value = action[field]
+			return typeof value === 'string' && partyIds.has(value)
+		})
+	})
+}
+
 export const handleOfflineQuery = async (
 	args: string | FetchArgs,
 ): Promise<
@@ -1839,17 +1870,23 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Customer not found' } },
 						}
 					}
-					const relatedActions = (
-						await getLocalDailyActionsForOffline()
-					).filter(
-						action =>
-							action.entryType !== DailyActionType.BUYING_ENTRY &&
-							(action.customerId === customer.customerId ||
-								// Legacy rows may still store internalCode as customerId.
-								(!!customer.internalCode &&
-									action.customerId === customer.internalCode)),
+					const ids = [customer.customerId, customer.internalCode].filter(
+						(id): id is string => Boolean(id),
 					)
-					return { data: { ...customer, relatedActions } }
+					const actions = await getLocalDailyActionsForOffline()
+					const customerEntries = partyReceiptAndPaymentEntries(actions, ids, [
+						'customerId',
+						'supplierId',
+					])
+					const invoices = (await getLocalInvoicesForOffline()).filter(
+						invoice => matchesPartyId(invoice.customerId, ids),
+					)
+					const buyingInvoices = (
+						await getLocalBuyingInvoicesForOffline()
+					).filter(invoice => matchesPartyId(invoice.supplierId, ids))
+					return {
+						data: { ...customer, customerEntries, invoices, buyingInvoices },
+					}
 				}
 				const data = await offlineDb.customers.toArray()
 				return { data: { data, totalCount: data.length } }
@@ -1863,16 +1900,23 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Supplier not found' } },
 						}
 					}
-					const relatedActions = (
-						await getLocalDailyActionsForOffline()
-					).filter(
-						action =>
-							action.supplierId === supplier.supplierId ||
-							// Legacy rows may still store internalCode as supplierId.
-							(!!supplier.internalCode &&
-								action.supplierId === supplier.internalCode),
+					const ids = [supplier.supplierId, supplier.internalCode].filter(
+						(id): id is string => Boolean(id),
 					)
-					return { data: { ...supplier, relatedActions } }
+					const supplierEntries = partyReceiptAndPaymentEntries(
+						await getLocalDailyActionsForOffline(),
+						ids,
+						['supplierId', 'customerId'],
+					)
+					const invoices = (await getLocalBuyingInvoicesForOffline()).filter(
+						invoice => matchesPartyId(invoice.supplierId, ids),
+					)
+					const sellingInvoices = (await getLocalInvoicesForOffline()).filter(
+						invoice => matchesPartyId(invoice.customerId, ids),
+					)
+					return {
+						data: { ...supplier, supplierEntries, invoices, sellingInvoices },
+					}
 				}
 				const data = await offlineDb.suppliers.toArray()
 				return { data: { data, totalCount: data.length } }
@@ -1886,7 +1930,28 @@ export const handleOfflineQuery = async (
 							error: { status: 404, data: { message: 'Partner not found' } },
 						}
 					}
-					return { data: partner }
+					const ids = [partner.partnerId, partner.internalCode].filter(
+						(id): id is string => Boolean(id),
+					)
+					const partnerEntries = partyReceiptAndPaymentEntries(
+						await getLocalDailyActionsForOffline(),
+						ids,
+						['partnerId'],
+					)
+					const sellingInvoices = (await getLocalInvoicesForOffline()).filter(
+						invoice => matchesPartyId(invoice.customerId, ids),
+					)
+					const buyingInvoices = (
+						await getLocalBuyingInvoicesForOffline()
+					).filter(invoice => matchesPartyId(invoice.supplierId, ids))
+					return {
+						data: {
+							...partner,
+							partnerEntries,
+							sellingInvoices,
+							buyingInvoices,
+						},
+					}
 				}
 				const data = await offlineDb.partners.toArray()
 				return { data: { data, totalCount: data.length } }

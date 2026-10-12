@@ -37,6 +37,52 @@ export const filterProductRelatedActions = (
 				action.productName === product.name),
 	)
 
+export const groupInvoicesByPartyId = (
+	invoices: unknown[],
+	field: 'customerId' | 'supplierId',
+): Map<string, Array<Record<string, unknown>>> => {
+	const grouped = new Map<string, Array<Record<string, unknown>>>()
+
+	for (const invoice of invoices) {
+		if (!invoice || typeof invoice !== 'object' || Array.isArray(invoice)) {
+			continue
+		}
+
+		const record = invoice as Record<string, unknown>
+		const partyId = String(record[field] ?? '')
+
+		if (!partyId) continue
+
+		const existing = grouped.get(partyId)
+
+		if (existing) {
+			existing.push(record)
+		} else {
+			grouped.set(partyId, [record])
+		}
+	}
+
+	return grouped
+}
+
+const samePartyId = (
+	value: string | undefined,
+	partyId: string,
+	internalCode?: string,
+) =>
+	value === partyId || (!!internalCode && value === internalCode)
+
+/** Receipt and payment rows for one party. A payment to a customer is stored on supplierId; a receipt from a supplier is stored on customerId. */
+export const partyEntryQuery = (
+	ids: string[],
+	fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+) => ({
+	entryType: {
+		$in: [DailyActionType.RECEIPT_ENTRY, DailyActionType.PAYMENT_ENTRY],
+	},
+	$or: fields.map(field => ({ [field]: { $in: ids } })),
+})
+
 export const filterCustomerRelatedActions = (
 	actions: CustomerDailyAction[],
 	customer: Pick<CustomerDocument, 'customerId' | 'internalCode'>,
@@ -44,10 +90,17 @@ export const filterCustomerRelatedActions = (
 	actions.filter(
 		action =>
 			action.entryType !== DailyActionType.BUYING_ENTRY &&
-			(action.customerId === customer.customerId ||
-				// Legacy rows may still store internalCode as customerId.
-				(!!customer.internalCode &&
-					action.customerId === customer.internalCode)),
+			(samePartyId(
+				action.customerId,
+				customer.customerId,
+				customer.internalCode,
+			) ||
+				(action.entryType === DailyActionType.PAYMENT_ENTRY &&
+					samePartyId(
+						action.supplierId,
+						customer.customerId,
+						customer.internalCode,
+					))),
 	)
 
 export const filterSupplierRelatedActions = (
@@ -56,9 +109,17 @@ export const filterSupplierRelatedActions = (
 ): DailyAction[] =>
 	actions.filter(
 		action =>
-			action.supplierId === supplier.supplierId ||
-			// Legacy rows may still store internalCode as supplierId.
-			(!!supplier.internalCode && action.supplierId === supplier.internalCode),
+			samePartyId(
+				action.supplierId,
+				supplier.supplierId,
+				supplier.internalCode,
+			) ||
+			(action.entryType === DailyActionType.RECEIPT_ENTRY &&
+				samePartyId(
+					action.customerId,
+					supplier.supplierId,
+					supplier.internalCode,
+				)),
 	)
 
 export const filterPartnerRelatedActions = (
@@ -98,7 +159,7 @@ export const mapProductAction = (action: DailyAction): ProductDailyAction => ({
 
 export const mapPartners = (partners: Partner[]) => {
 	const mappedPartners = partners.map(partner => {
-		const actions = partner.relatedActions ?? []
+		const actions = partner.partnerEntries ?? []
 
 		return {
 			partnerId: partner.partnerId,
@@ -108,7 +169,7 @@ export const mapPartners = (partners: Partner[]) => {
 			updatedAt: partner.updatedAt,
 			createdBy: partner.createdBy,
 			updatedBy: partner.updatedBy,
-			relatedActions: actions.map(action => ({
+			partnerEntries: actions.map(action => ({
 				actionId: action.actionId,
 				entryType: action.entryType as Partial<
 					EntryType | 'PAYMENT_ENTRY' | 'RECEIPT_ENTRY'
@@ -162,12 +223,12 @@ export const mapCustomers = (customers: Customer[]): CustomerResponse[] =>
 		totalReceivable: customer.totalReceivable ?? 0,
 		createdBy: customer.createdBy,
 		updatedBy: customer.updatedBy,
-		relatedActions: (customer.relatedActions ?? []).map(mapCustomerAction),
+		customerEntries: (customer.customerEntries ?? []).map(mapCustomerAction),
 	}))
 
 export const mapCustomer = (
 	customer: CustomerDocument,
-	relatedActions: CustomerDailyAction[] = [],
+	customerEntries: CustomerDailyAction[] = [],
 	totalReceivable = 0,
 ): CustomerResponse => ({
 	customerId: customer.customerId,
@@ -190,7 +251,7 @@ export const mapCustomer = (
 				updatedAt: customer.updatedBy.updatedAt?.toISOString(),
 			}
 		: undefined,
-	relatedActions: relatedActions.map(mapCustomerAction),
+	customerEntries: customerEntries.map(mapCustomerAction),
 })
 
 export const mapSuppliers = (suppliers: Supplier[]) => {
@@ -206,7 +267,7 @@ export const mapSuppliers = (suppliers: Supplier[]) => {
 			totalPayable: supplier.totalPayable ?? 0,
 			createdBy: supplier.createdBy,
 			updatedBy: supplier.updatedBy,
-			relatedActions: actions.map(action => ({
+			supplierEntries: actions.map(action => ({
 				actionId: action.actionId,
 				entryType: action.entryType,
 				productId: action.productId,

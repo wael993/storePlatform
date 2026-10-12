@@ -1,4 +1,5 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Customer } from '../../models/Customer'
 import { Invoice } from '../../models/Invoice'
 import { SellingInvoiceItem } from '../../models/SellingInvoices'
@@ -6,6 +7,7 @@ import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
+import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
@@ -26,20 +28,27 @@ import {
 } from '../../shared/types/api'
 import {
 	filterCustomerRelatedActions,
+	groupInvoicesByPartyId,
 	mapCustomer,
 	mapCustomers,
 } from '../mappings/mapper'
 
 export type CustomerInvoiceCollaborator = {
-	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
+	getDailyActions(
+		requestContext: RequestContext,
+		filters?: object,
+		warehouseScope?: 'working' | 'acl',
+	): Promise<DailyActionResponse>
+	getPartyEntries(
+		requestContext: RequestContext,
+		ids: string[],
+		fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+	): Promise<DailyActionResponse['data']>
 	buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		customerEntries?: DailyActionResponse['data'],
 	): CustomerInvoiceSummary
 }
-
-const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const canSeeReceivable = (requestContext: RequestContext) =>
 	(requestContext.see || []).includes('customers.totalReceivable')
@@ -104,37 +113,39 @@ export default class CustomerController {
 			})
 		).documents
 
-		const invoicesByCustomerId = new Map<
-			string,
-			Array<Record<string, unknown>>
-		>()
-
-		for (const invoice of sellingInvoices) {
-			if (!isPlainRecord(invoice)) continue
-
-			const customerId = String(invoice.customerId ?? '')
-
-			if (!customerId) continue
-
-			const existing = invoicesByCustomerId.get(customerId)
-
-			if (existing) {
-				existing.push(invoice)
-			} else {
-				invoicesByCustomerId.set(customerId, [invoice])
-			}
-		}
+		const buyingInvoices: unknown[] = (
+			await this.mongoDbClient.getDocuments({
+				requestContext,
+				collectionName: COLLECTION_NAMES.BUYING_INVOICES,
+				model: BuyingInvoice,
+				sort: { createdAt: 'desc' },
+			})
+		).documents
+		const invoicesByCustomerId = groupInvoicesByPartyId(
+			sellingInvoices,
+			'customerId',
+		)
+		const buyingInvoicesBySupplierId = groupInvoicesByPartyId(
+			buyingInvoices,
+			'supplierId',
+		)
 
 		const data = customers.documents.map((customer: CustomerDocument) => {
 			const relatedActions = filterCustomerRelatedActions(
 				dailyActions.data,
 				customer,
 			)
-			const { totalReceivable } =
+			const { totalReceivable: sellingReceivable } =
 				this.invoiceCollaborator.buildCustomerInvoiceSummary(
 					invoicesByCustomerId.get(customer.customerId) ?? [],
 					relatedActions,
 				)
+			const buyingOwed = this.invoiceCollaborator.buildCustomerInvoiceSummary(
+				buyingInvoicesBySupplierId.get(customer.customerId) ?? [],
+				[],
+			)
+			const totalReceivable =
+				sellingReceivable - (buyingOwed.totalInvoiced - buyingOwed.totalPaid)
 
 			return {
 				customerId: customer.customerId,
@@ -158,7 +169,7 @@ export default class CustomerController {
 							updatedAt: customer.updatedBy.updatedAt.toISOString(),
 						}
 					: undefined,
-				relatedActions,
+				customerEntries: relatedActions,
 			}
 		})
 
@@ -194,14 +205,57 @@ export default class CustomerController {
 			return null
 		}
 
-		const dailyActions =
-			await this.invoiceCollaborator.getDailyActions(requestContext)
+		const ids = [customer.customerId, customer.internalCode].filter(
+			(id): id is string => Boolean(id),
+		)
+		const tenantId = this.getTenantId(requestContext)
+		const [customerEntries, sellingInvoices, buyingInvoices] =
+			await Promise.all([
+				this.invoiceCollaborator.getPartyEntries(requestContext, ids, [
+					'customerId',
+					'supplierId',
+				]),
+				withTenantScope(
+					Invoice.find({ customerId: { $in: ids } }).sort({
+						createdAt: 'desc',
+					}),
+					tenantId,
+				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+				withTenantScope(
+					BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
+						createdAt: 'desc',
+					}),
+					tenantId,
+				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+			])
+
+		const invoices = filterByWarehouseAcl(requestContext, sellingInvoices)
+		const buyingInvoicesInScope = filterByWarehouseAcl(
+			requestContext,
+			buyingInvoices,
+		)
+		const own = this.invoiceCollaborator.buildCustomerInvoiceSummary(
+			invoices,
+			customerEntries,
+		)
+		const buyingOwed = this.invoiceCollaborator.buildCustomerInvoiceSummary(
+			buyingInvoicesInScope,
+			[],
+		)
 
 		return omitReceivableIfHidden(
-			mapCustomer(
-				customer,
-				filterCustomerRelatedActions(dailyActions.data, customer),
-			),
+			{
+				...mapCustomer(customer, customerEntries),
+				invoices,
+				buyingInvoices: buyingInvoicesInScope,
+				invoiceSummary: {
+					totalInvoiced: own.totalInvoiced,
+					totalPaid: own.totalPaid,
+					outstanding:
+						own.totalReceivable -
+						(buyingOwed.totalInvoiced - buyingOwed.totalPaid),
+				},
+			},
 			requestContext,
 		)
 	}
@@ -287,7 +341,7 @@ export default class CustomerController {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
 		const reason = 'This customer has selling invoices and cannot be deleted.'
-		const [invoices, sellingItems] = await Promise.all([
+		const [invoices, sellingItems, buyingInvoices] = await Promise.all([
 			withTenantScope(
 				Invoice.find({ customerId: { $in: uniqueIds } })
 					.select({ customerId: 1 })
@@ -300,11 +354,26 @@ export default class CustomerController {
 					.lean(),
 				tenantId,
 			),
+			withTenantScope(
+				BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
+					.select({ supplierId: 1 })
+					.lean(),
+				tenantId,
+			),
 		])
 
 		for (const row of [...invoices, ...sellingItems]) {
 			if (row.customerId && !blocked.has(row.customerId)) {
 				blocked.set(row.customerId, reason)
+			}
+		}
+
+		for (const row of buyingInvoices) {
+			if (row.supplierId && !blocked.has(row.supplierId)) {
+				blocked.set(
+					row.supplierId,
+					'This customer has buying invoices and cannot be deleted.',
+				)
 			}
 		}
 

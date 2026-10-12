@@ -4,12 +4,12 @@ import { useSelector } from 'react-redux'
 import dayjs from 'dayjs'
 
 import {
-	useGetCurrencySettingsQuery,
-	useGetInvoiceSettingsQuery,
-	useGetUnitsQuery,
-	useGetUserSettingsQuery,
 	useLazyGetBuyingInvoiceQuery,
+	useLazyGetCurrencySettingsQuery,
+	useLazyGetInvoiceSettingsQuery,
 	useLazyGetSellingInvoiceQuery,
+	useLazyGetUnitsQuery,
+	useLazyGetUserSettingsQuery,
 } from '../../api/apiStore'
 import { formatNumber } from '../../shared/utils'
 import { mapApiInvoiceStatusToUi } from '../../shared/globalConstant'
@@ -180,27 +180,13 @@ export const useInvoiceDocumentExport = () => {
 	const tenantName = useSelector(
 		(state: RootState) => state.user.user?.tenantName,
 	)
-	const { data: invoiceSettings, refetch: refetchInvoiceSettings } =
-		useGetInvoiceSettingsQuery()
-
-	const { data: currencySettings, refetch: refetchCurrencySettings } =
-		useGetCurrencySettingsQuery()
-
-	const { data: userSettings, refetch: refetchUserSettings } =
-		useGetUserSettingsQuery()
-	const { data: units = [] } = useGetUnitsQuery({})
+	const [fetchInvoiceSettings] = useLazyGetInvoiceSettingsQuery()
+	const [fetchCurrencySettings] = useLazyGetCurrencySettingsQuery()
+	const [fetchUserSettings] = useLazyGetUserSettingsQuery()
+	const [fetchUnits] = useLazyGetUnitsQuery()
 	const [fetchSellingInvoice] = useLazyGetSellingInvoiceQuery()
 	const [fetchBuyingInvoice] = useLazyGetBuyingInvoiceQuery()
 	const [isExporting, setIsExporting] = useState(false)
-
-	const resolveUnitName = useCallback(
-		(unitIdOrName?: string) => {
-			const value = unitIdOrName?.trim()
-			if (!value) return ''
-			return units.find(unit => unit.unitId === value)?.name ?? value
-		},
-		[units],
-	)
 
 	const runExport = useCallback(
 		async (
@@ -213,30 +199,27 @@ export const useInvoiceDocumentExport = () => {
 
 			setIsExporting(true)
 			try {
-				const [
-					{ data: freshCurrencySettings },
-					{ data: freshUserSettings },
-					{ data: freshInvoiceSettings },
-					invoice,
-				] = await Promise.all([
-					refetchCurrencySettings(),
-					refetchUserSettings(),
-					refetchInvoiceSettings(),
-					kind === 'selling'
-						? fetchSellingInvoice(invoiceId).unwrap()
-						: fetchBuyingInvoice(invoiceId).unwrap(),
-				])
+				const [currencySettings, userSettings, invoiceSettings, units, invoice] =
+					await Promise.all([
+						fetchCurrencySettings().unwrap(),
+						fetchUserSettings().unwrap(),
+						fetchInvoiceSettings().unwrap(),
+						fetchUnits(undefined).unwrap(),
+						kind === 'selling'
+							? fetchSellingInvoice(invoiceId).unwrap()
+							: fetchBuyingInvoice(invoiceId).unwrap(),
+					])
+				const resolveUnitName = (unitIdOrName?: string) => {
+					const value = unitIdOrName?.trim()
+					if (!value) return ''
+					return units.find(unit => unit.unitId === value)?.name ?? value
+				}
 
-				const brand = resolveInvoiceBrand(
-					freshInvoiceSettings ?? invoiceSettings,
-					tenantName,
-				)
-				const settings = freshCurrencySettings ?? currencySettings
-				const currencyOptions = buildDisplayCurrencyOptions(settings)
+				const brand = resolveInvoiceBrand(invoiceSettings, tenantName)
+				const currencyOptions = buildDisplayCurrencyOptions(currencySettings)
 				const pdfCurrencyId = resolveDefaultDisplayCurrencyId(
 					currencyOptions,
-					freshUserSettings?.defaultInvoiceCurrencyId ??
-						userSettings?.defaultInvoiceCurrencyId,
+					userSettings?.defaultInvoiceCurrencyId,
 				)
 
 				const model = toDocumentModel({
@@ -263,18 +246,15 @@ export const useInvoiceDocumentExport = () => {
 			}
 		},
 		[
-			currencySettings,
 			fetchBuyingInvoice,
+			fetchCurrencySettings,
+			fetchInvoiceSettings,
 			fetchSellingInvoice,
+			fetchUnits,
+			fetchUserSettings,
 			i18n.language,
-			invoiceSettings,
-			refetchCurrencySettings,
-			refetchInvoiceSettings,
-			refetchUserSettings,
-			resolveUnitName,
 			t,
 			tenantName,
-			userSettings?.defaultInvoiceCurrencyId,
 		],
 	)
 

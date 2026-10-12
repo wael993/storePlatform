@@ -1,4 +1,3 @@
-import { formatNumber } from '../../shared/utils'
 import type { InvoiceTableRow } from './entryTableMappers'
 import type {
 	SellingInvoice,
@@ -6,8 +5,27 @@ import type {
 	SortDirection,
 } from './types'
 
-export const formatCurrency = (amount: number) =>
-	`${formatNumber(amount) ?? '0.00'} ل.س `
+type PartyRow = { id: string; name: string }
+
+/** Partners, then the entry's own party type, then the other. Same order as quick entries. */
+export const buildEntryPartyOptions = (
+	partners: Array<{ partnerId?: string; internalCode?: string; name?: string }>,
+	first: PartyRow[],
+	second: PartyRow[],
+): DropdownOption[] => {
+	const partnerOptions = partners
+		.map(partner => ({
+			value: partner.partnerId ?? partner.internalCode ?? '',
+			label: partner.name ?? partner.internalCode ?? 'TBD',
+		}))
+		.filter(option => option.value)
+
+	return [
+		...partnerOptions,
+		...first.map(party => ({ value: party.id, label: party.name })),
+		...second.map(party => ({ value: party.id, label: party.name })),
+	]
+}
 
 export const formatTrend = (value: number, suffix = '%') => {
 	const prefix = value >= 0 ? '↑' : '↓'
@@ -26,28 +44,6 @@ const parseTimeToMinutes = (time: string) => {
 	if (period === 'AM' && hours === 12) hour24 = 0
 
 	return hour24 * 60 + minutes
-}
-
-export const sortInvoices = (
-	invoices: SellingInvoice[],
-	sortKey: SellingInvoiceSortKey,
-	direction: SortDirection,
-) => {
-	const sorted = [...invoices]
-
-	sorted.sort((a, b) => {
-		let comparison = 0
-
-		if (sortKey === 'invoiceNumber') {
-			comparison = a.invoiceNumber - b.invoiceNumber
-		} else {
-			comparison = parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)
-		}
-
-		return direction === 'asc' ? comparison : -comparison
-	})
-
-	return sorted
 }
 
 const getRowSortNumber = (row: InvoiceTableRow) =>

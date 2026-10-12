@@ -1,12 +1,15 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { DailyAction } from '../../models/DailyAction'
+import { Invoice } from '../../models/Invoice'
 import { Partner } from '../../models/Partner'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
+import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
@@ -23,7 +26,16 @@ import { DailyActionResponse, PartnersResponse } from '../../shared/types/api'
 import { filterPartnerRelatedActions, mapPartners } from '../mappings/mapper'
 
 export type PartnerDailyActionCollaborator = {
-	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
+	getDailyActions(
+		requestContext: RequestContext,
+		filters?: object,
+		warehouseScope?: 'working' | 'acl',
+	): Promise<DailyActionResponse>
+	getPartyEntries(
+		requestContext: RequestContext,
+		ids: string[],
+		fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+	): Promise<DailyActionResponse['data']>
 }
 
 export default class PartnerController {
@@ -80,7 +92,7 @@ export default class PartnerController {
 						updatedAt: partner.updatedBy.updatedAt.toISOString(),
 					}
 				: undefined,
-			relatedActions: filterPartnerRelatedActions(dailyActions.data, partner),
+			partnerEntries: filterPartnerRelatedActions(dailyActions.data, partner),
 		}))
 
 		const mappedPartners = mapPartners(data)
@@ -110,7 +122,27 @@ export default class PartnerController {
 			return null
 		}
 
-		const dailyActions = await this.dailyActions.getDailyActions(requestContext)
+		const ids = [partner.partnerId, partner.internalCode].filter(
+			(id): id is string => Boolean(id),
+		)
+		const tenantId = this.getTenantId(requestContext)
+		const [partnerEntries, sellingInvoices, buyingInvoices] = await Promise.all(
+			[
+				this.dailyActions.getPartyEntries(requestContext, ids, ['partnerId']),
+				withTenantScope(
+					Invoice.find({ customerId: { $in: ids } }).sort({
+						createdAt: 'desc',
+					}),
+					tenantId,
+				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+				withTenantScope(
+					BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
+						createdAt: 'desc',
+					}),
+					tenantId,
+				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+			],
+		)
 
 		const mappedPartners = mapPartners([
 			{
@@ -134,11 +166,19 @@ export default class PartnerController {
 							updatedAt: partner.updatedBy.updatedAt.toISOString(),
 						}
 					: undefined,
-				relatedActions: filterPartnerRelatedActions(dailyActions.data, partner),
+				partnerEntries,
 			},
 		])
 
-		return mappedPartners[0]
+		const mapped = mappedPartners[0]
+
+		if (!mapped) return null
+
+		return {
+			...mapped,
+			sellingInvoices: filterByWarehouseAcl(requestContext, sellingInvoices),
+			buyingInvoices: filterByWarehouseAcl(requestContext, buyingInvoices),
+		}
 	}
 
 	public async postPartner(
@@ -230,18 +270,50 @@ export default class PartnerController {
 	private async findPartnerDeleteBlocks(tenantId: string, ids: string[]) {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
-		const actions = await withTenantScope(
-			DailyAction.find({ partnerId: { $in: uniqueIds } })
-				.select({ partnerId: 1 })
-				.lean(),
-			tenantId,
-		)
+		const [actions, sellingInvoices, buyingInvoices] = await Promise.all([
+			withTenantScope(
+				DailyAction.find({ partnerId: { $in: uniqueIds } })
+					.select({ partnerId: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				Invoice.find({ customerId: { $in: uniqueIds } })
+					.select({ customerId: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
+					.select({ supplierId: 1 })
+					.lean(),
+				tenantId,
+			),
+		])
 
 		for (const row of actions) {
 			if (row.partnerId && !blocked.has(row.partnerId)) {
 				blocked.set(
 					row.partnerId,
 					'This partner has daily actions and cannot be deleted.',
+				)
+			}
+		}
+
+		for (const row of sellingInvoices) {
+			if (row.customerId && !blocked.has(row.customerId)) {
+				blocked.set(
+					row.customerId,
+					'This partner has selling invoices and cannot be deleted.',
+				)
+			}
+		}
+
+		for (const row of buyingInvoices) {
+			if (row.supplierId && !blocked.has(row.supplierId)) {
+				blocked.set(
+					row.supplierId,
+					'This partner has buying invoices and cannot be deleted.',
 				)
 			}
 		}

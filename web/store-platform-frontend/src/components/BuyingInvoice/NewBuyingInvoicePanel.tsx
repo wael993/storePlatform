@@ -27,7 +27,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
 	useGetBuyingInvoiceQuery,
+	useGetCustomersQuery,
 	useGetInvoiceSettingsQuery,
+	useGetPartnersQuery,
 	useGetSuppliersQuery,
 	useGetProductCatalogQuery,
 	usePostBuyingInvoiceMutation,
@@ -82,9 +84,11 @@ import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import {
 	buildBuyingInvoiceRequestBody,
 	mapApiBuyingInvoiceToDraft,
+	type ApiBuyingInvoice,
 } from './buyingInvoiceApiMappers'
 import { getPrimaryInvoiceCurrencyAmounts } from '../SellingInvoice/currencyDisplay'
 import { createBuyingInvoiceDraft } from './buyingInvoiceDraftSessions'
+import { buildEntryPartyOptions } from '../SellingInvoice/utils'
 import useCustomToast from '../common/CustomToast'
 import type {
 	BuyingInvoiceDraft,
@@ -119,6 +123,7 @@ interface NewBuyingInvoicePanelProps {
 	onSaved?: () => void
 	mode?: BuyingInvoicePanelMode
 	buyingInvoiceId?: string
+	invoice?: ApiBuyingInvoice
 	onRequestEdit?: () => void
 	nextInvoiceNumber?: number
 	initialProductSearch?: string
@@ -136,6 +141,8 @@ interface NewBuyingInvoicePanelProps {
 	onAddDraftTab?: () => void
 	suppliers?: Supplier[]
 	salesPerson?: string
+	initialSupplierId?: string
+	initialSupplierName?: string
 }
 
 const PaymentTypeButton = ({
@@ -243,6 +250,7 @@ const NewBuyingInvoicePanel = ({
 	onSaved,
 	mode = 'create',
 	buyingInvoiceId,
+	invoice,
 	onRequestEdit,
 	nextInvoiceNumber = 1,
 	initialProductSearch = '',
@@ -256,6 +264,8 @@ const NewBuyingInvoicePanel = ({
 	onAddDraftTab,
 	suppliers: suppliersProp,
 	salesPerson: salesPersonProp,
+	initialSupplierId,
+	initialSupplierName,
 }: NewBuyingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
@@ -276,17 +286,29 @@ const NewBuyingInvoicePanel = ({
 	const { data: fetchedSuppliers = [] } = useGetSuppliersQuery(
 		{},
 		{
-			skip: suppliersProp !== undefined,
+			skip: isReadOnly || suppliersProp !== undefined,
 			refetchOnMountOrArgChange: false,
 		},
 	)
 	const { data: invoiceSettings } = useGetInvoiceSettingsQuery(undefined, {
+		skip: !isActive || isReadOnly,
 		refetchOnMountOrArgChange: false,
 	})
 	const { data: cashBalances } = useGetCashAccountBalancesQuery(undefined, {
-		skip: !isActive || !cashOpsOnline,
+		skip: !isActive || isReadOnly || !cashOpsOnline,
+		refetchOnMountOrArgChange: false,
 	})
 	const suppliers = suppliersProp ?? fetchedSuppliers
+	const { data: partyCustomers = [], isLoading: isCustomersLoading } =
+		useGetCustomersQuery(undefined, {
+			skip: !isActive || isReadOnly,
+			refetchOnMountOrArgChange: false,
+		})
+	const { data: partyPartners = [], isLoading: isPartnersLoading } =
+		useGetPartnersQuery(undefined, {
+			skip: !isActive || isReadOnly,
+			refetchOnMountOrArgChange: false,
+		})
 	const salesPerson =
 		salesPersonProp ||
 		[user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
@@ -305,25 +327,29 @@ const NewBuyingInvoicePanel = ({
 		isLoading: isInvoiceAiUsageLoading,
 		isError: isInvoiceAiUsageError,
 	} = useGetInvoiceAiUsageQuery(undefined, {
-		skip: !canUseInvoiceAi,
+		skip: mode !== 'create' || !canUseInvoiceAi,
 		refetchOnFocus: true,
 	})
 	const [confirmBuyingInvoiceMatch] = useConfirmBuyingInvoiceMatchMutation()
 	const [createSupplier, { isLoading: isCreatingSupplier }] =
 		useCreateSupplierMutation()
 	const { data: allCatalogResponse, refetch: refetchCatalog } =
-		useGetProductCatalogQuery({ all: true })
+		useGetProductCatalogQuery(
+			{ all: true },
+			{ skip: !isActive || isReadOnly, refetchOnMountOrArgChange: false },
+		)
 	const products = useMemo(
 		() => (allCatalogResponse?.products ?? []).map(mapCatalogItemToProduct),
 		[allCatalogResponse?.products],
 	)
 	const {
-		data: existingInvoice,
+		data: fetchedInvoice,
 		isLoading: isLoadingInvoice,
 		isError: isInvoiceError,
 	} = useGetBuyingInvoiceQuery(buyingInvoiceId ?? '', {
-		skip: !isActive || !buyingInvoiceId || !isExistingInvoice,
+		skip: !isActive || !buyingInvoiceId || !isExistingInvoice || invoice != null,
 	})
+	const existingInvoice = invoice ?? fetchedInvoice
 	const isSaving = isCreating || isUpdating
 	const [saveError, setSaveError] = useState<string | null>(null)
 	const [extractFile, setExtractFile] = useState<File | null>(null)
@@ -346,7 +372,13 @@ const NewBuyingInvoicePanel = ({
 	const isControlledCreate = Boolean(controlledDraft && onDraftChange)
 
 	const [internalDraft, setInternalDraft] = useState<BuyingInvoiceDraft>(() =>
-		createBuyingInvoiceDraft(salesPerson, { paymentType: initialPaymentType }),
+		invoice
+			? mapApiBuyingInvoiceToDraft(invoice)
+			: createBuyingInvoiceDraft(salesPerson, {
+					paymentType: initialPaymentType,
+					supplierId: initialSupplierId,
+					supplierName: initialSupplierName,
+				}),
 	)
 
 	const draft =
@@ -423,6 +455,8 @@ const NewBuyingInvoicePanel = ({
 			createBuyingInvoiceDraft(salesPerson, {
 				paymentType: initialPaymentType,
 				invoiceNumber: nextInvoiceNumber,
+				supplierId: initialSupplierId,
+				supplierName: initialSupplierName,
 				warehouseId: operationalWarehouseId ?? '',
 			}),
 		)
@@ -432,6 +466,8 @@ const NewBuyingInvoicePanel = ({
 		isControlledCreate,
 		isExistingInvoice,
 		initialPaymentType,
+		initialSupplierId,
+		initialSupplierName,
 		nextInvoiceNumber,
 		salesPerson,
 		operationalWarehouseId,
@@ -500,6 +536,22 @@ const NewBuyingInvoicePanel = ({
 	const supplierOptions = useMemo(
 		(): Pick<Supplier, 'supplierId' | 'name'>[] => suppliers,
 		[suppliers],
+	)
+
+	const supplierPartyOptions = useMemo(
+		() =>
+			buildEntryPartyOptions(
+				partyPartners,
+				suppliers.map(supplier => ({
+					id: supplier.supplierId,
+					name: supplier.name,
+				})),
+				partyCustomers.map(customer => ({
+					id: customer.customerId,
+					name: customer.name,
+				})),
+			),
+		[partyCustomers, partyPartners, suppliers],
 	)
 
 	const hasSupplier = Boolean(draft.supplierId)
@@ -720,10 +772,10 @@ const NewBuyingInvoicePanel = ({
 	}
 
 	const handleSupplierChange = (supplierId: string, knownName?: string) => {
-		const supplier = supplierOptions.find(
-			option => option.supplierId === supplierId,
-		)
-		const supplierName = supplier?.name ?? knownName
+		const supplierName =
+			supplierPartyOptions.find(option => option.value === supplierId)?.label ??
+			supplierOptions.find(option => option.supplierId === supplierId)?.name ??
+			knownName
 
 		setDraft(current => ({
 			...current,
@@ -1250,10 +1302,7 @@ const NewBuyingInvoicePanel = ({
 							</Flex>
 							<DropdownLabel
 								label=""
-								options={supplierOptions.map(supplier => ({
-									label: supplier.name,
-									value: supplier.supplierId,
-								}))}
+								options={supplierPartyOptions}
 								selectedOptions={
 									draft.supplierId
 										? [{ label: draft.supplierName, value: draft.supplierId }]
@@ -1268,6 +1317,7 @@ const NewBuyingInvoicePanel = ({
 								isSingle
 								isSearchable
 								isDisabled={isReadOnly}
+								isLoading={isPartnersLoading || isCustomersLoading}
 								customStyles={{
 									dropdownContainer: {
 										width: '100%',

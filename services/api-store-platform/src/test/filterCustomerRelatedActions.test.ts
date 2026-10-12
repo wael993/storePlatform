@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { filterCustomerRelatedActions } from '../apis/mappings/mapper'
+import {
+	filterCustomerRelatedActions,
+	partyEntryQuery,
+} from '../apis/mappings/mapper'
 import { DailyActionType } from '../shared/globalEnums'
 import type { CustomerDailyAction } from '../shared/types/api'
 
@@ -60,6 +63,25 @@ describe('filterCustomerRelatedActions', () => {
 		expect(filterCustomerRelatedActions(actions, customer)).toHaveLength(0)
 	})
 
+	it('keeps a payment stored on supplierId for this customer', () => {
+		const actions = [
+			action({
+				actionId: 'pay',
+				entryType: DailyActionType.PAYMENT_ENTRY,
+				supplierId: 'cust-1',
+			}),
+			action({
+				actionId: 'other',
+				entryType: DailyActionType.PAYMENT_ENTRY,
+				supplierId: 'sup-other',
+			}),
+		]
+
+		expect(
+			filterCustomerRelatedActions(actions, customer).map(row => row.actionId),
+		).toEqual(['pay'])
+	})
+
 	it('matches legacy internalCode stored as customerId', () => {
 		const actions = [
 			action({
@@ -75,5 +97,19 @@ describe('filterCustomerRelatedActions', () => {
 				internalCode: 'OLD-CODE',
 			}),
 		).toHaveLength(1)
+	})
+})
+
+describe('partyEntryQuery', () => {
+	it('loads receipt and payment rows for a customer, including payments stored on supplierId', () => {
+		expect(partyEntryQuery(['cust-1'], ['customerId', 'supplierId'])).toEqual({
+			entryType: {
+				$in: [DailyActionType.RECEIPT_ENTRY, DailyActionType.PAYMENT_ENTRY],
+			},
+			$or: [
+				{ customerId: { $in: ['cust-1'] } },
+				{ supplierId: { $in: ['cust-1'] } },
+			],
+		})
 	})
 })

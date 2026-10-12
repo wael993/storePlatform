@@ -53,12 +53,3 @@ export const buildEntryInvoiceDateIso = (invoiceDate: string): string => {
 	const minutes = String(now.getMinutes()).padStart(2, '0')
 	return buildInvoiceIssuedAtIso(invoiceDate, `${hours}:${minutes}`)
 }
-
-export const formatDateFromAndDateTo = (
-	dateFrom?: string,
-	dateTo?: string,
-): string => {
-	return `${dateFrom ? formatDate(dateFrom) : ''} - ${
-		dateTo ? formatDate(dateTo) : ''
-	}`
-}

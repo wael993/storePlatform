@@ -134,15 +134,6 @@ export interface SyncChangesPayload {
 	serverTime: string
 }
 
-export interface SyncPushEntry {
-	clientMutationId: string
-	entity: OutboxEntity
-	operation: OutboxOperation
-	url: string
-	method: string
-	payload: unknown
-}
-
 export interface SyncPushResult {
 	clientMutationId: string
 	success: boolean

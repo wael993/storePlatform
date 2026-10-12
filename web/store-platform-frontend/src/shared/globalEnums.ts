@@ -19,15 +19,6 @@ export enum AllowedActions {
 	ADD_PRODUCT = 'addProduct',
 	DELETE_PRODUCT = 'deleteProduct',
 
-	// DAILY ACTION
-	SEE_DAILY_ACTION = 'seeDailyAction',
-	CAN_ADD_DAILY_ACTION = 'addDailyAction',
-	CAN_EDIT_DAILY_ACTION = 'editDailyAction',
-	CAN_DELETE_DAILY_ACTION = 'deleteDailyAction',
-
-	//BUDGET OVERVIEW
-	CAN_SEE_BUDGET_OVERVIEW = 'seeBudgetOverview',
-
 	SEE_NOTIFICATIONS = 'seeNotifications',
 
 	// WHOLESALE PRICE
@@ -74,9 +65,6 @@ export enum TargetType {
 	SUPPLIER = 'SUPPLIER', //مورد
 	PARTNER = 'PARTNER', //شريك
 	PRODUCT = 'PRODUCT', //منتج
-	DAILY_ACTION = 'DAILY_ACTION', //إجراء يومي
-	// PAYMENT = 'PAYMENT',//دفع
-	// RECEIPT = 'RECEIPT',//قبض
 }
 
 export enum BreadCrumbItem {
@@ -85,7 +73,6 @@ export enum BreadCrumbItem {
 	PRODUCT = 'product',
 	ORDERS = 'orders',
 	SELLING_INVOICES = 'sellingInvoices',
-	DAILY = 'daily',
 	USERS = 'users',
 	ADD_NEW_TENANT = 'addNewTenant',
 	TENANTS_LIST = 'tenantsList',
@@ -102,12 +89,6 @@ export enum BreadCrumbItem {
 	REPORTS = 'reports',
 	DASHBOARD = 'dashboard',
 	CASH_ACCOUNT_HISTORY = 'cashAccountHistory',
-}
-
-export enum StepKeys {
-	ACTION_TYPE = 1,
-	ACTION_DATA = 2,
-	ACTION_SUMMARY = 3,
 }
 
 export enum AddQuickStateEnum {

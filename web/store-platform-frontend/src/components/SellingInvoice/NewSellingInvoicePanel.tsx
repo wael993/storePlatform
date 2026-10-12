@@ -18,6 +18,8 @@ import { useTranslation } from 'react-i18next'
 import {
 	useGetCustomersQuery,
 	useGetInvoiceSettingsQuery,
+	useGetPartnersQuery,
+	useGetSuppliersQuery,
 	useGetSellingInvoiceQuery,
 	usePostSellingInvoiceMutation,
 	useUpdateSellingInvoiceMutation,
@@ -45,8 +47,10 @@ import EditableDiscountField from './EditableDiscountField'
 import {
 	buildInvoiceRequestBody,
 	mapApiInvoiceToDraft,
+	type ApiSellingInvoice,
 } from './invoiceApiMappers'
 import { createInvoiceDraft, WALK_IN_CUSTOMER_ID } from './invoiceDraftSessions'
+import { buildEntryPartyOptions } from './utils'
 import InvoiceLineItemsTable from './InvoiceLineItemsTable'
 import InvoiceProductSearch from './InvoiceProductSearch'
 import { useInventoryByProductId } from './useInventoryByProductId'
@@ -93,6 +97,7 @@ interface NewSellingInvoicePanelProps {
 	initialPricingLabels?: PricingLabelsType
 	mode?: InvoicePanelMode
 	invoiceId?: string
+	invoice?: ApiSellingInvoice
 	onRequestEdit?: () => void
 	/** Controlled draft for multi-tab create sessions */
 	draft?: SellingInvoiceDraft
@@ -107,6 +112,8 @@ interface NewSellingInvoicePanelProps {
 	onCloseDraftTab?: (tabId: string) => void
 	onAddDraftTab?: () => void
 	customers?: Customer[]
+	initialCustomerId?: string
+	initialCustomerName?: string
 }
 
 const PaymentTypeButton = ({
@@ -205,6 +212,7 @@ const NewSellingInvoicePanel = ({
 	initialPricingLabels = PricingLabelsType.RETAIL_PRICE,
 	mode = 'create',
 	invoiceId,
+	invoice,
 	onRequestEdit,
 	draft: controlledDraft,
 	onDraftChange,
@@ -214,6 +222,8 @@ const NewSellingInvoicePanel = ({
 	onCloseDraftTab,
 	onAddDraftTab,
 	customers: customersProp,
+	initialCustomerId,
+	initialCustomerName,
 }: NewSellingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
@@ -221,14 +231,26 @@ const NewSellingInvoicePanel = ({
 	const { canSee } = useSee()
 	const canAddSelling = canSee(SEE.sellingInvoicesSellingButton)
 	const canEditInvoiceDiscount = canSee(SEE.invoicesInvoiceDiscount)
+	const isView = mode === 'view'
 	const { data: fetchedCustomers = [] } = useGetCustomersQuery(undefined, {
-		skip: customersProp !== undefined,
+		skip: isView || customersProp !== undefined,
 		refetchOnMountOrArgChange: false,
 	})
+	const { data: partySuppliers = [], isLoading: isSuppliersLoading } =
+		useGetSuppliersQuery(
+			{},
+			{ skip: !isActive || isView, refetchOnMountOrArgChange: false },
+		)
+	const { data: partyPartners = [], isLoading: isPartnersLoading } =
+		useGetPartnersQuery(undefined, {
+			skip: !isActive || isView,
+			refetchOnMountOrArgChange: false,
+		})
 	const { data: invoiceSettings } = useGetInvoiceSettingsQuery(undefined, {
+		skip: !isActive || isView,
 		refetchOnMountOrArgChange: false,
 	})
-	const inventoryByProductId = useInventoryByProductId()
+	const inventoryByProductId = useInventoryByProductId(isActive && !isView)
 	const customers = customersProp ?? fetchedCustomers
 	const [postSellingInvoice, { isLoading: isCreating }] =
 		usePostSellingInvoiceMutation()
@@ -243,21 +265,29 @@ const NewSellingInvoicePanel = ({
 		mode === 'create' && Boolean(controlledDraft && onDraftChange)
 
 	const {
-		data: existingInvoice,
+		data: fetchedInvoice,
 		isLoading: isLoadingInvoice,
 		isError: isInvoiceError,
 	} = useGetSellingInvoiceQuery(invoiceId ?? '', {
-		skip: !isActive || !invoiceId || !isExistingInvoice,
+		skip: !isActive || !invoiceId || !isExistingInvoice || invoice != null,
 	})
+	const existingInvoice = invoice ?? fetchedInvoice
 
 	const salesPerson = [user?.firstName, user?.lastName]
 		.filter(Boolean)
 		.join(' ')
 
 	const [internalDraft, setInternalDraft] = useState<SellingInvoiceDraft>(() =>
-		createInvoiceDraft(salesPerson || user?.email || 'User', {
-			pricingLabels: initialPricingLabels,
-		}),
+		invoice
+			? mapApiInvoiceToDraft(
+					invoice,
+					t('components.sellingInvoices.drawer.walkInCustomer'),
+				)
+			: createInvoiceDraft(salesPerson || user?.email || 'User', {
+					pricingLabels: initialPricingLabels,
+					customerId: initialCustomerId,
+					customerName: initialCustomerName,
+				}),
 	)
 
 	const draft =
@@ -303,7 +333,10 @@ const NewSellingInvoicePanel = ({
 			createInvoiceDraft(salesPerson || user?.email || 'User', {
 				pricingLabels: initialPricingLabels,
 				invoiceNumber: nextInvoiceNumber,
-				customerName: t('components.sellingInvoices.drawer.walkInCustomer'),
+				customerId: initialCustomerId,
+				customerName:
+					initialCustomerName ||
+					t('components.sellingInvoices.drawer.walkInCustomer'),
 				warehouseId: operationalWarehouseId ?? '',
 			}),
 		)
@@ -313,6 +346,8 @@ const NewSellingInvoicePanel = ({
 		isExistingInvoice,
 		isControlledCreate,
 		initialPricingLabels,
+		initialCustomerId,
+		initialCustomerName,
 		nextInvoiceNumber,
 		salesPerson,
 		user?.email,
@@ -394,14 +429,24 @@ const NewSellingInvoicePanel = ({
 				totals.grandTotal > draft.paidAmount))
 
 	const customerOptions = useMemo(
-		(): Pick<Customer, 'customerId' | 'name'>[] => [
+		(): DropdownOption[] => [
 			{
-				customerId: WALK_IN_CUSTOMER_ID,
-				name: t('components.sellingInvoices.drawer.walkInCustomer'),
+				value: WALK_IN_CUSTOMER_ID,
+				label: t('components.sellingInvoices.drawer.walkInCustomer'),
 			},
-			...customers,
+			...buildEntryPartyOptions(
+				partyPartners,
+				customers.map(customer => ({
+					id: customer.customerId,
+					name: customer.name,
+				})),
+				partySuppliers.map(supplier => ({
+					id: supplier.supplierId,
+					name: supplier.name,
+				})),
+			),
 		],
-		[customers, t],
+		[customers, partyPartners, partySuppliers, t],
 	)
 
 	const handleAddProduct = (product: Product) => {
@@ -463,14 +508,12 @@ const NewSellingInvoicePanel = ({
 	}
 
 	const handleCustomerChange = (customerId: string) => {
-		const customer = customerOptions.find(
-			option => option.customerId === customerId,
-		)
+		const customer = customerOptions.find(option => option.value === customerId)
 
 		setDraft(current => ({
 			...current,
 			customerId,
-			customerName: customer?.name ?? current.customerName,
+			customerName: customer?.label ?? current.customerName,
 		}))
 	}
 
@@ -852,10 +895,7 @@ const NewSellingInvoicePanel = ({
 
 					<DropdownLabel
 						label={t('components.sellingInvoices.drawer.customer')}
-						options={customerOptions.map(customer => ({
-							label: customer.name,
-							value: customer.customerId,
-						}))}
+						options={customerOptions}
 						selectedOptions={[
 							{ label: draft.customerName, value: draft.customerId },
 						]}
@@ -864,6 +904,7 @@ const NewSellingInvoicePanel = ({
 						isSingle
 						isSearchable
 						isDisabled={isReadOnly}
+						isLoading={isPartnersLoading || isSuppliersLoading}
 						customStyles={{
 							dropdownContainer: {
 								width: '100%',

@@ -89,8 +89,6 @@ export const getSeeSetForContext = async (
 	return getSeeSet(requestContext.tenantId, requestContext.role)
 }
 
-export const canSee = (see: Set<SeeId>, id: SeeId): boolean => see.has(id)
-
 export const canSeeAny = (see: Set<SeeId>, ids: SeeId[]): boolean =>
 	ids.some(id => see.has(id))
 
@@ -106,11 +104,7 @@ const RESOURCE_SEE: Partial<Record<TenantResource, SeeId | SeeId[]>> = {
 		SEE.sellingInvoices,
 		SEE.sellingInvoicesBuyingButton,
 	],
-	[COLLECTION_NAMES.SYNC_MUTATIONS]: [
-		SEE.products,
-		SEE.sellingInvoices,
-		SEE.daily,
-	],
+	[COLLECTION_NAMES.SYNC_MUTATIONS]: [SEE.products, SEE.sellingInvoices],
 	[COLLECTION_NAMES.INVOICES]: SEE.sellingInvoices,
 	[COLLECTION_NAMES.BUYING_INVOICES]: SEE.sellingInvoicesBuyingButton,
 	[COLLECTION_NAMES.CUSTOMERS]: [SEE.customers, SEE.sellingInvoices],
@@ -120,11 +114,8 @@ const RESOURCE_SEE: Partial<Record<TenantResource, SeeId | SeeId[]>> = {
 	[COLLECTION_NAMES.REPORTS]: SEE.reports,
 	[COLLECTION_NAMES.EMPLOYEES]: SEE.employees,
 	[COLLECTION_NAMES.USERS]: [SEE.usersInvite, SEE.usersList],
-	[COLLECTION_NAMES.DAILY_ACTIONS]: [
-		SEE.daily,
-		SEE.sellingInvoicesEntriesButton,
-	],
-	[COLLECTION_NAMES.EXPENSES]: [SEE.daily, SEE.sellingInvoicesEntriesButton],
+	[COLLECTION_NAMES.DAILY_ACTIONS]: [SEE.sellingInvoicesEntriesButton],
+	[COLLECTION_NAMES.EXPENSES]: [SEE.sellingInvoicesEntriesButton],
 	[COLLECTION_NAMES.CURRENCIES]: SEE.settings,
 	[COLLECTION_NAMES.ORDERS]: SEE.orders,
 }

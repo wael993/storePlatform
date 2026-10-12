@@ -1,11 +1,13 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
+import { Invoice } from '../../models/Invoice'
 import { Product } from '../../models/Products'
 import { Supplier } from '../../models/Supplier'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
+import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
@@ -20,18 +22,28 @@ import {
 	RequestContext,
 } from '../../shared/types'
 import { DailyActionResponse, SuppliersResponse } from '../../shared/types/api'
-import { filterSupplierRelatedActions, mapSuppliers } from '../mappings/mapper'
+import {
+	filterSupplierRelatedActions,
+	groupInvoicesByPartyId,
+	mapSuppliers,
+} from '../mappings/mapper'
 
 export type SupplierInvoiceCollaborator = {
-	getDailyActions(requestContext: RequestContext): Promise<DailyActionResponse>
+	getDailyActions(
+		requestContext: RequestContext,
+		filters?: object,
+		warehouseScope?: 'working' | 'acl',
+	): Promise<DailyActionResponse>
+	getPartyEntries(
+		requestContext: RequestContext,
+		ids: string[],
+		fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
+	): Promise<DailyActionResponse['data']>
 	buildSupplierInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		supplierEntries?: DailyActionResponse['data'],
 	): SupplierInvoiceSummary
 }
-
-const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const canSeePayable = (requestContext: RequestContext) =>
 	(requestContext.see || []).includes('suppliers.totalPayable')
@@ -96,34 +108,36 @@ export default class SupplierController {
 			})
 		).documents
 
-		const invoicesBySupplierId = new Map<
-			string,
-			Array<Record<string, unknown>>
-		>()
-
-		for (const invoice of buyingInvoices) {
-			if (!isPlainRecord(invoice)) continue
-
-			const supplierId = String(invoice.supplierId ?? '')
-
-			if (!supplierId) continue
-
-			const existing = invoicesBySupplierId.get(supplierId)
-
-			if (existing) {
-				existing.push(invoice)
-			} else {
-				invoicesBySupplierId.set(supplierId, [invoice])
-			}
-		}
+		const sellingInvoices: unknown[] = (
+			await this.mongoDbClient.getDocuments({
+				requestContext,
+				collectionName: COLLECTION_NAMES.INVOICES,
+				model: Invoice,
+				sort: { createdAt: 'desc' },
+			})
+		).documents
+		const invoicesBySupplierId = groupInvoicesByPartyId(
+			buyingInvoices,
+			'supplierId',
+		)
+		const sellingInvoicesByCustomerId = groupInvoicesByPartyId(
+			sellingInvoices,
+			'customerId',
+		)
 
 		const data = suppliers.documents.map((supplier: SupplierDocument) => {
 			const actions = filterSupplierRelatedActions(dailyActions.data, supplier)
-			const { totalPayable } =
+			const { totalPayable: buyingPayable } =
 				this.invoiceCollaborator.buildSupplierInvoiceSummary(
 					invoicesBySupplierId.get(supplier.supplierId) ?? [],
 					actions,
 				)
+			const sellingOwed = this.invoiceCollaborator.buildSupplierInvoiceSummary(
+				sellingInvoicesByCustomerId.get(supplier.supplierId) ?? [],
+				[],
+			)
+			const totalPayable =
+				buyingPayable - (sellingOwed.totalInvoiced - sellingOwed.totalPaid)
 
 			return {
 				supplierId: supplier.supplierId,
@@ -183,9 +197,39 @@ export default class SupplierController {
 			return null
 		}
 
-		const dailyActions =
-			await this.invoiceCollaborator.getDailyActions(requestContext)
-		const actions = filterSupplierRelatedActions(dailyActions.data, supplier)
+		const ids = [supplier.supplierId, supplier.internalCode].filter(
+			(id): id is string => Boolean(id),
+		)
+		const tenantId = this.getTenantId(requestContext)
+		const [actions, buyingInvoices, sellingInvoices] = await Promise.all([
+			this.invoiceCollaborator.getPartyEntries(requestContext, ids, [
+				'supplierId',
+				'customerId',
+			]),
+			withTenantScope(
+				BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
+					createdAt: 'desc',
+				}),
+				tenantId,
+			).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+			withTenantScope(
+				Invoice.find({ customerId: { $in: ids } }).sort({ createdAt: 'desc' }),
+				tenantId,
+			).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+		])
+		const invoices = filterByWarehouseAcl(requestContext, buyingInvoices)
+		const sellingInvoicesInScope = filterByWarehouseAcl(
+			requestContext,
+			sellingInvoices,
+		)
+		const own = this.invoiceCollaborator.buildSupplierInvoiceSummary(
+			invoices,
+			actions,
+		)
+		const sellingOwed = this.invoiceCollaborator.buildSupplierInvoiceSummary(
+			sellingInvoicesInScope,
+			[],
+		)
 
 		const mappedSuppliers = mapSuppliers([
 			{
@@ -217,7 +261,21 @@ export default class SupplierController {
 
 		if (!mapped) return null
 
-		return omitPayableIfHidden(mapped, requestContext)
+		return omitPayableIfHidden(
+			{
+				...mapped,
+				invoices,
+				sellingInvoices: sellingInvoicesInScope,
+				invoiceSummary: {
+					totalInvoiced: own.totalInvoiced,
+					totalPaid: own.totalPaid,
+					outstanding:
+						own.totalPayable -
+						(sellingOwed.totalInvoiced - sellingOwed.totalPaid),
+				},
+			},
+			requestContext,
+		)
 	}
 
 	public async postSupplier(
@@ -301,7 +359,7 @@ export default class SupplierController {
 	private async findSupplierDeleteBlocks(tenantId: string, ids: string[]) {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
-		const [products, buyingInvoices] = await Promise.all([
+		const [products, buyingInvoices, sellingInvoices] = await Promise.all([
 			withTenantScope(
 				Product.find({ supplierId: { $in: uniqueIds } })
 					.select({ supplierId: 1 })
@@ -311,6 +369,12 @@ export default class SupplierController {
 			withTenantScope(
 				BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
 					.select({ supplierId: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				Invoice.find({ customerId: { $in: uniqueIds } })
+					.select({ customerId: 1 })
 					.lean(),
 				tenantId,
 			),
@@ -330,6 +394,15 @@ export default class SupplierController {
 				blocked.set(
 					row.supplierId,
 					'This supplier has buying invoices and cannot be deleted.',
+				)
+			}
+		}
+
+		for (const row of sellingInvoices) {
+			if (row.customerId && !blocked.has(row.customerId)) {
+				blocked.set(
+					row.customerId,
+					'This supplier has selling invoices and cannot be deleted.',
 				)
 			}
 		}

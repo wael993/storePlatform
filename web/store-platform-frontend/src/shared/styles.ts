@@ -77,39 +77,3 @@ export const cellFieldStyles: EditableCellFieldProps['customStyles'] = {
 		maxWidth: '3rem',
 	},
 } satisfies StylesObject
-
-export const editableCellFieldStyles = {
-	mainFlexWrapper: {
-		width: 'unset',
-		height: inputHeight,
-	},
-	mainRow: {
-		marginRight: '0',
-		border: 'none',
-		gap: '0',
-		backgroundColor: '#D8D8D8',
-		alignItems: 'center',
-		width: 'min-content',
-		maxWidth: '9rem',
-		height: inputHeight,
-	},
-	mainTextWrapper: {
-		display: 'flex',
-		backgroundColor: '#D8D8D8',
-		alignItems: 'center',
-		height: inputHeight,
-		minHeight: inputHeight,
-		width: 'min-content',
-		maxWidth: '8rem',
-	},
-	valueText: {
-		fontWeight: 'bold',
-		textAlign: 'left',
-		fontSize: '0.75rem',
-		width: 'fit-content',
-		maxWidth: '5rem',
-		color: '#1E1E1E',
-		alignItems: 'center',
-		whiteSpace: 'nowrap',
-	},
-} satisfies EditableCellFieldProps['customStyles']

@@ -1,4 +1,4 @@
-import mongoose, { HydratedDocument, Model, Schema } from 'mongoose'
+import mongoose, { Model, Schema } from 'mongoose'
 import {
 	PRODUCT_IMPORT_STATUS,
 	ProductImportStatus,
@@ -31,9 +31,6 @@ export interface IProductImportSession {
 	createdAt: Date
 	updatedAt: Date
 }
-
-export type ProductImportSessionDocument =
-	HydratedDocument<IProductImportSession>
 
 const productImportSessionSchema = new Schema<IProductImportSession>(
 	{
