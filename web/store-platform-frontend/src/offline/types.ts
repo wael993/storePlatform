@@ -23,6 +23,7 @@ export type OutboxEntity =
 	| 'warehouse'
 	| 'expense'
 	| 'dailyAction'
+	| 'cashTransfer'
 	| 'currency'
 	| 'unit'
 	| 'userSettings'

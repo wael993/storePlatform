@@ -193,7 +193,36 @@ export const cashPostsFromPendingCreate = (
 	if (entity === 'invoice') return postsForInvoice(payload, 1)
 	if (entity === 'buyingInvoice') return postsForInvoice(payload, -1)
 	if (entity === 'dailyAction') return postsForDailyAction(payload)
+	if (entity === 'cashTransfer') return postsForCashTransfer(payload)
 	return []
+}
+
+const postsForCashTransfer = (payload: {
+	fromAccountType?: unknown
+	toAccountType?: unknown
+	amount?: unknown
+	currencyId?: unknown
+}) => {
+	const fromAccountType = String(payload.fromAccountType ?? '')
+	const toAccountType = String(payload.toAccountType ?? '')
+	const currencyId =
+		typeof payload.currencyId === 'string' ? payload.currencyId.trim() : ''
+	const amount = roundPrimary(Math.abs(Number(payload.amount)))
+
+	if (
+		!CASH_ACCOUNT_TYPES.has(fromAccountType) ||
+		!CASH_ACCOUNT_TYPES.has(toAccountType) ||
+		fromAccountType === toAccountType ||
+		!currencyId ||
+		!(amount > 0)
+	) {
+		return []
+	}
+
+	return [
+		{ accountType: fromAccountType, currencyId, amount: -amount },
+		{ accountType: toAccountType, currencyId, amount },
+	]
 }
 
 const normalizeSnapshot = (value: CashBalances): CashBalances => ({
@@ -236,7 +265,7 @@ export const rememberCashBalances = async (data: unknown) => {
 
 /**
  * Last online balances for the scope that was open when they were saved,
- * plus unsynced creates. Edits of already-synced invoices and cash transfers
+ * plus unsynced creates and cash transfers. Edits of already-synced invoices
  * stay on the server until the next sync.
  */
 export const readOfflineCashBalances = async (
@@ -255,7 +284,8 @@ export const readOfflineCashBalances = async (
 				entry.operation === 'create' &&
 				(entry.entity === 'invoice' ||
 					entry.entity === 'buyingInvoice' ||
-					entry.entity === 'dailyAction'),
+					entry.entity === 'dailyAction' ||
+					entry.entity === 'cashTransfer'),
 		)
 		.toArray()
 

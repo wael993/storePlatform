@@ -11,7 +11,6 @@ import {
 	ModalOverlay,
 	SimpleGrid,
 	Text,
-	Tooltip,
 } from '@chakra-ui/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -26,7 +25,6 @@ import {
 	useUpdateDailyActionMutation,
 } from '../../api/apiStore'
 import { getApiErrorMessage } from '../../offline/getApiErrorMessage'
-import { getWorkMode } from '../../offline/workMode'
 import { buildEntryInvoiceDateIso } from '../../shared/dateUtils'
 import { DailyActionType } from '../../shared/globalEnums'
 import {
@@ -42,8 +40,6 @@ import useCustomToast from '../common/CustomToast'
 import DropdownLabel from '../DropdownLabel'
 import { PAGE_COLORS } from './constants'
 import { useSee } from '../../shared/hooks/useSee'
-import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
-import { useUser } from '../../shared/hooks/useUser'
 import { SEE } from '../../shared/seeFlags'
 import { currencyBalanceOf } from 'store-domain'
 
@@ -137,9 +133,6 @@ const QuickEntryModal = ({
 }: QuickEntryModalProps) => {
 	const showToast = useCustomToast()
 	const { canSee } = useSee()
-	const { user } = useUser()
-	const { isOnline } = useOfflineSync(user?.tenantId)
-	const cashOpsOnline = isOnline && getWorkMode() !== 'offline'
 	const { t, i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
 	const hasInitializedCurrency = useRef(false)
@@ -184,7 +177,7 @@ const QuickEntryModal = ({
 		[displayCurrencyOptions],
 	)
 	const { data: cashBalances } = useGetCashAccountBalancesQuery(undefined, {
-		skip: !isOpen || isReadOnly || !cashOpsOnline,
+		skip: !isOpen || isReadOnly,
 		refetchOnMountOrArgChange: false,
 	})
 	const { data: expenses = [], isLoading: isExpensesLoading } =
@@ -227,15 +220,6 @@ const QuickEntryModal = ({
 			}))
 		}
 	}, [initialEntry, initialPartyId, initialPartyName, isOpen, mode])
-
-	useEffect(() => {
-		if (cashOpsOnline || activeTab !== TRANSFER_TAB) return
-		setActiveTab(DailyActionType.RECEIPT_ENTRY)
-		setForm(current => ({
-			...current,
-			entryType: DailyActionType.RECEIPT_ENTRY,
-		}))
-	}, [activeTab, cashOpsOnline])
 
 	useEffect(() => {
 		if (
@@ -593,7 +577,6 @@ const QuickEntryModal = ({
 	const isTransferSaveDisabled =
 		isSaving ||
 		isCurrenciesLoading ||
-		!cashOpsOnline ||
 		!hasCashBalances ||
 		!transferForm.fromAccountType ||
 		!transferForm.toAccountType ||
@@ -663,7 +646,6 @@ const QuickEntryModal = ({
 	const handleSave = async () => {
 		try {
 			if (isTransferTab) {
-				if (!cashOpsOnline) return
 				const amountRaw = formatNumberForDb(transferForm.amount, 2)
 				const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
 				if (
@@ -777,22 +759,13 @@ const QuickEntryModal = ({
 								},
 							),
 						)}
-						{canShowTransferTab && (
-							<Tooltip
-								label={t('components.sellingInvoices.entries.transferOffline')}
-								isDisabled={cashOpsOnline}
-							>
-								<span style={{ flex: 1, display: 'flex' }}>
-									{tabButton(
-										TRANSFER_TAB,
-										t('components.sellingInvoices.entries.transfer'),
-										isTransferTab,
-										() => setActiveTab(TRANSFER_TAB),
-										!cashOpsOnline,
-									)}
-								</span>
-							</Tooltip>
-						)}
+						{canShowTransferTab &&
+							tabButton(
+								TRANSFER_TAB,
+								t('components.sellingInvoices.entries.transfer'),
+								isTransferTab,
+								() => setActiveTab(TRANSFER_TAB),
+							)}
 					</HStack>
 
 					<Divider mb={4} borderColor={PAGE_COLORS.border} />

@@ -577,6 +577,10 @@ const buildBuyingInvoicesSummary = (invoices: LocalBuyingInvoice[]) => {
 }
 
 const entityFromUrl = (path: string, method: string): OutboxEntity | null => {
+	if (path === 'cash-accounts/transfers' && method === 'POST') {
+		return 'cashTransfer'
+	}
+
 	const segment = path.split('/')[0]
 	const map: Record<string, OutboxEntity> = {
 		invoices: 'invoice',
@@ -1153,6 +1157,8 @@ const handleGenericMutation = async (
 	return { success: true, clientMutationId, offline: true }
 }
 
+const CASH_ACCOUNT_TYPES = new Set(['daily_cash', 'cash_reserve', 'online'])
+
 const applyLocalEntityMutation = async (
 	entity: OutboxEntity,
 	method: string,
@@ -1326,6 +1332,39 @@ const applyLocalEntityMutation = async (
 
 	if (entity === 'expense' && op === 'delete') {
 		await offlineDb.expenses.delete(path.split('/')[1])
+		return
+	}
+
+	if (entity === 'cashTransfer' && op === 'create') {
+		const fromAccountType = String(payload.fromAccountType ?? '')
+		const toAccountType = String(payload.toAccountType ?? '')
+		const currencyId = String(payload.currencyId ?? '').trim()
+		const amount = Number(payload.amount)
+
+		if (
+			!CASH_ACCOUNT_TYPES.has(fromAccountType) ||
+			!CASH_ACCOUNT_TYPES.has(toAccountType)
+		) {
+			throw new Error('From account type is invalid.')
+		}
+
+		if (fromAccountType === toAccountType) {
+			throw new Error('From and To accounts must be different.')
+		}
+
+		if (!currencyId) {
+			throw new Error('Transfer currency is required.')
+		}
+
+		if (!Number.isFinite(amount) || amount <= 0) {
+			throw new Error('Transfer amount must be greater than zero.')
+		}
+
+		payload.currencyId = currencyId
+		payload.amount = amount
+		payload.warehouseId = requireOperationalWarehouseId(
+			typeof payload.warehouseId === 'string' ? payload.warehouseId : undefined,
+		)
 		return
 	}
 
@@ -2420,17 +2459,6 @@ export const handleOfflineQuery = async (
 			return { data }
 		}
 
-		if (method === 'POST' && path === 'cash-accounts/transfers') {
-			return {
-				error: {
-					status: 503,
-					data: {
-						message: 'Cash transfer requires an online connection.',
-					},
-				},
-			}
-		}
-
 		if (
 			(method === 'PATCH' || method === 'DELETE') &&
 			path.startsWith('inventory/warehouse-transfers/')
@@ -2506,7 +2534,9 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	if (path.startsWith('subscription')) return false
 	if (path.startsWith('users')) return false
 	if (path.startsWith('employees')) return false
-	if (path === 'cash-accounts/balances') return true
+	if (path === 'cash-accounts/balances' || path === 'cash-accounts/transfers') {
+		return true
+	}
 	if (path.startsWith('cash-accounts')) return false
 	if (path.startsWith('user/')) return true
 	return true

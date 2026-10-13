@@ -859,7 +859,6 @@
 				"transferReason": "السبب (اختياري)",
 				"transferSavedSuccessfully": "تم التحويل بنجاح.",
 				"transferFailed": "فشل التحويل.",
-				"transferOffline": "يتطلب التحويل النقدي اتصالاً بالإنترنت.",
 				"saveFailed": "فشل حفظ السند.",
 				"insufficientBalance": "المبلغ يتجاوز الرصيد المتاح ({{available}} {{currency}})."
 			},

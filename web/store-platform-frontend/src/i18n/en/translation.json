@@ -859,7 +859,6 @@
 				"transferReason": "Reason (optional)",
 				"transferSavedSuccessfully": "Transfer completed successfully.",
 				"transferFailed": "Transfer failed.",
-				"transferOffline": "Cash transfer requires an online connection.",
 				"saveFailed": "Failed to save entry.",
 				"insufficientBalance": "Amount exceeds available balance ({{available}} {{currency}})."
 			},

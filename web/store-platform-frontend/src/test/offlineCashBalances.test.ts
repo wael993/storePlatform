@@ -98,6 +98,29 @@ describe('offline cash balances', () => {
 		).toEqual([{ accountType: 'daily_cash', currencyId: 'syp', amount: -30 }])
 	})
 
+	it('moves a pending transfer between accounts in that currency', () => {
+		const posts = cashPostsFromPendingCreate(
+			'cashTransfer',
+			{
+				warehouseId: 'w1',
+				fromAccountType: 'daily_cash',
+				toAccountType: 'cash_reserve',
+				amount: 15,
+				currencyId: 'syp',
+			},
+			rates,
+		)
+
+		expect(applyPendingCash(snapshot, posts)).toEqual({
+			accounts: [
+				{ type: 'daily_cash', name: 'Daily', balances: { syp: 85 } },
+				{ type: 'cash_reserve', name: 'Reserve', balances: { syp: 55 } },
+				{ type: 'online', name: 'Online', balances: { syp: 10 } },
+			],
+			totals: { syp: 150 },
+		})
+	})
+
 	it('posts a receipt in a secondary currency onto the chosen account', () => {
 		expect(
 			cashPostsFromPendingCreate(

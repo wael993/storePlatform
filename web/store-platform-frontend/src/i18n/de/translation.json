@@ -859,7 +859,6 @@
 				"transferReason": "Grund (optional)",
 				"transferSavedSuccessfully": "Umbuchung erfolgreich abgeschlossen.",
 				"transferFailed": "Umbuchung fehlgeschlagen.",
-				"transferOffline": "Umbuchung erfordert eine Online-Verbindung.",
 				"saveFailed": "Buchung konnte nicht gespeichert werden.",
 				"insufficientBalance": "Betrag übersteigt den verfügbaren Saldo ({{available}} {{currency}})."
 			},

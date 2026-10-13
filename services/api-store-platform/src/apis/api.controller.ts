@@ -6975,6 +6975,25 @@ export default class ProductController {
 					entry.operation,
 					data,
 				)
+			} else if (entry.entity === 'cashTransfer' && entry.method === 'POST') {
+				data = (await this.postCashTransfer(
+					payload as {
+						fromAccountType?: string
+						toAccountType?: string
+						amount?: number
+						currencyId?: string
+						reason?: string
+					},
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
 			} else if (entry.entity === 'dailyAction' && entry.method === 'POST') {
 				data = (await this.postDailyAction(
 					payload as unknown as DailyActionRequestBody,
