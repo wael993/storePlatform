@@ -206,23 +206,27 @@ export default class SupplierController {
 			(id): id is string => Boolean(id),
 		)
 		const tenantId = this.getTenantId(requestContext)
-		const [actions, buyingInvoices, sellingInvoices, rates] = await Promise.all([
-			this.invoiceCollaborator.getPartyEntries(requestContext, ids, [
-				'supplierId',
-				'customerId',
-			]),
-			withTenantScope(
-				BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
-					createdAt: 'desc',
-				}),
-				tenantId,
-			).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
-			withTenantScope(
-				Invoice.find({ customerId: { $in: ids } }).sort({ createdAt: 'desc' }),
-				tenantId,
-			).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
-			loadCashCurrencyRates(tenantId),
-		])
+		const [actions, buyingInvoices, sellingInvoices, rates] = await Promise.all(
+			[
+				this.invoiceCollaborator.getPartyEntries(requestContext, ids, [
+					'supplierId',
+					'customerId',
+				]),
+				withTenantScope(
+					BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
+						createdAt: 'desc',
+					}),
+					tenantId,
+				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+				withTenantScope(
+					Invoice.find({ customerId: { $in: ids } }).sort({
+						createdAt: 'desc',
+					}),
+					tenantId,
+				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+				loadCashCurrencyRates(tenantId),
+			],
+		)
 		const invoices = filterByWarehouseAcl(requestContext, buyingInvoices)
 		const sellingInvoicesInScope = filterByWarehouseAcl(
 			requestContext,

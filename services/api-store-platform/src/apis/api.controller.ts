@@ -41,7 +41,6 @@ import {
 import {
 	loadCashCurrencyRates,
 	syncDailyActionCashLedger,
-	toPrimaryCashAmount,
 } from '../shared/cashAccounts/posting'
 import { resolveCashAccountType } from '../shared/cashAccounts/types'
 import { ERROR_CODES } from '../shared/errorCodes'
@@ -51,7 +50,7 @@ import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
 import {
 	ESTABLISHED_COST_MOVING_TYPES,
 	establishedWarehouseIdsFromMovings,
-	amountToPrimary,
+	amountToPrimaryWithSnapshot,
 	availableQuantityFromStock,
 	catalogCostToPrimary,
 	finiteCost,
@@ -4556,21 +4555,23 @@ export default class ProductController {
 	) {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
 		const warehouseId = requireOperationalWarehouseId(requestContext)
-		const tenantId = this.getTenantId(requestContext)
 		const displayAmount = Number(requestBody.amount)
-		const rates = await loadCashCurrencyRates(tenantId)
-		const primaryAmount = toPrimaryCashAmount(
-			displayAmount,
-			requestBody.currencyId,
-			rates,
-		)
+		const currencyId = requestBody.currencyId?.trim()
+
+		if (!currencyId) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'Transfer currency is required.',
+			)
+		}
 
 		const result = await postInternalCashTransfer({
 			requestContext,
 			warehouseId,
 			fromAccountType: requestBody.fromAccountType as never,
 			toAccountType: requestBody.toAccountType as never,
-			amount: primaryAmount,
+			amount: displayAmount,
+			currencyId,
 			reason: requestBody.reason?.trim() || undefined,
 		})
 
@@ -4579,9 +4580,8 @@ export default class ProductController {
 			warehouseId,
 			fromAccountType: requestBody.fromAccountType,
 			toAccountType: requestBody.toAccountType,
-			amount: primaryAmount,
-			currencyId: requestBody.currencyId,
-			displayAmount: Number.isFinite(displayAmount) ? displayAmount : undefined,
+			amount: Number.isFinite(displayAmount) ? displayAmount : undefined,
+			currencyId,
 		}
 	}
 
@@ -4686,6 +4686,10 @@ export default class ProductController {
 
 		const createdAt = new Date()
 		const optionalString = (value?: string) => value?.trim() || undefined
+		const exchangeRateToPrimary = await this.exchangeRateForCurrency(
+			this.getTenantId(requestContext),
+			requestBody.currencyId,
+		)
 		const dailyActionData = {
 			actionId,
 			warehouseId: scopedWarehouseId,
@@ -4706,6 +4710,7 @@ export default class ProductController {
 			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
+			exchangeRateToPrimary,
 			cashAccountType: resolveCashAccountType(requestBody.cashAccountType),
 			unitId: optionalString(requestBody.unitId),
 			unitName: optionalString(requestBody.unitName),
@@ -4790,6 +4795,10 @@ export default class ProductController {
 		await this.ensureDailyActionsInWarehouseScope(requestContext, [actionId])
 
 		const optionalString = (value?: string) => value?.trim() || undefined
+		const exchangeRateToPrimary = await this.exchangeRateForCurrency(
+			this.getTenantId(requestContext),
+			requestBody.currencyId,
+		)
 		const dailyActionData = {
 			entryType: requestBody.entryType,
 			productId: optionalString(requestBody.productId),
@@ -4808,6 +4817,7 @@ export default class ProductController {
 			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
+			exchangeRateToPrimary,
 			cashAccountType: resolveCashAccountType(requestBody.cashAccountType),
 			unitId: optionalString(requestBody.unitId),
 			unitName: optionalString(requestBody.unitName),
@@ -4936,6 +4946,12 @@ export default class ProductController {
 		}
 	}
 
+	private async exchangeRateForCurrency(tenantId: string, currencyId: string) {
+		const rates = await loadCashCurrencyRates(tenantId)
+
+		return rates.find(rate => rate.currencyId === currencyId)?.exchangeRate ?? 1
+	}
+
 	private parseActionAmount(
 		action: DailyActionResponse['data'][number],
 		rates: readonly CostCurrencyRate[] = [],
@@ -4943,7 +4959,12 @@ export default class ProductController {
 		const rawAmount = action.totalPrice || action.singleUnitPrice || '0'
 		const amount = parseFloat(rawAmount.replace(/,/g, '')) || 0
 
-		return amountToPrimary(amount, action.currencyId, rates)
+		return amountToPrimaryWithSnapshot(
+			amount,
+			action.currencyId,
+			action.exchangeRateToPrimary,
+			rates,
+		)
 	}
 
 	private sumActionAmounts(

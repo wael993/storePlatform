@@ -19,6 +19,13 @@ export interface IInvoiceItem {
 	lineTotal?: number
 }
 
+export interface IInvoiceCashTender {
+	currencyId: string
+	tenderedAmount: number
+	appliedAmount: number
+	changeAmount: number
+}
+
 export interface IInvoiceCurrencyAmount {
 	currencyId: string
 	name: string
@@ -45,6 +52,12 @@ export interface IInvoice extends Document {
 	items?: IInvoiceItem[]
 	status: `${InvoiceStatus}`
 	paymentStatus?: `${InvoicePaymentStatus}`
+	/** Commercial currency selected when the invoice was saved. */
+	invoiceCurrencyId?: string
+	/** Cash box that received or paid this invoice. */
+	cashAccountType?: string
+	/** Money handed over, kept, and returned. Cash posts `appliedAmount` only. */
+	tenders?: IInvoiceCashTender[]
 	currencyAmounts: IInvoiceCurrencyAmount[]
 	notes?: string
 	invoiceDiscount?: number
@@ -78,6 +91,16 @@ const InvoiceItemSchema = new Schema<IInvoiceItem>(
 		discountIsPercent: { type: Boolean, default: true },
 		taxRate: { type: Number, min: 0, default: 0 },
 		lineTotal: { type: Number, min: 0 },
+	},
+	{ _id: false },
+)
+
+const InvoiceCashTenderSchema = new Schema<IInvoiceCashTender>(
+	{
+		currencyId: { type: String, required: true, trim: true },
+		tenderedAmount: { type: Number, required: true, min: 0 },
+		appliedAmount: { type: Number, required: true, min: 0 },
+		changeAmount: { type: Number, required: true, min: 0 },
 	},
 	{ _id: false },
 )
@@ -145,6 +168,18 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 			type: String,
 			enum: Object.values(InvoicePaymentStatus),
 			default: InvoicePaymentStatus.UNPAID,
+		},
+		invoiceCurrencyId: {
+			type: String,
+			trim: true,
+		},
+		cashAccountType: {
+			type: String,
+			trim: true,
+		},
+		tenders: {
+			type: [InvoiceCashTenderSchema],
+			default: undefined,
 		},
 		currencyAmounts: {
 			type: [InvoiceCurrencyAmountSchema],

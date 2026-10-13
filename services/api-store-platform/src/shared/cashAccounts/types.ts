@@ -89,7 +89,9 @@ export const CASH_REFERENCE_TYPES = {
 
 export type DesiredCashPost = {
 	accountType: CashAccountType
-	/** Signed primary-currency amount: + in, − out. */
+	/** Currency the notes were received or paid in. */
+	currencyId: string
+	/** Signed amount in `currencyId`: + in, − out. */
 	amount: number
 	movementType: CashMovementType
 }

@@ -7,13 +7,17 @@ import {
 	DailyActionType,
 } from '../shared/globalEnums'
 import {
+	allocateCashTenders,
+	currencyBalanceOf,
+	debitFitsCurrencyBalance,
+} from '../shared/store-domain/cashTender'
+import {
 	desiredPostsForBuyingInvoice,
 	desiredPostsForDailyAction,
 	desiredPostsForSellingInvoice,
+	reversedCashPost,
 	sumDesiredPosts,
 } from '../shared/cashAccounts/cashImpact'
-import { toPrimaryCashAmount } from '../shared/cashAccounts/posting'
-import { ratesFromCurrencySettings } from '../shared/inventoryCost'
 import {
 	CASH_ACCOUNT_TYPES,
 	CASH_MOVEMENT_TYPES,
@@ -28,10 +32,12 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CASH,
 				grandTotal: 100,
 				paidAmount: 100,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: 100,
 				movementType: CASH_MOVEMENT_TYPES.SALE,
 			},
@@ -43,10 +49,12 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CARD,
 				grandTotal: 40,
 				paidAmount: 40,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.ONLINE,
+				currencyId: 'usd',
 				amount: 40,
 				movementType: CASH_MOVEMENT_TYPES.SALE,
 			},
@@ -60,6 +68,7 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CREDIT,
 				grandTotal: 50,
 				paidAmount: 50,
+				currencyId: 'usd',
 			}),
 		).toEqual([])
 
@@ -69,10 +78,12 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CASH,
 				grandTotal: 50,
 				paidAmount: 10,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: 10,
 				movementType: CASH_MOVEMENT_TYPES.SALE,
 			},
@@ -86,10 +97,12 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CASH,
 				grandTotal: 20,
 				paidAmount: 20,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: -20,
 				movementType: CASH_MOVEMENT_TYPES.PURCHASE,
 			},
@@ -101,10 +114,12 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CARD,
 				grandTotal: 20,
 				paidAmount: 20,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.ONLINE,
+				currencyId: 'usd',
 				amount: -20,
 				movementType: CASH_MOVEMENT_TYPES.PURCHASE,
 			},
@@ -116,10 +131,12 @@ describe('cashImpact', () => {
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.RECEIPT_ENTRY,
 				amount: 15,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: 15,
 				movementType: CASH_MOVEMENT_TYPES.RECEIPT,
 			},
@@ -129,10 +146,12 @@ describe('cashImpact', () => {
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.PAYMENT_ENTRY,
 				amount: 5,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: -5,
 				movementType: CASH_MOVEMENT_TYPES.PAYMENT,
 			},
@@ -142,10 +161,12 @@ describe('cashImpact', () => {
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.EXPENSE_ENTRY,
 				amount: 3,
+				currencyId: 'usd',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: -3,
 				movementType: CASH_MOVEMENT_TYPES.EXPENSE,
 			},
@@ -157,11 +178,13 @@ describe('cashImpact', () => {
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.RECEIPT_ENTRY,
 				amount: 20,
+				currencyId: 'usd',
 				accountType: CASH_ACCOUNT_TYPES.ONLINE,
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.ONLINE,
+				currencyId: 'usd',
 				amount: 20,
 				movementType: CASH_MOVEMENT_TYPES.RECEIPT,
 			},
@@ -171,11 +194,13 @@ describe('cashImpact', () => {
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.PAYMENT_ENTRY,
 				amount: 8,
+				currencyId: 'usd',
 				accountType: CASH_ACCOUNT_TYPES.CASH_RESERVE,
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.CASH_RESERVE,
+				currencyId: 'usd',
 				amount: -8,
 				movementType: CASH_MOVEMENT_TYPES.PAYMENT,
 			},
@@ -185,11 +210,13 @@ describe('cashImpact', () => {
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.EXPENSE_ENTRY,
 				amount: 4,
+				currencyId: 'usd',
 				accountType: 'not_a_real_account',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
 				amount: -4,
 				movementType: CASH_MOVEMENT_TYPES.EXPENSE,
 			},
@@ -201,11 +228,13 @@ describe('cashImpact', () => {
 			sumDesiredPosts([
 				{
 					accountType: CASH_ACCOUNT_TYPES.CASH_RESERVE,
+					currencyId: 'usd',
 					amount: -500,
 					movementType: CASH_MOVEMENT_TYPES.TRANSFER,
 				},
 				{
 					accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+					currencyId: 'usd',
 					amount: 500,
 					movementType: CASH_MOVEMENT_TYPES.TRANSFER,
 				},
@@ -251,39 +280,78 @@ describe('cashImpact', () => {
 		).toThrow('From account type is invalid.')
 	})
 
-	it('converts secondary-currency cash amounts to primary before posting', () => {
-		// Primary USD; 1 USD = 10000 SYP → SYP.exchangeRate = 10000 (primary→display).
-		const rates = ratesFromCurrencySettings({
-			primaryCurrency: {
-				currencyId: 'usd',
-				name: 'US Dollar',
-				internalCode: 'USD',
-			},
-			secondaryCurrencies: [
-				{
-					currencyId: 'syp',
-					name: 'Syrian Pound',
-					internalCode: 'SYP',
-					exchangeRate: 10000,
-				},
-			],
-		})
-
-		expect(toPrimaryCashAmount(500, 'syp', rates)).toBe(0.05)
-		expect(toPrimaryCashAmount(500, 'usd', rates)).toBe(500)
-
+	it('posts the currency amount that was paid, not a primary conversion', () => {
 		expect(
 			desiredPostsForDailyAction({
 				entryType: DailyActionType.PAYMENT_ENTRY,
-				amount: toPrimaryCashAmount(500, 'syp', rates),
+				amount: 500,
+				currencyId: 'syp',
 			}),
 		).toEqual([
 			{
 				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
-				amount: -0.05,
+				currencyId: 'syp',
+				amount: -500,
 				movementType: CASH_MOVEMENT_TYPES.PAYMENT,
 			},
 		])
+	})
+
+	it('treats a missing currency balance as zero and will not spend another currency', () => {
+		expect(currencyBalanceOf({}, 'syp')).toBe(0)
+		expect(currencyBalanceOf({ usd: 100 }, 'syp')).toBe(0)
+		expect(debitFitsCurrencyBalance({ usd: 100 }, 'syp', 1)).toBe(false)
+		expect(debitFitsCurrencyBalance({ syp: 40 }, 'syp', 40)).toBe(true)
+		expect(debitFitsCurrencyBalance({ syp: 10 }, 'syp', 40)).toBe(false)
+	})
+
+	it('posts 37 when 40 is tendered against 37 and does not post the change', () => {
+		expect(
+			allocateCashTenders([{ currencyId: 'usd', tenderedAmount: 40 }], 37, [
+				{ currencyId: 'usd', exchangeRate: 1 },
+			]),
+		).toEqual([
+			{
+				currencyId: 'usd',
+				tenderedAmount: 40,
+				appliedAmount: 37,
+				changeAmount: 3,
+			},
+		])
+
+		expect(
+			desiredPostsForSellingInvoice({
+				status: InvoiceStatus.PAID,
+				paymentType: InvoicePaymentType.CASH,
+				grandTotal: 37,
+				paidAmount: 37,
+				currencyId: 'usd',
+				tenders: [{ currencyId: 'usd', appliedAmount: 37 }],
+			}),
+		).toEqual([
+			{
+				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'usd',
+				amount: 37,
+				movementType: CASH_MOVEMENT_TYPES.SALE,
+			},
+		])
+	})
+
+	it('reverses the original currency and amount', () => {
+		expect(
+			reversedCashPost({
+				accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+				currencyId: 'syp',
+				amount: 12000,
+				movementType: CASH_MOVEMENT_TYPES.SALE,
+			}),
+		).toEqual({
+			accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+			currencyId: 'syp',
+			amount: -12000,
+			movementType: CASH_MOVEMENT_TYPES.REVERSAL,
+		})
 	})
 
 	it('ignores drafts', () => {
@@ -294,6 +362,7 @@ describe('cashImpact', () => {
 				paymentType: InvoicePaymentType.CASH,
 				grandTotal: 99,
 				paidAmount: 99,
+				currencyId: 'usd',
 			}),
 		).toEqual([])
 	})

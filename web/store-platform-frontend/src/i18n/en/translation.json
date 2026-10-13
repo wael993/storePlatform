@@ -107,7 +107,6 @@
 			"unavailable": "Unavailable",
 			"error": "Could not load this metric.",
 			"loading": "Loading…",
-			"partial": "Partial",
 			"hints": {
 				"products": "All products in the tenant.",
 				"registeredCustomers": "All customers in the tenant.",
@@ -140,6 +139,8 @@
 			"online": "Online",
 			"total": "Total Cash",
 			"live": "Live",
+			"showAllCurrencies": "Show all currencies",
+			"showFewerCurrencies": "Show fewer currencies",
 			"historyTitle": "Cash History",
 			"historyEmpty": "No movements in this range",
 			"historyEmptyHint": "Try a different account, type, or date range.",
@@ -218,7 +219,6 @@
 			}
 		},
 		"inventory": {
-			"viewAll": "View all",
 			"soldCount": "{{count}} selling",
 			"cards": {
 				"inventoryWarnings": "Inventory warnings",
@@ -868,16 +868,6 @@
 			"searchPlaceholder": "Search invoice, customer...",
 			"empty": "No invoices found.",
 			"loadFailed": "Could not load invoices.",
-			"summaryTitle": "Summary",
-			"summary": {
-				"periodSales": "Period Sales",
-				"totalProfit": "Total Profit",
-				"bestSeller": "Best Seller",
-				"bestSellerValue": "{{name}} · {{quantity}} pcs",
-				"topProfitProduct": "Top Profit Product",
-				"topProfitProductValue": "{{name}} · {{profit}}",
-				"totalReceivable": "Total Receivable"
-			},
 			"status": {
 				"all": "All",
 				"paid": "Paid",

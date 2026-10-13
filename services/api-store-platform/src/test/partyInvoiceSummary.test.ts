@@ -12,11 +12,13 @@ const entry = (
 	entryType: DailyActionType,
 	totalPrice: string,
 	currencyId?: string,
+	exchangeRateToPrimary?: number,
 ): DailyActionResponse['data'][number] =>
 	({
 		entryType,
 		totalPrice,
 		currencyId,
+		exchangeRateToPrimary,
 	}) as DailyActionResponse['data'][number]
 
 const usdSypRates: CostCurrencyRate[] = [
@@ -90,6 +92,27 @@ describe('party invoice balances', () => {
 
 		expect(customer.totalReceivable).toBeCloseTo(-71.42857143, 5)
 		expect(supplier.totalPayable).toBeCloseTo(-71.42857143, 5)
+	})
+
+	it('keeps an invoice payment in the invoice and does not post it again', () => {
+		const customer = ops.buildCustomerInvoiceSummary([invoice(37, 37)], [])
+
+		expect(customer.totalReceivable).toBe(0)
+		expect(customer.totalPaid).toBe(37)
+	})
+
+	it('uses the stored entry rate when the live rate has changed', () => {
+		const liveRates: CostCurrencyRate[] = [
+			{ currencyId: 'usd', label: '$', name: 'USD', exchangeRate: 1 },
+			{ currencyId: 'syp', label: 'SYP', name: 'ليرة', exchangeRate: 200 },
+		]
+		const customer = ops.buildCustomerInvoiceSummary(
+			[],
+			[entry(DailyActionType.RECEIPT_ENTRY, '12000', 'syp', 100)],
+			liveRates,
+		)
+
+		expect(customer.totalReceivable).toBeCloseTo(-120, 5)
 	})
 
 	it('groups an invoice under the id stored on it', () => {

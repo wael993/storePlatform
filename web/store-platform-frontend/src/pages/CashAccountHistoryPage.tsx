@@ -157,10 +157,17 @@ const CashAccountHistoryPage = () => {
 		refetchOnMountOrArgChange: false,
 	})
 
-	const currencyLabel =
-		currencySettings?.primaryCurrency?.internalCode ||
-		currencySettings?.primaryCurrency?.name ||
-		''
+	const currencyCodeFor = (currencyId?: string) => {
+		if (!currencyId) return ''
+		const currencies = [
+			currencySettings?.primaryCurrency,
+			...(currencySettings?.secondaryCurrencies ?? []),
+		]
+		const match = currencies.find(
+			currency => currency?.currencyId === currencyId,
+		)
+		return match?.internalCode || match?.name || currencyId
+	}
 
 	const applyFilters = () => {
 		const next = new URLSearchParams()
@@ -184,9 +191,10 @@ const CashAccountHistoryPage = () => {
 	const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 	const entries = data?.entries ?? []
 
-	const formatAmount = (amount: number) => {
+	const formatAmount = (amount: number, currencyId?: string) => {
 		const formatted = formatNumber(Math.abs(amount)) ?? String(Math.abs(amount))
 		const signed = amount < 0 ? `−${formatted}` : `+${formatted}`
+		const currencyLabel = currencyCodeFor(currencyId)
 		return currencyLabel ? `${signed} ${currencyLabel}` : signed
 	}
 
@@ -369,7 +377,7 @@ const CashAccountHistoryPage = () => {
 												color={entry.amount < 0 ? 'red.600' : 'green.700'}
 												fontWeight={600}
 											>
-												{formatAmount(entry.amount)}
+												{formatAmount(entry.amount, entry.currencyId)}
 											</Td>
 											<Td>
 												<Text fontSize="sm">

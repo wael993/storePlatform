@@ -9,12 +9,23 @@ export {
 } from './inventoryCost'
 export {
 	amountToPrimary,
+	amountToPrimaryWithSnapshot,
 	catalogCostToPrimary,
 	ratesFromCurrencySettings,
 	resolveCurrencyIdFromCode,
 	roundPrimaryAmount,
 	type CostCurrencyRate,
 } from './primaryCost'
+export {
+	addCashBalances,
+	allocateCashTenders,
+	currencyBalanceOf,
+	debitFitsCurrencyBalance,
+	normalizeCashBalances,
+	type CashTender,
+	type CashTenderInput,
+	type CashTenderRate,
+} from './cashTender'
 export {
 	availableQuantityFromStock,
 	findOversellLines,

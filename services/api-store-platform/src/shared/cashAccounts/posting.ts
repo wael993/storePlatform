@@ -1,10 +1,15 @@
 import type { ClientSession } from 'mongoose'
 
 import CurrencySettings from '../../models/CurrencySettings'
+import { InvoicePaymentType } from '../globalEnums'
 import type { RequestContext } from '../types'
 import { getTenantContext } from '../tenant'
 import {
-	amountToPrimary,
+	allocateCashTenders,
+	type CashTender,
+	type CashTenderInput,
+} from '../store-domain/cashTender'
+import {
 	ratesFromCurrencySettings,
 	type CostCurrencyRate,
 } from '../inventoryCost'
@@ -12,9 +17,10 @@ import {
 	desiredPostsForBuyingInvoice,
 	desiredPostsForDailyAction,
 	desiredPostsForSellingInvoice,
+	type InvoiceCashTender,
 } from './cashImpact'
 import { syncCashEffectsForReference } from './ledgerService'
-import { CASH_REFERENCE_TYPES } from './types'
+import { CASH_REFERENCE_TYPES, isCashAccountType } from './types'
 
 const asFiniteNumber = (value: unknown) => {
 	const amount = typeof value === 'number' ? value : Number(value)
@@ -22,7 +28,7 @@ const asFiniteNumber = (value: unknown) => {
 	return Number.isFinite(amount) ? amount : 0
 }
 
-/** Cash ledger is primary-only; convert display amounts with tenant FX rates. */
+/** Party valuation and inventory cost still use these rates. Cash posting does not. */
 export const loadCashCurrencyRates = async (
 	tenantId: string,
 ): Promise<CostCurrencyRate[]> => {
@@ -32,12 +38,6 @@ export const loadCashCurrencyRates = async (
 
 	return ratesFromCurrencySettings(settings)
 }
-
-export const toPrimaryCashAmount = (
-	amount: number,
-	currencyId: string | null | undefined,
-	rates: readonly CostCurrencyRate[],
-) => amountToPrimary(amount, currencyId ?? null, rates)
 
 export const primaryInvoiceTotals = (
 	currencyAmounts: Array<{
@@ -63,6 +63,133 @@ export const primaryInvoiceTotals = (
 	}
 }
 
+type InvoiceAmountRow = {
+	currencyId?: string
+	isPrimary?: boolean
+	exchangeRate?: number
+	amount?: number
+	paidAmount?: number
+}
+
+const primaryCurrencyRow = (currencyAmounts: InvoiceAmountRow[] = []) =>
+	currencyAmounts.find(amount => amount.isPrimary) ?? currencyAmounts[0]
+
+/** Snapshot rates on the invoice, not the tenant's current settings. */
+export const storedInvoiceTenders = (
+	tenders: readonly CashTenderInput[] | undefined,
+	currencyAmounts: InvoiceAmountRow[] | undefined,
+): CashTender[] => {
+	const due = asFiniteNumber(primaryCurrencyRow(currencyAmounts)?.amount)
+	const inputs = (tenders ?? [])
+		.map(tender => ({
+			currencyId: String(tender.currencyId ?? '').trim(),
+			tenderedAmount: asFiniteNumber(tender.tenderedAmount),
+		}))
+		.filter(tender => tender.currencyId && tender.tenderedAmount > 0)
+
+	if (inputs.length === 0) return []
+
+	return allocateCashTenders(
+		inputs,
+		due,
+		(currencyAmounts ?? []).map(row => ({
+			currencyId: String(row.currencyId ?? ''),
+			exchangeRate: asFiniteNumber(row.exchangeRate) || 1,
+		})),
+	)
+}
+
+/** Old invoices have no invoice currency and no tenders. Keep that on edit. */
+export const isHistoricalInvoiceCash = (invoice: unknown) => {
+	if (!invoice || typeof invoice !== 'object') return false
+
+	const row = invoice as { invoiceCurrencyId?: unknown; tenders?: unknown }
+	const currencyId =
+		typeof row.invoiceCurrencyId === 'string'
+			? row.invoiceCurrencyId.trim()
+			: ''
+	const tenders = Array.isArray(row.tenders) ? row.tenders : []
+
+	return !currencyId && tenders.length === 0
+}
+
+export const prepareInvoiceCashFields = (params: {
+	paymentType?: string
+	invoiceCurrencyId?: string | null
+	cashAccountType?: string | null
+	currencyAmounts?: InvoiceAmountRow[]
+	tenders?: readonly CashTenderInput[]
+}) => {
+	const invoiceCurrencyId = params.invoiceCurrencyId?.trim() || undefined
+
+	if (params.paymentType === InvoicePaymentType.CREDIT) {
+		return {
+			invoiceCurrencyId,
+			cashAccountType: undefined,
+			tenders: [] as CashTender[],
+		}
+	}
+
+	return {
+		invoiceCurrencyId,
+		cashAccountType: isCashAccountType(params.cashAccountType)
+			? params.cashAccountType
+			: undefined,
+		tenders: storedInvoiceTenders(params.tenders, params.currencyAmounts),
+	}
+}
+
+const cashPostsForInvoice = (
+	kind: 'sale' | 'purchase',
+	params: {
+		status?: string
+		paymentStatus?: string
+		paymentType?: string
+		cashAccountType?: string | null
+		invoiceCurrencyId?: string | null
+		currencyAmounts?: InvoiceAmountRow[]
+		tenders?: CashTender[]
+		amount?: number
+		paidAmount?: number
+	},
+) => {
+	const rows = params.currencyAmounts ?? []
+	const primary = primaryCurrencyRow(rows)
+	const historical =
+		!params.invoiceCurrencyId?.trim() && !params.tenders?.length
+	const commercial = historical
+		? primary
+		: (rows.find(row => row.currencyId === params.invoiceCurrencyId) ?? primary)
+	const { grandTotal, paidAmount } = historical
+		? primaryInvoiceTotals(rows, {
+				amount: params.amount,
+				paidAmount: params.paidAmount,
+			})
+		: {
+				grandTotal: asFiniteNumber(commercial?.amount ?? params.amount),
+				paidAmount: asFiniteNumber(commercial?.paidAmount ?? params.paidAmount),
+			}
+	const invoice = {
+		status: params.status,
+		paymentStatus: params.paymentStatus,
+		paymentType: params.paymentType,
+		cashAccountType: params.cashAccountType,
+		grandTotal,
+		paidAmount,
+		currencyId: historical
+			? primary?.currencyId
+			: (commercial?.currencyId ?? params.invoiceCurrencyId),
+		tenders: (params.tenders ?? []).filter(
+			(tender): tender is InvoiceCashTender & CashTender =>
+				tender.appliedAmount > 0,
+		),
+	}
+
+	return kind === 'sale'
+		? desiredPostsForSellingInvoice(invoice)
+		: desiredPostsForBuyingInvoice(invoice)
+}
+
 export const syncSellingInvoiceCashLedger = async (params: {
 	requestContext: RequestContext
 	warehouseId: string
@@ -70,26 +197,15 @@ export const syncSellingInvoiceCashLedger = async (params: {
 	status?: string
 	paymentStatus?: string
 	paymentType?: string
-	currencyAmounts?: Array<{
-		isPrimary?: boolean
-		amount?: number
-		paidAmount?: number
-	}>
+	cashAccountType?: string | null
+	invoiceCurrencyId?: string | null
+	tenders?: CashTender[]
+	currencyAmounts?: InvoiceAmountRow[]
 	amount?: number
 	paidAmount?: number
 	session?: ClientSession
 }) => {
-	const { grandTotal, paidAmount } = primaryInvoiceTotals(
-		params.currencyAmounts,
-		{ amount: params.amount, paidAmount: params.paidAmount },
-	)
-	const desired = desiredPostsForSellingInvoice({
-		status: params.status,
-		paymentStatus: params.paymentStatus,
-		paymentType: params.paymentType,
-		grandTotal,
-		paidAmount,
-	})
+	const desired = cashPostsForInvoice('sale', params)
 
 	await syncCashEffectsForReference({
 		requestContext: params.requestContext,
@@ -109,26 +225,15 @@ export const syncBuyingInvoiceCashLedger = async (params: {
 	status?: string
 	paymentStatus?: string
 	paymentType?: string
-	currencyAmounts?: Array<{
-		isPrimary?: boolean
-		amount?: number
-		paidAmount?: number
-	}>
+	cashAccountType?: string | null
+	invoiceCurrencyId?: string | null
+	tenders?: CashTender[]
+	currencyAmounts?: InvoiceAmountRow[]
 	amount?: number
 	paidAmount?: number
 	session?: ClientSession
 }) => {
-	const { grandTotal, paidAmount } = primaryInvoiceTotals(
-		params.currencyAmounts,
-		{ amount: params.amount, paidAmount: params.paidAmount },
-	)
-	const desired = desiredPostsForBuyingInvoice({
-		status: params.status,
-		paymentStatus: params.paymentStatus,
-		paymentType: params.paymentType,
-		grandTotal,
-		paidAmount,
-	})
+	const desired = cashPostsForInvoice('purchase', params)
 
 	await syncCashEffectsForReference({
 		requestContext: params.requestContext,
@@ -146,7 +251,7 @@ export const syncDailyActionCashLedger = async (params: {
 	warehouseId: string
 	actionId: string
 	entryType?: unknown
-	/** Amount in the entry's currency (converted to primary before posting). */
+	/** Amount in `currencyId`. Posted as-is. */
 	amount: number
 	currencyId?: string | null
 	accountType?: string | null
@@ -154,16 +259,12 @@ export const syncDailyActionCashLedger = async (params: {
 	clear?: boolean
 }) => {
 	const tenantId = getTenantContext(params.requestContext).tenantId
-	const rates = params.clear ? [] : await loadCashCurrencyRates(tenantId)
-	const primaryAmount = params.clear
-		? 0
-		: toPrimaryCashAmount(params.amount, params.currencyId, rates)
-
 	const desired = params.clear
 		? []
 		: desiredPostsForDailyAction({
 				entryType: params.entryType,
-				amount: primaryAmount,
+				amount: params.amount,
+				currencyId: params.currencyId,
 				accountType: params.accountType,
 			})
 

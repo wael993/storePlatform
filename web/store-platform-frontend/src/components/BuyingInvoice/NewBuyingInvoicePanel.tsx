@@ -47,10 +47,7 @@ import {
 import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
-import {
-	calculateInvoiceTotals,
-	settleTenderedPayment,
-} from '../SellingInvoice/invoiceCalculations'
+import { calculateInvoiceTotals } from '../SellingInvoice/invoiceCalculations'
 import {
 	applyInvoiceLevelDiscount,
 	clearInvoiceDiscountFields,
@@ -67,6 +64,7 @@ import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCu
 import { mapCatalogItemToProduct } from '../SellingInvoice/useProductCatalog'
 import AddProductModal from '../../pages/AddProductModal'
 import CurrencyAmountTooltip from '../SellingInvoice/CurrencyAmountTooltip'
+import InvoicePaidSection from '../SellingInvoice/InvoicePaidSection'
 import DropdownLabel from '../DropdownLabel'
 import { AsPauseIcon } from '../../icons/Pause'
 import { AsSaveIcon } from '../icons/Save'
@@ -82,14 +80,26 @@ import { useUser } from '../../shared/hooks/useUser'
 import { useWarehouseScope } from '../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
-import { getEnabledActions, getTenantActions } from '../../shared/utils'
+import {
+	formatNumber,
+	getEnabledActions,
+	getTenantActions,
+} from '../../shared/utils'
 import { InvoicePaymentType, InvoiceStatus } from '../../shared/globalEnums'
 import {
 	buildBuyingInvoiceRequestBody,
 	mapApiBuyingInvoiceToDraft,
 	type ApiBuyingInvoice,
 } from './buyingInvoiceApiMappers'
-import { getPrimaryInvoiceCurrencyAmounts } from '../SellingInvoice/currencyDisplay'
+import {
+	convertPrimaryAmount,
+	getPrimaryInvoiceCurrencyAmounts,
+} from '../SellingInvoice/currencyDisplay'
+import {
+	allocateCashTenders,
+	currencyBalanceOf,
+	type CashTenderInput,
+} from 'store-domain'
 import { createBuyingInvoiceDraft } from './buyingInvoiceDraftSessions'
 import { buildEntryPartyOptions } from '../SellingInvoice/utils'
 import useCustomToast from '../common/CustomToast'
@@ -350,7 +360,8 @@ const NewBuyingInvoicePanel = ({
 		isLoading: isLoadingInvoice,
 		isError: isInvoiceError,
 	} = useGetBuyingInvoiceQuery(buyingInvoiceId ?? '', {
-		skip: !isActive || !buyingInvoiceId || !isExistingInvoice || invoice != null,
+		skip:
+			!isActive || !buyingInvoiceId || !isExistingInvoice || invoice != null,
 	})
 	const existingInvoice = invoice ?? fetchedInvoice
 	const isSaving = isCreating || isUpdating
@@ -511,6 +522,10 @@ const NewBuyingInvoicePanel = ({
 	)
 
 	const [cashTendered, setCashTendered] = useState<number | null>(null)
+	const [cashTenders, setCashTenders] = useState<CashTenderInput[] | null>(null)
+	const [cashAccountType, setCashAccountType] = useState(() =>
+		defaultInvoiceCashAccountType(draft.paymentType),
+	)
 
 	useEffect(() => {
 		if (
@@ -522,6 +537,7 @@ const NewBuyingInvoicePanel = ({
 		}
 
 		setCashTendered(null)
+		setCashTenders(null)
 		setDraft(current => ({
 			...current,
 			paidAmount: calculateInvoiceTotals(
@@ -538,12 +554,6 @@ const NewBuyingInvoicePanel = ({
 		isReadOnly,
 		setDraft,
 	])
-
-	const settledPayment = settleTenderedPayment(
-		cashTendered ?? draft.paidAmount,
-		totals.grandTotal,
-	)
-	const changeAmount = settledPayment.changeAmount
 
 	const supplierOptions = useMemo(
 		(): Pick<Supplier, 'supplierId' | 'name'>[] => suppliers,
@@ -573,41 +583,101 @@ const NewBuyingInvoicePanel = ({
 		draft.paymentType === InvoicePaymentType.CASH ||
 		draft.paymentType === InvoicePaymentType.CARD
 
-	const fromAccountBalancePrimary = useMemo(() => {
-		const accountType = defaultInvoiceCashAccountType(draft.paymentType)
-		const account = cashBalances?.accounts.find(
-			item => item.type === accountType,
-		)
-		return account?.balance ?? 0
-	}, [cashBalances?.accounts, draft.paymentType])
+	const allocatedCashOut = useMemo(() => {
+		if (!isCashOutPayment || !(draft.paidAmount > 0)) return []
 
-	const previousCashOutPrimary = useMemo(() => {
-		if (mode !== 'edit' || !existingInvoice || !isCashOutPayment) return 0
-		const previousType = defaultInvoiceCashAccountType(
-			existingInvoice.paymentType ?? InvoicePaymentType.CASH,
-		)
-		const currentType = defaultInvoiceCashAccountType(draft.paymentType)
-		if (previousType !== currentType) return 0
-		const { paidAmount } = getPrimaryInvoiceCurrencyAmounts(existingInvoice)
-		return paidAmount > 0 ? paidAmount : 0
-	}, [draft.paymentType, existingInvoice, isCashOutPayment, mode])
+		const inputs =
+			cashTenders && cashTenders.length > 0
+				? cashTenders
+				: displayCurrencyId
+					? [
+							{
+								currencyId: displayCurrencyId,
+								tenderedAmount: convertPrimaryAmount(
+									draft.paidAmount,
+									displayCurrencyId,
+									displayCurrencyOptions,
+								),
+							},
+						]
+					: []
 
-	const availableCashOutPrimary =
-		fromAccountBalancePrimary + previousCashOutPrimary
+		return allocateCashTenders(
+			inputs,
+			totals.grandTotal,
+			displayCurrencyOptions.map(option => ({
+				currencyId: option.currencyId,
+				exchangeRate: option.exchangeRate,
+			})),
+		)
+	}, [
+		cashTenders,
+		displayCurrencyId,
+		displayCurrencyOptions,
+		draft.paidAmount,
+		isCashOutPayment,
+		totals.grandTotal,
+	])
+
+	const previousCashOutByCurrency = useMemo(() => {
+		const previous: Record<string, number> = {}
+		if (mode !== 'edit' || !existingInvoice || !isCashOutPayment)
+			return previous
+
+		const previousType =
+			existingInvoice.cashAccountType ||
+			defaultInvoiceCashAccountType(
+				existingInvoice.paymentType ?? InvoicePaymentType.CASH,
+			)
+		if (previousType !== cashAccountType) return previous
+
+		const previousTenders = existingInvoice.tenders ?? []
+		if (previousTenders.length > 0) {
+			for (const tender of previousTenders) {
+				previous[tender.currencyId] =
+					(previous[tender.currencyId] ?? 0) + tender.appliedAmount
+			}
+			return previous
+		}
+
+		const primary = getPrimaryInvoiceCurrencyAmounts(existingInvoice)
+		if (primary.currencyId && primary.paidAmount > 0) {
+			previous[primary.currencyId] = primary.paidAmount
+		}
+		return previous
+	}, [cashAccountType, existingInvoice, isCashOutPayment, mode])
+
+	const accountBalances =
+		cashBalances?.accounts.find(item => item.type === cashAccountType)
+			?.balances ?? {}
+
+	const shortCashOut = allocatedCashOut.find(
+		tender =>
+			tender.appliedAmount >
+			currencyBalanceOf(accountBalances, tender.currencyId) +
+				(previousCashOutByCurrency[tender.currencyId] ?? 0),
+	)
 
 	const isInsufficientCashOut =
 		!isReadOnly &&
 		isCashOutPayment &&
 		Boolean(cashBalances) &&
-		draft.paidAmount > 0 &&
-		draft.paidAmount > availableCashOutPrimary
+		shortCashOut != null
 
-	const insufficientCashOutMessage = isInsufficientCashOut
-		? t('components.sellingInvoices.entries.insufficientBalance', {
-				available: formatAmount(availableCashOutPrimary),
-				currency: '',
-			}).replace(' )', ')')
-		: null
+	const insufficientCashOutMessage =
+		isInsufficientCashOut && shortCashOut
+			? t('components.sellingInvoices.entries.insufficientBalance', {
+					available:
+						formatNumber(
+							currencyBalanceOf(accountBalances, shortCashOut.currencyId) +
+								(previousCashOutByCurrency[shortCashOut.currencyId] ?? 0),
+						) ?? '0.00',
+					currency:
+						displayCurrencyOptions.find(
+							option => option.currencyId === shortCashOut.currencyId,
+						)?.label ?? '',
+				})
+			: null
 
 	const handleAddProduct = (product: Product, targetLineId?: string) => {
 		setDraft(current => {
@@ -819,6 +889,8 @@ const NewBuyingInvoicePanel = ({
 
 	const handlePaymentTypeChange = (paymentType: BuyingInvoicePaymentType) => {
 		setCashTendered(null)
+		setCashTenders(null)
+		setCashAccountType(defaultInvoiceCashAccountType(paymentType))
 		setDraft(current => ({
 			...current,
 			paymentType,
@@ -908,6 +980,11 @@ const NewBuyingInvoicePanel = ({
 				draft,
 				status,
 				currencySettings,
+				{
+					invoiceCurrencyId: displayCurrencyId,
+					cashAccountType,
+					cashTenders,
+				},
 			)
 			if (isExistingInvoice) {
 				await updateBuyingInvoice({
@@ -1445,6 +1522,57 @@ const NewBuyingInvoicePanel = ({
 						</HStack>
 					</Box>
 
+					{!isReadOnly && draft.paymentType !== InvoicePaymentType.CREDIT && (
+						<Box maxW={{ base: '100%', md: '20rem' }}>
+							<DropdownLabel
+								label={t('components.sellingInvoices.entries.fromAccount')}
+								options={[
+									{
+										value: 'daily_cash',
+										label: t('dashboard.cashAccounts.dailyCash'),
+									},
+									{
+										value: 'cash_reserve',
+										label: t('dashboard.cashAccounts.cashReserve'),
+									},
+									{
+										value: 'online',
+										label: t('dashboard.cashAccounts.online'),
+									},
+								]}
+								selectedOptions={[
+									{
+										value: cashAccountType,
+										label: t(
+											cashAccountType === 'online'
+												? 'dashboard.cashAccounts.online'
+												: cashAccountType === 'cash_reserve'
+													? 'dashboard.cashAccounts.cashReserve'
+													: 'dashboard.cashAccounts.dailyCash',
+										),
+									},
+								]}
+								onSelect={values =>
+									setCashAccountType(values[0] ?? 'daily_cash')
+								}
+								placeholder={t(
+									'components.sellingInvoices.entries.fromAccount',
+								)}
+								isSingle
+								isSearchable={false}
+								customStyles={{
+									dropdownContainer: { width: '100%' },
+									dropdownMenu: {
+										mt: '0.4rem',
+										borderRadius: 'none',
+										width: '100%',
+									},
+									dropdownPlaceholder: { width: '100%' },
+								}}
+							/>
+						</Box>
+					)}
+
 					{!isReadOnly && canAddBuying && (
 						<Box>
 							<InvoiceProductSearch
@@ -1703,70 +1831,21 @@ const NewBuyingInvoicePanel = ({
 							</VStack>
 						</Box>
 
-						<Box
-							bg="gray.50"
-							borderRadius="lg"
-							p={4}
-							border="1px solid"
-							borderColor={PAGE_COLORS.border}
-						>
-							<VStack align="stretch" spacing={3}>
-								<Box>
-									<Text
-										fontSize="xs"
-										fontWeight={600}
-										color={PAGE_COLORS.muted}
-										mb={1}
-									>
-										{t('components.buyingInvoices.drawer.paidAmount')}
-									</Text>
-									<CurrencyAmountTooltip
-										amount={settledPayment.paidAmount}
-										displayText={formatAmount(settledPayment.paidAmount)}
-										options={displayCurrencyOptions}
-										displayCurrencyId={displayCurrencyId}
-										fontSize="xl"
-										fontWeight={700}
-										onEdit={
-											draft.paymentType === InvoicePaymentType.CREDIT
-												? undefined
-												: tendered => {
-														const { paidAmount } = settleTenderedPayment(
-															tendered,
-															totals.grandTotal,
-														)
-														setCashTendered(
-															tendered > totals.grandTotal ? tendered : null,
-														)
-														setDraft(current => ({
-															...current,
-															paidAmount,
-														}))
-													}
-										}
-									/>
-								</Box>
-								<Box>
-									<Text
-										fontSize="xs"
-										fontWeight={600}
-										color={PAGE_COLORS.muted}
-										mb={1}
-									>
-										{t('components.buyingInvoices.drawer.change')}
-									</Text>
-									<CurrencyAmountTooltip
-										amount={changeAmount}
-										displayText={formatAmount(changeAmount)}
-										options={displayCurrencyOptions}
-										displayCurrencyId={displayCurrencyId}
-										fontSize="xl"
-										fontWeight={700}
-										color={PAGE_COLORS.success}
-									/>
-								</Box>
-							</VStack>
-						</Box>
+						<InvoicePaidSection
+							paidLabel={t('components.buyingInvoices.drawer.paidAmount')}
+							changeLabel={t('components.buyingInvoices.drawer.change')}
+							options={displayCurrencyOptions}
+							displayCurrencyId={displayCurrencyId}
+							grandTotal={totals.grandTotal}
+							paidAmount={draft.paidAmount}
+							cashTendered={cashTendered}
+							isEditable={draft.paymentType !== InvoicePaymentType.CREDIT}
+							onSettlement={(paidAmount, nextCashTendered, tenders) => {
+								setCashTendered(nextCashTendered)
+								setCashTenders(tenders)
+								setDraft(current => ({ ...current, paidAmount }))
+							}}
+						/>
 					</Grid>
 
 					{draft.extraction && draftHasUnresolvedExtraction(draft) && (

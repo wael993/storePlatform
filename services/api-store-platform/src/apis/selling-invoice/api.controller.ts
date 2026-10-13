@@ -49,6 +49,8 @@ import CurrencySettings from '../../models/CurrencySettings'
 import {
 	clearCashLedgerForReference,
 	loadCashCurrencyRates,
+	isHistoricalInvoiceCash,
+	prepareInvoiceCashFields,
 	syncSellingInvoiceCashLedger,
 } from '../../shared/cashAccounts/posting'
 import { CASH_REFERENCE_TYPES } from '../../shared/cashAccounts/types'
@@ -1051,6 +1053,13 @@ export default class SellingInvoiceController {
 			paymentStatus,
 			requestBody.paymentType,
 		)
+		const cashFields = prepareInvoiceCashFields({
+			paymentType: requestBody.paymentType,
+			invoiceCurrencyId: requestBody.invoiceCurrencyId,
+			cashAccountType: requestBody.cashAccountType,
+			currencyAmounts,
+			tenders: requestBody.tenders,
+		})
 
 		const invoiceId = requestBody.invoiceId ?? uuidv4()
 
@@ -1110,6 +1119,9 @@ export default class SellingInvoiceController {
 							items: requestBody.items,
 							status,
 							paymentStatus,
+							invoiceCurrencyId: cashFields.invoiceCurrencyId,
+							cashAccountType: cashFields.cashAccountType,
+							tenders: cashFields.tenders,
 							currencyAmounts,
 							notes: requestBody.notes,
 							invoiceDiscount: requestBody.invoiceDiscount ?? 0,
@@ -1145,6 +1157,9 @@ export default class SellingInvoiceController {
 					status,
 					paymentStatus,
 					paymentType: requestBody.paymentType,
+					cashAccountType: cashFields.cashAccountType,
+					invoiceCurrencyId: cashFields.invoiceCurrencyId,
+					tenders: cashFields.tenders,
 					currencyAmounts,
 					session,
 				})
@@ -1326,11 +1341,66 @@ export default class SellingInvoiceController {
 					]
 				}
 
+				const paymentType = (requestBody.paymentType ??
+					existingInvoice?.paymentType) as string | undefined
+				const currencyAmounts = (requestBody.currencyAmounts ??
+					existingInvoice?.currencyAmounts) as
+					| Array<{
+							currencyId?: string
+							isPrimary?: boolean
+							exchangeRate?: number
+							amount?: number
+							paidAmount?: number
+					  }>
+					| undefined
+				const historicalCash = isHistoricalInvoiceCash(existingInvoice)
+				const cashFields = historicalCash
+					? {
+							invoiceCurrencyId: undefined,
+							cashAccountType:
+								requestBody.cashAccountType ??
+								(typeof existingInvoice?.cashAccountType === 'string'
+									? existingInvoice.cashAccountType
+									: undefined),
+							tenders: [],
+						}
+					: prepareInvoiceCashFields({
+							paymentType,
+							invoiceCurrencyId:
+								requestBody.invoiceCurrencyId ??
+								(typeof existingInvoice?.invoiceCurrencyId === 'string'
+									? existingInvoice.invoiceCurrencyId
+									: undefined),
+							cashAccountType:
+								requestBody.cashAccountType ??
+								(typeof existingInvoice?.cashAccountType === 'string'
+									? existingInvoice.cashAccountType
+									: undefined),
+							currencyAmounts,
+							tenders:
+								requestBody.tenders ??
+								(Array.isArray(existingInvoice?.tenders)
+									? (existingInvoice.tenders as Array<{
+											currencyId: string
+											tenderedAmount: number
+										}>)
+									: undefined),
+						})
+				const invoiceUpdate = {
+					...requestBody,
+					...cashFields,
+				} as Record<string, unknown>
+
+				if (historicalCash) {
+					delete invoiceUpdate.invoiceCurrencyId
+					delete invoiceUpdate.tenders
+				}
+
 				const updated = await this.mongoDbClient.updateDocument(
 					{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId, session },
 					requestContext,
 					Invoice,
-					requestBody,
+					invoiceUpdate,
 				)
 
 				await syncSellingInvoiceCashLedger({
@@ -1342,16 +1412,11 @@ export default class SellingInvoiceController {
 						| undefined,
 					paymentStatus: (requestBody.paymentStatus ??
 						existingInvoice?.paymentStatus) as string | undefined,
-					paymentType: (requestBody.paymentType ??
-						existingInvoice?.paymentType) as string | undefined,
-					currencyAmounts: (requestBody.currencyAmounts ??
-						existingInvoice?.currencyAmounts) as
-						| Array<{
-								isPrimary?: boolean
-								amount?: number
-								paidAmount?: number
-						  }>
-						| undefined,
+					paymentType,
+					cashAccountType: cashFields.cashAccountType,
+					invoiceCurrencyId: cashFields.invoiceCurrencyId,
+					tenders: cashFields.tenders,
+					currencyAmounts,
 					session,
 				})
 

@@ -40,6 +40,8 @@ import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	clearCashLedgerForReference,
 	loadCashCurrencyRates,
+	isHistoricalInvoiceCash,
+	prepareInvoiceCashFields,
 	syncBuyingInvoiceCashLedger,
 } from '../../shared/cashAccounts/posting'
 import type { CostCurrencyRate } from '../../shared/inventoryCost'
@@ -729,6 +731,13 @@ export default class BuyingInvoiceController {
 						: requestBody.paymentType === InvoicePaymentType.CREDIT
 							? InvoiceStatus.CONFIRMED
 							: (requestBody.status ?? InvoiceStatus.CONFIRMED)
+		const cashFields = prepareInvoiceCashFields({
+			paymentType: requestBody.paymentType,
+			invoiceCurrencyId: requestBody.invoiceCurrencyId,
+			cashAccountType: requestBody.cashAccountType,
+			currencyAmounts,
+			tenders: requestBody.tenders,
+		})
 
 		const buyingInvoiceId = requestBody.buyingInvoiceId ?? uuidv4()
 
@@ -780,6 +789,9 @@ export default class BuyingInvoiceController {
 							items: requestBody.items,
 							status,
 							paymentStatus,
+							invoiceCurrencyId: cashFields.invoiceCurrencyId,
+							cashAccountType: cashFields.cashAccountType,
+							tenders: cashFields.tenders,
 							currencyAmounts,
 							notes: requestBody.notes,
 							invoiceDiscount: requestBody.invoiceDiscount ?? 0,
@@ -814,6 +826,9 @@ export default class BuyingInvoiceController {
 					status,
 					paymentStatus,
 					paymentType: requestBody.paymentType,
+					cashAccountType: cashFields.cashAccountType,
+					invoiceCurrencyId: cashFields.invoiceCurrencyId,
+					tenders: cashFields.tenders,
 					currencyAmounts,
 					session,
 				})
@@ -951,6 +966,61 @@ export default class BuyingInvoiceController {
 					]
 				}
 
+				const paymentType = (requestBody.paymentType ??
+					existingInvoice?.paymentType) as string | undefined
+				const currencyAmounts = (requestBody.currencyAmounts ??
+					existingInvoice?.currencyAmounts) as
+					| Array<{
+							currencyId?: string
+							isPrimary?: boolean
+							exchangeRate?: number
+							amount?: number
+							paidAmount?: number
+					  }>
+					| undefined
+				const historicalCash = isHistoricalInvoiceCash(existingInvoice)
+				const cashFields = historicalCash
+					? {
+							invoiceCurrencyId: undefined,
+							cashAccountType:
+								requestBody.cashAccountType ??
+								(typeof existingInvoice?.cashAccountType === 'string'
+									? existingInvoice.cashAccountType
+									: undefined),
+							tenders: [],
+						}
+					: prepareInvoiceCashFields({
+							paymentType,
+							invoiceCurrencyId:
+								requestBody.invoiceCurrencyId ??
+								(typeof existingInvoice?.invoiceCurrencyId === 'string'
+									? existingInvoice.invoiceCurrencyId
+									: undefined),
+							cashAccountType:
+								requestBody.cashAccountType ??
+								(typeof existingInvoice?.cashAccountType === 'string'
+									? existingInvoice.cashAccountType
+									: undefined),
+							currencyAmounts,
+							tenders:
+								requestBody.tenders ??
+								(Array.isArray(existingInvoice?.tenders)
+									? (existingInvoice.tenders as Array<{
+											currencyId: string
+											tenderedAmount: number
+										}>)
+									: undefined),
+						})
+				const invoiceUpdate = {
+					...requestBody,
+					...cashFields,
+				} as Record<string, unknown>
+
+				if (historicalCash) {
+					delete invoiceUpdate.invoiceCurrencyId
+					delete invoiceUpdate.tenders
+				}
+
 				const updated = await this.mongoDbClient.updateDocument(
 					{
 						collectionName: COLLECTION_NAMES.BUYING_INVOICES,
@@ -959,7 +1029,7 @@ export default class BuyingInvoiceController {
 					},
 					requestContext,
 					BuyingInvoice,
-					requestBody,
+					invoiceUpdate,
 				)
 
 				await syncBuyingInvoiceCashLedger({
@@ -971,10 +1041,11 @@ export default class BuyingInvoiceController {
 						| undefined,
 					paymentStatus: (requestBody.paymentStatus ??
 						existingInvoice?.paymentStatus) as string | undefined,
-					paymentType: (requestBody.paymentType ??
-						existingInvoice?.paymentType) as string | undefined,
-					currencyAmounts: (requestBody.currencyAmounts ??
-						existingInvoice?.currencyAmounts) as
+					paymentType,
+					cashAccountType: cashFields.cashAccountType,
+					invoiceCurrencyId: cashFields.invoiceCurrencyId,
+					tenders: cashFields.tenders,
+					currencyAmounts: currencyAmounts as
 						| Array<{
 								isPrimary?: boolean
 								amount?: number

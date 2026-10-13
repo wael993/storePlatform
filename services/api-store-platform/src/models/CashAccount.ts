@@ -10,8 +10,8 @@ export interface ICashAccount extends Document {
 	name: string
 	isActive: boolean
 	allowNegativeBalance: boolean
-	/** Denormalized primary-currency balance; must match ledger sum. */
-	balance: number
+	/** Denormalized balances by currencyId. A missing key is zero. Must match the ledger. */
+	balances: Map<string, number>
 	createdBy: {
 		_id: string
 		displayName: string
@@ -58,9 +58,10 @@ const CashAccountSchema: Schema<ICashAccount> = new mongoose.Schema(
 			type: Boolean,
 			default: false,
 		},
-		balance: {
-			type: Number,
-			default: 0,
+		balances: {
+			type: Map,
+			of: Number,
+			default: {},
 		},
 	},
 	{ timestamps: true },

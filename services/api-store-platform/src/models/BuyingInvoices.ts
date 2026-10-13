@@ -20,6 +20,13 @@ export interface IBuyingInvoiceItem {
 	sourceName?: string
 }
 
+export interface IBuyingInvoiceCashTender {
+	currencyId: string
+	tenderedAmount: number
+	appliedAmount: number
+	changeAmount: number
+}
+
 export interface IBuyingInvoiceCurrencyAmount {
 	currencyId: string
 	name: string
@@ -46,6 +53,9 @@ export interface IBuyingInvoice extends Document {
 	items?: IBuyingInvoiceItem[]
 	status: `${InvoiceStatus}`
 	paymentStatus?: `${InvoicePaymentStatus}`
+	invoiceCurrencyId?: string
+	cashAccountType?: string
+	tenders?: IBuyingInvoiceCashTender[]
 	currencyAmounts: IBuyingInvoiceCurrencyAmount[]
 	notes?: string
 	invoiceDiscount?: number
@@ -79,6 +89,16 @@ const BuyingInvoiceItemSchema = new Schema<IBuyingInvoiceItem>(
 		taxRate: { type: Number, min: 0, default: 0 },
 		lineTotal: { type: Number, min: 0 },
 		sourceName: { type: String, trim: true },
+	},
+	{ _id: false },
+)
+
+const BuyingInvoiceCashTenderSchema = new Schema<IBuyingInvoiceCashTender>(
+	{
+		currencyId: { type: String, required: true, trim: true },
+		tenderedAmount: { type: Number, required: true, min: 0 },
+		appliedAmount: { type: Number, required: true, min: 0 },
+		changeAmount: { type: Number, required: true, min: 0 },
 	},
 	{ _id: false },
 )
@@ -147,6 +167,18 @@ const BuyingInvoiceSchema: Schema<IBuyingInvoice> = new mongoose.Schema(
 			type: String,
 			enum: Object.values(InvoicePaymentStatus),
 			default: InvoicePaymentStatus.UNPAID,
+		},
+		invoiceCurrencyId: {
+			type: String,
+			trim: true,
+		},
+		cashAccountType: {
+			type: String,
+			trim: true,
+		},
+		tenders: {
+			type: [BuyingInvoiceCashTenderSchema],
+			default: undefined,
 		},
 		currencyAmounts: {
 			type: [BuyingInvoiceCurrencyAmountSchema],

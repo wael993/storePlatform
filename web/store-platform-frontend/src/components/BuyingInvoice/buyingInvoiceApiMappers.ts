@@ -6,11 +6,14 @@ import {
 	calculateLineItemTotal,
 } from '../SellingInvoice/invoiceCalculations'
 import { getInvoiceDiscountSettings } from '../SellingInvoice/invoiceDiscountDraft'
+import { type CashTenderInput } from 'store-domain'
+
 import {
 	buildInvoiceCurrencyAmounts,
 	getPrimaryInvoiceCurrencyAmounts,
 	type InvoiceCurrencyAmount,
 } from '../SellingInvoice/currencyDisplay'
+import { invoiceCashRequestFields } from '../SellingInvoice/invoiceApiMappers'
 import type { SellingInvoice } from '../SellingInvoice/types'
 import type { BuyingInvoiceDraft, BuyingInvoicePaymentType } from './types'
 import type { CurrencySettings } from '../../api/apiStore'
@@ -49,6 +52,14 @@ export interface ApiBuyingInvoice {
 	status?: string
 	paymentStatus?: `${InvoicePaymentStatus}`
 	currencyAmounts?: InvoiceCurrencyAmount[]
+	invoiceCurrencyId?: string
+	cashAccountType?: string
+	tenders?: Array<{
+		currencyId: string
+		tenderedAmount: number
+		appliedAmount: number
+		changeAmount: number
+	}>
 	notes?: string
 	warehouseId?: string
 	issuedAt?: string
@@ -132,6 +143,11 @@ export const buildBuyingInvoiceRequestBody = (
 	draft: BuyingInvoiceDraft,
 	status: InvoiceStatus,
 	currencySettings?: CurrencySettings | null,
+	cash?: {
+		invoiceCurrencyId?: string | null
+		cashAccountType?: string | null
+		cashTenders?: CashTenderInput[] | null
+	},
 ) => {
 	const totals = calculateInvoiceTotals(
 		draft.lineItems,
@@ -182,6 +198,16 @@ export const buildBuyingInvoiceRequestBody = (
 		})),
 		status,
 		paymentStatus,
+		...invoiceCashRequestFields({
+			paymentType: draft.paymentType,
+			paidAmount,
+			grandTotal: totals.grandTotal,
+			currencyAmounts,
+			currencySettings,
+			invoiceCurrencyId: cash?.invoiceCurrencyId,
+			cashAccountType: cash?.cashAccountType,
+			cashTenders: cash?.cashTenders,
+		}),
 		currencyAmounts,
 		notes: draft.note || undefined,
 		warehouseId: draft.warehouseId,

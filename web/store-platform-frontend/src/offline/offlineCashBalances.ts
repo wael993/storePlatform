@@ -1,4 +1,4 @@
-import { amountToPrimary, type CostCurrencyRate } from 'store-domain'
+import { addCashBalances, type CostCurrencyRate } from 'store-domain'
 import {
 	DailyActionType,
 	InvoicePaymentStatus,
@@ -14,8 +14,18 @@ const CASH_BALANCES_META_KEY = 'cashAccountBalances'
 const CASH_ACCOUNT_TYPES = new Set(['daily_cash', 'cash_reserve', 'online'])
 
 export type CashBalances = {
-	accounts: Array<{ type: string; name: string; balance: number }>
-	total: number
+	accounts: Array<{
+		type: string
+		name: string
+		balances: Record<string, number>
+	}>
+	totals: Record<string, number>
+}
+
+type CashPost = {
+	accountType: string
+	currencyId: string
+	amount: number
 }
 
 const roundPrimary = (amount: number) => Math.round(amount * 1e8) / 1e8
@@ -45,6 +55,9 @@ const postsForInvoice = (
 		status?: string
 		paymentStatus?: string
 		paymentType?: string
+		cashAccountType?: string
+		invoiceCurrencyId?: string
+		tenders?: unknown[]
 		warehouseId?: string
 		currencyAmounts?: Parameters<
 			typeof getPrimaryInvoiceCurrencyAmounts
@@ -78,7 +91,39 @@ const postsForInvoice = (
 		return []
 	}
 
+	const accountType =
+		typeof invoice.cashAccountType === 'string' &&
+		CASH_ACCOUNT_TYPES.has(invoice.cashAccountType)
+			? invoice.cashAccountType
+			: accountForPayment(paymentType)
+	const tenders = Array.isArray(invoice.tenders) ? invoice.tenders : []
+	const kept = tenders.flatMap(tender => {
+		const row = tender as {
+			currencyId?: string
+			appliedAmount?: number
+			tenderedAmount?: number
+		}
+		const currencyId = row.currencyId?.trim()
+		const amount = Number(row.appliedAmount ?? row.tenderedAmount)
+
+		if (!currencyId || !(amount > 0)) return []
+
+		return [
+			{
+				accountType,
+				currencyId,
+				amount: sign * roundPrimary(amount),
+			},
+		]
+	})
+
+	if (kept.length > 0) return kept
+
 	const primary = getPrimaryInvoiceCurrencyAmounts(invoice)
+	const currencyId =
+		(typeof invoice.invoiceCurrencyId === 'string' &&
+			invoice.invoiceCurrencyId) ||
+		primary.currencyId
 	const amount = roundPrimary(
 		invoiceCashAmount({
 			status: invoice.status,
@@ -88,21 +133,15 @@ const postsForInvoice = (
 		}),
 	)
 
-	if (amount <= 0) return []
+	if (!currencyId || amount <= 0) return []
 
-	return [
-		{ accountType: accountForPayment(paymentType), amount: sign * amount },
-	]
+	return [{ accountType, currencyId, amount: sign * amount }]
 }
 
-const entryAmount = (
-	payload: {
-		singleUnitPrice?: unknown
-		totalPrice?: unknown
-		currencyId?: string
-	},
-	rates: readonly CostCurrencyRate[],
-) => {
+const entryAmount = (payload: {
+	singleUnitPrice?: unknown
+	totalPrice?: unknown
+}) => {
 	const raw = Number(
 		String(payload.singleUnitPrice ?? payload.totalPrice ?? '0').replace(
 			/,/g,
@@ -112,25 +151,23 @@ const entryAmount = (
 
 	if (!Number.isFinite(raw)) return 0
 
-	return amountToPrimary(Math.abs(raw), payload.currencyId ?? null, rates)
+	return Math.abs(raw)
 }
 
-const postsForDailyAction = (
-	payload: {
-		entryType?: unknown
-		warehouseId?: string
-		cashAccountType?: string
-		singleUnitPrice?: unknown
-		totalPrice?: unknown
-		currencyId?: string
-	},
-	rates: readonly CostCurrencyRate[],
-) => {
+const postsForDailyAction = (payload: {
+	entryType?: unknown
+	warehouseId?: string
+	cashAccountType?: string
+	singleUnitPrice?: unknown
+	totalPrice?: unknown
+	currencyId?: string
+}) => {
 	const entryType =
 		typeof payload.entryType === 'string' ? payload.entryType : undefined
-	const amount = entryAmount(payload, rates)
+	const amount = entryAmount(payload)
+	const currencyId = payload.currencyId?.trim()
 
-	if (amount <= 0 || !entryType) return []
+	if (amount <= 0 || !entryType || !currencyId) return []
 
 	const accountType = CASH_ACCOUNT_TYPES.has(payload.cashAccountType ?? '')
 		? (payload.cashAccountType as string)
@@ -145,37 +182,49 @@ const postsForDailyAction = (
 
 	if (signed === 0) return []
 
-	return [{ accountType, amount: signed }]
+	return [{ accountType, currencyId, amount: signed }]
 }
 
 export const cashPostsFromPendingCreate = (
 	entity: string,
 	payload: Record<string, unknown>,
-	rates: readonly CostCurrencyRate[],
+	_rates: readonly CostCurrencyRate[],
 ) => {
 	if (entity === 'invoice') return postsForInvoice(payload, 1)
 	if (entity === 'buyingInvoice') return postsForInvoice(payload, -1)
-	if (entity === 'dailyAction') return postsForDailyAction(payload, rates)
+	if (entity === 'dailyAction') return postsForDailyAction(payload)
 	return []
 }
 
+const normalizeSnapshot = (value: CashBalances): CashBalances => ({
+	accounts: value.accounts.map(account => ({
+		type: account.type,
+		name: account.name,
+		balances: { ...(account.balances ?? {}) },
+	})),
+	totals: { ...(value.totals ?? {}) },
+})
+
 export const applyPendingCash = (
 	snapshot: CashBalances,
-	posts: Array<{ accountType: string; amount: number }>,
+	posts: CashPost[],
 ): CashBalances => {
-	const accounts = snapshot.accounts.map(account => ({ ...account }))
+	const accounts = normalizeSnapshot(snapshot).accounts
 	const byType = new Map(accounts.map(account => [account.type, account]))
 
 	for (const post of posts) {
 		const row = byType.get(post.accountType)
-		if (!row) continue
-		row.balance = roundPrimary(row.balance + post.amount)
+		if (!row || !post.currencyId) continue
+		row.balances = addCashBalances(row.balances, {
+			[post.currencyId]: post.amount,
+		})
 	}
 
 	return {
 		accounts,
-		total: roundPrimary(
-			accounts.reduce((sum, account) => sum + account.balance, 0),
+		totals: accounts.reduce(
+			(sum, account) => addCashBalances(sum, account.balances),
+			{} as Record<string, number>,
 		),
 	}
 }

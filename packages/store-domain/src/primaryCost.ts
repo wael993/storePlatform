@@ -72,19 +72,21 @@ export const catalogCostToPrimary = (
 	)
 }
 
-export const ratesFromCurrencySettings = (settings: {
-	primaryCurrency?: {
-		currencyId: string
-		name: string
-		internalCode?: string
-	} | null
-	secondaryCurrencies?: Array<{
-		currencyId: string
-		name: string
-		internalCode?: string
-		exchangeRate?: number
-	}>
-} | null): CostCurrencyRate[] => {
+export const ratesFromCurrencySettings = (
+	settings: {
+		primaryCurrency?: {
+			currencyId: string
+			name: string
+			internalCode?: string
+		} | null
+		secondaryCurrencies?: Array<{
+			currencyId: string
+			name: string
+			internalCode?: string
+			exchangeRate?: number
+		}>
+	} | null,
+): CostCurrencyRate[] => {
 	const primary = settings?.primaryCurrency
 
 	if (!primary) return []
@@ -103,4 +105,26 @@ export const ratesFromCurrencySettings = (settings: {
 			exchangeRate: secondary.exchangeRate ?? 1,
 		})),
 	]
+}
+
+/**
+ * Primary equivalent of an entry amount.
+ * `exchangeRateToPrimary` is the settings rate stored on the entry (divide by it).
+ * A missing snapshot falls back to the live rates for rows not yet migrated.
+ */
+export const amountToPrimaryWithSnapshot = (
+	amount: number,
+	currencyId: string | null | undefined,
+	exchangeRateToPrimary: number | null | undefined,
+	rates: readonly CostCurrencyRate[],
+): number => {
+	if (
+		typeof exchangeRateToPrimary === 'number' &&
+		Number.isFinite(exchangeRateToPrimary) &&
+		exchangeRateToPrimary > 0
+	) {
+		return roundPrimaryAmount(amount / exchangeRateToPrimary)
+	}
+
+	return amountToPrimary(amount, currencyId ?? null, rates)
 }

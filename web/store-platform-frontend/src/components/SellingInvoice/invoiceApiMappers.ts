@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import { allocateCashTenders, type CashTenderInput } from 'store-domain'
 
 import { generateId } from '../../offline/utils'
 import {
@@ -7,10 +8,13 @@ import {
 } from './invoiceCalculations'
 import { getInvoiceDiscountSettings } from './invoiceDiscountDraft'
 import {
+	buildDisplayCurrencyOptions,
 	buildInvoiceCurrencyAmounts,
+	convertPrimaryAmount,
 	getPrimaryInvoiceCurrencyAmounts,
 	type InvoiceCurrencyAmount,
 } from './currencyDisplay'
+import { defaultInvoiceCashAccountType } from './constants'
 import type { CurrencySettings } from '../../api/apiStore'
 import { parseInvoiceSequence } from '../../shared/invoiceNumbering'
 import { mapApiInvoiceStatusToUi } from '../../shared/globalConstant'
@@ -231,10 +235,68 @@ export const mapApiSummaryToUi = (
 	salesSparkline: [],
 })
 
+export const invoiceCashRequestFields = (params: {
+	paymentType: string
+	paidAmount: number
+	grandTotal: number
+	currencyAmounts: InvoiceCurrencyAmount[]
+	currencySettings?: CurrencySettings | null
+	invoiceCurrencyId?: string | null
+	cashAccountType?: string | null
+	cashTenders?: CashTenderInput[] | null
+}) => {
+	const options = buildDisplayCurrencyOptions(params.currencySettings)
+	const invoiceCurrencyId =
+		params.invoiceCurrencyId ?? options[0]?.currencyId ?? undefined
+
+	if (
+		params.paymentType === InvoicePaymentType.CREDIT ||
+		!(params.paidAmount > 0)
+	) {
+		return { invoiceCurrencyId, cashAccountType: undefined, tenders: [] }
+	}
+
+	const inputs =
+		params.cashTenders && params.cashTenders.length > 0
+			? params.cashTenders
+			: invoiceCurrencyId
+				? [
+						{
+							currencyId: invoiceCurrencyId,
+							tenderedAmount: convertPrimaryAmount(
+								params.paidAmount,
+								invoiceCurrencyId,
+								options,
+							),
+						},
+					]
+				: []
+
+	return {
+		invoiceCurrencyId,
+		cashAccountType:
+			params.cashAccountType ||
+			defaultInvoiceCashAccountType(params.paymentType),
+		tenders: allocateCashTenders(
+			inputs,
+			params.grandTotal,
+			params.currencyAmounts.map(row => ({
+				currencyId: row.currencyId,
+				exchangeRate: row.exchangeRate,
+			})),
+		),
+	}
+}
+
 export const buildInvoiceRequestBody = (
 	draft: SellingInvoiceDraft,
 	status: InvoiceStatus,
 	currencySettings?: CurrencySettings | null,
+	cash?: {
+		invoiceCurrencyId?: string | null
+		cashAccountType?: string | null
+		cashTenders?: CashTenderInput[] | null
+	},
 ) => {
 	const totals = calculateInvoiceTotals(
 		draft.lineItems,
@@ -283,6 +345,16 @@ export const buildInvoiceRequestBody = (
 		})),
 		status,
 		paymentStatus,
+		...invoiceCashRequestFields({
+			paymentType: draft.paymentType,
+			paidAmount,
+			grandTotal: totals.grandTotal,
+			currencyAmounts,
+			currencySettings,
+			invoiceCurrencyId: cash?.invoiceCurrencyId,
+			cashAccountType: cash?.cashAccountType,
+			cashTenders: cash?.cashTenders,
+		}),
 		currencyAmounts,
 		notes: draft.note || undefined,
 		warehouseId: draft.warehouseId,

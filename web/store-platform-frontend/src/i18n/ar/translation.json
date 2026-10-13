@@ -107,7 +107,6 @@
 			"unavailable": "غير متاح",
 			"error": "تعذر تحميل هذا المؤشر.",
 			"loading": "جارٍ التحميل…",
-			"partial": "جزئي",
 			"hints": {
 				"products": "كل المنتجات في المؤسسة.",
 				"registeredCustomers": "كل الزبائن في المؤسسة.",
@@ -140,6 +139,8 @@
 			"online": "أونلاين",
 			"total": "الإجمالي",
 			"live": "مباشر",
+			"showAllCurrencies": "عرض كل العملات",
+			"showFewerCurrencies": "عرض عملات أقل",
 			"historyTitle": "سجل النقد",
 			"historyEmpty": "لا توجد حركات في هذا النطاق",
 			"historyEmptyHint": "جرّب حساباً أو نوعاً أو تاريخاً آخر.",
@@ -218,7 +219,6 @@
 			}
 		},
 		"inventory": {
-			"viewAll": "عرض الكل",
 			"soldCount": "{{count}} مبيع",
 			"cards": {
 				"inventoryWarnings": "تحذيرات المخزون",
@@ -868,16 +868,6 @@
 			"searchPlaceholder": "ابحث عن فاتورة أو زبون...",
 			"empty": "لا توجد فواتير.",
 			"loadFailed": "تعذر تحميل الفواتير.",
-			"summaryTitle": "ملخص",
-			"summary": {
-				"periodSales": "مبيعات الفترة",
-				"totalProfit": "إجمالي الربح",
-				"bestSeller": "الأكثر مبيعاً",
-				"bestSellerValue": "{{name}} · {{quantity}} قطعة",
-				"topProfitProduct": "المنتج الأعلى ربحاً",
-				"topProfitProductValue": "{{name}} · {{profit}}",
-				"totalReceivable": "إجمالي المستحقات"
-			},
 			"status": {
 				"all": "الكل",
 				"paid": "مدفوعة",

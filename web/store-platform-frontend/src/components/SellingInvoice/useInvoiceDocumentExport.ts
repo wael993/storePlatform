@@ -199,16 +199,21 @@ export const useInvoiceDocumentExport = () => {
 
 			setIsExporting(true)
 			try {
-				const [currencySettings, userSettings, invoiceSettings, units, invoice] =
-					await Promise.all([
-						fetchCurrencySettings().unwrap(),
-						fetchUserSettings().unwrap(),
-						fetchInvoiceSettings().unwrap(),
-						fetchUnits(undefined).unwrap(),
-						kind === 'selling'
-							? fetchSellingInvoice(invoiceId).unwrap()
-							: fetchBuyingInvoice(invoiceId).unwrap(),
-					])
+				const [
+					currencySettings,
+					userSettings,
+					invoiceSettings,
+					units,
+					invoice,
+				] = await Promise.all([
+					fetchCurrencySettings().unwrap(),
+					fetchUserSettings().unwrap(),
+					fetchInvoiceSettings().unwrap(),
+					fetchUnits(undefined).unwrap(),
+					kind === 'selling'
+						? fetchSellingInvoice(invoiceId).unwrap()
+						: fetchBuyingInvoice(invoiceId).unwrap(),
+				])
 				const resolveUnitName = (unitIdOrName?: string) => {
 					const value = unitIdOrName?.trim()
 					if (!value) return ''

@@ -8,6 +8,12 @@ import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { DailyAction } from '../../models/DailyAction'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
+import {
+	addCashBalances,
+	currencyBalanceOf,
+	normalizeCashBalances,
+} from '../store-domain/cashTender'
+import { reversedCashPost } from './cashImpact'
 import { withTenantScope } from '../mongodb/tenantScopedModel'
 import type { RequestContext } from '../types'
 import { getTenantContext } from '../tenant'
@@ -33,7 +39,7 @@ type CashAccountRow = {
 	warehouseId: string
 	type: string
 	name: string
-	balance: number
+	balances?: unknown
 	allowNegativeBalance?: boolean
 	isActive?: boolean
 }
@@ -43,6 +49,7 @@ type CashLedgerRow = {
 	warehouseId: string
 	cashAccountId: string
 	accountType: string
+	currencyId?: string
 	amount: number
 	movementType: string
 	reversesLedgerEntryId?: string
@@ -100,7 +107,7 @@ export const ensureCashAccountsForWarehouse = async (
 					name: CASH_ACCOUNT_DEFAULT_NAMES[type],
 					isActive: true,
 					allowNegativeBalance: false,
-					balance: 0,
+					balances: {},
 					createdBy: actor,
 				},
 			],
@@ -144,13 +151,27 @@ const getAccountOrThrow = async (
 	return account
 }
 
+const currencyKey = (currencyId: string) => {
+	const id = currencyId.trim()
+
+	if (!id || id.includes('.') || id.includes('$')) {
+		throw new BusinessLogicError(
+			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+			'Cash currency is invalid.',
+		)
+	}
+
+	return id
+}
+
 /**
- * Apply a signed amount to an account. Rejects when the result would be
- * negative and allowNegativeBalance is false.
+ * Apply a signed amount to one currency on an account. A missing balance is
+ * zero. A debit cannot spend a different currency.
  */
 const applyBalanceDelta = async (
 	tenantId: string,
 	cashAccountId: string,
+	currencyId: string,
 	delta: number,
 	session: ClientSession | undefined,
 ) => {
@@ -158,19 +179,21 @@ const applyBalanceDelta = async (
 
 	if (rounded === 0) return
 
+	const key = currencyKey(currencyId)
+	const balancePath = `balances.${key}`
 	const filter: Record<string, unknown> = { cashAccountId }
 
 	if (rounded < 0) {
 		filter.$or = [
 			{ allowNegativeBalance: true },
-			{ balance: { $gte: roundPrimary(-rounded) } },
+			{ [balancePath]: { $gte: roundPrimary(-rounded) } },
 		]
 	}
 
 	const updateQuery = withTenantScope(
 		CashAccount.findOneAndUpdate(
 			filter,
-			{ $inc: { balance: rounded } },
+			{ $inc: { [balancePath]: rounded } },
 			{ new: true },
 		),
 		tenantId,
@@ -186,12 +209,15 @@ const applyBalanceDelta = async (
 			? accountQuery.session(session).lean()
 			: accountQuery.lean())) as CashAccountRow | null
 
-		const available = account?.balance ?? 0
+		const available = currencyBalanceOf(
+			normalizeCashBalances(account?.balances),
+			key,
+		)
 		const name = account?.name ?? cashAccountId
 
 		throw new BusinessLogicError(
 			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-			`Amount exceeds available balance in ${name} (${available.toFixed(2)}).`,
+			`Amount exceeds available balance in ${name} (${available.toFixed(2)} ${key}).`,
 		)
 	}
 }
@@ -202,6 +228,7 @@ const insertLedgerEntry = async (
 		warehouseId: string
 		cashAccountId: string
 		accountType: string
+		currencyId: string
 		amount: number
 		movementType: string
 		referenceType: string
@@ -223,6 +250,7 @@ const insertLedgerEntry = async (
 					warehouseId: params.warehouseId,
 					cashAccountId: params.cashAccountId,
 					accountType: params.accountType,
+					currencyId: currencyKey(params.currencyId),
 					amount: roundPrimary(params.amount),
 					movementType: params.movementType,
 					referenceType: params.referenceType,
@@ -280,6 +308,7 @@ const postSingleEffect = async (
 			warehouseId: params.warehouseId,
 			cashAccountId: account.cashAccountId,
 			accountType: params.post.accountType,
+			currencyId: params.post.currencyId,
 			amount: params.post.amount,
 			movementType: params.post.movementType,
 			referenceType: params.referenceType,
@@ -297,6 +326,7 @@ const postSingleEffect = async (
 	await applyBalanceDelta(
 		params.tenantId,
 		account.cashAccountId,
+		params.post.currencyId,
 		params.post.amount,
 		session,
 	)
@@ -338,12 +368,13 @@ const postsMatch = (left: DesiredCashPost[], right: DesiredCashPost[]) => {
 		[...posts]
 			.map(post => ({
 				accountType: post.accountType,
+				currencyId: post.currencyId,
 				amount: roundPrimary(post.amount),
 				movementType: post.movementType,
 			}))
 			.sort((a, b) =>
-				`${a.accountType}:${a.movementType}:${a.amount}`.localeCompare(
-					`${b.accountType}:${b.movementType}:${b.amount}`,
+				`${a.accountType}:${a.currencyId}:${a.movementType}:${a.amount}`.localeCompare(
+					`${b.accountType}:${b.currencyId}:${b.movementType}:${b.amount}`,
 				),
 			)
 
@@ -353,6 +384,7 @@ const postsMatch = (left: DesiredCashPost[], right: DesiredCashPost[]) => {
 	return a.every(
 		(post, index) =>
 			post.accountType === b[index]?.accountType &&
+			post.currencyId === b[index]?.currencyId &&
 			post.amount === b[index]?.amount &&
 			post.movementType === b[index]?.movementType,
 	)
@@ -389,6 +421,7 @@ export const syncCashEffectsForReference = async (params: {
 
 	const currentAsDesired: DesiredCashPost[] = active.map(entry => ({
 		accountType: entry.accountType as CashAccountType,
+		currencyId: entry.currencyId?.trim() || '',
 		amount: entry.amount,
 		movementType: entry.movementType as DesiredCashPost['movementType'],
 	}))
@@ -399,7 +432,12 @@ export const syncCashEffectsForReference = async (params: {
 
 	for (const entry of active) {
 		const reverseKey = `rev:${entry.ledgerEntryId}`
-		const reverseAmount = roundPrimary(-entry.amount)
+		const reversed = reversedCashPost({
+			accountType: entry.accountType as CashAccountType,
+			currencyId: entry.currencyId ?? '',
+			amount: entry.amount,
+			movementType: entry.movementType as DesiredCashPost['movementType'],
+		})
 
 		const inserted = await insertLedgerEntry(
 			{
@@ -407,8 +445,9 @@ export const syncCashEffectsForReference = async (params: {
 				warehouseId: entry.warehouseId,
 				cashAccountId: entry.cashAccountId,
 				accountType: entry.accountType,
-				amount: reverseAmount,
-				movementType: CASH_MOVEMENT_TYPES.REVERSAL,
+				currencyId: reversed.currencyId,
+				amount: reversed.amount,
+				movementType: reversed.movementType,
 				referenceType,
 				referenceId,
 				idempotencyKey: reverseKey,
@@ -423,7 +462,8 @@ export const syncCashEffectsForReference = async (params: {
 			await applyBalanceDelta(
 				tenantId,
 				entry.cashAccountId,
-				reverseAmount,
+				reversed.currencyId,
+				reversed.amount,
 				session,
 			)
 		}
@@ -431,7 +471,7 @@ export const syncCashEffectsForReference = async (params: {
 
 	for (const [index, post] of params.desired.entries()) {
 		const amountKey = roundPrimary(post.amount)
-		const idempotencyKey = `${referenceType}:${referenceId}:${post.accountType}:${post.movementType}:${amountKey}:n${index}`
+		const idempotencyKey = `${referenceType}:${referenceId}:${post.accountType}:${post.currencyId}:${post.movementType}:${amountKey}:n${index}`
 
 		await postSingleEffect(
 			{
@@ -456,6 +496,7 @@ export const postInternalCashTransfer = async (params: {
 	fromAccountType: CashAccountType
 	toAccountType: CashAccountType
 	amount: number
+	currencyId: string
 	reason?: string
 	session?: ClientSession
 }) => {
@@ -476,6 +517,7 @@ export const postInternalCashTransfer = async (params: {
 
 	const tenantId = getTenantContext(params.requestContext).tenantId
 	const actor = buildActor(params.requestContext)
+	const currencyId = currencyKey(params.currencyId)
 	const transferId = uuidv4()
 	const run = async (session: ClientSession) => {
 		await ensureCashAccountsForWarehouse(
@@ -491,6 +533,7 @@ export const postInternalCashTransfer = async (params: {
 				warehouseId: params.warehouseId,
 				post: {
 					accountType: fromAccountType,
+					currencyId,
 					amount: -amount,
 					movementType: CASH_MOVEMENT_TYPES.TRANSFER,
 				},
@@ -510,6 +553,7 @@ export const postInternalCashTransfer = async (params: {
 				warehouseId: params.warehouseId,
 				post: {
 					accountType: toAccountType,
+					currencyId,
 					amount,
 					movementType: CASH_MOVEMENT_TYPES.TRANSFER,
 				},
@@ -550,6 +594,7 @@ export const postOpeningBalance = async (params: {
 	warehouseId: string
 	accountType: CashAccountType
 	amount: number
+	currencyId: string
 	reason?: string
 	actor?: Actor
 	session?: ClientSession
@@ -576,6 +621,7 @@ export const postOpeningBalance = async (params: {
 				: [
 						{
 							accountType: params.accountType,
+							currencyId: currencyKey(params.currencyId),
 							amount,
 							movementType: CASH_MOVEMENT_TYPES.OPENING_BALANCE,
 						},
@@ -589,7 +635,7 @@ export const postOpeningBalance = async (params: {
 export type CashBalanceByType = {
 	type: string
 	name: string
-	balance: number
+	balances: Record<string, number>
 }
 
 /** Inclusive day bounds when value is YYYY-MM-DD; otherwise parse as Date. */
@@ -672,6 +718,7 @@ export type CashLedgerListEntry = {
 	warehouseId: string
 	cashAccountId: string
 	accountType: string
+	currencyId: string
 	amount: number
 	movementType: string
 	referenceType: string
@@ -866,7 +913,7 @@ export const listCashLedgerEntries = async (params: {
 			.skip(skip)
 			.limit(limit)
 			.select(
-				'ledgerEntryId warehouseId cashAccountId accountType amount movementType referenceType referenceId transferGroupId reason createdAt createdBy',
+				'ledgerEntryId warehouseId cashAccountId accountType currencyId amount movementType referenceType referenceId transferGroupId reason createdAt createdBy',
 			)
 			.lean(),
 	])
@@ -876,6 +923,7 @@ export const listCashLedgerEntries = async (params: {
 		warehouseId: row.warehouseId,
 		cashAccountId: row.cashAccountId,
 		accountType: row.accountType,
+		currencyId: row.currencyId,
 		amount: row.amount,
 		movementType: row.movementType,
 		referenceType: row.referenceType,
@@ -898,11 +946,14 @@ export const listCashLedgerEntries = async (params: {
 export const getCashBalancesForWarehouses = async (
 	tenantId: string,
 	warehouseIds: string[],
-): Promise<{ accounts: CashBalanceByType[]; total: number }> => {
+): Promise<{
+	accounts: CashBalanceByType[]
+	totals: Record<string, number>
+}> => {
 	const scopedIds = warehouseIds.map(id => id.trim()).filter(Boolean)
 
 	if (scopedIds.length === 0) {
-		return { accounts: [], total: 0 }
+		return { accounts: [], totals: {} }
 	}
 
 	for (const warehouseId of scopedIds) {
@@ -923,7 +974,7 @@ export const getCashBalancesForWarehouses = async (
 		byType.set(type, {
 			type,
 			name: CASH_ACCOUNT_DEFAULT_NAMES[type],
-			balance: 0,
+			balances: {},
 		})
 	}
 
@@ -931,20 +982,25 @@ export const getCashBalancesForWarehouses = async (
 		const current = byType.get(account.type) ?? {
 			type: account.type,
 			name: account.name,
-			balance: 0,
+			balances: {},
 		}
 
-		current.balance = roundPrimary(current.balance + (account.balance ?? 0))
+		current.balances = addCashBalances(
+			current.balances,
+			normalizeCashBalances(account.balances),
+		)
+
 		current.name = account.name
 		byType.set(account.type, current)
 	}
 
 	const result = [...byType.values()]
-	const total = roundPrimary(
-		result.reduce((sum, account) => sum + account.balance, 0),
+	const totals = result.reduce(
+		(sum, account) => addCashBalances(sum, account.balances),
+		{} as Record<string, number>,
 	)
 
-	return { accounts: result, total }
+	return { accounts: result, totals }
 }
 
 export { buildActor }

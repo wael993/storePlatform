@@ -89,7 +89,10 @@ export const calculateInvoiceTotals = (
 }
 
 /** A tender above the total is change. The invoice stores at most the total. */
-export const settleTenderedPayment = (tendered: number, grandTotal: number) => ({
+export const settleTenderedPayment = (
+	tendered: number,
+	grandTotal: number,
+) => ({
 	paidAmount: Math.min(tendered, grandTotal),
 	changeAmount: tendered - grandTotal,
 })

@@ -7,7 +7,9 @@ export interface ICashLedgerEntry extends Document {
 	warehouseId: string
 	cashAccountId: string
 	accountType: string
-	/** Signed primary-currency amount. */
+	/** Currency of `amount`. */
+	currencyId: string
+	/** Signed amount in `currencyId`. */
 	amount: number
 	movementType: string
 	referenceType: string
@@ -44,6 +46,11 @@ const CashLedgerEntrySchema: Schema<ICashLedgerEntry> = new mongoose.Schema(
 			trim: true,
 		},
 		accountType: {
+			type: String,
+			required: true,
+			trim: true,
+		},
+		currencyId: {
 			type: String,
 			required: true,
 			trim: true,

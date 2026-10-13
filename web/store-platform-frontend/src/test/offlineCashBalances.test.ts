@@ -6,11 +6,11 @@ import {
 
 const snapshot = {
 	accounts: [
-		{ type: 'daily_cash', name: 'Daily', balance: 100 },
-		{ type: 'cash_reserve', name: 'Reserve', balance: 40 },
-		{ type: 'online', name: 'Online', balance: 10 },
+		{ type: 'daily_cash', name: 'Daily', balances: { syp: 100 } },
+		{ type: 'cash_reserve', name: 'Reserve', balances: { syp: 40 } },
+		{ type: 'online', name: 'Online', balances: { syp: 10 } },
 	],
-	total: 150,
+	totals: { syp: 150 },
 }
 
 const rates = [
@@ -59,11 +59,11 @@ describe('offline cash balances', () => {
 
 		expect(applyPendingCash(snapshot, posts)).toEqual({
 			accounts: [
-				{ type: 'daily_cash', name: 'Daily', balance: 125 },
-				{ type: 'cash_reserve', name: 'Reserve', balance: 40 },
-				{ type: 'online', name: 'Online', balance: 18 },
+				{ type: 'daily_cash', name: 'Daily', balances: { syp: 125 } },
+				{ type: 'cash_reserve', name: 'Reserve', balances: { syp: 40 } },
+				{ type: 'online', name: 'Online', balances: { syp: 18 } },
 			],
-			total: 183,
+			totals: { syp: 183 },
 		})
 	})
 
@@ -95,7 +95,7 @@ describe('offline cash balances', () => {
 				},
 				rates,
 			),
-		).toEqual([{ accountType: 'daily_cash', amount: -30 }])
+		).toEqual([{ accountType: 'daily_cash', currencyId: 'syp', amount: -30 }])
 	})
 
 	it('posts a receipt in a secondary currency onto the chosen account', () => {
@@ -111,6 +111,6 @@ describe('offline cash balances', () => {
 				},
 				rates,
 			),
-		).toEqual([{ accountType: 'cash_reserve', amount: 5 }])
+		).toEqual([{ accountType: 'cash_reserve', currencyId: 'usd', amount: 10 }])
 	})
 })

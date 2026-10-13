@@ -885,8 +885,12 @@ const getQuery = (
 		}),
 		getCashAccountBalances: builder.query<
 			{
-				accounts: Array<{ type: string; name: string; balance: number }>
-				total: number
+				accounts: Array<{
+					type: string
+					name: string
+					balances: Record<string, number>
+				}>
+				totals: Record<string, number>
 			},
 			void
 		>({
@@ -904,6 +908,7 @@ const getQuery = (
 					warehouseId: string
 					cashAccountId: string
 					accountType: string
+					currencyId?: string
 					amount: number
 					movementType: string
 					referenceType: string

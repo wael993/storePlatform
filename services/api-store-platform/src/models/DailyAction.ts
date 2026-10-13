@@ -25,6 +25,11 @@ export interface IDailyAction extends Document {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	/**
+	 * Settings exchangeRate at save time. Primary equivalent is amount / this rate.
+	 * Do not recompute from the current settings.
+	 */
+	exchangeRateToPrimary?: number
 	/** Cash account type for receipt/payment/expense posting. Defaults to daily_cash. */
 	cashAccountType?: string
 	unitId?: string
@@ -131,6 +136,10 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			type: String,
 			trim: true,
 			required: [true, 'currencyName is required'],
+		},
+		exchangeRateToPrimary: {
+			type: Number,
+			min: 0,
 		},
 		cashAccountType: {
 			type: String,

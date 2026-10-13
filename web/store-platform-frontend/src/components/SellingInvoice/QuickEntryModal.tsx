@@ -45,11 +45,9 @@ import { useSee } from '../../shared/hooks/useSee'
 import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
 import { useUser } from '../../shared/hooks/useUser'
 import { SEE } from '../../shared/seeFlags'
-import {
-	buildDisplayCurrencyOptions,
-	convertPrimaryAmount,
-	convertToPrimaryAmount,
-} from './currencyDisplay'
+import { currencyBalanceOf } from 'store-domain'
+
+import { buildDisplayCurrencyOptions } from './currencyDisplay'
 import {
 	getDailyActionId,
 	mapDailyActionToQuickEntryForm,
@@ -372,10 +370,7 @@ const QuickEntryModal = ({
 		) {
 			return
 		}
-		if (
-			isPartnersLoading &&
-			form.entryType !== DailyActionType.EXPENSE_ENTRY
-		) {
+		if (isPartnersLoading && form.entryType !== DailyActionType.EXPENSE_ENTRY) {
 			return
 		}
 		previousEntryType.current = form.entryType
@@ -442,39 +437,32 @@ const QuickEntryModal = ({
 		[currencyOptions, transferForm.currencyId],
 	)
 
-	const fromAccountBalancePrimary = useMemo(() => {
+	const fromAccountBalance = useMemo(() => {
 		const account = cashBalances?.accounts.find(
 			item => item.type === transferForm.fromAccountType,
 		)
-		return account?.balance ?? 0
-	}, [cashBalances?.accounts, transferForm.fromAccountType])
+		return currencyBalanceOf(account?.balances, transferForm.currencyId)
+	}, [
+		cashBalances?.accounts,
+		transferForm.currencyId,
+		transferForm.fromAccountType,
+	])
 
-	const transferAmountPrimary = useMemo(() => {
+	const transferAmount = useMemo(() => {
 		const amountRaw = formatNumberForDb(transferForm.amount, 2)
 		const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
 		if (!(displayAmount > 0) || !transferForm.currencyId) return 0
 
-		return convertToPrimaryAmount(
-			displayAmount,
-			transferForm.currencyId,
-			displayCurrencyOptions,
-		)
-	}, [displayCurrencyOptions, transferForm.amount, transferForm.currencyId])
+		return displayAmount
+	}, [transferForm.amount, transferForm.currencyId])
 
 	const hasCashBalances = Boolean(cashBalances)
 	const isInsufficientTransfer =
-		hasCashBalances &&
-		transferAmountPrimary > 0 &&
-		transferAmountPrimary > fromAccountBalancePrimary
+		hasCashBalances && transferAmount > 0 && transferAmount > fromAccountBalance
 
 	const insufficientTransferMessage = useMemo(() => {
 		if (!isInsufficientTransfer) return null
 
-		const availableDisplay = convertPrimaryAmount(
-			fromAccountBalancePrimary,
-			transferForm.currencyId,
-			displayCurrencyOptions,
-		)
 		const currencyLabel =
 			transferForm.currencyName ||
 			displayCurrencyOptions.find(
@@ -483,12 +471,12 @@ const QuickEntryModal = ({
 			''
 
 		return t('components.sellingInvoices.entries.insufficientBalance', {
-			available: formatNumber(availableDisplay) ?? '0.00',
+			available: formatNumber(fromAccountBalance) ?? '0.00',
 			currency: currencyLabel,
 		})
 	}, [
 		displayCurrencyOptions,
-		fromAccountBalancePrimary,
+		fromAccountBalance,
 		isInsufficientTransfer,
 		t,
 		transferForm.currencyId,
@@ -499,12 +487,12 @@ const QuickEntryModal = ({
 		form.entryType === DailyActionType.PAYMENT_ENTRY ||
 		form.entryType === DailyActionType.EXPENSE_ENTRY
 
-	const selectedCashAccountBalancePrimary = useMemo(() => {
+	const selectedCashAccountBalance = useMemo(() => {
 		const account = cashBalances?.accounts.find(
 			item => item.type === form.cashAccountType,
 		)
-		return account?.balance ?? 0
-	}, [cashBalances?.accounts, form.cashAccountType])
+		return currencyBalanceOf(account?.balances, form.currencyId)
+	}, [cashBalances?.accounts, form.cashAccountType, form.currencyId])
 
 	const selectedCashAccountOption = useMemo(
 		() =>
@@ -516,63 +504,50 @@ const QuickEntryModal = ({
 		[cashAccountOptions, form.cashAccountType],
 	)
 
-	const entryAmountPrimary = useMemo(() => {
+	const entryAmount = useMemo(() => {
 		const amountRaw = formatNumberForDb(form.amount, 2)
 		const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
 		if (!(displayAmount > 0) || !form.currencyId) return 0
 
-		return convertToPrimaryAmount(
-			displayAmount,
-			form.currencyId,
-			displayCurrencyOptions,
-		)
-	}, [displayCurrencyOptions, form.amount, form.currencyId])
+		return displayAmount
+	}, [form.amount, form.currencyId])
 
-	const previousCashOutPrimary = useMemo(() => {
+	const previousCashOut = useMemo(() => {
 		if (!isEditing || !initialEntry || !isCashOutEntry) return 0
 
 		const previousAccountType = initialEntry.cashAccountType || 'daily_cash'
 		if (previousAccountType !== form.cashAccountType) return 0
+		if (initialEntry.currencyId !== form.currencyId) return 0
 
 		const amountRaw = formatNumberForDb(
 			initialEntry.singleUnitPrice ?? initialEntry.totalPrice ?? '',
 			2,
 		)
 		const displayAmount = amountRaw == null ? NaN : Number(amountRaw)
-		if (!(displayAmount > 0) || !initialEntry.currencyId) return 0
+		if (!(displayAmount > 0)) return 0
 
-		return convertToPrimaryAmount(
-			displayAmount,
-			initialEntry.currencyId,
-			displayCurrencyOptions,
-		)
+		return displayAmount
 	}, [
-		displayCurrencyOptions,
 		form.cashAccountType,
+		form.currencyId,
 		initialEntry,
 		isCashOutEntry,
 		isEditing,
 	])
 
-	const availableCashOutPrimary =
-		selectedCashAccountBalancePrimary + previousCashOutPrimary
+	const availableCashOut = selectedCashAccountBalance + previousCashOut
 
 	const isInsufficientCashOut =
 		!isTransferTab &&
 		isCashOutEntry &&
 		!isReadOnly &&
 		hasCashBalances &&
-		entryAmountPrimary > 0 &&
-		entryAmountPrimary > availableCashOutPrimary
+		entryAmount > 0 &&
+		entryAmount > availableCashOut
 
 	const insufficientCashOutMessage = useMemo(() => {
 		if (!isInsufficientCashOut) return null
 
-		const availableDisplay = convertPrimaryAmount(
-			availableCashOutPrimary,
-			form.currencyId,
-			displayCurrencyOptions,
-		)
 		const currencyLabel =
 			form.currencyName ||
 			displayCurrencyOptions.find(
@@ -581,11 +556,11 @@ const QuickEntryModal = ({
 			''
 
 		return t('components.sellingInvoices.entries.insufficientBalance', {
-			available: formatNumber(availableDisplay) ?? '0.00',
+			available: formatNumber(availableCashOut) ?? '0.00',
 			currency: currencyLabel,
 		})
 	}, [
-		availableCashOutPrimary,
+		availableCashOut,
 		displayCurrencyOptions,
 		form.currencyId,
 		form.currencyName,

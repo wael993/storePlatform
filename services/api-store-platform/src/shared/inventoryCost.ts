@@ -13,6 +13,7 @@ export {
 } from './store-domain/inventoryQuantity'
 export {
 	amountToPrimary,
+	amountToPrimaryWithSnapshot,
 	catalogCostToPrimary,
 	ratesFromCurrencySettings,
 	resolveCurrencyIdFromCode,

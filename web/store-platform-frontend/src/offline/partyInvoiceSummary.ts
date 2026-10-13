@@ -1,4 +1,7 @@
-import { amountToPrimary, type CostCurrencyRate } from 'store-domain'
+import {
+	amountToPrimaryWithSnapshot,
+	type CostCurrencyRate,
+} from 'store-domain'
 
 import {
 	getPrimaryInvoiceCurrencyAmounts,
@@ -32,13 +35,21 @@ const samePartyId = (
 ) => value === partyId || (!!internalCode && value === internalCode)
 
 const parseEntryAmount = (
-	action: Pick<DailyAction, 'totalPrice' | 'singleUnitPrice' | 'currencyId'>,
+	action: Pick<
+		DailyAction,
+		'totalPrice' | 'singleUnitPrice' | 'currencyId' | 'exchangeRateToPrimary'
+	>,
 	rates: readonly CostCurrencyRate[],
 ) => {
 	const rawAmount = action.totalPrice || action.singleUnitPrice || '0'
 	const amount = parseFloat(String(rawAmount).replace(/,/g, '')) || 0
 
-	return amountToPrimary(amount, action.currencyId || null, rates)
+	return amountToPrimaryWithSnapshot(
+		amount,
+		action.currencyId || null,
+		action.exchangeRateToPrimary,
+		rates,
+	)
 }
 
 const sumEntryAmounts = (

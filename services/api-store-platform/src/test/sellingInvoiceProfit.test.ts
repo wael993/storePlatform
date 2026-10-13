@@ -631,6 +631,7 @@ describe('net revenue and profit', () => {
 
 	it('returns the top five sellers and profit products', () => {
 		const aggregates = new Map<string, ProductProfitAggregate>()
+
 		for (const row of [
 			{ productId: 'f', quantitySold: 1, profit: 9 },
 			{ productId: 'a', quantitySold: 6, profit: 1 },
@@ -652,12 +653,14 @@ describe('net revenue and profit', () => {
 				product => product.productId,
 			),
 		).toEqual(['a', 'b', 'c', 'd', 'e'])
+
 		expect(pickBestSellerSummaryProduct(aggregates)?.productId).toBe('a')
 		expect(
 			pickTopProfitSummaryProducts(aggregates).map(
 				product => product.productId,
 			),
 		).toEqual(['f', 'e', 'd', 'c', 'b'])
+
 		expect(pickTopProfitSummaryProduct(aggregates)?.productId).toBe('f')
 	})
 

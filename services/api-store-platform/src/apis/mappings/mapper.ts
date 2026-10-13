@@ -69,8 +69,7 @@ const samePartyId = (
 	value: string | undefined,
 	partyId: string,
 	internalCode?: string,
-) =>
-	value === partyId || (!!internalCode && value === internalCode)
+) => value === partyId || (!!internalCode && value === internalCode)
 
 /** Receipt and payment rows for one party. A payment to a customer is stored on supplierId; a receipt from a supplier is stored on customerId. */
 export const partyEntryQuery = (
@@ -311,6 +310,7 @@ export const mapDailyAction = (dailyAction: DailyAction) => {
 		expenseName: dailyAction.expenseName,
 		currencyId: dailyAction.currencyId,
 		currencyName: dailyAction.currencyName,
+		exchangeRateToPrimary: dailyAction.exchangeRateToPrimary,
 		cashAccountType: dailyAction.cashAccountType,
 		unitId: dailyAction.unitId,
 		unitName: dailyAction.unitName,

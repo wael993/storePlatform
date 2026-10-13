@@ -1,14 +1,20 @@
 import { Box, Flex, Text } from '@chakra-ui/react'
-import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FiCreditCard } from 'react-icons/fi'
 import { PAGE_COLORS } from './constants'
-import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
-import { useGetCashAccountBalancesQuery } from '../../api/apiStore'
-import { AsCashBalanceIcon } from '../../icons/CashBalance'
-
+import {
+	useGetCashAccountBalancesQuery,
+	useGetCurrencySettingsQuery,
+} from '../../api/apiStore'
+import {
+	CashCurrencyBalanceList,
+	CashCurrencyExpandButton,
+	cashCurrencyLines,
+	type CashCurrencyLine,
+} from '../dashboard/cashCurrencyBalances'
 const cardStyles = {
 	base: {
+		position: 'relative',
 		bg: 'white',
 		borderRadius: 'xl',
 		border: '1px solid',
@@ -31,53 +37,47 @@ const cardStyles = {
 		color: 'gray.900',
 		lineHeight: '1.2',
 	},
-	iconCircle: {
-		w: '2.5rem',
-		h: '2.5rem',
-		borderRadius: 'full',
-		alignItems: 'center',
-		justifyContent: 'center',
-		flexShrink: '0',
-	},
 } satisfies StylesObject
 
-const SummaryCard = ({
+const CashSummaryCard = ({
 	label,
-	value,
-	icon,
-	iconBg,
-	iconColor,
+	lines,
+	fallback,
 }: {
 	label: string
-	value: string
-	icon: ReactNode
-	iconBg: string
-	iconColor: string
-}) => (
-	<Box sx={cardStyles.base}>
-		<Flex justify="space-between" align="flex-start">
-			<Box flex="1" minW={0}>
-				<Text sx={cardStyles.label}>{label}</Text>
-				<Text sx={cardStyles.value}>{value}</Text>
-			</Box>
-			<Flex
-				sx={{
-					...cardStyles.iconCircle,
-					bg: iconBg,
-					color: iconColor,
-				}}
-			>
-				{icon}
-			</Flex>
-		</Flex>
-	</Box>
-)
+	lines?: CashCurrencyLine[]
+	fallback: string
+}) => {
+	const [expanded, setExpanded] = useState(false)
+	const canExpand = (lines?.length ?? 0) > 2
+
+	return (
+		<Box sx={cardStyles.base}>
+			{canExpand ? (
+				<CashCurrencyExpandButton
+					expanded={expanded}
+					onToggle={() => setExpanded(open => !open)}
+				/>
+			) : null}
+			<Text sx={cardStyles.label} pr={canExpand ? 8 : undefined}>
+				{label}
+			</Text>
+			{lines && lines.length > 0 ? (
+				<CashCurrencyBalanceList lines={lines} expanded={expanded} flush />
+			) : (
+				<Text sx={cardStyles.value}>{fallback}</Text>
+			)}
+		</Box>
+	)
+}
 
 const EMPTY_SUMMARY_VALUE = '—'
 
 const InvoiceSummaryCards = () => {
 	const { t } = useTranslation()
-	const { formatAmount } = useInvoiceDisplayCurrency()
+	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
+		refetchOnMountOrArgChange: false,
+	})
 	const {
 		data: cashBalances,
 		isLoading: isCashLoading,
@@ -87,44 +87,44 @@ const InvoiceSummaryCards = () => {
 		refetchOnMountOrArgChange: false,
 	})
 
-	const formatLedgerBalance = (amount: number | undefined) => {
-		if (isCashError) return t('dashboard.kpi.error')
-		if (amount == null) return EMPTY_SUMMARY_VALUE
-		return formatAmount(amount)
-	}
-
-	const balanceByType = new Map(
+	const balancesByType = new Map(
 		(cashBalances?.accounts ?? []).map(account => [
 			account.type,
-			account.balance,
+			account.balances,
 		]),
 	)
 	const showCashLoading = isCashLoading || (isCashFetching && !cashBalances)
 
+	const linesFor = (balances: Record<string, number> | undefined) => {
+		if (showCashLoading || isCashError || !balances) return undefined
+		const lines = cashCurrencyLines(currencySettings, balances)
+		return lines.length > 0 ? lines : undefined
+	}
+
+	const fallbackFor = (balances: Record<string, number> | undefined) => {
+		if (isCashError) return t('dashboard.kpi.error')
+		if (showCashLoading) return t('dashboard.kpi.loading')
+		if (!balances) return EMPTY_SUMMARY_VALUE
+		return EMPTY_SUMMARY_VALUE
+	}
+
 	return (
 		<Box mb={6}>
-			<Flex gap={4} flexWrap="wrap">
-				<SummaryCard
+			<Flex gap={4} flexWrap="wrap" alignItems="flex-start">
+				<CashSummaryCard
 					label={t('dashboard.cashAccounts.dailyCash')}
-					value={
-						showCashLoading
-							? t('dashboard.kpi.loading')
-							: formatLedgerBalance(balanceByType.get('daily_cash'))
-					}
-					icon={<AsCashBalanceIcon boxSize={5} />}
-					iconBg="#ECFDF5"
-					iconColor="#059669"
+					lines={linesFor(balancesByType.get('daily_cash'))}
+					fallback={fallbackFor(balancesByType.get('daily_cash'))}
 				/>
-				<SummaryCard
+				<CashSummaryCard
+					label={t('dashboard.cashAccounts.cashReserve')}
+					lines={linesFor(balancesByType.get('cash_reserve'))}
+					fallback={fallbackFor(balancesByType.get('cash_reserve'))}
+				/>
+				<CashSummaryCard
 					label={t('dashboard.cashAccounts.online')}
-					value={
-						showCashLoading
-							? t('dashboard.kpi.loading')
-							: formatLedgerBalance(balanceByType.get('online'))
-					}
-					icon={<FiCreditCard size={20} />}
-					iconBg="#EFF6FF"
-					iconColor="#2563EB"
+					lines={linesFor(balancesByType.get('online'))}
+					fallback={fallbackFor(balancesByType.get('online'))}
 				/>
 			</Flex>
 		</Box>

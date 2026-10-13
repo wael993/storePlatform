@@ -33,14 +33,11 @@ import {
 	InvoiceStatus,
 	PricingLabelsType,
 } from '../../shared/globalEnums'
-import { findOversellLines } from 'store-domain'
+import { findOversellLines, type CashTenderInput } from 'store-domain'
 import { requestInsufficientStockConfirmation } from '../../offline/insufficientStockConfirmation'
 import useCustomToast from '../common/CustomToast'
-import { PAGE_COLORS } from './constants'
-import {
-	calculateInvoiceTotals,
-	settleTenderedPayment,
-} from './invoiceCalculations'
+import { defaultInvoiceCashAccountType, PAGE_COLORS } from './constants'
+import { calculateInvoiceTotals } from './invoiceCalculations'
 import {
 	applyInvoiceLevelDiscount,
 	clearInvoiceDiscountFields,
@@ -69,6 +66,7 @@ import type {
 } from './types'
 import { useInvoiceDisplayCurrency } from './useInvoiceDisplayCurrency'
 import CurrencyAmountTooltip from './CurrencyAmountTooltip'
+import InvoicePaidSection from './InvoicePaidSection'
 import DropdownLabel from '../DropdownLabel'
 import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsPauseIcon } from '../../icons/Pause'
@@ -407,11 +405,16 @@ const NewSellingInvoicePanel = ({
 	)
 
 	const [cashTendered, setCashTendered] = useState<number | null>(null)
+	const [cashTenders, setCashTenders] = useState<CashTenderInput[] | null>(null)
+	const [cashAccountType, setCashAccountType] = useState(() =>
+		defaultInvoiceCashAccountType(draft.paymentType),
+	)
 
 	useEffect(() => {
 		if (isReadOnly || draft.paymentType !== InvoicePaymentType.CASH) return
 
 		setCashTendered(null)
+		setCashTenders(null)
 		setDraft(current => ({
 			...current,
 			paidAmount: calculateInvoiceTotals(
@@ -429,11 +432,6 @@ const NewSellingInvoicePanel = ({
 		setDraft,
 	])
 
-	const settledPayment = settleTenderedPayment(
-		cashTendered ?? draft.paidAmount,
-		totals.grandTotal,
-	)
-	const changeAmount = settledPayment.changeAmount
 	const isPayedButtonDisabled =
 		draft.lineItems.length === 0 ||
 		(draft.customerId === WALK_IN_CUSTOMER_ID &&
@@ -531,6 +529,8 @@ const NewSellingInvoicePanel = ({
 
 	const handlePaymentTypeChange = (paymentType: SellingInvoicePaymentType) => {
 		setCashTendered(null)
+		setCashTenders(null)
+		setCashAccountType(defaultInvoiceCashAccountType(paymentType))
 		setDraft(current => ({
 			...current,
 			paymentType,
@@ -582,7 +582,11 @@ const NewSellingInvoicePanel = ({
 				}
 			}
 
-			const body = buildInvoiceRequestBody(draft, status, currencySettings)
+			const body = buildInvoiceRequestBody(draft, status, currencySettings, {
+				invoiceCurrencyId: displayCurrencyId,
+				cashAccountType,
+				cashTenders,
+			})
 
 			if (mode === 'edit') {
 				await updateSellingInvoice({
@@ -966,6 +970,53 @@ const NewSellingInvoicePanel = ({
 					</HStack>
 				</Box>
 
+				{!isReadOnly && draft.paymentType !== InvoicePaymentType.CREDIT && (
+					<Box maxW={{ base: '100%', md: '20rem' }}>
+						<DropdownLabel
+							label={t('components.sellingInvoices.entries.toAccount')}
+							options={[
+								{
+									value: 'daily_cash',
+									label: t('dashboard.cashAccounts.dailyCash'),
+								},
+								{
+									value: 'cash_reserve',
+									label: t('dashboard.cashAccounts.cashReserve'),
+								},
+								{
+									value: 'online',
+									label: t('dashboard.cashAccounts.online'),
+								},
+							]}
+							selectedOptions={[
+								{
+									value: cashAccountType,
+									label: t(
+										cashAccountType === 'online'
+											? 'dashboard.cashAccounts.online'
+											: cashAccountType === 'cash_reserve'
+												? 'dashboard.cashAccounts.cashReserve'
+												: 'dashboard.cashAccounts.dailyCash',
+									),
+								},
+							]}
+							onSelect={values => setCashAccountType(values[0] ?? 'daily_cash')}
+							placeholder={t('components.sellingInvoices.entries.toAccount')}
+							isSingle
+							isSearchable={false}
+							customStyles={{
+								dropdownContainer: { width: '100%' },
+								dropdownMenu: {
+									mt: '0.4rem',
+									borderRadius: 'none',
+									width: '100%',
+								},
+								dropdownPlaceholder: { width: '100%' },
+							}}
+						/>
+					</Box>
+				)}
+
 				{!isReadOnly && canAddSelling && (
 					<Box>
 						<InvoiceProductSearch
@@ -1171,71 +1222,23 @@ const NewSellingInvoicePanel = ({
 						</VStack>
 					</Box>
 
-					<Box
-						bg="gray.50"
-						borderRadius="lg"
-						p={4}
-						border="1px solid"
-						borderColor={PAGE_COLORS.border}
-					>
-						<VStack align="stretch" spacing={3}>
-							<Box>
-								<Text
-									fontSize="xs"
-									fontWeight={600}
-									color={PAGE_COLORS.muted}
-									mb={1}
-								>
-									{t('components.sellingInvoices.drawer.paidAmount')}
-								</Text>
-								<CurrencyAmountTooltip
-									amount={draft.paidAmount}
-									displayText={formatAmount(settledPayment.paidAmount)}
-									options={displayCurrencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									fontSize="xl"
-									fontWeight={700}
-									onEdit={
-										isReadOnly ||
-										draft.paymentType === InvoicePaymentType.CREDIT
-											? undefined
-											: tendered => {
-													const { paidAmount } = settleTenderedPayment(
-														tendered,
-														totals.grandTotal,
-													)
-													setCashTendered(
-														tendered > totals.grandTotal ? tendered : null,
-													)
-													setDraft(current => ({
-														...current,
-														paidAmount,
-													}))
-												}
-									}
-								/>
-							</Box>
-							<Box>
-								<Text
-									fontSize="xs"
-									fontWeight={600}
-									color={PAGE_COLORS.muted}
-									mb={1}
-								>
-									{t('components.sellingInvoices.drawer.change')}
-								</Text>
-								<CurrencyAmountTooltip
-									amount={changeAmount}
-									displayText={formatAmount(changeAmount)}
-									options={displayCurrencyOptions}
-									displayCurrencyId={displayCurrencyId}
-									fontSize="xl"
-									fontWeight={700}
-									color={PAGE_COLORS.success}
-								/>
-							</Box>
-						</VStack>
-					</Box>
+					<InvoicePaidSection
+						paidLabel={t('components.sellingInvoices.drawer.paidAmount')}
+						changeLabel={t('components.sellingInvoices.drawer.change')}
+						options={displayCurrencyOptions}
+						displayCurrencyId={displayCurrencyId}
+						grandTotal={totals.grandTotal}
+						paidAmount={draft.paidAmount}
+						cashTendered={cashTendered}
+						isEditable={
+							!isReadOnly && draft.paymentType !== InvoicePaymentType.CREDIT
+						}
+						onSettlement={(paidAmount, nextCashTendered, tenders) => {
+							setCashTendered(nextCashTendered)
+							setCashTenders(tenders)
+							setDraft(current => ({ ...current, paidAmount }))
+						}}
+					/>
 				</Grid>
 
 				{saveError && (

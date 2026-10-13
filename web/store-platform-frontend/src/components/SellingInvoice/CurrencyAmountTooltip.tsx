@@ -27,6 +27,8 @@ interface CurrencyAmountTooltipProps {
 	onEnterCommit?: () => void
 	onCancel?: () => void
 	onEdit?: (amount: number) => void | Promise<void>
+	/** Typed amount in the display currency, before conversion to primary. */
+	onEditDisplayAmount?: (amount: number) => void
 	/** When false, amount is not click-editable; registerEditStart can still force-open. */
 	clickToEdit?: boolean
 }
@@ -46,6 +48,7 @@ const CurrencyAmountTooltip = ({
 	onEnterCommit,
 	onCancel,
 	onEdit,
+	onEditDisplayAmount,
 	clickToEdit = true,
 }: CurrencyAmountTooltipProps) => {
 	const { t } = useTranslation()
@@ -75,6 +78,7 @@ const CurrencyAmountTooltip = ({
 			onEnterCommit={onEnterCommit}
 			onCancel={onCancel}
 			onSave={async editedAmount => {
+				onEditDisplayAmount?.(editedAmount)
 				await onEdit(
 					convertToPrimaryAmount(editedAmount, displayCurrencyId, options),
 				)

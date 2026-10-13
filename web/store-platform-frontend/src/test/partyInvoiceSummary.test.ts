@@ -100,6 +100,26 @@ describe('offline party invoice summary', () => {
 		expect(supplier.outstanding).toBeCloseTo(-71.42857143, 5)
 	})
 
+	it('uses the stored entry rate when the live rate has changed', () => {
+		const liveRates: CostCurrencyRate[] = [
+			{ currencyId: 'usd', label: '$', name: 'USD', exchangeRate: 1 },
+			{ currencyId: 'syp', label: 'SYP', name: 'ليرة', exchangeRate: 200 },
+		]
+		const customer = customerPartySummary(
+			[],
+			[
+				entry(DailyActionType.RECEIPT_ENTRY, '12000', {
+					currencyId: 'syp',
+					exchangeRateToPrimary: 100,
+				}),
+			],
+			[],
+			liveRates,
+		)
+
+		expect(customer.outstanding).toBeCloseTo(-120, 5)
+	})
+
 	it('ignores draft invoices and counts a payment stored on the other party id', () => {
 		const customer = { customerId: 'c1', internalCode: 'C-1' }
 		const actions = [

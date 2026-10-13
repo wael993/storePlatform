@@ -1,5 +1,5 @@
 import { Box, Flex, Text } from '@chakra-ui/react'
-import type { ComponentType, ReactNode } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { FiCreditCard, FiShield } from 'react-icons/fi'
@@ -17,7 +17,12 @@ import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
 import { useSee } from '../../shared/hooks/useSee'
 import { useUser } from '../../shared/hooks/useUser'
 import { SEE } from '../../shared/seeFlags'
-import { formatNumber } from '../../shared/utils'
+import {
+	CashCurrencyBalanceList,
+	CashCurrencyExpandButton,
+	cashCurrencyLines,
+	type CashCurrencyLine,
+} from './cashCurrencyBalances'
 
 /** Soft icon tint only — cards stay white like Coming Soon. */
 const ICON_TONES: Record<string, { bg: string; color: string }> = {
@@ -64,7 +69,6 @@ const ACCOUNT_ICONS: Record<string, ComponentType<IconProps>> = {
 const cardStyles = {
 	card: {
 		position: 'relative',
-		overflow: 'hidden',
 		bg: 'white',
 		border: '1px solid',
 		borderColor: 'gray.200',
@@ -113,12 +117,6 @@ const cardStyles = {
 		color: 'gray.800',
 		lineHeight: '1.2',
 	},
-	description: {
-		mt: 1.5,
-		fontSize: { base: 'sm', lg: 'xs' },
-		color: 'gray.500',
-		lineHeight: '1.4',
-	},
 	value: {
 		mt: { base: 4, lg: 3 },
 		fontSize: { base: 'xl', sm: '2xl', lg: 'xl' },
@@ -134,40 +132,31 @@ type CashKpiCardProps = {
 	cardKey: string
 	title: string
 	value: ReactNode
+	lines?: CashCurrencyLine[]
 	isLoading?: boolean
 	isError?: boolean
 	onOpen?: () => void
 }
 
-const CashKpiCard = ({
+export const CashKpiCard = ({
 	cardKey,
 	title,
 	value,
+	lines,
 	isLoading,
 	isError,
 	onOpen,
 }: CashKpiCardProps) => {
 	const { t } = useTranslation()
+	const [expanded, setExpanded] = useState(false)
 	const Icon = ACCOUNT_ICONS[cardKey] ?? CashBalanceIcon
 	const tone = ICON_TONES[cardKey] ?? ICON_TONES.daily_cash
+	const showLines = !isLoading && !isError && (lines?.length ?? 0) > 0
+	const canExpand = showLines && (lines?.length ?? 0) > 2
 
 	return (
 		<Box
 			sx={cardStyles.card}
-			role={onOpen ? 'button' : undefined}
-			tabIndex={onOpen ? 0 : undefined}
-			onClick={onOpen}
-			onKeyDown={
-				onOpen
-					? event => {
-							if (event.key === 'Enter' || event.key === ' ') {
-								event.preventDefault()
-								onOpen()
-							}
-						}
-					: undefined
-			}
-			cursor={onOpen ? 'pointer' : undefined}
 			_hover={
 				onOpen
 					? {
@@ -176,52 +165,42 @@ const CashKpiCard = ({
 						}
 					: undefined
 			}
-			_focusVisible={
-				onOpen
-					? {
-							outline: '2px solid',
-							outlineColor: 'blue.400',
-							outlineOffset: '2px',
-						}
-					: undefined
-			}
 		>
-			{/* Quiet decoration — same language as Coming Soon, not painted fills. */}
-			<Box
-				position="absolute"
-				inset={0}
-				pointerEvents="none"
-				aria-hidden
-				opacity={0.5}
-			>
-				<Box
-					position="absolute"
-					top={6}
-					left={6}
-					w={{ base: '7rem', lg: '4.5rem' }}
-					h={{ base: '5rem', lg: '3.5rem' }}
-					opacity={0.35}
-					bgImage="radial-gradient(circle, #CBD5E0 1.5px, transparent 1.5px)"
-					bgSize="1.25rem 1.25rem"
+			{canExpand ? (
+				<CashCurrencyExpandButton
+					expanded={expanded}
+					onToggle={() => setExpanded(open => !open)}
 				/>
-				<Box
-					position="absolute"
-					right="-5rem"
-					bottom="-5rem"
-					w={{ base: '18rem', lg: '12rem' }}
-					h={{ base: '10rem', lg: '7rem' }}
-					borderRadius="50%"
-					bg="gray.50"
-					transform="rotate(-12deg)"
-				/>
-			</Box>
-
+			) : null}
 			<Flex
 				position="relative"
 				align="center"
 				h="100%"
 				minH={{ base: '6.5rem', lg: '5.5rem' }}
 				zIndex={1}
+				role={onOpen ? 'button' : undefined}
+				tabIndex={onOpen ? 0 : undefined}
+				onClick={onOpen}
+				onKeyDown={
+					onOpen
+						? event => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault()
+									onOpen()
+								}
+							}
+						: undefined
+				}
+				cursor={onOpen ? 'pointer' : undefined}
+				_focusVisible={
+					onOpen
+						? {
+								outline: '2px solid',
+								outlineColor: 'blue.400',
+								outlineOffset: '2px',
+							}
+						: undefined
+				}
 			>
 				<Flex
 					sx={{
@@ -234,7 +213,11 @@ const CashKpiCard = ({
 				</Flex>
 				<Box sx={cardStyles.divider} />
 
-				<Box flex="1" minW={0} pr={{ base: 2, lg: 1 }}>
+				<Box
+					flex="1"
+					minW={0}
+					pr={canExpand ? { base: 8, lg: 6 } : { base: 2, lg: 1 }}
+				>
 					<Flex align="center" gap={2} flexWrap="wrap" mb={0.5}>
 						<Text sx={cardStyles.title} noOfLines={2}>
 							{title}
@@ -243,14 +226,17 @@ const CashKpiCard = ({
 							{t('dashboard.cashAccounts.live')}
 						</Text>
 					</Flex>
-					<Text sx={cardStyles.description} noOfLines={2}></Text>
-					<Text sx={cardStyles.value}>
-						{isLoading
-							? t('dashboard.kpi.loading')
-							: isError
-								? t('dashboard.kpi.error')
-								: value}
-					</Text>
+					{showLines && lines ? (
+						<CashCurrencyBalanceList lines={lines} expanded={expanded} />
+					) : (
+						<Text sx={cardStyles.value}>
+							{isLoading
+								? t('dashboard.kpi.loading')
+								: isError
+									? t('dashboard.kpi.error')
+									: value}
+						</Text>
+					)}
 				</Box>
 			</Flex>
 		</Box>
@@ -279,18 +265,6 @@ const CashPaymentsCard = () => {
 		refetchOnMountOrArgChange: false,
 	})
 
-	const currencyLabel =
-		currencySettings?.primaryCurrency?.internalCode ||
-		currencySettings?.primaryCurrency?.name ||
-		''
-
-	const formatBalance = (amount: number | undefined) => {
-		if (amount == null) return '—'
-		const formatted = formatNumber(amount) ?? String(amount)
-
-		return currencyLabel ? `${formatted} ${currencyLabel}` : formatted
-	}
-
 	const openHistory = (accountType?: string) => {
 		const params = accountType
 			? `?accountType=${encodeURIComponent(accountType)}`
@@ -299,9 +273,15 @@ const CashPaymentsCard = () => {
 	}
 
 	const showLoading = isLoading || (isFetching && !data)
-	const balanceByType = new Map(
-		(data?.accounts ?? []).map(account => [account.type, account.balance]),
+	const balancesByType = new Map(
+		(data?.accounts ?? []).map(account => [account.type, account.balances]),
 	)
+
+	const linesFor = (balances: Record<string, number> | undefined) => {
+		if (showLoading || isError || !balances) return undefined
+		const lines = cashCurrencyLines(currencySettings, balances)
+		return lines.length > 0 ? lines : undefined
+	}
 
 	if (!showAnyCash) return null
 
@@ -312,7 +292,8 @@ const CashPaymentsCard = () => {
 					key={type}
 					cardKey={type}
 					title={t(ACCOUNT_LABEL_KEYS[type])}
-					value={formatBalance(balanceByType.get(type))}
+					value="—"
+					lines={linesFor(balancesByType.get(type))}
 					isLoading={showLoading}
 					isError={isError}
 					onOpen={
@@ -327,7 +308,8 @@ const CashPaymentsCard = () => {
 					key="total"
 					cardKey="total"
 					title={t(ACCOUNT_LABEL_KEYS.total)}
-					value={formatBalance(data?.total)}
+					value="—"
+					lines={linesFor(data?.totals)}
 					isLoading={showLoading}
 					isError={isError}
 					onOpen={

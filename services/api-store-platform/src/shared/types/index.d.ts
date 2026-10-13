@@ -182,6 +182,12 @@ export type InvoiceRequestBody = {
 	}>
 	status?: `${InvoiceStatus}`
 	paymentStatus?: `${InvoicePaymentStatus}`
+	invoiceCurrencyId?: string
+	cashAccountType?: string
+	tenders?: Array<{
+		currencyId: string
+		tenderedAmount: number
+	}>
 	currencyAmounts: Array<{
 		currencyId: string
 		name: string
@@ -275,6 +281,12 @@ export type BuyingInvoiceRequestBody = {
 	}>
 	status?: `${InvoiceStatus}`
 	paymentStatus?: `${InvoicePaymentStatus}`
+	invoiceCurrencyId?: string
+	cashAccountType?: string
+	tenders?: Array<{
+		currencyId: string
+		tenderedAmount: number
+	}>
 	currencyAmounts: Array<{
 		currencyId: string
 		name: string
