@@ -87,7 +87,7 @@ const SummaryRow = ({
 )
 
 interface PartyInvoiceSummaryCardsProps {
-	party: 'customer' | 'supplier'
+	party: 'customer' | 'supplier' | 'partner'
 	totals?: {
 		totalInvoiced: number
 		totalPaid: number
@@ -103,9 +103,10 @@ const PartyInvoiceSummaryCards = ({
 	const { formatAmount } = useInvoiceDisplayCurrency()
 	const { canSee } = useSee()
 	const canSeeOutstanding =
-		party === 'supplier'
+		party === 'partner' ||
+		(party === 'supplier'
 			? canSee(SEE.suppliersTotalPayable)
-			: canSee(SEE.customersTotalReceivable)
+			: canSee(SEE.customersTotalReceivable))
 
 	if (!totals) return null
 
@@ -116,23 +117,21 @@ const PartyInvoiceSummaryCards = ({
 			? 'components.invoiceSummary.forUs'
 			: 'components.invoiceSummary.forThem',
 	)
+	const invoiceTotalLabel = t(
+		party === 'supplier'
+			? 'components.invoiceSummary.buyingInvoices'
+			: 'components.invoiceSummary.sellingInvoices',
+	)
 
 	return (
 		<Box width="100%">
 			<Box sx={styles.container}>
 				<SummaryRow
-					label={t('components.invoiceSummary.totalInvoiced')}
+					label={invoiceTotalLabel}
 					value={formatAmount(totals.totalInvoiced)}
 					icon={<DollarSignIcon fill="none" />}
 					iconBg="#DBEAFE"
 					iconColor="#2563EB"
-				/>
-				<SummaryRow
-					label={t('components.invoiceSummary.totalPaid')}
-					value={formatAmount(totals.totalPaid)}
-					icon={<DollarSignIcon fill="none" />}
-					iconBg="#DCFCE7"
-					iconColor="#15803D"
 				/>
 				{canSeeOutstanding && (
 					<SummaryRow

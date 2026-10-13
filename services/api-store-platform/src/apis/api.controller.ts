@@ -51,11 +51,13 @@ import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
 import {
 	ESTABLISHED_COST_MOVING_TYPES,
 	establishedWarehouseIdsFromMovings,
+	amountToPrimary,
 	availableQuantityFromStock,
 	catalogCostToPrimary,
 	finiteCost,
 	mergeQtyWeightedAverageCost,
 	ratesFromCurrencySettings,
+	type CostCurrencyRate,
 } from '../shared/inventoryCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
 import { resolveSyncClientId } from '../shared/uuid'
@@ -3755,6 +3757,7 @@ export default class ProductController {
 	public buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, any>>,
 		customerEntries: DailyActionResponse['data'] = [],
+		rates: readonly CostCurrencyRate[] = [],
 	): CustomerInvoiceSummary {
 		let totalInvoiced = 0
 		let totalPaid = 0
@@ -3792,16 +3795,19 @@ export default class ProductController {
 		totalInvoiced += this.sumActionAmounts(
 			customerEntries,
 			DailyActionType.SELLING_ENTRY,
+			rates,
 		)
 
 		totalInvoiced += this.sumActionAmounts(
 			customerEntries,
 			DailyActionType.PAYMENT_ENTRY,
+			rates,
 		)
 
 		totalPaid += this.sumActionAmounts(
 			customerEntries,
 			DailyActionType.RECEIPT_ENTRY,
+			rates,
 		)
 
 		const totalReceivable = totalInvoiced - totalPaid
@@ -3818,6 +3824,7 @@ export default class ProductController {
 	public buildSupplierInvoiceSummary(
 		invoices: Array<Record<string, any>>,
 		supplierEntries: DailyActionResponse['data'] = [],
+		rates: readonly CostCurrencyRate[] = [],
 	): SupplierInvoiceSummary {
 		let totalInvoiced = 0
 		let totalPaid = 0
@@ -3855,19 +3862,23 @@ export default class ProductController {
 		totalInvoiced += this.sumActionAmounts(
 			supplierEntries,
 			DailyActionType.BUYING_ENTRY,
+			rates,
+		)
+
+		// Same direction as the activity row: a supplier receipt adds, a payment subtracts.
+		totalInvoiced += this.sumActionAmounts(
+			supplierEntries,
+			DailyActionType.RECEIPT_ENTRY,
+			rates,
 		)
 
 		totalPaid += this.sumActionAmounts(
 			supplierEntries,
 			DailyActionType.PAYMENT_ENTRY,
+			rates,
 		)
 
-		totalPaid += this.sumActionAmounts(
-			supplierEntries,
-			DailyActionType.RECEIPT_ENTRY,
-		)
-
-		const totalPayable = Math.max(0, totalInvoiced - totalPaid)
+		const totalPayable = totalInvoiced - totalPaid
 
 		return {
 			totalInvoiced,
@@ -4927,22 +4938,25 @@ export default class ProductController {
 
 	private parseActionAmount(
 		action: DailyActionResponse['data'][number],
+		rates: readonly CostCurrencyRate[] = [],
 	): number {
-		const rawAmount = action.totalPrice ?? action.singleUnitPrice ?? '0'
+		const rawAmount = action.totalPrice || action.singleUnitPrice || '0'
+		const amount = parseFloat(rawAmount.replace(/,/g, '')) || 0
 
-		return parseFloat(rawAmount.replace(/,/g, '')) || 0
+		return amountToPrimary(amount, action.currencyId, rates)
 	}
 
 	private sumActionAmounts(
 		actions: DailyActionResponse['data'],
 		entryType: EntryType,
+		rates: readonly CostCurrencyRate[] = [],
 	): number {
 		return actions.reduce((sum, action) => {
 			if (action.entryType !== entryType) {
 				return sum
 			}
 
-			return sum + this.parseActionAmount(action)
+			return sum + this.parseActionAmount(action, rates)
 		}, 0)
 	}
 

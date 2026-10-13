@@ -47,7 +47,10 @@ import {
 import { AsDollarSignIcon } from '../../icons/DollarSign'
 import { AsCreditCardIcon } from '../../icons/CreditCard'
 import { AsPriceTagIcon } from '../../shared/icons/PriceTag'
-import { calculateInvoiceTotals } from '../SellingInvoice/invoiceCalculations'
+import {
+	calculateInvoiceTotals,
+	settleTenderedPayment,
+} from '../SellingInvoice/invoiceCalculations'
 import {
 	applyInvoiceLevelDiscount,
 	clearInvoiceDiscountFields,
@@ -451,6 +454,7 @@ const NewBuyingInvoicePanel = ({
 	useEffect(() => {
 		if (!isActive || isControlledCreate || isExistingInvoice) return
 
+		setCashTendered(null)
 		setInternalDraft(
 			createBuyingInvoiceDraft(salesPerson, {
 				paymentType: initialPaymentType,
@@ -476,6 +480,7 @@ const NewBuyingInvoicePanel = ({
 	useEffect(() => {
 		if (!isActive || !isExistingInvoice || !existingInvoice) return
 
+		setCashTendered(null)
 		setInternalDraft(mapApiBuyingInvoiceToDraft(existingInvoice))
 		setSaveError(null)
 	}, [existingInvoice, isActive, isExistingInvoice])
@@ -505,6 +510,8 @@ const NewBuyingInvoicePanel = ({
 		],
 	)
 
+	const [cashTendered, setCashTendered] = useState<number | null>(null)
+
 	useEffect(() => {
 		if (
 			isReadOnly ||
@@ -514,6 +521,7 @@ const NewBuyingInvoicePanel = ({
 			return
 		}
 
+		setCashTendered(null)
 		setDraft(current => ({
 			...current,
 			paidAmount: calculateInvoiceTotals(
@@ -531,7 +539,11 @@ const NewBuyingInvoicePanel = ({
 		setDraft,
 	])
 
-	const changeAmount = draft.paidAmount - totals.grandTotal
+	const settledPayment = settleTenderedPayment(
+		cashTendered ?? draft.paidAmount,
+		totals.grandTotal,
+	)
+	const changeAmount = settledPayment.changeAmount
 
 	const supplierOptions = useMemo(
 		(): Pick<Supplier, 'supplierId' | 'name'>[] => suppliers,
@@ -806,6 +818,7 @@ const NewBuyingInvoicePanel = ({
 	}
 
 	const handlePaymentTypeChange = (paymentType: BuyingInvoicePaymentType) => {
+		setCashTendered(null)
 		setDraft(current => ({
 			...current,
 			paymentType,
@@ -1708,8 +1721,8 @@ const NewBuyingInvoicePanel = ({
 										{t('components.buyingInvoices.drawer.paidAmount')}
 									</Text>
 									<CurrencyAmountTooltip
-										amount={draft.paidAmount}
-										displayText={formatAmount(draft.paidAmount)}
+										amount={settledPayment.paidAmount}
+										displayText={formatAmount(settledPayment.paidAmount)}
 										options={displayCurrencyOptions}
 										displayCurrencyId={displayCurrencyId}
 										fontSize="xl"
@@ -1717,11 +1730,19 @@ const NewBuyingInvoicePanel = ({
 										onEdit={
 											draft.paymentType === InvoicePaymentType.CREDIT
 												? undefined
-												: paidAmount =>
+												: tendered => {
+														const { paidAmount } = settleTenderedPayment(
+															tendered,
+															totals.grandTotal,
+														)
+														setCashTendered(
+															tendered > totals.grandTotal ? tendered : null,
+														)
 														setDraft(current => ({
 															...current,
 															paidAmount,
 														}))
+													}
 										}
 									/>
 								</Box>

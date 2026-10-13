@@ -137,7 +137,7 @@ export const buildBuyingInvoiceRequestBody = (
 		draft.lineItems,
 		getInvoiceDiscountSettings(draft),
 	)
-	const paidAmount = draft.paidAmount
+	const paidAmount = Math.min(draft.paidAmount, totals.grandTotal)
 	const remainingAmount = Math.max(0, totals.grandTotal - paidAmount)
 	const currencyAmounts = buildInvoiceCurrencyAmounts(
 		currencySettings,

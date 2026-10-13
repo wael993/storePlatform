@@ -11,6 +11,9 @@ import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
+import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
+import type { CostCurrencyRate } from '../../shared/inventoryCost'
+import type { CustomerInvoiceSummary } from '../../shared/types'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
@@ -36,6 +39,11 @@ export type PartnerDailyActionCollaborator = {
 		ids: string[],
 		fields: Array<'customerId' | 'supplierId' | 'partnerId'>,
 	): Promise<DailyActionResponse['data']>
+	buildCustomerInvoiceSummary(
+		invoices: Array<Record<string, unknown>>,
+		customerEntries?: DailyActionResponse['data'],
+		rates?: readonly CostCurrencyRate[],
+	): CustomerInvoiceSummary
 }
 
 export default class PartnerController {
@@ -126,8 +134,8 @@ export default class PartnerController {
 			(id): id is string => Boolean(id),
 		)
 		const tenantId = this.getTenantId(requestContext)
-		const [partnerEntries, sellingInvoices, buyingInvoices] = await Promise.all(
-			[
+		const [partnerEntries, sellingInvoices, buyingInvoices, rates] =
+			await Promise.all([
 				this.dailyActions.getPartyEntries(requestContext, ids, ['partnerId']),
 				withTenantScope(
 					Invoice.find({ customerId: { $in: ids } }).sort({
@@ -141,7 +149,22 @@ export default class PartnerController {
 					}),
 					tenantId,
 				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
-			],
+				loadCashCurrencyRates(tenantId),
+			])
+
+		const invoices = filterByWarehouseAcl(requestContext, sellingInvoices)
+		const buyingInvoicesInScope = filterByWarehouseAcl(
+			requestContext,
+			buyingInvoices,
+		)
+		const own = this.dailyActions.buildCustomerInvoiceSummary(
+			invoices,
+			partnerEntries,
+			rates,
+		)
+		const buyingOwed = this.dailyActions.buildCustomerInvoiceSummary(
+			buyingInvoicesInScope,
+			[],
 		)
 
 		const mappedPartners = mapPartners([
@@ -176,8 +199,15 @@ export default class PartnerController {
 
 		return {
 			...mapped,
-			sellingInvoices: filterByWarehouseAcl(requestContext, sellingInvoices),
-			buyingInvoices: filterByWarehouseAcl(requestContext, buyingInvoices),
+			sellingInvoices: invoices,
+			buyingInvoices: buyingInvoicesInScope,
+			invoiceSummary: {
+				totalInvoiced: own.totalInvoiced,
+				totalPaid: own.totalPaid,
+				outstanding:
+					own.totalReceivable -
+					(buyingOwed.totalInvoiced - buyingOwed.totalPaid),
+			},
 		}
 	}
 

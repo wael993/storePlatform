@@ -22,6 +22,35 @@ const product = (overrides: Partial<Product> = {}): Product => ({
 })
 
 describe('outboxIdempotencyKey', () => {
+	it('keeps each buying invoice for the same party as its own create', () => {
+		expect(
+			outboxIdempotencyKey('buying-invoices', 'POST', {
+				buyingInvoiceId: 'bi-1',
+				supplierId: 'sup-1',
+				notes: 'first',
+			}),
+		).not.toBe(
+			outboxIdempotencyKey('buying-invoices', 'POST', {
+				buyingInvoiceId: 'bi-2',
+				supplierId: 'sup-1',
+				notes: 'second',
+			}),
+		)
+		expect(
+			outboxIdempotencyKey('buying-invoices', 'POST', {
+				buyingInvoiceId: 'bi-1',
+				supplierId: 'sup-1',
+				notes: 'first',
+			}),
+		).toBe(
+			outboxIdempotencyKey('buying-invoices', 'POST', {
+				buyingInvoiceId: 'bi-1',
+				supplierId: 'sup-1',
+				notes: 'retry',
+			}),
+		)
+	})
+
 	it('keeps invoice creates keyed by identity, not body', () => {
 		expect(
 			outboxIdempotencyKey('selling-invoices', 'POST', {

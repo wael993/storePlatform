@@ -4,6 +4,8 @@ import { DailyActionType } from '../shared/globalEnums'
 import {
 	buildPartyActivityRows,
 	formatPartyActivityWhen,
+	partyActivityBalanceAmount,
+	partyActivityBalanceTone,
 	partyCashEntries,
 	type PartyEntryActivity,
 	type PartyInvoiceActivity,
@@ -55,10 +57,7 @@ const entry = (id: string, sortKey: number): PartyEntryActivity => ({
 	},
 })
 
-const action = (
-	actionId: string,
-	entryType: DailyActionType,
-): DailyAction => ({
+const action = (actionId: string, entryType: DailyActionType): DailyAction => ({
 	actionId,
 	entryType,
 	currencyId: 'c',
@@ -115,6 +114,48 @@ describe('party activity rows', () => {
 				row.kind === 'entry' ? row.row.id : row.invoice.id,
 			),
 		).toEqual(['e'])
+	})
+
+	it('shows the open remainder, and 0 once the invoice is paid', () => {
+		const settledSale = invoice('s4', 'paid', 10)
+		settledSale.invoice.total = 4
+		settledSale.invoice.paid = 4
+		const openSale = invoice('s30', 'partial', 40)
+		openSale.invoice.total = 30
+		openSale.invoice.paid = 9
+		const settledBuy = invoice('b10', 'paid', 30, 'buying')
+		settledBuy.invoice.total = 10
+		settledBuy.invoice.paid = 10
+		const receipt = entry('rec', 20)
+		receipt.row.amount = 10
+		const buyingEntry = entry('buy-entry', 20)
+		buyingEntry.row.entrySubType = 'buying'
+		const sellingEntry = entry('sell-entry', 20)
+		sellingEntry.row.entrySubType = 'selling'
+		const payment = entry('pay', 20)
+		payment.row.entrySubType = 'payment'
+
+		expect(partyActivityBalanceAmount('customer', settledSale, 0)).toBe(0)
+		expect(partyActivityBalanceAmount('customer', sellingEntry, 10)).toBe(10)
+		expect(partyActivityBalanceAmount('customer', payment, 10)).toBe(10)
+		expect(partyActivityBalanceAmount('customer', receipt, 10)).toBe(-10)
+		expect(partyActivityBalanceAmount('customer', buyingEntry, 10)).toBe(-10)
+		expect(partyActivityBalanceAmount('customer', settledBuy, 0)).toBe(0)
+		expect(partyActivityBalanceAmount('customer', openSale, 0)).toBe(21)
+
+		expect(partyActivityBalanceAmount('partner', settledSale, 0)).toBe(0)
+		expect(partyActivityBalanceAmount('partner', payment, 10)).toBe(10)
+		expect(partyActivityBalanceAmount('partner', receipt, 10)).toBe(-10)
+		expect(partyActivityBalanceAmount('partner', buyingEntry, 10)).toBe(-10)
+		expect(partyActivityBalanceAmount('supplier', settledBuy, 0)).toBe(0)
+		expect(partyActivityBalanceAmount('supplier', buyingEntry, 10)).toBe(10)
+		expect(partyActivityBalanceAmount('supplier', receipt, 10)).toBe(10)
+		expect(partyActivityBalanceAmount('supplier', openSale, 0)).toBe(-21)
+		expect(partyActivityBalanceAmount('supplier', sellingEntry, 10)).toBe(-10)
+		expect(partyActivityBalanceAmount('supplier', payment, 10)).toBe(-10)
+
+		expect(partyActivityBalanceTone(4)).toEqual({ sign: '+', color: '#15803D' })
+		expect(partyActivityBalanceTone(-10).sign).toBe('-')
 	})
 
 	it('prefixes the clock with the sortKey date', () => {

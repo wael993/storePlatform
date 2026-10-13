@@ -223,11 +223,11 @@ class RedisCache {
 	}
 
 	public buildSupplierListKey(tenantId: string): string {
-		return `cache:suppliers:list:${tenantId}:v2`
+		return `cache:suppliers:list:${tenantId}:v5`
 	}
 
 	public buildCustomerListKey(tenantId: string): string {
-		return `cache:customers:list:${tenantId}:v2`
+		return `cache:customers:list:${tenantId}:v3`
 	}
 
 	public buildExpenseListKey(tenantId: string): string {

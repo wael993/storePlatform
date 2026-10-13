@@ -99,6 +99,11 @@ interface Partner {
 	partnerEntries?: DailyAction[]
 	sellingInvoices?: unknown[]
 	buyingInvoices?: unknown[]
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 interface Customer {
 	customerId: string

@@ -53,6 +53,7 @@ import {
 } from '../SellingInvoice/constants'
 import {
 	convertEntryAmountToPrimary,
+	formatDisplayAmount,
 	formatEntryAmountForDisplay,
 	formatInvoiceAmountForDisplay,
 } from '../SellingInvoice/currencyDisplay'
@@ -74,6 +75,8 @@ import {
 	buildPartyActivityRows,
 	formatPartyActivityWhen,
 	isQuickEntryActivity,
+	partyActivityBalanceAmount,
+	partyActivityBalanceTone,
 	partyCashEntries,
 	partyInvoiceActivity,
 	type PartyActivity,
@@ -87,6 +90,14 @@ const FILTERS = [
 	InvoiceUiStatus.PARTIAL,
 	'entries',
 ] as const
+
+const signedBalanceText = (balance: number, displayText: string) => {
+	const tone = partyActivityBalanceTone(balance)
+	return {
+		text: tone.sign ? `${tone.sign}${displayText}` : displayText,
+		color: tone.color,
+	}
+}
 
 const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {
 	const { t } = useTranslation()
@@ -666,6 +677,10 @@ const PartyActivityTable = ({
 									<Tr>
 										<Th whiteSpace="nowrap">#</Th>
 										<Th whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.invoiceNumber')}
+										</Th>
+
+										<Th whiteSpace="nowrap">
 											{t('components.sellingInvoices.columns.time')}
 										</Th>
 										<Th whiteSpace="nowrap">
@@ -683,6 +698,9 @@ const PartyActivityTable = ({
 										<Th isNumeric whiteSpace="nowrap">
 											{t('components.sellingInvoices.columns.due')}
 										</Th>
+										<Th isNumeric whiteSpace="nowrap">
+											{t('components.sellingInvoices.columns.balance')}
+										</Th>
 										<Th whiteSpace="nowrap">
 											{t('components.sellingInvoices.columns.actions')}
 										</Th>
@@ -691,7 +709,7 @@ const PartyActivityTable = ({
 								<Tbody>
 									{showInvoiceError && pageRows.length === 0 ? (
 										<Tr>
-											<Td colSpan={8} py={10} textAlign="center">
+											<Td colSpan={10} py={10} textAlign="center">
 												<Text color={PAGE_COLORS.muted}>
 													{t('components.sellingInvoices.loadFailed')}
 												</Text>
@@ -699,7 +717,7 @@ const PartyActivityTable = ({
 										</Tr>
 									) : pageRows.length === 0 ? (
 										<Tr>
-											<Td colSpan={8} py={10} textAlign="center">
+											<Td colSpan={10} py={10} textAlign="center">
 												<Text color={PAGE_COLORS.muted}>
 													{t('components.sellingInvoices.empty')}
 												</Text>
@@ -720,6 +738,19 @@ const PartyActivityTable = ({
 													row.row.currencyId,
 													displayCurrencyId,
 													displayCurrencyOptions,
+												)
+												const entryBalance = partyActivityBalanceAmount(
+													party,
+													row,
+													entryPrimaryAmount,
+												)
+												const entryBalanceText = signedBalanceText(
+													entryBalance,
+													formatDisplayAmount(
+														Math.abs(entryBalance),
+														displayCurrencyId,
+														displayCurrencyOptions,
+													),
 												)
 												return (
 													<Tr
@@ -749,6 +780,7 @@ const PartyActivityTable = ({
 																{t(entryBadge.labelKey)}
 															</Badge>
 														</Td>
+														<Td color={PAGE_COLORS.muted}>—</Td>
 														<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
 															{formatPartyActivityWhen(
 																row.sortKey,
@@ -773,6 +805,20 @@ const PartyActivityTable = ({
 														<Td isNumeric color={PAGE_COLORS.muted}>
 															—
 														</Td>
+														<Td
+															isNumeric
+															fontWeight={600}
+															color={entryBalanceText.color}
+														>
+															<CurrencyAmountTooltip
+																amount={entryBalance}
+																displayText={entryBalanceText.text}
+																options={displayCurrencyOptions}
+																displayCurrencyId={displayCurrencyId}
+																fontWeight={600}
+																color={entryBalanceText.color}
+															/>
+														</Td>
 														<Td>{renderActions(row)}</Td>
 													</Tr>
 												)
@@ -782,6 +828,34 @@ const PartyActivityTable = ({
 											const paymentConfig =
 												PAYMENT_TYPE_CONFIG[invoice.paymentType]
 											const kindBadge = INVOICE_KIND_BADGE[row.kind]
+											const invoiceTotalText = formatInvoiceAmountForDisplay(
+												invoice.currencyAmounts,
+												'amount',
+												displayCurrencyId,
+												invoice.total,
+												displayCurrencyOptions,
+											)
+											const invoiceBalance = partyActivityBalanceAmount(
+												party,
+												row,
+												0,
+											)
+											const invoiceBalanceText = signedBalanceText(
+												invoiceBalance,
+												invoiceBalance === 0
+													? formatDisplayAmount(
+															0,
+															displayCurrencyId,
+															displayCurrencyOptions,
+														)
+													: formatInvoiceAmountForDisplay(
+															invoice.currencyAmounts,
+															'remainingAmount',
+															displayCurrencyId,
+															Math.abs(invoiceBalance),
+															displayCurrencyOptions,
+														),
+											)
 											return (
 												<Tr
 													key={`${row.kind}-${invoice.id}`}
@@ -791,23 +865,23 @@ const PartyActivityTable = ({
 													}
 												>
 													<Td>
-														<HStack spacing={2}>
-															<Badge
-																px={2}
-																py={0.5}
-																borderRadius="md"
-																fontSize="xs"
-																fontWeight={700}
-																bg={kindBadge.bg}
-																color={kindBadge.color}
-																textTransform="none"
-															>
-																{t(kindBadge.labelKey)}
-															</Badge>
-															<Text fontWeight={600} color="gray.900">
-																{invoice.invoiceNumber}
-															</Text>
-														</HStack>
+														<Badge
+															px={2}
+															py={0.5}
+															borderRadius="md"
+															fontSize="xs"
+															fontWeight={700}
+															bg={kindBadge.bg}
+															color={kindBadge.color}
+															textTransform="none"
+														>
+															{t(kindBadge.labelKey)}
+														</Badge>
+													</Td>
+													<Td>
+														<Text fontWeight={600} color="gray.900">
+															{invoice.invoiceNumber}
+														</Text>
 													</Td>
 													<Td color={PAGE_COLORS.muted} whiteSpace="nowrap">
 														{formatPartyActivityWhen(row.sortKey, invoice.time)}
@@ -830,13 +904,7 @@ const PartyActivityTable = ({
 													<Td isNumeric fontWeight={500} color="gray.900">
 														<CurrencyAmountTooltip
 															amount={invoice.total}
-															displayText={formatInvoiceAmountForDisplay(
-																invoice.currencyAmounts,
-																'amount',
-																displayCurrencyId,
-																invoice.total,
-																displayCurrencyOptions,
-															)}
+															displayText={invoiceTotalText}
 															options={displayCurrencyOptions}
 															displayCurrencyId={displayCurrencyId}
 															savedCurrencyAmounts={invoice.currencyAmounts}
@@ -883,6 +951,30 @@ const PartyActivityTable = ({
 																	? PAGE_COLORS.danger
 																	: 'gray.800'
 															}
+														/>
+													</Td>
+													<Td
+														isNumeric
+														fontWeight={600}
+														color={invoiceBalanceText.color}
+													>
+														<CurrencyAmountTooltip
+															amount={invoiceBalance}
+															displayText={invoiceBalanceText.text}
+															options={displayCurrencyOptions}
+															displayCurrencyId={displayCurrencyId}
+															savedCurrencyAmounts={
+																invoiceBalance === 0
+																	? undefined
+																	: invoice.currencyAmounts
+															}
+															savedAmountField={
+																invoiceBalance === 0
+																	? undefined
+																	: 'remainingAmount'
+															}
+															fontWeight={600}
+															color={invoiceBalanceText.color}
 														/>
 													</Td>
 													<Td>{renderActions(row)}</Td>

@@ -375,7 +375,6 @@
 			"inventory": "Inventar",
 			"usersDescription": "Mandantenbenutzer und Rollen verwalten.",
 			"productsDescription": "Produktkatalog und Preise.",
-			"dailyDescription": "Tägliche Kauf-, Verkaufs- und Ausgabenaktionen.",
 			"dashboardDescription": "Geschäftsübersicht mit KPIs und Aktivität.",
 			"suppliersDescription": "Lieferantenverzeichnis und Details.",
 			"customersDescription": "Kundenverzeichnis und Details.",
@@ -623,12 +622,6 @@
 	"products": {
 		"stockValue": "Bestand: {{stock}}"
 	},
-	"notFound": {
-		"status": "Status: 404",
-		"title": "404",
-		"description": "Die besuchte Seite existiert noch nicht. Wenden Sie sich an Ihren Administrator, wenn Sie glauben, dass dies ein Fehler ist.",
-		"goHome": "Zur Nachverfolgung"
-	},
 	"addTenant": {
 		"title": "Neuen Mandanten hinzufügen",
 		"description": "Superadministratoren können einen Mandanten registrieren und dessen Besitzerkonto bereitstellen.",
@@ -737,26 +730,15 @@
 		"deleteSelectedSuccess": "{{count}} Kategorien gelöscht."
 	},
 	"components": {
-		"budgetOverview": {
-			"tooltip": "Die Budgetübersicht ist eine Zusammenfassung des Budgets für den Kunden.",
-			"text": "Budgetübersicht",
-			"purchase": "Einkaufswert",
-			"payments": "Zahlungswert",
-			"balance": "Saldo",
-			"sumBuyingWeight": "Summe Einkaufsgewicht",
-			"sumSellingWeight": "Summe Verkaufsgewicht"
-		},
 		"invoiceSummary": {
-			"totalInvoiced": "Gesamt fakturiert",
-			"totalPaid": "Gesamt bezahlt",
+			"sellingInvoices": "Verkaufsrechnungen gesamt",
+			"buyingInvoices": "Einkaufsrechnungen gesamt",
 			"totalReceivable": "Gesamtforderungen",
 			"totalPayable": "Gesamtverbindlichkeiten",
 			"forUs": "Uns geschuldet",
 			"forThem": "Wir schulden"
 		},
 		"supplier": {
-			"invoices": "Rechnungen",
-			"dailyActions": "Tagesaktionen",
 			"deleteSupplier": "Lieferant löschen",
 			"deleteSupplierConfirm": "Dieser Lieferant wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
 			"deleteSupplierSuccess": "Lieferant gelöscht.",
@@ -770,7 +752,6 @@
 			"name": "Kundenname",
 			"code": "Kundencode",
 			"invoices": "Rechnungen",
-			"dailyActions": "Tagesaktionen",
 			"deleteCustomer": "Kunde löschen",
 			"deleteCustomerConfirm": "Dieser Kunde wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
 			"deleteCustomerSuccess": "Kunde gelöscht.",
@@ -780,21 +761,6 @@
 			"deleteSelectedSuccess": "{{count}} Kunden gelöscht."
 		},
 		"daily": {
-			"productLine": "Produkt {{number}}",
-			"dailyActions": "Tagesaktionen",
-			"cashBalance": "Kassenbestand",
-			"budgetOverview": {
-				"tooltip": "Gewinnübersicht für die gefilterten Tagesaktionen.",
-				"title": "Tägliche Gewinnübersicht",
-				"costs": "Kosten",
-				"sales": "Verkäufe",
-				"profit": "Gewinne"
-			},
-			"buyingAction": "Kaufaktion",
-			"sellingAction": "Verkaufsaktion",
-			"receiptAction": "Eingangsaktion",
-			"paymentAction": "Zahlungsaktion",
-			"expenseAction": "Ausgabenaktion",
 			"confirmations": {
 				"deleteDailyAction": "Tagesaktion löschen",
 				"deleteDailyActionConfirmationBody": "Möchten Sie diese Tagesaktion wirklich löschen?",
@@ -802,7 +768,6 @@
 				"deleteDailyActionError": "Tagesaktion konnte nicht gelöscht werden."
 			},
 			"errors": {
-				"addProductFailed": "Produkt konnte nicht hinzugefügt werden",
 				"addSupplierFailed": "Lieferant konnte nicht hinzugefügt werden",
 				"addCustomerFailed": "Kunde konnte nicht hinzugefügt werden",
 				"addUnitFailed": "Einheit konnte nicht hinzugefügt werden",
@@ -810,15 +775,7 @@
 				"addPartnerFailed": "Partner konnte nicht hinzugefügt werden"
 			},
 			"addSuccess": "Erfolgreich hinzugefügt.",
-			"actionType": "Aktionstyp",
-			"actionDate": "Aktionsdatum",
-			"actionSummary": "Aktionsübersicht",
-			"noActionSummary": "Für diese Aktion ist keine Übersicht verfügbar.",
 			"textPlaceholder": "Text hinzufügen...",
-			"selectEntryType": "Eintragsart auswählen",
-			"actionTypeMissing": "Bitte wählen Sie den Aktionstyp aus, um fortzufahren.",
-			"actionDataMissing": "Bitte füllen Sie die erforderlichen Felder aus, um fortzufahren.",
-			"invoiceDetailsMissing": "Bitte geben Sie Rechnungsnummer und Rechnungsdatum ein, um fortzufahren.",
 			"actionSavedSuccessfully": "Tagesaktion erfolgreich gespeichert.",
 			"addQuickProduct": "Schnell Produkt hinzufügen",
 			"productName": "Produktname",
@@ -924,6 +881,7 @@
 				"buying": "Einkaufsrechnung"
 			},
 			"columns": {
+				"invoiceNumber": "Rechnungsnr.",
 				"time": "Zeit",
 				"customer": "Kunde",
 				"status": "Status",
@@ -932,6 +890,7 @@
 				"total": "Gesamt",
 				"paid": "Bezahlt",
 				"due": "Offen",
+				"balance": "Saldo",
 				"actions": "Aktionen"
 			},
 			"actions": {
@@ -1095,7 +1054,6 @@
 		"pageHeaders": {
 			"sellingInvoices": "Verkaufsrechnungen",
 			"settings": "Einstellungen",
-			"daily": "Täglich",
 			"products": "Produkte",
 			"orders": "Bestellungen",
 			"customer": "Kunde",
@@ -1228,13 +1186,6 @@
 			"defaultInvoiceCurrencyPlaceholder": "Standardwährung auswählen",
 			"defaultInvoiceCurrencyHint": "Beträge auf neuen Rechnungen werden in der Primärwährung gespeichert und standardmäßig in dieser Währung angezeigt."
 		},
-		"modal": {
-			"leavingModal": {
-				"header": "Nicht gespeicherte Änderungen",
-				"body": "Möchten Sie die Seite wirklich verlassen? Es gibt nicht gespeicherte Änderungen. Wenn Sie gehen, gehen diese Änderungen verloren.",
-				"confirmationButtonText": "Ja, verlassen"
-			}
-		},
 		"product": {
 			"states": {
 				"discontinued": "Eingestellt",
@@ -1264,8 +1215,7 @@
 				"selectedList": "Ausgewählte Produkte",
 				"applyHint": "Änderungen gelten für alle ausgewählten Produkte. Leere Felder bleiben unverändert.",
 				"success": "{{count}} Produkte aktualisiert.",
-				"error": "Die ausgewählten Produkte konnten nicht aktualisiert werden.",
-				"offline": "Massenbearbeitung ist offline nicht verfügbar."
+				"error": "Die ausgewählten Produkte konnten nicht aktualisiert werden."
 			},
 			"print": "Drucken",
 			"warehouseTransfer": {
@@ -1322,10 +1272,8 @@
 			"search": "Suchen",
 			"searchPlaceholder": "Name, lateinischer Name, Barcode oder Code",
 			"nameOrCodeSearchPlaceholder": "Nach Name oder Code suchen",
-			"dailySearchPlaceholder": "Aktions-ID, Produkt, Lieferant, Kunde, Rechnungsnummer",
 			"saveFilterPreset": "Filter-Preset speichern",
 			"category": "Kategorie",
-			"state": "Status",
 			"brand": "Marke"
 		},
 		"topBar": {
@@ -1488,37 +1436,26 @@
 		"notePlaceholder": "Notiz eingeben",
 		"delete": "Löschen",
 		"ok": "OK",
-		"lock": "Sperren",
 		"superAdmin": "Super Admin",
 		"logoutFailed": "Abmeldung fehlgeschlagen.",
 		"active": "Aktiv",
 		"inactive": "Inaktiv",
 		"emptyStateTitle": "Noch nichts anzuzeigen",
 		"emptyStateDescription": "Passen Sie die Suche an oder fügen Sie ein neues Element hinzu, um zu beginnen.",
-		"downloadExcel": "Excel herunterladen",
-		"downloadExcelError": "Excel-Datei konnte nicht heruntergeladen werden.",
 		"entryType": "Eintragsart",
 		"weight": "Gewicht",
-		"unitPrice": "Einzelpreis",
-		"singleUnitPrice": "Einzelpreis",
-		"totalPrice": "Gesamtpreis",
 		"amount": "Betrag",
-		"price": "Preis",
-		"stock": "Bestand",
-		"supplierCustomerOrExpense": "Lieferant / Kunde / Ausgabe",
 		"noOptions": "Keine Optionen",
 		"optionDoesNotExist": "Diese Option existiert nicht",
 		"inputSearch": "Suchen...",
 		"showResults": "Ergebnisse anzeigen",
 		"show": "Anzeigen",
 		"hide": "Ausblenden",
-		"addEntry": "Eintrag hinzufügen",
 		"addProduct": "Produkt hinzufügen",
 		"addCustomer": "Kunde hinzufügen",
 		"addCategory": "Kategorie hinzufügen",
 		"addSupplier": "Lieferant hinzufügen",
 		"addPartner": "Partner hinzufügen",
-		"product": "Produkt",
 		"supplier": "Lieferant",
 		"customer": "Kunde",
 		"partner": "Partner",
@@ -1526,12 +1463,10 @@
 		"currency": "Währung",
 		"unit": "Einheit",
 		"productName": "Produktname",
-		"productOrExpense": "Produkt / Ausgabe",
 		"supplierName": "Lieferantenname",
 		"customerName": "Kundenname",
 		"expenseName": "Ausgabenname",
 		"currencyName": "Währungsname",
-		"unitName": "Einheitsname",
 		"barcode": "Barcode",
 		"brand": "Markenname",
 		"category": "Kategoriename",
@@ -1544,14 +1479,9 @@
 		"locationWarehouse": "Lagerort",
 		"locationShelf": "Regal",
 		"status": "Status",
-		"tooltip": "Tooltip",
 		"from": "Von",
 		"to": "Bis",
 		"selected": "ausgewählt",
-		"buttonText": "Erforderliches Dokument hinzufügen",
-		"name": "Dokumentname",
-		"namePlaceholder": "Dokumentnamen eingeben",
-		"deadline": "Frist",
 		"cancel": "Abbrechen",
 		"close": "Schließen",
 		"retry": "Erneut versuchen",
@@ -1560,15 +1490,8 @@
 		"discount": "Rabatt",
 		"addDiscount": "Rabatt hinzufügen",
 		"color": "Farbe",
-		"invoiceNumber": "Rechnungsnummer",
-		"invoiceNumberPlaceholder": "Rechnungsnummer eingeben",
-		"invoiceDate": "Rechnungsdatum",
-		"invoiceDateIsToday": "Rechnungsdatum ist heute",
-		"invoiceDatePlaceholder": "Rechnungsdatum auswählen",
 		"datePlaceholder": "Datum auswählen",
-		"datePicker": "Datumsauswahl",
 		"clearDate": "Datum löschen",
-		"fileOptions": "Dateioptionen",
 		"listOptions": "Listenoptionen",
 		"warning": "Warnung",
 		"nextStep": "Nächster Schritt",

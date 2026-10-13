@@ -9,6 +9,8 @@ import MongodbController from '../../shared/mongodb/mongodbController'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
+import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
+import type { CostCurrencyRate } from '../../shared/inventoryCost'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
@@ -42,6 +44,7 @@ export type SupplierInvoiceCollaborator = {
 	buildSupplierInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		supplierEntries?: DailyActionResponse['data'],
+		rates?: readonly CostCurrencyRate[],
 	): SupplierInvoiceSummary
 }
 
@@ -124,6 +127,7 @@ export default class SupplierController {
 			sellingInvoices,
 			'customerId',
 		)
+		const rates = await loadCashCurrencyRates(tenantId)
 
 		const data = suppliers.documents.map((supplier: SupplierDocument) => {
 			const actions = filterSupplierRelatedActions(dailyActions.data, supplier)
@@ -131,6 +135,7 @@ export default class SupplierController {
 				this.invoiceCollaborator.buildSupplierInvoiceSummary(
 					invoicesBySupplierId.get(supplier.supplierId) ?? [],
 					actions,
+					rates,
 				)
 			const sellingOwed = this.invoiceCollaborator.buildSupplierInvoiceSummary(
 				sellingInvoicesByCustomerId.get(supplier.supplierId) ?? [],
@@ -201,7 +206,7 @@ export default class SupplierController {
 			(id): id is string => Boolean(id),
 		)
 		const tenantId = this.getTenantId(requestContext)
-		const [actions, buyingInvoices, sellingInvoices] = await Promise.all([
+		const [actions, buyingInvoices, sellingInvoices, rates] = await Promise.all([
 			this.invoiceCollaborator.getPartyEntries(requestContext, ids, [
 				'supplierId',
 				'customerId',
@@ -216,6 +221,7 @@ export default class SupplierController {
 				Invoice.find({ customerId: { $in: ids } }).sort({ createdAt: 'desc' }),
 				tenantId,
 			).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+			loadCashCurrencyRates(tenantId),
 		])
 		const invoices = filterByWarehouseAcl(requestContext, buyingInvoices)
 		const sellingInvoicesInScope = filterByWarehouseAcl(
@@ -225,6 +231,7 @@ export default class SupplierController {
 		const own = this.invoiceCollaborator.buildSupplierInvoiceSummary(
 			invoices,
 			actions,
+			rates,
 		)
 		const sellingOwed = this.invoiceCollaborator.buildSupplierInvoiceSummary(
 			sellingInvoicesInScope,

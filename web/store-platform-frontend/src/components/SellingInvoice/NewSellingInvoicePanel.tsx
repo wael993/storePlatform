@@ -37,7 +37,10 @@ import { findOversellLines } from 'store-domain'
 import { requestInsufficientStockConfirmation } from '../../offline/insufficientStockConfirmation'
 import useCustomToast from '../common/CustomToast'
 import { PAGE_COLORS } from './constants'
-import { calculateInvoiceTotals } from './invoiceCalculations'
+import {
+	calculateInvoiceTotals,
+	settleTenderedPayment,
+} from './invoiceCalculations'
 import {
 	applyInvoiceLevelDiscount,
 	clearInvoiceDiscountFields,
@@ -329,6 +332,7 @@ const NewSellingInvoicePanel = ({
 	useEffect(() => {
 		if (!isActive || isExistingInvoice || isControlledCreate) return
 
+		setCashTendered(null)
 		setInternalDraft(
 			createInvoiceDraft(salesPerson || user?.email || 'User', {
 				pricingLabels: initialPricingLabels,
@@ -358,6 +362,7 @@ const NewSellingInvoicePanel = ({
 	useEffect(() => {
 		if (!isActive || !isExistingInvoice || !existingInvoice) return
 
+		setCashTendered(null)
 		setInternalDraft(
 			mapApiInvoiceToDraft(
 				existingInvoice,
@@ -401,9 +406,12 @@ const NewSellingInvoicePanel = ({
 		],
 	)
 
+	const [cashTendered, setCashTendered] = useState<number | null>(null)
+
 	useEffect(() => {
 		if (isReadOnly || draft.paymentType !== InvoicePaymentType.CASH) return
 
+		setCashTendered(null)
 		setDraft(current => ({
 			...current,
 			paidAmount: calculateInvoiceTotals(
@@ -421,7 +429,11 @@ const NewSellingInvoicePanel = ({
 		setDraft,
 	])
 
-	const changeAmount = draft.paidAmount - totals.grandTotal
+	const settledPayment = settleTenderedPayment(
+		cashTendered ?? draft.paidAmount,
+		totals.grandTotal,
+	)
+	const changeAmount = settledPayment.changeAmount
 	const isPayedButtonDisabled =
 		draft.lineItems.length === 0 ||
 		(draft.customerId === WALK_IN_CUSTOMER_ID &&
@@ -518,6 +530,7 @@ const NewSellingInvoicePanel = ({
 	}
 
 	const handlePaymentTypeChange = (paymentType: SellingInvoicePaymentType) => {
+		setCashTendered(null)
 		setDraft(current => ({
 			...current,
 			paymentType,
@@ -1177,7 +1190,7 @@ const NewSellingInvoicePanel = ({
 								</Text>
 								<CurrencyAmountTooltip
 									amount={draft.paidAmount}
-									displayText={formatAmount(draft.paidAmount)}
+									displayText={formatAmount(settledPayment.paidAmount)}
 									options={displayCurrencyOptions}
 									displayCurrencyId={displayCurrencyId}
 									fontSize="xl"
@@ -1186,11 +1199,19 @@ const NewSellingInvoicePanel = ({
 										isReadOnly ||
 										draft.paymentType === InvoicePaymentType.CREDIT
 											? undefined
-											: paidAmount =>
+											: tendered => {
+													const { paidAmount } = settleTenderedPayment(
+														tendered,
+														totals.grandTotal,
+													)
+													setCashTendered(
+														tendered > totals.grandTotal ? tendered : null,
+													)
 													setDraft(current => ({
 														...current,
 														paidAmount,
 													}))
+												}
 									}
 								/>
 							</Box>

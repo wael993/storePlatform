@@ -10,11 +10,7 @@ import {
 import type { SellingInvoice } from '../SellingInvoice/types'
 
 export type PartyActivityFilter =
-	| 'all'
-	| 'paid'
-	| 'credit'
-	| 'partial'
-	| 'entries'
+	'all' | 'paid' | 'credit' | 'partial' | 'entries'
 
 export type PartyInvoiceActivity = {
 	kind: 'selling' | 'buying'
@@ -69,10 +65,7 @@ const tradeEntryRow = (action: DailyAction): EntryTableRow | null => {
 		sortKey: sortSource ? dayjs(sortSource).valueOf() || 0 : 0,
 		time: sortSource ? dayjs(sortSource).format('hh:mm A') : '--:--',
 		entityName:
-			action.customerName ??
-			action.supplierName ??
-			action.productName ??
-			'-',
+			action.customerName ?? action.supplierName ?? action.productName ?? '-',
 		amount: tradeEntryAmount(action),
 		currencyId: action.currencyId ?? '',
 		currencyName: action.currencyName ?? '',
@@ -133,4 +126,57 @@ export const formatPartyActivityWhen = (sortKey: number, time: string) => {
 	if (!sortKey) return time
 	const date = formatDate(new Date(sortKey))
 	return date ? `${date} ${time}` : time
+}
+
+const invoiceCountsTowardBalance = (status: string) =>
+	status !== 'draft' && status !== 'cancelled' && status !== 'void'
+
+/** Open remainder. A fully paid invoice has no balance. */
+const balanceMagnitude = (total: number, paid: number) =>
+	Math.max(0, total - paid)
+
+/**
+ * This row's own balance, not a running sum.
+ * Customer and partner: selling and payment are +, buying and receipt are -.
+ * Supplier: buying and receipt are +, selling and payment are -.
+ */
+export const partyActivityBalanceAmount = (
+	party: 'customer' | 'supplier' | 'partner',
+	row: PartyActivity,
+	entryAmount: number,
+): number => {
+	if (row.kind === 'entry') {
+		const subType = row.row.entrySubType
+		const adds =
+			party === 'supplier'
+				? subType === 'buying' || subType === 'receipt'
+				: subType === 'selling' || subType === 'payment'
+		const subtracts =
+			party === 'supplier'
+				? subType === 'selling' || subType === 'payment'
+				: subType === 'buying' || subType === 'receipt'
+		if (adds) return entryAmount
+		if (subtracts) return -entryAmount
+		return 0
+	}
+
+	if (
+		!invoiceCountsTowardBalance(row.invoice.status) ||
+		row.invoice.status === 'paid'
+	) {
+		return 0
+	}
+
+	const amount = balanceMagnitude(row.invoice.total, row.invoice.paid)
+	const adds =
+		party === 'supplier' ? row.kind === 'buying' : row.kind === 'selling'
+	return adds ? amount : -amount
+}
+
+export const partyActivityBalanceTone = (
+	balance: number,
+): { sign: '+' | '-' | ''; color: string } => {
+	if (balance > 0) return { sign: '+', color: '#15803D' }
+	if (balance < 0) return { sign: '-', color: '#C2410C' }
+	return { sign: '', color: 'gray.900' }
 }

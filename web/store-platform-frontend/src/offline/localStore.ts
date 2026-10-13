@@ -77,6 +77,7 @@ export const outboxIdempotencyKey = (
 		url,
 		normalizedMethod,
 		payload.invoiceId,
+		payload.buyingInvoiceId,
 		payload.actionId,
 		payload.productId,
 		payload.customerId,

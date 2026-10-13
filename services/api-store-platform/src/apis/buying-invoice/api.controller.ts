@@ -39,8 +39,10 @@ import {
 import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	clearCashLedgerForReference,
+	loadCashCurrencyRates,
 	syncBuyingInvoiceCashLedger,
 } from '../../shared/cashAccounts/posting'
+import type { CostCurrencyRate } from '../../shared/inventoryCost'
 import { CASH_REFERENCE_TYPES } from '../../shared/cashAccounts/types'
 import {
 	decodeInvoiceUpload,
@@ -79,6 +81,7 @@ export type BuyingInvoiceCollaborator = {
 	buildSupplierInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		supplierEntries?: DailyActionResponse['data'],
+		rates?: readonly CostCurrencyRate[],
 	): SupplierInvoiceSummary
 	allocateInvoiceNumberForCreate(
 		requestContext: RequestContext,
@@ -553,7 +556,7 @@ export default class BuyingInvoiceController {
 		let supplierSummary: SupplierInvoiceSummary | undefined
 
 		if (filters.supplierId) {
-			const [{ data: supplierEntries }, partyReceipts, sellingInvoices] =
+			const [{ data: supplierEntries }, partyReceipts, sellingInvoices, rates] =
 				await Promise.all([
 					this.ops.getDailyActions(requestContext, {
 						supplier: [filters.supplierId],
@@ -572,16 +575,19 @@ export default class BuyingInvoiceController {
 							createdAt: 'desc',
 						}),
 						this.getTenantId(requestContext),
-					).lean<
-						Array<Record<string, unknown> & { warehouseId?: string }>
-					>(),
+					).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+					loadCashCurrencyRates(this.getTenantId(requestContext)),
 				])
-			const own = this.ops.buildSupplierInvoiceSummary(scopedInvoices, [
-				...supplierEntries,
-				...partyReceipts.filter(
-					entry => entry.entryType === DailyActionType.RECEIPT_ENTRY,
-				),
-			])
+			const own = this.ops.buildSupplierInvoiceSummary(
+				scopedInvoices,
+				[
+					...supplierEntries,
+					...partyReceipts.filter(
+						entry => entry.entryType === DailyActionType.RECEIPT_ENTRY,
+					),
+				],
+				rates,
+			)
 			const sellingOwed = this.ops.buildSupplierInvoiceSummary(
 				filterByWarehouseAcl(requestContext, sellingInvoices),
 				[],

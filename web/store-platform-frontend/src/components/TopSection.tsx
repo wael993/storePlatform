@@ -241,7 +241,11 @@ const TopSection = ({
 		}
 	}
 
-	const showInvoiceFacts = Boolean(customer?.customerId || supplier?.supplierId)
+	const invoiceSummary =
+		supplier?.invoiceSummary ??
+		customer?.invoiceSummary ??
+		partner?.invoiceSummary
+	const showInvoiceFacts = Boolean(invoiceSummary)
 	const showFacts = showInvoiceFacts || productFacts.length > 0
 
 	return (
@@ -275,10 +279,8 @@ const TopSection = ({
 						<Box sx={styles.divider} />
 						{showInvoiceFacts && (
 							<PartyInvoiceSummaryCards
-								party={supplier ? 'supplier' : 'customer'}
-								totals={
-									supplier?.invoiceSummary ?? customer?.invoiceSummary
-								}
+								party={supplier ? 'supplier' : partner ? 'partner' : 'customer'}
+								totals={invoiceSummary}
 							/>
 						)}
 						{productFacts.length > 0 && (

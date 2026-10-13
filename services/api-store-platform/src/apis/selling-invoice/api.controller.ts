@@ -43,10 +43,12 @@ import {
 	finiteCost,
 	findOversellLines,
 	ratesFromCurrencySettings,
+	type CostCurrencyRate,
 } from '../../shared/inventoryCost'
 import CurrencySettings from '../../models/CurrencySettings'
 import {
 	clearCashLedgerForReference,
+	loadCashCurrencyRates,
 	syncSellingInvoiceCashLedger,
 } from '../../shared/cashAccounts/posting'
 import { CASH_REFERENCE_TYPES } from '../../shared/cashAccounts/types'
@@ -83,6 +85,7 @@ export type SellingInvoiceCollaborator = {
 	buildCustomerInvoiceSummary(
 		invoices: Array<Record<string, unknown>>,
 		customerEntries?: DailyActionResponse['data'],
+		rates?: readonly CostCurrencyRate[],
 	): CustomerInvoiceSummary
 	allocateInvoiceNumberForCreate(
 		requestContext: RequestContext,
@@ -866,7 +869,7 @@ export default class SellingInvoiceController {
 		let customerSummary: CustomerInvoiceSummary | undefined
 
 		if (filters.customerId) {
-			const [{ data: customerEntries }, partyPayments, buyingInvoices] =
+			const [{ data: customerEntries }, partyPayments, buyingInvoices, rates] =
 				await Promise.all([
 					this.ops.getDailyActions(requestContext, {
 						customer: [filters.customerId],
@@ -885,16 +888,19 @@ export default class SellingInvoiceController {
 							createdAt: 'desc',
 						}),
 						tenantId,
-					).lean<
-						Array<Record<string, unknown> & { warehouseId?: string }>
-					>(),
+					).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+					loadCashCurrencyRates(tenantId),
 				])
-			const own = this.ops.buildCustomerInvoiceSummary(scopedInvoices, [
-				...customerEntries,
-				...partyPayments.filter(
-					entry => entry.entryType === DailyActionType.PAYMENT_ENTRY,
-				),
-			])
+			const own = this.ops.buildCustomerInvoiceSummary(
+				scopedInvoices,
+				[
+					...customerEntries,
+					...partyPayments.filter(
+						entry => entry.entryType === DailyActionType.PAYMENT_ENTRY,
+					),
+				],
+				rates,
+			)
 			const buyingOwed = this.ops.buildCustomerInvoiceSummary(
 				filterByWarehouseAcl(requestContext, buyingInvoices),
 				[],

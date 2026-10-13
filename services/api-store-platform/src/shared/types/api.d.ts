@@ -179,6 +179,11 @@ interface Partner {
 	partnerEntries?: PartnerDailyAction[]
 	sellingInvoices?: Array<Record<string, unknown>>
 	buyingInvoices?: Array<Record<string, unknown>>
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+	}
 }
 
 type LabelFieldType =

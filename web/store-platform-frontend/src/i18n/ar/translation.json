@@ -375,7 +375,6 @@
 			"inventory": "المخزون",
 			"usersDescription": "إدارة مستخدمي المستأجر والأدوار.",
 			"productsDescription": "كتالوج المنتجات والأسعار.",
-			"dailyDescription": "إجراءات الشراء والبيع والمصروفات اليومية.",
 			"dashboardDescription": "نظرة عامة على مؤشرات النشاط والأداء.",
 			"suppliersDescription": "دليل الموردين والتفاصيل.",
 			"customersDescription": "دليل الزبائن والتفاصيل.",
@@ -623,12 +622,6 @@
 	"products": {
 		"stockValue": "المخزون: {{stock}}"
 	},
-	"notFound": {
-		"status": "الحالة: 404",
-		"title": "404",
-		"description": "عذرًا، الصفحة التي زرتها غير موجودة بعد. تواصل مع المسؤول إذا كنت تعتقد أن هذا خطأ.",
-		"goHome": "العودة إلى التتبع"
-	},
 	"addTenant": {
 		"title": "إضافة مستأجر جديد",
 		"description": "يمكن للمسؤولين العامين تسجيل مستأجر وتجهيز حساب المالك الخاص به.",
@@ -761,26 +754,15 @@
 				"addWarehouseFailed": "فشلت إضافة المستودع"
 			}
 		},
-		"budgetOverview": {
-			"tooltip": "نظرة عامة مختصرة على ميزانية الزبون.",
-			"text": "نظرة عامة على الميزانية",
-			"purchase": "قيمة المشتريات",
-			"payments": "قيمة المدفوعات",
-			"balance": "الرصيد",
-			"sumBuyingWeight": "مجموع الوزن المشتري",
-			"sumSellingWeight": "مجموع الوزن المباع"
-		},
 		"invoiceSummary": {
-			"totalInvoiced": "إجمالي الفواتير",
-			"totalPaid": "إجمالي المدفوع",
+			"sellingInvoices": "إجمالي فواتير البيع",
+			"buyingInvoices": "إجمالي فواتير الشراء",
 			"totalReceivable": "إجمالي المستحق",
 			"totalPayable": "إجمالي المستحق للدفع",
 			"forUs": "مستحق لنا",
 			"forThem": "مستحق علينا"
 		},
 		"supplier": {
-			"invoices": "الفواتير",
-			"dailyActions": "الإجراءات اليومية",
 			"deleteSupplier": "حذف المورد",
 			"deleteSupplierConfirm": "سيتم حذف هذا المورد نهائياً. لا يمكن التراجع عن ذلك.",
 			"deleteSupplierSuccess": "تم حذف المورد.",
@@ -794,7 +776,6 @@
 			"name": "اسم الزبون",
 			"code": "رمز الزبون",
 			"invoices": "الفواتير",
-			"dailyActions": "الإجراءات اليومية",
 			"deleteCustomer": "حذف الزبون",
 			"deleteCustomerConfirm": "سيتم حذف هذا الزبون نهائياً. لا يمكن التراجع عن ذلك.",
 			"deleteCustomerSuccess": "تم حذف الزبون.",
@@ -804,21 +785,6 @@
 			"deleteSelectedSuccess": "تم حذف {{count}} زبائن."
 		},
 		"daily": {
-			"productLine": "المنتج {{number}}",
-			"dailyActions": "الإجراءات اليومية",
-			"cashBalance": "الصندوق اليومي",
-			"budgetOverview": {
-				"tooltip": "نظرة عامة على أرباح الإجراءات اليومية بعد التصفية.",
-				"title": "نظرة عامة",
-				"costs": "التكاليف",
-				"sales": "المبيعات",
-				"profit": "الأرباح"
-			},
-			"buyingAction": "إجراء شراء",
-			"sellingAction": "إجراء بيع",
-			"receiptAction": "إجراء قبض",
-			"paymentAction": "إجراء دفع",
-			"expenseAction": "إجراء نفقات",
 			"confirmations": {
 				"deleteDailyAction": "حذف الإجراء اليومي",
 				"deleteDailyActionConfirmationBody": "هل أنت متأكد أنك تريد حذف هذا الإجراء اليومي؟",
@@ -826,7 +792,6 @@
 				"deleteDailyActionError": "فشل حذف الإجراء اليومي."
 			},
 			"errors": {
-				"addProductFailed": "فشل إضافة المنتج",
 				"addSupplierFailed": "فشل إضافة المورد",
 				"addCustomerFailed": "فشل إضافة الزبون",
 				"addUnitFailed": "فشل إضافة الوحدة",
@@ -834,15 +799,7 @@
 				"addPartnerFailed": "فشل إضافة الشريك"
 			},
 			"addSuccess": "تمت الإضافة بنجاح.",
-			"actionType": "نوع الإجراء",
-			"actionDate": "تاريخ الإجراء",
-			"actionSummary": "ملخص الإجراء",
-			"noActionSummary": "لا يوجد ملخص متاح لهذا الإجراء.",
 			"textPlaceholder": "أضف نصًا...",
-			"selectEntryType": "اختر نوع الإدخال",
-			"actionTypeMissing": "يرجى اختيار نوع الإجراء للمتابعة.",
-			"actionDataMissing": "يرجى ملء الحقول المطلوبة للمتابعة.",
-			"invoiceDetailsMissing": "يرجى إدخال رقم الفاتورة وتاريخها للمتابعة.",
 			"actionSavedSuccessfully": "تم حفظ الإجراء اليومي بنجاح.",
 			"addQuickProduct": "إضافة منتج",
 			"productName": "اسم المنتج",
@@ -924,6 +881,7 @@
 				"buying": "فاتورة شراء"
 			},
 			"columns": {
+				"invoiceNumber": "رقم الفاتورة",
 				"time": "الوقت",
 				"customer": "الزبون",
 				"status": "الحالة",
@@ -932,6 +890,7 @@
 				"total": "الإجمالي",
 				"paid": "المدفوع",
 				"due": "المتبقي",
+				"balance": "الرصيد",
 				"actions": "إجراءات"
 			},
 			"actions": {
@@ -1095,7 +1054,6 @@
 		"pageHeaders": {
 			"sellingInvoices": "فواتير ",
 			"settings": "الإعدادات",
-			"daily": "اليومية",
 			"products": "المنتجات",
 			"orders": "الطلبات",
 			"customer": "الزبون",
@@ -1228,13 +1186,6 @@
 			"defaultInvoiceCurrencyPlaceholder": "اختر العملة الافتراضية",
 			"defaultInvoiceCurrencyHint": "يتم حفظ المبالغ في الفواتير الجديدة بالعملة الأساسية وعرضها افتراضيًا بهذه العملة."
 		},
-		"modal": {
-			"leavingModal": {
-				"header": "تغييرات غير محفوظة",
-				"body": "هل أنت متأكد أنك تريد المغادرة؟ توجد تغييرات غير محفوظة. إذا غادرت، ستفقد هذه التغييرات.",
-				"confirmationButtonText": "نعم، غادر"
-			}
-		},
 		"product": {
 			"states": {
 				"discontinued": "متوقف",
@@ -1264,8 +1215,7 @@
 				"selectedList": "المنتجات المحددة",
 				"applyHint": "التغييرات التي تقوم بها هنا سيتم تطبيقها على جميع المنتجات المحددة. اترك الحقل فارغاً لإبقائه كما هو.",
 				"success": "تم تحديث {{count}} منتج.",
-				"error": "تعذر تحديث المنتجات المحددة.",
-				"offline": "تعديل المجموعة غير متاح في وضع عدم الاتصال."
+				"error": "تعذر تحديث المنتجات المحددة."
 			},
 			"print": "طباعة",
 			"warehouseTransfer": {
@@ -1322,10 +1272,8 @@
 			"search": "بحث",
 			"searchPlaceholder": "الاسم، الاسم اللاتيني، الباركود أو الرمز",
 			"nameOrCodeSearchPlaceholder": "البحث بالاسم أو الرمز",
-			"dailySearchPlaceholder": "رقم الفاتورة",
 			"saveFilterPreset": "حفظ إعدادات المرشحات",
 			"category": "الفئة",
-			"state": "الحالة",
 			"brand": "العلامة التجارية"
 		},
 		"topBar": {
@@ -1488,37 +1436,26 @@
 		"notePlaceholder": "أدخل الملاحظة",
 		"delete": "حذف",
 		"ok": "موافق",
-		"lock": "قفل",
 		"superAdmin": "المسؤول العام",
 		"logoutFailed": "فشل تسجيل الخروج.",
 		"active": "نشط",
 		"inactive": "غير نشط",
 		"emptyStateTitle": "لا يوجد شيء لعرضه بعد",
 		"emptyStateDescription": "جرّب تعديل البحث أو أضف عنصرًا جديدًا للبدء.",
-		"downloadExcel": "تنزيل Excel",
-		"downloadExcelError": "فشل تنزيل ملف Excel.",
 		"entryType": "نوع الإدخال",
 		"weight": "الوزن",
-		"unitPrice": "سعر الوحدة",
-		"singleUnitPrice": "سعر الوحدة",
-		"totalPrice": "السعر الإجمالي",
 		"amount": "المبلغ",
-		"price": "السعر",
-		"stock": "المخزون",
-		"supplierCustomerOrExpense": "المورد / الزبون / النفقات",
 		"noOptions": "لا توجد خيارات",
 		"optionDoesNotExist": "هذا الخيار غير موجود",
 		"inputSearch": "بحث...",
 		"showResults": "عرض النتائج",
 		"show": "إظهار",
 		"hide": "إخفاء",
-		"addEntry": "إضافة إدخال",
 		"addProduct": "إضافة منتج",
 		"addCustomer": "إضافة زبون",
 		"addCategory": "إضافة فئة",
 		"addSupplier": "إضافة مورد",
 		"addPartner": "إضافة شريك",
-		"product": "المنتج",
 		"supplier": "المورد",
 		"customer": "الزبون",
 		"partner": "الشريك",
@@ -1526,12 +1463,10 @@
 		"currency": "العملة",
 		"unit": "الوحدة",
 		"productName": "اسم المنتج",
-		"productOrExpense": "المنتج / النفقات",
 		"supplierName": "اسم المورد",
 		"customerName": "اسم الزبون",
 		"expenseName": "اسم النفقات",
 		"currencyName": "اسم العملة",
-		"unitName": "اسم الوحدة",
 		"barcode": "الباركود",
 		"brand": "اسم العلامة التجارية",
 		"category": "اسم الفئة",
@@ -1544,14 +1479,9 @@
 		"locationWarehouse": "موقع المستودع",
 		"locationShelf": "الرف",
 		"status": "الحالة",
-		"tooltip": "تلميح",
 		"from": "من",
 		"to": "إلى",
 		"selected": "محدد",
-		"buttonText": "طباعة باركود",
-		"name": "اسم المستند",
-		"namePlaceholder": "أدخل اسم المستند",
-		"deadline": "الموعد النهائي",
 		"cancel": "إلغاء",
 		"close": "إغلاق",
 		"retry": "إعادة المحاولة",
@@ -1560,15 +1490,8 @@
 		"discount": "الخصم",
 		"addDiscount": "إضافة خصم",
 		"color": "اللون",
-		"invoiceNumber": "رقم الفاتورة",
-		"invoiceNumberPlaceholder": "أدخل رقم الفاتورة",
-		"invoiceDate": "تاريخ الفاتورة",
-		"invoiceDateIsToday": "تاريخ الفاتورة هو اليوم",
-		"invoiceDatePlaceholder": "اختر تاريخ الفاتورة",
 		"datePlaceholder": "اختر التاريخ",
-		"datePicker": "منتقي التاريخ",
 		"clearDate": "مسح التاريخ",
-		"fileOptions": "خيارات الملف",
 		"listOptions": "خيارات القائمة",
 		"warning": "تحذير",
 		"nextStep": "الخطوة التالية",

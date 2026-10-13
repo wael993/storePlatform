@@ -42,6 +42,12 @@ import {
 	ratesFromCurrencySettings,
 } from 'store-domain'
 import {
+	customerPartySummary,
+	customerRelatedEntries,
+	supplierPartySummary,
+	supplierRelatedEntries,
+} from './partyInvoiceSummary'
+import {
 	filterDailyActionsByParams,
 	parseDailyActionFiltersFromParams,
 } from './dailyActionFilters'
@@ -1701,6 +1707,43 @@ const partyReceiptAndPaymentEntries = (
 	})
 }
 
+const groupInvoicesByPartyId = <
+	T extends { customerId?: string; supplierId?: string },
+>(
+	invoices: T[],
+	field: 'customerId' | 'supplierId',
+) => {
+	const grouped = new Map<string, T[]>()
+
+	for (const invoice of invoices) {
+		const partyId = invoice[field]
+		if (!partyId) continue
+
+		const existing = grouped.get(partyId)
+		if (existing) existing.push(invoice)
+		else grouped.set(partyId, [invoice])
+	}
+
+	return grouped
+}
+
+const loadOfflinePartyBalanceSources = async () => {
+	const [sellingInvoices, buyingInvoices, actions, settings] =
+		await Promise.all([
+			getLocalInvoicesForOffline(),
+			getLocalBuyingInvoicesForOffline(),
+			getLocalDailyActionsForOffline(),
+			getLocalCurrencySettings(),
+		])
+
+	return {
+		sellingInvoices,
+		buyingInvoices,
+		actions,
+		rates: ratesFromCurrencySettings(settings),
+	}
+}
+
 export const handleOfflineQuery = async (
 	args: string | FetchArgs,
 ): Promise<
@@ -1873,23 +1916,56 @@ export const handleOfflineQuery = async (
 					const ids = [customer.customerId, customer.internalCode].filter(
 						(id): id is string => Boolean(id),
 					)
-					const actions = await getLocalDailyActionsForOffline()
+					const { sellingInvoices, buyingInvoices, actions, rates } =
+						await loadOfflinePartyBalanceSources()
 					const customerEntries = partyReceiptAndPaymentEntries(actions, ids, [
 						'customerId',
 						'supplierId',
 					])
-					const invoices = (await getLocalInvoicesForOffline()).filter(
-						invoice => matchesPartyId(invoice.customerId, ids),
+					const invoices = sellingInvoices.filter(invoice =>
+						matchesPartyId(invoice.customerId, ids),
 					)
-					const buyingInvoices = (
-						await getLocalBuyingInvoicesForOffline()
-					).filter(invoice => matchesPartyId(invoice.supplierId, ids))
+					const partyBuyingInvoices = buyingInvoices.filter(invoice =>
+						matchesPartyId(invoice.supplierId, ids),
+					)
 					return {
-						data: { ...customer, customerEntries, invoices, buyingInvoices },
+						data: {
+							...customer,
+							customerEntries,
+							invoices,
+							buyingInvoices: partyBuyingInvoices,
+							invoiceSummary: customerPartySummary(
+								invoices,
+								customerEntries,
+								partyBuyingInvoices,
+								rates,
+							),
+						},
 					}
 				}
 				const data = await offlineDb.customers.toArray()
-				return { data: { data, totalCount: data.length } }
+				const { sellingInvoices, buyingInvoices, actions, rates } =
+					await loadOfflinePartyBalanceSources()
+				// note: sums retained local rows only. Pruned history stays out until the next online sync.
+				const sellingByCustomer = groupInvoicesByPartyId(
+					sellingInvoices,
+					'customerId',
+				)
+				const buyingByCustomer = groupInvoicesByPartyId(
+					buyingInvoices,
+					'supplierId',
+				)
+				const scopedActions = filterByWarehouseScope(actions)
+				const withBalances = data.map(customer => ({
+					...customer,
+					totalReceivable: customerPartySummary(
+						sellingByCustomer.get(customer.customerId) ?? [],
+						customerRelatedEntries(scopedActions, customer),
+						buyingByCustomer.get(customer.customerId) ?? [],
+						rates,
+					).outstanding,
+				}))
+				return { data: { data: withBalances, totalCount: withBalances.length } }
 			}
 
 			if (path === 'suppliers' || path.startsWith('suppliers/')) {
@@ -1903,23 +1979,55 @@ export const handleOfflineQuery = async (
 					const ids = [supplier.supplierId, supplier.internalCode].filter(
 						(id): id is string => Boolean(id),
 					)
-					const supplierEntries = partyReceiptAndPaymentEntries(
-						await getLocalDailyActionsForOffline(),
-						ids,
-						['supplierId', 'customerId'],
+					const { sellingInvoices, buyingInvoices, actions, rates } =
+						await loadOfflinePartyBalanceSources()
+					const supplierEntries = partyReceiptAndPaymentEntries(actions, ids, [
+						'supplierId',
+						'customerId',
+					])
+					const invoices = buyingInvoices.filter(invoice =>
+						matchesPartyId(invoice.supplierId, ids),
 					)
-					const invoices = (await getLocalBuyingInvoicesForOffline()).filter(
-						invoice => matchesPartyId(invoice.supplierId, ids),
-					)
-					const sellingInvoices = (await getLocalInvoicesForOffline()).filter(
-						invoice => matchesPartyId(invoice.customerId, ids),
+					const partySellingInvoices = sellingInvoices.filter(invoice =>
+						matchesPartyId(invoice.customerId, ids),
 					)
 					return {
-						data: { ...supplier, supplierEntries, invoices, sellingInvoices },
+						data: {
+							...supplier,
+							supplierEntries,
+							invoices,
+							sellingInvoices: partySellingInvoices,
+							invoiceSummary: supplierPartySummary(
+								invoices,
+								supplierEntries,
+								partySellingInvoices,
+								rates,
+							),
+						},
 					}
 				}
 				const data = await offlineDb.suppliers.toArray()
-				return { data: { data, totalCount: data.length } }
+				const { sellingInvoices, buyingInvoices, actions, rates } =
+					await loadOfflinePartyBalanceSources()
+				const buyingBySupplier = groupInvoicesByPartyId(
+					buyingInvoices,
+					'supplierId',
+				)
+				const sellingBySupplier = groupInvoicesByPartyId(
+					sellingInvoices,
+					'customerId',
+				)
+				const scopedActions = filterByWarehouseScope(actions)
+				const withBalances = data.map(supplier => ({
+					...supplier,
+					totalPayable: supplierPartySummary(
+						buyingBySupplier.get(supplier.supplierId) ?? [],
+						supplierRelatedEntries(scopedActions, supplier),
+						sellingBySupplier.get(supplier.supplierId) ?? [],
+						rates,
+					).outstanding,
+				}))
+				return { data: { data: withBalances, totalCount: withBalances.length } }
 			}
 
 			if (path === 'partners' || path.startsWith('partners/')) {
@@ -1933,23 +2041,29 @@ export const handleOfflineQuery = async (
 					const ids = [partner.partnerId, partner.internalCode].filter(
 						(id): id is string => Boolean(id),
 					)
-					const partnerEntries = partyReceiptAndPaymentEntries(
-						await getLocalDailyActionsForOffline(),
-						ids,
-						['partnerId'],
+					const { sellingInvoices, buyingInvoices, actions, rates } =
+						await loadOfflinePartyBalanceSources()
+					const partnerEntries = partyReceiptAndPaymentEntries(actions, ids, [
+						'partnerId',
+					])
+					const partySellingInvoices = sellingInvoices.filter(invoice =>
+						matchesPartyId(invoice.customerId, ids),
 					)
-					const sellingInvoices = (await getLocalInvoicesForOffline()).filter(
-						invoice => matchesPartyId(invoice.customerId, ids),
+					const partyBuyingInvoices = buyingInvoices.filter(invoice =>
+						matchesPartyId(invoice.supplierId, ids),
 					)
-					const buyingInvoices = (
-						await getLocalBuyingInvoicesForOffline()
-					).filter(invoice => matchesPartyId(invoice.supplierId, ids))
 					return {
 						data: {
 							...partner,
 							partnerEntries,
-							sellingInvoices,
-							buyingInvoices,
+							sellingInvoices: partySellingInvoices,
+							buyingInvoices: partyBuyingInvoices,
+							invoiceSummary: customerPartySummary(
+								partySellingInvoices,
+								partnerEntries,
+								partyBuyingInvoices,
+								rates,
+							),
 						},
 					}
 				}

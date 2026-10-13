@@ -10,7 +10,7 @@ import type { SellingInvoicePaymentType, SellingInvoiceStatus } from './types'
 export const defaultInvoiceCashAccountType = (paymentType: string): string =>
 	paymentType === InvoicePaymentType.CARD ? 'online' : 'daily_cash'
 
-export const INVOICES_PER_PAGE = 10
+export const INVOICES_PER_PAGE = 30
 
 export const STATUS_FILTER_TABS = [
 	'all',
