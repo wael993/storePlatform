@@ -1,5 +1,5 @@
-import { Box, Button, Flex, Text } from '@chakra-ui/react'
-import type { ComponentType, ReactNode } from 'react'
+import { Box, Flex, Text } from '@chakra-ui/react'
+import type { ComponentType } from 'react'
 import type { IconProps } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import type { InventoryCardId } from '../../shared/dashboardShell'
@@ -7,6 +7,8 @@ import { PriceTagIcon } from '../../shared/icons/PriceTag'
 import { StarIcon } from '../../shared/icons/Star'
 import { TimeIcon } from '../../shared/icons/Time'
 import { WarningIcon } from '../../shared/icons/Warning'
+import { KpiHint } from './kpiComponents'
+import { useInvoiceSummaryKpis } from './useInvoiceSummaryKpis'
 
 const cardStyles = {
 	card: {
@@ -88,17 +90,6 @@ const cardStyles = {
 		fontWeight: 700,
 		flexShrink: 0,
 	},
-	viewAll: {
-		mt: 'auto',
-		pt: 4,
-		alignSelf: 'flex-start',
-		color: 'gray.500',
-		fontSize: 'sm',
-		fontWeight: 600,
-		h: 'auto',
-		minH: 'auto',
-		px: 0,
-	},
 } satisfies StylesObject
 
 const CARD_ICONS: Record<InventoryCardId, ComponentType<IconProps>> = {
@@ -116,51 +107,124 @@ const WARNING_KEYS = [
 ] as const
 const WARNING_COUNTS = ['12', '3', '5', '10', '15'] as const
 
-const BEST_PROFIT_MOCK = [
-	{ name: 'زيت زيتون فاخر 1 لتر', value: '250' },
-	{ name: 'سماعات أذن لاسلكية Pro', value: '180' },
-	{ name: 'عبوة قمصان قطنية', value: '95' },
-	{ name: 'لعبة للأطفال', value: '120' },
-	{ name: 'قلم رصاص', value: '100' },
-] as const
+const LIVE_PRODUCT_CARDS = ['bestProfitProducts', 'bestSellerProducts'] as const
 
-const BEST_SELLER_MOCK = [
-	{ name: 'مياه معدنية 1.5 لتر', sold: 200 },
-	{ name: 'دفتر ملاحظات A5', sold: 150 },
-	{ name: 'كابل USB-C', sold: 120 },
-	{ name: 'كتاب قصص قصيرة', sold: 100 },
-	{ name: 'مسطرة 10 سم', sold: 100 },
-] as const
+type LiveProductCardId = (typeof LIVE_PRODUCT_CARDS)[number]
+
+const LIVE_ICON_TONES: Record<
+	LiveProductCardId,
+	{ bg: string; color: string }
+> = {
+	bestSellerProducts: { bg: '#FEF3C7', color: '#B45309' },
+	bestProfitProducts: { bg: '#EDE9FE', color: '#6D28D9' },
+}
+
+const STATUS_KEYS = {
+	loading: 'dashboard.kpi.loading',
+	offline: 'common.onlineOnly',
+	unavailable: 'dashboard.kpi.unavailable',
+	error: 'dashboard.kpi.error',
+} as const
 
 interface InventoryListCardProps {
 	cardId: InventoryCardId
+	dateFrom: Date
+	dateTo: Date
 }
 
-export const InventoryListCard = ({ cardId }: InventoryListCardProps) => {
+const LiveProductCard = ({
+	cardId,
+	dateFrom,
+	dateTo,
+}: {
+	cardId: LiveProductCardId
+	dateFrom: Date
+	dateTo: Date
+}) => {
 	const { t } = useTranslation()
+	const { status, kpis, formatMoney } = useInvoiceSummaryKpis(dateFrom, dateTo)
 	const Icon = CARD_ICONS[cardId]
-	const showViewAll = cardId !== 'inventoryWarnings'
-
-	let rows: { label: ReactNode; value: string }[] = []
-	if (cardId === 'inventoryWarnings') {
-		rows = WARNING_KEYS.map((key, index) => ({
-			label: t(`dashboard.inventory.warnings.${key}`),
-			value: WARNING_COUNTS[index],
-		}))
-	} else if (cardId === 'bestProfitProducts') {
-		rows = BEST_PROFIT_MOCK.map((item, index) => ({
-			label: `${index + 1}. ${item.name}`,
-			value: item.value,
-		}))
-	} else {
-		rows = BEST_SELLER_MOCK.map((item, index) => ({
-			label: `${index + 1}. ${item.name}`,
-			value: t('dashboard.inventory.soldCount', { count: item.sold }),
-		}))
-	}
+	const tone = LIVE_ICON_TONES[cardId]
+	const ranked =
+		cardId === 'bestSellerProducts'
+			? (kpis?.bestSellers ?? []).map(product => ({
+					name: product.productName,
+					value: t('dashboard.inventory.soldCount', {
+						count: product.quantity,
+					}),
+				}))
+			: (kpis?.topProfitProducts ?? []).map(product => ({
+					name: product.productName,
+					value: formatMoney(product.profit),
+				}))
+	const rows =
+		status === 'ready'
+			? ranked.length
+				? ranked
+				: [{ name: '—', value: '—' }]
+			: [{ name: '—', value: t(STATUS_KEYS[status]) }]
 
 	return (
 		<Box sx={cardStyles.card}>
+			<KpiHint label={t(`dashboard.kpi.hints.${cardId}`)} side="start" />
+			<Flex sx={{ ...cardStyles.header, pr: 0, pe: 6 }}>
+				<Flex
+					sx={{
+						...cardStyles.iconWrap,
+						bg: tone.bg,
+						color: tone.color,
+					}}
+				>
+					<Icon boxSize="1.25rem" aria-hidden />
+				</Flex>
+				<Text sx={{ ...cardStyles.title, color: 'gray.800' }} noOfLines={2}>
+					{t(`dashboard.inventory.cards.${cardId}`)}
+				</Text>
+			</Flex>
+			<Box flex="1">
+				{rows.map((row, index) => (
+					<Flex key={`${cardId}-${index}`} sx={cardStyles.row}>
+						<Text
+							sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
+							noOfLines={1}
+						>
+							{row.name}
+						</Text>
+						<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
+							{row.value}
+						</Text>
+					</Flex>
+				))}
+			</Box>
+		</Box>
+	)
+}
+
+export const InventoryListCard = ({
+	cardId,
+	dateFrom,
+	dateTo,
+}: InventoryListCardProps) => {
+	if (cardId === 'bestSellerProducts' || cardId === 'bestProfitProducts') {
+		return (
+			<LiveProductCard cardId={cardId} dateFrom={dateFrom} dateTo={dateTo} />
+		)
+	}
+
+	return <ComingSoonInventoryCard cardId={cardId} />
+}
+
+const ComingSoonInventoryCard = ({ cardId }: { cardId: InventoryCardId }) => {
+	const { t } = useTranslation()
+	const Icon = CARD_ICONS[cardId]
+	const rows = WARNING_KEYS.map((key, index) => ({
+		label: t(`dashboard.inventory.warnings.${key}`),
+		value: WARNING_COUNTS[index],
+	}))
+
+	return (
+		<Box sx={cardStyles.card}>
+			<KpiHint label={t('dashboard.kpi.comingSoonDescription')} side="start" />
 			<Box sx={cardStyles.ribbon}>
 				<Flex sx={cardStyles.ribbonLabel}>
 					<TimeIcon boxSize={{ base: '0.8rem', lg: '0.65rem' }} />
@@ -187,12 +251,6 @@ export const InventoryListCard = ({ cardId }: InventoryListCardProps) => {
 					</Flex>
 				))}
 			</Box>
-
-			{showViewAll ? (
-				<Button variant="link" sx={cardStyles.viewAll} isDisabled aria-disabled>
-					{t('dashboard.inventory.viewAll')}
-				</Button>
-			) : null}
 		</Box>
 	)
 }

@@ -15,6 +15,7 @@ import {
 	type ProductNotificationsResponse,
 	type ProductNotificationDigestResponse,
 } from '../api/apiStore'
+import { readOfflineCashBalances } from './offlineCashBalances'
 import { getWorkMode } from './workMode'
 import {
 	getWarehouseScopeIds,
@@ -30,8 +31,8 @@ import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/c
 import {
 	buildLocalPeriodProductAggregates,
 	mergeQtyWeightedAverageCost,
-	pickBestSellerSummaryProduct,
-	pickTopProfitSummaryProduct,
+	pickBestSellerSummaryProducts,
+	pickTopProfitSummaryProducts,
 	resolveLocalSaleUnitCost,
 	totalProfitFromAggregates,
 } from '../components/SellingInvoice/invoiceProfitSummary'
@@ -350,6 +351,8 @@ const buildSellingInvoicesSummary = async (
 			grandTotal: getPrimaryInvoiceCurrencyAmounts(invoice).grandTotal,
 		})),
 	)
+	const bestSellers = pickBestSellerSummaryProducts(aggregates)
+	const topProfitProducts = pickTopProfitSummaryProducts(aggregates)
 
 	return {
 		todaySales,
@@ -367,12 +370,12 @@ const buildSellingInvoicesSummary = async (
 		}, 0),
 		averageOrder:
 			periodInvoices.length > 0 ? todaySales / periodInvoices.length : 0,
-		totalProfit: profitReliable ? totalProfitFromAggregates(aggregates) : 0,
+		totalProfit: totalProfitFromAggregates(aggregates),
 		profitReliable,
-		bestSeller: pickBestSellerSummaryProduct(aggregates),
-		topProfitProduct: profitReliable
-			? pickTopProfitSummaryProduct(aggregates)
-			: null,
+		bestSeller: bestSellers[0] ?? null,
+		bestSellers,
+		topProfitProduct: topProfitProducts[0] ?? null,
+		topProfitProducts,
 	}
 }
 
@@ -2214,12 +2217,14 @@ export const handleOfflineQuery = async (
 				const filtered = filterInvoices(invoices, params)
 				const nextInvoiceNumber = await getLocalNextInvoiceNumber()
 
+				const summaryOnly = params.get('summaryOnly') === 'true'
+
 				return {
 					data: {
-						invoices: filtered,
+						invoices: summaryOnly ? [] : filtered,
 						summary: await buildSellingInvoicesSummary(invoices, params),
 						nextInvoiceNumber,
-						totalCount: filtered.length,
+						totalCount: summaryOnly ? 0 : filtered.length,
 					},
 				}
 			}
@@ -2348,6 +2353,23 @@ export const handleOfflineQuery = async (
 						],
 					},
 				}
+			}
+
+			if (path === 'cash-accounts/balances') {
+				const balances = await readOfflineCashBalances(
+					ratesFromCurrencySettings(await getLocalCurrencySettings()),
+				)
+
+				if (!balances) {
+					return {
+						error: {
+							status: 503,
+							data: { message: 'Offline data unavailable' },
+						},
+					}
+				}
+
+				return { data: balances }
 			}
 
 			return {
@@ -2484,6 +2506,7 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	if (path.startsWith('subscription')) return false
 	if (path.startsWith('users')) return false
 	if (path.startsWith('employees')) return false
+	if (path === 'cash-accounts/balances') return true
 	if (path.startsWith('cash-accounts')) return false
 	if (path.startsWith('user/')) return true
 	return true

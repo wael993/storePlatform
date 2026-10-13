@@ -16,9 +16,12 @@ import {
 	mergeInvoiceItemsPreservingUnitCost,
 	originalSaleUnitCostByProduct,
 	pickBestSellerSummaryProduct,
+	pickBestSellerSummaryProducts,
 	pickTopProfitSummaryProduct,
+	pickTopProfitSummaryProducts,
 	selectCurrentSaleMovings,
 	totalProfitFromAggregates,
+	type ProductProfitAggregate,
 } from '../shared/sellingInvoiceProfit'
 
 /** Primary SYP; 1 USD = 132 SYP → USD.exchangeRate = 1/132 (primary→display). */
@@ -624,6 +627,38 @@ describe('net revenue and profit', () => {
 		expect(totalProfitFromAggregates(aggregates)).toBe(0)
 		expect(pickBestSellerSummaryProduct(aggregates)).toBeNull()
 		expect(pickTopProfitSummaryProduct(aggregates)).toBeNull()
+	})
+
+	it('returns the top five sellers and profit products', () => {
+		const aggregates = new Map<string, ProductProfitAggregate>()
+		for (const row of [
+			{ productId: 'f', quantitySold: 1, profit: 9 },
+			{ productId: 'a', quantitySold: 6, profit: 1 },
+			{ productId: 'b', quantitySold: 5, profit: 2 },
+			{ productId: 'c', quantitySold: 4, profit: 3 },
+			{ productId: 'd', quantitySold: 3, profit: 4 },
+			{ productId: 'e', quantitySold: 2, profit: 5 },
+		]) {
+			aggregates.set(row.productId, {
+				...row,
+				productName: row.productId,
+				revenue: 0,
+				cogs: 0,
+			})
+		}
+
+		expect(
+			pickBestSellerSummaryProducts(aggregates).map(
+				product => product.productId,
+			),
+		).toEqual(['a', 'b', 'c', 'd', 'e'])
+		expect(pickBestSellerSummaryProduct(aggregates)?.productId).toBe('a')
+		expect(
+			pickTopProfitSummaryProducts(aggregates).map(
+				product => product.productId,
+			),
+		).toEqual(['f', 'e', 'd', 'c', 'b'])
+		expect(pickTopProfitSummaryProduct(aggregates)?.productId).toBe('f')
 	})
 
 	it('keeps stamped unitCost when invoice items are replaced', () => {

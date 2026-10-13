@@ -322,6 +322,7 @@ export interface SellingInvoicesQueryParams {
 	dateFrom?: string
 	dateTo?: string
 	customerId?: string
+	summaryOnly?: boolean
 }
 
 export interface CustomerInvoiceSummary {
@@ -391,12 +392,24 @@ export interface SellingInvoicesApiResponse {
 			quantity?: number
 			profit?: number
 		} | null
+		bestSellers?: Array<{
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		}>
 		topProfitProduct: {
 			productId: string
 			productName: string
 			quantity?: number
 			profit?: number
 		} | null
+		topProfitProducts?: Array<{
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		}>
 	}
 	customerSummary?: CustomerInvoiceSummary
 	nextInvoiceNumber: number

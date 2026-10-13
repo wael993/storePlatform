@@ -223,6 +223,28 @@ export const getOtherCurrencyAmountLines = (
 			text: formatDisplayAmount(amount, option.currencyId, options),
 		}))
 
+/** Shown currency rows, dropping duplicates, plus the next one a ＋ click may add. */
+export const resolveAdditionalCurrencyRows = (
+	options: DisplayCurrencyOption[],
+	shownCurrencyIds: readonly string[],
+): { shownCurrencyIds: string[]; nextCurrencyId: string | null } => {
+	const eligible = new Set(options.map(option => option.currencyId))
+	const seen = new Set<string>()
+	const shown: string[] = []
+
+	for (const currencyId of shownCurrencyIds) {
+		if (!eligible.has(currencyId) || seen.has(currencyId)) continue
+		seen.add(currencyId)
+		shown.push(currencyId)
+	}
+
+	return {
+		shownCurrencyIds: shown,
+		nextCurrencyId:
+			options.find(option => !seen.has(option.currencyId))?.currencyId ?? null,
+	}
+}
+
 export interface InvoiceCurrencyAmount {
 	currencyId: string
 	name: string

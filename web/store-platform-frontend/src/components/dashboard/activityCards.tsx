@@ -6,6 +6,7 @@ import type { ActivityCardId } from '../../shared/dashboardShell'
 import { ClockIcon } from '../../shared/icons/Clock'
 import { PersonIcon } from '../../shared/icons/Person'
 import { TimeIcon } from '../../shared/icons/Time'
+import { KpiHint } from './kpiComponents'
 
 const cardStyles = {
 	card: {
@@ -203,6 +204,7 @@ export const ActivityListCard = ({ cardId }: ActivityListCardProps) => {
 
 	return (
 		<Box sx={cardStyles.card}>
+			<KpiHint label={t('dashboard.kpi.comingSoonDescription')} side="start" />
 			<Box sx={cardStyles.ribbon}>
 				<Flex sx={cardStyles.ribbonLabel}>
 					<TimeIcon boxSize={{ base: '0.8rem', lg: '0.65rem' }} />

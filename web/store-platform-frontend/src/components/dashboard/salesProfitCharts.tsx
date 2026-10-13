@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { TimeIcon } from '../../shared/icons/Time'
 import type { SalesProfitChartId } from '../../shared/dashboardShell'
 import EChartsHost from './EChartsHost'
+import { KpiHint } from './kpiComponents'
 
 const CHART_COLORS = [
 	'#94A3B8',
@@ -300,6 +301,7 @@ export const KpiChartComingSoon = ({ chartId }: KpiChartComingSoonProps) => {
 
 	return (
 		<Box sx={chartCardStyles.card}>
+			<KpiHint label={t('dashboard.kpi.comingSoonDescription')} side="start" />
 			<Box sx={chartCardStyles.ribbon}>
 				<Flex sx={chartCardStyles.ribbonLabel}>
 					<TimeIcon boxSize={{ base: '0.8rem', lg: '0.65rem' }} />

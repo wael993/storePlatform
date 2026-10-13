@@ -1,9 +1,4 @@
 import {
-	Accordion,
-	AccordionButton,
-	AccordionIcon,
-	AccordionItem,
-	AccordionPanel,
 	Box,
 	Button,
 	Flex,
@@ -18,7 +13,6 @@ import {
 	useDisclosure,
 } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
-import dayjs from 'dayjs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -46,7 +40,6 @@ import type { BuyingInvoiceDraft } from '../BuyingInvoice/types'
 import { useBuyingInvoiceDraftSessions } from '../BuyingInvoice/useBuyingInvoiceDraftSessions'
 import QuickEntryModal, { type QuickEntryModalMode } from './QuickEntryModal'
 import { PAGE_COLORS } from './constants'
-import { mapApiSummaryToUi } from './invoiceApiMappers'
 import { isDraftSessionDirty } from './invoiceDraftSessions'
 import InvoiceBarcodeSearchBar from './InvoiceBarcodeSearchBar'
 import InvoiceDetailModal from './InvoiceDetailModal'
@@ -172,22 +165,10 @@ const SellingInvoicesPage = () => {
 		useState<QuickEntryModalMode>('create')
 	const [selectedEntry, setSelectedEntry] = useState<DailyAction | null>(null)
 
-	const [summaryDateFrom, setSummaryDateFrom] = useState(() => new Date())
-	const [summaryDateTo, setSummaryDateTo] = useState(() => new Date())
-
-	const summaryQueryParams = useMemo(
-		() => ({
-			dateFrom: dayjs(summaryDateFrom).format('YYYY-MM-DD'),
-			dateTo: dayjs(summaryDateTo).format('YYYY-MM-DD'),
-		}),
-		[summaryDateFrom, summaryDateTo],
-	)
-
-	const { data: invoicesMeta, isLoading: isSummaryLoading } =
-		useGetSellingInvoicesQuery(summaryQueryParams, {
-			skip: !canSeeSummary && !canSeeAddSelling,
-			refetchOnMountOrArgChange: false,
-		})
+	const { data: invoicesMeta } = useGetSellingInvoicesQuery(undefined, {
+		skip: !canSeeAddSelling,
+		refetchOnMountOrArgChange: false,
+	})
 	const { data: buyingInvoicesMeta } = useGetBuyingInvoicesQuery(
 		{},
 		{ skip: !canSeeBuying, refetchOnMountOrArgChange: false },
@@ -290,38 +271,6 @@ const SellingInvoicesPage = () => {
 			updateBuyingDraft(activeBuyingSessionId, updater)
 		},
 		[activeBuyingSessionId, updateBuyingDraft],
-	)
-
-	const handleSummaryDateFromChange = useCallback((date: Date | undefined) => {
-		if (!date) return
-		setSummaryDateFrom(date)
-	}, [])
-
-	const handleSummaryDateToChange = useCallback((date: Date | undefined) => {
-		if (!date) return
-		setSummaryDateTo(date)
-	}, [])
-
-	const summary = useMemo(
-		() =>
-			invoicesMeta?.summary
-				? mapApiSummaryToUi(invoicesMeta.summary)
-				: {
-						todaySales: 0,
-						todaySalesTrend: 0,
-						paidInvoices: 0,
-						paidInvoicesTrend: 0,
-						creditInvoices: 0,
-						creditInvoicesTrend: 0,
-						totalReceivable: 0,
-						averageOrder: 0,
-						totalProfit: 0,
-						profitReliable: false,
-						bestSeller: null,
-						topProfitProduct: null,
-						salesSparkline: [],
-					},
-		[invoicesMeta?.summary],
 	)
 
 	const draftTabs = useMemo(
@@ -785,29 +734,7 @@ const SellingInvoicesPage = () => {
 							)}
 						</Flex>
 
-						{canSeeSummary && !isDraftOpen ? (
-							<Accordion allowToggle>
-								<AccordionItem border="none">
-									<AccordionButton px={0}>
-										<Box flex="1" textAlign="right">
-											{t('components.sellingInvoices.summaryTitle')}
-										</Box>
-										<AccordionIcon />
-									</AccordionButton>
-									<AccordionPanel px={0} pb={4}>
-										<InvoiceSummaryCards
-											summary={summary}
-											isLoading={isSummaryLoading}
-											dateFrom={summaryDateFrom}
-											dateTo={summaryDateTo}
-											onDateFromChange={handleSummaryDateFromChange}
-											onDateToChange={handleSummaryDateToChange}
-											showLedgerCash={canSeeSummary}
-										/>
-									</AccordionPanel>
-								</AccordionItem>
-							</Accordion>
-						) : null}
+						{canSeeSummary && !isDraftOpen ? <InvoiceSummaryCards /> : null}
 
 						{canSeeAddSelling && (
 							<Box mb={isDraftOpen ? 4 : undefined} flexShrink={0}>

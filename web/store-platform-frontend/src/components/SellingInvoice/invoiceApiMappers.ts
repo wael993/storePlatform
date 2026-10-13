@@ -84,12 +84,24 @@ export interface ApiSellingInvoicesResponse {
 			quantity?: number
 			profit?: number
 		} | null
+		bestSellers?: Array<{
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		}>
 		topProfitProduct: {
 			productId: string
 			productName: string
 			quantity?: number
 			profit?: number
 		} | null
+		topProfitProducts?: Array<{
+			productId: string
+			productName: string
+			quantity?: number
+			profit?: number
+		}>
 	}
 	nextInvoiceNumber: number
 	totalCount: number
@@ -185,6 +197,18 @@ export const mapApiSummaryToUi = (
 				quantity: summary.bestSeller.quantity ?? 0,
 			}
 		: null,
+	bestSellers: (summary.bestSellers?.length
+		? summary.bestSellers
+		: summary.bestSeller
+			? [summary.bestSeller]
+			: []
+	)
+		.filter(product => product.productId)
+		.map(product => ({
+			productId: product.productId,
+			productName: product.productName,
+			quantity: product.quantity ?? 0,
+		})),
 	topProfitProduct: summary.topProfitProduct?.productId
 		? {
 				productId: summary.topProfitProduct.productId,
@@ -192,6 +216,18 @@ export const mapApiSummaryToUi = (
 				profit: summary.topProfitProduct.profit ?? 0,
 			}
 		: null,
+	topProfitProducts: (summary.topProfitProducts?.length
+		? summary.topProfitProducts
+		: summary.topProfitProduct
+			? [summary.topProfitProduct]
+			: []
+	)
+		.filter(product => product.productId)
+		.map(product => ({
+			productId: product.productId,
+			productName: product.productName,
+			profit: product.profit ?? 0,
+		})),
 	salesSparkline: [],
 })
 

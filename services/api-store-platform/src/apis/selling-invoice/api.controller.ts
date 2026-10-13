@@ -55,8 +55,8 @@ import { CASH_REFERENCE_TYPES } from '../../shared/cashAccounts/types'
 import {
 	buildPeriodProductAggregates,
 	originalSaleUnitCostByProduct,
-	pickBestSellerSummaryProduct,
-	pickTopProfitSummaryProduct,
+	pickBestSellerSummaryProducts,
+	pickTopProfitSummaryProducts,
 	selectCurrentSaleMovings,
 	totalProfitFromAggregates,
 } from '../../shared/sellingInvoiceProfit'
@@ -498,18 +498,21 @@ export default class SellingInvoiceController {
 			selectCurrentSaleMovings(periodInvoices, stockMovings),
 		)
 
+		const bestSellers = pickBestSellerSummaryProducts(aggregates)
+		const topProfitProducts = pickTopProfitSummaryProducts(aggregates)
+
 		return {
 			todaySales,
 			paidInvoices,
 			creditInvoices,
 			totalReceivable,
 			averageOrder,
-			totalProfit: profitReliable ? totalProfitFromAggregates(aggregates) : 0,
+			totalProfit: totalProfitFromAggregates(aggregates),
 			profitReliable,
-			bestSeller: pickBestSellerSummaryProduct(aggregates),
-			topProfitProduct: profitReliable
-				? pickTopProfitSummaryProduct(aggregates)
-				: null,
+			bestSeller: bestSellers[0] ?? null,
+			bestSellers,
+			topProfitProduct: topProfitProducts[0] ?? null,
+			topProfitProducts,
 		}
 	}
 
@@ -918,11 +921,11 @@ export default class SellingInvoiceController {
 			await this.ops.resolveNextInvoiceNumber(requestContext)
 
 		const response: SellingInvoicesListResponse = {
-			invoices: filteredInvoices,
+			invoices: filters.summaryOnly ? [] : filteredInvoices,
 			summary,
 			customerSummary,
 			nextInvoiceNumber,
-			totalCount: filteredInvoices.length,
+			totalCount: filters.summaryOnly ? 0 : filteredInvoices.length,
 		}
 
 		if (!Array.isArray(cachedInvoices) && !cachedInvoices?.invoices) {

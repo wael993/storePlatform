@@ -1,4 +1,14 @@
-import { Box, Flex, Text } from '@chakra-ui/react'
+import {
+	Box,
+	Flex,
+	IconButton,
+	Popover,
+	PopoverBody,
+	PopoverContent,
+	PopoverTrigger,
+	Portal,
+	Text,
+} from '@chakra-ui/react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FiTrendingDown, FiTrendingUp } from 'react-icons/fi'
@@ -62,6 +72,76 @@ export interface KpiCardComingSoonProps {
 	value?: ReactNode
 	trend?: { direction: 'up' | 'down'; delta: string }
 }
+
+export interface KpiCardLiveProps {
+	title: string
+	titleIcon?: ReactNode
+	iconBg: string
+	iconColor: string
+	value: ReactNode
+	hint?: string
+	/** Missing cost — the number is on the card, but it is not complete. */
+	uncertain?: boolean
+}
+
+/** Circled !. Click opens the note. Cash cards do not use this. */
+export const KpiHint = ({
+	label,
+	side = 'end',
+	uncertain = false,
+}: {
+	label: string
+	side?: 'start' | 'end'
+	uncertain?: boolean
+}) => (
+	<Popover placement={side === 'start' ? 'top-start' : 'top-end'} isLazy>
+		<PopoverTrigger>
+			<IconButton
+				aria-label={label}
+				icon={
+					<Box as="span" fontSize="0.7rem" fontWeight="800" lineHeight="1">
+						!
+					</Box>
+				}
+				variant="unstyled"
+				position="absolute"
+				top="0.65rem"
+				left={side === 'start' ? '0.65rem' : undefined}
+				insetInlineEnd={side === 'end' ? '0.65rem' : undefined}
+				zIndex={3}
+				display="inline-flex"
+				alignItems="center"
+				justifyContent="center"
+				minW="1.15rem"
+				w="1.15rem"
+				h="1.15rem"
+				borderRadius="full"
+				border="1.5px solid"
+				borderColor={uncertain ? 'orange.400' : 'gray.400'}
+				color={uncertain ? 'orange.800' : 'gray.600'}
+				bg={uncertain ? 'orange.100' : 'white'}
+				cursor="pointer"
+				_hover={{ borderColor: 'gray.600', color: 'gray.800' }}
+				_focusVisible={{
+					outline: '2px solid',
+					outlineColor: 'blue.400',
+					outlineOffset: '2px',
+				}}
+			/>
+		</PopoverTrigger>
+		<Portal>
+			<PopoverContent
+				width="16rem"
+				borderColor={uncertain ? 'orange.200' : 'gray.200'}
+				boxShadow="lg"
+			>
+				<PopoverBody fontSize="sm" color="gray.700">
+					{label}
+				</PopoverBody>
+			</PopoverContent>
+		</Portal>
+	</Popover>
+)
 
 const comingSoonStyles = {
 	card: {
@@ -257,6 +337,92 @@ export const KpiCardComingSoon = ({
 		</Box>
 	)
 }
+
+/** Same shell as Coming Soon, without the ribbon — real value, tinted icon. */
+export const KpiCardLive = ({
+	title,
+	titleIcon,
+	iconBg,
+	iconColor,
+	value,
+	hint,
+	uncertain = false,
+}: KpiCardLiveProps) => (
+	<Box
+		sx={{
+			...comingSoonStyles.card,
+			...(uncertain
+				? {
+						borderColor: 'orange.300',
+						bg: 'orange.50',
+						boxShadow: '0 8px 30px rgba(194, 65, 12, 0.14)',
+					}
+				: null),
+		}}
+	>
+		<Box
+			position="absolute"
+			inset={0}
+			pointerEvents="none"
+			aria-hidden
+			opacity={0.5}
+		>
+			<Box
+				position="absolute"
+				top={6}
+				left={6}
+				w={{ base: '7rem', lg: '4.5rem' }}
+				h={{ base: '5rem', lg: '3.5rem' }}
+				opacity={0.35}
+				bgImage="radial-gradient(circle, #CBD5E0 1.5px, transparent 1.5px)"
+				bgSize="1.25rem 1.25rem"
+			/>
+			<Box
+				position="absolute"
+				right="-5rem"
+				bottom="-5rem"
+				w={{ base: '18rem', lg: '12rem' }}
+				h={{ base: '10rem', lg: '7rem' }}
+				borderRadius="50%"
+				bg="gray.50"
+				transform="rotate(-12deg)"
+			/>
+		</Box>
+
+		<Flex
+			position="relative"
+			align="center"
+			h="100%"
+			minH={{ base: '6.5rem', lg: '5.5rem' }}
+			zIndex={1}
+		>
+			{titleIcon ? (
+				<Flex
+					sx={{
+						...comingSoonStyles.iconWrap,
+						bg: iconBg,
+						color: iconColor,
+					}}
+				>
+					{titleIcon}
+				</Flex>
+			) : null}
+			{titleIcon ? <Box sx={comingSoonStyles.divider} /> : null}
+			<Box flex="1" minW={0} pe={hint ? 6 : 0}>
+				<Text
+					sx={{ ...comingSoonStyles.title, color: 'gray.800' }}
+					noOfLines={2}
+				>
+					{title}
+				</Text>
+				<Text sx={{ ...comingSoonStyles.value, color: 'gray.900' }}>
+					{value}
+				</Text>
+			</Box>
+		</Flex>
+		{hint ? <KpiHint label={hint} uncertain={uncertain} /> : null}
+	</Box>
+)
 
 export interface KpiCardWithComparisonProps {
 	title?: string

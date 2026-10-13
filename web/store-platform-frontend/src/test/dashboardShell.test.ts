@@ -19,7 +19,7 @@ describe('dashboardShell', () => {
 		])
 	})
 
-	it('keeps the nine DASH-004 overview KPIs in order', () => {
+	it('keeps the overview KPIs in order', () => {
 		expect([...OVERVIEW_KPI_IDS]).toEqual([
 			'products',
 			'registeredCustomers',
@@ -29,6 +29,7 @@ describe('dashboardShell', () => {
 			'salesToday',
 			'profit',
 			'totalReceivable',
+			'totalPayable',
 			'cashBalance',
 		])
 	})

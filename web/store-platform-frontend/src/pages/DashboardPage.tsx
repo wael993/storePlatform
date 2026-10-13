@@ -12,11 +12,11 @@ import { useTranslation } from 'react-i18next'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import EmptyState from '../components/common/EmptyState'
 import DatePickerLabel from '../components/common/DatePickerLabel'
-import { KpiCardComingSoon } from '../components/dashboard/kpiComponents'
 import CashPaymentsCard from '../components/dashboard/CashPaymentsCard'
+import InvoiceSummaryKpiCard from '../components/dashboard/InvoiceSummaryKpiCard'
+import OverviewKpiCard from '../components/dashboard/OverviewKpiCard'
 import { ActivityListCard } from '../components/dashboard/activityCards'
 import { InventoryListCard } from '../components/dashboard/inventoryCards'
-import { OVERVIEW_KPI_VISUALS } from '../components/dashboard/overviewKpiVisuals'
 import { KpiChartComingSoon } from '../components/dashboard/salesProfitCharts'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import {
@@ -31,8 +31,6 @@ import {
 import { generateBreadcrumbs } from '../shared/routes'
 import { pageContentMinHeight } from '../theme/layout'
 import { datePickerStyles } from '../theme/styles'
-
-const iconBoxSize = { base: '1.75rem', sm: '2rem', lg: '1.35rem' } as const
 
 const DashboardPage = () => {
 	const { t } = useTranslation()
@@ -131,21 +129,23 @@ const DashboardPage = () => {
 												return <CashPaymentsCard key={kpiId} />
 											}
 
-											const visual = OVERVIEW_KPI_VISUALS[kpiId]
-											const Icon = visual.Icon
+											if (kpiId === 'salesToday' || kpiId === 'profit') {
+												return (
+													<InvoiceSummaryKpiCard
+														key={kpiId}
+														kpiId={kpiId}
+														dateFrom={dateFrom}
+														dateTo={dateTo}
+													/>
+												)
+											}
+
 											return (
-												<KpiCardComingSoon
+												<OverviewKpiCard
 													key={kpiId}
-													title={t(`dashboard.kpis.${kpiId}`)}
-													value={visual.value}
-													trend={visual.trend}
-													titleIcon={
-														<Icon
-															boxSize={iconBoxSize}
-															color="gray.500"
-															aria-hidden
-														/>
-													}
+													kpiId={kpiId}
+													dateFrom={dateFrom}
+													dateTo={dateTo}
 												/>
 											)
 										})}
@@ -159,7 +159,12 @@ const DashboardPage = () => {
 								) : sectionId === 'inventory' ? (
 									<SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
 										{INVENTORY_CARD_IDS.map(cardId => (
-											<InventoryListCard key={cardId} cardId={cardId} />
+											<InventoryListCard
+												key={cardId}
+												cardId={cardId}
+												dateFrom={dateFrom}
+												dateTo={dateTo}
+											/>
 										))}
 									</SimpleGrid>
 								) : sectionId === 'activity' ? (

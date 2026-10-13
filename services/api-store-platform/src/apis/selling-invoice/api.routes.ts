@@ -152,6 +152,7 @@ export default class SellingInvoiceRoutes {
 			dateFrom: queryString(request.query.dateFrom),
 			dateTo: queryString(request.query.dateTo),
 			customerId: queryString(request.query.customerId),
+			summaryOnly: queryString(request.query.summaryOnly) === 'true',
 		}
 
 		try {

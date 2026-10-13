@@ -210,6 +210,8 @@ export type SellingInvoicesQueryParams = {
 	dateFrom?: string
 	dateTo?: string
 	customerId?: string
+	/** Dashboard reads `summary` only. Omit the invoice rows from the response. */
+	summaryOnly?: boolean
 }
 
 export type CustomerInvoiceSummary = {
@@ -236,7 +238,9 @@ export type SellingInvoicesSummary = {
 	totalProfit: number
 	profitReliable?: boolean
 	bestSeller: SellingInvoicesSummaryProduct | null
+	bestSellers: SellingInvoicesSummaryProduct[]
 	topProfitProduct: SellingInvoicesSummaryProduct | null
+	topProfitProducts: SellingInvoicesSummaryProduct[]
 }
 
 export type SellingInvoicesListResponse = {

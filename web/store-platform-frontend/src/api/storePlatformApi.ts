@@ -18,6 +18,7 @@ import {
 	isOfflineCapableEndpoint,
 } from '../offline/localHandlers'
 import { isOfflineCapableForTenant } from '../offline/localStore'
+import { rememberCashBalances } from '../offline/offlineCashBalances'
 import { getWorkMode } from '../offline/workMode'
 import {
 	getWarehouseScopeIds,
@@ -271,6 +272,12 @@ const baseQueryWithOffline: BaseQueryFn<
 
 	if (!result.error) {
 		markOnline()
+		if (
+			method === 'GET' &&
+			requestUrl.split('?')[0] === 'cash-accounts/balances'
+		) {
+			void rememberCashBalances(result.data)
+		}
 	}
 
 	return result

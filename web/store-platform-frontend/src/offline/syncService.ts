@@ -211,6 +211,11 @@ export const bootstrapOfflineData = async (tenantId: string): Promise<void> => {
 		await applyBootstrapPayload(payload, tenantId)
 		const { syncFromNetwork } = await import('./productCatalogStore')
 		await syncFromNetwork(tenantId)
+		const balancesResponse = await fetchWithAuth('cash-accounts/balances')
+		if (balancesResponse.ok) {
+			const { rememberCashBalances } = await import('./offlineCashBalances')
+			await rememberCashBalances(await balancesResponse.json())
+		}
 		markOnline()
 
 		emit({

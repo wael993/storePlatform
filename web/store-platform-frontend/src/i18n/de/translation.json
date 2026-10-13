@@ -106,7 +106,21 @@
 			"comingSoonDescription": "Diese Kennzahl erscheint hier, sobald sie aktiviert ist.",
 			"unavailable": "Nicht verfügbar",
 			"error": "Kennzahl konnte nicht geladen werden.",
-			"loading": "Wird geladen…"
+			"loading": "Wird geladen…",
+			"partial": "Unvollständig",
+			"hints": {
+				"products": "Alle Produkte des Mandanten.",
+				"registeredCustomers": "Alle Kunden des Mandanten.",
+				"newCustomers": "Kunden, die im gewählten Zeitraum angelegt wurden.",
+				"inventoryCost": "Menge mal Kosten für den Bestand in den aktuellen Lagern. Bestand ohne Kosten wird ausgelassen und nicht als null gezählt. Eine hervorgehobene Karte bedeutet, dass bei einem Teil des Bestands die Kosten fehlen und die Summe nicht vollständig ist.",
+				"invoicesToday": "Nur gebuchte Rechnungen von heute. Entwurf, storniert, ungültig und ausstehend zählen nicht. Der gewählte Zeitraum ändert diese Zahl nicht.",
+				"salesToday": "Umsatz im gewählten Zeitraum.",
+				"profit": "Gewinn im gewählten Zeitraum. Eine hervorgehobene Karte bedeutet, dass bei einem Teil der Verkäufe die Kosten fehlen und die Zahl nicht vollständig ist.",
+				"totalReceivable": "Was Kunden und Lieferanten uns schulden, aus ihren Rechnungen und Buchungen. Partner sind nicht enthalten.",
+				"totalPayable": "Was wir Kunden und Lieferanten schulden, aus ihren Rechnungen und Buchungen. Partner sind nicht enthalten.",
+				"bestSellerProducts": "Die fünf Produkte mit der höchsten verkauften Menge im gewählten Zeitraum.",
+				"bestProfitProducts": "Die fünf Produkte mit dem höchsten Gewinn im gewählten Zeitraum. Es zählt nur bekannte Kosten. Eine hervorgehobene Gewinnkarte bedeutet, dass diese Reihenfolge unvollständig ist."
+			}
 		},
 		"kpis": {
 			"registeredCustomers": "Registrierte Kunden",
@@ -114,9 +128,10 @@
 			"inventoryCost": "Lagerwert",
 			"products": "Produkte",
 			"invoicesToday": "Rechnungen heute",
-			"salesToday": "Umsatz heute",
+			"salesToday": "Umsatz im Zeitraum",
 			"profit": "Gewinn",
-			"totalReceivable": "Offene Forderungen",
+			"totalReceivable": "Uns geschuldet",
+			"totalPayable": "Wir schulden",
 			"cashBalance": "Kassenbestand"
 		},
 		"cashAccounts": {

@@ -106,7 +106,21 @@
 			"comingSoonDescription": "This metric will appear here once it is enabled.",
 			"unavailable": "Unavailable",
 			"error": "Could not load this metric.",
-			"loading": "Loading…"
+			"loading": "Loading…",
+			"partial": "Partial",
+			"hints": {
+				"products": "All products in the tenant.",
+				"registeredCustomers": "All customers in the tenant.",
+				"newCustomers": "Customers created in the selected date range.",
+				"inventoryCost": "Quantity times cost for stock in the current warehouses. Stock with no cost is left out and is not counted as zero. A highlighted card means some stock has no cost, so this total is not complete.",
+				"invoicesToday": "Posted invoices for today only. Draft, cancelled, void, and pending invoices are left out. This does not follow the selected date range.",
+				"salesToday": "Sales in the selected date range.",
+				"profit": "Profit in the selected date range. A highlighted card means some sold items have no cost, so this figure is not complete.",
+				"totalReceivable": "What customers and suppliers owe us, from their invoices and entries. Partners are not included.",
+				"totalPayable": "What we owe customers and suppliers, from their invoices and entries. Partners are not included.",
+				"bestSellerProducts": "The five products with the highest quantity sold in the selected date range.",
+				"bestProfitProducts": "The five products with the highest profit in the selected date range. Profit uses known cost only, so a highlighted profit card means this ranking is incomplete."
+			}
 		},
 		"kpis": {
 			"registeredCustomers": "Registered Customers",
@@ -114,9 +128,10 @@
 			"inventoryCost": "Inventory Cost",
 			"products": "Products",
 			"invoicesToday": "Invoices Today",
-			"salesToday": "Sales Today",
+			"salesToday": "Period Sales",
 			"profit": "Profit",
-			"totalReceivable": "Total Receivable",
+			"totalReceivable": "Owed to us",
+			"totalPayable": "We owe",
 			"cashBalance": "Cash Balance"
 		},
 		"cashAccounts": {

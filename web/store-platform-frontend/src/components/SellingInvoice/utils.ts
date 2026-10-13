@@ -27,14 +27,6 @@ export const buildEntryPartyOptions = (
 	]
 }
 
-export const formatTrend = (value: number, suffix = '%') => {
-	const prefix = value >= 0 ? '↑' : '↓'
-	const absValue = Math.abs(value)
-	return suffix === '%'
-		? `${prefix} ${absValue.toFixed(1)}%`
-		: `${prefix} ${absValue}`
-}
-
 const parseTimeToMinutes = (time: string) => {
 	const [timePart, period] = time.split(' ')
 	const [hours, minutes] = timePart.split(':').map(Number)

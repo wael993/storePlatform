@@ -18,6 +18,7 @@ export const OVERVIEW_KPI_IDS = [
 	'salesToday',
 	'profit',
 	'totalReceivable',
+	'totalPayable',
 	'cashBalance',
 ] as const
 

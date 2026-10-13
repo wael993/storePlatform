@@ -39,11 +39,21 @@ export interface SellingInvoiceSummary {
 		productName: string
 		quantity: number
 	} | null
+	bestSellers: Array<{
+		productId: string
+		productName: string
+		quantity: number
+	}>
 	topProfitProduct: {
 		productId: string
 		productName: string
 		profit: number
 	} | null
+	topProfitProducts: Array<{
+		productId: string
+		productName: string
+		profit: number
+	}>
 	salesSparkline: number[]
 }
 

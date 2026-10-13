@@ -272,10 +272,10 @@ const CashPaymentsCard = () => {
 	const showAnyCash = visibleAccounts.length > 0 || showTotal
 	const { data, isLoading, isError, isFetching } =
 		useGetCashAccountBalancesQuery(undefined, {
-			skip: !cashOpsOnline || !showAnyCash,
+			skip: !showAnyCash,
 		})
 	const { data: currencySettings } = useGetCurrencySettingsQuery(undefined, {
-		skip: !cashOpsOnline || !showAnyCash,
+		skip: !showAnyCash,
 		refetchOnMountOrArgChange: false,
 	})
 
@@ -285,7 +285,6 @@ const CashPaymentsCard = () => {
 		''
 
 	const formatBalance = (amount: number | undefined) => {
-		if (!cashOpsOnline) return t('common.onlineOnly')
 		if (amount == null) return '—'
 		const formatted = formatNumber(amount) ?? String(amount)
 
@@ -299,7 +298,7 @@ const CashPaymentsCard = () => {
 		navigate(`${RoutePaths.CASH_ACCOUNT_HISTORY}${params}`)
 	}
 
-	const showLoading = cashOpsOnline && (isLoading || (isFetching && !data))
+	const showLoading = isLoading || (isFetching && !data)
 	const balanceByType = new Map(
 		(data?.accounts ?? []).map(account => [account.type, account.balance]),
 	)
@@ -315,7 +314,7 @@ const CashPaymentsCard = () => {
 					title={t(ACCOUNT_LABEL_KEYS[type])}
 					value={formatBalance(balanceByType.get(type))}
 					isLoading={showLoading}
-					isError={cashOpsOnline && isError}
+					isError={isError}
 					onOpen={
 						cashOpsOnline && canSee(ACCOUNT_CLICK_SEE[type])
 							? () => openHistory(type)
@@ -330,7 +329,7 @@ const CashPaymentsCard = () => {
 					title={t(ACCOUNT_LABEL_KEYS.total)}
 					value={formatBalance(data?.total)}
 					isLoading={showLoading}
-					isError={cashOpsOnline && isError}
+					isError={isError}
 					onOpen={
 						cashOpsOnline && canSee(ACCOUNT_CLICK_SEE.total)
 							? () => openHistory()

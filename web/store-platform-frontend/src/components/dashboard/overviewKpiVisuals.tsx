@@ -61,6 +61,11 @@ export const OVERVIEW_KPI_VISUALS: Record<OverviewKpiId, OverviewKpiVisual> = {
 		value: '12,400',
 		trend: { direction: 'up', delta: '+620' },
 	},
+	totalPayable: {
+		Icon: WalletIcon,
+		value: '3,200',
+		trend: { direction: 'down', delta: '-80' },
+	},
 	cashBalance: {
 		Icon: CashBalanceIcon,
 		value: '5,210',

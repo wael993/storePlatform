@@ -250,73 +250,62 @@ export const buildPeriodProductAggregates = (
 	return { aggregates, profitReliable }
 }
 
+const soldProducts = (aggregates: Map<string, ProductProfitAggregate>) =>
+	[...aggregates.values()].filter(aggregate => aggregate.quantitySold > 0)
+
+const productLabel = (aggregate: ProductProfitAggregate) =>
+	aggregate.productName || aggregate.productId
+
+/** Same ranking as the single winner, capped at five for the dashboard lists. */
+export const pickBestSellerSummaryProducts = (
+	aggregates: Map<string, ProductProfitAggregate>,
+	limit = 5,
+) =>
+	soldProducts(aggregates)
+		.sort((left, right) => {
+			if (right.quantitySold !== left.quantitySold) {
+				return right.quantitySold - left.quantitySold
+			}
+
+			if (right.profit !== left.profit) return right.profit - left.profit
+
+			return left.productName.localeCompare(right.productName)
+		})
+		.slice(0, limit)
+		.map(aggregate => ({
+			productId: aggregate.productId,
+			productName: productLabel(aggregate),
+			quantity: aggregate.quantitySold,
+		}))
+
 export const pickBestSellerSummaryProduct = (
 	aggregates: Map<string, ProductProfitAggregate>,
-): {
-	productId: string
-	productName: string
-	quantity: number
-} | null => {
-	const candidates = [...aggregates.values()].filter(
-		aggregate => aggregate.quantitySold > 0,
-	)
+) => pickBestSellerSummaryProducts(aggregates, 1)[0] ?? null
 
-	if (!candidates.length) return null
+export const pickTopProfitSummaryProducts = (
+	aggregates: Map<string, ProductProfitAggregate>,
+	limit = 5,
+) =>
+	soldProducts(aggregates)
+		.sort((left, right) => {
+			if (right.profit !== left.profit) return right.profit - left.profit
 
-	candidates.sort((left, right) => {
-		if (right.quantitySold !== left.quantitySold) {
-			return right.quantitySold - left.quantitySold
-		}
+			if (right.quantitySold !== left.quantitySold) {
+				return right.quantitySold - left.quantitySold
+			}
 
-		if (right.profit !== left.profit) {
-			return right.profit - left.profit
-		}
-
-		return left.productName.localeCompare(right.productName)
-	})
-
-	const winner = candidates[0]
-
-	return {
-		productId: winner.productId,
-		productName: winner.productName || winner.productId,
-		quantity: winner.quantitySold,
-	}
-}
+			return left.productName.localeCompare(right.productName)
+		})
+		.slice(0, limit)
+		.map(aggregate => ({
+			productId: aggregate.productId,
+			productName: productLabel(aggregate),
+			profit: aggregate.profit,
+		}))
 
 export const pickTopProfitSummaryProduct = (
 	aggregates: Map<string, ProductProfitAggregate>,
-): {
-	productId: string
-	productName: string
-	profit: number
-} | null => {
-	const candidates = [...aggregates.values()].filter(
-		aggregate => aggregate.quantitySold > 0,
-	)
-
-	if (!candidates.length) return null
-
-	candidates.sort((left, right) => {
-		if (right.profit !== left.profit) {
-			return right.profit - left.profit
-		}
-
-		if (right.quantitySold !== left.quantitySold) {
-			return right.quantitySold - left.quantitySold
-		}
-
-		return left.productName.localeCompare(right.productName)
-	})
-
-	const winner = candidates[0]
-
-	return {
-		productId: winner.productId,
-		productName: winner.productName || winner.productId,
-		profit: winner.profit,
-	}
-}
+) => pickTopProfitSummaryProducts(aggregates, 1)[0] ?? null
 
 export const totalProfitFromAggregates = (
 	aggregates: Map<string, ProductProfitAggregate>,
