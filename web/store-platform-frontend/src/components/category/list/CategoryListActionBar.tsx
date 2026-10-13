@@ -1,4 +1,10 @@
-import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
+import {
+	IconButton,
+	Flex,
+	Text,
+	Tooltip,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { useSee } from '../../../shared/hooks/useSee'
@@ -7,6 +13,10 @@ import ConfirmationDialog from '../../ConfirmationDialog'
 import { useBulkDeleteCategoriesMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { AsTrashIcon } from '../../../icons/Trash'
+import {
+	deleteErrorDescription,
+	useMasterBulkDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	mainFlexWrapper: {
@@ -52,6 +62,8 @@ const CategoryListActionBar = ({
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeleteCategoriesMutation()
 	const canDelete = canSee(SEE.categoriesDelete)
+	const { deleteDisabled, deleteTooltip } =
+		useMasterBulkDelete(selectedCategorys)
 
 	const handleDelete = async () => {
 		try {
@@ -73,8 +85,11 @@ const CategoryListActionBar = ({
 			if (result.blocked.length) {
 				showToast({
 					status: 'error',
-					description:
-						result.blocked[0]?.reason || t('category.deleteCategoryError'),
+					description: deleteErrorDescription(
+						t,
+						result.blocked[0]?.reason,
+						t('category.deleteCategoryError'),
+					),
 				})
 			}
 		} catch (error) {
@@ -82,7 +97,11 @@ const CategoryListActionBar = ({
 
 			showToast({
 				status: 'error',
-				description: err.data?.message || t('category.deleteCategoryError'),
+				description: deleteErrorDescription(
+					t,
+					err.data?.message,
+					t('category.deleteCategoryError'),
+				),
 			})
 		}
 	}
@@ -94,13 +113,18 @@ const CategoryListActionBar = ({
 			</Text>
 			<Flex sx={styles.iconWrapper}>
 				{canDelete ? (
-					<IconButton
-						sx={styles.iconButton}
-						aria-label={t('category.deleteSelected')}
-						icon={<AsTrashIcon boxSize={5} />}
-						size="sm"
-						onClick={onOpen}
-					/>
+					<Tooltip label={deleteTooltip} isDisabled={!deleteTooltip}>
+						<span>
+							<IconButton
+								sx={styles.iconButton}
+								aria-label={t('category.deleteSelected')}
+								icon={<AsTrashIcon boxSize={5} />}
+								size="sm"
+								isDisabled={deleteDisabled}
+								onClick={onOpen}
+							/>
+						</span>
+					</Tooltip>
 				) : null}
 			</Flex>
 			<ConfirmationDialog
@@ -114,7 +138,6 @@ const CategoryListActionBar = ({
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 		</Flex>
 	)

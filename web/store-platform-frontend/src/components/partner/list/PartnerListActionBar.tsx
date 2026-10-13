@@ -1,4 +1,10 @@
-import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
+import {
+	IconButton,
+	Flex,
+	Text,
+	Tooltip,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { useSee } from '../../../shared/hooks/useSee'
@@ -7,6 +13,10 @@ import ConfirmationDialog from '../../ConfirmationDialog'
 import { useBulkDeletePartnersMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { AsTrashIcon } from '../../../icons/Trash'
+import {
+	deleteErrorDescription,
+	useMasterBulkDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	mainFlexWrapper: {
@@ -52,6 +62,8 @@ const PartnerListActionBar = ({
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeletePartnersMutation()
 	const canDelete = canSee(SEE.partnersDelete)
+	const { deleteDisabled, deleteTooltip } =
+		useMasterBulkDelete(selectedPartners)
 
 	const handleDelete = async () => {
 		try {
@@ -73,8 +85,11 @@ const PartnerListActionBar = ({
 			if (result.blocked.length) {
 				showToast({
 					status: 'error',
-					description:
-						result.blocked[0]?.reason || t('partner.deletePartnerError'),
+					description: deleteErrorDescription(
+						t,
+						result.blocked[0]?.reason,
+						t('partner.deletePartnerError'),
+					),
 				})
 			}
 		} catch (error) {
@@ -82,7 +97,11 @@ const PartnerListActionBar = ({
 
 			showToast({
 				status: 'error',
-				description: err.data?.message || t('partner.deletePartnerError'),
+				description: deleteErrorDescription(
+					t,
+					err.data?.message,
+					t('partner.deletePartnerError'),
+				),
 			})
 		}
 	}
@@ -94,13 +113,18 @@ const PartnerListActionBar = ({
 			</Text>
 			<Flex sx={styles.iconWrapper}>
 				{canDelete ? (
-					<IconButton
-						sx={styles.iconButton}
-						aria-label={t('partner.deleteSelected')}
-						icon={<AsTrashIcon boxSize={5} />}
-						size="sm"
-						onClick={onOpen}
-					/>
+					<Tooltip label={deleteTooltip} isDisabled={!deleteTooltip}>
+						<span>
+							<IconButton
+								sx={styles.iconButton}
+								aria-label={t('partner.deleteSelected')}
+								icon={<AsTrashIcon boxSize={5} />}
+								size="sm"
+								isDisabled={deleteDisabled}
+								onClick={onOpen}
+							/>
+						</span>
+					</Tooltip>
 				) : null}
 			</Flex>
 			<ConfirmationDialog

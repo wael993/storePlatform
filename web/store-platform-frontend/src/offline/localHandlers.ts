@@ -972,6 +972,22 @@ const applyLocalCurrencySettingsUpdate = async (
 		throw new Error('Primary currency name is required')
 	}
 
+	if (Array.isArray(secondaryCurrencies)) {
+		const nextSecondaryIds = new Set(
+			secondaryCurrencies
+				.filter(item => item?.name?.trim() && Number(item.exchangeRate) > 0)
+				.map(item => item.currencyId)
+				.filter((currencyId): currencyId is string => Boolean(currencyId)),
+		)
+		const removedCurrencyIds = (current.secondaryCurrencies ?? [])
+			.map(item => item.currencyId)
+			.filter(currencyId => currencyId && !nextSecondaryIds.has(currencyId))
+
+		if (removedCurrencyIds.length > 0) {
+			throw new Error('offline')
+		}
+	}
+
 	let resolvedPrimary: CurrencySettingItem | null = current.primaryCurrency
 
 	if (primaryCurrency !== undefined) {
@@ -996,18 +1012,6 @@ const applyLocalCurrencySettingsUpdate = async (
 			}
 		}),
 	)
-
-	const previousSecondaryIds =
-		current.secondaryCurrencies?.map(item => item.currencyId) ?? []
-	const nextSecondaryIds = new Set(
-		resolvedSecondary.map(item => item.currencyId),
-	)
-
-	for (const currencyId of previousSecondaryIds) {
-		if (currencyId && !nextSecondaryIds.has(currencyId)) {
-			await offlineDb.currencies.delete(currencyId)
-		}
-	}
 
 	const updated: CurrencySettings = {
 		...current,
@@ -1104,6 +1108,23 @@ const handleGenericMutation = async (
 	const entity = entityFromUrl(path, method)
 	if (!entity) {
 		throw new Error(`Offline mutation not supported for ${path}`)
+	}
+
+	const masterDeleteEntities = new Set([
+		'product',
+		'customer',
+		'supplier',
+		'partner',
+		'category',
+		'expense',
+	])
+
+	if (
+		masterDeleteEntities.has(entity) &&
+		(method === 'DELETE' ||
+			(method === 'POST' && path.endsWith('/bulk-delete')))
+	) {
+		throw new Error('offline')
 	}
 
 	const payload = (body ?? {}) as Record<string, unknown>

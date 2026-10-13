@@ -11,7 +11,6 @@ import {
 	Icon,
 	IconProps,
 	Text,
-	Tooltip,
 } from '@chakra-ui/react'
 import { ComponentType, RefObject, useRef } from 'react'
 import { hoverFocusActiveButtonStyles } from '../theme/styles'
@@ -30,7 +29,6 @@ interface ConfirmationDialogProps {
 	buttonsAlignment?: 'start' | 'end'
 	confirmIsPrimary?: boolean
 	isConfirmationButtonLoading?: boolean
-	isTemporaryDisabled?: boolean
 }
 const styles = {
 	AlertDialogHeaderSection: {
@@ -78,7 +76,6 @@ const ConfirmationDialog = ({
 	buttonsAlignment = 'end',
 	confirmIsPrimary = false,
 	isConfirmationButtonLoading = false,
-	isTemporaryDisabled = false,
 }: ConfirmationDialogProps) => {
 	const { i18n } = useTranslation()
 	const { isArabic } = compareLanguage(i18n.language)
@@ -126,33 +123,26 @@ const ConfirmationDialog = ({
 							<Button sx={styles.secondaryButton} onClick={onClose}>
 								{cancelButtonText}
 							</Button>
-							<Tooltip
-								label={'سيتم اعادة تفعبل عملية الحدف في التحديث القادم.'}
-								isDisabled={!isTemporaryDisabled}
-							>
-								{confirmIsPrimary ? (
-									<Button
-										sx={styles.primaryButton}
-										variant="primary"
-										onClick={handleOnConfirm}
-										ml={3}
-										isLoading={isConfirmationButtonLoading}
-										isDisabled={isTemporaryDisabled}
-									>
-										{confirmationButtonText}
-									</Button>
-								) : (
-									<Button
-										isLoading={isConfirmationButtonLoading}
-										colorScheme="red"
-										onClick={handleOnConfirm}
-										ml={3}
-										isDisabled={isTemporaryDisabled}
-									>
-										{confirmationButtonText}
-									</Button>
-								)}
-							</Tooltip>
+							{confirmIsPrimary ? (
+								<Button
+									sx={styles.primaryButton}
+									variant="primary"
+									onClick={handleOnConfirm}
+									ml={3}
+									isLoading={isConfirmationButtonLoading}
+								>
+									{confirmationButtonText}
+								</Button>
+							) : (
+								<Button
+									isLoading={isConfirmationButtonLoading}
+									colorScheme="red"
+									onClick={handleOnConfirm}
+									ml={3}
+								>
+									{confirmationButtonText}
+								</Button>
+							)}
 						</Flex>
 					</AlertDialogFooter>
 				</AlertDialogContent>

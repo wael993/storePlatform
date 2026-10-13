@@ -1,4 +1,10 @@
-import { IconButton, Flex, Text, useDisclosure } from '@chakra-ui/react'
+import {
+	IconButton,
+	Flex,
+	Text,
+	Tooltip,
+	useDisclosure,
+} from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { useSee } from '../../../shared/hooks/useSee'
@@ -7,6 +13,10 @@ import ConfirmationDialog from '../../ConfirmationDialog'
 import { useBulkDeleteSuppliersMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { AsTrashIcon } from '../../../icons/Trash'
+import {
+	deleteErrorDescription,
+	useMasterBulkDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	mainFlexWrapper: {
@@ -52,6 +62,8 @@ const SupplierListActionBar = ({
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeleteSuppliersMutation()
 	const canDelete = canSee(SEE.suppliersDelete)
+	const { deleteDisabled, deleteTooltip } =
+		useMasterBulkDelete(selectedSuppliers)
 
 	const handleDelete = async () => {
 		try {
@@ -73,9 +85,11 @@ const SupplierListActionBar = ({
 			if (result.blocked.length) {
 				showToast({
 					status: 'error',
-					description:
-						result.blocked[0]?.reason ||
+					description: deleteErrorDescription(
+						t,
+						result.blocked[0]?.reason,
 						t('components.supplier.deleteSupplierError'),
+					),
 				})
 			}
 		} catch (error) {
@@ -83,8 +97,11 @@ const SupplierListActionBar = ({
 
 			showToast({
 				status: 'error',
-				description:
-					err.data?.message || t('components.supplier.deleteSupplierError'),
+				description: deleteErrorDescription(
+					t,
+					err.data?.message,
+					t('components.supplier.deleteSupplierError'),
+				),
 			})
 		}
 	}
@@ -96,13 +113,18 @@ const SupplierListActionBar = ({
 			</Text>
 			<Flex sx={styles.iconWrapper}>
 				{canDelete ? (
-					<IconButton
-						sx={styles.iconButton}
-						aria-label={t('components.supplier.deleteSelected')}
-						icon={<AsTrashIcon boxSize={5} />}
-						size="sm"
-						onClick={onOpen}
-					/>
+					<Tooltip label={deleteTooltip} isDisabled={!deleteTooltip}>
+						<span>
+							<IconButton
+								sx={styles.iconButton}
+								aria-label={t('components.supplier.deleteSelected')}
+								icon={<AsTrashIcon boxSize={5} />}
+								size="sm"
+								isDisabled={deleteDisabled}
+								onClick={onOpen}
+							/>
+						</span>
+					</Tooltip>
 				) : null}
 			</Flex>
 			<ConfirmationDialog
@@ -116,7 +138,6 @@ const SupplierListActionBar = ({
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 		</Flex>
 	)

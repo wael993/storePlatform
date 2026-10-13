@@ -1,6 +1,7 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Customer } from '../../models/Customer'
+import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
 import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -14,6 +15,10 @@ import type { CostCurrencyRate } from '../../shared/inventoryCost'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
+import {
+	DeleteBlockReason,
+	stampDeleteAvailability,
+} from '../../shared/deleteBlock'
 import { getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
@@ -90,11 +95,13 @@ export default class CustomerController {
 			await redisCache.getJson<CustomersResponse>(cacheKey)
 
 		if (cachedCustomers) {
+			const visible = cachedCustomers.data.map(customer =>
+				omitReceivableIfHidden(customer, requestContext),
+			)
+
 			return {
 				...cachedCustomers,
-				data: cachedCustomers.data.map(customer =>
-					omitReceivableIfHidden(customer, requestContext),
-				),
+				data: await this.withCustomerDeleteFlags(tenantId, visible),
 			}
 		}
 
@@ -186,11 +193,13 @@ export default class CustomerController {
 
 		await redisCache.setJson(cacheKey, response)
 
+		const visible = response.data.map(customer =>
+			omitReceivableIfHidden(customer, requestContext),
+		)
+
 		return {
 			...response,
-			data: response.data.map(customer =>
-				omitReceivableIfHidden(customer, requestContext),
-			),
+			data: await this.withCustomerDeleteFlags(tenantId, visible),
 		}
 	}
 
@@ -347,27 +356,35 @@ export default class CustomerController {
 	private async findCustomerDeleteBlocks(tenantId: string, ids: string[]) {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
-		const reason = 'This customer has selling invoices and cannot be deleted.'
-		const [invoices, sellingItems, buyingInvoices] = await Promise.all([
-			withTenantScope(
-				Invoice.find({ customerId: { $in: uniqueIds } })
-					.select({ customerId: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				SellingInvoiceItem.find({ customerId: { $in: uniqueIds } })
-					.select({ customerId: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
-					.select({ supplierId: 1 })
-					.lean(),
-				tenantId,
-			),
-		])
+		const reason = DeleteBlockReason.invoice
+		const [invoices, sellingItems, buyingInvoices, actions] = await Promise.all(
+			[
+				withTenantScope(
+					Invoice.find({ customerId: { $in: uniqueIds } })
+						.select({ customerId: 1 })
+						.lean(),
+					tenantId,
+				),
+				withTenantScope(
+					SellingInvoiceItem.find({ customerId: { $in: uniqueIds } })
+						.select({ customerId: 1 })
+						.lean(),
+					tenantId,
+				),
+				withTenantScope(
+					BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
+						.select({ supplierId: 1 })
+						.lean(),
+					tenantId,
+				),
+				withTenantScope(
+					DailyAction.find({ customerId: { $in: uniqueIds } })
+						.select({ customerId: 1 })
+						.lean(),
+					tenantId,
+				),
+			],
+		)
 
 		for (const row of [...invoices, ...sellingItems]) {
 			if (row.customerId && !blocked.has(row.customerId)) {
@@ -377,14 +394,29 @@ export default class CustomerController {
 
 		for (const row of buyingInvoices) {
 			if (row.supplierId && !blocked.has(row.supplierId)) {
-				blocked.set(
-					row.supplierId,
-					'This customer has buying invoices and cannot be deleted.',
-				)
+				blocked.set(row.supplierId, DeleteBlockReason.buyingInvoice)
+			}
+		}
+
+		for (const row of actions) {
+			if (row.customerId && !blocked.has(row.customerId)) {
+				blocked.set(row.customerId, DeleteBlockReason.dailyAction)
 			}
 		}
 
 		return blocked
+	}
+
+	private async withCustomerDeleteFlags<T extends { customerId: string }>(
+		tenantId: string,
+		rows: T[],
+	) {
+		const blocked = await this.findCustomerDeleteBlocks(
+			tenantId,
+			rows.map(row => row.customerId),
+		)
+
+		return stampDeleteAvailability(rows, row => row.customerId, blocked)
 	}
 
 	public async deleteCustomer(

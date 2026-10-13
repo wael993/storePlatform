@@ -39,6 +39,10 @@ import { useDeleteProductMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { useUser } from '../../../shared/hooks/useUser'
 import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	listItemGridItem: {
@@ -155,6 +159,7 @@ const ProductTableMobil = ({
 	} = useDisclosure()
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
 	const showToast = useCustomToast()
+	const { deleteDisabled, deleteTooltip } = useMasterDelete(product)
 	const productState = PRODUCT_STATE_CONFIG[product.status]
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -445,6 +450,8 @@ const ProductTableMobil = ({
 													}
 												: undefined
 										}
+										deleteDisabled={deleteDisabled}
+										deleteTooltip={deleteTooltip}
 									/>
 								)}
 							</Skeleton>
@@ -478,15 +485,17 @@ const ProductTableMobil = ({
 
 						showToast({
 							status: 'error',
-							description:
-								err.data?.message || t('components.product.deleteProductError'),
+							description: deleteErrorDescription(
+								t,
+								err.data?.message,
+								t('components.product.deleteProductError'),
+							),
 						})
 					}
 				}}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 		</>
 	)

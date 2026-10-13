@@ -32,6 +32,10 @@ import useCustomToast from '../../common/CustomToast'
 import { useListColumnConfig } from '../../list/columnConfig/ListColumnConfigProvider'
 import { useUser } from '../../../shared/hooks/useUser'
 import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 
 interface ProductTableItemProps {
 	product: Product
@@ -89,6 +93,7 @@ const ProductTableItem = memo(
 		const [deleteProduct, { isLoading: isDeleting }] =
 			useDeleteProductMutation()
 		const showToast = useCustomToast()
+		const { deleteDisabled, deleteTooltip } = useMasterDelete(productData)
 
 		const styles = {
 			tableRow: {
@@ -570,6 +575,8 @@ const ProductTableItem = memo(
 													}
 												: undefined
 										}
+										deleteDisabled={deleteDisabled}
+										deleteTooltip={deleteTooltip}
 									/>
 								)}
 							</Skeleton>
@@ -602,16 +609,17 @@ const ProductTableItem = memo(
 
 							showToast({
 								status: 'error',
-								description:
-									err.data?.message ||
+								description: deleteErrorDescription(
+									t,
+									err.data?.message,
 									t('components.product.deleteProductError'),
+								),
 							})
 						}
 					}}
 					cancelButtonText={t('common.cancel')}
 					confirmationButtonText={t('common.delete')}
 					isConfirmationButtonLoading={isDeleting}
-					isTemporaryDisabled={true}
 				/>
 			</>
 		)

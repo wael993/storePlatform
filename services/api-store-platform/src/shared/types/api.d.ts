@@ -185,6 +185,8 @@ interface Partner {
 		totalPaid: number
 		outstanding: number
 	}
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 type LabelFieldType =
@@ -266,6 +268,8 @@ export interface CustomerResponse {
 		totalPaid: number
 		outstanding: number
 	}
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 interface Supplier {
@@ -294,6 +298,8 @@ interface Supplier {
 		totalPaid: number
 		outstanding: number
 	}
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 interface Brand {
@@ -371,6 +377,8 @@ interface Expense {
 	}
 	actions?: DailyAction[]
 	relatedActions?: DailyAction[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 interface Unit {

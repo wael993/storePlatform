@@ -20,6 +20,10 @@ import { PAGE_COLORS } from '../../SellingInvoice/constants'
 import { useInvoiceDisplayCurrency } from '../../SellingInvoice/useInvoiceDisplayCurrency'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	tableRow: {
@@ -111,6 +115,7 @@ const CustomerListItem = ({
 	const isReadyForExecution = false
 	const totalReceivable = customer.totalReceivable ?? 0
 	const showToast = useCustomToast()
+	const { deleteDisabled, deleteTooltip } = useMasterDelete(customer)
 	const {
 		isOpen: isDeleteOpen,
 		onOpen: onDeleteOpen,
@@ -236,6 +241,8 @@ const CustomerListItem = ({
 								<OptionsPopover
 									onDelete={onDeleteOpen}
 									deleteLabel={t('components.customer.deleteCustomer')}
+									deleteDisabled={deleteDisabled}
+									deleteTooltip={deleteTooltip}
 								/>
 							) : null}
 						</Skeleton>
@@ -260,16 +267,17 @@ const CustomerListItem = ({
 
 						showToast({
 							status: 'error',
-							description:
-								err.data?.message ||
+							description: deleteErrorDescription(
+								t,
+								err.data?.message,
 								t('components.customer.deleteCustomerError'),
+							),
 						})
 					}
 				}}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 		</>
 	)

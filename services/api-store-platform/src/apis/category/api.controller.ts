@@ -9,6 +9,10 @@ import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
+import {
+	DeleteBlockReason,
+	stampDeleteAvailability,
+} from '../../shared/deleteBlock'
 import { getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
@@ -52,7 +56,13 @@ export default class CategoryController {
 			await redisCache.getJson<CategoriesResponse>(cacheKey)
 
 		if (cachedCategories) {
-			return cachedCategories
+			return {
+				...cachedCategories,
+				data: await this.withCategoryDeleteFlags(
+					tenantId,
+					cachedCategories.data,
+				),
+			}
 		}
 
 		const categories = await this.mongoDbClient.getDocuments({
@@ -80,7 +90,10 @@ export default class CategoryController {
 
 		await redisCache.setJson(cacheKey, response)
 
-		return response
+		return {
+			...response,
+			data: await this.withCategoryDeleteFlags(tenantId, response.data),
+		}
 	}
 
 	public async getCategory(
@@ -179,14 +192,23 @@ export default class CategoryController {
 
 		for (const row of products) {
 			if (row.categoryId && !blocked.has(row.categoryId)) {
-				blocked.set(
-					row.categoryId,
-					'This category has products and cannot be deleted.',
-				)
+				blocked.set(row.categoryId, DeleteBlockReason.products)
 			}
 		}
 
 		return blocked
+	}
+
+	private async withCategoryDeleteFlags<T extends { categoryId: string }>(
+		tenantId: string,
+		rows: T[],
+	) {
+		const blocked = await this.findCategoryDeleteBlocks(
+			tenantId,
+			rows.map(row => row.categoryId),
+		)
+
+		return stampDeleteAvailability(rows, row => row.categoryId, blocked)
 	}
 
 	public async deleteCategory(

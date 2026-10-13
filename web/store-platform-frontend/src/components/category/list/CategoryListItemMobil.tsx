@@ -25,6 +25,10 @@ import { useDeleteCategoryMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	listItemGridItem: {
@@ -94,6 +98,7 @@ const CategoryListItemMobil = ({
 	const { canSee } = useSee()
 	const canDelete = canSee(SEE.categoriesDelete)
 	const showToast = useCustomToast()
+	const { deleteDisabled, deleteTooltip } = useMasterDelete(category)
 	const {
 		isOpen: isDeleteOpen,
 		onOpen: onDeleteOpen,
@@ -204,6 +209,8 @@ const CategoryListItemMobil = ({
 									<OptionsPopover
 										onDelete={onDeleteOpen}
 										deleteLabel={t('category.deleteCategory')}
+										deleteDisabled={deleteDisabled}
+										deleteTooltip={deleteTooltip}
 									/>
 								) : null}
 							</Skeleton>
@@ -229,15 +236,17 @@ const CategoryListItemMobil = ({
 
 						showToast({
 							status: 'error',
-							description:
-								err.data?.message || t('category.deleteCategoryError'),
+							description: deleteErrorDescription(
+								t,
+								err.data?.message,
+								t('category.deleteCategoryError'),
+							),
 						})
 					}
 				}}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 		</>
 	)

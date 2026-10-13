@@ -12,6 +12,10 @@ import { useDeleteCategoryMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 import { CATEGORY_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
@@ -108,6 +112,7 @@ const CategoryListItem = ({
 	const showCheckbox = canDelete
 	const isReadyForExecution = false
 	const showToast = useCustomToast()
+	const { deleteDisabled, deleteTooltip } = useMasterDelete(category)
 	const {
 		isOpen: isDeleteOpen,
 		onOpen: onDeleteOpen,
@@ -230,6 +235,8 @@ const CategoryListItem = ({
 								<OptionsPopover
 									onDelete={onDeleteOpen}
 									deleteLabel={t('category.deleteCategory')}
+									deleteDisabled={deleteDisabled}
+									deleteTooltip={deleteTooltip}
 								/>
 							) : null}
 						</Skeleton>
@@ -254,15 +261,17 @@ const CategoryListItem = ({
 
 						showToast({
 							status: 'error',
-							description:
-								err.data?.message || t('category.deleteCategoryError'),
+							description: deleteErrorDescription(
+								t,
+								err.data?.message,
+								t('category.deleteCategoryError'),
+							),
 						})
 					}
 				}}
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 		</>
 	)

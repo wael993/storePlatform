@@ -1,5 +1,6 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
+import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
 import { Product } from '../../models/Products'
 import { Supplier } from '../../models/Supplier'
@@ -14,6 +15,10 @@ import type { CostCurrencyRate } from '../../shared/inventoryCost'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
+import {
+	DeleteBlockReason,
+	stampDeleteAvailability,
+} from '../../shared/deleteBlock'
 import { getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
@@ -85,11 +90,13 @@ export default class SupplierController {
 			await redisCache.getJson<SuppliersResponse>(cacheKey)
 
 		if (cachedSuppliers) {
+			const visible = cachedSuppliers.data.map(supplier =>
+				omitPayableIfHidden(supplier, requestContext),
+			)
+
 			return {
 				...cachedSuppliers,
-				data: cachedSuppliers.data.map(supplier =>
-					omitPayableIfHidden(supplier, requestContext),
-				),
+				data: await this.withSupplierDeleteFlags(tenantId, visible),
 			}
 		}
 
@@ -178,11 +185,13 @@ export default class SupplierController {
 
 		await redisCache.setJson(cacheKey, response)
 
+		const visible = response.data.map(supplier =>
+			omitPayableIfHidden(supplier, requestContext),
+		)
+
 		return {
 			...response,
-			data: response.data.map(supplier =>
-				omitPayableIfHidden(supplier, requestContext),
-			),
+			data: await this.withSupplierDeleteFlags(tenantId, visible),
 		}
 	}
 
@@ -370,55 +379,71 @@ export default class SupplierController {
 	private async findSupplierDeleteBlocks(tenantId: string, ids: string[]) {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
-		const [products, buyingInvoices, sellingInvoices] = await Promise.all([
-			withTenantScope(
-				Product.find({ supplierId: { $in: uniqueIds } })
-					.select({ supplierId: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
-					.select({ supplierId: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				Invoice.find({ customerId: { $in: uniqueIds } })
-					.select({ customerId: 1 })
-					.lean(),
-				tenantId,
-			),
-		])
+		const [products, buyingInvoices, sellingInvoices, actions] =
+			await Promise.all([
+				withTenantScope(
+					Product.find({ supplierId: { $in: uniqueIds } })
+						.select({ supplierId: 1 })
+						.lean(),
+					tenantId,
+				),
+				withTenantScope(
+					BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
+						.select({ supplierId: 1 })
+						.lean(),
+					tenantId,
+				),
+				withTenantScope(
+					Invoice.find({ customerId: { $in: uniqueIds } })
+						.select({ customerId: 1 })
+						.lean(),
+					tenantId,
+				),
+				withTenantScope(
+					DailyAction.find({ supplierId: { $in: uniqueIds } })
+						.select({ supplierId: 1 })
+						.lean(),
+					tenantId,
+				),
+			])
 
 		for (const row of products) {
 			if (row.supplierId && !blocked.has(row.supplierId)) {
-				blocked.set(
-					row.supplierId,
-					'This supplier has products and cannot be deleted.',
-				)
+				blocked.set(row.supplierId, DeleteBlockReason.products)
 			}
 		}
 
 		for (const row of buyingInvoices) {
 			if (row.supplierId && !blocked.has(row.supplierId)) {
-				blocked.set(
-					row.supplierId,
-					'This supplier has buying invoices and cannot be deleted.',
-				)
+				blocked.set(row.supplierId, DeleteBlockReason.buyingInvoice)
 			}
 		}
 
 		for (const row of sellingInvoices) {
 			if (row.customerId && !blocked.has(row.customerId)) {
-				blocked.set(
-					row.customerId,
-					'This supplier has selling invoices and cannot be deleted.',
-				)
+				blocked.set(row.customerId, DeleteBlockReason.invoice)
+			}
+		}
+
+		for (const row of actions) {
+			if (row.supplierId && !blocked.has(row.supplierId)) {
+				blocked.set(row.supplierId, DeleteBlockReason.dailyAction)
 			}
 		}
 
 		return blocked
+	}
+
+	private async withSupplierDeleteFlags<T extends { supplierId: string }>(
+		tenantId: string,
+		rows: T[],
+	) {
+		const blocked = await this.findSupplierDeleteBlocks(
+			tenantId,
+			rows.map(row => row.supplierId),
+		)
+
+		return stampDeleteAvailability(rows, row => row.supplierId, blocked)
 	}
 
 	public async deleteSupplier(

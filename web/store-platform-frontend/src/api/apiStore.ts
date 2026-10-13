@@ -131,6 +131,8 @@ export interface CurrencySettingItem {
 	internalCode?: string
 	exchangeRate?: number
 	exchangeRateUnitCurrencyId?: string
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 export interface CurrencySettings {

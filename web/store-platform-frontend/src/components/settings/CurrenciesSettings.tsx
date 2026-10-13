@@ -9,11 +9,16 @@ import {
 	IconButton,
 	Input,
 	Text,
+	Tooltip,
 	VStack,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 import { AsCloseIcon } from '../icons/Close'
 import type { CurrencySettingItem } from '../../api/apiStore'
+import { translateDeleteBlock } from '../../shared/deleteBlock'
+import { useOfflineSync } from '../../shared/hooks/useOfflineSync'
+import { useUser } from '../../shared/hooks/useUser'
+import { useWorkMode } from '../../shared/hooks/useWorkMode'
 import DropdownLabel from '../DropdownLabel'
 import {
 	buildOptionsFromItems,
@@ -131,6 +136,10 @@ const CurrenciesSettings = ({
 	onRemoveSecondary,
 }: CurrenciesSettingsProps) => {
 	const { t } = useTranslation()
+	const { user } = useUser()
+	const { isOnline } = useOfflineSync(user?.tenantId)
+	const { workMode } = useWorkMode()
+	const deleteOffline = !isOnline || workMode === 'offline'
 	const displayCurrencyOptions = buildOptionsFromItems(
 		primaryCurrency,
 		secondaryCurrencies,
@@ -343,16 +352,32 @@ const CurrenciesSettings = ({
 										</Text>
 									</FormControl>
 
-									<IconButton
-										aria-label={t(
-											'components.currenciesSettings.removeSecondary',
-										)}
-										icon={<AsCloseIcon />}
-										variant="ghost"
-										color="#939596"
-										onClick={() => onRemoveSecondary(index)}
-										mb={1}
-									/>
+									<Tooltip
+										label={
+											deleteOffline
+												? t('deleteBlock.offline')
+												: translateDeleteBlock(t, secondary.deleteBlockReason)
+										}
+										isDisabled={
+											!deleteOffline && secondary.isDeletable !== false
+										}
+									>
+										<span>
+											<IconButton
+												aria-label={t(
+													'components.currenciesSettings.removeSecondary',
+												)}
+												icon={<AsCloseIcon />}
+												variant="ghost"
+												color="#939596"
+												isDisabled={
+													deleteOffline || secondary.isDeletable === false
+												}
+												onClick={() => onRemoveSecondary(index)}
+												mb={1}
+											/>
+										</span>
+									</Tooltip>
 								</Flex>
 							)
 						})}

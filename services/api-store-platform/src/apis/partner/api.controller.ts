@@ -17,6 +17,10 @@ import type { CustomerInvoiceSummary } from '../../shared/types'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
+import {
+	DeleteBlockReason,
+	stampDeleteAvailability,
+} from '../../shared/deleteBlock'
 import { getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
@@ -68,7 +72,10 @@ export default class PartnerController {
 		const cachedPartners = await redisCache.getJson<PartnersResponse>(cacheKey)
 
 		if (cachedPartners) {
-			return cachedPartners
+			return {
+				...cachedPartners,
+				data: await this.withPartnerDeleteFlags(tenantId, cachedPartners.data),
+			}
 		}
 
 		const partners = await this.mongoDbClient.getDocuments({
@@ -111,7 +118,10 @@ export default class PartnerController {
 
 		await redisCache.setJson(cacheKey, response)
 
-		return response
+		return {
+			...response,
+			data: await this.withPartnerDeleteFlags(tenantId, response.data),
+		}
 	}
 
 	public async getPartner(
@@ -323,32 +333,35 @@ export default class PartnerController {
 
 		for (const row of actions) {
 			if (row.partnerId && !blocked.has(row.partnerId)) {
-				blocked.set(
-					row.partnerId,
-					'This partner has daily actions and cannot be deleted.',
-				)
+				blocked.set(row.partnerId, DeleteBlockReason.dailyAction)
 			}
 		}
 
 		for (const row of sellingInvoices) {
 			if (row.customerId && !blocked.has(row.customerId)) {
-				blocked.set(
-					row.customerId,
-					'This partner has selling invoices and cannot be deleted.',
-				)
+				blocked.set(row.customerId, DeleteBlockReason.invoice)
 			}
 		}
 
 		for (const row of buyingInvoices) {
 			if (row.supplierId && !blocked.has(row.supplierId)) {
-				blocked.set(
-					row.supplierId,
-					'This partner has buying invoices and cannot be deleted.',
-				)
+				blocked.set(row.supplierId, DeleteBlockReason.buyingInvoice)
 			}
 		}
 
 		return blocked
+	}
+
+	private async withPartnerDeleteFlags<T extends { partnerId: string }>(
+		tenantId: string,
+		rows: T[],
+	) {
+		const blocked = await this.findPartnerDeleteBlocks(
+			tenantId,
+			rows.map(row => row.partnerId),
+		)
+
+		return stampDeleteAvailability(rows, row => row.partnerId, blocked)
 	}
 
 	public async deletePartner(

@@ -1509,6 +1509,19 @@
 		"expenseEntry": "Expense Entry",
 		"date": "Date"
 	},
+	"deleteBlock": {
+		"offline": "Delete is available when you are online.",
+		"invoice": "Delete is not allowed because this record is used on a selling invoice.",
+		"buyingInvoice": "Delete is not allowed because this record is used on a buying invoice.",
+		"order": "Delete is not allowed because this record is used on an order.",
+		"stockMoving": "Delete is not allowed because this record has stock movements.",
+		"dailyAction": "Delete is not allowed because this record is used on a daily action.",
+		"products": "Delete is not allowed because products use this record.",
+		"primaryCurrency": "The primary currency cannot be deleted.",
+		"cashLedger": "Delete is not allowed because this currency is used in the cash ledger.",
+		"employee": "Delete is not allowed because this currency is used for an employee.",
+		"unknown": "Delete is not allowed."
+	},
 	"offline": {
 		"bootstrapFailed": "Offline download failed",
 		"workingOffline": "Working offline. {{count}} change(s) waiting to sync.",

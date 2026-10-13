@@ -1509,6 +1509,19 @@
 		"expenseEntry": "Ausgabeeintrag",
 		"date": "Datum"
 	},
+	"deleteBlock": {
+		"offline": "Löschen ist nur online möglich.",
+		"invoice": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Verkaufsrechnung verwendet wird.",
+		"buyingInvoice": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Einkaufsrechnung verwendet wird.",
+		"order": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Bestellung verwendet wird.",
+		"stockMoving": "Löschen ist nicht erlaubt, weil dieser Eintrag Lagerbewegungen hat.",
+		"dailyAction": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Tagesaktion verwendet wird.",
+		"products": "Löschen ist nicht erlaubt, weil Produkte diesen Eintrag verwenden.",
+		"primaryCurrency": "Die Hauptwährung kann nicht gelöscht werden.",
+		"cashLedger": "Löschen ist nicht erlaubt, weil diese Währung im Kassenbuch verwendet wird.",
+		"employee": "Löschen ist nicht erlaubt, weil diese Währung für einen Mitarbeiter verwendet wird.",
+		"unknown": "Löschen ist nicht erlaubt."
+	},
 	"offline": {
 		"bootstrapFailed": "Offline-Download fehlgeschlagen",
 		"workingOffline": "Offline-Modus. {{count}} Änderung(en) warten auf Synchronisation.",

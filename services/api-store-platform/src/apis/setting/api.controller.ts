@@ -29,6 +29,11 @@ import { ERROR_CODES } from '../../shared/errorCodes'
 import logger from '../../shared/logger/logger'
 import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
+import {
+	DeleteBlockReason,
+	findCurrencyDeleteBlocks,
+	stampDeleteAvailability,
+} from '../../shared/deleteBlock'
 import { getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
@@ -308,7 +313,27 @@ export default class SettingController {
 				})
 			}
 
-			response.status(200).json(currencySettings)
+			const plain = currencySettings.toObject()
+			const secondaryIds = (plain.secondaryCurrencies ?? []).map(
+				item => item.currencyId,
+			)
+			const blocked = await findCurrencyDeleteBlocks(tenantId, secondaryIds)
+
+			response.status(200).json({
+				...plain,
+				primaryCurrency: plain.primaryCurrency
+					? {
+							...plain.primaryCurrency,
+							isDeletable: false,
+							deleteBlockReason: DeleteBlockReason.primaryCurrency,
+						}
+					: null,
+				secondaryCurrencies: stampDeleteAvailability(
+					plain.secondaryCurrencies ?? [],
+					item => item.currencyId,
+					blocked,
+				),
+			})
 		} catch (error: unknown) {
 			logger.error('Error fetching currency settings', error)
 
@@ -390,6 +415,37 @@ export default class SettingController {
 			: []
 
 		const existingSettings = await CurrencySettings.findOne({ tenantId })
+		const previousSecondaryIds =
+			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ?? []
+		const nextSecondaryIds = new Set(
+			(Array.isArray(secondaryCurrencies) ? secondaryCurrencies : [])
+				.filter(
+					(item: ICurrencySettingItem) =>
+						item?.name?.trim() && Number(item.exchangeRate) > 0,
+				)
+				.map((item: ICurrencySettingItem) => item.currencyId?.trim())
+				.filter((currencyId): currencyId is string => Boolean(currencyId)),
+		)
+		const removedSecondaryIds = previousSecondaryIds.filter(
+			currencyId => currencyId && !nextSecondaryIds.has(currencyId),
+		)
+
+		if (removedSecondaryIds.length > 0) {
+			const blocked = await findCurrencyDeleteBlocks(
+				tenantId,
+				removedSecondaryIds,
+			)
+			const blockedId = removedSecondaryIds.find(currencyId =>
+				blocked.has(currencyId),
+			)
+
+			if (blockedId) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					blocked.get(blockedId)!,
+				)
+			}
+		}
 
 		let resolvedPrimary: ICurrencySettingItem | null = null
 
@@ -415,17 +471,15 @@ export default class SettingController {
 			}),
 		)
 
-		const previousSecondaryIds =
-			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ?? []
-		const nextSecondaryIds = new Set(
+		const resolvedSecondaryIds = new Set(
 			resolvedSecondary.map(item => item.currencyId),
 		)
-		const removedSecondaryIds = previousSecondaryIds.filter(
-			currencyId => !nextSecondaryIds.has(currencyId),
+		const idsToDelete = removedSecondaryIds.filter(
+			currencyId => !resolvedSecondaryIds.has(currencyId),
 		)
 
-		if (removedSecondaryIds.length > 0) {
-			await this.deleteCurrenciesByIds(requestContext, removedSecondaryIds)
+		if (idsToDelete.length > 0) {
+			await this.deleteCurrenciesByIds(requestContext, idsToDelete)
 		}
 
 		const updateData: Partial<ICurrencySettings> = {

@@ -27,6 +27,10 @@ import { useDeletePartnerMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 
 const styles = {
 	listItemGridItem: {
@@ -97,6 +101,7 @@ const PartnerListItemMobil = ({
 	const { canSee } = useSee()
 	const canDelete = canSee(SEE.partnersDelete)
 	const showToast = useCustomToast()
+	const { deleteDisabled, deleteTooltip } = useMasterDelete(partner)
 	const {
 		isOpen: isDeleteOpen,
 		onOpen: onDeleteOpen,
@@ -214,6 +219,8 @@ const PartnerListItemMobil = ({
 									<OptionsPopover
 										onDelete={onDeleteOpen}
 										deleteLabel={t('partner.deletePartner')}
+										deleteDisabled={deleteDisabled}
+										deleteTooltip={deleteTooltip}
 									/>
 								) : null}
 							</Skeleton>
@@ -239,7 +246,11 @@ const PartnerListItemMobil = ({
 
 						showToast({
 							status: 'error',
-							description: err.data?.message || t('partner.deletePartnerError'),
+							description: deleteErrorDescription(
+								t,
+								err.data?.message,
+								t('partner.deletePartnerError'),
+							),
 						})
 					}
 				}}

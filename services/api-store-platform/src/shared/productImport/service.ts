@@ -54,6 +54,8 @@ import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { Order } from '../../models/Order'
 import { StockMoving } from '../../models/StockMovings'
+import { DailyAction } from '../../models/DailyAction'
+import { DeleteBlockReason } from '../deleteBlock'
 import { Inventory } from '../../models/Inventory'
 import CurrencySettings from '../../models/CurrencySettings'
 import {
@@ -1053,12 +1055,12 @@ const readBatchLimit = (value: unknown) => {
 	return Math.min(Math.floor(limit), PRODUCT_IMPORT_LIMITS.maxCommitBatchSize)
 }
 
-const REFERENCE_REASON: Record<string, string> = {
-	invoice: 'This product is used on a selling invoice and cannot be deleted.',
-	buyingInvoice:
-		'This product is used on a buying invoice and cannot be deleted.',
-	order: 'This product is used on an order and cannot be deleted.',
-	stockMoving: 'This product has stock movements and cannot be deleted.',
+const REFERENCE_REASON = {
+	invoice: DeleteBlockReason.invoice,
+	buyingInvoice: DeleteBlockReason.buyingInvoice,
+	order: DeleteBlockReason.order,
+	stockMoving: DeleteBlockReason.stockMoving,
+	dailyAction: DeleteBlockReason.dailyAction,
 }
 
 export const findProductDeleteBlocks = async (
@@ -1071,38 +1073,45 @@ export const findProductDeleteBlocks = async (
 		if (!blocked.has(id)) blocked.set(id, reason)
 	}
 
-	const [invoices, buying, sellingItems, orders, movings] = await Promise.all([
-		withTenantScope(
-			Invoice.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
-			tenantId,
-		),
-		withTenantScope(
-			BuyingInvoice.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
-			tenantId,
-		),
-		withTenantScope(
-			SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
-			tenantId,
-		),
-		withTenantScope(
-			Order.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
-			tenantId,
-		),
-		withTenantScope(
-			StockMoving.find({ productId: { $in: ids } })
-				.select({ productId: 1 })
-				.lean(),
-			tenantId,
-		),
-	])
+	const [invoices, buying, sellingItems, orders, movings, actions] =
+		await Promise.all([
+			withTenantScope(
+				Invoice.find({ 'items.productId': { $in: ids } })
+					.select({ items: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				BuyingInvoice.find({ 'items.productId': { $in: ids } })
+					.select({ items: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
+					.select({ items: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				Order.find({ 'items.productId': { $in: ids } })
+					.select({ items: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				StockMoving.find({ productId: { $in: ids } })
+					.select({ productId: 1 })
+					.lean(),
+				tenantId,
+			),
+			withTenantScope(
+				DailyAction.find({ productId: { $in: ids } })
+					.select({ productId: 1 })
+					.lean(),
+				tenantId,
+			),
+		])
 
 	for (const invoice of invoices) {
 		for (const item of invoice.items ?? []) {
@@ -1135,6 +1144,10 @@ export const findProductDeleteBlocks = async (
 
 	for (const moving of movings) {
 		mark(moving.productId, REFERENCE_REASON.stockMoving)
+	}
+
+	for (const action of actions) {
+		if (action.productId) mark(action.productId, REFERENCE_REASON.dailyAction)
 	}
 
 	return blocked

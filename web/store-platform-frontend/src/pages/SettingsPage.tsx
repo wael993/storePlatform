@@ -44,6 +44,7 @@ import { generateId } from '../offline/utils'
 import { useUser } from '../shared/hooks/useUser'
 import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
+import { deleteErrorDescription } from '../shared/deleteBlock'
 import { useWorkMode } from '../shared/hooks/useWorkMode'
 
 const createEmptyPrimary = (): CurrencySettingItem => ({
@@ -386,10 +387,11 @@ const SettingsPage = () => {
 			const err = error as { data?: { message?: string } }
 			showToastMessage({
 				status: 'error',
-				description:
-					err?.data?.message ||
-					t('settings.updateFailedMessage') ||
-					'Error saving settings',
+				description: deleteErrorDescription(
+					t,
+					err?.data?.message,
+					t('settings.updateFailedMessage') || 'Error saving settings',
+				),
 			})
 		}
 	}

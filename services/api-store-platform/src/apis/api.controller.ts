@@ -186,6 +186,10 @@ import {
 	deleteProductInventory,
 	findProductDeleteBlocks,
 } from '../shared/productImport/service'
+import {
+	findExpenseDeleteBlocks,
+	stampDeleteAvailability,
+} from '../shared/deleteBlock'
 import { redisCache } from '../shared/cache/redisCache'
 import {
 	syncTenantSubscription,
@@ -1322,8 +1326,17 @@ export default class ProductController {
 			},
 		)
 
+		const blocked = await findProductDeleteBlocks(
+			tenantId,
+			mappedProducts.map(product => product.productId),
+		)
+
 		return {
-			products: mappedProducts,
+			products: stampDeleteAvailability(
+				mappedProducts,
+				product => product.productId,
+				blocked,
+			),
 			totalCount,
 		}
 	}
@@ -5114,7 +5127,10 @@ export default class ProductController {
 		const cachedExpenses = await redisCache.getJson<ExpensesResponse>(cacheKey)
 
 		if (cachedExpenses) {
-			return cachedExpenses
+			return {
+				...cachedExpenses,
+				data: await this.withExpenseDeleteFlags(tenantId, cachedExpenses.data),
+			}
 		}
 
 		const expenses = await this.mongoDbClient.getDocuments({
@@ -5152,7 +5168,18 @@ export default class ProductController {
 
 		await redisCache.setJson(cacheKey, response)
 
-		return response
+		return {
+			...response,
+			data: await this.withExpenseDeleteFlags(tenantId, response.data),
+		}
+	}
+
+	private async withExpenseDeleteFlags<
+		T extends { expenseId: string; internalCode?: string },
+	>(tenantId: string, rows: T[]) {
+		const blocked = await findExpenseDeleteBlocks(tenantId, rows)
+
+		return stampDeleteAvailability(rows, row => row.expenseId, blocked)
 	}
 
 	public async getExpense(
@@ -5339,10 +5366,37 @@ export default class ProductController {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.EXPENSES)
 
 		const { tenantId } = getTenantContext(requestContext)
-		const deleted = await withTenantScope(
-			Expense.findOneAndDelete({
+		const existing = await withTenantScope(
+			Expense.findOne({
 				$or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }],
 			}).lean(),
+			tenantId,
+		)
+
+		if (!existing) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				'Expense not found.',
+			)
+		}
+
+		const blocked = await findExpenseDeleteBlocks(tenantId, [
+			{
+				expenseId: existing.expenseId,
+				internalCode: existing.internalCode,
+			},
+		])
+		const reason = blocked.get(existing.expenseId)
+
+		if (reason) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				reason,
+			)
+		}
+
+		const deleted = await withTenantScope(
+			Expense.findOneAndDelete({ expenseId: existing.expenseId }).lean(),
 			tenantId,
 		)
 

@@ -117,6 +117,8 @@ export type ProductRequestBody = {
 	warehouseName?: string
 	shelfName?: string
 	relatedActions?: ProductDailyAction[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 export type ProductCatalogItem = {
@@ -511,6 +513,8 @@ export type CategoryAPI = {
 	updatedAt?: string
 	createdBy?: UserAPIFormat
 	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 export type CategoriesResponse = {
 	data: CategoryAPI[]

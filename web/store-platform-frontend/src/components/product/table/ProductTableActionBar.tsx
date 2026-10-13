@@ -16,6 +16,10 @@ import { AsTrashIcon } from '../../../icons/Trash'
 import { AsTruckIcon } from '../../../shared/icons/Truck'
 import { useOfflineSync } from '../../../shared/hooks/useOfflineSync'
 import { useUser } from '../../../shared/hooks/useUser'
+import {
+	deleteErrorDescription,
+	useMasterBulkDelete,
+} from '../../../shared/deleteBlock'
 import { AsEditIcon } from '../../icons/Edit'
 import BulkEditModal from '../BulkEditModal'
 
@@ -78,6 +82,8 @@ const ProductTableActionBar = ({
 	const showToast = useCustomToast()
 	const [bulkDelete, { isLoading: isDeleting }] =
 		useBulkDeleteProductsMutation()
+	const { deleteDisabled, deleteTooltip } =
+		useMasterBulkDelete(selectedProducts)
 	const canDelete = canDeleteProduct
 	const canBulkEdit = canEditProduct
 	const canMove =
@@ -97,9 +103,11 @@ const ProductTableActionBar = ({
 			if (result.blocked.length) {
 				showToast({
 					status: 'error',
-					description:
-						result.blocked[0]?.reason ||
+					description: deleteErrorDescription(
+						t,
+						result.blocked[0]?.reason,
 						t('components.product.deleteProductError'),
+					),
 				})
 				return
 			}
@@ -115,8 +123,11 @@ const ProductTableActionBar = ({
 
 			showToast({
 				status: 'error',
-				description:
-					err.data?.message || t('components.product.deleteProductError'),
+				description: deleteErrorDescription(
+					t,
+					err.data?.message,
+					t('components.product.deleteProductError'),
+				),
 			})
 		}
 	}
@@ -156,13 +167,18 @@ const ProductTableActionBar = ({
 					</Tooltip>
 				) : null}
 				{canDelete ? (
-					<IconButton
-						sx={styles.iconButton}
-						aria-label={t('components.product.deleteSelected')}
-						icon={<AsTrashIcon boxSize={5} />}
-						size="sm"
-						onClick={onOpen}
-					/>
+					<Tooltip label={deleteTooltip} isDisabled={!deleteTooltip}>
+						<span>
+							<IconButton
+								sx={styles.iconButton}
+								aria-label={t('components.product.deleteSelected')}
+								icon={<AsTrashIcon boxSize={5} />}
+								size="sm"
+								isDisabled={deleteDisabled}
+								onClick={onOpen}
+							/>
+						</span>
+					</Tooltip>
 				) : null}
 			</Flex>
 			<ConfirmationDialog
@@ -176,7 +192,6 @@ const ProductTableActionBar = ({
 				cancelButtonText={t('common.cancel')}
 				confirmationButtonText={t('common.delete')}
 				isConfirmationButtonLoading={isDeleting}
-				isTemporaryDisabled={true}
 			/>
 
 			<BulkEditModal

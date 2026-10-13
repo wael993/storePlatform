@@ -12,6 +12,10 @@ import { useDeletePartnerMutation } from '../../../api/apiStore'
 import useCustomToast from '../../common/CustomToast'
 import { useSee } from '../../../shared/hooks/useSee'
 import { SEE } from '../../../shared/seeFlags'
+import {
+	deleteErrorDescription,
+	useMasterDelete,
+} from '../../../shared/deleteBlock'
 import { PARTNER_LIST_WIDTHS_MAP_IN_REM } from '../../list/shared/constants'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import { listStyles } from '../../../shared/styles'
@@ -108,6 +112,7 @@ const PartnerListItem = ({
 	const showCheckbox = canDelete
 	const isReadyForExecution = false
 	const showToast = useCustomToast()
+	const { deleteDisabled, deleteTooltip } = useMasterDelete(partner)
 	const {
 		isOpen: isDeleteOpen,
 		onOpen: onDeleteOpen,
@@ -225,6 +230,8 @@ const PartnerListItem = ({
 								<OptionsPopover
 									onDelete={onDeleteOpen}
 									deleteLabel={t('partner.deletePartner')}
+									deleteDisabled={deleteDisabled}
+									deleteTooltip={deleteTooltip}
 								/>
 							) : null}
 						</Skeleton>
@@ -249,7 +256,11 @@ const PartnerListItem = ({
 
 						showToast({
 							status: 'error',
-							description: err.data?.message || t('partner.deletePartnerError'),
+							description: deleteErrorDescription(
+								t,
+								err.data?.message,
+								t('partner.deletePartnerError'),
+							),
 						})
 					}
 				}}

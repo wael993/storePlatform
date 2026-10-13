@@ -54,6 +54,8 @@ interface Supplier {
 	supplierEntries?: DailyAction[]
 	invoices?: unknown[]
 	sellingInvoices?: unknown[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 	invoiceSummary?: {
 		totalInvoiced: number
 		totalPaid: number
@@ -78,6 +80,8 @@ interface Expense {
 		updatedAt: string
 	}
 	relatedActions?: DailyAction[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 interface Partner {
@@ -99,6 +103,8 @@ interface Partner {
 	partnerEntries?: DailyAction[]
 	sellingInvoices?: unknown[]
 	buyingInvoices?: unknown[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 	invoiceSummary?: {
 		totalInvoiced: number
 		totalPaid: number
@@ -125,6 +131,8 @@ interface Customer {
 	customerEntries?: DailyAction[]
 	invoices?: unknown[]
 	buyingInvoices?: unknown[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 	invoiceSummary?: {
 		totalInvoiced: number
 		totalPaid: number
@@ -149,6 +157,8 @@ interface Category {
 		displayName: string
 		updatedAt: string
 	}
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 interface Brand {
@@ -303,6 +313,8 @@ interface Product {
 	shelfName?: string
 
 	relatedActions?: DailyAction[]
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
 }
 
 interface WarehouseTransferAction {

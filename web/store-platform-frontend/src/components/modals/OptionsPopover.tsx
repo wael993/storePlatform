@@ -6,6 +6,7 @@ import {
 	PopoverTrigger,
 	Portal,
 	Text,
+	Tooltip,
 	useDisclosure,
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
@@ -39,6 +40,8 @@ interface OptionsPopoverProps {
 	onMovement?: () => void
 	onDelete?: () => void
 	deleteLabel?: string
+	deleteDisabled?: boolean
+	deleteTooltip?: string
 }
 
 const OptionsPopover = ({
@@ -48,6 +51,8 @@ const OptionsPopover = ({
 	onMovement,
 	onDelete,
 	deleteLabel,
+	deleteDisabled = false,
+	deleteTooltip,
 }: OptionsPopoverProps) => {
 	const { t } = useTranslation()
 	const { isOpen, onOpen, onClose } = useDisclosure()
@@ -132,23 +137,35 @@ const OptionsPopover = ({
 							</Text>
 						) : null}
 						{onDelete ? (
-							<Text
-								as="button"
-								type="button"
-								sx={styles.action}
-								onMouseDown={event => {
-									event.preventDefault()
-									event.stopPropagation()
-								}}
-								onClick={event => {
-									event.preventDefault()
-									event.stopPropagation()
-									onDelete()
-									onClose()
-								}}
+							<Tooltip
+								label={deleteTooltip}
+								isDisabled={!deleteDisabled || !deleteTooltip}
 							>
-								{deleteLabel ?? t('components.product.deleteProduct')}
-							</Text>
+								<Text
+									as="button"
+									type="button"
+									aria-disabled={deleteDisabled}
+									sx={{
+										...styles.action,
+										...(deleteDisabled
+											? { opacity: 0.45, cursor: 'not-allowed' }
+											: {}),
+									}}
+									onMouseDown={event => {
+										event.preventDefault()
+										event.stopPropagation()
+									}}
+									onClick={event => {
+										event.preventDefault()
+										event.stopPropagation()
+										if (deleteDisabled) return
+										onDelete()
+										onClose()
+									}}
+								>
+									{deleteLabel ?? t('components.product.deleteProduct')}
+								</Text>
+							</Tooltip>
 						) : null}
 					</PopoverBody>
 				</PopoverContent>
