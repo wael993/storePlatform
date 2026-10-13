@@ -13,6 +13,11 @@ import {
 	alignAutoWorkModeOnSessionStart,
 	initOfflineState,
 } from './offline/syncService'
+import {
+	appShellSrc,
+	nextShellScript,
+	reloadIfNewShell,
+} from './shared/shellUpdate'
 
 const warmOfflineSessionBeforeRender = async (): Promise<void> => {
 	const tenantId = store.getState().user?.user?.tenantId
@@ -45,6 +50,48 @@ const warmServiceWorkerRuntimeCache = async (): Promise<void> => {
 			// Ignore while offline
 		}
 	}
+}
+
+const stripShellReloadParam = (): void => {
+	const url = new URL(window.location.href)
+	if (!url.searchParams.has('__shell')) return
+	url.searchParams.delete('__shell')
+	window.history.replaceState(
+		window.history.state,
+		'',
+		`${url.pathname}${url.search}${url.hash}`,
+	)
+}
+
+const checkShellUpdate = async (): Promise<void> => {
+	if (!navigator.onLine) return
+	const current = appShellSrc(
+		[...document.querySelectorAll('script[type="module"]')].map(
+			script => script.getAttribute('src') ?? '',
+		),
+	)
+	if (!current) return
+	try {
+		const response = await fetch('/index.html', { cache: 'no-store' })
+		if (!response.ok) return
+		const next = nextShellScript(current, await response.text())
+		if (next) reloadIfNewShell(next)
+	} catch {
+		// Offline or a blocked shell fetch keeps the running build.
+	}
+}
+
+const watchShellUpdates = (): void => {
+	void checkShellUpdate()
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'visible') void checkShellUpdate()
+	})
+}
+
+stripShellReloadParam()
+
+if (import.meta.env.PROD) {
+	watchShellUpdates()
 }
 
 if ('serviceWorker' in navigator && !import.meta.env.PROD) {

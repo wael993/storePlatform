@@ -25,6 +25,8 @@ const offlineHtml = () =>
 
 const getPathname = request => new URL(request.url).pathname
 
+const fetchFresh = request => fetch(request, { cache: 'no-store' })
+
 const matchCachedAsset = async (cache, request) => {
 	const direct = await cache.match(request)
 	if (direct) return direct
@@ -71,20 +73,35 @@ self.addEventListener('install', event => {
 	self.skipWaiting()
 })
 
+// note: only background tabs reload, so nobody is interrupted mid-typing. A
+// hidden tab with an unsaved form still loses it; visible tabs update on their
+// next full load or when they become visible.
+const reloadHiddenWindows = async () => {
+	const windows = await self.clients.matchAll({ type: 'window' })
+	for (const client of windows) {
+		if (client.visibilityState !== 'hidden') continue
+		if (typeof client.navigate !== 'function') continue
+		const url = new URL(client.url)
+		url.searchParams.set('__shell', '1')
+		client.navigate(url.href).catch(() => {
+			// The page shell check reloads if this navigation is blocked.
+		})
+	}
+}
+
 self.addEventListener('activate', event => {
-	event.waitUntil(
-		(async () => {
-			const keys = await caches.keys()
-			await Promise.all(
-				keys
-					.filter(
-						key => key !== SHELL_CACHE && key !== RUNTIME_CACHE,
-					)
-					.map(key => caches.delete(key)),
-			)
-			await self.clients.claim()
-		})(),
-	)
+	const activated = (async () => {
+		const keys = await caches.keys()
+		await Promise.all(
+			keys
+				.filter(key => key !== SHELL_CACHE && key !== RUNTIME_CACHE)
+				.map(key => caches.delete(key)),
+		)
+		await self.clients.claim()
+	})()
+	event.waitUntil(activated)
+	// Fetches wait for activation, so navigating inside waitUntil would wait on itself.
+	void activated.then(reloadHiddenWindows).catch(() => {})
 })
 
 self.addEventListener('fetch', event => {
@@ -128,36 +145,22 @@ self.addEventListener('fetch', event => {
 			const hasOfflineShell =
 				Boolean(cachedIndex) && (await cacheHasJs(runtimeCache, cachedIndex))
 
-			if (!hasOfflineShell) {
-				try {
-					const response = await fetch(event.request)
-					if (response.ok) {
-						await shellCache.put(event.request, response.clone())
-						await shellCache.put('/index.html', response.clone())
-					}
-					return response
-				} catch {
-					return offlineHtml()
-				}
+			// note: onLine false serves the saved shell. A hung link can keep onLine true and waits until the browser fails the fetch.
+			if (!self.navigator.onLine) {
+				return hasOfflineShell ? cachedIndex : offlineHtml()
 			}
 
 			try {
-				const response = await fetch(event.request)
+				const response = await fetchFresh(event.request)
 				if (response.ok) {
-					await shellCache.put(event.request, response.clone())
 					await shellCache.put('/index.html', response.clone())
 					return response
 				}
+				if (hasOfflineShell) return cachedIndex
+				return response
 			} catch {
-				// Serve cached shell below
+				return hasOfflineShell ? cachedIndex : offlineHtml()
 			}
-
-			const cachedRoute = await shellCache.match(event.request)
-			if (cachedRoute) return cachedRoute
-
-			if (cachedIndex) return cachedIndex
-
-			return offlineHtml()
 		})(),
 	)
 })
