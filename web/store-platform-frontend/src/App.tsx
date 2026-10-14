@@ -14,7 +14,8 @@ import TenantLayout from './components/TenantLayout'
 import TenantsList from './pages/TenantsList'
 import RenewalRequestsPage from './pages/RenewalRequestsPage'
 import ProductsPage from './components/product/ProductsPage'
-import OrdersPage from './pages/OrdersPage'
+import ProjectsPage from './components/project/ProjectsPage'
+import ProjectModal from './components/project/ProjectModal'
 import SettingsPage from './pages/SettingsPage'
 import WelcomePage from './pages/WelcomePage'
 import { useAuth } from './shared/hooks/useAuth'
@@ -60,7 +61,7 @@ const App = () => {
 		isAddNewTenantEnabled,
 		isTenantsListEnabled,
 		isProductsEnabled,
-		isOrdersEnabled,
+		isProjectsEnabled,
 		isSellingInvoicesEnabled,
 		isReportsEnabled,
 		isDashboardEnabled,
@@ -77,7 +78,7 @@ const App = () => {
 		isTenantAddNewTenantEnabled,
 		isTenantTenantsListEnabled,
 		isTenantProductsEnabled,
-		isTenantOrdersEnabled,
+		isTenantProjectsEnabled,
 		isTenantSellingInvoicesEnabled,
 		isTenantReportsEnabled,
 		isTenantDashboardEnabled,
@@ -122,9 +123,20 @@ const App = () => {
 									/>
 								</Route>
 							)}
-						{isOrdersEnabled && isTenantOrdersEnabled && canSee(SEE.orders) && (
-							<Route path={RoutePaths.ORDERS} element={<OrdersPage />} />
-						)}
+						{isProjectsEnabled &&
+							isTenantProjectsEnabled &&
+							canSee(SEE.projects) && (
+								<>
+									<Route
+										path={RoutePaths.PROJECTS}
+										element={<ProjectsPage />}
+									/>
+									<Route
+										path={RoutePaths.SINGLE_PROJECT}
+										element={<ProjectModal />}
+									/>
+								</>
+							)}
 
 						{isSellingInvoicesEnabled &&
 							isTenantSellingInvoicesEnabled &&

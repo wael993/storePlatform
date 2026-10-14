@@ -26,7 +26,6 @@ import CurrencySettings, {
 	ICurrencySettingItem,
 } from '../models/CurrencySettings'
 import InvoiceSettings from '../models/InvoiceSettings'
-import { Order } from '../models/Order'
 import { Invoice } from '../models/Invoice'
 import { BuyingInvoice } from '../models/BuyingInvoices'
 import { Inventory } from '../models/Inventory'
@@ -92,11 +91,11 @@ import PartnerController from './partner/api.controller'
 import SettingController from './setting/api.controller'
 import SellingInvoiceController from './selling-invoice/api.controller'
 import BuyingInvoiceController from './buying-invoice/api.controller'
+import ProjectController from './project/api.controller'
 import {
 	CreateProductResponse,
 	InventoryRequestBody,
 	InvoiceRequestBody,
-	OrderRequestBody,
 	ProductDocument,
 	ProductRequestBody,
 	ProductCatalogItem,
@@ -394,6 +393,7 @@ export default class ProductController {
 	private settingController?: SettingController
 	private sellingInvoiceController?: SellingInvoiceController
 	private buyingInvoiceController?: BuyingInvoiceController
+	private projectController?: ProjectController
 
 	constructor(
 		private productsMapper: ProductsMapper,
@@ -430,6 +430,10 @@ export default class ProductController {
 		buyingInvoiceController: BuyingInvoiceController,
 	): void {
 		this.buyingInvoiceController = buyingInvoiceController
+	}
+
+	public setProjectController(projectController: ProjectController): void {
+		this.projectController = projectController
 	}
 
 	private requireCustomerController(): CustomerController {
@@ -486,6 +490,14 @@ export default class ProductController {
 		}
 
 		return this.buyingInvoiceController
+	}
+
+	private requireProjectController(): ProjectController {
+		if (!this.projectController) {
+			throw new Error('ProjectController is not set')
+		}
+
+		return this.projectController
 	}
 
 	private getTenantId(requestContext: RequestContext): string {
@@ -554,22 +566,20 @@ export default class ProductController {
 	}
 
 	public async invalidateEntityCache(
-		entity: 'orders' | 'invoices' | 'inventory' | 'products' | 'categories',
+		entity: 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
 		id?: string,
 	): Promise<void> {
 		const tenantId = this.getTenantId(requestContext)
 
 		const listKey =
-			entity === 'orders'
-				? redisCache.buildOrderListKey(tenantId)
-				: entity === 'invoices'
-					? redisCache.buildInvoiceListKey(tenantId)
-					: entity === 'inventory'
-						? redisCache.buildInventoryListKey(tenantId)
-						: entity === 'categories'
-							? redisCache.buildCategoryListKey(tenantId)
-							: redisCache.buildProductListKey(tenantId)
+			entity === 'invoices'
+				? redisCache.buildInvoiceListKey(tenantId)
+				: entity === 'inventory'
+					? redisCache.buildInventoryListKey(tenantId)
+					: entity === 'categories'
+						? redisCache.buildCategoryListKey(tenantId)
+						: redisCache.buildProductListKey(tenantId)
 
 		const listKeyDeleted = await redisCache.del(listKey)
 
@@ -579,13 +589,11 @@ export default class ProductController {
 
 		if (id) {
 			const detailKey =
-				entity === 'orders'
-					? redisCache.buildOrderDetailKey(tenantId, id)
-					: entity === 'invoices'
-						? redisCache.buildInvoiceDetailKey(tenantId, id)
-						: entity === 'inventory'
-							? redisCache.buildInventoryDetailKey(tenantId, id)
-							: redisCache.buildProductDetailKey(tenantId, id)
+				entity === 'invoices'
+					? redisCache.buildInvoiceDetailKey(tenantId, id)
+					: entity === 'inventory'
+						? redisCache.buildInventoryDetailKey(tenantId, id)
+						: redisCache.buildProductDetailKey(tenantId, id)
 
 			const detailKeyDeleted = await redisCache.del(detailKey)
 
@@ -816,49 +824,14 @@ export default class ProductController {
 		}
 	}
 
-	private async ensureProductsBelongToTenant(
+	public async ensureProjectBelongsToTenant(
 		requestContext: RequestContext,
-		items: OrderRequestBody['items'],
+		projectId?: string,
 	) {
-		const tenantContext = getTenantContext(requestContext)
-		const requestedProductIds = items.map(item => item.productId)
-		const products = await withTenantScope(
-			Product.find({ _id: { $in: requestedProductIds } }),
-			tenantContext.tenantId,
-		).lean()
-
-		if (products.length !== requestedProductIds.length) {
-			throw new BusinessLogicError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'Order items must reference products from the same tenant.',
-			)
-		}
-	}
-
-	public async ensureOrderBelongsToTenant(
-		requestContext: RequestContext,
-		orderId?: string,
-	) {
-		if (!orderId) {
-			return
-		}
-
-		const order = await this.mongoDbClient.getDocumentByField(
+		return this.requireProjectController().ensureProjectBelongsToTenant(
 			requestContext,
-			COLLECTION_NAMES.ORDERS,
-			Order,
-			{
-				fieldName: 'orderId',
-				fieldValue: orderId,
-			},
+			projectId,
 		)
-
-		if (!order) {
-			throw new BusinessLogicError(
-				ERROR_CODES.AUTHORIZATION.FORBIDDEN,
-				'Invoice must reference an order from the same tenant.',
-			)
-		}
 	}
 
 	private async ensureInventoryProductBelongsToTenant(
@@ -2274,112 +2247,6 @@ export default class ProductController {
 		)
 
 		return generateDailyActionsExcel(dailyActions)
-	}
-
-	public async getOrders(requestContext: RequestContext) {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildOrderListKey(tenantId)
-		const cachedOrders = await redisCache.getJson<any[]>(cacheKey)
-
-		if (cachedOrders) {
-			return cachedOrders
-		}
-
-		const orders = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.ORDERS,
-			model: Order,
-			sort: { createdAt: 'desc' },
-		})
-
-		await redisCache.setJson(cacheKey, orders.documents)
-
-		return orders.documents
-	}
-
-	public async getOrder(orderId: string, requestContext: RequestContext) {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildOrderDetailKey(tenantId, orderId)
-		const cachedOrder = await redisCache.getJson<any>(cacheKey)
-
-		if (cachedOrder) {
-			return cachedOrder
-		}
-
-		const order = await this.mongoDbClient.getDocumentByField(
-			requestContext,
-			COLLECTION_NAMES.ORDERS,
-			Order,
-			{ fieldName: 'orderId', fieldValue: orderId },
-		)
-
-		if (!order) {
-			return null
-		}
-
-		await redisCache.setJson(cacheKey, order)
-
-		return order
-	}
-
-	public async postOrder(
-		requestBody: OrderRequestBody,
-		requestContext: RequestContext,
-	) {
-		await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
-		const orderData = {
-			orderId: uuidv4(),
-			orderNumber: requestBody.orderNumber,
-			status: requestBody.status ?? 'draft',
-			items: requestBody.items,
-			totalAmount: requestBody.totalAmount,
-		}
-		const createOrderResponse = await this.mongoDbClient.createDocument(
-			{ collectionName: COLLECTION_NAMES.ORDERS, data: orderData },
-			Order,
-			requestContext,
-		)
-
-		await this.invalidateEntityCache(
-			'orders',
-			requestContext,
-			orderData.orderId,
-		)
-
-		return { _id: createOrderResponse._id }
-	}
-
-	public async patchOrder(
-		orderId: string,
-		requestBody: Partial<OrderRequestBody>,
-		requestContext: RequestContext,
-	) {
-		if (requestBody.items) {
-			await this.ensureProductsBelongToTenant(requestContext, requestBody.items)
-		}
-
-		const updateResponse = await this.mongoDbClient.updateDocument(
-			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
-			requestContext,
-			Order,
-			requestBody,
-		)
-
-		await this.invalidateEntityCache('orders', requestContext, orderId)
-
-		return updateResponse
-	}
-
-	public async deleteOrder(orderId: string, requestContext: RequestContext) {
-		const deleteResponse = await this.mongoDbClient.deleteDocument(
-			{ collectionName: COLLECTION_NAMES.ORDERS, id: orderId },
-			requestContext,
-			Order,
-		)
-
-		await this.invalidateEntityCache('orders', requestContext, orderId)
-
-		return deleteResponse
 	}
 
 	public async getInventoryByProductId(
@@ -4470,7 +4337,8 @@ export default class ProductController {
 
 		if (cachedAction) {
 			const cached = cachedAction.data?.[0] as
-				{ warehouseId?: string } | undefined
+				| { warehouseId?: string }
+				| undefined
 
 			ensureWarehouseAccess(requestContext, cached?.warehouseId)
 
@@ -4718,12 +4586,19 @@ export default class ProductController {
 			partnerName: optionalString(requestBody.partnerName),
 			customerId: optionalString(requestBody.customerId),
 			customerName: optionalString(requestBody.customerName),
+			projectId: optionalString(requestBody.projectId),
+			employeeId: optionalString(requestBody.employeeId),
+			employeeName: optionalString(requestBody.employeeName),
 			expenseId: optionalString(requestBody.expenseId),
 			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
 			exchangeRateToPrimary,
-			cashAccountType: resolveCashAccountType(requestBody.cashAccountType),
+			cashAccountType:
+				requestBody.entryType === 'EMPLOYEE_COST' ||
+				requestBody.entryType === 'OTHER_COST'
+					? undefined
+					: resolveCashAccountType(requestBody.cashAccountType),
 			unitId: optionalString(requestBody.unitId),
 			unitName: optionalString(requestBody.unitName),
 			weight: optionalString(requestBody.weight),
@@ -4825,12 +4700,19 @@ export default class ProductController {
 			partnerName: optionalString(requestBody.partnerName),
 			customerId: optionalString(requestBody.customerId),
 			customerName: optionalString(requestBody.customerName),
+			projectId: optionalString(requestBody.projectId),
+			employeeId: optionalString(requestBody.employeeId),
+			employeeName: optionalString(requestBody.employeeName),
 			expenseId: optionalString(requestBody.expenseId),
 			expenseName: optionalString(requestBody.expenseName),
 			currencyId: requestBody.currencyId,
 			currencyName: requestBody.currencyName,
 			exchangeRateToPrimary,
-			cashAccountType: resolveCashAccountType(requestBody.cashAccountType),
+			cashAccountType:
+				requestBody.entryType === 'EMPLOYEE_COST' ||
+				requestBody.entryType === 'OTHER_COST'
+					? undefined
+					: resolveCashAccountType(requestBody.cashAccountType),
 			unitId: optionalString(requestBody.unitId),
 			unitName: optionalString(requestBody.unitName),
 			weight: optionalString(requestBody.weight),

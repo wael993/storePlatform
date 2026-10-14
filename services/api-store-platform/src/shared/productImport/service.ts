@@ -52,7 +52,6 @@ import ProductImportSession from '../../models/ProductImportSession'
 import { Invoice } from '../../models/Invoice'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { SellingInvoiceItem } from '../../models/SellingInvoices'
-import { Order } from '../../models/Order'
 import { StockMoving } from '../../models/StockMovings'
 import { DailyAction } from '../../models/DailyAction'
 import { DeleteBlockReason } from '../deleteBlock'
@@ -1058,7 +1057,6 @@ const readBatchLimit = (value: unknown) => {
 const REFERENCE_REASON = {
 	invoice: DeleteBlockReason.invoice,
 	buyingInvoice: DeleteBlockReason.buyingInvoice,
-	order: DeleteBlockReason.order,
 	stockMoving: DeleteBlockReason.stockMoving,
 	dailyAction: DeleteBlockReason.dailyAction,
 }
@@ -1073,45 +1071,38 @@ export const findProductDeleteBlocks = async (
 		if (!blocked.has(id)) blocked.set(id, reason)
 	}
 
-	const [invoices, buying, sellingItems, orders, movings, actions] =
-		await Promise.all([
-			withTenantScope(
-				Invoice.find({ 'items.productId': { $in: ids } })
-					.select({ items: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				BuyingInvoice.find({ 'items.productId': { $in: ids } })
-					.select({ items: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
-					.select({ items: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				Order.find({ 'items.productId': { $in: ids } })
-					.select({ items: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				StockMoving.find({ productId: { $in: ids } })
-					.select({ productId: 1 })
-					.lean(),
-				tenantId,
-			),
-			withTenantScope(
-				DailyAction.find({ productId: { $in: ids } })
-					.select({ productId: 1 })
-					.lean(),
-				tenantId,
-			),
-		])
+	const [invoices, buying, sellingItems, movings, actions] = await Promise.all([
+		withTenantScope(
+			Invoice.find({ 'items.productId': { $in: ids } })
+				.select({ items: 1 })
+				.lean(),
+			tenantId,
+		),
+		withTenantScope(
+			BuyingInvoice.find({ 'items.productId': { $in: ids } })
+				.select({ items: 1 })
+				.lean(),
+			tenantId,
+		),
+		withTenantScope(
+			SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
+				.select({ items: 1 })
+				.lean(),
+			tenantId,
+		),
+		withTenantScope(
+			StockMoving.find({ productId: { $in: ids } })
+				.select({ productId: 1 })
+				.lean(),
+			tenantId,
+		),
+		withTenantScope(
+			DailyAction.find({ productId: { $in: ids } })
+				.select({ productId: 1 })
+				.lean(),
+			tenantId,
+		),
+	])
 
 	for (const invoice of invoices) {
 		for (const item of invoice.items ?? []) {
@@ -1132,13 +1123,6 @@ export const findProductDeleteBlocks = async (
 			if (ids.includes(item.productId)) {
 				mark(item.productId, REFERENCE_REASON.buyingInvoice)
 			}
-		}
-	}
-
-	for (const order of orders) {
-		for (const item of order.items ?? []) {
-			if (ids.includes(item.productId))
-				mark(item.productId, REFERENCE_REASON.order)
 		}
 	}
 

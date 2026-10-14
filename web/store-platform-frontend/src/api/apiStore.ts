@@ -535,6 +535,9 @@ export interface AddDailyActionRequestBody {
 	partnerName?: string
 	customerId?: string
 	customerName?: string
+	projectId?: string
+	employeeId?: string
+	employeeName?: string
 	expenseId?: string
 	expenseName?: string
 	currencyId: string
@@ -715,6 +718,59 @@ const getQuery = (
 			},
 			transformResponse: (response: CustomersAPIResponse) => response.data,
 			providesTags: ['customers'],
+		}),
+
+		getProjects: builder.query<Project[], void>({
+			query: () => ({
+				url: 'projects',
+				method: 'GET',
+			}),
+			transformResponse: (response: { data?: Project[] }) =>
+				response.data ?? [],
+			providesTags: ['projects'],
+		}),
+
+		createProject: builder.mutation<
+			{ _id: string },
+			Pick<Project, 'name' | 'internalCode'>
+		>({
+			query: body => ({
+				url: 'projects',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['projects'],
+		}),
+
+		deleteProject: builder.mutation<void, string>({
+			query: projectId => ({
+				url: `projects/${projectId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['projects', 'project'],
+		}),
+
+		bulkDeleteProjects: builder.mutation<
+			{
+				deleted: string[]
+				blocked: Array<{ projectId: string; reason: string }>
+			},
+			string[]
+		>({
+			query: projectIds => ({
+				url: 'projects/bulk-delete',
+				method: 'POST',
+				body: { projectIds },
+			}),
+			invalidatesTags: ['projects', 'project'],
+		}),
+
+		getSingleProject: builder.query<Project, string>({
+			query: (projectId: string) => ({
+				url: `projects/${projectId}`,
+				method: 'GET',
+			}),
+			providesTags: ['project'],
 		}),
 
 		getCategories: builder.query<Category[], void>({
@@ -1900,6 +1956,8 @@ const getQuery = (
 				'supplier',
 				'partners',
 				'partner',
+				'project',
+				'projects',
 				'selling-invoices',
 				'buying-invoices',
 				'cash-accounts',
@@ -1924,6 +1982,8 @@ const getQuery = (
 				'customer',
 				'suppliers',
 				'supplier',
+				'project',
+				'projects',
 				'selling-invoices',
 				'buying-invoices',
 				'cash-accounts',
@@ -1942,6 +2002,8 @@ const getQuery = (
 				'customer',
 				'suppliers',
 				'supplier',
+				'project',
+				'projects',
 				'selling-invoices',
 				'buying-invoices',
 				'cash-accounts',
@@ -1983,6 +2045,8 @@ const getQuery = (
 				'customer',
 				'supplier',
 				'partner',
+				'project',
+				'projects',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2012,6 +2076,8 @@ const getQuery = (
 				'customer',
 				'supplier',
 				'partner',
+				'project',
+				'projects',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2037,6 +2103,8 @@ const getQuery = (
 				'customer',
 				'supplier',
 				'partner',
+				'project',
+				'projects',
 				'cash-accounts',
 			],
 			async onQueryStarted(_arg, { queryFulfilled, ...api }) {
@@ -2533,6 +2601,11 @@ export const {
 	useGetSuppliersQuery,
 	useGetSingleSupplierQuery,
 	useGetCustomersQuery,
+	useGetProjectsQuery,
+	useCreateProjectMutation,
+	useDeleteProjectMutation,
+	useBulkDeleteProjectsMutation,
+	useGetSingleProjectQuery,
 	useGetCategoriesQuery,
 	useCreateCategoryMutation,
 	useDeleteCategoryMutation,

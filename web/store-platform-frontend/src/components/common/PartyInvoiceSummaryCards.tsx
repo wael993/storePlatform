@@ -478,13 +478,17 @@ const OpeningBalanceRows = ({
 }
 
 interface PartyInvoiceSummaryCardsProps {
-	party: 'customer' | 'supplier' | 'partner'
+	party: 'customer' | 'supplier' | 'partner' | 'project'
 	partyId?: string
 	openingBalances?: OpeningBalance[]
 	totals?: {
 		totalInvoiced: number
 		totalPaid: number
 		outstanding: number
+		employeeCosts?: number
+		otherCosts?: number
+		receiptEntries?: number
+		profit?: number | null
 	}
 }
 
@@ -499,6 +503,7 @@ const PartyInvoiceSummaryCards = ({
 	const { canSee } = useSee()
 	const canSeeOutstanding =
 		party === 'partner' ||
+		party === 'project' ||
 		(party === 'supplier'
 			? canSee(SEE.suppliersTotalPayable)
 			: canSee(SEE.customersTotalReceivable))
@@ -544,14 +549,49 @@ const PartyInvoiceSummaryCards = ({
 						}
 					/>
 				)}
-				{party !== 'partner' && canSeeOutstanding && partyId && (
-					<OpeningBalanceRows
-						party={party}
-						partyId={partyId}
-						openingBalances={openingBalances}
-						canEdit={canEditOpening}
-					/>
+				{party === 'project' && (
+					<>
+						<SummaryRow
+							label={t('components.invoiceSummary.employeeCosts')}
+							value={formatAmount(totals.employeeCosts ?? 0)}
+							icon={<DollarSignIcon fill="none" />}
+							iconBg="#E0E7FF"
+							iconColor="#3730A3"
+						/>
+						<SummaryRow
+							label={t('components.invoiceSummary.otherCosts')}
+							value={formatAmount(totals.otherCosts ?? 0)}
+							icon={<DollarSignIcon fill="none" />}
+							iconBg="#FFEDD5"
+							iconColor="#C2410C"
+						/>
+						<SummaryRow
+							label={t('components.invoiceSummary.receiptEntries')}
+							value={formatAmount(totals.receiptEntries ?? 0)}
+							icon={<WalletIcon fill="none" />}
+							iconBg="#DCFCE7"
+							iconColor="#15803D"
+						/>
+						<SummaryRow
+							label={t('components.invoiceSummary.projectProfit')}
+							value="—"
+							icon={<DollarSignIcon fill="none" />}
+							iconBg="#F3F4F6"
+							iconColor="#6B7280"
+						/>
+					</>
 				)}
+				{party !== 'partner' &&
+					party !== 'project' &&
+					canSeeOutstanding &&
+					partyId && (
+						<OpeningBalanceRows
+							party={party}
+							partyId={partyId}
+							openingBalances={openingBalances}
+							canEdit={canEditOpening}
+						/>
+					)}
 			</Box>
 		</Box>
 	)

@@ -101,6 +101,16 @@ export const ENTRY_KIND_BADGE = {
 		color: '#15803D',
 		labelKey: 'common.buyingEntry',
 	},
+	employeeCost: {
+		bg: '#E0E7FF',
+		color: '#3730A3',
+		labelKey: 'components.sellingInvoices.employeeCost',
+	},
+	otherCost: {
+		bg: '#FFEDD5',
+		color: '#C2410C',
+		labelKey: 'components.sellingInvoices.otherCost',
+	},
 } as const
 
 export const PAYMENT_TYPE_CONFIG = {

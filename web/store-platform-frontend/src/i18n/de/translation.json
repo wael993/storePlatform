@@ -395,7 +395,7 @@
 			"customersDescription": "Kundenverzeichnis und Details.",
 			"categoriesDescription": "Produktkategorieverzeichnis.",
 			"partnersDescription": "Partnerverzeichnis und Details.",
-			"ordersDescription": "Auftragsverwaltung.",
+			"projectsDescription": "Projektverzeichnis und Details.",
 			"inventoryDescription": "Bestands- und Inventarverfolgung.",
 			"reportsDescription": "Fragen Sie den KI-Assistenten zu Umsatz, Produkten, Lieferanten und Rechnungen.",
 			"settingsDescription": "Mandanteneinstellungen und Präferenzen.",
@@ -429,13 +429,6 @@
 		"previous": "Zurück",
 		"next": "Weiter",
 		"pageOf": "Seite {{currentPage}} von {{totalPages}}"
-	},
-	"orders": {
-		"empty": "Keine Bestellungen gefunden.",
-		"orderNumber": "Bestellnr.",
-		"items": "Artikel",
-		"total": "Gesamt (€)",
-		"date": "Datum"
 	},
 	"employees": {
 		"add": "Mitarbeiter hinzufügen",
@@ -551,7 +544,9 @@
 			"items": {
 				"welcome": "Willkommensseite sehen",
 				"daily": "Tagesseite sehen",
-				"orders": "Bestellseite sehen",
+				"projects": "Projektseite sehen",
+				"projects_add": "Projekte hinzufügen",
+				"projects_delete": "Projekte löschen",
 				"settings": "Einstellungen sehen",
 				"settings_products": "Produkte-Tab sehen",
 				"settings_language": "Sprache-Tab sehen",
@@ -753,7 +748,11 @@
 			"forUs": "Uns geschuldet",
 			"forThem": "Wir schulden",
 			"openingBalance": "Anfangssaldo",
-			"openingBalanceError": "Der Anfangssaldo konnte nicht gespeichert werden."
+			"openingBalanceError": "Der Anfangssaldo konnte nicht gespeichert werden.",
+			"employeeCosts": "Mitarbeiterkosten",
+			"otherCosts": "Sonstige Kosten",
+			"receiptEntries": "Eingänge",
+			"projectProfit": "Gewinn"
 		},
 		"supplier": {
 			"deleteSupplier": "Lieferant löschen",
@@ -777,6 +776,19 @@
 			"deleteSelectedConfirm": "{{count}} Kunden werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
 			"deleteSelectedSuccess": "{{count}} Kunden gelöscht."
 		},
+		"project": {
+			"errorLoadingProject": "Dieses Projekt konnte nicht geladen werden.",
+			"name": "Projektname",
+			"code": "Projektcode",
+			"total": "Gesamt",
+			"deleteProject": "Projekt löschen",
+			"deleteProjectConfirm": "Dieses Projekt wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+			"deleteProjectSuccess": "Projekt gelöscht.",
+			"deleteProjectError": "Dieses Projekt konnte nicht gelöscht werden.",
+			"deleteSelected": "Ausgewählte Projekte löschen",
+			"deleteSelectedConfirm": "{{count}} Projekte werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+			"deleteSelectedSuccess": "{{count}} Projekte gelöscht."
+		},
 		"daily": {
 			"confirmations": {
 				"deleteDailyAction": "Tagesaktion löschen",
@@ -787,6 +799,7 @@
 			"errors": {
 				"addSupplierFailed": "Lieferant konnte nicht hinzugefügt werden",
 				"addCustomerFailed": "Kunde konnte nicht hinzugefügt werden",
+				"addProjectFailed": "Projekt konnte nicht hinzugefügt werden",
 				"addUnitFailed": "Einheit konnte nicht hinzugefügt werden",
 				"addExpenseFailed": "Ausgabe konnte nicht hinzugefügt werden",
 				"addPartnerFailed": "Partner konnte nicht hinzugefügt werden"
@@ -802,6 +815,9 @@
 			"supplierName": "Lieferantenname",
 			"addQuickCustomer": "Schnell Kunde hinzufügen",
 			"customerName": "Kundenname",
+			"addQuickProject": "Projekt hinzufügen",
+			"projectName": "Projektname",
+			"projectCode": "Projektcode",
 			"addQuickUnit": "Schnell Einheit hinzufügen",
 			"unitName": "Einheitsname",
 			"expenseName": "Ausgabenname",
@@ -851,6 +867,9 @@
 			"newInvoiceOptions": "Optionen für neue Rechnung",
 			"newBuyingInvoice": "Einkaufsrechnung",
 			"newEntry": "Buchungen",
+			"employeeCost": "Mitarbeiterkosten",
+			"otherCost": "Sonstige Kosten",
+			"costName": "Kostenname",
 			"entries": {
 				"title": "Buchung hinzufügen",
 				"viewTitle": "Buchung anzeigen",
@@ -1061,7 +1080,7 @@
 			"sellingInvoices": "Verkaufsrechnungen",
 			"settings": "Einstellungen",
 			"products": "Produkte",
-			"orders": "Bestellungen",
+			"projects": "Projekte",
 			"customer": "Kunde",
 			"supplier": "Lieferant",
 			"users": "Benutzer",
@@ -1459,11 +1478,13 @@
 		"hide": "Ausblenden",
 		"addProduct": "Produkt hinzufügen",
 		"addCustomer": "Kunde hinzufügen",
+		"addProject": "Projekt hinzufügen",
 		"addCategory": "Kategorie hinzufügen",
 		"addSupplier": "Lieferant hinzufügen",
 		"addPartner": "Partner hinzufügen",
 		"supplier": "Lieferant",
 		"customer": "Kunde",
+		"project": "Projekt",
 		"partner": "Partner",
 		"expense": "Ausgabe",
 		"currency": "Währung",
@@ -1515,7 +1536,7 @@
 		"offline": "Löschen ist nur online möglich.",
 		"invoice": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Verkaufsrechnung verwendet wird.",
 		"buyingInvoice": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Einkaufsrechnung verwendet wird.",
-		"order": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Bestellung verwendet wird.",
+		"project": "Löschen ist nicht erlaubt, weil dieser Eintrag in einem Projekt verwendet wird.",
 		"stockMoving": "Löschen ist nicht erlaubt, weil dieser Eintrag Lagerbewegungen hat.",
 		"dailyAction": "Löschen ist nicht erlaubt, weil dieser Eintrag in einer Tagesaktion verwendet wird.",
 		"products": "Löschen ist nicht erlaubt, weil Produkte diesen Eintrag verwenden.",

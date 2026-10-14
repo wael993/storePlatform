@@ -21,7 +21,10 @@ export class PlatformValidator {
 				supplierId,
 				partnerId,
 				customerId,
+				projectId,
 				expenseId,
+				expenseName,
+				employeeId,
 				currencyId,
 				currencyName,
 				unitId,
@@ -67,11 +70,12 @@ export class PlatformValidator {
 			if (entryType === DailyActionType.PAYMENT_ENTRY) {
 				if (
 					(!supplierId || !String(supplierId).trim()) &&
-					(!partnerId || !String(partnerId).trim())
+					(!partnerId || !String(partnerId).trim()) &&
+					(!projectId || !String(projectId).trim())
 				) {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-						'SupplierId or PartnerId is Missing',
+						'SupplierId, PartnerId, or ProjectId is Missing',
 					)
 				}
 			}
@@ -79,11 +83,12 @@ export class PlatformValidator {
 			if (entryType === DailyActionType.RECEIPT_ENTRY) {
 				if (
 					(!customerId || !String(customerId).trim()) &&
-					(!partnerId || !String(partnerId).trim())
+					(!partnerId || !String(partnerId).trim()) &&
+					(!projectId || !String(projectId).trim())
 				) {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
-						'CustomerId or PartnerId is Missing',
+						'CustomerId, PartnerId, or ProjectId is Missing',
 					)
 				}
 			}
@@ -93,6 +98,24 @@ export class PlatformValidator {
 					throw new RequiredParameterMissingError(
 						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
 						'ExpenseId is Missing',
+					)
+				}
+			}
+
+			if (entryType === DailyActionType.EMPLOYEE_COST) {
+				if (!employeeId || !String(employeeId).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'EmployeeId is Missing',
+					)
+				}
+			}
+
+			if (entryType === DailyActionType.OTHER_COST) {
+				if (!expenseName || !String(expenseName).trim()) {
+					throw new RequiredParameterMissingError(
+						ERROR_CODES.VALIDATION.REQUIRED_FIELD_MISSING,
+						'Cost name is Missing',
 					)
 				}
 			}

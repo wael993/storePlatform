@@ -395,7 +395,7 @@
 			"customersDescription": "دليل الزبائن والتفاصيل.",
 			"categoriesDescription": "دليل فئات المنتجات.",
 			"partnersDescription": "دليل الشركاء والتفاصيل.",
-			"ordersDescription": "إدارة الطلبات.",
+			"projectsDescription": "دليل المشاريع والتفاصيل.",
 			"inventoryDescription": "تتبع المخزون والمستودعات.",
 			"reportsDescription": "اسأل مساعد الذكاء الاصطناعي عن المبيعات والمنتجات والموردين والفواتير.",
 			"settingsDescription": "إعدادات وتفضيلات المستأجر.",
@@ -429,13 +429,6 @@
 		"previous": "السابق",
 		"next": "التالي",
 		"pageOf": "الصفحة {{currentPage}} من {{totalPages}}"
-	},
-	"orders": {
-		"empty": "لم يتم العثور على طلبات.",
-		"orderNumber": "رقم الطلب",
-		"items": "العناصر",
-		"total": "الإجمالي (€)",
-		"date": "التاريخ"
 	},
 	"employees": {
 		"add": "إضافة موظف",
@@ -551,7 +544,9 @@
 			"items": {
 				"welcome": " صفحة الترحيب",
 				"daily": " الصفحة اليومية",
-				"orders": " صفحة الطلبات",
+				"projects": " صفحة المشاريع",
+				"projects_add": " إضافة مشروع",
+				"projects_delete": " حذف مشروع",
 				"settings": " صفحة الإعدادات",
 				"settings_products": " نافذة المنتجات",
 				"settings_language": " نافذة اللغة",
@@ -777,7 +772,11 @@
 			"forUs": "مستحق لنا",
 			"forThem": "مستحق علينا",
 			"openingBalance": "الرصيد الافتتاحي",
-			"openingBalanceError": "تعذر حفظ الرصيد الافتتاحي."
+			"openingBalanceError": "تعذر حفظ الرصيد الافتتاحي.",
+			"employeeCosts": "تكاليف الموظفين",
+			"otherCosts": "التكاليف الأخرى",
+			"receiptEntries": "سندات القبض",
+			"projectProfit": "الربح"
 		},
 		"supplier": {
 			"deleteSupplier": "حذف المورد",
@@ -801,6 +800,19 @@
 			"deleteSelectedConfirm": "سيتم حذف {{count}} زبائن نهائياً. لا يمكن التراجع عن ذلك.",
 			"deleteSelectedSuccess": "تم حذف {{count}} زبائن."
 		},
+		"project": {
+			"errorLoadingProject": "تعذر تحميل هذا المشروع.",
+			"name": "اسم المشروع",
+			"code": "رمز المشروع",
+			"total": "الإجمالي",
+			"deleteProject": "حذف المشروع",
+			"deleteProjectConfirm": "سيتم حذف هذا المشروع نهائياً. لا يمكن التراجع عن ذلك.",
+			"deleteProjectSuccess": "تم حذف المشروع.",
+			"deleteProjectError": "تعذر حذف هذا المشروع.",
+			"deleteSelected": "حذف المشاريع المحددة",
+			"deleteSelectedConfirm": "سيتم حذف {{count}} مشاريع نهائياً. لا يمكن التراجع عن ذلك.",
+			"deleteSelectedSuccess": "تم حذف {{count}} مشاريع."
+		},
 		"daily": {
 			"confirmations": {
 				"deleteDailyAction": "حذف الإجراء اليومي",
@@ -811,6 +823,7 @@
 			"errors": {
 				"addSupplierFailed": "فشل إضافة المورد",
 				"addCustomerFailed": "فشل إضافة الزبون",
+				"addProjectFailed": "فشل إضافة المشروع",
 				"addUnitFailed": "فشل إضافة الوحدة",
 				"addExpenseFailed": "فشل إضافة النفقات",
 				"addPartnerFailed": "فشل إضافة الشريك"
@@ -826,6 +839,9 @@
 			"supplierName": "اسم المورد",
 			"addQuickCustomer": "إضافة زبون",
 			"customerName": "اسم الزبون",
+			"addQuickProject": "إضافة مشروع",
+			"projectName": "اسم المشروع",
+			"projectCode": "رمز المشروع",
 			"addQuickUnit": "إضافة وحدة",
 			"unitName": "اسم الوحدة",
 			"expenseName": "اسم النفقات",
@@ -851,6 +867,9 @@
 			"newInvoiceOptions": "خيارات الفاتورة الجديدة",
 			"newBuyingInvoice": "فاتورة شراء",
 			"newEntry": "سندات",
+			"employeeCost": "تكلفة موظف",
+			"otherCost": "تكاليف أخرى",
+			"costName": "اسم التكلفة",
 			"entries": {
 				"title": "إضافة سند",
 				"viewTitle": "عرض السند",
@@ -1061,7 +1080,7 @@
 			"sellingInvoices": "فواتير ",
 			"settings": "الإعدادات",
 			"products": "المنتجات",
-			"orders": "الطلبات",
+			"projects": "المشاريع",
 			"customer": "الزبون",
 			"supplier": "المورد",
 			"users": "المستخدمون",
@@ -1459,11 +1478,13 @@
 		"hide": "إخفاء",
 		"addProduct": "إضافة منتج",
 		"addCustomer": "إضافة زبون",
+		"addProject": "إضافة مشروع",
 		"addCategory": "إضافة فئة",
 		"addSupplier": "إضافة مورد",
 		"addPartner": "إضافة شريك",
 		"supplier": "المورد",
 		"customer": "الزبون",
+		"project": "مشروع",
 		"partner": "الشريك",
 		"expense": "النفقات",
 		"currency": "العملة",
@@ -1515,7 +1536,7 @@
 		"offline": "الحذف متاح عند الاتصال بالإنترنت.",
 		"invoice": "لا يمكن الحذف لأن هذا السجل مستخدم في فاتورة بيع.",
 		"buyingInvoice": "لا يمكن الحذف لأن هذا السجل مستخدم في فاتورة شراء.",
-		"order": "لا يمكن الحذف لأن هذا السجل مستخدم في طلب.",
+		"project": "لا يمكن الحذف لأن هذا السجل مستخدم في مشروع.",
 		"stockMoving": "لا يمكن الحذف لأن هذا السجل له حركات مخزون.",
 		"dailyAction": "لا يمكن الحذف لأن هذا السجل مستخدم في حركة يومية.",
 		"products": "لا يمكن الحذف لأن هناك منتجات تستخدم هذا السجل.",

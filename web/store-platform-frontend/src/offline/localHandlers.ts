@@ -1845,6 +1845,10 @@ export const handleOfflineQuery = async (
 
 	try {
 		if (method === 'GET') {
+			// note: projects are not in the offline catalog yet; empty until the next online sync.
+			if (path === 'projects') {
+				return { data: [] }
+			}
 			if (path === 'products/catalog') {
 				const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
 				const storedScope = tenantId

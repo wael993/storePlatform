@@ -171,6 +171,22 @@ describe('cashImpact', () => {
 				movementType: CASH_MOVEMENT_TYPES.EXPENSE,
 			},
 		])
+
+		expect(
+			desiredPostsForDailyAction({
+				entryType: DailyActionType.EMPLOYEE_COST,
+				amount: 4,
+				currencyId: 'usd',
+			}),
+		).toEqual([])
+
+		expect(
+			desiredPostsForDailyAction({
+				entryType: DailyActionType.OTHER_COST,
+				amount: 2,
+				currencyId: 'usd',
+			}),
+		).toEqual([])
 	})
 
 	it('posts receipt/payment/expense to the selected cash account', () => {

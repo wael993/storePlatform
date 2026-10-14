@@ -9,9 +9,17 @@ export type QuickEntryType =
 	| DailyActionType.RECEIPT_ENTRY
 	| DailyActionType.PAYMENT_ENTRY
 	| DailyActionType.EXPENSE_ENTRY
+	| DailyActionType.EMPLOYEE_COST
+	| DailyActionType.OTHER_COST
 
 export type EntrySubType =
-	'receipt' | 'payment' | 'expense' | 'selling' | 'buying'
+	| 'receipt'
+	| 'payment'
+	| 'expense'
+	| 'selling'
+	| 'buying'
+	| 'employeeCost'
+	| 'otherCost'
 
 export interface QuickEntryFormState {
 	entryType: QuickEntryType
@@ -61,12 +69,16 @@ const ENTRY_TYPE_MAP: Record<string, EntrySubType | undefined> = {
 	[DailyActionType.RECEIPT_ENTRY]: 'receipt',
 	[DailyActionType.PAYMENT_ENTRY]: 'payment',
 	[DailyActionType.EXPENSE_ENTRY]: 'expense',
+	[DailyActionType.EMPLOYEE_COST]: 'employeeCost',
+	[DailyActionType.OTHER_COST]: 'otherCost',
 }
 
 const QUICK_ENTRY_TYPES = new Set<string>([
 	DailyActionType.RECEIPT_ENTRY,
 	DailyActionType.PAYMENT_ENTRY,
 	DailyActionType.EXPENSE_ENTRY,
+	DailyActionType.EMPLOYEE_COST,
+	DailyActionType.OTHER_COST,
 ])
 
 const getTodayDateInputValue = () => {
@@ -116,6 +128,7 @@ export const mapDailyActionToEntryTableRow = (
 	const entityName =
 		dailyAction.customerName ??
 		dailyAction.supplierName ??
+		dailyAction.employeeName ??
 		dailyAction.expenseName ??
 		dailyAction.partnerName ??
 		'-'
@@ -159,6 +172,14 @@ export const mapDailyActionToQuickEntryForm = (
 			break
 		case DailyActionType.EXPENSE_ENTRY:
 			entityId = dailyAction.expenseId ?? ''
+			entityName = dailyAction.expenseName ?? ''
+			break
+		case DailyActionType.EMPLOYEE_COST:
+			entityId = dailyAction.employeeId ?? ''
+			entityName = dailyAction.employeeName ?? ''
+			break
+		case DailyActionType.OTHER_COST:
+			entityId = ''
 			entityName = dailyAction.expenseName ?? ''
 			break
 	}

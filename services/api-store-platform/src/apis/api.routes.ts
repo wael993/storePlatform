@@ -7,7 +7,6 @@ import ActivityAuthorization from './api.authorize'
 import { handleError } from '../middleware/errorHandler'
 import {
 	InventoryRequestBody,
-	OrderRequestBody,
 	ProductRequestBody,
 	RequestContext,
 	CurrencyRequestBody,
@@ -210,42 +209,6 @@ export default class StoreRoutes extends PlatformValidator {
 				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteProduct.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/orders`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getOrders.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postOrder.bind(this),
-			)
-
-		app
-			.route(`${baseRoute}/orders/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getOrder.bind(this),
-			)
-			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.patchOrder.bind(this),
-			)
-			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.deleteOrder.bind(this),
 			)
 
 		app
@@ -1438,105 +1401,6 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 			response.status(200).json(result)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getOrders(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getOrders(requestContext)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async getOrder(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.getOrder(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(200).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async postOrder(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestBody: OrderRequestBody = request.body
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			const resp = await this.productController.postOrder(
-				requestBody,
-				requestContext,
-			)
-
-			response.status(201).json(resp)
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async patchOrder(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.patchOrder(
-				request.params.id,
-				request.body,
-				requestContext,
-			)
-
-			response.status(204).send()
-		} catch (error: any) {
-			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
-		}
-	}
-
-	private async deleteOrder(
-		request: any,
-		response: express.Response,
-	): Promise<void> {
-		const requestContext = this.getRequestContext(request)
-
-		try {
-			await this.productController.deleteOrder(
-				request.params.id,
-				requestContext,
-			)
-
-			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
 		} finally {

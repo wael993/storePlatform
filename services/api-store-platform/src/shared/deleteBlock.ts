@@ -8,7 +8,7 @@ import { withTenantScope } from './mongodb/tenantScopedModel'
 export const DeleteBlockReason = {
 	invoice: 'invoice',
 	buyingInvoice: 'buyingInvoice',
-	order: 'order',
+	project: 'project',
 	stockMoving: 'stockMoving',
 	dailyAction: 'dailyAction',
 	products: 'products',

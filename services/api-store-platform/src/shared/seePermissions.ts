@@ -117,7 +117,7 @@ const RESOURCE_SEE: Partial<Record<TenantResource, SeeId | SeeId[]>> = {
 	[COLLECTION_NAMES.DAILY_ACTIONS]: [SEE.sellingInvoicesEntriesButton],
 	[COLLECTION_NAMES.EXPENSES]: [SEE.sellingInvoicesEntriesButton],
 	[COLLECTION_NAMES.CURRENCIES]: SEE.settings,
-	[COLLECTION_NAMES.ORDERS]: SEE.orders,
+	[COLLECTION_NAMES.PROJECTS]: SEE.projects,
 }
 
 export const ensureSeeIds = async (

@@ -1,7 +1,7 @@
 export const COLLECTION_NAMES = {
 	PRODUCTS: 'products',
 	CATEGORIES: 'categories',
-	ORDERS: 'orders',
+	PROJECTS: 'projects',
 	INVOICES: 'invoices',
 	BUYING_INVOICES: 'buyingInvoices',
 	USERS: 'users',

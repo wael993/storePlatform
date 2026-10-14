@@ -12,6 +12,8 @@ export enum DailyActionType {
 	PAYMENT_ENTRY = 'PAYMENT_ENTRY',
 	RECEIPT_ENTRY = 'RECEIPT_ENTRY',
 	EXPENSE_ENTRY = 'EXPENSE_ENTRY',
+	EMPLOYEE_COST = 'EMPLOYEE_COST',
+	OTHER_COST = 'OTHER_COST',
 }
 
 export enum AllowedActions {
@@ -64,6 +66,7 @@ export enum TargetType {
 	CATEGORY = 'CATEGORY', //فئة
 	SUPPLIER = 'SUPPLIER', //مورد
 	PARTNER = 'PARTNER', //شريك
+	PROJECT = 'PROJECT',
 	PRODUCT = 'PRODUCT', //منتج
 }
 
@@ -71,7 +74,8 @@ export enum BreadCrumbItem {
 	SETTINGS = 'settings',
 	PRODUCTS = 'products',
 	PRODUCT = 'product',
-	ORDERS = 'orders',
+	PROJECTS = 'projects',
+	PROJECT = 'project',
 	SELLING_INVOICES = 'sellingInvoices',
 	USERS = 'users',
 	ADD_NEW_TENANT = 'addNewTenant',
@@ -97,6 +101,7 @@ export enum AddQuickStateEnum {
 	SUPPLIER = 'supplier',
 	CUSTOMER = 'customer',
 	PARTNER = 'partner',
+	PROJECT = 'project',
 	UNIT = 'unit',
 	EXPENSE = 'expense',
 	CATEGORY = 'category',

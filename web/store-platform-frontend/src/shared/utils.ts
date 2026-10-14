@@ -41,7 +41,7 @@ export const getEnabledActions = () => {
 		isAddNewTenantEnabled: enabledActions.has('ADD_NEW_TENANT'),
 		isTenantsListEnabled: enabledActions.has('TENANTS_LIST'),
 		isProductsEnabled: enabledActions.has('PRODUCTS'),
-		isOrdersEnabled: enabledActions.has('ORDERS'),
+		isProjectsEnabled: enabledActions.has('PROJECTS'),
 		isSellingInvoicesEnabled: enabledActions.has('SELLING_INVOICES'),
 		isInvoiceAiEnabled: enabledActions.has('INVOICE_AI'),
 		isReportsEnabled: enabledActions.has('REPORTS'),
@@ -69,7 +69,7 @@ export const getGloballyEnabledTenantPages = (
 		CUSTOMERS: enabledActions.isCustomersEnabled,
 		CATEGORIES: enabledActions.isCategoriesEnabled,
 		PARTNERS: enabledActions.isPartnersEnabled,
-		ORDERS: enabledActions.isOrdersEnabled,
+		PROJECTS: enabledActions.isProjectsEnabled,
 		SELLING_INVOICES: enabledActions.isSellingInvoicesEnabled,
 		INVOICE_AI: enabledActions.isInvoiceAiEnabled,
 		INVENTORY: enabledActions.isProductsEnabled,
@@ -83,14 +83,18 @@ export const getGloballyEnabledTenantPages = (
 export const getTenantActions = (accessiblePages?: string[] | null) => {
 	const globallyEnabled = new Set(config.tenantActions)
 	const tenantPages = accessiblePages?.length
-		? new Set(accessiblePages.filter(page => globallyEnabled.has(page)))
+		? new Set(
+				accessiblePages
+					.map(page => (page === 'ORDERS' ? 'PROJECTS' : page))
+					.filter(page => globallyEnabled.has(page)),
+			)
 		: globallyEnabled
 
 	return {
 		isTenantAddNewTenantEnabled: tenantPages.has('ADD_NEW_TENANT'),
 		isTenantTenantsListEnabled: tenantPages.has('TENANTS_LIST'),
 		isTenantProductsEnabled: tenantPages.has('PRODUCTS'),
-		isTenantOrdersEnabled: tenantPages.has('ORDERS'),
+		isTenantProjectsEnabled: tenantPages.has('PROJECTS'),
 		isTenantUsersEnabled: tenantPages.has('USERS'),
 		isTenantEmployeesEnabled: tenantPages.has('EMPLOYEES'),
 		isTenantSettingsEnabled: tenantPages.has('SETTINGS'),
@@ -131,10 +135,10 @@ export const isTenantRouteAllowed = (
 				canSee(SEE.products),
 		],
 		[
-			RoutePaths.ORDERS,
-			globalActions.isOrdersEnabled &&
-				tenantActions.isTenantOrdersEnabled &&
-				canSee(SEE.orders),
+			RoutePaths.PROJECTS,
+			globalActions.isProjectsEnabled &&
+				tenantActions.isTenantProjectsEnabled &&
+				canSee(SEE.projects),
 		],
 		[
 			RoutePaths.SELLING_INVOICES,

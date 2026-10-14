@@ -6,7 +6,7 @@ export const TENANT_ACCESSIBLE_PAGE = {
 	SUPPLIERS: 'SUPPLIERS',
 	CUSTOMERS: 'CUSTOMERS',
 	PARTNERS: 'PARTNERS',
-	ORDERS: 'ORDERS',
+	PROJECTS: 'PROJECTS',
 	INVENTORY: 'INVENTORY',
 	REPORTS: 'REPORTS',
 	SETTINGS: 'SETTINGS',
@@ -29,7 +29,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 	TENANT_ACCESSIBLE_PAGE.SUPPLIERS,
 	TENANT_ACCESSIBLE_PAGE.CUSTOMERS,
 	TENANT_ACCESSIBLE_PAGE.PARTNERS,
-	TENANT_ACCESSIBLE_PAGE.ORDERS,
+	TENANT_ACCESSIBLE_PAGE.PROJECTS,
 	TENANT_ACCESSIBLE_PAGE.SETTINGS,
 	TENANT_ACCESSIBLE_PAGE.CATEGORIES,
 	TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES,
@@ -60,9 +60,12 @@ export const sanitizeAccessiblePages = (
 		return []
 	}
 
-	return pages.filter((page): page is TenantAccessiblePage =>
-		configurablePageSet.has(page),
-	)
+	// stored tenants still say ORDERS; treat that token as PROJECTS
+	return pages
+		.map(page => (page === 'ORDERS' ? TENANT_ACCESSIBLE_PAGE.PROJECTS : page))
+		.filter((page): page is TenantAccessiblePage =>
+			configurablePageSet.has(page),
+		)
 }
 
 export const resolveTenantAccessiblePages = (tenant: {

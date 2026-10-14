@@ -14,7 +14,7 @@
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"DELETE": { "accessLevel": "GLOBAL", "fields": ["*"] }
 		},
-		"/orders": {
+		"/projects": {
 			"GET": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"POST": { "accessLevel": "GLOBAL", "fields": ["*"] },
 			"PATCH": { "accessLevel": "GLOBAL", "fields": ["*"] },

@@ -4,6 +4,8 @@ export enum DailyActionType {
 	PAYMENT_ENTRY = 'PAYMENT_ENTRY',
 	RECEIPT_ENTRY = 'RECEIPT_ENTRY',
 	EXPENSE_ENTRY = 'EXPENSE_ENTRY',
+	EMPLOYEE_COST = 'EMPLOYEE_COST',
+	OTHER_COST = 'OTHER_COST',
 }
 
 export enum TargetType {

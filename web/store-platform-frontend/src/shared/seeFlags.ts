@@ -1,6 +1,8 @@
 export const SEE = {
 	welcome: 'welcome',
-	orders: 'orders',
+	projects: 'projects',
+	projectsAdd: 'projects.add',
+	projectsDelete: 'projects.delete',
 	settings: 'settings',
 	settingsProducts: 'settings.products',
 	settingsLanguage: 'settings.language',

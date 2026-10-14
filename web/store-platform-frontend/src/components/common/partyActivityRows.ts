@@ -76,7 +76,9 @@ const tradeEntryRow = (action: DailyAction): EntryTableRow | null => {
 export const isQuickEntryActivity = (row: EntryTableRow) =>
 	row.entrySubType === 'receipt' ||
 	row.entrySubType === 'payment' ||
-	row.entrySubType === 'expense'
+	row.entrySubType === 'expense' ||
+	row.entrySubType === 'employeeCost' ||
+	row.entrySubType === 'otherCost'
 
 export const partyCashEntries = (
 	actions: DailyAction[],
@@ -137,16 +139,23 @@ const balanceMagnitude = (total: number, paid: number) =>
 
 /**
  * This row's own balance, not a running sum.
- * Customer and partner: selling and payment are +, buying and receipt are -.
+ * Customer, partner, and project: selling and payment are +, buying and receipt are -.
+ * Project employeeCost and otherCost are +.
  * Supplier: buying and receipt are +, selling and payment are -.
  */
 export const partyActivityBalanceAmount = (
-	party: 'customer' | 'supplier' | 'partner',
+	party: 'customer' | 'supplier' | 'partner' | 'project',
 	row: PartyActivity,
 	entryAmount: number,
 ): number => {
 	if (row.kind === 'entry') {
 		const subType = row.row.entrySubType
+		if (
+			party === 'project' &&
+			(subType === 'employeeCost' || subType === 'otherCost')
+		) {
+			return entryAmount
+		}
 		const adds =
 			party === 'supplier'
 				? subType === 'buying' || subType === 'receipt'

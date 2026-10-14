@@ -11,7 +11,7 @@ export interface IInventory extends Document {
 	averageCost?: number
 	minQuantity?: number // low stock alert
 	maxQuantity?: number // overstock alert
-	reservedQuantity?: number // reserved for pending orders
+	reservedQuantity?: number // reserved for pending projects
 	availableQuantity?: number // quantity - reserved
 	lastCountDate?: Date
 	createdBy: {

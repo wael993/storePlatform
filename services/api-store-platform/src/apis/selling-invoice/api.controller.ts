@@ -127,9 +127,9 @@ export type SellingInvoiceCollaborator = {
 			discount: number
 		},
 	): Promise<InvoiceRequestBody['currencyAmounts']>
-	ensureOrderBelongsToTenant(
+	ensureProjectBelongsToTenant(
 		requestContext: RequestContext,
-		orderId?: string,
+		projectId?: string,
 	): Promise<void>
 	getProcessedSyncMutation(
 		requestContext: RequestContext,
@@ -144,7 +144,7 @@ export type SellingInvoiceCollaborator = {
 		error?: string,
 	): Promise<void>
 	invalidateEntityCache(
-		entity: 'orders' | 'invoices' | 'inventory' | 'products' | 'categories',
+		entity: 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
 		id?: string,
 	): Promise<void>
@@ -1111,7 +1111,7 @@ export default class SellingInvoiceController {
 						data: {
 							invoiceId,
 							invoiceNumber: allocatedNumber,
-							orderId: requestBody.orderId,
+							projectId: requestBody.projectId,
 							customerId: requestBody.customerId,
 							customerName: requestBody.customerName,
 							salesPerson: requestBody.salesPerson,
@@ -1231,9 +1231,9 @@ export default class SellingInvoiceController {
 		requestContext: RequestContext,
 	) {
 		await ensureSeeIds(requestContext, [SEE.sellingInvoicesEdit])
-		await this.ops.ensureOrderBelongsToTenant(
+		await this.ops.ensureProjectBelongsToTenant(
 			requestContext,
-			requestBody.orderId,
+			requestBody.projectId,
 		)
 
 		const existingInvoice = await this.getInvoice(invoiceId, requestContext)

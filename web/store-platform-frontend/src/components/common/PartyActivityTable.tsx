@@ -6,6 +6,10 @@ import {
 	HStack,
 	Icon,
 	IconButton,
+	Menu,
+	MenuButton,
+	MenuItem,
+	MenuList,
 	Spinner,
 	Table,
 	Tbody,
@@ -18,6 +22,7 @@ import {
 } from '@chakra-ui/react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronDownIcon } from '@chakra-ui/icons'
 
 import {
 	useDeleteBuyingInvoiceMutation,
@@ -31,7 +36,7 @@ import {
 import { AsDownloadIcon } from '../../icons/Download'
 import { AsPrintIcon } from '../../icons/Print'
 import { AsTrashIcon } from '../../icons/Trash'
-import { InvoiceUiStatus } from '../../shared/globalEnums'
+import { InvoiceUiStatus, PricingLabelsType } from '../../shared/globalEnums'
 import { AsEditIcon } from '../../shared/icons/Edit'
 import { AsWatcherEyeIcon } from '../../shared/icons/WatcherEye'
 import { useSee } from '../../shared/hooks/useSee'
@@ -120,7 +125,7 @@ const StatusBadge = ({ status }: { status: SellingInvoiceStatus }) => {
 }
 
 interface PartyActivityTableProps {
-	party: 'customer' | 'supplier' | 'partner'
+	party: 'customer' | 'supplier' | 'partner' | 'project'
 	partyId: string
 	partyName: string
 	entries: DailyAction[]
@@ -149,6 +154,8 @@ const PartyActivityTable = ({
 	const canAddEntry = canSee(SEE.invoicesEntriesAdd)
 	const canEditEntry = canSee(SEE.invoicesEntriesEdit)
 	const canDeleteEntry = canSee(SEE.invoicesEntriesDelete)
+	const canSeeWholesalePrice = canSee(SEE.productsWholesalePrice)
+	const canSeeSemiWholesalePrice = canSee(SEE.productsSemiWholesalePrice)
 	const [filter, setFilter] = useState<PartyActivityFilter>('all')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
@@ -169,6 +176,10 @@ const PartyActivityTable = ({
 	const [createInvoice, setCreateInvoice] = useState<
 		'selling' | 'buying' | null
 	>(null)
+	const [invoicePricing, setInvoicePricing] = useState(
+		PricingLabelsType.RETAIL_PRICE,
+	)
+	const [costKind, setCostKind] = useState<'employee' | 'other' | undefined>()
 	const {
 		isOpen: isSellingOpen,
 		onOpen: onSellingOpen,
@@ -335,9 +346,23 @@ const PartyActivityTable = ({
 
 	const openCreateEntry = () => {
 		if (!canAddEntry || !isOperational) return
+		setCostKind(undefined)
 		setSelectedEntry(null)
 		setEntryMode('create')
 		onEntryOpen()
+	}
+
+	const openCost = (kind: 'employee' | 'other') => {
+		if (!canAddEntry || !isOperational) return
+		setCostKind(kind)
+		setSelectedEntry(null)
+		setEntryMode('create')
+		onEntryOpen()
+	}
+
+	const openSellingInvoice = (pricing = PricingLabelsType.RETAIL_PRICE) => {
+		setInvoicePricing(pricing)
+		setCreateInvoice('selling')
 	}
 
 	const openEntry = (entry: DailyAction, mode: QuickEntryModalMode) => {
@@ -578,7 +603,7 @@ const PartyActivityTable = ({
 							</Badge>
 						</HStack>
 						<HStack spacing={2} flexWrap="wrap" justify="flex-end">
-							{canAddBuying ? (
+							{canAddBuying && party !== 'project' ? (
 								<Button
 									size="sm"
 									variant="outline"
@@ -604,14 +629,120 @@ const PartyActivityTable = ({
 									{t('components.sellingInvoices.newEntry')}
 								</Button>
 							) : null}
-							{canAddSelling ? (
+							{canAddEntry && party === 'project' ? (
+								<>
+									<Button
+										size="sm"
+										variant="outline"
+										borderColor={PAGE_COLORS.border}
+										fontWeight={600}
+										onClick={() => openCost('employee')}
+										isDisabled={!isOperational}
+										title={blockedTitle}
+									>
+										{t('components.sellingInvoices.employeeCost')}
+									</Button>
+									<Button
+										size="sm"
+										variant="outline"
+										borderColor={PAGE_COLORS.border}
+										fontWeight={600}
+										onClick={() => openCost('other')}
+										isDisabled={!isOperational}
+										title={blockedTitle}
+									>
+										{t('components.sellingInvoices.otherCost')}
+									</Button>
+								</>
+							) : null}
+							{canAddSelling && party === 'project' ? (
+								<HStack spacing={0}>
+									{(canSeeWholesalePrice || canSeeSemiWholesalePrice) && (
+										<Menu>
+											<MenuButton
+												as={Button}
+												size="sm"
+												bg={PAGE_COLORS.primary}
+												color="white"
+												borderTopLeftRadius={0}
+												borderBottomLeftRadius={0}
+												borderTopRightRadius="md"
+												borderBottomRightRadius="md"
+												minW="auto"
+												px={2}
+												borderLeft="1px solid"
+												borderColor="#1D4ED8"
+												_hover={{ bg: '#1D4ED8' }}
+												aria-label={t(
+													'components.sellingInvoices.newInvoiceOptions',
+												)}
+												isDisabled={!isOperational}
+											>
+												<ChevronDownIcon />
+											</MenuButton>
+											<MenuList>
+												{canSeeWholesalePrice && (
+													<MenuItem
+														onClick={() =>
+															openSellingInvoice(
+																PricingLabelsType.WHOLESALE_PRICE,
+															)
+														}
+													>
+														{t(
+															'components.sellingInvoices.newWholesaleInvoice',
+														)}
+													</MenuItem>
+												)}
+												{canSeeSemiWholesalePrice && (
+													<MenuItem
+														onClick={() =>
+															openSellingInvoice(
+																PricingLabelsType.SEMI_WHOLESALE_PRICE,
+															)
+														}
+													>
+														{t(
+															'components.sellingInvoices.newSemiWholesaleInvoice',
+														)}
+													</MenuItem>
+												)}
+											</MenuList>
+										</Menu>
+									)}
+									<Button
+										size="sm"
+										bg={PAGE_COLORS.primary}
+										color="white"
+										fontWeight={600}
+										borderTopLeftRadius="md"
+										borderBottomLeftRadius="md"
+										borderTopRightRadius={
+											canSeeWholesalePrice || canSeeSemiWholesalePrice
+												? 0
+												: 'md'
+										}
+										borderBottomRightRadius={
+											canSeeWholesalePrice || canSeeSemiWholesalePrice
+												? 0
+												: 'md'
+										}
+										_hover={{ bg: '#1D4ED8' }}
+										onClick={() => openSellingInvoice()}
+										isDisabled={!isOperational}
+										title={blockedTitle}
+									>
+										{t('components.sellingInvoices.newInvoice')}
+									</Button>
+								</HStack>
+							) : canAddSelling ? (
 								<Button
 									size="sm"
 									bg={PAGE_COLORS.primary}
 									color="white"
 									fontWeight={600}
 									_hover={{ bg: '#1D4ED8' }}
-									onClick={() => setCreateInvoice('selling')}
+									onClick={() => openSellingInvoice()}
 									isDisabled={!isOperational}
 									title={blockedTitle}
 								>
@@ -1067,12 +1198,17 @@ const PartyActivityTable = ({
 				onClose={() => {
 					setSelectedEntry(null)
 					setEntryMode('view')
+					setCostKind(undefined)
 					onEntryClose()
 				}}
 				mode={entryMode}
 				initialEntry={selectedEntry}
 				initialPartyId={entryMode === 'create' ? partyId : undefined}
 				initialPartyName={entryMode === 'create' ? partyName : undefined}
+				initialProjectId={
+					entryMode === 'create' && party === 'project' ? partyId : undefined
+				}
+				costKind={entryMode === 'create' ? costKind : undefined}
 				customers={customers}
 				suppliers={suppliers}
 			/>
@@ -1083,6 +1219,8 @@ const PartyActivityTable = ({
 					customers={customers}
 					initialCustomerId={partyId}
 					initialCustomerName={partyName}
+					initialProjectId={party === 'project' ? partyId : undefined}
+					initialPricingLabels={invoicePricing}
 					nextInvoiceNumber={
 						sellingNextNumber ?? (isSellingCreateError ? 1 : undefined)
 					}
@@ -1095,8 +1233,8 @@ const PartyActivityTable = ({
 					isOpen
 					mode="create"
 					suppliers={suppliers}
-					initialSupplierId={partyId}
-					initialSupplierName={partyName}
+					initialSupplierId={party === 'project' ? undefined : partyId}
+					initialSupplierName={party === 'project' ? undefined : partyName}
 					nextInvoiceNumber={
 						buyingNextNumber ?? (isBuyingCreateError ? 1 : undefined)
 					}

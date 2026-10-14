@@ -6,7 +6,9 @@ import { TenantRole } from './tenant'
 
 export const SEE = {
 	welcome: 'welcome',
-	orders: 'orders',
+	projects: 'projects',
+	projectsAdd: 'projects.add',
+	projectsDelete: 'projects.delete',
 	settings: 'settings',
 	settingsProducts: 'settings.products',
 	settingsLanguage: 'settings.language',
@@ -89,7 +91,11 @@ export type SeeCatalogNode = {
 
 export const SEE_CATALOG: SeeCatalogNode[] = [
 	{ id: SEE.welcome, tenantPage: null },
-	{ id: SEE.orders, tenantPage: TENANT_ACCESSIBLE_PAGE.ORDERS },
+	{
+		id: SEE.projects,
+		tenantPage: TENANT_ACCESSIBLE_PAGE.PROJECTS,
+		children: [{ id: SEE.projectsAdd }, { id: SEE.projectsDelete }],
+	},
 	{
 		id: SEE.settings,
 		tenantPage: TENANT_ACCESSIBLE_PAGE.SETTINGS,
@@ -323,7 +329,10 @@ export const resolveSeeIds = (
 	const base =
 		stored == null
 			? defaultSeeIds(role, pages)
-			: stored.filter((id): id is SeeId => available.has(id as SeeId))
+			: stored
+					// stored roles still say orders; treat that id as projects
+					.map(id => (id === 'orders' ? SEE.projects : id))
+					.filter((id): id is SeeId => available.has(id as SeeId))
 
 	if (
 		stored != null &&
@@ -332,6 +341,20 @@ export const resolveSeeIds = (
 		available.has(SEE.invoices)
 	) {
 		base.push(SEE.invoices)
+	}
+
+	// note: roles saved before projects.add / projects.delete only store "projects". Grant both until those roles are saved again.
+	if (stored != null && base.includes(SEE.projects)) {
+		if (available.has(SEE.projectsAdd) && !base.includes(SEE.projectsAdd)) {
+			base.push(SEE.projectsAdd)
+		}
+
+		if (
+			available.has(SEE.projectsDelete) &&
+			!base.includes(SEE.projectsDelete)
+		) {
+			base.push(SEE.projectsDelete)
+		}
 	}
 
 	return [...new Set([...base, ...locked])]

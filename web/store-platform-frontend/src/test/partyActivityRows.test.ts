@@ -153,6 +153,13 @@ describe('party activity rows', () => {
 		expect(partyActivityBalanceAmount('supplier', openSale, 0)).toBe(-21)
 		expect(partyActivityBalanceAmount('supplier', sellingEntry, 10)).toBe(-10)
 		expect(partyActivityBalanceAmount('supplier', payment, 10)).toBe(-10)
+		const otherCost = entry('other', 20)
+		otherCost.row.entrySubType = 'otherCost'
+		const employeeCost = entry('employee', 20)
+		employeeCost.row.entrySubType = 'employeeCost'
+		expect(partyActivityBalanceAmount('project', otherCost, 200)).toBe(200)
+		expect(partyActivityBalanceAmount('project', employeeCost, 200)).toBe(200)
+		expect(partyActivityBalanceAmount('customer', otherCost, 200)).toBe(0)
 
 		expect(partyActivityBalanceTone(4)).toEqual({ sign: '+', color: '#15803D' })
 		expect(partyActivityBalanceTone(-10).sign).toBe('-')

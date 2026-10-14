@@ -6,7 +6,7 @@ import { getIsOnline, subscribeConnectivity } from '../offline/connectivity'
 const DELETE_BLOCK_REASONS = new Set([
 	'invoice',
 	'buyingInvoice',
-	'order',
+	'project',
 	'stockMoving',
 	'dailyAction',
 	'products',

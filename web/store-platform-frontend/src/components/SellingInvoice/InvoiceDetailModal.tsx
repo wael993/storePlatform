@@ -11,6 +11,7 @@ import NewSellingInvoicePanel, {
 	type InvoicePanelMode,
 } from './NewSellingInvoicePanel'
 import type { ApiSellingInvoice } from './invoiceApiMappers'
+import { PricingLabelsType } from '../../shared/globalEnums'
 
 interface InvoiceDetailModalProps {
 	isOpen: boolean
@@ -23,6 +24,8 @@ interface InvoiceDetailModalProps {
 	onRequestEdit?: () => void
 	initialCustomerId?: string
 	initialCustomerName?: string
+	initialProjectId?: string
+	initialPricingLabels?: PricingLabelsType
 	nextInvoiceNumber?: number
 }
 
@@ -37,6 +40,8 @@ const InvoiceDetailModal = ({
 	onRequestEdit,
 	initialCustomerId,
 	initialCustomerName,
+	initialProjectId,
+	initialPricingLabels,
 	nextInvoiceNumber,
 }: InvoiceDetailModalProps) => {
 	if (mode !== 'create' && !invoiceId) return null
@@ -74,6 +79,8 @@ const InvoiceDetailModal = ({
 							onRequestEdit={onRequestEdit}
 							initialCustomerId={initialCustomerId}
 							initialCustomerName={initialCustomerName}
+							initialProjectId={initialProjectId}
+							initialPricingLabels={initialPricingLabels}
 							nextInvoiceNumber={nextInvoiceNumber}
 						/>
 					)}

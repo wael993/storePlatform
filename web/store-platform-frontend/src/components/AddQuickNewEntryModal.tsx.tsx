@@ -200,6 +200,7 @@ const AddQuickNewEntryModal = ({ isOpen, onClose }: AddQuickModalProps) => {
 	const actions: Record<AddQuickModalType, (data: FormData) => Promise<void>> =
 		{
 			product: async () => undefined,
+			project: async () => undefined,
 			customer: async ({ value, code }) => {
 				if (!value.trim()) return
 				await executeAction(

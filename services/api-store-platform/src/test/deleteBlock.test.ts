@@ -16,6 +16,7 @@ describe('stampDeleteAvailability', () => {
 			isDeletable: false,
 			deleteBlockReason: 'invoice',
 		})
+
 		expect(rows[1]).toMatchObject({
 			id: 'b',
 			isDeletable: true,

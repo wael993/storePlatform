@@ -24,6 +24,8 @@ type EntryType =
 	| 'PAYMENT_ENTRY'
 	| 'RECEIPT_ENTRY'
 	| 'EXPENSE_ENTRY'
+	| 'EMPLOYEE_COST'
+	| 'OTHER_COST'
 
 interface ProductDailyAction {
 	actionId: string
@@ -95,6 +97,7 @@ interface DailyAction {
 	supplierName?: string
 	customerId?: string
 	customerName?: string
+	projectId?: string
 	expenseId?: string
 	expenseName?: string
 	currencyId: string
@@ -121,6 +124,9 @@ interface DailyActionRequestBody {
 	partnerName?: string
 	customerId?: string
 	customerName?: string
+	projectId?: string
+	employeeId?: string
+	employeeName?: string
 	expenseId?: string
 	expenseName?: string
 	currencyId: string

@@ -207,12 +207,12 @@ class RedisCache {
 		return `cache:products:detail:${tenantId}:${productId}:v2`
 	}
 
-	public buildOrderListKey(tenantId: string): string {
-		return `cache:orders:list:${tenantId}`
+	public buildProjectListKey(tenantId: string): string {
+		return `cache:projects:list:${tenantId}:v2`
 	}
 
-	public buildOrderDetailKey(tenantId: string, orderId: string): string {
-		return `cache:orders:detail:${tenantId}:${orderId}`
+	public buildProjectDetailKey(tenantId: string, projectId: string): string {
+		return `cache:projects:detail:${tenantId}:${projectId}`
 	}
 
 	public buildInvoiceListKey(tenantId: string): string {
@@ -270,7 +270,7 @@ class RedisCache {
 	}
 
 	public buildEntityDetailPatternKey(
-		entity: 'products' | 'orders' | 'invoices' | 'inventory' | 'categories',
+		entity: 'products' | 'projects' | 'invoices' | 'inventory' | 'categories',
 		tenantId: string,
 	): string {
 		return `cache:${entity}:detail:${tenantId}:*`

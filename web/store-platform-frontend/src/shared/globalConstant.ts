@@ -63,6 +63,14 @@ export const MODAL_CONFIG = {
 		inputType: 'text' as InputType,
 		buttonText: 'components.partner.addPartner',
 	},
+	[AddQuickStateEnum.PROJECT]: {
+		title: 'components.daily.addQuickProject',
+		label: 'components.daily.projectName',
+		code: 'components.daily.projectCode',
+		placeholder: 'components.daily.projectName',
+		inputType: 'text' as InputType,
+		buttonText: 'common.addProject',
+	},
 	[AddQuickStateEnum.CATEGORY]: {
 		title: 'components.quickAdd.addQuickCategory',
 		label: 'components.filters.category',

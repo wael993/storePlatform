@@ -45,7 +45,7 @@ const TenantLayout = () => {
 
 	const {
 		isProductsEnabled,
-		isOrdersEnabled,
+		isProjectsEnabled,
 		isUsersEnabled,
 		isCustomersEnabled,
 		isSellingInvoicesEnabled,
@@ -59,7 +59,7 @@ const TenantLayout = () => {
 
 	const {
 		isTenantProductsEnabled,
-		isTenantOrdersEnabled,
+		isTenantProjectsEnabled,
 		isTenantUsersEnabled,
 		isTenantCustomersEnabled,
 		isTenantDashboardEnabled,
@@ -81,8 +81,8 @@ const TenantLayout = () => {
 		isProductsEnabled && isTenantProductsEnabled && canSee(SEE.products)
 			? { label: 'Products', path: RoutePaths.PRODUCTS }
 			: null,
-		isOrdersEnabled && isTenantOrdersEnabled && canSee(SEE.orders)
-			? { label: 'Orders', path: RoutePaths.ORDERS }
+		isProjectsEnabled && isTenantProjectsEnabled && canSee(SEE.projects)
+			? { label: 'Projects', path: RoutePaths.PROJECTS }
 			: null,
 		isCustomersEnabled && isTenantCustomersEnabled && canSee(SEE.customers)
 			? { label: 'Customers', path: RoutePaths.CUSTOMERS }

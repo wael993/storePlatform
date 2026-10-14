@@ -8,7 +8,7 @@ import {
 } from '../../middleware/errorHandler'
 import { Inventory } from '../../models/Inventory'
 import { Invoice } from '../../models/Invoice'
-import { Order } from '../../models/Order'
+import { Project } from '../../models/Project'
 import { Product } from '../../models/Products'
 import { Report } from '../../models/Report'
 import RefreshToken from '../../models/RefreshToken'
@@ -557,7 +557,7 @@ export default class TenantController {
 			User.deleteMany({ tenantId }),
 			RefreshToken.deleteMany({ tenantId }),
 			Product.deleteMany({ tenantId }),
-			Order.deleteMany({ tenantId }),
+			Project.deleteMany({ tenantId }),
 			Invoice.deleteMany({ tenantId }),
 			Inventory.deleteMany({ tenantId }),
 			Report.deleteMany({ tenantId }),

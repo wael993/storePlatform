@@ -104,10 +104,11 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 		}))
 	}
 	const handlePostNewPartner = async (data: FormData) => {
+		const internalCode = (data.code.trim() || nextInternalCode).toUpperCase()
 		try {
 			await createPartner({
 				name: data.value,
-				internalCode: data.code,
+				internalCode,
 			}).unwrap()
 			setFormData({ code: '', value: '' })
 			onClose()
@@ -126,7 +127,10 @@ const PartnerPage = (_targetType: PartnerPageProps) => {
 		'CZ' +
 		String(
 			Math.max(
-				...partners.map(p => parseInt(p.internalCode?.slice(2) ?? '0', 10), 10),
+				0,
+				...partners.map(
+					partner => parseInt(partner.internalCode?.slice(2) ?? '0', 10) || 0,
+				),
 			) + 1,
 		).padStart(3, '0')
 

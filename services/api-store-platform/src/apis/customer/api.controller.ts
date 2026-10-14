@@ -329,9 +329,11 @@ export default class CustomerController {
 			}
 		}
 
+		const internalCode = requestBody.internalCode?.trim()
 		const customerData: Record<string, unknown> = {
 			customerId,
 			name,
+			...(internalCode ? { internalCode } : {}),
 		}
 
 		logger.info('Saving customer to database.', {

@@ -19,6 +19,7 @@ import {
 	useGetCustomersQuery,
 	useGetInvoiceSettingsQuery,
 	useGetPartnersQuery,
+	useGetProjectsQuery,
 	useGetSuppliersQuery,
 	useGetSellingInvoiceQuery,
 	usePostSellingInvoiceMutation,
@@ -115,6 +116,7 @@ interface NewSellingInvoicePanelProps {
 	customers?: Customer[]
 	initialCustomerId?: string
 	initialCustomerName?: string
+	initialProjectId?: string
 }
 
 const PaymentTypeButton = ({
@@ -225,6 +227,7 @@ const NewSellingInvoicePanel = ({
 	customers: customersProp,
 	initialCustomerId,
 	initialCustomerName,
+	initialProjectId,
 }: NewSellingInvoicePanelProps) => {
 	const { t } = useTranslation()
 	const showToast = useCustomToast()
@@ -244,6 +247,11 @@ const NewSellingInvoicePanel = ({
 		)
 	const { data: partyPartners = [], isLoading: isPartnersLoading } =
 		useGetPartnersQuery(undefined, {
+			skip: !isActive || isView,
+			refetchOnMountOrArgChange: false,
+		})
+	const { data: projects = [], isLoading: isProjectsLoading } =
+		useGetProjectsQuery(undefined, {
 			skip: !isActive || isView,
 			refetchOnMountOrArgChange: false,
 		})
@@ -455,8 +463,25 @@ const NewSellingInvoicePanel = ({
 					name: supplier.name,
 				})),
 			),
+			...(initialProjectId &&
+			initialCustomerName &&
+			!projects.some(project => project.projectId === initialProjectId)
+				? [{ value: initialProjectId, label: initialCustomerName }]
+				: []),
+			...projects.map(project => ({
+				value: project.projectId,
+				label: project.name,
+			})),
 		],
-		[customers, partyPartners, partySuppliers, t],
+		[
+			customers,
+			initialCustomerName,
+			initialProjectId,
+			partyPartners,
+			partySuppliers,
+			projects,
+			t,
+		],
 	)
 
 	const handleAddProduct = (product: Product) => {
@@ -582,11 +607,27 @@ const NewSellingInvoicePanel = ({
 				}
 			}
 
-			const body = buildInvoiceRequestBody(draft, status, currencySettings, {
-				invoiceCurrencyId: displayCurrencyId,
-				cashAccountType,
-				cashTenders,
-			})
+			const selectedProject =
+				projects.find(project => project.projectId === draft.customerId) ??
+				(initialProjectId && draft.customerId === initialProjectId
+					? { projectId: initialProjectId, name: draft.customerName }
+					: undefined)
+			const body = {
+				...buildInvoiceRequestBody(draft, status, currencySettings, {
+					invoiceCurrencyId: displayCurrencyId,
+					cashAccountType,
+					cashTenders,
+				}),
+				...(selectedProject
+					? {
+							projectId: selectedProject.projectId,
+							customerId: undefined,
+							customerName: selectedProject.name,
+						}
+					: initialProjectId
+						? { projectId: initialProjectId }
+						: {}),
+			}
 
 			if (mode === 'edit') {
 				await updateSellingInvoice({
@@ -921,7 +962,9 @@ const NewSellingInvoicePanel = ({
 						isSingle
 						isSearchable
 						isDisabled={isReadOnly}
-						isLoading={isPartnersLoading || isSuppliersLoading}
+						isLoading={
+							isPartnersLoading || isSuppliersLoading || isProjectsLoading
+						}
 						customStyles={{
 							dropdownContainer: {
 								width: '100%',

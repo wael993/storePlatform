@@ -101,10 +101,11 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 	}
 
 	const handlePostNewSupplier = async (data: FormData) => {
+		const internalCode = (data.code.trim() || nextInternalCode).toUpperCase()
 		try {
 			await createSupplier({
 				name: data.value,
-				internalCode: data.code,
+				internalCode,
 			}).unwrap()
 			setFormData({ code: '', value: '' })
 			onClose()
@@ -123,9 +124,9 @@ const SupplierPage = ({ targetType }: SupplierPageProps) => {
 		'CZ' +
 		String(
 			Math.max(
+				0,
 				...suppliers.map(
-					supplier => parseInt(supplier.internalCode?.slice(2) ?? '0', 10),
-					10,
+					supplier => parseInt(supplier.internalCode?.slice(2) ?? '0', 10) || 0,
 				),
 			) + 1,
 		).padStart(3, '0')

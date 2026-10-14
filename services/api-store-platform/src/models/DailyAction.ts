@@ -10,6 +10,8 @@ export interface IDailyAction extends Document {
 		| 'PAYMENT_ENTRY'
 		| 'RECEIPT_ENTRY'
 		| 'EXPENSE_ENTRY'
+		| 'EMPLOYEE_COST'
+		| 'OTHER_COST'
 	warehouseId: string
 	productId?: string
 	invoiceNumber?: string
@@ -21,6 +23,9 @@ export interface IDailyAction extends Document {
 	partnerName?: string
 	customerId?: string
 	customerName?: string
+	projectId?: string
+	employeeId?: string
+	employeeName?: string
 	expenseId?: string
 	expenseName?: string
 	currencyId: string
@@ -70,6 +75,8 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 				'PAYMENT_ENTRY',
 				'RECEIPT_ENTRY',
 				'EXPENSE_ENTRY',
+				'EMPLOYEE_COST',
+				'OTHER_COST',
 			],
 			required: [true, 'entryType is required'],
 		},
@@ -108,6 +115,18 @@ const DailyActionSchema: Schema<IDailyAction> = new mongoose.Schema(
 			trim: true,
 		},
 		customerName: {
+			type: String,
+			trim: true,
+		},
+		projectId: {
+			type: String,
+			trim: true,
+		},
+		employeeId: {
+			type: String,
+			trim: true,
+		},
+		employeeName: {
 			type: String,
 			trim: true,
 		},

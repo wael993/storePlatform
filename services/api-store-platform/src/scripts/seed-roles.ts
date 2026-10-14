@@ -32,7 +32,7 @@ const noAccessResource = {
 
 const OWNER_READ_ONLY_RESOURCES = [
 	'/categories',
-	'/orders',
+	'/projects',
 	'/invoices',
 	'/buyingInvoices',
 	'/reports',

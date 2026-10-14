@@ -42,6 +42,8 @@ export type TagType =
 	| 'supplier'
 	| 'customers'
 	| 'customer'
+	| 'projects'
+	| 'project'
 	| 'categories'
 	| 'brands'
 	| 'brand'
@@ -81,6 +83,8 @@ const tagTypes: TagType[] = [
 	'supplier',
 	'customers',
 	'customer',
+	'projects',
+	'project',
 	'categories',
 	'brands',
 	'brand',

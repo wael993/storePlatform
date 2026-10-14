@@ -44,7 +44,7 @@ export interface IInvoice extends Document {
 	tenantId: string
 	invoiceId: string
 	invoiceNumber: string
-	orderId?: string
+	projectId?: string
 	customerId?: string
 	customerName?: string
 	salesPerson?: string
@@ -135,7 +135,7 @@ const InvoiceSchema: Schema<IInvoice> = new mongoose.Schema(
 			required: [true, 'invoiceNumber is required'],
 			trim: true,
 		},
-		orderId: {
+		projectId: {
 			type: String,
 			trim: true,
 		},

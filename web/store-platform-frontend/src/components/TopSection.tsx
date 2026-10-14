@@ -30,12 +30,17 @@ const TYPE_CHIP: Partial<
 		translationKey: 'common.partner',
 		color: '#9B59B6',
 	},
+	[TargetType.PROJECT]: {
+		translationKey: 'common.project',
+		color: '#376288',
+	},
 }
 
 const BREADCRUMB_ITEM = {
 	[TargetType.CUSTOMER]: BreadCrumbItem.CUSTOMER,
 	[TargetType.SUPPLIER]: BreadCrumbItem.SUPPLIER,
 	[TargetType.PARTNER]: BreadCrumbItem.PARTNER,
+	[TargetType.PROJECT]: BreadCrumbItem.PROJECT,
 	[TargetType.PRODUCT]: BreadCrumbItem.PRODUCT,
 } as const
 
@@ -135,6 +140,7 @@ interface TopSectionProps {
 	product?: Product
 	supplier?: Supplier
 	partner?: Partner
+	project?: Project
 	onClose: () => void
 }
 
@@ -151,12 +157,13 @@ const TopSection = ({
 	product,
 	supplier,
 	partner,
+	project,
 	onClose,
 }: TopSectionProps) => {
 	const { isProductTarget } = compareTargetType(targetType)
 	const { canSee } = useSee()
 	const { t } = useTranslation()
-	const entry = customer ?? supplier ?? partner ?? product
+	const entry = customer ?? supplier ?? partner ?? project ?? product
 
 	if (!entry) return null
 
@@ -164,6 +171,7 @@ const TopSection = ({
 		customer?.customerId ??
 		supplier?.supplierId ??
 		partner?.partnerId ??
+		project?.projectId ??
 		product?.productId ??
 		''
 
@@ -244,7 +252,8 @@ const TopSection = ({
 	const invoiceSummary =
 		supplier?.invoiceSummary ??
 		customer?.invoiceSummary ??
-		partner?.invoiceSummary
+		partner?.invoiceSummary ??
+		project?.invoiceSummary
 	const showInvoiceFacts = Boolean(invoiceSummary)
 	const showFacts = showInvoiceFacts || productFacts.length > 0
 
@@ -279,7 +288,15 @@ const TopSection = ({
 						<Box sx={styles.divider} />
 						{showInvoiceFacts && (
 							<PartyInvoiceSummaryCards
-								party={supplier ? 'supplier' : partner ? 'partner' : 'customer'}
+								party={
+									supplier
+										? 'supplier'
+										: partner
+											? 'partner'
+											: project
+												? 'project'
+												: 'customer'
+								}
 								totals={invoiceSummary}
 								partyId={supplier?.supplierId ?? customer?.customerId}
 								openingBalances={

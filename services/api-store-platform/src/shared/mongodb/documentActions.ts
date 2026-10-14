@@ -13,14 +13,13 @@ type Sort = Record<string, SortOrder>
 export type EntityModel = Model<any>
 
 const STRING_AUDIT_RESOURCES = new Set<TenantResource>([
-	COLLECTION_NAMES.ORDERS,
 	COLLECTION_NAMES.REPORTS,
 ])
 
 const RESOURCE_ID_FIELD: Record<TenantResource, string> = {
 	[COLLECTION_NAMES.PRODUCTS]: 'productId',
 	[COLLECTION_NAMES.CATEGORIES]: 'categoryId',
-	[COLLECTION_NAMES.ORDERS]: 'orderId',
+	[COLLECTION_NAMES.PROJECTS]: 'projectId',
 	[COLLECTION_NAMES.INVOICES]: 'invoiceId',
 	[COLLECTION_NAMES.BUYING_INVOICES]: 'buyingInvoiceId',
 	[COLLECTION_NAMES.INVENTORY]: 'inventoryId',

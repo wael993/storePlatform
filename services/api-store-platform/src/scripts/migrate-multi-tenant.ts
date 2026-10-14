@@ -11,7 +11,7 @@ import {
 const COLLECTIONS = [
 	'users',
 	'products',
-	'orders',
+	'projects',
 	'invoices',
 	'inventories',
 	'reports',

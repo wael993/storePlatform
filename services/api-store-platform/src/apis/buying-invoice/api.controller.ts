@@ -148,7 +148,7 @@ export type BuyingInvoiceCollaborator = {
 		error?: string,
 	): Promise<void>
 	invalidateEntityCache(
-		entity: 'orders' | 'invoices' | 'inventory' | 'products' | 'categories',
+		entity: 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
 		id?: string,
 	): Promise<void>

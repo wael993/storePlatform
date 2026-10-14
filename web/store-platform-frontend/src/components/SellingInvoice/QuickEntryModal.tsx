@@ -18,8 +18,10 @@ import { useTranslation } from 'react-i18next'
 import {
 	useGetCashAccountBalancesQuery,
 	useGetCurrencySettingsQuery,
+	useGetEmployeesQuery,
 	useGetExpensesQuery,
 	useGetPartnersQuery,
+	useGetProjectsQuery,
 	usePostCashTransferMutation,
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
@@ -60,6 +62,9 @@ interface QuickEntryModalProps {
 	initialEntry?: DailyAction | null
 	initialPartyId?: string
 	initialPartyName?: string
+	initialProjectId?: string
+	/** Opens the employee-cost or other-cost form instead of the entry tabs. */
+	costKind?: 'employee' | 'other'
 	customers: Customer[]
 	suppliers: Supplier[]
 }
@@ -128,6 +133,8 @@ const QuickEntryModal = ({
 	initialEntry = null,
 	initialPartyId,
 	initialPartyName,
+	initialProjectId,
+	costKind,
 	customers,
 	suppliers,
 }: QuickEntryModalProps) => {
@@ -190,6 +197,26 @@ const QuickEntryModal = ({
 			skip: !isOpen || isReadOnly || isTransferTab,
 			refetchOnMountOrArgChange: false,
 		})
+	const { data: projects = [] } = useGetProjectsQuery(undefined, {
+		skip: !isOpen || isReadOnly || isTransferTab,
+		refetchOnMountOrArgChange: false,
+	})
+	const { data: employees = [], isLoading: isEmployeesLoading } =
+		useGetEmployeesQuery(undefined, {
+			skip:
+				!isOpen ||
+				(costKind !== 'employee' &&
+					form.entryType !== DailyActionType.EMPLOYEE_COST),
+			refetchOnMountOrArgChange: false,
+		})
+	const projectIds = useMemo(
+		() => new Set(projects.map(project => project.projectId)),
+		[projects],
+	)
+	const isProjectSelection = (entityId?: string) =>
+		Boolean(
+			entityId && (entityId === initialProjectId || projectIds.has(entityId)),
+		)
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -212,14 +239,35 @@ const QuickEntryModal = ({
 			return
 		}
 
-		if (mode === 'create' && initialPartyId) {
+		if (mode === 'create' && costKind) {
 			setForm(current => ({
 				...current,
-				entityId: initialPartyId,
+				entryType:
+					costKind === 'employee'
+						? DailyActionType.EMPLOYEE_COST
+						: DailyActionType.OTHER_COST,
+				entityId: '',
+				entityName: '',
+			}))
+			return
+		}
+
+		if (mode === 'create' && (initialProjectId || initialPartyId)) {
+			setForm(current => ({
+				...current,
+				entityId: initialProjectId ?? initialPartyId ?? '',
 				entityName: initialPartyName ?? '',
 			}))
 		}
-	}, [initialEntry, initialPartyId, initialPartyName, isOpen, mode])
+	}, [
+		initialEntry,
+		initialPartyId,
+		initialPartyName,
+		initialProjectId,
+		isOpen,
+		mode,
+		costKind,
+	])
 
 	useEffect(() => {
 		if (
@@ -246,6 +294,12 @@ const QuickEntryModal = ({
 	}, [currencyOptions, isOpen, mode])
 
 	const modalTitle = useMemo(() => {
+		if (costKind === 'employee') {
+			return t('components.sellingInvoices.employeeCost')
+		}
+		if (costKind === 'other') {
+			return t('components.sellingInvoices.otherCost')
+		}
 		if (mode === 'view') {
 			return t('components.sellingInvoices.entries.viewTitle')
 		}
@@ -253,13 +307,17 @@ const QuickEntryModal = ({
 			return t('components.sellingInvoices.entries.editTitle')
 		}
 		return t('components.sellingInvoices.entries.title')
-	}, [mode, t])
+	}, [costKind, mode, t])
 
 	const entryTypeLabels: Record<QuickEntryType, string> = useMemo(
 		() => ({
 			[DailyActionType.RECEIPT_ENTRY]: t('common.receiptEntry'),
 			[DailyActionType.PAYMENT_ENTRY]: t('common.paymentEntry'),
 			[DailyActionType.EXPENSE_ENTRY]: t('common.expenseEntry'),
+			[DailyActionType.EMPLOYEE_COST]: t(
+				'components.sellingInvoices.employeeCost',
+			),
+			[DailyActionType.OTHER_COST]: t('components.sellingInvoices.otherCost'),
 		}),
 		[t],
 	)
@@ -274,6 +332,18 @@ const QuickEntryModal = ({
 	)
 
 	const entityLabel = useMemo(() => {
+		if (form.entryType === DailyActionType.EMPLOYEE_COST) {
+			return t('components.sellingInvoices.employeeCost')
+		}
+		if (form.entryType === DailyActionType.OTHER_COST) {
+			return t('components.sellingInvoices.costName')
+		}
+		if (initialProjectId && form.entityId === initialProjectId) {
+			return t('common.project')
+		}
+		if (projectIds.has(form.entityId)) {
+			return t('common.project')
+		}
 		switch (form.entryType) {
 			case DailyActionType.RECEIPT_ENTRY:
 				return t('common.customer')
@@ -282,7 +352,7 @@ const QuickEntryModal = ({
 			case DailyActionType.EXPENSE_ENTRY:
 				return t('common.expense')
 		}
-	}, [form.entryType, t])
+	}, [form.entityId, form.entryType, initialProjectId, projectIds, t])
 
 	const entityPlaceholder = useMemo(() => {
 		switch (form.entryType) {
@@ -292,6 +362,10 @@ const QuickEntryModal = ({
 				return t('common.supplierName')
 			case DailyActionType.EXPENSE_ENTRY:
 				return t('common.expenseName')
+			case DailyActionType.EMPLOYEE_COST:
+				return t('components.sellingInvoices.employeeCost')
+			case DailyActionType.OTHER_COST:
+				return t('components.sellingInvoices.costName')
 		}
 	}, [form.entryType, t])
 
@@ -325,11 +399,36 @@ const QuickEntryModal = ({
 	)
 
 	const entityOptions = useMemo((): DropdownOption[] => {
+		const listedProjects = projects.map(project => ({
+			value: project.projectId,
+			label: project.name,
+		}))
+		const projectOptions =
+			initialProjectId &&
+			initialPartyName &&
+			!listedProjects.some(option => option.value === initialProjectId)
+				? [
+						{ value: initialProjectId, label: initialPartyName },
+						...listedProjects,
+					]
+				: listedProjects
 		switch (form.entryType) {
 			case DailyActionType.RECEIPT_ENTRY:
-				return [...partnerOptions, ...customerOptions, ...supplierOptions]
+				return [
+					...projectOptions,
+					...partnerOptions,
+					...customerOptions,
+					...supplierOptions,
+				]
 			case DailyActionType.PAYMENT_ENTRY:
-				return [...partnerOptions, ...supplierOptions, ...customerOptions]
+				return [
+					...(initialProjectId && initialPartyName
+						? [{ value: initialProjectId, label: initialPartyName }]
+						: []),
+					...partnerOptions,
+					...supplierOptions,
+					...customerOptions,
+				]
 			case DailyActionType.EXPENSE_ENTRY:
 				return expenses
 					.map(expense => ({
@@ -337,12 +436,23 @@ const QuickEntryModal = ({
 						label: expense.name ?? expense.internalCode ?? 'TBD',
 					}))
 					.filter(option => Boolean(option.value))
+			case DailyActionType.EMPLOYEE_COST:
+				return employees.map(employee => ({
+					value: employee.employeeId,
+					label: employee.name,
+				}))
+			case DailyActionType.OTHER_COST:
+				return []
 		}
 	}, [
 		customerOptions,
+		employees,
 		expenses,
 		form.entryType,
+		initialPartyName,
+		initialProjectId,
 		partnerOptions,
+		projects,
 		supplierOptions,
 	])
 
@@ -354,11 +464,19 @@ const QuickEntryModal = ({
 		) {
 			return
 		}
-		if (isPartnersLoading && form.entryType !== DailyActionType.EXPENSE_ENTRY) {
+		if (
+			(isPartnersLoading &&
+				form.entryType !== DailyActionType.EXPENSE_ENTRY &&
+				form.entryType !== DailyActionType.EMPLOYEE_COST &&
+				form.entryType !== DailyActionType.OTHER_COST) ||
+			(isEmployeesLoading && form.entryType === DailyActionType.EMPLOYEE_COST)
+		) {
 			return
 		}
 		previousEntryType.current = form.entryType
 		setForm(current =>
+			isProjectSelection(current.entityId) ||
+			current.entryType === DailyActionType.OTHER_COST ||
 			entityOptions.some(option => option.value === current.entityId)
 				? current
 				: { ...current, entityId: '', entityName: '' },
@@ -366,9 +484,11 @@ const QuickEntryModal = ({
 	}, [
 		entityOptions,
 		form.entryType,
+		isEmployeesLoading,
 		isPartnersLoading,
 		isReadOnly,
 		isTransferTab,
+		initialProjectId,
 	])
 
 	const selectedEntityOption = useMemo(() => {
@@ -470,6 +590,9 @@ const QuickEntryModal = ({
 	const isCashOutEntry =
 		form.entryType === DailyActionType.PAYMENT_ENTRY ||
 		form.entryType === DailyActionType.EXPENSE_ENTRY
+	const isCreditCost =
+		form.entryType === DailyActionType.EMPLOYEE_COST ||
+		form.entryType === DailyActionType.OTHER_COST
 
 	const selectedCashAccountBalance = useMemo(() => {
 		const account = cashBalances?.accounts.find(
@@ -559,20 +682,26 @@ const QuickEntryModal = ({
 
 	const isEntityLoading =
 		(form.entryType === DailyActionType.EXPENSE_ENTRY && isExpensesLoading) ||
+		(form.entryType === DailyActionType.EMPLOYEE_COST && isEmployeesLoading) ||
 		((form.entryType === DailyActionType.RECEIPT_ENTRY ||
 			form.entryType === DailyActionType.PAYMENT_ENTRY) &&
 			isPartnersLoading)
+
+	const hasEntryParty =
+		form.entryType === DailyActionType.OTHER_COST
+			? Boolean(form.entityName.trim())
+			: Boolean(form.entityId)
 
 	const isEntrySaveDisabled =
 		isSaving ||
 		isCurrenciesLoading ||
 		isEntityLoading ||
-		!form.entityId ||
+		!hasEntryParty ||
 		!form.currencyId ||
-		!form.cashAccountType ||
+		(!isCreditCost && !form.cashAccountType) ||
 		!form.amount.trim() ||
 		!form.invoiceDate ||
-		(isCashOutEntry && isInsufficientCashOut)
+		(!isCreditCost && isCashOutEntry && isInsufficientCashOut)
 
 	const isTransferSaveDisabled =
 		isSaving ||
@@ -596,47 +725,69 @@ const QuickEntryModal = ({
 		const optionalString = (value: string) => value.trim() || undefined
 		const entityId = optionalString(form.entityId)
 		const entityName = optionalString(form.entityName)
+		const isProjectParty = isProjectSelection(entityId)
 		const selectedPartner =
-			entityId && isPartnerSelection(entityId)
+			entityId && !isProjectParty && isPartnerSelection(entityId)
 				? { partnerId: entityId, partnerName: entityName }
 				: {}
 
 		return {
 			entryType: form.entryType,
+			projectId: isProjectParty
+				? entityId
+				: initialProjectId || initialEntry?.projectId,
+			employeeId:
+				form.entryType === DailyActionType.EMPLOYEE_COST ? entityId : undefined,
+			employeeName:
+				form.entryType === DailyActionType.EMPLOYEE_COST
+					? entityName
+					: undefined,
 			customerId:
-				form.entryType === DailyActionType.RECEIPT_ENTRY && entityId
+				form.entryType === DailyActionType.RECEIPT_ENTRY &&
+				entityId &&
+				!isProjectParty
 					? isPartnerSelection(entityId)
 						? undefined
 						: entityId
 					: undefined,
 			customerName:
-				form.entryType === DailyActionType.RECEIPT_ENTRY && entityName
+				form.entryType === DailyActionType.RECEIPT_ENTRY &&
+				entityName &&
+				!isProjectParty
 					? isPartnerSelection(form.entityId)
 						? undefined
 						: entityName
 					: undefined,
 			supplierId:
-				form.entryType === DailyActionType.PAYMENT_ENTRY && entityId
+				form.entryType === DailyActionType.PAYMENT_ENTRY &&
+				entityId &&
+				!isProjectParty
 					? isPartnerSelection(entityId)
 						? undefined
 						: entityId
 					: undefined,
 			supplierName:
-				form.entryType === DailyActionType.PAYMENT_ENTRY && entityName
+				form.entryType === DailyActionType.PAYMENT_ENTRY &&
+				entityName &&
+				!isProjectParty
 					? isPartnerSelection(form.entityId)
 						? undefined
 						: entityName
 					: undefined,
 			expenseId:
-				form.entryType === DailyActionType.EXPENSE_ENTRY ? entityId : undefined,
-			expenseName:
-				form.entryType === DailyActionType.EXPENSE_ENTRY
-					? entityName
+				form.entryType === DailyActionType.EXPENSE_ENTRY && !isProjectParty
+					? entityId
 					: undefined,
+			expenseName:
+				form.entryType === DailyActionType.OTHER_COST
+					? entityName
+					: form.entryType === DailyActionType.EXPENSE_ENTRY && !isProjectParty
+						? entityName
+						: undefined,
 			...selectedPartner,
 			currencyId: form.currencyId,
 			currencyName: form.currencyName,
-			cashAccountType: form.cashAccountType,
+			cashAccountType: isCreditCost ? undefined : form.cashAccountType,
 			singleUnitPrice: formatNumberForDb(form.amount, 2) ?? undefined,
 			invoiceDate: buildEntryInvoiceDateIso(form.invoiceDate),
 			note: optionalString(form.note),
@@ -747,26 +898,30 @@ const QuickEntryModal = ({
 					}}
 				/>
 				<ModalBody pt={0} pb={4}>
-					<HStack spacing={2} mb={4} flexWrap="wrap">
-						{ENTRY_TYPES.map(entryType =>
-							tabButton(
-								entryType,
-								entryTypeLabels[entryType],
-								!isTransferTab && form.entryType === entryType,
-								() => {
-									setActiveTab(entryType)
-									setForm(current => ({ ...current, entryType }))
-								},
-							),
-						)}
-						{canShowTransferTab &&
-							tabButton(
-								TRANSFER_TAB,
-								t('components.sellingInvoices.entries.transfer'),
-								isTransferTab,
-								() => setActiveTab(TRANSFER_TAB),
+					{costKind ||
+					form.entryType === DailyActionType.EMPLOYEE_COST ||
+					form.entryType === DailyActionType.OTHER_COST ? null : (
+						<HStack spacing={2} mb={4} flexWrap="wrap">
+							{ENTRY_TYPES.map(entryType =>
+								tabButton(
+									entryType,
+									entryTypeLabels[entryType],
+									!isTransferTab && form.entryType === entryType,
+									() => {
+										setActiveTab(entryType)
+										setForm(current => ({ ...current, entryType }))
+									},
+								),
 							)}
-					</HStack>
+							{canShowTransferTab &&
+								tabButton(
+									TRANSFER_TAB,
+									t('components.sellingInvoices.entries.transfer'),
+									isTransferTab,
+									() => setActiveTab(TRANSFER_TAB),
+								)}
+						</HStack>
+					)}
 
 					<Divider mb={4} borderColor={PAGE_COLORS.border} />
 
@@ -865,43 +1020,62 @@ const QuickEntryModal = ({
 					) : (
 						<>
 							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
-								<DropdownLabel
-									label={entityLabel}
-									placeholder={entityPlaceholder}
-									options={entityOptions}
-									selectedOptions={selectedEntityOption}
-									isSingle
-									isSearchable
-									isDisabled={isReadOnly}
-									isLoading={isEntityLoading}
-									onSelect={(values: string[]) => {
-										const selected = entityOptions.find(
-											option => option.value === values[0],
-										)
-										setForm(current => ({
-											...current,
-											entityId: selected?.value ?? '',
-											entityName: selected?.label ?? '',
-										}))
-									}}
-								/>
-								<DropdownLabel
-									label={cashAccountFieldLabel}
-									placeholder={cashAccountFieldLabel}
-									options={cashAccountOptions}
-									selectedOptions={selectedCashAccountOption}
-									isSingle
-									isDisabled={isReadOnly}
-									onSelect={(values: string[]) => {
-										const selected = cashAccountOptions.find(
-											option => option.value === values[0],
-										)
-										setForm(current => ({
-											...current,
-											cashAccountType: selected?.value ?? 'daily_cash',
-										}))
-									}}
-								/>
+								{form.entryType === DailyActionType.OTHER_COST ? (
+									<InputLabel
+										label={t('components.sellingInvoices.costName')}
+										inputPlaceholder={t('components.sellingInvoices.costName')}
+										inputType="text"
+										styles={documentNameStyles}
+										value={form.entityName}
+										isDisabled={isReadOnly}
+										onChange={(value: string) =>
+											setForm(current => ({
+												...current,
+												entityName: value,
+											}))
+										}
+									/>
+								) : (
+									<DropdownLabel
+										label={entityLabel}
+										placeholder={entityPlaceholder}
+										options={entityOptions}
+										selectedOptions={selectedEntityOption}
+										isSingle
+										isSearchable
+										isDisabled={isReadOnly}
+										isLoading={isEntityLoading}
+										onSelect={(values: string[]) => {
+											const selected = entityOptions.find(
+												option => option.value === values[0],
+											)
+											setForm(current => ({
+												...current,
+												entityId: selected?.value ?? '',
+												entityName: selected?.label ?? '',
+											}))
+										}}
+									/>
+								)}
+								{isCreditCost ? null : (
+									<DropdownLabel
+										label={cashAccountFieldLabel}
+										placeholder={cashAccountFieldLabel}
+										options={cashAccountOptions}
+										selectedOptions={selectedCashAccountOption}
+										isSingle
+										isDisabled={isReadOnly}
+										onSelect={(values: string[]) => {
+											const selected = cashAccountOptions.find(
+												option => option.value === values[0],
+											)
+											setForm(current => ({
+												...current,
+												cashAccountType: selected?.value ?? 'daily_cash',
+											}))
+										}}
+									/>
+								)}
 
 								<InputLabel
 									label={t('common.amount')}

@@ -7,6 +7,8 @@ import CustomerController from './apis/customer/api.controller'
 import CustomerRoutes from './apis/customer/api.routes'
 import SupplierController from './apis/supplier/api.controller'
 import SupplierRoutes from './apis/supplier/api.routes'
+import ProjectController from './apis/project/api.controller'
+import ProjectRoutes from './apis/project/api.routes'
 import CategoryController from './apis/category/api.controller'
 import CategoryRoutes from './apis/category/api.routes'
 import PartnerController from './apis/partner/api.controller'
@@ -50,6 +52,13 @@ export const createApp = () => {
 	)
 
 	productController.setSupplierController(supplierController)
+
+	const projectController = new ProjectController(
+		mongoDbClient,
+		productController,
+	)
+
+	productController.setProjectController(projectController)
 
 	const categoryController = new CategoryController(mongoDbClient)
 
@@ -98,6 +107,7 @@ export const createApp = () => {
 		supplierController,
 		productController,
 	)
+	const projectRoutes = new ProjectRoutes(projectController, productController)
 	const categoryRoutes = new CategoryRoutes(
 		categoryController,
 		productController,
@@ -164,6 +174,7 @@ export const createApp = () => {
 	employeeRoutes.setRoutes(app)
 	customerRoutes.setRoutes(app)
 	supplierRoutes.setRoutes(app)
+	projectRoutes.setRoutes(app)
 	categoryRoutes.setRoutes(app)
 	partnerRoutes.setRoutes(app)
 	settingRoutes.setRoutes(app)

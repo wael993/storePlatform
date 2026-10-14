@@ -119,6 +119,28 @@ interface Partner {
 		outstanding: number
 	}
 }
+interface Project {
+	projectId: string
+	name: string
+	internalCode?: string
+	createdAt?: string
+	updatedAt?: string
+	outstanding?: number
+	isDeletable?: boolean
+	deleteBlockReason?: string | null
+	invoices?: unknown[]
+	buyingInvoices?: unknown[]
+	projectEntries?: DailyAction[]
+	invoiceSummary?: {
+		totalInvoiced: number
+		totalPaid: number
+		outstanding: number
+		employeeCosts?: number
+		otherCosts?: number
+		receiptEntries?: number
+		profit?: number | null
+	}
+}
 interface Customer {
 	customerId: string
 	name: string

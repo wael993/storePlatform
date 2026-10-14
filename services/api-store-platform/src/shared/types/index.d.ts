@@ -150,22 +150,16 @@ export type ProductCatalogResponse = {
 	totalCount: number
 }
 
-export type OrderRequestBody = {
-	orderNumber: string
-	status?: 'draft' | 'open' | 'paid' | 'cancelled'
-	items: Array<{
-		productId: string
-		name: string
-		quantity: number
-		unitPrice: number
-	}>
-	totalAmount: number
+export type ProjectRequestBody = {
+	projectId: string
+	name: string
+	internalCode?: string
 }
 export type InvoiceRequestBody = {
 	invoiceId?: string
 	clientMutationId?: string
 	invoiceNumber?: string
-	orderId?: string
+	projectId?: string
 	customerId?: string
 	customerName?: string
 	salesPerson?: string
@@ -699,7 +693,7 @@ export interface InventoryDocument {
 	averageCost?: number // weighted moving average cost, updated on each purchase
 	minQuantity?: number // low stock alert
 	maxQuantity?: number // overstock alert
-	reservedQuantity?: number // reserved for pending orders
+	reservedQuantity?: number // reserved for pending projects
 	availableQuantity?: number // quantity - reserved
 	lastCountDate?: Date
 }

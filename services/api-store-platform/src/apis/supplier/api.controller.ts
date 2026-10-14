@@ -352,9 +352,11 @@ export default class SupplierController {
 			}
 		}
 
+		const internalCode = requestBody.internalCode?.trim()
 		const supplierData: Record<string, unknown> = {
 			supplierId,
 			name,
+			...(internalCode ? { internalCode } : {}),
 		}
 
 		logger.info('Saving supplier to database.', {

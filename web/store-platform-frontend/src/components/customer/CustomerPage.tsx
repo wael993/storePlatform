@@ -104,10 +104,11 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 	}
 
 	const handlePostNewCustomer = async (data: FormData) => {
+		const internalCode = (data.code.trim() || nextInternalCode).toUpperCase()
 		try {
 			await createCustomer({
 				name: data.value,
-				internalCode: data.code,
+				internalCode,
 			}).unwrap()
 			setFormData({ code: '', value: '' })
 			onClose()
@@ -128,7 +129,9 @@ const CustomerPage = (_targetType: CustomerPageProps) => {
 		String(
 			Math.max(
 				0,
-				...customers.map(c => parseInt(c.internalCode?.slice(2) ?? '0', 10)),
+				...customers.map(
+					customer => parseInt(customer.internalCode?.slice(2) ?? '0', 10) || 0,
+				),
 			) + 1,
 		).padStart(3, '0')
 

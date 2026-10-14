@@ -11,7 +11,8 @@ export const RoutePaths = {
 	LOGIN: withBasePath('/login'),
 	PRODUCTS: withBasePath('/products'),
 	SINGLE_PRODUCT: withBasePath('/products/:productId'),
-	ORDERS: withBasePath('/orders'),
+	PROJECTS: withBasePath('/projects'),
+	SINGLE_PROJECT: withBasePath('/projects/:projectId'),
 	SELLING_INVOICES: withBasePath('/selling-invoices'),
 	REPORTS: withBasePath('/reports'),
 	DASHBOARD: withBasePath('/dashboard'),
@@ -38,6 +39,7 @@ export const buildRoutePath = {
 	productById: (productId: string) => withBasePath(`/products/${productId}`),
 	customerById: (customerId: string) =>
 		withBasePath(`/customers/${customerId}`),
+	projectById: (projectId: string) => withBasePath(`/projects/${projectId}`),
 	supplierById: (supplierId: string) =>
 		withBasePath(`/suppliers/${supplierId}`),
 	partnerById: (partnerId: string) => withBasePath(`/partners/${partnerId}`),
@@ -49,7 +51,7 @@ export const fullPaths = {
 	ROOT: RoutePaths.ROOT,
 	PRODUCTS: RoutePaths.PRODUCTS,
 	ALL_PRODUCTS: RoutePaths.PRODUCTS,
-	ORDERS: RoutePaths.ORDERS,
+	PROJECTS: RoutePaths.PROJECTS,
 	CUSTOMERS: RoutePaths.CUSTOMERS,
 	CATEGORIES: RoutePaths.CATEGORIES,
 	SUPPLIERS: RoutePaths.SUPPLIERS,
@@ -71,7 +73,7 @@ export const routeLabelKeys = {
 	ROOT: 'navigation.welcome',
 	PRODUCTS: 'components.pageHeaders.products',
 	ALL_PRODUCTS: 'navigation.allProducts',
-	ORDERS: 'components.pageHeaders.orders',
+	PROJECTS: 'components.pageHeaders.projects',
 	CUSTOMERS: 'components.pageHeaders.customers',
 	CUSTOMER: 'components.pageHeaders.customer',
 	CATEGORIES: 'components.pageHeaders.categories',
@@ -97,7 +99,7 @@ export const getRouteLabel = (path: string, fallback = '') => {
 	const routeLabelKeyByPath: Record<string, string> = {
 		[RoutePaths.ROOT]: routeLabelKeys.ROOT,
 		[RoutePaths.PRODUCTS]: routeLabelKeys.PRODUCTS,
-		[RoutePaths.ORDERS]: routeLabelKeys.ORDERS,
+		[RoutePaths.PROJECTS]: routeLabelKeys.PROJECTS,
 		[RoutePaths.CUSTOMERS]: routeLabelKeys.CUSTOMERS,
 		[RoutePaths.CATEGORIES]: routeLabelKeys.CATEGORIES,
 		[RoutePaths.SUPPLIERS]: routeLabelKeys.SUPPLIERS,
@@ -165,7 +167,7 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
-	const orders: BreadcrumbItem[] = [
+	const projects: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
 			name: t(routeLabelKeys.STORE_PLATFORM),
@@ -173,9 +175,29 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: false,
 		},
 		{
-			id: 'orders',
-			name: t(routeLabelKeys.ORDERS),
-			href: fullPaths.ORDERS,
+			id: 'projects',
+			name: t(routeLabelKeys.PROJECTS),
+			href: fullPaths.PROJECTS,
+			isCurrentPage: true,
+		},
+	]
+	const project: BreadcrumbItem[] = [
+		{
+			id: 'store-platform',
+			name: t(routeLabelKeys.STORE_PLATFORM),
+			href: fullPaths.ROOT,
+			isCurrentPage: false,
+		},
+		{
+			id: 'projects',
+			name: t(routeLabelKeys.PROJECTS),
+			href: fullPaths.PROJECTS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'project',
+			name: name ?? '',
+			href: id ? buildRoutePath.projectById(id) : '',
 			isCurrentPage: true,
 		},
 	]
@@ -473,7 +495,8 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		settings,
 		allActivities,
 		products,
-		orders,
+		projects,
+		project,
 		customers,
 		categories,
 		customer,

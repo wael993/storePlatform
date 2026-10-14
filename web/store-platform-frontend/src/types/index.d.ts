@@ -6,6 +6,7 @@ type AddQuickModalType =
 	| 'unit'
 	| 'expense'
 	| 'partner'
+	| 'project'
 	| 'category'
 	| 'brand'
 	| 'shelf'
@@ -18,6 +19,8 @@ type EntryActionType =
 	| 'PAYMENT_ENTRY'
 	| 'RECEIPT_ENTRY'
 	| 'EXPENSE_ENTRY'
+	| 'EMPLOYEE_COST'
+	| 'OTHER_COST'
 	| {
 			value: string
 			label?: string
@@ -36,6 +39,9 @@ interface DailyAction {
 	partnerName?: string
 	customerId?: string
 	customerName?: string
+	projectId?: string
+	employeeId?: string
+	employeeName?: string
 	expenseId?: string
 	expenseName?: string
 	currencyId: string

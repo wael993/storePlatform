@@ -395,7 +395,7 @@
 			"customersDescription": "Customer directory and details.",
 			"categoriesDescription": "Product category directory.",
 			"partnersDescription": "Partner directory and details.",
-			"ordersDescription": "Order management.",
+			"projectsDescription": "Project directory and details.",
 			"inventoryDescription": "Stock and inventory tracking.",
 			"reportsDescription": "Ask the AI assistant about sales, products, suppliers, and invoices.",
 			"settingsDescription": "Tenant settings and preferences.",
@@ -429,13 +429,6 @@
 		"previous": "Previous",
 		"next": "Next",
 		"pageOf": "Page {{currentPage}} of {{totalPages}}"
-	},
-	"orders": {
-		"empty": "No orders found.",
-		"orderNumber": "Order #",
-		"items": "Items",
-		"total": "Total (€)",
-		"date": "Date"
 	},
 	"employees": {
 		"add": "Add employee",
@@ -551,7 +544,9 @@
 			"items": {
 				"welcome": "Can see Welcome page",
 				"daily": "Can see Daily page",
-				"orders": "Can see Orders page",
+				"projects": "Can see Projects page",
+				"projects_add": "Can add projects",
+				"projects_delete": "Can delete projects",
 				"settings": "Can see Settings page",
 				"settings_products": "Can see Products tab",
 				"settings_language": "Can see Language tab",
@@ -753,7 +748,11 @@
 			"forUs": "Owed to us",
 			"forThem": "We owe",
 			"openingBalance": "Opening balance",
-			"openingBalanceError": "Could not save the opening balance."
+			"openingBalanceError": "Could not save the opening balance.",
+			"employeeCosts": "Employee costs",
+			"otherCosts": "Other costs",
+			"receiptEntries": "Receipt entries",
+			"projectProfit": "Profit"
 		},
 		"supplier": {
 			"deleteSupplier": "Delete supplier",
@@ -777,6 +776,19 @@
 			"deleteSelectedConfirm": "{{count}} customers will be permanently deleted. This cannot be undone.",
 			"deleteSelectedSuccess": "{{count}} customers deleted."
 		},
+		"project": {
+			"errorLoadingProject": "Could not load this project.",
+			"name": "Project Name",
+			"code": "Project Code",
+			"total": "Total",
+			"deleteProject": "Delete project",
+			"deleteProjectConfirm": "This project will be permanently deleted. This cannot be undone.",
+			"deleteProjectSuccess": "Project deleted.",
+			"deleteProjectError": "Could not delete this project.",
+			"deleteSelected": "Delete selected projects",
+			"deleteSelectedConfirm": "{{count}} projects will be permanently deleted. This cannot be undone.",
+			"deleteSelectedSuccess": "{{count}} projects deleted."
+		},
 		"daily": {
 			"confirmations": {
 				"deleteDailyAction": "Delete Daily Action",
@@ -787,6 +799,7 @@
 			"errors": {
 				"addSupplierFailed": "Failed to add supplier",
 				"addCustomerFailed": "Failed to add customer",
+				"addProjectFailed": "Failed to add project",
 				"addUnitFailed": "Failed to add unit",
 				"addExpenseFailed": "Failed to add expense",
 				"addPartnerFailed": "Failed to add partner"
@@ -802,6 +815,9 @@
 			"supplierName": "Supplier Name",
 			"addQuickCustomer": "Add Quick Customer",
 			"customerName": "Customer Name",
+			"addQuickProject": "Add Project",
+			"projectName": "Project Name",
+			"projectCode": "Project Code",
 			"addQuickUnit": "Add Quick Unit",
 			"unitName": "Unit Name",
 			"expenseName": "Expense Name",
@@ -851,6 +867,9 @@
 			"newInvoiceOptions": "New invoice options",
 			"newBuyingInvoice": "Buying Invoice",
 			"newEntry": "Entries",
+			"employeeCost": "Employee cost",
+			"otherCost": "Other cost",
+			"costName": "Cost name",
 			"entries": {
 				"title": "Add Entry",
 				"viewTitle": "View Entry",
@@ -1061,7 +1080,7 @@
 			"sellingInvoices": "Selling Invoices",
 			"settings": "Settings",
 			"products": "Products",
-			"orders": "Orders",
+			"projects": "Projects",
 			"customer": "Customer",
 			"supplier": "Supplier",
 			"users": "Users",
@@ -1459,11 +1478,13 @@
 		"hide": "Hide",
 		"addProduct": "Add Product",
 		"addCustomer": "Add Customer",
+		"addProject": "Add Project",
 		"addCategory": "Add Category",
 		"addSupplier": "Add Supplier",
 		"addPartner": "Add Partner",
 		"supplier": "Supplier",
 		"customer": "Customer",
+		"project": "Project",
 		"partner": "Partner",
 		"expense": "Expense",
 		"currency": "Currency",
@@ -1515,7 +1536,7 @@
 		"offline": "Delete is available when you are online.",
 		"invoice": "Delete is not allowed because this record is used on a selling invoice.",
 		"buyingInvoice": "Delete is not allowed because this record is used on a buying invoice.",
-		"order": "Delete is not allowed because this record is used on an order.",
+		"project": "Delete is not allowed because this record is used on a project.",
 		"stockMoving": "Delete is not allowed because this record has stock movements.",
 		"dailyAction": "Delete is not allowed because this record is used on a daily action.",
 		"products": "Delete is not allowed because products use this record.",
