@@ -128,3 +128,108 @@ export const amountToPrimaryWithSnapshot = (
 
 	return amountToPrimary(amount, currencyId ?? null, rates)
 }
+
+export type OpeningBalanceDirection = 'owed_to_us' | 'we_owe'
+
+export type OpeningBalanceLine = {
+	currencyId: string
+	currencyCode: string
+	amount: number
+	direction: OpeningBalanceDirection
+}
+
+/**
+ * Signed primary amount added to a party's outstanding.
+ * Customer: owed_to_us adds, we_owe subtracts.
+ * Supplier is the opposite, matching the outstanding label.
+ */
+export const openingBalancePrimary = (
+	party: 'customer' | 'supplier',
+	rows:
+		| readonly Pick<OpeningBalanceLine, 'currencyId' | 'amount' | 'direction'>[]
+		| null
+		| undefined,
+	rates: readonly CostCurrencyRate[] = [],
+): number => {
+	if (!rows?.length) return 0
+
+	const total = rows.reduce((sum, row) => {
+		const amount =
+			typeof row.amount === 'number' ? row.amount : Number(row.amount)
+
+		if (!Number.isFinite(amount) || amount === 0) return sum
+
+		const towardUs = row.direction === 'owed_to_us' ? amount : -amount
+		const signed = party === 'supplier' ? -towardUs : towardUs
+
+		return sum + amountToPrimary(signed, row.currencyId || null, rates)
+	}, 0)
+
+	return roundPrimaryAmount(total)
+}
+
+/** Drops zero rows. Rejects unknown currencies, duplicates, and a bad direction. */
+export const normalizeOpeningBalances = (
+	input: unknown,
+	currencies: readonly { currencyId: string; code: string }[],
+): OpeningBalanceLine[] => {
+	if (!Array.isArray(input)) {
+		throw new Error('Opening balance must be a list.')
+	}
+
+	const codeById = new Map(
+		currencies
+			.filter(currency => currency.currencyId.trim())
+			.map(currency => [
+				currency.currencyId,
+				currency.code.trim() || currency.currencyId,
+			]),
+	)
+	const seen = new Set<string>()
+	const rows: OpeningBalanceLine[] = []
+
+	for (const raw of input) {
+		if (!raw || typeof raw !== 'object') {
+			throw new Error('Opening balance row is invalid.')
+		}
+
+		const row = raw as Record<string, unknown>
+		const currencyId =
+			typeof row.currencyId === 'string' ? row.currencyId.trim() : ''
+		const currencyCode = codeById.get(currencyId)
+
+		if (!currencyCode) {
+			throw new Error('Opening balance currency is not configured.')
+		}
+
+		if (seen.has(currencyId)) {
+			throw new Error('Opening balance currency is duplicated.')
+		}
+
+		seen.add(currencyId)
+
+		const direction = row.direction
+
+		if (direction !== 'owed_to_us' && direction !== 'we_owe') {
+			throw new Error('Opening balance direction is invalid.')
+		}
+
+		const amount =
+			typeof row.amount === 'number' ? row.amount : Number(row.amount)
+
+		if (!Number.isFinite(amount) || amount < 0) {
+			throw new Error('Opening balance amount is invalid.')
+		}
+
+		if (amount === 0) continue
+
+		rows.push({
+			currencyId,
+			currencyCode,
+			amount: roundPrimaryAmount(amount),
+			direction,
+		})
+	}
+
+	return rows
+}

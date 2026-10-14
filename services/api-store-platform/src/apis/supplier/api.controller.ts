@@ -3,7 +3,7 @@ import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
 import { Product } from '../../models/Products'
-import { Supplier } from '../../models/Supplier'
+import { Supplier, type ISupplier } from '../../models/Supplier'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
@@ -11,7 +11,13 @@ import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
-import type { CostCurrencyRate } from '../../shared/inventoryCost'
+import CurrencySettings from '../../models/CurrencySettings'
+import {
+	normalizeOpeningBalances,
+	openingBalancePrimary,
+	ratesFromCurrencySettings,
+	type CostCurrencyRate,
+} from '../../shared/inventoryCost'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
@@ -149,12 +155,15 @@ export default class SupplierController {
 				[],
 			)
 			const totalPayable =
-				buyingPayable - (sellingOwed.totalInvoiced - sellingOwed.totalPaid)
+				buyingPayable -
+				(sellingOwed.totalInvoiced - sellingOwed.totalPaid) +
+				openingBalancePrimary('supplier', supplier.openingBalances, rates)
 
 			return {
 				supplierId: supplier.supplierId,
 				name: supplier.name,
 				internalCode: supplier.internalCode,
+				openingBalances: supplier.openingBalances,
 				createdAt: supplier.createdAt?.toISOString(),
 				updatedAt: supplier.updatedAt?.toISOString(),
 				totalPayable,
@@ -273,6 +282,7 @@ export default class SupplierController {
 							updatedAt: supplier.updatedBy.updatedAt.toISOString(),
 						}
 					: undefined,
+				openingBalances: supplier.openingBalances,
 				actions,
 			},
 		])
@@ -291,7 +301,8 @@ export default class SupplierController {
 					totalPaid: own.totalPaid,
 					outstanding:
 						own.totalPayable -
-						(sellingOwed.totalInvoiced - sellingOwed.totalPaid),
+						(sellingOwed.totalInvoiced - sellingOwed.totalPaid) +
+						openingBalancePrimary('supplier', supplier.openingBalances, rates),
 				},
 			},
 			requestContext,
@@ -373,6 +384,69 @@ export default class SupplierController {
 		return {
 			_id: supplierId,
 			supplierId,
+		}
+	}
+
+	public async patchOpeningBalance(
+		supplierId: string,
+		requestBody: { openingBalances?: unknown },
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.suppliersAdd])
+		const tenantId = this.getTenantId(requestContext)
+		const settings = await CurrencySettings.findOne({ tenantId })
+			.select('primaryCurrency secondaryCurrencies')
+			.lean()
+		const currencies = ratesFromCurrencySettings(settings).map(rate => ({
+			currencyId: rate.currencyId,
+			code: rate.label,
+		}))
+
+		let openingBalances
+
+		try {
+			openingBalances = normalizeOpeningBalances(
+				requestBody?.openingBalances,
+				currencies,
+			)
+		} catch (error) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				error instanceof Error ? error.message : 'Opening balance is invalid.',
+			)
+		}
+
+		const updated = await withTenantScope(
+			Supplier.findOneAndUpdate(
+				{ supplierId },
+				{
+					$set: {
+						openingBalances,
+						updatedBy: {
+							_id: requestContext.userId as string,
+							displayName:
+								`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+							updatedAt: new Date(),
+						},
+					},
+				},
+				{ new: true },
+			),
+			tenantId,
+		).lean<ISupplier | null>()
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Supplier not found.',
+			)
+		}
+
+		await redisCache.del(redisCache.buildSupplierListKey(tenantId))
+
+		return {
+			supplierId: updated.supplierId,
+			openingBalances: updated.openingBalances ?? [],
 		}
 	}
 

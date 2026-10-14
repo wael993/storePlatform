@@ -129,6 +129,12 @@ export default class CustomerRoutes {
 				this.authorizationValidator.bind(this),
 				this.getCustomer.bind(this),
 			)
+			.patch(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.patchOpeningBalance.bind(this),
+			)
 			.delete(
 				this.startCalc.bind(this),
 				logIncomingRequests.bind(this),
@@ -184,6 +190,27 @@ export default class CustomerRoutes {
 		try {
 			const resp = await this.customerController.getCustomer(
 				request.params.id,
+				requestContext,
+			)
+
+			response.status(200).json(resp)
+		} catch (error: unknown) {
+			this.handleRouteError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async patchOpeningBalance(
+		request: CustomerHttpRequest,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.customerController.patchOpeningBalance(
+				request.params.id,
+				request.body ?? {},
 				requestContext,
 			)
 

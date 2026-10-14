@@ -4470,8 +4470,7 @@ export default class ProductController {
 
 		if (cachedAction) {
 			const cached = cachedAction.data?.[0] as
-				| { warehouseId?: string }
-				| undefined
+				{ warehouseId?: string } | undefined
 
 			ensureWarehouseAccess(requestContext, cached?.warehouseId)
 
@@ -6990,10 +6989,38 @@ export default class ProductController {
 					entry.operation,
 					data,
 				)
+			} else if (entry.entity === 'customer' && entry.method === 'PATCH') {
+				data = (await this.requireCustomerController().patchOpeningBalance(
+					this.extractSyncPathId(entry.url),
+					payload as { openingBalances?: unknown },
+					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
 			} else if (entry.entity === 'supplier' && entry.method === 'POST') {
 				data = (await this.requireSupplierController().postSupplier(
 					requestContext,
 					payload as SupplierRequestBody,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'supplier' && entry.method === 'PATCH') {
+				data = (await this.requireSupplierController().patchOpeningBalance(
+					this.extractSyncPathId(entry.url),
+					payload as { openingBalances?: unknown },
+					requestContext,
 				)) as Record<string, unknown>
 
 				await this.recordSyncMutation(

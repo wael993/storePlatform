@@ -33,6 +33,13 @@ type accessLevel = 'admin' | 'editor' | 'customer'
 
 //////////////////////////
 
+interface OpeningBalance {
+	currencyId: string
+	currencyCode: string
+	amount: number
+	direction: 'owed_to_us' | 'we_owe'
+}
+
 interface Supplier {
 	_id?: string
 	supplierId: string
@@ -56,6 +63,7 @@ interface Supplier {
 	sellingInvoices?: unknown[]
 	isDeletable?: boolean
 	deleteBlockReason?: string | null
+	openingBalances?: OpeningBalance[]
 	invoiceSummary?: {
 		totalInvoiced: number
 		totalPaid: number
@@ -133,6 +141,7 @@ interface Customer {
 	buyingInvoices?: unknown[]
 	isDeletable?: boolean
 	deleteBlockReason?: string | null
+	openingBalances?: OpeningBalance[]
 	invoiceSummary?: {
 		totalInvoiced: number
 		totalPaid: number

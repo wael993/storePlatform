@@ -775,7 +775,9 @@
 			"totalReceivable": "إجمالي المستحق",
 			"totalPayable": "إجمالي المستحق للدفع",
 			"forUs": "مستحق لنا",
-			"forThem": "مستحق علينا"
+			"forThem": "مستحق علينا",
+			"openingBalance": "الرصيد الافتتاحي",
+			"openingBalanceError": "تعذر حفظ الرصيد الافتتاحي."
 		},
 		"supplier": {
 			"deleteSupplier": "حذف المورد",

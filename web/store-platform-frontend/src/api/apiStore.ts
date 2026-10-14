@@ -1205,6 +1205,18 @@ const getQuery = (
 			invalidatesTags: ['suppliers'],
 		}),
 
+		updateSupplierOpeningBalance: builder.mutation<
+			{ supplierId: string; openingBalances: OpeningBalance[] },
+			{ supplierId: string; openingBalances: OpeningBalance[] }
+		>({
+			query: ({ supplierId, openingBalances }) => ({
+				url: `suppliers/${supplierId}`,
+				method: 'PATCH',
+				body: { openingBalances },
+			}),
+			invalidatesTags: ['supplier', 'suppliers'],
+		}),
+
 		deleteSupplier: builder.mutation<void, string>({
 			query: supplierId => ({
 				url: `suppliers/${supplierId}`,
@@ -1238,6 +1250,18 @@ const getQuery = (
 				body: newCustomer,
 			}),
 			invalidatesTags: ['customers'],
+		}),
+
+		updateCustomerOpeningBalance: builder.mutation<
+			{ customerId: string; openingBalances: OpeningBalance[] },
+			{ customerId: string; openingBalances: OpeningBalance[] }
+		>({
+			query: ({ customerId, openingBalances }) => ({
+				url: `customers/${customerId}`,
+				method: 'PATCH',
+				body: { openingBalances },
+			}),
+			invalidatesTags: ['customer', 'customers'],
 		}),
 
 		deleteCustomer: builder.mutation<void, string>({
@@ -2536,9 +2560,11 @@ export const {
 	useDeleteProductMutation,
 	usePostProductMutation,
 	useCreateSupplierMutation,
+	useUpdateSupplierOpeningBalanceMutation,
 	useDeleteSupplierMutation,
 	useBulkDeleteSuppliersMutation,
 	useCreateCustomerMutation,
+	useUpdateCustomerOpeningBalanceMutation,
 	useDeleteCustomerMutation,
 	useBulkDeleteCustomersMutation,
 	useGetEmployeesQuery,

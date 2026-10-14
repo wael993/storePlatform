@@ -751,7 +751,9 @@
 			"totalReceivable": "Total Receivable",
 			"totalPayable": "Total Payable",
 			"forUs": "Owed to us",
-			"forThem": "We owe"
+			"forThem": "We owe",
+			"openingBalance": "Opening balance",
+			"openingBalanceError": "Could not save the opening balance."
 		},
 		"supplier": {
 			"deleteSupplier": "Delete supplier",

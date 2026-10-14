@@ -120,6 +120,30 @@ describe('offline party invoice summary', () => {
 		expect(customer.outstanding).toBeCloseTo(-120, 5)
 	})
 
+	it('adds a two-currency opening balance and flips the supplier sign', () => {
+		const rows = [
+			{
+				currencyId: 'usd',
+				currencyCode: 'USD',
+				amount: 4000,
+				direction: 'owed_to_us' as const,
+			},
+			{
+				currencyId: 'syp',
+				currencyCode: 'SYP',
+				amount: 1200,
+				direction: 'we_owe' as const,
+			},
+		]
+
+		expect(
+			customerPartySummary([], [], [], usdSypRates, rows).outstanding,
+		).toBeCloseTo(4000 - 1200 / 140, 5)
+		expect(
+			supplierPartySummary([], [], [], usdSypRates, rows).outstanding,
+		).toBeCloseTo(-(4000 - 1200 / 140), 5)
+	})
+
 	it('ignores draft invoices and counts a payment stored on the other party id', () => {
 		const customer = { customerId: 'c1', internalCode: 'C-1' }
 		const actions = [

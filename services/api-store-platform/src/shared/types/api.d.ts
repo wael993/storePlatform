@@ -268,6 +268,12 @@ export interface CustomerResponse {
 		totalPaid: number
 		outstanding: number
 	}
+	openingBalances?: Array<{
+		currencyId: string
+		currencyCode: string
+		amount: number
+		direction: 'owed_to_us' | 'we_owe'
+	}>
 	isDeletable?: boolean
 	deleteBlockReason?: string | null
 }
@@ -298,6 +304,12 @@ interface Supplier {
 		totalPaid: number
 		outstanding: number
 	}
+	openingBalances?: Array<{
+		currencyId: string
+		currencyCode: string
+		amount: number
+		direction: 'owed_to_us' | 'we_owe'
+	}>
 	isDeletable?: boolean
 	deleteBlockReason?: string | null
 }
@@ -435,4 +447,10 @@ interface Customer {
 		updatedAt: string
 	}
 	customerEntries?: CustomerDailyAction[]
+	openingBalances?: Array<{
+		currencyId: string
+		currencyCode: string
+		amount: number
+		direction: 'owed_to_us' | 'we_owe'
+	}>
 }

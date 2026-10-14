@@ -11,10 +11,14 @@ export {
 	amountToPrimary,
 	amountToPrimaryWithSnapshot,
 	catalogCostToPrimary,
+	normalizeOpeningBalances,
+	openingBalancePrimary,
 	ratesFromCurrencySettings,
 	resolveCurrencyIdFromCode,
 	roundPrimaryAmount,
 	type CostCurrencyRate,
+	type OpeningBalanceDirection,
+	type OpeningBalanceLine,
 } from './primaryCost'
 export {
 	addCashBalances,

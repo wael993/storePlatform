@@ -751,7 +751,9 @@
 			"totalReceivable": "Gesamtforderungen",
 			"totalPayable": "Gesamtverbindlichkeiten",
 			"forUs": "Uns geschuldet",
-			"forThem": "Wir schulden"
+			"forThem": "Wir schulden",
+			"openingBalance": "Anfangssaldo",
+			"openingBalanceError": "Der Anfangssaldo konnte nicht gespeichert werden."
 		},
 		"supplier": {
 			"deleteSupplier": "Lieferant löschen",

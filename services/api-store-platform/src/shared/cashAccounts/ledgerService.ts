@@ -453,7 +453,7 @@ export const syncCashEffectsForReference = async (params: {
 				idempotencyKey: reverseKey,
 				actor,
 				reversesLedgerEntryId: entry.ledgerEntryId,
-				reason: params.reason ?? 'Reversal of prior cash effect',
+				reason: params.reason ?? 'تم تعديل او حذف الفاتورة',
 			},
 			session,
 		)

@@ -40,6 +40,7 @@ import {
 	finiteCost,
 	findOversellLines,
 	mergeInvoiceItemsPreservingUnitCost,
+	normalizeOpeningBalances,
 	ratesFromCurrencySettings,
 } from 'store-domain'
 import {
@@ -865,6 +866,17 @@ const handlePostBuyingInvoice = async (body: PostBuyingInvoiceBody) => {
 	}
 }
 
+const normalizeLocalOpeningBalances = async (
+	payload: Record<string, unknown>,
+) => {
+	const rates = ratesFromCurrencySettings(await getLocalCurrencySettings())
+
+	return normalizeOpeningBalances(
+		payload.openingBalances,
+		rates.map(rate => ({ currencyId: rate.currencyId, code: rate.label })),
+	)
+}
+
 const getLocalCurrencySettings = async (): Promise<CurrencySettings> => {
 	const settingsRaw = (
 		await offlineDb.syncMeta.get(SYNC_META_KEYS.currencySettings)
@@ -1223,6 +1235,7 @@ const applyLocalEntityMutation = async (
 		const customerId = path.split('/')[1]
 		const existing = await offlineDb.customers.get(customerId)
 		if (existing) {
+			payload.openingBalances = await normalizeLocalOpeningBalances(payload)
 			await offlineDb.customers.put({
 				...existing,
 				...payload,
@@ -1271,6 +1284,7 @@ const applyLocalEntityMutation = async (
 		const supplierId = path.split('/')[1]
 		const existing = await offlineDb.suppliers.get(supplierId)
 		if (existing) {
+			payload.openingBalances = await normalizeLocalOpeningBalances(payload)
 			await offlineDb.suppliers.put({
 				...existing,
 				...payload,
@@ -2002,6 +2016,7 @@ export const handleOfflineQuery = async (
 								customerEntries,
 								partyBuyingInvoices,
 								rates,
+								customer.openingBalances,
 							),
 						},
 					}
@@ -2026,6 +2041,7 @@ export const handleOfflineQuery = async (
 						customerRelatedEntries(scopedActions, customer),
 						buyingByCustomer.get(customer.customerId) ?? [],
 						rates,
+						customer.openingBalances,
 					).outstanding,
 				}))
 				return { data: { data: withBalances, totalCount: withBalances.length } }
@@ -2065,6 +2081,7 @@ export const handleOfflineQuery = async (
 								supplierEntries,
 								partySellingInvoices,
 								rates,
+								supplier.openingBalances,
 							),
 						},
 					}
@@ -2088,6 +2105,7 @@ export const handleOfflineQuery = async (
 						supplierRelatedEntries(scopedActions, supplier),
 						sellingBySupplier.get(supplier.supplierId) ?? [],
 						rates,
+						supplier.openingBalances,
 					).outstanding,
 				}))
 				return { data: { data: withBalances, totalCount: withBalances.length } }

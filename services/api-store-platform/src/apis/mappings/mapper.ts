@@ -220,6 +220,7 @@ export const mapCustomers = (customers: Customer[]): CustomerResponse[] =>
 		createdAt: customer.createdAt,
 		updatedAt: customer.updatedAt,
 		totalReceivable: customer.totalReceivable ?? 0,
+		openingBalances: customer.openingBalances,
 		createdBy: customer.createdBy,
 		updatedBy: customer.updatedBy,
 		customerEntries: (customer.customerEntries ?? []).map(mapCustomerAction),
@@ -236,6 +237,7 @@ export const mapCustomer = (
 	createdAt: customer.createdAt?.toISOString(),
 	updatedAt: customer.updatedAt?.toISOString(),
 	totalReceivable,
+	openingBalances: customer.openingBalances,
 	createdBy: customer.createdBy
 		? {
 				_id: customer.createdBy._id,
@@ -264,6 +266,7 @@ export const mapSuppliers = (suppliers: Supplier[]) => {
 			createdAt: supplier.createdAt,
 			updatedAt: supplier.updatedAt,
 			totalPayable: supplier.totalPayable ?? 0,
+			openingBalances: supplier.openingBalances,
 			createdBy: supplier.createdBy,
 			updatedBy: supplier.updatedBy,
 			supplierEntries: actions.map(action => ({

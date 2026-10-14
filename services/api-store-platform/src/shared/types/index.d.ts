@@ -585,8 +585,16 @@ interface CustomerDocument {
 	internalCode?: string
 	createdBy: UserAPIFormat
 	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	openingBalances?: OpeningBalanceLine[]
 	createdAt: Date
 	updatedAt: Date
+}
+
+type OpeningBalanceLine = {
+	currencyId: string
+	currencyCode: string
+	amount: number
+	direction: 'owed_to_us' | 'we_owe'
 }
 
 interface CurrencyDocument {
@@ -638,6 +646,7 @@ interface SupplierDocument {
 	internalCode?: string
 	createdBy: UserAPIFormat
 	updatedBy?: UserAPIFormat & { updatedAt: Date }
+	openingBalances?: OpeningBalanceLine[]
 	createdAt: Date
 	updatedAt: Date
 }

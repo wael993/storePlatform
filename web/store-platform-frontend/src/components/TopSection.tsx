@@ -281,6 +281,10 @@ const TopSection = ({
 							<PartyInvoiceSummaryCards
 								party={supplier ? 'supplier' : partner ? 'partner' : 'customer'}
 								totals={invoiceSummary}
+								partyId={supplier?.supplierId ?? customer?.customerId}
+								openingBalances={
+									supplier?.openingBalances ?? customer?.openingBalances
+								}
 							/>
 						)}
 						{productFacts.length > 0 && (

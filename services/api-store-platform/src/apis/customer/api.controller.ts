@@ -1,6 +1,6 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
-import { Customer } from '../../models/Customer'
+import { Customer, type ICustomer } from '../../models/Customer'
 import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
 import { SellingInvoiceItem } from '../../models/SellingInvoices'
@@ -11,7 +11,13 @@ import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
-import type { CostCurrencyRate } from '../../shared/inventoryCost'
+import CurrencySettings from '../../models/CurrencySettings'
+import {
+	normalizeOpeningBalances,
+	openingBalancePrimary,
+	ratesFromCurrencySettings,
+	type CostCurrencyRate,
+} from '../../shared/inventoryCost'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
 import { ensureSeeIds } from '../../shared/seePermissions'
@@ -157,12 +163,15 @@ export default class CustomerController {
 				[],
 			)
 			const totalReceivable =
-				sellingReceivable - (buyingOwed.totalInvoiced - buyingOwed.totalPaid)
+				sellingReceivable -
+				(buyingOwed.totalInvoiced - buyingOwed.totalPaid) +
+				openingBalancePrimary('customer', customer.openingBalances, rates)
 
 			return {
 				customerId: customer.customerId,
 				name: customer.name,
 				internalCode: customer.internalCode,
+				openingBalances: customer.openingBalances,
 				createdAt: customer.createdAt?.toISOString(),
 				updatedAt: customer.updatedAt?.toISOString(),
 				totalReceivable,
@@ -269,7 +278,8 @@ export default class CustomerController {
 					totalPaid: own.totalPaid,
 					outstanding:
 						own.totalReceivable -
-						(buyingOwed.totalInvoiced - buyingOwed.totalPaid),
+						(buyingOwed.totalInvoiced - buyingOwed.totalPaid) +
+						openingBalancePrimary('customer', customer.openingBalances, rates),
 				},
 			},
 			requestContext,
@@ -350,6 +360,69 @@ export default class CustomerController {
 
 		return {
 			_id: createCustomerResponse._id,
+		}
+	}
+
+	public async patchOpeningBalance(
+		customerId: string,
+		requestBody: { openingBalances?: unknown },
+		requestContext: RequestContext,
+	) {
+		await ensureSeeIds(requestContext, [SEE.customersAdd])
+		const tenantId = this.getTenantId(requestContext)
+		const settings = await CurrencySettings.findOne({ tenantId })
+			.select('primaryCurrency secondaryCurrencies')
+			.lean()
+		const currencies = ratesFromCurrencySettings(settings).map(rate => ({
+			currencyId: rate.currencyId,
+			code: rate.label,
+		}))
+
+		let openingBalances
+
+		try {
+			openingBalances = normalizeOpeningBalances(
+				requestBody?.openingBalances,
+				currencies,
+			)
+		} catch (error) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				error instanceof Error ? error.message : 'Opening balance is invalid.',
+			)
+		}
+
+		const updated = await withTenantScope(
+			Customer.findOneAndUpdate(
+				{ customerId },
+				{
+					$set: {
+						openingBalances,
+						updatedBy: {
+							_id: requestContext.userId as string,
+							displayName:
+								`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+							updatedAt: new Date(),
+						},
+					},
+				},
+				{ new: true },
+			),
+			tenantId,
+		).lean<ICustomer | null>()
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				'Customer not found.',
+			)
+		}
+
+		await redisCache.del(redisCache.buildCustomerListKey(tenantId))
+
+		return {
+			customerId: updated.customerId,
+			openingBalances: updated.openingBalances ?? [],
 		}
 	}
 

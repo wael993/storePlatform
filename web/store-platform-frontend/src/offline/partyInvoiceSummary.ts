@@ -1,6 +1,8 @@
 import {
 	amountToPrimaryWithSnapshot,
+	openingBalancePrimary,
 	type CostCurrencyRate,
+	type OpeningBalanceLine,
 } from 'store-domain'
 
 import {
@@ -128,6 +130,10 @@ export const customerPartySummary = (
 	entries: DailyAction[],
 	otherInvoices: PartySummaryInvoice[],
 	rates: readonly CostCurrencyRate[] = [],
+	openingBalances?: readonly Pick<
+		OpeningBalanceLine,
+		'currencyId' | 'amount' | 'direction'
+	>[],
 ): PartyInvoiceSummary => {
 	const own = customerInvoiceBalance(ownInvoices, entries, rates)
 	const other = customerInvoiceBalance(otherInvoices, [], rates)
@@ -135,7 +141,10 @@ export const customerPartySummary = (
 	return {
 		totalInvoiced: own.totalInvoiced,
 		totalPaid: own.totalPaid,
-		outstanding: own.totalReceivable - (other.totalInvoiced - other.totalPaid),
+		outstanding:
+			own.totalReceivable -
+			(other.totalInvoiced - other.totalPaid) +
+			openingBalancePrimary('customer', openingBalances, rates),
 	}
 }
 
@@ -144,6 +153,10 @@ export const supplierPartySummary = (
 	entries: DailyAction[],
 	otherInvoices: PartySummaryInvoice[],
 	rates: readonly CostCurrencyRate[] = [],
+	openingBalances?: readonly Pick<
+		OpeningBalanceLine,
+		'currencyId' | 'amount' | 'direction'
+	>[],
 ): PartyInvoiceSummary => {
 	const own = supplierInvoiceBalance(ownInvoices, entries, rates)
 	const other = supplierInvoiceBalance(otherInvoices, [], rates)
@@ -151,7 +164,10 @@ export const supplierPartySummary = (
 	return {
 		totalInvoiced: own.totalInvoiced,
 		totalPaid: own.totalPaid,
-		outstanding: own.totalPayable - (other.totalInvoiced - other.totalPaid),
+		outstanding:
+			own.totalPayable -
+			(other.totalInvoiced - other.totalPaid) +
+			openingBalancePrimary('supplier', openingBalances, rates),
 	}
 }
 

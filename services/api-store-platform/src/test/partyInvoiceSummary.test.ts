@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest'
 import ProductController from '../apis/api.controller'
 import { groupInvoicesByPartyId } from '../apis/mappings/mapper'
 import { DailyActionType, InvoiceStatus } from '../shared/globalEnums'
-import type { CostCurrencyRate } from '../shared/inventoryCost'
+import {
+	normalizeOpeningBalances,
+	openingBalancePrimary,
+	type CostCurrencyRate,
+} from '../shared/inventoryCost'
 import type { DailyActionResponse } from '../shared/types/api'
 
 const ops = new ProductController({} as never, {} as never)
@@ -113,6 +117,74 @@ describe('party invoice balances', () => {
 		)
 
 		expect(customer.totalReceivable).toBeCloseTo(-120, 5)
+	})
+
+	it('adds a two-currency opening balance and flips the supplier sign', () => {
+		const rows = [
+			{
+				currencyId: 'usd',
+				currencyCode: 'USD',
+				amount: 4000,
+				direction: 'owed_to_us' as const,
+			},
+			{
+				currencyId: 'syp',
+				currencyCode: 'SYP',
+				amount: 1200,
+				direction: 'we_owe' as const,
+			},
+		]
+		const invoiceOnly = ops.buildCustomerInvoiceSummary(
+			[invoice(100)],
+			[],
+			usdSypRates,
+		)
+
+		expect(invoiceOnly.totalInvoiced).toBe(100)
+		expect(invoiceOnly.totalReceivable).toBe(100)
+		expect(openingBalancePrimary('customer', rows, usdSypRates)).toBeCloseTo(
+			4000 - 1200 / 140,
+			5,
+		)
+
+		expect(openingBalancePrimary('supplier', rows, usdSypRates)).toBeCloseTo(
+			-(4000 - 1200 / 140),
+			5,
+		)
+	})
+
+	it('drops a zero opening row and rejects a duplicate currency', () => {
+		const currencies = [
+			{ currencyId: 'usd', code: 'USD' },
+			{ currencyId: 'syp', code: 'SYP' },
+		]
+
+		expect(
+			normalizeOpeningBalances(
+				[
+					{ currencyId: 'usd', amount: 0, direction: 'owed_to_us' },
+					{ currencyId: 'syp', amount: 1200, direction: 'we_owe' },
+				],
+				currencies,
+			),
+		).toEqual([
+			{
+				currencyId: 'syp',
+				currencyCode: 'SYP',
+				amount: 1200,
+				direction: 'we_owe',
+			},
+		])
+
+		expect(() =>
+			normalizeOpeningBalances(
+				[
+					{ currencyId: 'usd', amount: 1, direction: 'owed_to_us' },
+					{ currencyId: 'usd', amount: 2, direction: 'we_owe' },
+				],
+				currencies,
+			),
+		).toThrow('duplicated')
 	})
 
 	it('groups an invoice under the id stored on it', () => {
