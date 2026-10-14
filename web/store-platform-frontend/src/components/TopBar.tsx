@@ -35,6 +35,7 @@ import type { IconType } from 'react-icons'
 import {
 	FiBarChart2,
 	FiBox,
+	FiBriefcase,
 	FiFileText,
 	FiTruck,
 	FiUsers,
@@ -237,6 +238,7 @@ const styles = {
 const quickNav: { path: string; icon: IconType }[] = [
 	{ path: RoutePaths.DASHBOARD, icon: FiBarChart2 },
 	{ path: RoutePaths.PRODUCTS, icon: FiBox },
+	{ path: RoutePaths.PROJECTS, icon: FiBriefcase },
 	{ path: RoutePaths.CUSTOMERS, icon: FiUsers },
 	{ path: RoutePaths.SUPPLIERS, icon: FiTruck },
 	{ path: RoutePaths.SELLING_INVOICES, icon: FiFileText },

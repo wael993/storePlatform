@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Opening balances on customer and supplier summaries
 - Paid and change amounts on invoices, including cash tendered
 - Shared activity list for customers and suppliers
-- Top bar shortcuts to dashboard, products, customers, suppliers, and selling invoices
+- Top bar shortcuts to dashboard, products, projects, customers, suppliers, and selling invoices
 - Offline cash transfers and cash balances per currency
 - New Rivo logo, favicon, and app icons
 
