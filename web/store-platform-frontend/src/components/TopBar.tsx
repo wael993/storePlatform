@@ -15,6 +15,7 @@ import {
 	Flex,
 	FormControl,
 	Image,
+	Icon,
 	IconButton,
 	Menu,
 	MenuButton,
@@ -29,7 +30,15 @@ import {
 	useDisclosure,
 } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
+import type { IconType } from 'react-icons'
+import {
+	FiBarChart2,
+	FiBox,
+	FiFileText,
+	FiTruck,
+	FiUsers,
+} from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { compareLanguage, compareBreakpoint } from '../shared/utils'
@@ -192,7 +201,46 @@ const styles = {
 		color: '#4A5568',
 		_hover: { bg: 'gray.100', color: '#2D3748' },
 	},
+	quickNavLink: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		flexShrink: 0,
+		w: '2.25rem',
+		h: '2.25rem',
+		borderRadius: 'full',
+		border: '2px solid transparent',
+		color: '#6F7173',
+		bg: 'transparent',
+		textDecoration: 'none',
+		_hover: {
+			bg: 'gray.50',
+			color: '#1A365D',
+			textDecoration: 'none',
+		},
+		_focusVisible: {
+			boxShadow: '0 0 0 2px #FFFFFF',
+		},
+	},
+	quickNavLinkActive: {
+		w: '2.75rem',
+		h: '2.75rem',
+		color: '#1A365D',
+		borderColor: 'gray.200',
+		_hover: {
+			bg: 'gray.50',
+			color: '#1A365D',
+			textDecoration: 'none',
+		},
+	},
 } satisfies StylesObject
+
+const quickNav: { path: string; icon: IconType }[] = [
+	{ path: RoutePaths.DASHBOARD, icon: FiBarChart2 },
+	{ path: RoutePaths.PRODUCTS, icon: FiBox },
+	{ path: RoutePaths.CUSTOMERS, icon: FiUsers },
+	{ path: RoutePaths.SUPPLIERS, icon: FiTruck },
+	{ path: RoutePaths.SELLING_INVOICES, icon: FiFileText },
+]
 
 const TopBar = ({
 	navItems,
@@ -330,6 +378,8 @@ const TopBar = ({
 				location.pathname === item.path ||
 				location.pathname.startsWith(`${item.path}/`),
 		)?.path ?? RoutePaths.ROOT
+	const allowedPaths = new Set(navItems.map(item => item.path))
+	const quickNavItems = quickNav.filter(item => allowedPaths.has(item.path))
 
 	return (
 		<Box
@@ -341,6 +391,7 @@ const TopBar = ({
 			px={layout.contentPaddingX}
 		>
 			<Flex
+				position="relative"
 				h={layout.topBarHeight}
 				px={0}
 				py={0}
@@ -408,6 +459,39 @@ const TopBar = ({
 						</FormControl>
 					)}
 				</Flex>
+
+				{quickNavItems.length > 0 && (
+					<Flex
+						display={{ base: 'none', xl: 'flex' }}
+						position="absolute"
+						left="50%"
+						top="50%"
+						transform="translate(-50%, -50%)"
+						align="center"
+						gap={2}
+					>
+						{quickNavItems.map(item => {
+							const isActive = item.path === activePath
+							const NavIcon = item.icon
+
+							return (
+								<Flex
+									key={item.path}
+									as={RouterLink}
+									to={item.path}
+									aria-label={getRouteLabel(item.path)}
+									aria-current={isActive ? 'page' : undefined}
+									sx={{
+										...styles.quickNavLink,
+										...(isActive ? styles.quickNavLinkActive : {}),
+									}}
+								>
+									<Icon as={NavIcon} boxSize={isActive ? 7 : 5} aria-hidden />
+								</Flex>
+							)
+						})}
+					</Flex>
+				)}
 
 				<Flex align="center" gap={2}>
 					{warehouseOptions.length > 1 && !isSuperAdmin && (
