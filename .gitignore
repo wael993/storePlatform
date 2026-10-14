@@ -111,5 +111,8 @@ styled-system-studio
 docs/
 documentation/
 
+# Logo working files — product copies live in web/store-platform-frontend/public/
+brand/
+.brand
 # Generated from packages/store-domain (npm run sync-domain)
 services/api-store-platform/src/shared/store-domain/
