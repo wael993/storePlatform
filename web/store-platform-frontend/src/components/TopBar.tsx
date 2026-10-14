@@ -408,10 +408,10 @@ const TopBar = ({
 						cursor="pointer"
 					>
 						<Image
-							src="/favicon.ico"
+							src="/rivo-logo.svg"
 							alt={t('components.topBar.logoAlt')}
-							w={layout.logoSize}
 							h={layout.logoSize}
+							w="auto"
 							objectFit="contain"
 							flexShrink={0}
 						/>
@@ -462,7 +462,7 @@ const TopBar = ({
 
 				{quickNavItems.length > 0 && (
 					<Flex
-						display={{ base: 'none', xl: 'flex' }}
+						display={{ base: 'none', lg: 'flex' }}
 						position="absolute"
 						left="50%"
 						top="50%"

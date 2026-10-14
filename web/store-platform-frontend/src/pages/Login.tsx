@@ -12,6 +12,7 @@ import {
 	Input,
 	Link,
 } from '@chakra-ui/react'
+import Logo from '../shared/icons/Logo'
 import { useLoginMutation } from '../api/apiStore'
 import {
 	setTenantOfflineConfig,
@@ -117,6 +118,9 @@ const Login = () => {
 			<Container maxW="md">
 				<Box bg="white" p={10} borderRadius="2xl" boxShadow="xl">
 					<Stack gap={6}>
+						<Flex justify="center">
+							<Logo color="#176560" w="3rem" h="3rem" />
+						</Flex>
 						<Heading textAlign="center" color="blue.600">
 							{t('login.welcomeBack')}
 						</Heading>

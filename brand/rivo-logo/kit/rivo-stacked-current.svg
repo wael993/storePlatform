@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 256" width="280" height="256" role="img" aria-labelledby="title">
+  <title id="title">Rivo logo — stacked Current</title>
+  <svg x="84" y="12" width="112" height="112" viewBox="0 0 256 256">
+    <path fill="#176560" d="M 32 32 H 224 V 152 H 144 V 64 H 32 Z M 32 104 H 104 V 192 H 224 V 224 H 32 Z"/>
+  </svg>
+  <g id="wordmark" transform="translate(40 132) scale(0.5110)">
+    <path fill="#176560" fill-rule="evenodd" d="M 0 92 L 26 92 A 42 42 0 0 1 68 134 L 68 150 L 42 150 L 42 134 A 16 16 0 0 0 26 118 L 26 196 L 0 196 Z M 90 44 h 26 v 20 h -26 Z M 90 92 h 26 v 104 h -26 Z M 140 92 L 170 92 L 201.8 147 L 233.5 92 L 263.6 92 L 201.8 199 Z M 335.6 88 A 56 56 0 1 1 335.6 200 A 56 56 0 1 1 335.6 88 Z M 335.6 113 A 31 31 0 1 0 335.6 175 A 31 31 0 1 0 335.6 113 Z"/>
+  </g>
+</svg>

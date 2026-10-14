@@ -2,7 +2,6 @@ import {
 	Box,
 	Flex,
 	Heading,
-	Image,
 	Badge,
 	SimpleGrid,
 	Stack,
@@ -22,6 +21,7 @@ import {
 import { getRouteLabel, RoutePaths } from '../shared/routes'
 import { TENANT_PAGE_DESCRIPTION_KEYS } from '../shared/tenantAccessiblePages'
 import { pageContentMinHeight } from '../theme/layout'
+import Logo from '../shared/icons/Logo'
 
 const infoItems = [
 	{
@@ -78,7 +78,7 @@ const styles = {
 		justifyContent: 'center',
 		bg: 'white',
 		borderRadius: '2rem',
-		boxShadow: '0 18px 45px rgba(49, 130, 206, 0.18)',
+		boxShadow: '0 18px 45px rgba(23, 101, 96, 0.18)',
 		mb: 8,
 	},
 	infoPanel: {
@@ -188,12 +188,10 @@ const WelcomePage = () => {
 				<Flex sx={styles.hero}>
 					<Stack align="center" maxW="42rem" gap={4}>
 						<Flex sx={styles.logoWrap}>
-							<Image
-								src="/favicon.ico"
-								alt={t('components.topBar.logoAlt')}
-								w={{ base: '4.5rem', md: '8.5rem' }}
-								h={{ base: '4.5rem', md: '8.5rem' }}
-								objectFit="contain"
+							<Logo
+								color="#176560"
+								w={{ base: '4.5rem', md: '5.5rem' }}
+								h={{ base: '4.5rem', md: '5.5rem' }}
 							/>
 						</Flex>
 						<Text
