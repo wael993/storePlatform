@@ -39,7 +39,7 @@ export type ProductPatchBody = {
 	taxRate?: string
 	unitId?: string
 	price?: ProductPricePatch
-	status?: 'active' | 'inactive' | 'discontinued'
+	status?: 'active' | 'inactive'
 	attributes?: {
 		color?: string
 		size?: string
@@ -330,11 +330,7 @@ export const normalizeProductPatchRequest = (
 	}
 
 	if (picked.status !== undefined) {
-		if (
-			picked.status !== 'active' &&
-			picked.status !== 'inactive' &&
-			picked.status !== 'discontinued'
-		) {
+		if (picked.status !== 'active' && picked.status !== 'inactive') {
 			throw new BusinessLogicError(
 				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
 				'Invalid value for status.',

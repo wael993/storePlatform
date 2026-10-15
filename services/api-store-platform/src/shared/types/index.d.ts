@@ -107,7 +107,7 @@ export type ProductRequestBody = {
 		flavor?: string
 		expiryDate?: string
 	}
-	status: 'active' | 'inactive' | 'discontinued'
+	status: 'active' | 'inactive'
 	description?: string
 	quantity?: number
 	minQuantity?: number
@@ -728,7 +728,7 @@ interface ProductDocument {
 		discount?: number
 		currency: string
 	}
-	status: 'active' | 'inactive' | 'discontinued'
+	status: 'active' | 'inactive'
 	description?: string
 	attributes?: {
 		color?: string
@@ -773,7 +773,7 @@ interface ProductAPI {
 		discount?: number
 		currency: string
 	}
-	status: 'active' | 'inactive' | 'discontinued'
+	status: 'active' | 'inactive'
 	description?: string
 	attributes?: {
 		color?: string

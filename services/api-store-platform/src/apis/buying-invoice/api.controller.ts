@@ -1185,7 +1185,7 @@ export default class BuyingInvoiceController {
 			const extraction = await extractInvoice(input)
 			// ponytail: full live catalog into RAM per extract (O(n) scan). Upgrade: candidate prefilter / indexed lookup if catalogs grow.
 			const products = await withTenantScope(
-				Product.find({ status: { $ne: 'discontinued' } })
+				Product.find({})
 					.select(
 						'productId name latinName barcode additionalBarcodes internalCode productFactoryCode aliases unitId categoryId supplierId',
 					)

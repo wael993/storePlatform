@@ -23,7 +23,7 @@ export interface IProduct extends Document {
 		discount?: number
 		currency: string
 	}
-	status: 'active' | 'inactive' | 'discontinued'
+	status: 'active' | 'inactive'
 	attributes?: {
 		color?: string
 		size?: string
@@ -102,7 +102,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			enum: ['active', 'inactive', 'discontinued'],
+			enum: ['active', 'inactive'],
 			default: 'active',
 			required: true,
 		},

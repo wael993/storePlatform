@@ -1213,7 +1213,6 @@
 		},
 		"product": {
 			"states": {
-				"discontinued": "Discontinued",
 				"readyForRestock": "Ready for Restock",
 				"active": "Active",
 				"draft": "Draft",

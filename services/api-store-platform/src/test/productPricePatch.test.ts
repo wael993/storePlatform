@@ -55,3 +55,19 @@ describe('product name length', () => {
 		)
 	})
 })
+
+describe('product status', () => {
+	it('accepts active and inactive and rejects discontinued', () => {
+		expect(normalizeProductPatchRequest({ status: 'active' }).status).toBe(
+			'active',
+		)
+		expect(normalizeProductPatchRequest({ status: 'inactive' }).status).toBe(
+			'inactive',
+		)
+		expect(() =>
+			normalizeProductPatchRequest({
+				status: 'discontinued',
+			} as Parameters<typeof normalizeProductPatchRequest>[0]),
+		).toThrow(/Invalid value for status/)
+	})
+})

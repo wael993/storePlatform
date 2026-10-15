@@ -80,7 +80,7 @@ const INITIAL_FORM = {
 		discount: '',
 		currency: '',
 	},
-	status: 'active' as 'active' | 'inactive' | 'discontinued',
+	status: 'active' as 'active' | 'inactive',
 	attributes: {
 		color: '',
 		size: '',
@@ -351,10 +351,6 @@ const AddProductModal = ({
 		() => [
 			{ value: 'active', label: t('common.active') },
 			{ value: 'inactive', label: t('common.inactive') },
-			{
-				value: 'discontinued',
-				label: t('components.product.states.discontinued'),
-			},
 		],
 		[t],
 	)

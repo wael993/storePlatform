@@ -1213,7 +1213,6 @@
 		},
 		"product": {
 			"states": {
-				"discontinued": "متوقف",
 				"readyForRestock": "جاهز لإعادة التخزين",
 				"active": "نشط",
 				"draft": "مسودة",

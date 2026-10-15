@@ -60,7 +60,6 @@ export enum CategorySortHeaderKey {
 export enum ProductState {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive',
-	DISCONTINUED = 'discontinued',
 	OUT_OF_STOCK = 'outOfStock',
 	READY_FOR_RESTOCK = 'readyForRestock',
 	DRAFT = 'draft',

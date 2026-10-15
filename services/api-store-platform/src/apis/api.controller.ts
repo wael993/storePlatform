@@ -1220,13 +1220,19 @@ export default class ProductController {
 			// note: in-memory scan of search fields for tenant products matching other filters; upgrade to Atlas Search at 100k
 			const searchDocs = await withTenantScope(
 				Product.find(mongoQuery).select(
-					'productId name latinName barcode additionalBarcodes internalCode productFactoryCode',
+					'productId name latinName barcode additionalBarcodes internalCode productFactoryCode status',
 				),
 				tenantId,
-			).lean<SearchableProduct[]>()
-			const matched = searchProducts(searchDocs, searchText).sort((a, b) =>
-				(a.name ?? '').localeCompare(b.name ?? ''),
-			)
+			).lean<(SearchableProduct & { status?: string })[]>()
+			const matched = searchProducts(searchDocs, searchText).sort((a, b) => {
+				const inactiveLast = (status?: string) =>
+					status === 'inactive' ? 1 : 0
+
+				return (
+					inactiveLast(a.status) - inactiveLast(b.status) ||
+					(a.name ?? '').localeCompare(b.name ?? '')
+				)
+			})
 			const pageIds = matched
 				.slice(offset, offset + limit)
 				.map(product => product.productId)
@@ -1254,10 +1260,21 @@ export default class ProductController {
 			relationLookups = lookups
 		} else {
 			const [page, count, lookups] = await Promise.all([
-				withTenantScope(
-					Product.find(mongoQuery).sort({ name: 1 }).skip(offset).limit(limit),
-					tenantId,
-				).lean<ProductAPI[]>(),
+				// note: inactive last; rank cannot use the status+name index
+				Product.aggregate<ProductAPI>([
+					{ $match: { tenantId, ...mongoQuery } },
+					{
+						$addFields: {
+							inactiveLast: {
+								$cond: [{ $eq: ['$status', 'inactive'] }, 1, 0],
+							},
+						},
+					},
+					{ $sort: { inactiveLast: 1, name: 1 } },
+					{ $skip: offset },
+					{ $limit: limit },
+					{ $project: { inactiveLast: 0 } },
+				]),
 				Product.countDocuments({ tenantId, ...mongoQuery }),
 				this.getProductRelationLookups(requestContext),
 			])
@@ -1634,7 +1651,9 @@ export default class ProductController {
 				)
 			}
 
-			this.addFilterOption(stateMap, product.status, product.status)
+			const status = product.status === 'inactive' ? 'inactive' : 'active'
+
+			this.addFilterOption(stateMap, status, status)
 		}
 
 		return {

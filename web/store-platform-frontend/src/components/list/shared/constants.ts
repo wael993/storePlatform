@@ -77,10 +77,6 @@ export const PRODUCT_STATE_CONFIG: ProductStateMap = {
 		translationKey: 'components.product.states.inactive',
 		color: '#C7C7C7',
 	},
-	[ProductState.DISCONTINUED]: {
-		translationKey: 'components.product.states.discontinued',
-		color: '#5698E6',
-	},
 	[ProductState.READY_FOR_RESTOCK]: {
 		translationKey: 'components.product.states.readyForRestock',
 		color: '#F0BB35',
@@ -95,4 +91,24 @@ export const PRODUCT_STATE_CONFIG: ProductStateMap = {
 		translationKey: 'components.product.states.draft',
 		color: '#FFFFFF',
 	},
+}
+
+export const productStatusState = (status?: string) =>
+	status === ProductState.INACTIVE
+		? PRODUCT_STATE_CONFIG[ProductState.INACTIVE]
+		: PRODUCT_STATE_CONFIG[ProductState.ACTIVE]
+
+export const productCircleState = (
+	status?: string,
+	discount?: number | null,
+) => {
+	if (status === ProductState.INACTIVE) {
+		return PRODUCT_STATE_CONFIG[ProductState.INACTIVE]
+	}
+
+	if (typeof discount === 'number' && discount !== 0) {
+		return { color: '#F0BB35', translationKey: 'common.discount' as const }
+	}
+
+	return PRODUCT_STATE_CONFIG[ProductState.ACTIVE]
 }

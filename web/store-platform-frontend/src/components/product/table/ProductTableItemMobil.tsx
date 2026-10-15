@@ -19,7 +19,10 @@ import { useNavigate } from 'react-router-dom'
 import StateCircle from '../../StateCircle'
 import NotificationCircle from '../../NotificationCircle'
 import OptionsPopover from '../../modals/OptionsPopover'
-import { PRODUCT_STATE_CONFIG } from '../../list/shared/constants'
+import {
+	productCircleState,
+	productStatusState,
+} from '../../list/shared/constants'
 import useAllowedActions from '../../../shared/hooks/useAllowedActions'
 import { useWarehouseScope } from '../../../shared/hooks/useWarehouseScope'
 import { useSee } from '../../../shared/hooks/useSee'
@@ -160,7 +163,11 @@ const ProductTableMobil = ({
 	const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation()
 	const showToast = useCustomToast()
 	const { deleteDisabled, deleteTooltip } = useMasterDelete(product)
-	const productState = PRODUCT_STATE_CONFIG[product.status]
+	const productState = productStatusState(product.status)
+	const circleState = productCircleState(
+		product.status,
+		product.price?.discount,
+	)
 
 	const onNavigate = (event: React.MouseEvent<HTMLDivElement>) => {
 		event.stopPropagation()
@@ -413,8 +420,8 @@ const ProductTableMobil = ({
 									}}
 								>
 									<StateCircle
-										stateColor={productState?.color}
-										stateTitle={productState?.translationKey}
+										stateColor={circleState.color}
+										stateTitle={circleState.translationKey}
 										customStyles={{
 											colorCircle: { width: '0.875rem', height: '0.875rem' },
 										}}

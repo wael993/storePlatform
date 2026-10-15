@@ -1213,7 +1213,6 @@
 		},
 		"product": {
 			"states": {
-				"discontinued": "Eingestellt",
 				"readyForRestock": "Bereit zur Nachbestellung",
 				"active": "Aktiv",
 				"draft": "Entwurf",

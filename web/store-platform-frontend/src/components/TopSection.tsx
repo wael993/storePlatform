@@ -8,8 +8,7 @@ import { CloseButton } from './common/CloseButton'
 import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
 import PartyInvoiceSummaryCards from './common/PartyInvoiceSummaryCards'
-import { PRODUCT_STATE_CONFIG } from './list/shared/constants'
-import { ProductState } from './list/shared/globalEnums'
+import { productCircleState } from './list/shared/constants'
 
 const fullWidth = '100%'
 const mutedTextColor = '#929494'
@@ -184,15 +183,15 @@ const TopSection = ({
 		BREADCRUMB_ITEM[targetType as keyof typeof BREADCRUMB_ITEM] ??
 		BreadCrumbItem.SUPPLIER
 
-	const productState = product
-		? PRODUCT_STATE_CONFIG[product.status as ProductState]
+	const productMarker = product
+		? productCircleState(product.status, product.price?.discount)
 		: undefined
 	const typeChip = TYPE_CHIP[targetType]
 	const chip = isProductTarget
-		? productState && (
+		? productMarker && (
 				<StatusChip
-					color={productState.color}
-					label={t(productState.translationKey)}
+					color={productMarker.color}
+					label={t(productMarker.translationKey)}
 				/>
 			)
 		: typeChip && (

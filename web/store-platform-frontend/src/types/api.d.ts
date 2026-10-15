@@ -310,7 +310,7 @@ interface Product {
 		discount?: number
 		currency: string
 	}
-	status: 'active' | 'inactive' | 'discontinued'
+	status: 'active' | 'inactive'
 	attributes?: {
 		color?: string
 		size?: string

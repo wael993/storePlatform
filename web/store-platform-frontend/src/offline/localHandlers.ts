@@ -2431,7 +2431,6 @@ export const handleOfflineQuery = async (
 						state: [
 							{ value: 'active', label: 'active' },
 							{ value: 'inactive', label: 'inactive' },
-							{ value: 'discontinued', label: 'discontinued' },
 						],
 					},
 				}

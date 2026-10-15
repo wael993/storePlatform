@@ -36,7 +36,7 @@ export default class ProductsMapper {
 				? lookups?.brandNameById.get(product.brandId)
 				: undefined,
 			images: product.images,
-			status: product.status ?? 'active',
+			status: product.status === 'inactive' ? 'inactive' : 'active',
 			price: product.price,
 			unitId: product.unitId,
 			unitName: product.unitId

@@ -14,8 +14,9 @@ import { listStyles, cellFieldStyles } from '../../../shared/styles'
 import { hoverFocusActiveButtonStyles } from '../../../theme/styles'
 import EditableCellField from '../../list/EditableCellField'
 import {
-	PRODUCT_STATE_CONFIG,
 	PRODUCT_LIST_WIDTHS_MAP_IN_REM,
+	productCircleState,
+	productStatusState,
 } from '../../list/shared/constants'
 import OptionsPopover from '../../modals/OptionsPopover'
 import NotificationCircle from '../../NotificationCircle'
@@ -62,7 +63,11 @@ const ProductTableItem = memo(
 			usePrintProductBarcode(productData)
 		const { visibleColumns } = useListColumnConfig()
 
-		const productState = PRODUCT_STATE_CONFIG[productData.status]
+		const productState = productStatusState(productData.status)
+		const circleState = productCircleState(
+			productData.status,
+			productData.price?.discount,
+		)
 		const isReadyForExecution = false
 
 		const { t } = useTranslation()
@@ -534,8 +539,8 @@ const ProductTableItem = memo(
 									}}
 								>
 									<StateCircle
-										stateColor={productState?.color}
-										stateTitle={productState?.translationKey}
+										stateColor={circleState.color}
+										stateTitle={circleState.translationKey}
 										customStyles={{
 											colorCircle: { width: '0.875rem', height: '0.875rem' },
 										}}
