@@ -1,11 +1,13 @@
 export {
 	ESTABLISHED_COST_MOVING_TYPES,
+	aggregateInventoryByProductId,
 	establishedWarehouseIdsFromMovings,
 	finiteCost,
 	isEstablishedCostMovingType,
 	mergeQtyWeightedAverageCost,
 	openingAverageCostFromPurchasePrice,
 	shouldReplaceOpeningAverageCost,
+	type InventoryScopeRow,
 } from './inventoryCost'
 export {
 	amountToPrimary,

@@ -12,6 +12,8 @@ import {
 	requireOperationalWarehouseId,
 	requireWarehouseId,
 	resolveWarehouseScope,
+	warehouseAclMongoFilter,
+	warehouseMongoFilter,
 } from '../shared/warehouseAccess'
 import { RequestContext } from '../shared/types'
 
@@ -90,6 +92,45 @@ describe('warehouseAccess', () => {
 
 		expect(getEffectiveWarehouseIds(op)).toEqual(['w1'])
 		expect(getEffectiveWarehouseIds(ownerCtx)).toBeNull()
+	})
+
+	it('builds a Mongo warehouse predicate from working scope or ACL', () => {
+		expect(warehouseMongoFilter(ownerCtx)).toBeNull()
+		expect(warehouseAclMongoFilter(ownerCtx)).toBeNull()
+		expect(
+			warehouseMongoFilter({
+				...ownerCtx,
+				warehouseScope: ['w1'],
+			} as RequestContext),
+		).toEqual({ warehouseId: { $in: ['w1'] } })
+
+		const w1Only = {
+			role: 'cashier',
+			user: { warehouseIds: ['w1'] },
+			allowedFields: [],
+			warehouseScope: resolveWarehouseScope(
+				{ role: 'cashier', user: { warehouseIds: ['w1'] } },
+				'w1,w2',
+			),
+		} as unknown as RequestContext
+
+		expect(warehouseMongoFilter(w1Only)).toEqual({
+			warehouseId: { $in: ['w1'] },
+		})
+
+		expect(
+			warehouseMongoFilter({
+				role: 'cashier',
+				user: { warehouseIds: [] },
+				allowedFields: [],
+			} as unknown as RequestContext),
+		).toEqual({ warehouseId: { $in: [] } })
+
+		expect(warehouseAclMongoFilter(op)).toEqual({
+			warehouseId: { $in: ['w1', 'w2'] },
+		})
+
+		expect(warehouseMongoFilter(op)).toEqual({ warehouseId: { $in: ['w1'] } })
 	})
 
 	it('lets working scope narrow access without widening the ACL', () => {

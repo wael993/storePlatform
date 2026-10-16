@@ -1,5 +1,6 @@
 export {
 	ESTABLISHED_COST_MOVING_TYPES,
+	aggregateInventoryByProductId,
 	establishedWarehouseIdsFromMovings,
 	finiteCost,
 	isEstablishedCostMovingType,

@@ -31,13 +31,13 @@ import { searchProducts } from '../components/SellingInvoice/productSearch'
 import { getPrimaryInvoiceCurrencyAmounts } from '../components/SellingInvoice/currencyDisplay'
 import {
 	buildLocalPeriodProductAggregates,
-	mergeQtyWeightedAverageCost,
 	pickBestSellerSummaryProducts,
 	pickTopProfitSummaryProducts,
 	resolveLocalSaleUnitCost,
 	totalProfitFromAggregates,
 } from '../components/SellingInvoice/invoiceProfitSummary'
 import {
+	aggregateInventoryByProductId,
 	finiteCost,
 	findOversellLines,
 	isLowStock,
@@ -195,62 +195,6 @@ const filterProductsByWarehouseStock = async <T extends { productId?: string }>(
 		product =>
 			product.productId !== undefined && allowed.has(product.productId),
 	)
-}
-
-/** note: sums qty across scoped warehouses; qty-weighted averageCost. */
-const aggregateInventoryByProductId = <
-	T extends {
-		productId?: string
-		quantity?: number
-		availableQuantity?: number
-		reservedQuantity?: number
-		averageCost?: number
-	},
->(
-	items: T[],
-): Map<string, T> => {
-	const map = new Map<string, T>()
-	const costQtyByProductId = new Map<string, number>()
-
-	for (const item of items) {
-		if (!item.productId) continue
-		const existing = map.get(item.productId)
-		const nextQty = Number(item.quantity ?? 0)
-		const nextCost = finiteCost(item.averageCost)
-
-		if (!existing) {
-			map.set(item.productId, item)
-			costQtyByProductId.set(item.productId, nextCost != null ? nextQty : 0)
-			continue
-		}
-
-		const existingQty = Number(existing.quantity ?? 0)
-		const existingCostQty = costQtyByProductId.get(item.productId) ?? 0
-		const totalQty = existingQty + nextQty
-
-		map.set(item.productId, {
-			...existing,
-			quantity: totalQty,
-			availableQuantity:
-				Number(existing.availableQuantity ?? 0) +
-				Number(item.availableQuantity ?? 0),
-			reservedQuantity:
-				Number(existing.reservedQuantity ?? 0) +
-				Number(item.reservedQuantity ?? 0),
-			averageCost: mergeQtyWeightedAverageCost(
-				existing.averageCost,
-				existingCostQty,
-				nextCost,
-				nextQty,
-			),
-		})
-		costQtyByProductId.set(
-			item.productId,
-			existingCostQty + (nextCost != null ? nextQty : 0),
-		)
-	}
-
-	return map
 }
 
 const validateLocalSaleInventory = async (

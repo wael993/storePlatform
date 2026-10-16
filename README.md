@@ -71,7 +71,7 @@ cd services/api-store-platform && cp .env.example .env && npm ci && npm run dev
 
 If you previously used `src/.env`, merge into `services/api-store-platform/.env`.
 
-How warehouse ACL, working scope, operational vs combined mode, transfers, and dashboard filtering work: `docs/reference/warehouse.md` (local; `docs/` is gitignored).
+How warehouse ACL, working scope, operational vs combined mode, transfers, and dashboard filtering work: `docs/reference/warehouse.md` (local; `docs/` is gitignored). UI default after login is the first accessible warehouse (operational). Combined view is an explicit multi-select.
 
 ### Warehouse scope migration
 

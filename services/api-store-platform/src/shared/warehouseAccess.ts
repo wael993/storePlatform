@@ -94,6 +94,28 @@ export const getEffectiveWarehouseIds = (
 	return getAllowedWarehouseIds(requestContext)
 }
 
+const warehouseIdInFilter = (
+	ids: string[] | null,
+): Record<string, unknown> | null =>
+	ids === null ? null : { warehouseId: { $in: ids } }
+
+/**
+ * Mongo predicate for warehouse-scoped collections.
+ * `null` = owner/unrestricted → omit the clause.
+ * `[]` = no access → `{ warehouseId: { $in: [] } }` (match nothing).
+ * `[id…]` = those warehouses only.
+ */
+export const warehouseMongoFilter = (
+	requestContext: RequestContext,
+): Record<string, unknown> | null =>
+	warehouseIdInFilter(getEffectiveWarehouseIds(requestContext))
+
+/** Same as warehouseMongoFilter but ACL only (party lists, transfer destinations). */
+export const warehouseAclMongoFilter = (
+	requestContext: RequestContext,
+): Record<string, unknown> | null =>
+	warehouseIdInFilter(getAllowedWarehouseIds(requestContext))
+
 export const requireWarehouseId = (warehouseId?: string | null): string => {
 	const id = warehouseId?.trim()
 
@@ -214,18 +236,14 @@ export const loadAccessibleProductIds = async (
 	requestContext: RequestContext,
 	tenantId: string,
 ): Promise<string[] | null> => {
-	const effective = getEffectiveWarehouseIds(requestContext)
+	const warehouse = warehouseMongoFilter(requestContext)
 
-	if (effective === null) {
+	if (warehouse === null) {
 		return null
 	}
 
-	if (effective.length === 0) {
-		return []
-	}
-
 	const rows = await withTenantScope(
-		Inventory.find({ warehouseId: { $in: effective } }).select('productId'),
+		Inventory.find(warehouse).select('productId'),
 		tenantId,
 	).lean<{ productId?: string }[]>()
 

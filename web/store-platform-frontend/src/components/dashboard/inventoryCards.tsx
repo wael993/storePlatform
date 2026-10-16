@@ -269,45 +269,45 @@ const LiveInventoryWarningsCard = () => {
 					</Text>
 				</Flex>
 				<Box flex="1">
-					{status === 'ready'
-						? rows.map(row => (
-								<Flex
-									key={row.type}
-									as="button"
-									type="button"
-									w="100%"
-									textAlign="start"
-									sx={{
-										...cardStyles.row,
-										cursor: 'pointer',
-										_hover: { bg: 'gray.50' },
-									}}
-									onClick={() => openDigest(row.type)}
+					{status === 'ready' ? (
+						rows.map(row => (
+							<Flex
+								key={row.type}
+								as="button"
+								type="button"
+								w="100%"
+								textAlign="start"
+								sx={{
+									...cardStyles.row,
+									cursor: 'pointer',
+									_hover: { bg: 'gray.50' },
+								}}
+								onClick={() => openDigest(row.type)}
+							>
+								<Text
+									sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
+									noOfLines={1}
 								>
-									<Text
-										sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
-										noOfLines={1}
-									>
-										{row.label}
-									</Text>
-									<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
-										{row.value}
-									</Text>
-								</Flex>
-							))
-						: (
-								<Flex sx={cardStyles.row}>
-									<Text
-										sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
-										noOfLines={1}
-									>
-										—
-									</Text>
-									<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
-										{t(STATUS_KEYS[status])}
-									</Text>
-								</Flex>
-							)}
+									{row.label}
+								</Text>
+								<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
+									{row.value}
+								</Text>
+							</Flex>
+						))
+					) : (
+						<Flex sx={cardStyles.row}>
+							<Text
+								sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
+								noOfLines={1}
+							>
+								—
+							</Text>
+							<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
+								{t(STATUS_KEYS[status])}
+							</Text>
+						</Flex>
+					)}
 				</Box>
 			</Box>
 			<NegativeQuantityDigestModal

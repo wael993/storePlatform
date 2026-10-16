@@ -50,6 +50,7 @@ import {
 	ESTABLISHED_COST_MOVING_TYPES,
 	establishedWarehouseIdsFromMovings,
 	amountToPrimaryWithSnapshot,
+	aggregateInventoryByProductId,
 	availableQuantityFromStock,
 	catalogCostToPrimary,
 	finiteCost,
@@ -63,12 +64,13 @@ import {
 	ensureWarehouseAccess,
 	ensureWarehouseAcl,
 	filterByAccessibleProductIds,
-	filterByWarehouseAccess,
 	filterByWarehouseAcl,
 	getEffectiveWarehouseIds,
 	loadAccessibleProductIds,
 	requireOperationalWarehouseId,
 	requireWarehouseId,
+	warehouseAclMongoFilter,
+	warehouseMongoFilter,
 } from '../shared/warehouseAccess'
 import { groupWarehouseTransferMovings } from '../shared/warehouseTransfer'
 import { StockMoving } from '../models/StockMovings'
@@ -223,62 +225,6 @@ import { OfflineSyncState } from '../models/OfflineSyncState'
 const OFFLINE_INVOICE_NUMBER_BLOCK = 500
 
 const MAX_WAREHOUSE_TRANSFER_ITEMS = 200
-
-/** Sum qty across warehouse rows; qty-weighted averageCost. */
-const aggregateInventoryByProductId = (
-	inventory: InventoryDocument[],
-): Map<string, InventoryDocument> => {
-	const inventoryByProductId = new Map<string, InventoryDocument>()
-	const costQtyByProductId = new Map<string, number>()
-
-	for (const inventoryItem of inventory) {
-		const existing = inventoryByProductId.get(inventoryItem.productId)
-		const nextQty = Number(inventoryItem.quantity ?? 0)
-		const nextCost = finiteCost(inventoryItem.averageCost)
-
-		if (!existing) {
-			inventoryByProductId.set(inventoryItem.productId, inventoryItem)
-			costQtyByProductId.set(
-				inventoryItem.productId,
-				nextCost != null ? nextQty : 0,
-			)
-
-			continue
-		}
-
-		const existingQty = Number(existing.quantity ?? 0)
-		const existingCostQty = costQtyByProductId.get(inventoryItem.productId) ?? 0
-		const totalQty = existingQty + nextQty
-
-		inventoryByProductId.set(inventoryItem.productId, {
-			...existing,
-			// A combined-view total belongs to no single warehouse or shelf; keeping one
-			// row's labels would show the total under an arbitrary warehouse name.
-			warehouseId: '',
-			shelfId: undefined,
-			quantity: totalQty,
-			availableQuantity:
-				Number(existing.availableQuantity ?? 0) +
-				Number(inventoryItem.availableQuantity ?? 0),
-			reservedQuantity:
-				Number(existing.reservedQuantity ?? 0) +
-				Number(inventoryItem.reservedQuantity ?? 0),
-			averageCost: mergeQtyWeightedAverageCost(
-				existing.averageCost,
-				existingCostQty,
-				nextCost,
-				nextQty,
-			),
-		})
-
-		costQtyByProductId.set(
-			inventoryItem.productId,
-			existingCostQty + (nextCost != null ? nextQty : 0),
-		)
-	}
-
-	return inventoryByProductId
-}
 
 type TokenPayload = {
 	userId: string
@@ -1285,14 +1231,16 @@ export default class ProductController {
 		}
 
 		const productIds = products.map(product => product.productId)
-		const inventoryRaw =
+		const inventory =
 			productIds.length === 0
 				? []
 				: await withTenantScope(
-						Inventory.find({ productId: { $in: productIds } }),
+						Inventory.find({
+							productId: { $in: productIds },
+							...(warehouseMongoFilter(requestContext) ?? {}),
+						}),
 						tenantId,
 					).lean<InventoryDocument[]>()
-		const inventory = filterByWarehouseAccess(requestContext, inventoryRaw)
 		const inventoryByProductId = aggregateInventoryByProductId(inventory)
 
 		const productSee = new Set((requestContext.see || []) as SeeId[])
@@ -1341,26 +1289,18 @@ export default class ProductController {
 		let fullProducts = await redisCache.getJson<ProductRequestBody[]>(cacheKey)
 
 		if (!fullProducts) {
-			// Tenant-wide cache: load unfiltered inventory (filter products per-user below).
-			const [products, inventory, relationLookups] = await Promise.all([
+			// note: tenant-wide product master only. Qty / averageCost / location
+			// are warehouse-scoped — attach on read, never persist in this key.
+			const [products, relationLookups] = await Promise.all([
 				withTenantScope(Product.find({}).sort({ name: 1 }), tenantId).lean<
 					ProductAPI[]
 				>(),
-				withTenantScope(Inventory.find({}), tenantId).lean<
-					InventoryDocument[]
-				>(),
 				this.getProductRelationLookups(requestContext),
 			])
-			// Aggregate multi-warehouse rows before cache (last-wins Map corrupts qty/cost).
-			const inventoryByProductId = aggregateInventoryByProductId(inventory)
 
 			fullProducts = products
 				.map(product =>
-					this.productsMapper.mapProduct(
-						product,
-						inventoryByProductId.get(product.productId),
-						relationLookups,
-					),
+					this.productsMapper.mapProduct(product, undefined, relationLookups),
 				)
 				.filter(Boolean) as ProductRequestBody[]
 
@@ -1393,17 +1333,15 @@ export default class ProductController {
 		const averageCostByProductId = new Map<string, number>()
 
 		if (seeBuying && visibleProducts.length > 0) {
-			const scopedInventory = filterByWarehouseAccess(
-				requestContext,
-				await withTenantScope(
-					Inventory.find({
-						productId: {
-							$in: visibleProducts.map(product => product.productId),
-						},
-					}),
-					tenantId,
-				).lean<InventoryDocument[]>(),
-			)
+			const scopedInventory = await withTenantScope(
+				Inventory.find({
+					productId: {
+						$in: visibleProducts.map(product => product.productId),
+					},
+					...(warehouseMongoFilter(requestContext) ?? {}),
+				}),
+				tenantId,
+			).lean<InventoryDocument[]>()
 
 			// note: qty-weighted averageCost across scoped warehouses.
 			const totals = new Map<
@@ -2529,9 +2467,10 @@ export default class ProductController {
 
 		const tenantId = this.getTenantId(requestContext)
 		const rows = await withTenantScope(
-			Inventory.find({ productId }).select(
-				'warehouseId quantity availableQuantity',
-			),
+			Inventory.find({
+				productId,
+				...(warehouseAclMongoFilter(requestContext) ?? {}),
+			}).select('warehouseId quantity availableQuantity'),
 			tenantId,
 		).lean<
 			Array<{
@@ -2541,18 +2480,13 @@ export default class ProductController {
 			}>
 		>()
 
-		return filterByWarehouseAcl(
-			requestContext,
-			rows.map(row => ({
-				warehouseId: row.warehouseId,
+		return rows
+			.filter(row => Boolean(row.warehouseId))
+			.map(row => ({
+				warehouseId: row.warehouseId as string,
 				quantity: Number(row.quantity ?? 0),
 				availableQuantity: Number(row.availableQuantity ?? 0),
-			})),
-		).filter(row => Boolean(row.warehouseId)) as Array<{
-			warehouseId: string
-			quantity: number
-			availableQuantity: number
-		}>
+			}))
 	}
 
 	public async postWarehouseTransfer(
@@ -3850,27 +3784,35 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<InventoryDocument[]> {
 		const tenantId = this.getTenantId(requestContext)
+		const warehouse = warehouseMongoFilter(requestContext)
 		const cacheKey = redisCache.buildInventoryListKey(tenantId)
-		const cachedInventory =
-			await redisCache.getJson<InventoryDocument[]>(cacheKey)
 
-		if (cachedInventory) {
-			return filterByWarehouseAccess(requestContext, cachedInventory)
+		if (warehouse === null) {
+			const cachedInventory =
+				await redisCache.getJson<InventoryDocument[]>(cacheKey)
+
+			if (cachedInventory) {
+				return cachedInventory
+			}
+
+			const { documents: inventory } = await this.mongoDbClient.getDocuments({
+				requestContext,
+				collectionName: COLLECTION_NAMES.INVENTORY,
+				model: Inventory,
+				sort: { createdAt: 'desc' },
+			})
+
+			await redisCache.setJson(cacheKey, inventory)
+
+			return inventory as InventoryDocument[]
 		}
 
-		const { documents: inventory } = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.INVENTORY,
-			model: Inventory,
-			sort: { createdAt: 'desc' },
-		})
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
-		await redisCache.setJson(cacheKey, inventory)
-
-		return filterByWarehouseAccess(
-			requestContext,
-			inventory as InventoryDocument[],
-		)
+		return withTenantScope(
+			Inventory.find(warehouse).sort({ createdAt: -1 }),
+			tenantId,
+		).lean<InventoryDocument[]>()
 	}
 
 	public async getInventoryItem(
@@ -4116,13 +4058,16 @@ export default class ProductController {
 		if (uniqueIds.length === 0 || fields.length === 0) return []
 
 		const rows = await withTenantScope(
-			DailyAction.find(partyEntryQuery(uniqueIds, fields)).sort({
+			DailyAction.find({
+				...partyEntryQuery(uniqueIds, fields),
+				...(warehouseAclMongoFilter(requestContext) ?? {}),
+			}).sort({
 				createdAt: 'desc',
 			}),
 			this.getTenantId(requestContext),
 		).lean<DailyActionResponse['data']>()
 
-		return filterByWarehouseAcl(requestContext, rows)
+		return rows
 	}
 
 	public async getDailyActions(
@@ -4131,6 +4076,10 @@ export default class ProductController {
 		warehouseScope: 'working' | 'acl' = 'working',
 	): Promise<DailyActionResponse> {
 		const tenantId = this.getTenantId(requestContext)
+		const warehouse =
+			warehouseScope === 'acl'
+				? warehouseAclMongoFilter(requestContext)
+				: warehouseMongoFilter(requestContext)
 		const hasFilters =
 			Boolean(filters.searchText?.trim()) ||
 			Boolean(filters.entryType?.length) ||
@@ -4140,17 +4089,14 @@ export default class ProductController {
 			Boolean(filters.invoiceDateFrom?.trim()) ||
 			Boolean(filters.invoiceDateTo?.trim())
 		const cacheKey = `dailyActions:${tenantId}`
+		const useTenantCache = warehouse === null && !hasFilters
 
-		if (!hasFilters) {
+		if (useTenantCache) {
 			const cachedDailyActions =
 				await redisCache.getJson<DailyActionResponse>(cacheKey)
 
 			if (cachedDailyActions) {
-				return this.scopeDailyActions(
-					requestContext,
-					cachedDailyActions.data,
-					warehouseScope,
-				)
+				return cachedDailyActions
 			}
 		}
 
@@ -4234,6 +4180,10 @@ export default class ProductController {
 			})
 		}
 
+		if (warehouse !== null) {
+			dailyActionQueryClauses.push(warehouse)
+		}
+
 		const mongoQuery =
 			dailyActionQueryClauses.length > 0
 				? { $and: dailyActionQueryClauses }
@@ -4243,46 +4193,27 @@ export default class ProductController {
 			tenantId,
 		).lean<DailyActionResponse['data']>()
 
-		if (!hasFilters) {
+		if (useTenantCache) {
 			await redisCache.setJson(cacheKey, {
 				data: dailyActions,
 				totalCount: dailyActions.length,
 			})
 		}
-		//TO_DO : map daily action
 
-		// const mappedDailyAction = mapDailyAction([dailyAction])
-		return this.scopeDailyActions(requestContext, dailyActions, warehouseScope)
-	}
-
-	/** The entries cache is tenant-wide, so narrow it to the caller's scope on read. */
-	private scopeDailyActions(
-		requestContext: RequestContext,
-		data: DailyActionResponse['data'],
-		warehouseScope: 'working' | 'acl' = 'working',
-	): DailyActionResponse {
-		const scoped =
-			warehouseScope === 'acl'
-				? filterByWarehouseAcl(requestContext, data)
-				: filterByWarehouseAccess(requestContext, data)
-
-		return { data: scoped, totalCount: scoped.length }
+		return { data: dailyActions, totalCount: dailyActions.length }
 	}
 
 	public async getDailyActionFilterValues(
 		requestContext: RequestContext,
 	): Promise<DailyActionFilterValuesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const dailyActions = filterByWarehouseAccess(
-			requestContext,
-			await withTenantScope(
-				DailyAction.find({})
-					.select(
-						'warehouseId entryType productId productName supplierId supplierName customerId customerName expenseId expenseName partnerId partnerName',
-					)
-					.lean<DailyActionFilterValueSource[]>(),
-				tenantId,
-			),
+		const dailyActions = await withTenantScope(
+			DailyAction.find(warehouseMongoFilter(requestContext) ?? {})
+				.select(
+					'warehouseId entryType productId productName supplierId supplierName customerId customerName expenseId expenseName partnerId partnerName',
+				)
+				.lean<DailyActionFilterValueSource[]>(),
+			tenantId,
 		)
 
 		const entryTypeMap = new Map<string, FilterValueOption>()
@@ -6000,11 +5931,12 @@ export default class ProductController {
 		collectionName: (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES],
 		model: any,
 		since: Date,
+		extraQuery: Record<string, unknown> = {},
 	) {
 		const tenantContext = getTenantContext(requestContext)
 
 		return withTenantScope(
-			model.find({ updatedAt: { $gte: since } }).lean(),
+			model.find({ updatedAt: { $gte: since }, ...extraQuery }).lean(),
 			tenantContext.tenantId,
 		)
 	}
@@ -6014,12 +5946,19 @@ export default class ProductController {
 		collectionName: (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES],
 		model: any,
 		since: Date,
+		extraQuery: Record<string, unknown> = {},
 	) {
 		if (!(await canSeeResource(requestContext, collectionName))) {
 			return []
 		}
 
-		return this.getDocumentsSince(requestContext, collectionName, model, since)
+		return this.getDocumentsSince(
+			requestContext,
+			collectionName,
+			model,
+			since,
+			extraQuery,
+		)
 	}
 
 	private getOfflineRetentionCutoff(): Date {
@@ -6037,7 +5976,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		const invoices = (await withTenantScope(
+		return withTenantScope(
 			Invoice.find({
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
@@ -6048,13 +5987,12 @@ export default class ProductController {
 						},
 					},
 				],
+				...(warehouseMongoFilter(requestContext) ?? {}),
 			})
 				.sort({ createdAt: -1 })
 				.lean(),
 			tenantContext.tenantId,
-		)) as Array<Record<string, unknown> & { warehouseId?: string }>
-
-		return filterByWarehouseAccess(requestContext, invoices)
+		) as Promise<Array<Record<string, unknown>>>
 	}
 
 	private async getBuyingInvoicesForOfflineBootstrap(
@@ -6063,7 +6001,7 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		const invoices = (await withTenantScope(
+		return withTenantScope(
 			BuyingInvoice.find({
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
@@ -6074,13 +6012,12 @@ export default class ProductController {
 						},
 					},
 				],
+				...(warehouseMongoFilter(requestContext) ?? {}),
 			})
 				.sort({ createdAt: -1 })
 				.lean(),
 			tenantContext.tenantId,
-		)) as Array<Record<string, unknown> & { warehouseId?: string }>
-
-		return filterByWarehouseAccess(requestContext, invoices)
+		) as Promise<Array<Record<string, unknown>>>
 	}
 
 	private async getDailyActionsForOfflineBootstrap(
@@ -6089,14 +6026,15 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		const dailyActions = (await withTenantScope(
-			DailyAction.find({ invoiceDate: { $gte: cutoff } })
+		return withTenantScope(
+			DailyAction.find({
+				invoiceDate: { $gte: cutoff },
+				...(warehouseMongoFilter(requestContext) ?? {}),
+			})
 				.sort({ createdAt: -1 })
 				.lean(),
 			tenantContext.tenantId,
-		)) as DailyActionResponse['data']
-
-		return filterByWarehouseAccess(requestContext, dailyActions)
+		) as Promise<DailyActionResponse['data']>
 	}
 
 	public async getSyncBootstrap(
@@ -6448,6 +6386,8 @@ export default class ProductController {
 	): Promise<Partial<SyncBootstrapResponse>> {
 		await this.ensureOfflineEnabledForSync(requestContext)
 
+		const warehouse = warehouseMongoFilter(requestContext) ?? {}
+		const warehouseAcl = warehouseAclMongoFilter(requestContext) ?? {}
 		const [
 			products,
 			inventory,
@@ -6476,6 +6416,7 @@ export default class ProductController {
 				COLLECTION_NAMES.INVENTORY,
 				Inventory,
 				since,
+				warehouse,
 			),
 			this.getDocumentsSinceIfSee(
 				requestContext,
@@ -6518,6 +6459,7 @@ export default class ProductController {
 				COLLECTION_NAMES.WAREHOUSES,
 				Warehouse,
 				since,
+				warehouseAcl,
 			),
 			this.getDocumentsSinceIfSee(
 				requestContext,
@@ -6542,18 +6484,21 @@ export default class ProductController {
 				COLLECTION_NAMES.DAILY_ACTIONS,
 				DailyAction,
 				since,
+				warehouse,
 			),
 			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.INVOICES,
 				Invoice,
 				since,
+				warehouse,
 			),
 			this.getDocumentsSinceIfSee(
 				requestContext,
 				COLLECTION_NAMES.BUYING_INVOICES,
 				BuyingInvoice,
 				since,
+				warehouse,
 			),
 		])
 
@@ -6567,10 +6512,7 @@ export default class ProductController {
 				products as Array<{ productId?: string }>,
 				accessibleProductIds,
 			) as unknown as Array<Record<string, unknown>>,
-			inventory: filterByWarehouseAccess(
-				requestContext,
-				inventory as unknown as Array<{ warehouseId?: string }>,
-			) as unknown as Array<Record<string, unknown>>,
+			inventory: inventory as unknown as Array<Record<string, unknown>>,
 			customers: customers as unknown as Array<Record<string, unknown>>,
 			suppliers: suppliers as unknown as Array<Record<string, unknown>>,
 			partners: partners as unknown as Array<Record<string, unknown>>,
@@ -6583,27 +6525,17 @@ export default class ProductController {
 			shelves: this.mapShelfDocumentsForSync(
 				shelves as unknown as ShelfDocument[],
 			),
-			warehouses: filterByWarehouseAcl(
-				requestContext,
-				this.mapWarehouseDocumentsForSync(
-					warehouses as unknown as WarehouseDocument[],
-				) as Array<{ warehouseId?: string }>,
+			warehouses: this.mapWarehouseDocumentsForSync(
+				warehouses as unknown as WarehouseDocument[],
 			) as unknown as Array<Record<string, unknown>>,
 			currencies: currencies as unknown as Array<Record<string, unknown>>,
 			units: units as unknown as Array<Record<string, unknown>>,
 			expenses: expenses as unknown as Array<Record<string, unknown>>,
-			dailyActions: filterByWarehouseAccess(
-				requestContext,
-				dailyActions as unknown as Array<{ warehouseId?: string }>,
-			) as unknown as Array<Record<string, unknown>>,
-			invoices: filterByWarehouseAccess(
-				requestContext,
-				invoices as unknown as Array<{ warehouseId?: string }>,
-			) as unknown as Array<Record<string, unknown>>,
-			buyingInvoices: filterByWarehouseAccess(
-				requestContext,
-				buyingInvoices as unknown as Array<{ warehouseId?: string }>,
-			) as unknown as Array<Record<string, unknown>>,
+			dailyActions: dailyActions as unknown as Array<Record<string, unknown>>,
+			invoices: invoices as unknown as Array<Record<string, unknown>>,
+			buyingInvoices: buyingInvoices as unknown as Array<
+				Record<string, unknown>
+			>,
 			serverTime: new Date().toISOString(),
 		}
 	}

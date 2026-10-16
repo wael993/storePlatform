@@ -43,6 +43,76 @@ export const mergeQtyWeightedAverageCost = (
 	return undefined
 }
 
+export type InventoryScopeRow = {
+	productId?: string
+	inventoryId?: string
+	warehouseId?: string
+	shelfId?: string
+	_id?: unknown
+	quantity?: number
+	availableQuantity?: number
+	reservedQuantity?: number
+	averageCost?: number
+}
+
+/**
+ * Sum qty across warehouse rows; qty-weighted averageCost.
+ * One row keeps identity. Two or more blank inventoryId / warehouseId / shelfId / `_id`
+ * so combined view cannot PATCH a single warehouse's row.
+ */
+export const aggregateInventoryByProductId = <T extends InventoryScopeRow>(
+	items: T[],
+): Map<string, T> => {
+	const byProductId = new Map<string, T>()
+	const costQtyByProductId = new Map<string, number>()
+
+	for (const item of items) {
+		if (!item.productId) continue
+
+		const existing = byProductId.get(item.productId)
+		const nextQty = Number(item.quantity ?? 0)
+		const nextCost = finiteCost(item.averageCost)
+
+		if (!existing) {
+			byProductId.set(item.productId, item)
+			costQtyByProductId.set(item.productId, nextCost != null ? nextQty : 0)
+			continue
+		}
+
+		const existingQty = Number(existing.quantity ?? 0)
+		const existingCostQty = costQtyByProductId.get(item.productId) ?? 0
+		const totalQty = existingQty + nextQty
+
+		byProductId.set(item.productId, {
+			...existing,
+			inventoryId: '',
+			warehouseId: '',
+			shelfId: undefined,
+			_id: undefined,
+			quantity: totalQty,
+			availableQuantity:
+				Number(existing.availableQuantity ?? 0) +
+				Number(item.availableQuantity ?? 0),
+			reservedQuantity:
+				Number(existing.reservedQuantity ?? 0) +
+				Number(item.reservedQuantity ?? 0),
+			averageCost: mergeQtyWeightedAverageCost(
+				existing.averageCost,
+				existingCostQty,
+				nextCost,
+				nextQty,
+			),
+		})
+
+		costQtyByProductId.set(
+			item.productId,
+			existingCostQty + (nextCost != null ? nextQty : 0),
+		)
+	}
+
+	return byProductId
+}
+
 export const establishedWarehouseIdsFromMovings = (
 	movings: Array<{
 		type?: unknown

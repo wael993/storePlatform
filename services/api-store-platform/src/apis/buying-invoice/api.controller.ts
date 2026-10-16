@@ -31,10 +31,10 @@ import {
 } from '../../shared/seePermissions'
 import {
 	ensureWarehouseAccess,
-	filterByWarehouseAccess,
-	filterByWarehouseAcl,
 	requireOperationalWarehouseId,
 	requireWarehouseId,
+	warehouseAclMongoFilter,
+	warehouseMongoFilter,
 } from '../../shared/warehouseAccess'
 import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
@@ -74,6 +74,7 @@ export type BuyingInvoiceCollaborator = {
 	getDailyActions(
 		requestContext: RequestContext,
 		filters?: { supplier?: string[]; entryType?: string[] },
+		warehouseScope?: 'working' | 'acl',
 	): Promise<DailyActionResponse>
 	getPartyEntries(
 		requestContext: RequestContext,
@@ -486,22 +487,18 @@ export default class BuyingInvoiceController {
 		requestContext: RequestContext,
 		filters: BuyingInvoicesQueryParams = {},
 	): Promise<BuyingInvoicesListResponse> {
-		const { documents } = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.BUYING_INVOICES,
-			model: BuyingInvoice,
-			sort: { createdAt: 'desc' },
-		})
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.BUYING_INVOICES)
+		const warehouse = filters.supplierId
+			? warehouseAclMongoFilter(requestContext)
+			: warehouseMongoFilter(requestContext)
+		const documents = await withTenantScope(
+			BuyingInvoice.find(warehouse ?? {}).sort({ createdAt: -1 }),
+			this.getTenantId(requestContext),
+		).lean()
 
-		const scopeInvoices = filters.supplierId
-			? filterByWarehouseAcl
-			: filterByWarehouseAccess
-		const invoices = scopeInvoices(
-			requestContext,
-			documents.filter(isPlainRecord) as Array<
-				Record<string, unknown> & { warehouseId?: string }
-			>,
-		)
+		const invoices = documents.filter(isPlainRecord) as Array<
+			Record<string, unknown> & { warehouseId?: string }
+		>
 
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
@@ -560,20 +557,27 @@ export default class BuyingInvoiceController {
 		if (filters.supplierId) {
 			const [{ data: supplierEntries }, partyReceipts, sellingInvoices, rates] =
 				await Promise.all([
-					this.ops.getDailyActions(requestContext, {
-						supplier: [filters.supplierId],
-						entryType: [
-							DailyActionType.BUYING_ENTRY,
-							DailyActionType.PAYMENT_ENTRY,
-						],
-					}),
+					this.ops.getDailyActions(
+						requestContext,
+						{
+							supplier: [filters.supplierId],
+							entryType: [
+								DailyActionType.BUYING_ENTRY,
+								DailyActionType.PAYMENT_ENTRY,
+							],
+						},
+						'acl',
+					),
 					this.ops.getPartyEntries(
 						requestContext,
 						[filters.supplierId],
 						['customerId'],
 					),
 					withTenantScope(
-						Invoice.find({ customerId: filters.supplierId }).sort({
+						Invoice.find({
+							customerId: filters.supplierId,
+							...(warehouseAclMongoFilter(requestContext) ?? {}),
+						}).sort({
 							createdAt: 'desc',
 						}),
 						this.getTenantId(requestContext),
@@ -591,7 +595,7 @@ export default class BuyingInvoiceController {
 				rates,
 			)
 			const sellingOwed = this.ops.buildSupplierInvoiceSummary(
-				filterByWarehouseAcl(requestContext, sellingInvoices),
+				sellingInvoices,
 				[],
 			)
 

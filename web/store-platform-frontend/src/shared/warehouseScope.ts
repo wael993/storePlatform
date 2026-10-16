@@ -92,7 +92,9 @@ export const setWarehouseScopeIds = (ids: string[]): void => {
 }
 
 /**
- * Bind scope to user/tenant, prune to accessible warehouses, default to all accessible.
+ * Bind scope to user/tenant, prune to accessible warehouses.
+ * Empty/unknown selection defaults to the first accessible warehouse (operational).
+ * Combined view is an explicit multi-select of 2+.
  */
 export const syncWarehouseScopeWithAccessible = (
 	tenantId: string | undefined,

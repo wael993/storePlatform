@@ -61,9 +61,11 @@ describe('product status', () => {
 		expect(normalizeProductPatchRequest({ status: 'active' }).status).toBe(
 			'active',
 		)
+
 		expect(normalizeProductPatchRequest({ status: 'inactive' }).status).toBe(
 			'inactive',
 		)
+
 		expect(() =>
 			normalizeProductPatchRequest({
 				status: 'discontinued',

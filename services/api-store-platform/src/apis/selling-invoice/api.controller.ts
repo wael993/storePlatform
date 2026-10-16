@@ -32,12 +32,12 @@ import {
 } from '../../shared/seePermissions'
 import {
 	ensureWarehouseAccess,
-	filterByWarehouseAccess,
-	filterByWarehouseAcl,
 	requireOperationalWarehouseId,
 	requireWarehouseId,
+	warehouseAclMongoFilter,
+	warehouseMongoFilter,
 } from '../../shared/warehouseAccess'
-import { getTenantContext } from '../../shared/tenant'
+import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import {
 	catalogCostToPrimary,
 	finiteCost,
@@ -78,6 +78,7 @@ export type SellingInvoiceCollaborator = {
 	getDailyActions(
 		requestContext: RequestContext,
 		filters?: { customer?: string[]; entryType?: string[] },
+		warehouseScope?: 'working' | 'acl',
 	): Promise<DailyActionResponse>
 	getPartyEntries(
 		requestContext: RequestContext,
@@ -778,37 +779,50 @@ export default class SellingInvoiceController {
 		filters: SellingInvoicesQueryParams = {},
 	): Promise<SellingInvoicesListResponse> {
 		const tenantId = this.getTenantId(requestContext)
+		const warehouse = filters.customerId
+			? warehouseAclMongoFilter(requestContext)
+			: warehouseMongoFilter(requestContext)
 		const cacheKey = redisCache.buildInvoiceListKey(tenantId)
-		const cachedInvoices = await redisCache.getJson<
-			SellingInvoicesListResponse | Array<Record<string, unknown>>
-		>(cacheKey)
+		const useTenantCache = warehouse === null
 
 		let invoices: Array<Record<string, unknown>>
+		let cachedInvoices:
+			| SellingInvoicesListResponse
+			| Array<Record<string, unknown>>
+			| null = null
 
-		if (Array.isArray(cachedInvoices)) {
-			invoices = cachedInvoices
-		} else if (cachedInvoices?.invoices) {
-			invoices = cachedInvoices.invoices
+		if (useTenantCache) {
+			cachedInvoices = await redisCache.getJson<
+				SellingInvoicesListResponse | Array<Record<string, unknown>>
+			>(cacheKey)
+
+			if (Array.isArray(cachedInvoices)) {
+				invoices = cachedInvoices
+			} else if (cachedInvoices?.invoices) {
+				invoices = cachedInvoices.invoices
+			} else {
+				const invoiceResponse = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.INVOICES,
+					model: Invoice,
+					sort: { createdAt: 'desc' },
+				})
+
+				invoices = invoiceResponse.documents
+			}
 		} else {
-			const invoiceResponse = await this.mongoDbClient.getDocuments({
-				requestContext,
-				collectionName: COLLECTION_NAMES.INVOICES,
-				model: Invoice,
-				sort: { createdAt: 'desc' },
-			})
-
-			invoices = invoiceResponse.documents
+			await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVOICES)
+			invoices = await withTenantScope(
+				Invoice.find(warehouse).sort({ createdAt: -1 }),
+				tenantId,
+			).lean<Array<Record<string, unknown>>>()
 		}
 
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
 
-		const scopeInvoices = filters.customerId
-			? filterByWarehouseAcl
-			: filterByWarehouseAccess
-		const warehouseScopedInvoices = scopeInvoices(
-			requestContext,
-			invoices as Array<Record<string, unknown> & { warehouseId?: string }>,
-		)
+		const warehouseScopedInvoices = invoices as Array<
+			Record<string, unknown> & { warehouseId?: string }
+		>
 
 		const filteredInvoices = warehouseScopedInvoices.filter(
 			(invoice: Record<string, unknown>) => {
@@ -876,20 +890,27 @@ export default class SellingInvoiceController {
 		if (filters.customerId) {
 			const [{ data: customerEntries }, partyPayments, buyingInvoices, rates] =
 				await Promise.all([
-					this.ops.getDailyActions(requestContext, {
-						customer: [filters.customerId],
-						entryType: [
-							DailyActionType.SELLING_ENTRY,
-							DailyActionType.RECEIPT_ENTRY,
-						],
-					}),
+					this.ops.getDailyActions(
+						requestContext,
+						{
+							customer: [filters.customerId],
+							entryType: [
+								DailyActionType.SELLING_ENTRY,
+								DailyActionType.RECEIPT_ENTRY,
+							],
+						},
+						'acl',
+					),
 					this.ops.getPartyEntries(
 						requestContext,
 						[filters.customerId],
 						['supplierId'],
 					),
 					withTenantScope(
-						BuyingInvoice.find({ supplierId: filters.customerId }).sort({
+						BuyingInvoice.find({
+							supplierId: filters.customerId,
+							...(warehouseAclMongoFilter(requestContext) ?? {}),
+						}).sort({
 							createdAt: 'desc',
 						}),
 						tenantId,
@@ -907,7 +928,7 @@ export default class SellingInvoiceController {
 				rates,
 			)
 			const buyingOwed = this.ops.buildCustomerInvoiceSummary(
-				filterByWarehouseAcl(requestContext, buyingInvoices),
+				buyingInvoices,
 				[],
 			)
 
@@ -930,7 +951,11 @@ export default class SellingInvoiceController {
 			totalCount: filters.summaryOnly ? 0 : filteredInvoices.length,
 		}
 
-		if (!Array.isArray(cachedInvoices) && !cachedInvoices?.invoices) {
+		if (
+			useTenantCache &&
+			!Array.isArray(cachedInvoices) &&
+			!cachedInvoices?.invoices
+		) {
 			await redisCache.setJson(cacheKey, {
 				invoices,
 				summary,

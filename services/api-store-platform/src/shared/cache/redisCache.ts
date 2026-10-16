@@ -197,7 +197,8 @@ class RedisCache {
 
 	// Key builders for different entities
 	public buildProductListKey(tenantId: string): string {
-		return `cache:products:list:${tenantId}:v2`
+		// v3: product master only — no inventory / warehouseName / shelfName
+		return `cache:products:list:${tenantId}:v3`
 	}
 	public buildCategoryListKey(tenantId: string): string {
 		return `cache:categories:list:${tenantId}`
