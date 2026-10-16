@@ -118,7 +118,8 @@
 				"totalReceivable": "Was Kunden und Lieferanten uns schulden, aus ihren Rechnungen und Buchungen. Partner sind nicht enthalten.",
 				"totalPayable": "Was wir Kunden und Lieferanten schulden, aus ihren Rechnungen und Buchungen. Partner sind nicht enthalten.",
 				"bestSellerProducts": "Die fünf Produkte mit der höchsten verkauften Menge im gewählten Zeitraum.",
-				"bestProfitProducts": "Die fünf Produkte mit dem höchsten Gewinn im gewählten Zeitraum. Es zählt nur bekannte Kosten. Eine hervorgehobene Gewinnkarte bedeutet, dass diese Reihenfolge unvollständig ist."
+				"bestProfitProducts": "Die fünf Produkte mit dem höchsten Gewinn im gewählten Zeitraum. Es zählt nur bekannte Kosten. Eine hervorgehobene Gewinnkarte bedeutet, dass diese Reihenfolge unvollständig ist.",
+				"inventoryWarnings": "Zahlen aus dem letzten täglichen Produkt-Digest. Niedriger Bestand folgt Ihrem Lagerzugriff. Als gelesen markierte Glockenbenachrichtigungen löschen diese Zahlen nicht."
 			}
 		},
 		"kpis": {
@@ -226,11 +227,11 @@
 				"bestSellerProducts": "Bestseller"
 			},
 			"warnings": {
-				"lowStock": "Niedriger Bestand",
-				"outOfStock": "Nicht vorrätig",
-				"expiringSoon": "Läuft bald ab",
-				"wrongSellingPrice": "Falscher Verkaufspreis",
-				"wrongCostPrice": "Falscher Einkaufspreis"
+				"lowStock": "Bestand auf oder unter Mindestmenge",
+				"negativeQuantity": "Negative Menge",
+				"missingPurchasePrice": "Fehlender oder Einkaufspreis 0",
+				"missingRetailPrice": "Fehlender oder Verkaufspreis 0",
+				"retailBelowPurchase": "Verkaufspreis unter Einkaufspreis"
 			}
 		},
 		"activity": {

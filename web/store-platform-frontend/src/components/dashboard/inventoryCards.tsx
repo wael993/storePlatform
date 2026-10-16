@@ -1,12 +1,24 @@
-import { Box, Flex, Text } from '@chakra-ui/react'
-import type { ComponentType } from 'react'
+import { Box, Flex, Text, useDisclosure } from '@chakra-ui/react'
+import { useState, type ComponentType } from 'react'
 import type { IconProps } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
+import {
+	LOW_STOCK_DIGEST,
+	MISSING_PURCHASE_PRICE_DIGEST,
+	MISSING_RETAIL_PRICE_DIGEST,
+	NEGATIVE_QUANTITY_DIGEST,
+	RETAIL_BELOW_PURCHASE_DIGEST,
+	useGetProductNotificationsQuery,
+	type ProductDigestType,
+} from '../../api/apiStore'
 import type { InventoryCardId } from '../../shared/dashboardShell'
+import { useSee } from '../../shared/hooks/useSee'
 import { PriceTagIcon } from '../../shared/icons/PriceTag'
 import { StarIcon } from '../../shared/icons/Star'
-import { TimeIcon } from '../../shared/icons/Time'
 import { WarningIcon } from '../../shared/icons/Warning'
+import { SEE } from '../../shared/seeFlags'
+import { formatNumber } from '../../shared/utils'
+import NegativeQuantityDigestModal from '../NegativeQuantityDigestModal'
 import { KpiHint } from './kpiComponents'
 import { useInvoiceSummaryKpis } from './useInvoiceSummaryKpis'
 
@@ -25,28 +37,6 @@ const cardStyles = {
 		px: { base: 4, sm: 5 },
 		py: { base: 4, sm: 5 },
 		boxShadow: '0 8px 30px rgba(15, 23, 42, 0.06)',
-	},
-	ribbon: {
-		position: 'absolute',
-		top: { base: '1.5rem', lg: '1.25rem' },
-		right: { base: '-3.75rem', lg: '-3.25rem' },
-		w: { base: '11rem', lg: '9.5rem' },
-		transform: 'rotate(45deg)',
-		bg: 'gray.500',
-		color: 'white',
-		py: { base: 1.5, lg: 1 },
-		boxShadow: '0 3px 8px rgba(15, 23, 42, 0.15)',
-		zIndex: 2,
-		pointerEvents: 'none',
-	},
-	ribbonLabel: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 1.5,
-		fontSize: { base: '0.65rem', lg: '0.55rem' },
-		fontWeight: 800,
-		letterSpacing: '0.08em',
-		textTransform: 'uppercase',
 	},
 	header: {
 		alignItems: 'center',
@@ -98,25 +88,28 @@ const CARD_ICONS: Record<InventoryCardId, ComponentType<IconProps>> = {
 	bestSellerProducts: StarIcon,
 }
 
-const WARNING_KEYS = [
-	'lowStock',
-	'outOfStock',
-	'expiringSoon',
-	'wrongSellingPrice',
-	'wrongCostPrice',
-] as const
-const WARNING_COUNTS = ['12', '3', '5', '10', '15'] as const
+const WARNING_DIGEST_ROWS: Array<{
+	type: ProductDigestType
+	labelKey: string
+}> = [
+	{ type: LOW_STOCK_DIGEST, labelKey: 'lowStock' },
+	{ type: NEGATIVE_QUANTITY_DIGEST, labelKey: 'negativeQuantity' },
+	{ type: MISSING_PURCHASE_PRICE_DIGEST, labelKey: 'missingPurchasePrice' },
+	{ type: MISSING_RETAIL_PRICE_DIGEST, labelKey: 'missingRetailPrice' },
+	{ type: RETAIL_BELOW_PURCHASE_DIGEST, labelKey: 'retailBelowPurchase' },
+]
 
 const LIVE_PRODUCT_CARDS = ['bestProfitProducts', 'bestSellerProducts'] as const
 
 type LiveProductCardId = (typeof LIVE_PRODUCT_CARDS)[number]
 
 const LIVE_ICON_TONES: Record<
-	LiveProductCardId,
+	LiveProductCardId | 'inventoryWarnings',
 	{ bg: string; color: string }
 > = {
 	bestSellerProducts: { bg: '#FEF3C7', color: '#B45309' },
 	bestProfitProducts: { bg: '#EDE9FE', color: '#6D28D9' },
+	inventoryWarnings: { bg: '#FEE2E2', color: '#B91C1C' },
 }
 
 const STATUS_KEYS = {
@@ -211,46 +204,117 @@ export const InventoryListCard = ({
 		)
 	}
 
-	return <ComingSoonInventoryCard cardId={cardId} />
+	return <LiveInventoryWarningsCard />
 }
 
-const ComingSoonInventoryCard = ({ cardId }: { cardId: InventoryCardId }) => {
+const LiveInventoryWarningsCard = () => {
 	const { t } = useTranslation()
-	const Icon = CARD_ICONS[cardId]
-	const rows = WARNING_KEYS.map((key, index) => ({
-		label: t(`dashboard.inventory.warnings.${key}`),
-		value: WARNING_COUNTS[index],
-	}))
+	const { canSee } = useSee()
+	const digestModal = useDisclosure()
+	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
+	const allowed = canSee(SEE.productsNotifications)
+	const query = useGetProductNotificationsQuery(
+		{ includeRead: true },
+		{ skip: !allowed, refetchOnMountOrArgChange: false },
+	)
+	const Icon = CARD_ICONS.inventoryWarnings
+	const tone = LIVE_ICON_TONES.inventoryWarnings
+	const isLoading =
+		allowed && (query.isLoading || (query.isFetching && !query.data))
+
+	let status: keyof typeof STATUS_KEYS | 'ready' = 'ready'
+	if (!allowed) status = 'unavailable'
+	else if (isLoading) status = 'loading'
+	else if (query.isError) status = 'error'
+
+	const countByType = new Map(
+		(query.data?.items ?? []).map(item => [item.type, item.count]),
+	)
+	const rows =
+		status === 'ready'
+			? WARNING_DIGEST_ROWS.map(row => ({
+					type: row.type,
+					label: t(`dashboard.inventory.warnings.${row.labelKey}`),
+					value:
+						formatNumber(countByType.get(row.type) ?? 0, {
+							minimumDecimals: 0,
+						}) ?? '0',
+				}))
+			: []
+
+	const openDigest = (type: ProductDigestType) => {
+		setDigestType(type)
+		digestModal.onOpen()
+	}
 
 	return (
-		<Box sx={cardStyles.card}>
-			<KpiHint label={t('dashboard.kpi.comingSoonDescription')} side="start" />
-			<Box sx={cardStyles.ribbon}>
-				<Flex sx={cardStyles.ribbonLabel}>
-					<TimeIcon boxSize={{ base: '0.8rem', lg: '0.65rem' }} />
-					{t('dashboard.kpi.comingSoon')}
-				</Flex>
-			</Box>
-
-			<Flex sx={cardStyles.header}>
-				<Flex sx={cardStyles.iconWrap}>
-					<Icon boxSize="1.25rem" aria-hidden />
-				</Flex>
-				<Text sx={cardStyles.title} noOfLines={2}>
-					{t(`dashboard.inventory.cards.${cardId}`)}
-				</Text>
-			</Flex>
-
-			<Box flex="1">
-				{rows.map((row, index) => (
-					<Flex key={`${cardId}-${index}`} sx={cardStyles.row}>
-						<Text sx={cardStyles.rowLabel} noOfLines={1}>
-							{row.label}
-						</Text>
-						<Text sx={cardStyles.rowValue}>{row.value}</Text>
+		<>
+			<Box sx={cardStyles.card}>
+				<KpiHint
+					label={t('dashboard.kpi.hints.inventoryWarnings')}
+					side="start"
+				/>
+				<Flex sx={{ ...cardStyles.header, pr: 0, pe: 6 }}>
+					<Flex
+						sx={{
+							...cardStyles.iconWrap,
+							bg: tone.bg,
+							color: tone.color,
+						}}
+					>
+						<Icon boxSize="1.25rem" fill="#FFFFFF" aria-hidden />
 					</Flex>
-				))}
+					<Text sx={{ ...cardStyles.title, color: 'gray.800' }} noOfLines={2}>
+						{t('dashboard.inventory.cards.inventoryWarnings')}
+					</Text>
+				</Flex>
+				<Box flex="1">
+					{status === 'ready'
+						? rows.map(row => (
+								<Flex
+									key={row.type}
+									as="button"
+									type="button"
+									w="100%"
+									textAlign="start"
+									sx={{
+										...cardStyles.row,
+										cursor: 'pointer',
+										_hover: { bg: 'gray.50' },
+									}}
+									onClick={() => openDigest(row.type)}
+								>
+									<Text
+										sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
+										noOfLines={1}
+									>
+										{row.label}
+									</Text>
+									<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
+										{row.value}
+									</Text>
+								</Flex>
+							))
+						: (
+								<Flex sx={cardStyles.row}>
+									<Text
+										sx={{ ...cardStyles.rowLabel, color: 'gray.800' }}
+										noOfLines={1}
+									>
+										—
+									</Text>
+									<Text sx={{ ...cardStyles.rowValue, color: 'gray.900' }}>
+										{t(STATUS_KEYS[status])}
+									</Text>
+								</Flex>
+							)}
+				</Box>
 			</Box>
-		</Box>
+			<NegativeQuantityDigestModal
+				digestType={digestType}
+				isOpen={digestModal.isOpen}
+				onClose={digestModal.onClose}
+			/>
+		</>
 	)
 }

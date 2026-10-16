@@ -2462,12 +2462,19 @@ const getQuery = (
 			}),
 			invalidatesTags: ['products', 'product', 'inventory'],
 		}),
-		getProductNotifications: builder.query<ProductNotificationsResponse, void>({
-			query: () => ({
+		getProductNotifications: builder.query<
+			ProductNotificationsResponse,
+			{ includeRead?: boolean } | void
+		>({
+			query: arg => ({
 				url: 'products/notifications',
+				...(arg?.includeRead ? { params: { includeRead: '1' } } : {}),
 			}),
 			providesTags: ['notifications'],
-			async onQueryStarted(_arg, { dispatch, queryFulfilled, getState }) {
+			async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
+				// Dashboard includeRead cache must keep marked-as-read digests.
+				if (arg?.includeRead) return
+
 				try {
 					const { data } = await queryFulfilled
 					const tenantId = (getState() as RootState).user?.user?.tenantId

@@ -126,10 +126,13 @@ export default class NotificationRoutes {
 		const requestContext = this.getRequestContext(request)
 
 		try {
-			const resp =
-				await this.notificationController.getProductNotifications(
-					requestContext,
-				)
+			const includeRead =
+				request.query.includeRead === '1' ||
+				request.query.includeRead === 'true'
+			const resp = await this.notificationController.getProductNotifications(
+				requestContext,
+				{ includeRead },
+			)
 
 			response.status(200).json(resp)
 		} catch (error: unknown) {

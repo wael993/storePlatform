@@ -118,7 +118,8 @@
 				"totalReceivable": "What customers and suppliers owe us, from their invoices and entries. Partners are not included.",
 				"totalPayable": "What we owe customers and suppliers, from their invoices and entries. Partners are not included.",
 				"bestSellerProducts": "The five products with the highest quantity sold in the selected date range.",
-				"bestProfitProducts": "The five products with the highest profit in the selected date range. Profit uses known cost only, so a highlighted profit card means this ranking is incomplete."
+				"bestProfitProducts": "The five products with the highest profit in the selected date range. Profit uses known cost only, so a highlighted profit card means this ranking is incomplete.",
+				"inventoryWarnings": "Counts from the latest daily product digest. Low stock follows your warehouse access. Marking a bell notification as read does not clear these counts."
 			}
 		},
 		"kpis": {
@@ -226,11 +227,11 @@
 				"bestSellerProducts": "Best seller products"
 			},
 			"warnings": {
-				"lowStock": "Low-stock products",
-				"outOfStock": "Out of stock products",
-				"expiringSoon": "Expiring soon",
-				"wrongSellingPrice": "Incorrect selling price",
-				"wrongCostPrice": "Incorrect cost price"
+				"lowStock": "At or below minimum stock",
+				"negativeQuantity": "Negative quantity",
+				"missingPurchasePrice": "Missing or zero buy price",
+				"missingRetailPrice": "Missing or zero sell price",
+				"retailBelowPurchase": "Sell price below buy price"
 			}
 		},
 		"activity": {

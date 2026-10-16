@@ -245,9 +245,11 @@ const lowStockDigestProducts = async (
 export default class NotificationController {
 	public async getProductNotifications(
 		requestContext: RequestContext,
+		options: { includeRead?: boolean } = {},
 	): Promise<ProductNotificationsResponse> {
 		const userId = await assertCanSeeNotifications(requestContext)
 		const { tenantId } = getTenantContext(requestContext)
+		const includeRead = options.includeRead === true
 		const snapshots = await NegativeQuantitySnapshot.find({ tenantId })
 			.select({ type: 1, runAt: 1, count: 1, productIds: 1, _id: 0 })
 			.lean()
@@ -256,17 +258,19 @@ export default class NotificationController {
 			return { items: [] }
 		}
 
-		const reads = await NotificationRead.find({
-			tenantId,
-			userId,
-			runAt: { $in: snapshots.map(snapshot => snapshot.runAt) },
-		})
-			.select({ runAt: 1, type: 1, _id: 0 })
-			.lean()
-
-		const readKeys = new Set(
-			reads.map(read => `${digestTypeOf(read.type)}:${read.runAt.getTime()}`),
-		)
+		const readKeys = includeRead
+			? new Set<string>()
+			: new Set(
+					(
+						await NotificationRead.find({
+							tenantId,
+							userId,
+							runAt: { $in: snapshots.map(snapshot => snapshot.runAt) },
+						})
+							.select({ runAt: 1, type: 1, _id: 0 })
+							.lean()
+					).map(read => `${digestTypeOf(read.type)}:${read.runAt.getTime()}`),
+				)
 
 		const items: ProductNotification[] = []
 
@@ -285,7 +289,7 @@ export default class NotificationController {
 				)
 				const count = new Set(rows.map(row => row.productId)).size
 
-				if (count === 0) {
+				if (count === 0 && !includeRead) {
 					continue
 				}
 
