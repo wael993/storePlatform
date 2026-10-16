@@ -342,6 +342,12 @@ interface Product {
 	}
 	warehouseName?: string
 	shelfName?: string
+	lowStockWarehouses?: Array<{
+		warehouseId: string
+		warehouseName: string
+		quantity: number
+		minQuantity: number
+	}>
 
 	relatedActions?: DailyAction[]
 	isDeletable?: boolean

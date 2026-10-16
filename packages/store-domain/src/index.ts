@@ -33,6 +33,7 @@ export {
 export {
 	availableQuantityFromStock,
 	findOversellLines,
+	isLowStock,
 	type OversellLine,
 } from './inventoryQuantity'
 export { PRODUCT_NAME_MAX_LENGTH } from './productRules'

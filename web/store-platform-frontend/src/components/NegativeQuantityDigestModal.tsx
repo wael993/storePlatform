@@ -15,6 +15,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { compareLanguage } from '../shared/utils'
 import {
+	LOW_STOCK_DIGEST,
 	MISSING_PURCHASE_PRICE_DIGEST,
 	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
@@ -23,6 +24,7 @@ import {
 	RETAIL_BELOW_PURCHASE_DIGEST,
 	useGetProductNotificationDigestQuery,
 } from '../api/apiStore'
+import { formatNumber } from '../shared/utils'
 import { buildRoutePath, RoutePaths } from '../shared/routes'
 import { cellFieldStyles } from '../shared/styles'
 import useAllowedActions from '../shared/hooks/useAllowedActions'
@@ -62,6 +64,39 @@ const DigestProductRow = ({
 				  digestType === RETAIL_BELOW_PURCHASE_DIGEST
 				? 'retailPrice'
 				: 'quantity'
+
+	if (digestType === LOW_STOCK_DIGEST) {
+		return (
+			<Box py={3} borderBottom="1px solid #ECECEC">
+				<Link
+					as={RouterLink}
+					to={buildRoutePath.productById(product.productId)}
+					fontWeight={700}
+					color="#353535"
+					onClick={onNavigate}
+				>
+					{product.name}
+				</Link>
+				<Flex direction="column" gap={1} mt={2}>
+					{(product.lowStockWarehouses ?? []).map(row => (
+						<Text key={row.warehouseId} fontSize="sm" color="#353535">
+							{row.warehouseName}
+							{seeStockQuantity && (
+								<>
+									{' · '}
+									{t('common.stockQuantity')}{' '}
+									{formatNumber(row.quantity, { minimumDecimals: 0 })}
+									{' · '}
+									{t('common.stockMinQuantity')}{' '}
+									{formatNumber(row.minQuantity, { minimumDecimals: 0 })}
+								</>
+							)}
+						</Text>
+					))}
+				</Flex>
+			</Box>
+		)
+	}
 
 	return (
 		<Flex

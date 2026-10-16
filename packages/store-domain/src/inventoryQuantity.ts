@@ -3,6 +3,15 @@ export const availableQuantityFromStock = (
 	reservedQuantity = 0,
 ): number => Math.max(0, quantity - reservedQuantity)
 
+/** At or under a set minimum. Missing quantity is 0. A missing or 0 minimum does not alert. */
+export const isLowStock = (
+	quantity: number | null | undefined,
+	minQuantity: number | null | undefined,
+): boolean =>
+	typeof minQuantity === 'number' &&
+	minQuantity > 0 &&
+	(typeof quantity === 'number' ? quantity : 0) <= minQuantity
+
 export type OversellLine = {
 	productId: string
 	name: string

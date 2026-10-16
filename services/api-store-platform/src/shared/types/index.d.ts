@@ -116,6 +116,12 @@ export type ProductRequestBody = {
 	inventory?: InventoryDocument
 	warehouseName?: string
 	shelfName?: string
+	lowStockWarehouses?: Array<{
+		warehouseId: string
+		warehouseName: string
+		quantity: number
+		minQuantity: number
+	}>
 	relatedActions?: ProductDailyAction[]
 	isDeletable?: boolean
 	deleteBlockReason?: string | null

@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import { config } from '../config/config'
 import { Inventory } from '../models/Inventory'
 import {
+	LOW_STOCK_DIGEST,
 	MISSING_PURCHASE_PRICE_DIGEST,
 	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
@@ -10,6 +11,7 @@ import {
 	ProductDigestType,
 	RETAIL_BELOW_PURCHASE_DIGEST,
 } from '../models/NegativeQuantitySnapshot'
+import { isLowStock } from '../shared/inventoryCost'
 import { NotificationRead } from '../models/NotificationRead'
 import { Product } from '../models/Products'
 import Tenant from '../models/Tenant'
@@ -161,6 +163,92 @@ const persistProductDigestSnapshot = async (
 	)
 }
 
+export type LowStockRow = {
+	productId: string
+	warehouseId: string
+	quantity: number
+	minQuantity: number
+}
+
+/** Active products only. `warehouseIds` null means every warehouse; [] means none. */
+export const findLowStockRows = async (
+	tenantId: string,
+	warehouseIds: string[] | null,
+	onlyProductIds?: string[],
+): Promise<LowStockRow[]> => {
+	if (warehouseIds?.length === 0 || onlyProductIds?.length === 0) {
+		return []
+	}
+
+	const products = await Product.find({
+		tenantId,
+		status: 'active',
+		...(onlyProductIds ? { productId: { $in: onlyProductIds } } : {}),
+	})
+		.select({ productId: 1, _id: 0 })
+		.lean<Array<{ productId?: string }>>()
+
+	const activeIds = products
+		.map(product => product.productId)
+		.filter((id): id is string => Boolean(id))
+
+	if (activeIds.length === 0) {
+		return []
+	}
+
+	const rows = await Inventory.find({
+		tenantId,
+		productId: { $in: activeIds },
+		minQuantity: { $gt: 0 },
+		...(warehouseIds ? { warehouseId: { $in: warehouseIds } } : {}),
+	})
+		.select({
+			productId: 1,
+			warehouseId: 1,
+			quantity: 1,
+			minQuantity: 1,
+			_id: 0,
+		})
+		.lean<
+			Array<{
+				productId?: string
+				warehouseId?: string
+				quantity?: number
+				minQuantity?: number
+			}>
+		>()
+
+	return rows.flatMap(row => {
+		if (!row.productId || !row.warehouseId) {
+			return []
+		}
+
+		if (!isLowStock(row.quantity, row.minQuantity)) {
+			return []
+		}
+
+		return [
+			{
+				productId: row.productId,
+				warehouseId: row.warehouseId,
+				quantity: typeof row.quantity === 'number' ? row.quantity : 0,
+				minQuantity: row.minQuantity as number,
+			},
+		]
+	})
+}
+
+const persistLowStockSnapshot = async (tenantId: string, runAt: Date) => {
+	const rows = await findLowStockRows(tenantId, null)
+
+	return persistDigestSnapshot(
+		tenantId,
+		runAt,
+		LOW_STOCK_DIGEST,
+		uniqueProductIds(rows.map(row => row.productId)),
+	)
+}
+
 const persistNegativeQuantitySnapshot = async (
 	tenantId: string,
 	runAt: Date,
@@ -194,6 +282,7 @@ const persistTenantDigests = async (tenantId: string, runAt: Date) => {
 				'price.retailPrice': { $gt: 0 },
 				$expr: { $lt: ['$price.retailPrice', '$price.purchasePrice'] },
 			}),
+		persistLowStockSnapshot,
 	]) {
 		try {
 			logSnapshotResult(await persist(tenantId, runAt))

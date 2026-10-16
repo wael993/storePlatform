@@ -1,6 +1,7 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query'
 
 import {
+	LOW_STOCK_DIGEST,
 	MISSING_PURCHASE_PRICE_DIGEST,
 	MISSING_RETAIL_PRICE_DIGEST,
 	NEGATIVE_QUANTITY_DIGEST,
@@ -39,6 +40,7 @@ import {
 import {
 	finiteCost,
 	findOversellLines,
+	isLowStock,
 	mergeInvoiceItemsPreservingUnitCost,
 	normalizeOpeningBalances,
 	ratesFromCurrencySettings,
@@ -1656,10 +1658,114 @@ const withLocalInventory = (
 		: product
 }
 
+const listOfflineLowStockProducts = async (
+	snapshotIds: string[] | null,
+): Promise<Product[]> => {
+	const [products, inventory, warehouses] = await Promise.all([
+		offlineDb.products.toArray(),
+		offlineDb.inventory.toArray(),
+		offlineDb.warehouses.toArray(),
+	])
+	// note: Dexie inventory is the last bootstrap working scope, not every ACL warehouse. A permitted warehouse absent from that sync cannot appear until the next online fetch.
+	const allowed = new Set(
+		warehouses
+			.map(warehouse => warehouse.warehouseId)
+			.filter((id): id is string => Boolean(id)),
+	)
+	const nameById = new Map(
+		warehouses.map(warehouse => [
+			warehouse.warehouseId,
+			warehouse.name?.trim() || warehouse.warehouseId,
+		]),
+	)
+	const activeById = new Map(
+		products
+			.filter(product => product.status !== 'inactive')
+			.map(product => [product.productId, product]),
+	)
+	// note: no cached snapshot ids — scan every local active product. Upgrade path is the productIds on the notification cache.
+	const orderedIds = snapshotIds ?? [...activeById.keys()]
+	const byProduct = new Map<
+		string,
+		NonNullable<Product['lowStockWarehouses']>
+	>()
+
+	for (const row of inventory) {
+		if (!row.productId || !row.warehouseId || !allowed.has(row.warehouseId)) {
+			continue
+		}
+
+		if (!isLowStock(row.quantity, row.minQuantity)) {
+			continue
+		}
+
+		const list = byProduct.get(row.productId) ?? []
+
+		list.push({
+			warehouseId: row.warehouseId,
+			warehouseName: nameById.get(row.warehouseId) || row.warehouseId,
+			quantity: typeof row.quantity === 'number' ? row.quantity : 0,
+			minQuantity: row.minQuantity as number,
+		})
+		byProduct.set(row.productId, list)
+	}
+
+	for (const list of byProduct.values()) {
+		list.sort((left, right) =>
+			left.warehouseName.localeCompare(right.warehouseName),
+		)
+	}
+
+	return orderedIds.flatMap(productId => {
+		const product = activeById.get(productId)
+		const lowStockWarehouses = byProduct.get(productId)
+
+		if (!product || !lowStockWarehouses?.length) {
+			return []
+		}
+
+		return [{ ...product, lowStockWarehouses }]
+	})
+}
+
+const readCachedNotifications = async (
+	tenantId: string | null,
+): Promise<ProductNotificationsResponse | null> => {
+	if (!tenantId) return null
+
+	const raw = await getSyncMeta(
+		`${SYNC_META_KEYS.productNotifications}:${tenantId}`,
+	)
+
+	return raw ? (JSON.parse(raw) as ProductNotificationsResponse) : null
+}
+
 const buildOfflineDigest = async (
 	digestType: string,
 	cached: ProductNotificationDigestResponse | null,
 ): Promise<ProductNotificationDigestResponse> => {
+	if (digestType === LOW_STOCK_DIGEST) {
+		const tenantId = await getSyncMeta(SYNC_META_KEYS.sessionTenantId)
+		const notifications = await readCachedNotifications(tenantId)
+		const item = notifications?.items.find(
+			entry => entry.type === LOW_STOCK_DIGEST,
+		)
+		const snapshotIds =
+			item?.productIds ??
+			cached?.products.map(product => product.productId) ??
+			null
+		const runAt =
+			item?.runAt ||
+			cached?.runAt ||
+			(await getSyncMeta(SYNC_META_KEYS.lastSyncedAt)) ||
+			new Date(0).toISOString()
+
+		return {
+			runAt,
+			products: await listOfflineLowStockProducts(snapshotIds),
+		}
+	}
+
 	const [products, inventory] = await Promise.all([
 		offlineDb.products.toArray(),
 		offlineDb.inventory.toArray(),
@@ -1905,9 +2011,27 @@ export const handleOfflineQuery = async (
 					: null
 
 				if (cached) {
-					return {
-						data: JSON.parse(cached) as ProductNotificationsResponse,
+					const data = JSON.parse(cached) as ProductNotificationsResponse
+					const items = []
+
+					for (const item of data.items) {
+						if (item.type !== LOW_STOCK_DIGEST) {
+							items.push(item)
+							continue
+						}
+
+						const products = await listOfflineLowStockProducts(
+							item.productIds ?? null,
+						)
+
+						if (products.length === 0) {
+							continue
+						}
+
+						items.push({ ...item, count: products.length })
 					}
+
+					return { data: { items } }
 				}
 
 				return {

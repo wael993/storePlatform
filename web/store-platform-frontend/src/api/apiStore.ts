@@ -187,12 +187,14 @@ export const NEGATIVE_QUANTITY_DIGEST = 'NEGATIVE_QUANTITY_DIGEST'
 export const MISSING_PURCHASE_PRICE_DIGEST = 'MISSING_PURCHASE_PRICE_DIGEST'
 export const MISSING_RETAIL_PRICE_DIGEST = 'MISSING_RETAIL_PRICE_DIGEST'
 export const RETAIL_BELOW_PURCHASE_DIGEST = 'RETAIL_BELOW_PURCHASE_DIGEST'
+export const LOW_STOCK_DIGEST = 'LOW_STOCK_DIGEST'
 
 export const PRODUCT_DIGEST_TYPES = [
 	NEGATIVE_QUANTITY_DIGEST,
 	MISSING_PURCHASE_PRICE_DIGEST,
 	MISSING_RETAIL_PRICE_DIGEST,
 	RETAIL_BELOW_PURCHASE_DIGEST,
+	LOW_STOCK_DIGEST,
 ] as const
 
 export type ProductDigestType = (typeof PRODUCT_DIGEST_TYPES)[number]
@@ -202,12 +204,14 @@ export const PRODUCT_DIGEST_I18N: Record<ProductDigestType, string> = {
 	[MISSING_PURCHASE_PRICE_DIGEST]: 'missingPurchasePriceDigest',
 	[MISSING_RETAIL_PRICE_DIGEST]: 'missingRetailPriceDigest',
 	[RETAIL_BELOW_PURCHASE_DIGEST]: 'retailBelowPurchaseDigest',
+	[LOW_STOCK_DIGEST]: 'lowStockDigest',
 }
 
 export type ProductNotification = {
 	type: ProductDigestType
 	runAt: string
 	count: number
+	productIds?: string[]
 }
 
 export type ProductNotificationsResponse = {

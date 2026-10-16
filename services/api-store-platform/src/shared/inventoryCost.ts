@@ -10,6 +10,7 @@ export {
 export {
 	availableQuantityFromStock,
 	findOversellLines,
+	isLowStock,
 } from './store-domain/inventoryQuantity'
 export {
 	amountToPrimary,
