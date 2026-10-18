@@ -578,7 +578,7 @@
 				"suppliers_add": " إضافة مورد",
 				"suppliers_delete": "يمكن حذف الموردين",
 				"suppliers_totalPayable": " إجمالي المستحق للدفع",
-				"invoices": " الفواتير",
+				"invoices": "الفواتير",
 				"invoices_buying_add": " إضافة فاتورة شراء",
 				"invoices_buying_edit": "يمكن تعديل فواتير الشراء",
 				"invoices_buying_delete": "يمكن حذف فواتير الشراء",
@@ -864,7 +864,7 @@
 			"expenseCode": "رمز النفقات"
 		},
 		"sellingInvoices": {
-			"title": "فواتير ",
+			"title": "فواتير",
 			"newInvoice": "فاتورة جديدة",
 			"newWholesaleInvoice": "فاتورة جملة",
 			"newSemiWholesaleInvoice": "فاتورة نصف جملة",
@@ -1081,7 +1081,7 @@
 			}
 		},
 		"pageHeaders": {
-			"sellingInvoices": "فواتير ",
+			"sellingInvoices": "فواتير",
 			"settings": "الإعدادات",
 			"products": "المنتجات",
 			"projects": "المشاريع",

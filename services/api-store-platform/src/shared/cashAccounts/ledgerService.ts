@@ -895,18 +895,19 @@ export const listCashLedgerEntries = async (params: {
 	totalCount: number
 	page: number
 	limit: number
+	totalsByCurrency: Record<string, number>
 }> => {
 	const page = clampLedgerPage(params.page)
 	const limit = clampLedgerLimit(params.limit)
 	const filter = buildCashLedgerListFilter(params)
 
 	if (!filter) {
-		return { entries: [], totalCount: 0, page, limit }
+		return { entries: [], totalCount: 0, page, limit, totalsByCurrency: {} }
 	}
 
 	const skip = (page - 1) * limit
 	const tenantFilter = { tenantId: params.tenantId, ...filter }
-	const [totalCount, rows] = await Promise.all([
+	const [totalCount, rows, sumRows] = await Promise.all([
 		CashLedgerEntry.countDocuments(tenantFilter),
 		withTenantScope(CashLedgerEntry.find(filter), params.tenantId)
 			.sort({ createdAt: -1 })
@@ -916,6 +917,10 @@ export const listCashLedgerEntries = async (params: {
 				'ledgerEntryId warehouseId cashAccountId accountType currencyId amount movementType referenceType referenceId transferGroupId reason createdAt createdBy',
 			)
 			.lean(),
+		CashLedgerEntry.aggregate<{ _id?: string; amount: number }>([
+			{ $match: tenantFilter },
+			{ $group: { _id: '$currencyId', amount: { $sum: '$amount' } } },
+		]),
 	])
 
 	const entries = (rows as unknown as CashLedgerListEntry[]).map(row => ({
@@ -939,8 +944,14 @@ export const listCashLedgerEntries = async (params: {
 	}))
 
 	const enriched = await enrichLedgerReferenceLabels(params.tenantId, entries)
+	const totalsByCurrency: Record<string, number> = {}
 
-	return { entries: enriched, totalCount, page, limit }
+	for (const row of sumRows) {
+		if (!row._id) continue
+		totalsByCurrency[row._id] = row.amount
+	}
+
+	return { entries: enriched, totalCount, page, limit, totalsByCurrency }
 }
 
 export const getCashBalancesForWarehouses = async (

@@ -131,4 +131,6 @@ const InvoiceSummaryCards = () => {
 	)
 }
 
+export { CashSummaryCard }
+
 export default InvoiceSummaryCards

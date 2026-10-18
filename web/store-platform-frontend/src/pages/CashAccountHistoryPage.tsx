@@ -27,6 +27,8 @@ import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import DatePickerLabel from '../components/common/DatePickerLabel'
 import EmptyState from '../components/common/EmptyState'
 import DropdownLabel from '../components/DropdownLabel'
+import { cashCurrencyLines } from '../components/dashboard/cashCurrencyBalances'
+import { CashSummaryCard } from '../components/SellingInvoice/InvoiceSummaryCards'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { getDashboardDefaultDateRange } from '../shared/dashboardShell'
 import { generateBreadcrumbs } from '../shared/routes'
@@ -190,6 +192,33 @@ const CashAccountHistoryPage = () => {
 	const totalCount = data?.totalCount ?? 0
 	const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 	const entries = data?.entries ?? []
+	const movementSumLines = useMemo(() => {
+		const totals = data?.totalsByCurrency
+		if (!appliedMovementType || !totals) return undefined
+
+		const lines = cashCurrencyLines(currencySettings, totals).filter(line =>
+			Object.prototype.hasOwnProperty.call(totals, line.currencyId),
+		)
+		const known = new Set(lines.map(line => line.currencyId))
+
+		for (const [currencyId, amount] of Object.entries(totals)) {
+			if (known.has(currencyId)) continue
+			const currencies = [
+				currencySettings?.primaryCurrency,
+				...(currencySettings?.secondaryCurrencies ?? []),
+			]
+			const match = currencies.find(
+				currency => currency?.currencyId === currencyId,
+			)
+			lines.push({
+				currencyId,
+				code: match?.internalCode || match?.name || currencyId,
+				amount,
+			})
+		}
+
+		return lines.length > 0 ? lines : undefined
+	}, [appliedMovementType, currencySettings, data?.totalsByCurrency])
 
 	const formatAmount = (amount: number, currencyId?: string) => {
 		const formatted = formatNumber(Math.abs(amount)) ?? String(Math.abs(amount))
@@ -306,6 +335,22 @@ const CashAccountHistoryPage = () => {
 				>
 					{t('dashboard.cashAccounts.historyFilters.apply')}
 				</Button>
+				{appliedMovementType ? (
+					<CashSummaryCard
+						label={t(
+							`dashboard.cashAccounts.movementTypes.${appliedMovementType}`,
+							{ defaultValue: appliedMovementType },
+						)}
+						lines={movementSumLines}
+						fallback={
+							isError
+								? t('dashboard.cashAccounts.historyError')
+								: isLoading || isFetching
+									? t('dashboard.kpi.loading')
+									: '—'
+						}
+					/>
+				) : null}
 			</Flex>
 
 			<Box px={{ base: 4, md: 8 }} flex="1">

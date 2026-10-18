@@ -1079,6 +1079,7 @@ const getQuery = (
 				totalCount: number
 				page: number
 				limit: number
+				totalsByCurrency?: Record<string, number>
 			},
 			{
 				accountType?: string
