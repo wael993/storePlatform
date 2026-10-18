@@ -13,6 +13,10 @@ import SuperAdminLayout from './components/SuperAdminLayout'
 import TenantLayout from './components/TenantLayout'
 import TenantsList from './pages/TenantsList'
 import RenewalRequestsPage from './pages/RenewalRequestsPage'
+import NewsroomPage from './pages/NewsroomPage'
+import NewsroomReleaseNotesPage from './pages/NewsroomReleaseNotesPage'
+import NewsroomReleaseNoteEditorPage from './pages/NewsroomReleaseNoteEditorPage'
+import NewsroomSettingsPage from './pages/NewsroomSettingsPage'
 import ProductsPage from './components/product/ProductsPage'
 import ProjectsPage from './components/project/ProjectsPage'
 import ProjectModal from './components/project/ProjectModal'
@@ -110,6 +114,8 @@ const App = () => {
 					<Route element={<TenantLayout />}>
 						<Route path={RoutePaths.ROOT} element={<WelcomePage />} />
 						<Route path={RoutePaths.STORE_PLATFORM} element={<WelcomePage />} />
+						<Route path={RoutePaths.NEWSROOM} element={<NewsroomPage />} />
+						<Route path={RoutePaths.NEWSROOM_ITEM} element={<NewsroomPage />} />
 						{isProductsEnabled &&
 							isTenantProductsEnabled &&
 							canSee(SEE.products) && (
@@ -277,6 +283,22 @@ const App = () => {
 								/>
 							</>
 						)}
+						<Route
+							path={RoutePaths.NEWSROOM_RELEASE_NOTES}
+							element={<NewsroomReleaseNotesPage />}
+						/>
+						<Route
+							path={RoutePaths.NEWSROOM_RELEASE_NOTE_NEW}
+							element={<NewsroomReleaseNoteEditorPage />}
+						/>
+						<Route
+							path={RoutePaths.NEWSROOM_RELEASE_NOTE}
+							element={<NewsroomReleaseNoteEditorPage />}
+						/>
+						<Route
+							path={RoutePaths.NEWSROOM_SETTINGS}
+							element={<NewsroomSettingsPage />}
+						/>
 					</Route>
 				</Route>
 

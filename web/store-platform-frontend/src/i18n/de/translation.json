@@ -1302,83 +1302,10 @@
 			"brand": "Marke"
 		},
 		"topBar": {
-			"announcementItems": {
-				"priceUpdate": {
-					"title": "Katalogpreise direkt aus der Rechnung ändern",
-					"description": "Beim Erstellen einer Verkaufs- oder Einkaufsrechnung öffnen Sie mit dem Stift-Symbol neben dem Positionspreis den gespeicherten Katalogpreis des Produkts — nicht nur den Betrag auf der aktuellen Rechnung.",
-					"imageDescriptions": {
-						"img0": "Nach der Bestätigung wird der neue Preis am Produkt selbst gespeichert. Spätere Rechnungen und die Produktseite verwenden den aktualisierten Katalogpreis automatisch."
-					}
-				},
-				"dashboard": {
-					"title": "Neue Dashboard-Seite",
-					"description": "Unter Seiten und auf den Karten der Willkommensseite gibt es jetzt einen Dashboard-Eintrag. Die Oberfläche ist bereits erreichbar; Diagramme und KPI-Karten werden schrittweise freigeschaltet, sobald die jeweilige Kennzahl fertig ist.",
-					"imageDescriptions": {
-						"img0": "Die Dashboard-Hauptansicht bündelt Umsatz, Gewinn, Bestand und Aktivität an einem Ort — ohne zwischen vielen Seiten zu wechseln.",
-						"img1": "Öffnen Sie das Dashboard über das Seiten-Menü oder die Karten auf der Willkommensseite für einen schnellen Überblick.",
-						"img2": "Jede KPI-Karte startet mit „Demnächst“ und wird live, sobald die zugehörige Backend-Kennzahl bereit ist — die Seite selbst braucht kein separates Release."
-					}
-				},
-				"multipleBarcodes": {
-					"title": "Mehrere Barcodes pro Produkt",
-					"description": "Ein Produkt kann einen Hauptbarcode plus weitere Barcodes speichern. Beim Scannen in der Rechnungssuche oder Produktsuche öffnet jeder dieser Codes denselben Artikel — praktisch, wenn Lieferanten denselben Artikel unter verschiedenen Codes liefern.",
-					"imageDescriptions": {
-						"img0": "Zusätzliche Barcodes pflegen Sie im Produktformular. Sie werden mandantenweit auf Kollisionen geprüft, damit zwei Produkte denselben Code nicht teilen können."
-					}
-				},
-				"productImport": {
-					"title": "Verbesserter Excel-Produktimport",
-					"description": "Der Import ist durchgängig stabiler: Excel-Spalten zuordnen, Einheiten/Kategorien/Lieferanten vor dem Speichern prüfen, dann Produkte stapelweise mit klarerem Fehlerfeedback laden.",
-					"imageDescriptions": {
-						"img0": "Starten Sie unter Produkte → Import. Wählen Sie Währung und Felder, laden Sie eine .xlsx/.xlsm-Datei hoch und ordnen Sie jedes Feld der passenden Excel-Spalte zu.",
-						"img1": "Im Stammdaten-Schritt können Sie Einheiten, Kategorien und Lieferanten aus den Dateiwerten zuordnen oder anlegen und die Zeilen vor dem stapelweisen Speichern von Produkten und Bestand prüfen."
-					}
-				},
-				"cashBoxes": {
-					"title": "Live-Bargeldkarten im Dashboard",
-					"description": "Wir erweitern das Dashboard laufend um neue Live-Karten. Die Bargeldboxen sind jetzt verfügbar, damit Sie Salden, Beträge und zugehörige Gebühren direkt in der Übersicht prüfen können.",
-					"imageDescriptions": {
-						"img0": "Im Dashboard sehen Sie vier Kacheln: Tageskasse, Barreserve (Safe), Online und Gesamt — so bleiben Schubladenkasse, Reserve, Karten-/Onlinegeld und der Gesamtsaldo gemeinsam sichtbar.",
-						"img1": "Auf Rechnungen erscheinen Tageskasse und Online für den gewählten Zahlungsweg, damit Sie vor dem Speichern sehen, in welche Box der bezahlte Betrag fließt (oder welche Box belastet wird)."
-					}
-				},
-				"onlinePayment": {
-					"title": "Online-Zahlung auf Rechnungen",
-					"description": "Beim Erstellen einer Verkaufs- oder Einkaufsrechnung können Sie Online als Zahlungsart wählen. Karten- und Onlinezahlungen buchen automatisch auf das Online-Konto — ohne extra Kassenwahl.",
-					"imageDescriptions": {
-						"img0": "Wählen Sie Online in den Zahlungssteuerungen der Rechnung. Der bezahlte Betrag aktualisiert den Online-Saldo des aktiven Lagers; Barzahlungen gehen weiterhin auf die Tageskasse."
-					}
-				},
-				"cashTransfer": {
-					"title": "Transfer zwischen Bargeldboxen",
-					"description": "Verschieben Sie Beträge zwischen Tageskasse, Barreserve und Online — z. B. Schublade auffüllen, Geld in den Safe legen oder Online-Erlöse ausgleichen — ohne Buchung als Einnahme oder Ausgabe.",
-					"imageDescriptions": {
-						"img0": "Nutzen Sie Schnelleingabe → Transfer (Online erforderlich). Wählen Sie Quell- und Zielbox, Betrag und optional einen Grund. Das System bucht beide Seiten, damit die Salden von Tageskasse, Reserve und Online synchron bleiben."
-					}
-				},
-				"cashHistory": {
-					"title": "Bargeld-Historie über Dashboard-Karten",
-					"description": "Klicken Sie im Dashboard auf eine Bargeldkarte (Tageskasse, Barreserve, Online oder Gesamt), um das Kontobuch dieser Box zu öffnen und jede Bewegung zu prüfen — Rechnungen, Quittungen, Zahlungen, Ausgaben und Transfers.",
-					"imageDescriptions": {
-						"img0": "Die Historienliste zeigt jede Buchung mit Betrag, Richtung und verknüpfter Aktivität, damit Sie nachvollziehen können, wie sich der Saldo der gewählten Box über die Zeit verändert hat."
-					}
-				},
-				"warehouseInvoice": {
-					"title": "Großhandels- und Halbgroßhandelsrechnungen",
-					"description": "Sie können jetzt Großhandels- und Halbgroßhandelsrechnungen einfach erstellen. Wählen Sie den Rechnungstyp, fügen Sie Produkte hinzu — die Preise werden je nach Typ angewendet.",
-					"imageDescriptions": {
-						"img0": "Erstellen Sie eine Großhandels- oder Halbgroßhandelsrechnung über den Pfeil neben Neue Rechnung → Großhandel / Halbgroßhandel."
-					}
-				}
-			},
 			"changePassword": "Passwort ändern",
 			"logoAlt": "Rivo-Logo",
 			"welcome": "Willkommen",
 			"notifications": "Benachrichtigungen",
-			"announcements": "Updates",
-			"closeAnnouncements": "Updates schließen",
-			"new": "Neu",
-			"latestUpdates": "Neueste Updates und Nachrichten",
 			"noNotifications": "Keine Benachrichtigungen",
 			"markAllAsRead": "Alle als gelesen markieren",
 			"markAsRead": "Als gelesen markieren",
@@ -1457,6 +1384,91 @@
 		"reason": "Grund",
 		"viewPaymentInfo": "Zahlungsinformationen anzeigen",
 		"requestFailed": "Verlängerungsantrag konnte nicht gesendet werden."
+	},
+	"newsroom": {
+		"title": "Newsroom",
+		"news": "News",
+		"releaseNotes": "Versionshinweise",
+		"welcomePage": "Willkommensseite",
+		"settings": "Einstellungen",
+		"settingsTitle": "Newsroom-Themen",
+		"settingsDescription": "Themen erscheinen an Änderungen in Versionshinweisen und später in den Filtern des Feeds.",
+		"topicName": "Themenname",
+		"topicNamePlaceholder": "z. B. Dashboard",
+		"addTopic": "Thema hinzufügen",
+		"edit": "Bearbeiten",
+		"editNote": "Versionshinweis bearbeiten",
+		"actions": "Aktionen",
+		"topicsEmpty": "Noch keine Themen.",
+		"deleteConfirm": "Dieses Thema löschen?",
+		"topicSaveFailed": "Thema konnte nicht gespeichert werden.",
+		"topicLoadFailed": "Themen konnten nicht geladen werden.",
+		"topicDeleteFailed": "Thema konnte nicht gelöscht werden.",
+		"createNew": "Neu anlegen",
+		"listEmpty": "Noch keine Versionshinweise.",
+		"listLoadFailed": "Versionshinweise konnten nicht geladen werden.",
+		"titleFilter": "Titel suchen",
+		"allStatuses": "Alle Status",
+		"allTopics": "Alle Themen",
+		"noteTitle": "Titel",
+		"statusLabel": "Status",
+		"releaseDate": "Veröffentlichungsdatum",
+		"topic": "Thema",
+		"selectTopic": "Thema wählen",
+		"saveDraft": "Entwurf speichern",
+		"saveFailed": "Versionshinweis konnte nicht gespeichert werden.",
+		"editorLoadFailed": "Versionshinweis konnte nicht geladen werden.",
+		"titleRequired": "Titel ist erforderlich.",
+		"version": "Version",
+		"publicationDateTime": "Veröffentlichungsdatum und -uhrzeit",
+		"description": "Beschreibung",
+		"changes": "Änderungen",
+		"addChange": "Änderung hinzufügen",
+		"changeN": "Änderung {{n}}",
+		"changeTitle": "Titel der Änderung",
+		"changeType": "Typ",
+		"changeDescription": "Beschreibung der Änderung",
+		"changeDescriptionHelp": "Was sich geändert hat, in wenigen Sätzen.",
+		"changeImage": "Bild",
+		"changeImageUrl": "Bild-URL oder leer lassen und Datei hochladen",
+		"changeImageHelp": "URL einfügen oder Bild hochladen (als URL oder Base64 gespeichert).",
+		"imageReadFailed": "Bilddatei konnte nicht gelesen werden.",
+		"imageTooLarge": "Bild ist zu groß. Nutzen Sie eine kleinere Datei oder eine Bild-URL.",
+		"clearImage": "Bild entfernen",
+		"publishedReadOnly": "Ziehen Sie den Hinweis zurück, um ihn zu bearbeiten.",
+		"publish": "Veröffentlichen",
+		"unpublish": "Zurückziehen",
+		"duplicate": "Duplizieren",
+		"deleteNoteConfirm": "Diesen Versionshinweis löschen? Das kann nicht rückgängig gemacht werden.",
+		"actionFailed": "Die Aktion konnte nicht abgeschlossen werden.",
+		"untitled": "Ohne Titel",
+		"preview": "Vorschau",
+		"previewCard": "Karte",
+		"previewFull": "Vollansicht",
+		"readMore": "Weiterlesen",
+		"pin": "Anheften",
+		"unpin": "Lösen",
+		"pinnedOnly": "Nur angeheftet",
+		"search": "Suchen",
+		"feedEmpty": "Noch keine Versionshinweise.",
+		"feedLoadFailed": "Newsroom konnte nicht geladen werden.",
+		"close": "Schließen",
+		"itemNotFound": "Dieser Versionshinweis ist nicht verfügbar.",
+		"status": {
+			"draft": "Entwurf",
+			"published": "Veröffentlicht",
+			"unpublished": "Zurückgezogen"
+		},
+		"type": {
+			"feature": "Funktion",
+			"change": "Änderung",
+			"bug_fix": "Fehlerbehebung"
+		},
+		"typeHelp": {
+			"feature": "Etwas Neues, das der Nutzer tun kann.",
+			"change": "Bestehendes Verhalten, das anders funktioniert.",
+			"bug_fix": "Ein Fehler, der behoben wurde."
+		}
 	},
 	"common": {
 		"onlineOnly": "Nur online",

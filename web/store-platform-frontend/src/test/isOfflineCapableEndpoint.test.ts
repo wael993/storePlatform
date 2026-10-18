@@ -8,5 +8,7 @@ describe('isOfflineCapableEndpoint', () => {
 		expect(isOfflineCapableEndpoint('cash-accounts/transfers')).toBe(true)
 		expect(isOfflineCapableEndpoint('cash-accounts/ledger?page=1')).toBe(false)
 		expect(isOfflineCapableEndpoint('daily-actions')).toBe(true)
+		expect(isOfflineCapableEndpoint('newsroom/topics')).toBe(false)
+		expect(isOfflineCapableEndpoint('newsroom/feed')).toBe(false)
 	})
 })

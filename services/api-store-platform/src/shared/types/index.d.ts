@@ -26,11 +26,13 @@ interface HttpError {
 	message: string
 	errorCode: import('../errorCodes').ErrorCodes
 	hint?: string
+	fields?: Record<string, string>
 }
 interface RequestError {
 	message: string
 	errorCode: string
 	hint?: string
+	fields?: Record<string, string>
 }
 
 type PartnerRequestBody = {

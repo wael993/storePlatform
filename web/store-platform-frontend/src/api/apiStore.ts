@@ -161,6 +161,85 @@ export interface InvoiceSettings {
 	updatedAt?: string
 }
 
+export type NewsroomTopic = {
+	topicId: string
+	name: string
+	createdAt: string
+	updatedAt: string
+}
+
+export type NewsroomChange = {
+	changeId: string
+	title: string
+	type: string
+	description: string
+	image: string
+	topicId: string
+	topicName: string
+	sortOrder: number
+}
+
+export type NewsroomReleaseNoteListItem = {
+	releaseNoteId: string
+	title: string
+	status: string
+	releaseDateTime: string | null
+	topics: { topicId: string; name: string }[]
+	createdAt: string
+	updatedAt: string
+}
+
+export type NewsroomReleaseNote = NewsroomReleaseNoteListItem & {
+	description: string
+	version: string
+	changes: NewsroomChange[]
+}
+
+export type NewsroomReleaseNoteWrite = {
+	title: string
+	description: string
+	version: string
+	releaseDateTime: string | null
+	releaseDate: string | null
+	changes: {
+		changeId?: string
+		title: string
+		type: string
+		description: string
+		image: string
+		topicId: string
+	}[]
+}
+
+export type NewsroomReleaseNoteFilters = {
+	title?: string
+	status?: string
+	releaseDate?: string
+	topicId?: string
+}
+
+export type NewsroomFeedFilters = {
+	title?: string
+	topicId?: string
+	pinned?: boolean
+}
+
+export type NewsroomFeedItem = {
+	releaseNoteId: string
+	title: string
+	description: string
+	releaseDateTime: string | null
+	image: string
+	topicName: string
+	topics: { topicId: string; name: string }[]
+	pinned: boolean
+}
+
+export type NewsroomFeedDetail = NewsroomFeedItem & {
+	version: string
+	changes: NewsroomChange[]
+}
+
 export type InvoiceSettingsUpdate = Pick<
 	InvoiceSettings,
 	| 'noMergeInvoiceLines'
@@ -2579,6 +2658,153 @@ const getQuery = (
 				}
 			},
 		}),
+		getNewsroomTopics: builder.query<NewsroomTopic[], void>({
+			query: () => ({
+				url: 'newsroom/topics',
+			}),
+			transformResponse: (response: { data: NewsroomTopic[] }) => response.data,
+			providesTags: ['newsroom-topics'],
+		}),
+		createNewsroomTopic: builder.mutation<NewsroomTopic, { name: string }>({
+			query: body => ({
+				url: 'newsroom/topics',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['newsroom-topics'],
+		}),
+		updateNewsroomTopic: builder.mutation<
+			NewsroomTopic,
+			{ topicId: string; name: string }
+		>({
+			query: ({ topicId, name }) => ({
+				url: `newsroom/topics/${topicId}`,
+				method: 'PATCH',
+				body: { name },
+			}),
+			invalidatesTags: ['newsroom-topics'],
+		}),
+		deleteNewsroomTopic: builder.mutation<void, string>({
+			query: topicId => ({
+				url: `newsroom/topics/${topicId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['newsroom-topics'],
+		}),
+		getNewsroomReleaseNotes: builder.query<
+			NewsroomReleaseNoteListItem[],
+			NewsroomReleaseNoteFilters
+		>({
+			query: filters => ({
+				url: 'newsroom/release-notes',
+				params: filters,
+			}),
+			transformResponse: (response: { data: NewsroomReleaseNoteListItem[] }) =>
+				response.data,
+			providesTags: ['newsroom-release-notes'],
+		}),
+		getNewsroomReleaseNote: builder.query<NewsroomReleaseNote, string>({
+			query: releaseNoteId => ({
+				url: `newsroom/release-notes/${releaseNoteId}`,
+			}),
+			providesTags: ['newsroom-release-notes'],
+		}),
+		createNewsroomReleaseNote: builder.mutation<
+			NewsroomReleaseNote,
+			NewsroomReleaseNoteWrite
+		>({
+			query: body => ({
+				url: 'newsroom/release-notes',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['newsroom-release-notes'],
+		}),
+		updateNewsroomReleaseNote: builder.mutation<
+			NewsroomReleaseNote,
+			{ releaseNoteId: string; body: NewsroomReleaseNoteWrite }
+		>({
+			query: ({ releaseNoteId, body }) => ({
+				url: `newsroom/release-notes/${releaseNoteId}`,
+				method: 'PATCH',
+				body,
+			}),
+			invalidatesTags: ['newsroom-release-notes'],
+		}),
+		publishNewsroomReleaseNote: builder.mutation<NewsroomReleaseNote, string>({
+			query: releaseNoteId => ({
+				url: `newsroom/release-notes/${releaseNoteId}/publish`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['newsroom-release-notes'],
+		}),
+		unpublishNewsroomReleaseNote: builder.mutation<NewsroomReleaseNote, string>(
+			{
+				query: releaseNoteId => ({
+					url: `newsroom/release-notes/${releaseNoteId}/unpublish`,
+					method: 'POST',
+				}),
+				invalidatesTags: ['newsroom-release-notes'],
+			},
+		),
+		duplicateNewsroomReleaseNote: builder.mutation<NewsroomReleaseNote, string>(
+			{
+				query: releaseNoteId => ({
+					url: `newsroom/release-notes/${releaseNoteId}/duplicate`,
+					method: 'POST',
+				}),
+				invalidatesTags: ['newsroom-release-notes'],
+			},
+		),
+		deleteNewsroomReleaseNote: builder.mutation<void, string>({
+			query: releaseNoteId => ({
+				url: `newsroom/release-notes/${releaseNoteId}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['newsroom-release-notes'],
+		}),
+		getNewsroomFeed: builder.query<NewsroomFeedItem[], NewsroomFeedFilters>({
+			query: filters => ({
+				url: 'newsroom/feed',
+				params: filters,
+			}),
+			transformResponse: (response: { data: NewsroomFeedItem[] }) =>
+				response.data,
+			providesTags: ['newsroom-feed'],
+		}),
+		getNewsroomFeedItem: builder.query<NewsroomFeedDetail, string>({
+			query: releaseNoteId => ({
+				url: `newsroom/feed/${releaseNoteId}`,
+			}),
+			providesTags: ['newsroom-feed'],
+		}),
+		pinNewsroomItem: builder.mutation<{ pinned: boolean }, string>({
+			query: releaseNoteId => ({
+				url: `newsroom/feed/${releaseNoteId}/pin`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['newsroom-feed'],
+		}),
+		unpinNewsroomItem: builder.mutation<{ pinned: boolean }, string>({
+			query: releaseNoteId => ({
+				url: `newsroom/feed/${releaseNoteId}/unpin`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['newsroom-feed'],
+		}),
+		getNewsroomUnreadCount: builder.query<{ count: number }, void>({
+			query: () => ({
+				url: 'newsroom/unread-count',
+			}),
+			providesTags: ['newsroom-unread'],
+		}),
+		visitNewsroom: builder.mutation<{ lastVisitedAt: string }, void>({
+			query: () => ({
+				url: 'newsroom/visit',
+				method: 'POST',
+			}),
+			invalidatesTags: ['newsroom-unread'],
+		}),
 		editInventory: builder.mutation<void, EditInventoryQueryArgument>({
 			query: ({ id, body }: EditInventoryQueryArgument) => ({
 				url: `inventory/by-product/${id}`,
@@ -2672,6 +2898,24 @@ export const {
 	useDeleteTenantUserMutation,
 	useAddTenantMutation,
 	useGetTenantsQuery,
+	useGetNewsroomTopicsQuery,
+	useCreateNewsroomTopicMutation,
+	useUpdateNewsroomTopicMutation,
+	useDeleteNewsroomTopicMutation,
+	useGetNewsroomReleaseNotesQuery,
+	useGetNewsroomReleaseNoteQuery,
+	useCreateNewsroomReleaseNoteMutation,
+	useUpdateNewsroomReleaseNoteMutation,
+	usePublishNewsroomReleaseNoteMutation,
+	useUnpublishNewsroomReleaseNoteMutation,
+	useDuplicateNewsroomReleaseNoteMutation,
+	useDeleteNewsroomReleaseNoteMutation,
+	useGetNewsroomFeedQuery,
+	useGetNewsroomFeedItemQuery,
+	usePinNewsroomItemMutation,
+	useUnpinNewsroomItemMutation,
+	useGetNewsroomUnreadCountQuery,
+	useVisitNewsroomMutation,
 	useGetUserQuery,
 	useGetUserFrontendResourcesQuery,
 	useGetRoleSeeCatalogQuery,

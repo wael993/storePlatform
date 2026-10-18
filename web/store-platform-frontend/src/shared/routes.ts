@@ -31,6 +31,12 @@ export const RoutePaths = {
 	ADD_NEW_TENANT: withBasePath('/add-new-tenant'),
 	TENANTS_LIST: withBasePath('/tenants-list'),
 	RENEWAL_REQUESTS: withBasePath('/renewal-requests'),
+	NEWSROOM: withBasePath('/newsroom'),
+	NEWSROOM_ITEM: withBasePath('/newsroom/:releaseNoteId'),
+	NEWSROOM_RELEASE_NOTES: withBasePath('/newsroom/release-notes'),
+	NEWSROOM_RELEASE_NOTE_NEW: withBasePath('/newsroom/release-notes/new'),
+	NEWSROOM_RELEASE_NOTE: withBasePath('/newsroom/release-notes/:releaseNoteId'),
+	NEWSROOM_SETTINGS: withBasePath('/newsroom/settings'),
 	CUSTOMER_MODAL: withBasePath('/customer-modal'),
 	WILDCARD: '*',
 }
@@ -45,6 +51,10 @@ export const buildRoutePath = {
 	partnerById: (partnerId: string) => withBasePath(`/partners/${partnerId}`),
 	employeeById: (employeeId: string) =>
 		withBasePath(`/employees/${employeeId}`),
+	releaseNoteById: (releaseNoteId: string) =>
+		withBasePath(`/newsroom/release-notes/${releaseNoteId}`),
+	newsroomItem: (releaseNoteId: string) =>
+		withBasePath(`/newsroom/${releaseNoteId}`),
 }
 
 export const fullPaths = {
@@ -61,6 +71,10 @@ export const fullPaths = {
 	ADD_NEW_TENANT: RoutePaths.ADD_NEW_TENANT,
 	TENANTS_LIST: RoutePaths.TENANTS_LIST,
 	RENEWAL_REQUESTS: RoutePaths.RENEWAL_REQUESTS,
+	NEWSROOM: RoutePaths.NEWSROOM,
+	NEWSROOM_RELEASE_NOTES: RoutePaths.NEWSROOM_RELEASE_NOTES,
+	NEWSROOM_RELEASE_NOTE_NEW: RoutePaths.NEWSROOM_RELEASE_NOTE_NEW,
+	NEWSROOM_SETTINGS: RoutePaths.NEWSROOM_SETTINGS,
 	SETTINGS: RoutePaths.SETTINGS,
 	CUSTOMER_MODAL: RoutePaths.CUSTOMER_MODAL,
 	SELLING_INVOICES: RoutePaths.SELLING_INVOICES,
@@ -88,6 +102,10 @@ export const routeLabelKeys = {
 	ADD_NEW_TENANT: 'navigation.addTenant',
 	TENANTS_LIST: 'tenants.title',
 	RENEWAL_REQUESTS: 'tenants.renewalRequests',
+	NEWSROOM: 'newsroom.title',
+	NEWSROOM_RELEASE_NOTES: 'newsroom.releaseNotes',
+	NEWSROOM_RELEASE_NOTE_NEW: 'newsroom.createNew',
+	NEWSROOM_SETTINGS: 'newsroom.settings',
 	STORE_PLATFORM: 'appTitle',
 	SELLING_INVOICES: 'components.pageHeaders.sellingInvoices',
 	REPORTS: 'components.pageHeaders.reports',
@@ -110,6 +128,9 @@ export const getRouteLabel = (path: string, fallback = '') => {
 		[RoutePaths.ADD_NEW_TENANT]: routeLabelKeys.ADD_NEW_TENANT,
 		[RoutePaths.TENANTS_LIST]: routeLabelKeys.TENANTS_LIST,
 		[RoutePaths.RENEWAL_REQUESTS]: routeLabelKeys.RENEWAL_REQUESTS,
+		[RoutePaths.NEWSROOM]: routeLabelKeys.NEWSROOM,
+		[RoutePaths.NEWSROOM_RELEASE_NOTES]: routeLabelKeys.NEWSROOM_RELEASE_NOTES,
+		[RoutePaths.NEWSROOM_SETTINGS]: routeLabelKeys.NEWSROOM_SETTINGS,
 		[RoutePaths.SELLING_INVOICES]: routeLabelKeys.SELLING_INVOICES,
 		[RoutePaths.REPORTS]: routeLabelKeys.REPORTS,
 		[RoutePaths.DASHBOARD]: routeLabelKeys.DASHBOARD,
@@ -421,6 +442,72 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 			isCurrentPage: true,
 		},
 	]
+	const newsroom: BreadcrumbItem[] = [
+		{
+			id: 'newsroom',
+			name: t('newsroom.title'),
+			href: fullPaths.NEWSROOM,
+			isCurrentPage: !name,
+		},
+		...(name
+			? [
+					{
+						id: 'newsroom-item',
+						name,
+						href: '#',
+						isCurrentPage: true,
+					},
+				]
+			: []),
+	]
+	const newsroomReleaseNotes: BreadcrumbItem[] = [
+		{
+			id: 'newsroom',
+			name: t('newsroom.title'),
+			href: fullPaths.NEWSROOM_RELEASE_NOTES,
+			isCurrentPage: false,
+		},
+		{
+			id: 'newsroom-release-notes',
+			name: t(routeLabelKeys.NEWSROOM_RELEASE_NOTES),
+			href: fullPaths.NEWSROOM_RELEASE_NOTES,
+			isCurrentPage: true,
+		},
+	]
+	const newsroomReleaseNoteEditor: BreadcrumbItem[] = [
+		{
+			id: 'newsroom',
+			name: t('newsroom.title'),
+			href: fullPaths.NEWSROOM_RELEASE_NOTES,
+			isCurrentPage: false,
+		},
+		{
+			id: 'newsroom-release-notes',
+			name: t(routeLabelKeys.NEWSROOM_RELEASE_NOTES),
+			href: fullPaths.NEWSROOM_RELEASE_NOTES,
+			isCurrentPage: false,
+		},
+		{
+			id: 'newsroom-release-note-editor',
+			name: name || t('newsroom.createNew'),
+			href: '#',
+			isCurrentPage: true,
+		},
+	]
+	const newsroomSettings: BreadcrumbItem[] = [
+		{
+			id: 'newsroom',
+			name: t('newsroom.title'),
+			href: fullPaths.NEWSROOM_SETTINGS,
+			isCurrentPage: false,
+		},
+		{
+			id: 'newsroom-settings',
+			name: t(routeLabelKeys.NEWSROOM_SETTINGS),
+			href: fullPaths.NEWSROOM_SETTINGS,
+			isCurrentPage: true,
+		},
+	]
 	const product: BreadcrumbItem[] = [
 		{
 			id: 'store-platform',
@@ -510,6 +597,10 @@ export const generateBreadcrumbs = (params?: BreadcrumbParams) => {
 		addNewTenant,
 		tenantsList,
 		renewalRequests,
+		newsroom,
+		newsroomReleaseNotes,
+		newsroomReleaseNoteEditor,
+		newsroomSettings,
 		product,
 		sellingInvoices,
 		reports,

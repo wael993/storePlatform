@@ -59,6 +59,7 @@ import { useWarehouseScope } from '../shared/hooks/useWarehouseScope'
 import { AsDragGripIcon } from '../shared/icons/DragGrip'
 import { StoreIcon } from '../shared/icons/Store'
 import {
+	useGetNewsroomUnreadCountQuery,
 	useGetProductNotificationsQuery,
 	useGetRenewalRequestsQuery,
 	useGetSubscriptionQuery,
@@ -74,12 +75,6 @@ import {
 } from './SubscriptionRenewalBanner'
 import { UserRole } from '../shared/globalEnums'
 import { AsAnnouncementIcon } from '../shared/icons/Announcement'
-import {
-	ANNOUNCEMENT_IMAGES,
-	ANNOUNCEMENT_KEYS,
-	AnnouncementModal,
-	type AnnouncementKey,
-} from './AnnouncementModal'
 import { IoCheckmarkDoneOutline } from 'react-icons/io5'
 
 interface TopBarProps {
@@ -96,13 +91,6 @@ interface TopBarProps {
 }
 
 const styles = {
-	announcementText: {
-		fontSize: 'sm',
-		fontWeight: 400,
-		color: '#64748B',
-		lineHeight: '1.5',
-		textAlign: 'start',
-	},
 	iconButton: {
 		boxSize: 6,
 		bg: 'transparent',
@@ -289,9 +277,6 @@ const TopBar = ({
 	const [digestType, setDigestType] = useState<ProductDigestType | null>(null)
 	const notificationPopover = useDisclosure()
 	const warehousePopover = useDisclosure()
-	const announcementPopover = useDisclosure()
-	const [activeAnnouncement, setActiveAnnouncement] =
-		useState<AnnouncementKey | null>(null)
 	const skipSubscription = !user?.tenantId || user.role === UserRole.SUPER_ADMIN
 	const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN
 	const { data: subscriptionData } = useGetSubscriptionQuery(undefined, {
@@ -363,6 +348,12 @@ const TopBar = ({
 		pendingRenewalCount > 0
 	const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
 	const { isOnline } = useOfflineSync(user?.tenantId)
+	const { data: newsroomUnread } = useGetNewsroomUnreadCountQuery(undefined, {
+		skip: isSuperAdmin || !user?.userId,
+	})
+	const newsroomUnreadCount = newsroomUnread?.count ?? 0
+	const newsroomBadgeLabel =
+		newsroomUnreadCount > 9 ? '9+' : String(newsroomUnreadCount)
 
 	// const isSyncing = syncState === 'syncing' || syncState === 'bootstrapping'
 
@@ -601,6 +592,21 @@ const TopBar = ({
 							)}
 						</Box>
 					)}
+					{!isSuperAdmin && (
+						<Box position="relative">
+							<IconButton
+								aria-label={t('newsroom.title')}
+								icon={<AsAnnouncementIcon />}
+								sx={styles.iconButton}
+								onClick={() => navigate(RoutePaths.NEWSROOM)}
+							/>
+							{newsroomUnreadCount > 0 && (
+								<Box sx={styles.notificationBadge} pointerEvents="none">
+									{newsroomBadgeLabel}
+								</Box>
+							)}
+						</Box>
+					)}
 					{showBell && (
 						<Box position="relative">
 							<Popover
@@ -828,229 +834,6 @@ const TopBar = ({
 
 					{!isMobile && !isSuperAdmin && (
 						<>
-							<Box position="relative">
-								<Popover
-									placement="bottom-end"
-									isLazy
-									isOpen={announcementPopover.isOpen}
-									onOpen={announcementPopover.onOpen}
-									onClose={announcementPopover.onClose}
-								>
-									<PopoverTrigger>
-										<IconButton
-											aria-label={t('components.topBar.notifications')}
-											icon={<AsAnnouncementIcon />}
-											sx={{
-												...styles.iconButton,
-												transition: 'all 0.2s ease',
-												_hover: {
-													transform: 'translateY(-1px)',
-												},
-											}}
-										/>
-									</PopoverTrigger>
-
-									<PopoverContent
-										width="30rem"
-										maxW="calc(100vw - 2rem)"
-										overflow="hidden"
-										border="1px solid"
-										borderColor="blackAlpha.100"
-										borderRadius="xl"
-										boxShadow="0 20px 50px rgba(0, 0, 0, 0.14)"
-										bg="white"
-									>
-										{/* Header */}
-										<Box
-											position="relative"
-											px={5}
-											py={4}
-											bgGradient="linear(to-br, blue.50, purple.50, white)"
-										>
-											{/* Decorative glow */}
-											<Box
-												position="absolute"
-												top="-35px"
-												right="-25px"
-												w="100px"
-												h="100px"
-												borderRadius="full"
-												bg="blue.100"
-												opacity={0.45}
-												filter="blur(25px)"
-											/>
-
-											<Flex
-												position="relative"
-												align="center"
-												justify="space-between"
-											>
-												<Flex align="center" gap={3}>
-													{/* Announcement icon */}
-													<Flex
-														align="center"
-														justify="center"
-														w="42px"
-														h="42px"
-														borderRadius="xl"
-														bg="white"
-														boxShadow="0 6px 18px rgba(59, 130, 246, 0.14)"
-														color="blue.500"
-													>
-														<AsAnnouncementIcon />
-													</Flex>
-
-													<Box>
-														<Flex align="center" gap={2}>
-															<Text
-																fontSize="md"
-																fontWeight={800}
-																color="gray.800"
-															>
-																{t('components.topBar.announcements')}
-															</Text>
-
-															<Box
-																px={2}
-																py="2px"
-																borderRadius="full"
-																bg="blue.500"
-																color="white"
-																fontSize="10px"
-																fontWeight={800}
-																lineHeight="normal"
-															>
-																{t('components.topBar.new')}
-															</Box>
-														</Flex>
-
-														<Text mt={0.5} fontSize="xs" color="gray.500">
-															{t('components.topBar.latestUpdates')}
-														</Text>
-													</Box>
-												</Flex>
-
-												<IconButton
-													aria-label={t('components.topBar.closeAnnouncements')}
-													icon={<CloseIcon boxSize={2.5} />}
-													size="sm"
-													variant="ghost"
-													borderRadius="full"
-													color="gray.500"
-													_hover={{
-														bg: 'blackAlpha.100',
-														color: 'gray.700',
-													}}
-													onClick={announcementPopover.onClose}
-												/>
-											</Flex>
-										</Box>
-
-										<Divider borderColor="blackAlpha.100" />
-
-										{/* Announcement */}
-										<PopoverBody p={4} maxH="min(28rem, 70vh)" overflowY="auto">
-											<Flex direction="column" gap={3}>
-												{ANNOUNCEMENT_KEYS.map(key => (
-													<Box
-														key={key}
-														as="button"
-														type="button"
-														textAlign="start"
-														w="100%"
-														position="relative"
-														p={4}
-														border="1px solid"
-														borderColor="blue.100"
-														borderRadius="xl"
-														bgGradient="linear(to-br, blue.50, white)"
-														overflow="hidden"
-														cursor="pointer"
-														_hover={{ borderColor: 'blue.200' }}
-														onClick={() => {
-															announcementPopover.onClose()
-															setActiveAnnouncement(key)
-														}}
-													>
-														<Box
-															position="absolute"
-															top={0}
-															bottom={0}
-															right={0}
-															w="4px"
-															bgGradient="linear(to-b, blue.400, purple.400)"
-														/>
-
-														<Flex align="flex-start" gap={3}>
-															<Flex
-																flexShrink={0}
-																align="center"
-																justify="center"
-																w="34px"
-																h="34px"
-																borderRadius="lg"
-																bg="blue.100"
-																color="blue.600"
-															>
-																<AsAnnouncementIcon />
-															</Flex>
-
-															<Box flex={1}>
-																<Text
-																	fontSize="sm"
-																	fontWeight={700}
-																	color="gray.800"
-																	mb={1}
-																>
-																	{t(
-																		`components.topBar.announcementItems.${key}.title`,
-																	)}
-																</Text>
-
-																<Text
-																	fontSize="sm"
-																	lineHeight="1.8"
-																	color="gray.600"
-																	sx={styles.announcementText}
-																>
-																	{t(
-																		`components.topBar.announcementItems.${key}.description`,
-																	)}
-																</Text>
-															</Box>
-														</Flex>
-													</Box>
-												))}
-											</Flex>
-										</PopoverBody>
-									</PopoverContent>
-								</Popover>
-
-								{/* Unread badge */}
-								<Box
-									position="absolute"
-									top="-1px"
-									right="-1px"
-									pointerEvents="none"
-									display="flex"
-									alignItems="center"
-									justifyContent="center"
-									minW="18px"
-									h="18px"
-									px="4px"
-									border="2px solid"
-									borderColor="white"
-									borderRadius="full"
-									bgGradient="linear(to-br, red.400, pink.500)"
-									color="white"
-									fontSize="9px"
-									fontWeight={800}
-									boxShadow="0 3px 8px rgba(236, 72, 153, 0.3)"
-								>
-									{ANNOUNCEMENT_KEYS.length}
-								</Box>
-							</Box>
-
 							<IconButton
 								aria-label={t('components.topBar.icons')}
 								icon={<GridIcon boxSize={4} />}
@@ -1180,34 +963,6 @@ const TopBar = ({
 			<AddQuickNewEntryModal
 				isOpen={isAddQuickModalOpen}
 				onClose={onCloseAddQuickModal}
-			/>
-			<AnnouncementModal
-				isOpen={activeAnnouncement != null}
-				onClose={() => setActiveAnnouncement(null)}
-				title={
-					activeAnnouncement
-						? t(
-								`components.topBar.announcementItems.${activeAnnouncement}.title`,
-							)
-						: ''
-				}
-				shortDescription={
-					activeAnnouncement
-						? t(
-								`components.topBar.announcementItems.${activeAnnouncement}.description`,
-							)
-						: ''
-				}
-				images={
-					activeAnnouncement
-						? ANNOUNCEMENT_IMAGES[activeAnnouncement].map((src, index) => ({
-								src,
-								description: t(
-									`components.topBar.announcementItems.${activeAnnouncement}.imageDescriptions.img${index}`,
-								),
-							}))
-						: []
-				}
 			/>
 		</Box>
 	)

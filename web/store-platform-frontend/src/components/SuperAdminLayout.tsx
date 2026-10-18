@@ -31,6 +31,15 @@ const navStyle = ({ isActive }: { isActive: boolean }) => ({
 	color: isActive ? '#1A365D' : '#2D3748',
 })
 
+const disabledNavStyle = {
+	display: 'block',
+	padding: '0.9rem 1rem',
+	borderRadius: '0.9rem',
+	fontWeight: 600,
+	color: '#A0AEC0',
+	cursor: 'not-allowed',
+}
+
 const SuperAdminLayout = () => {
 	const { t } = useTranslation()
 	const [logoutCurrent, { isLoading }] = useLogoutCurrentMutation()
@@ -44,7 +53,7 @@ const SuperAdminLayout = () => {
 	const { isTenantAddNewTenantEnabled, isTenantTenantsListEnabled } =
 		getTenantActions(user?.accessiblePages)
 
-	const topBarItems = [
+	const tenantItems = [
 		isAddNewTenantEnabled && isTenantAddNewTenantEnabled
 			? {
 					label: t(routeLabelKeys.ADD_NEW_TENANT),
@@ -61,6 +70,14 @@ const SuperAdminLayout = () => {
 				}
 			: null,
 	].filter(Boolean) as { label: string; path: string }[]
+	const newsroomLinks = [
+		{
+			label: t('newsroom.releaseNotes'),
+			path: RoutePaths.NEWSROOM_RELEASE_NOTES,
+		},
+		{ label: t('newsroom.settings'), path: RoutePaths.NEWSROOM_SETTINGS },
+	]
+	const topBarItems = [...tenantItems, ...newsroomLinks]
 	const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
 	const handleLogout = async () => {
@@ -102,12 +119,46 @@ const SuperAdminLayout = () => {
 				<Divider />
 
 				<Stack gap={2}>
-					{topBarItems.map(item => (
+					{tenantItems.map(item => (
 						<Box as={NavLink} key={item.path} to={item.path} style={navStyle}>
 							{item.label}
 						</Box>
 					))}
 				</Stack>
+
+				<Box>
+					<Text
+						fontSize="xs"
+						textTransform="uppercase"
+						color="gray.500"
+						mb={2}
+						px={1}
+					>
+						{t('newsroom.title')}
+					</Text>
+					<Stack gap={1}>
+						<Box style={disabledNavStyle} aria-disabled="true">
+							{t('newsroom.news')}
+						</Box>
+						<Box
+							as={NavLink}
+							to={RoutePaths.NEWSROOM_RELEASE_NOTES}
+							style={navStyle}
+						>
+							{t('newsroom.releaseNotes')}
+						</Box>
+						<Box style={disabledNavStyle} aria-disabled="true">
+							{t('newsroom.welcomePage')}
+						</Box>
+						<Box
+							as={NavLink}
+							to={RoutePaths.NEWSROOM_SETTINGS}
+							style={navStyle}
+						>
+							{t('newsroom.settings')}
+						</Box>
+					</Stack>
+				</Box>
 
 				<Box mt="auto">
 					{error ? (

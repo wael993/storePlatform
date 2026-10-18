@@ -30,6 +30,8 @@ import EmployeeController from './apis/employee/api.controller'
 import EmployeeRoutes from './apis/employee/api.routes'
 import NotificationController from './apis/notification/api.controller'
 import NotificationRoutes from './apis/notification/api.routes'
+import NewsroomController from './apis/newsroom/api.controller'
+import NewsroomRoutes from './apis/newsroom/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import ProductsMapper from './apis/mappings/ProductsMapper'
 // import { requestLogger } from './middleware/middleware'
@@ -136,6 +138,11 @@ export const createApp = () => {
 		notificationController,
 		productController,
 	)
+	const newsroomController = new NewsroomController()
+	const newsroomRoutes = new NewsroomRoutes(
+		newsroomController,
+		productController,
+	)
 	const app = express()
 
 	const jsonParser = express.json({ limit: '100kb' })
@@ -154,6 +161,11 @@ export const createApp = () => {
 
 		if (req.path.includes('/invoice-settings')) {
 			return invoiceSettingsJsonParser(req, res, next)
+		}
+
+		if (req.path.includes('/newsroom')) {
+			// note: 12mb covers ~8 screenshots at 1.2MB (base64). Upgrade: object storage.
+			return extractJsonParser(req, res, next)
 		}
 
 		return jsonParser(req, res, next)
@@ -183,6 +195,7 @@ export const createApp = () => {
 	reportRoutes.setRoutes(app)
 	productImportRoutes.setRoutes(app)
 	notificationRoutes.setRoutes(app)
+	newsroomRoutes.setRoutes(app)
 	storeRoutes.setRoutes(app)
 	tenantRoutes.setRoutes(app)
 

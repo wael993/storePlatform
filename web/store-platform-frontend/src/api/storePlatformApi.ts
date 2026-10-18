@@ -67,6 +67,10 @@ export type TagType =
 	| 'renewal-requests'
 	| 'subscription-payment'
 	| 'product-import'
+	| 'newsroom-topics'
+	| 'newsroom-release-notes'
+	| 'newsroom-feed'
+	| 'newsroom-unread'
 
 const tagTypes: TagType[] = [
 	'products',
@@ -108,6 +112,10 @@ const tagTypes: TagType[] = [
 	'renewal-requests',
 	'subscription-payment',
 	'product-import',
+	'newsroom-topics',
+	'newsroom-release-notes',
+	'newsroom-feed',
+	'newsroom-unread',
 ]
 
 const baseQuery = fetchBaseQuery({

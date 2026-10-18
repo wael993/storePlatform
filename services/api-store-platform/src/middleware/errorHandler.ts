@@ -8,12 +8,14 @@ export class HttpErrorHandler extends Error {
 	public httpStatus: number
 	public errorCode: ErrorCodes
 	public message: string
+	public fields?: Record<string, string>
 
 	constructor(
 		errorCode: ErrorCodes,
 		httpStatus: number,
 		message: string,
 		hint?: string,
+		fields?: Record<string, string>,
 	) {
 		super()
 		this.name = this.constructor.name
@@ -21,12 +23,18 @@ export class HttpErrorHandler extends Error {
 		this.httpStatus = httpStatus
 		this.hint = hint
 		this.message = message
+		this.fields = fields
 	}
 }
 
 export class BusinessLogicError extends HttpErrorHandler {
-	constructor(errorCode: ErrorCodes, message: string, hint?: string) {
-		super(errorCode, 422, message, hint)
+	constructor(
+		errorCode: ErrorCodes,
+		message: string,
+		hint?: string,
+		fields?: Record<string, string>,
+	) {
+		super(errorCode, 422, message, hint, fields)
 	}
 }
 export class AuthenticationError extends HttpErrorHandler {
@@ -77,6 +85,7 @@ export const handleError = (
 		errorCode: errorCode,
 		message: message,
 		hint: hint,
+		...('fields' in error && error.fields ? { fields: error.fields } : {}),
 	}
 
 	console.error(`${error}`, { errorCode })

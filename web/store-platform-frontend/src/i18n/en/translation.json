@@ -1302,83 +1302,10 @@
 			"brand": "Brand"
 		},
 		"topBar": {
-			"announcementItems": {
-				"priceUpdate": {
-					"title": "Edit catalog prices from the invoice",
-					"description": "While creating a selling or buying invoice, click the pen icon next to a line price to change that product’s saved catalog price — not only the amount on the current invoice.",
-					"imageDescriptions": {
-						"img0": "After you confirm, the new price is stored on the product itself. Later invoices and the Products page will use the updated catalog price automatically."
-					}
-				},
-				"dashboard": {
-					"title": "New Dashboard page",
-					"description": "A Dashboard entry is now available under Pages and on the Welcome page cards. You can already open the shell; charts and KPI cards will turn on gradually as each metric is finished.",
-					"imageDescriptions": {
-						"img0": "The main Dashboard view brings sales, profit, inventory, and activity into one place so you can monitor the business without jumping between pages.",
-						"img1": "Find Dashboard in the Pages menu or open it from the Welcome page cards whenever you want a quick overview.",
-						"img2": "Each KPI card starts as “coming soon” and becomes live once its backend metric is ready — no separate release needed for the page itself."
-					}
-				},
-				"multipleBarcodes": {
-					"title": "Multiple barcodes per product",
-					"description": "One product can keep a primary barcode plus extra barcodes. Scanning any of them in invoice search or product lookup still opens the same item — useful when a supplier ships the same goods under different codes.",
-					"imageDescriptions": {
-						"img0": "Add or edit additional barcodes on the product form. They are checked for collisions across the tenant, so two products cannot share the same code."
-					}
-				},
-				"productImport": {
-					"title": "Improved Excel product import",
-					"description": "Import is more stable end to end: map Excel columns, review units/categories/suppliers before commit, then load products in batches with clearer error feedback.",
-					"imageDescriptions": {
-						"img0": "Start from Products → Import. Choose currency and fields, upload an .xlsx/.xlsm file, then map each selected field to its Excel column.",
-						"img1": "In the master-data step you can match or create units, categories, and suppliers from the file values, then preview rows before the batched commit writes Products and stock."
-					}
-				},
-				"cashBoxes": {
-					"title": "Live cash cards on the Dashboard",
-					"description": "We keep extending the Dashboard with new live cards. Cash boxes are now available so you can check balances, amounts, and related fees without leaving the overview.",
-					"imageDescriptions": {
-						"img0": "On the Dashboard you see four cash tiles: Daily Cash, Cash Reserve (safe), Online, and Total — so drawer cash, reserve, card/online money, and the combined balance stay visible together.",
-						"img1": "On invoices, Daily Cash and Online appear for the payment path in use, so you can confirm which box the paid amount will land in (or leave from) before you save."
-					}
-				},
-				"onlinePayment": {
-					"title": "Online payment on invoices",
-					"description": "When you create a selling or buying invoice you can choose Online as the payment method. Card and online payments post to the Online cash account automatically — no separate cash-box picker.",
-					"imageDescriptions": {
-						"img0": "Select Online on the invoice payment controls. The paid amount updates the Online balance for the active warehouse; cash payments still go to Daily Cash as before."
-					}
-				},
-				"cashTransfer": {
-					"title": "Transfer between cash boxes",
-					"description": "Move money between Daily Cash, Cash Reserve, and Online when you need to top up the drawer, park cash in the safe, or settle online proceeds — without booking it as income or expense.",
-					"imageDescriptions": {
-						"img0": "Use Quick Entry → Transfer (online required). Pick the from and to boxes, enter the amount, and optionally a reason. The system posts both legs so balances stay in sync across Daily, Reserve, and Online."
-					}
-				},
-				"cashHistory": {
-					"title": "Cash movement history from Dashboard cards",
-					"description": "Click a cash card on the Dashboard (Daily Cash, Cash Reserve, Online, or Total) to open that box’s ledger and review every movement — invoices, receipts, payments, expenses, and transfers.",
-					"imageDescriptions": {
-						"img0": "The history list shows each posting with amount, direction, and linked activity so you can audit how the balance changed over time for the selected cash box."
-					}
-				},
-				"warehouseInvoice": {
-					"title": "Wholesale and half-wholesale invoices",
-					"description": "You can now create wholesale and half-wholesale invoices easily. Choose the invoice type, add products, and prices are applied according to that type.",
-					"imageDescriptions": {
-						"img0": "Create a wholesale or half-wholesale invoice from the arrow next to New Invoice → Wholesale / Half-wholesale."
-					}
-				}
-			},
 			"changePassword": "Change Password",
 			"logoAlt": "Rivo Logo",
 			"welcome": "Welcome",
 			"notifications": "Notifications",
-			"announcements": "Updates",
-			"closeAnnouncements": "Close updates",
-			"new": "New",
-			"latestUpdates": "Latest updates and news",
 			"noNotifications": "No notifications",
 			"markAllAsRead": "Mark all as read",
 			"markAsRead": "Mark as read",
@@ -1457,6 +1384,91 @@
 		"reason": "Reason",
 		"viewPaymentInfo": "View payment information",
 		"requestFailed": "Failed to submit the renewal request."
+	},
+	"newsroom": {
+		"title": "Newsroom",
+		"news": "News",
+		"releaseNotes": "Release Notes",
+		"welcomePage": "Welcome Page",
+		"settings": "Settings",
+		"settingsTitle": "Newsroom topics",
+		"settingsDescription": "Topics appear on release-note changes and later on the user feed filters.",
+		"topicName": "Topic name",
+		"topicNamePlaceholder": "e.g. Dashboard",
+		"addTopic": "Add topic",
+		"edit": "Edit",
+		"editNote": "Edit release note",
+		"actions": "Actions",
+		"topicsEmpty": "No topics yet.",
+		"deleteConfirm": "Delete this topic?",
+		"topicSaveFailed": "Could not save the topic.",
+		"topicLoadFailed": "Could not load topics.",
+		"topicDeleteFailed": "Could not delete the topic.",
+		"createNew": "Create new",
+		"listEmpty": "No release notes yet.",
+		"listLoadFailed": "Could not load release notes.",
+		"titleFilter": "Search title",
+		"allStatuses": "All statuses",
+		"allTopics": "All topics",
+		"noteTitle": "Title",
+		"statusLabel": "Status",
+		"releaseDate": "Release date",
+		"topic": "Topic",
+		"selectTopic": "Select a topic",
+		"saveDraft": "Save draft",
+		"saveFailed": "Could not save the release note.",
+		"editorLoadFailed": "Could not load the release note.",
+		"titleRequired": "Title is required.",
+		"version": "Version",
+		"publicationDateTime": "Publication date and time",
+		"description": "Description",
+		"changes": "Changes",
+		"addChange": "Add change",
+		"changeN": "Change {{n}}",
+		"changeTitle": "Change title",
+		"changeType": "Type",
+		"changeDescription": "Change description",
+		"changeDescriptionHelp": "What changed, in a few sentences.",
+		"changeImage": "Image",
+		"changeImageUrl": "Image URL or leave empty and upload a file",
+		"changeImageHelp": "Paste a URL or upload an image (stored as URL or Base64).",
+		"imageReadFailed": "Could not read the image file.",
+		"imageTooLarge": "Image is too large. Use a smaller file or an image URL.",
+		"clearImage": "Remove image",
+		"publishedReadOnly": "Unpublish this note to edit it.",
+		"publish": "Publish",
+		"unpublish": "Unpublish",
+		"duplicate": "Duplicate",
+		"deleteNoteConfirm": "Delete this release note? This cannot be undone.",
+		"actionFailed": "Could not complete that action.",
+		"untitled": "Untitled",
+		"preview": "Preview",
+		"previewCard": "Card",
+		"previewFull": "Full content",
+		"readMore": "Read more",
+		"pin": "Pin",
+		"unpin": "Unpin",
+		"pinnedOnly": "Pinned only",
+		"search": "Search",
+		"feedEmpty": "No release notes yet.",
+		"feedLoadFailed": "Could not load the Newsroom.",
+		"close": "Close",
+		"itemNotFound": "This release note is not available.",
+		"status": {
+			"draft": "Draft",
+			"published": "Published",
+			"unpublished": "Unpublished"
+		},
+		"type": {
+			"feature": "Feature",
+			"change": "Change",
+			"bug_fix": "Bug fix"
+		},
+		"typeHelp": {
+			"feature": "Something new the user can do.",
+			"change": "Existing behavior that works differently.",
+			"bug_fix": "A defect that was corrected."
+		}
 	},
 	"common": {
 		"onlineOnly": "Online only",
