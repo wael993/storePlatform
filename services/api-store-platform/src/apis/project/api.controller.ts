@@ -30,6 +30,7 @@ type ProjectRow = {
 	projectId: string
 	name: string
 	internalCode?: string
+	contractCost?: number
 	createdAt?: string
 	updatedAt?: string
 	createdBy?: {
@@ -57,7 +58,8 @@ type ProjectRow = {
 		employeeCosts: number
 		otherCosts: number
 		receiptEntries: number
-		profit: null
+		contractCost: number | null
+		profit: number | null
 	}
 }
 
@@ -106,6 +108,7 @@ const mapProject = (project: IProject): ProjectRow => ({
 	projectId: project.projectId,
 	name: project.name,
 	internalCode: project.internalCode,
+	contractCost: project.contractCost,
 	createdAt: toIso(project.createdAt),
 	updatedAt: toIso(project.updatedAt),
 	createdBy: project.createdBy
@@ -350,6 +353,7 @@ export default class ProjectController {
 		)
 		const employeeCosts = sumEntries(projectEntries, 'EMPLOYEE_COST', rates)
 		const otherCosts = sumEntries(projectEntries, 'OTHER_COST', rates)
+		const contractCost = project.contractCost ?? null
 
 		return {
 			...mapProject(project),
@@ -363,7 +367,11 @@ export default class ProjectController {
 				employeeCosts,
 				otherCosts,
 				receiptEntries: sumEntries(projectEntries, 'RECEIPT_ENTRY', rates),
-				profit: null,
+				contractCost,
+				profit:
+					contractCost == null
+						? null
+						: contractCost - own.totalInvoiced - employeeCosts - otherCosts,
 			},
 		}
 	}
@@ -492,6 +500,19 @@ export default class ProjectController {
 
 		if (requestBody.internalCode !== undefined) {
 			updates.internalCode = requestBody.internalCode.trim().toUpperCase()
+		}
+
+		if (requestBody.contractCost !== undefined) {
+			const contractCost = Number(requestBody.contractCost)
+
+			if (!Number.isFinite(contractCost) || contractCost < 0) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Contract cost must be zero or greater.',
+				)
+			}
+
+			updates.contractCost = contractCost
 		}
 
 		const updated = await withTenantScope(

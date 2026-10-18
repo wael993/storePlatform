@@ -162,6 +162,7 @@ export type ProjectRequestBody = {
 	projectId: string
 	name: string
 	internalCode?: string
+	contractCost?: number
 }
 export type InvoiceRequestBody = {
 	invoiceId?: string

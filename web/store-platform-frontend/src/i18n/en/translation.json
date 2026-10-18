@@ -753,6 +753,9 @@
 			"employeeCosts": "Employee costs",
 			"otherCosts": "Other costs",
 			"receiptEntries": "Receipt entries",
+			"contractCost": "Contract cost",
+			"contractCostSaved": "Contract cost saved.",
+			"contractCostError": "Could not save the contract cost.",
 			"projectProfit": "Profit"
 		},
 		"supplier": {

@@ -10,6 +10,13 @@ import {
 	MenuButton,
 	MenuItem,
 	MenuList,
+	Modal,
+	ModalBody,
+	ModalCloseButton,
+	ModalContent,
+	ModalFooter,
+	ModalHeader,
+	ModalOverlay,
 	Spinner,
 	Table,
 	Tbody,
@@ -20,7 +27,7 @@ import {
 	Tr,
 	useDisclosure,
 } from '@chakra-ui/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 
@@ -31,7 +38,9 @@ import {
 	useGetBuyingInvoicesQuery,
 	useGetCustomersQuery,
 	useGetSellingInvoicesQuery,
+	useGetSingleProjectQuery,
 	useGetSuppliersQuery,
+	useUpdateProjectMutation,
 } from '../../api/apiStore'
 import { AsDownloadIcon } from '../../icons/Download'
 import { AsPrintIcon } from '../../icons/Print'
@@ -58,6 +67,8 @@ import {
 } from '../SellingInvoice/constants'
 import {
 	convertEntryAmountToPrimary,
+	convertPrimaryAmount,
+	convertToPrimaryAmount,
 	formatDisplayAmount,
 	formatEntryAmountForDisplay,
 	formatInvoiceAmountForDisplay,
@@ -75,6 +86,16 @@ import QuickEntryModal, {
 import type { SellingInvoiceStatus } from '../SellingInvoice/types'
 import { useInvoiceDisplayCurrency } from '../SellingInvoice/useInvoiceDisplayCurrency'
 import { useInvoiceDocumentExport } from '../SellingInvoice/useInvoiceDocumentExport'
+import { getApiErrorMessage } from '../../offline/getApiErrorMessage'
+import { parseNumberValue } from '../../shared/numberParse'
+import {
+	compareLanguage,
+	formatNumber,
+	formatNumberForDb,
+} from '../../shared/utils'
+
+import { documentNameStyles } from '../../theme/styles'
+import InputLabel from './InputLabel'
 import useCustomToast from './CustomToast'
 import {
 	buildPartyActivityRows,
@@ -156,6 +177,7 @@ const PartyActivityTable = ({
 	const canDeleteEntry = canSee(SEE.invoicesEntriesDelete)
 	const canSeeWholesalePrice = canSee(SEE.productsWholesalePrice)
 	const canSeeSemiWholesalePrice = canSee(SEE.productsSemiWholesalePrice)
+	const canSetContractCost = party === 'project' && canSee(SEE.projectsAdd)
 	const [filter, setFilter] = useState<PartyActivityFilter>('all')
 	const [currentPage, setCurrentPage] = useState(1)
 	const [detailInvoiceId, setDetailInvoiceId] = useState<string | null>(null)
@@ -195,6 +217,14 @@ const PartyActivityTable = ({
 		onOpen: onEntryOpen,
 		onClose: onEntryClose,
 	} = useDisclosure()
+	const {
+		isOpen: isContractCostOpen,
+		onOpen: onContractCostOpen,
+		onClose: onContractCostClose,
+	} = useDisclosure()
+	const { data: projectDetail } = useGetSingleProjectQuery(partyId, {
+		skip: party !== 'project',
+	})
 
 	const invoiceStatus =
 		filter === 'all' || filter === 'entries' ? undefined : filter
@@ -614,6 +644,17 @@ const PartyActivityTable = ({
 									title={blockedTitle}
 								>
 									{t('components.sellingInvoices.newBuyingInvoice')}
+								</Button>
+							) : null}
+							{canSetContractCost ? (
+								<Button
+									size="sm"
+									variant="outline"
+									borderColor={PAGE_COLORS.border}
+									fontWeight={600}
+									onClick={onContractCostOpen}
+								>
+									{t('components.invoiceSummary.contractCost')}
 								</Button>
 							) : null}
 							{canAddEntry ? (
@@ -1212,6 +1253,12 @@ const PartyActivityTable = ({
 				customers={customers}
 				suppliers={suppliers}
 			/>
+			<ContractCostModal
+				isOpen={isContractCostOpen}
+				onClose={onContractCostClose}
+				projectId={partyId}
+				contractCost={projectDetail?.invoiceSummary?.contractCost}
+			/>
 			{createInvoice === 'selling' ? (
 				<InvoiceDetailModal
 					isOpen
@@ -1265,6 +1312,118 @@ const PartyActivityTable = ({
 				isConfirmationButtonLoading={isDeletingEntry}
 			/>
 		</Box>
+	)
+}
+
+const ContractCostModal = ({
+	isOpen,
+	onClose,
+	projectId,
+	contractCost,
+}: {
+	isOpen: boolean
+	onClose: () => void
+	projectId: string
+	contractCost?: number | null
+}) => {
+	const { t, i18n } = useTranslation()
+	const showToast = useCustomToast()
+	const { options, displayCurrencyId } = useInvoiceDisplayCurrency()
+	const [updateProject, { isLoading }] = useUpdateProjectMutation()
+	const [amount, setAmount] = useState('')
+
+	const { isArabic } = compareLanguage(i18n.language)
+
+	useEffect(() => {
+		if (!isOpen) return
+
+		if (contractCost == null) {
+			setAmount('')
+			return
+		}
+
+		const display = displayCurrencyId
+			? convertPrimaryAmount(contractCost, displayCurrencyId, options)
+			: contractCost
+
+		setAmount(formatNumber(display, { maximumDecimals: 2 }) ?? '')
+	}, [contractCost, displayCurrencyId, isOpen, options])
+
+	const handleSave = async () => {
+		const stored = formatNumberForDb(amount, 2)
+		const displayAmount = stored == null ? NaN : Number(stored)
+
+		if (!(displayAmount >= 0)) return
+
+		try {
+			await updateProject({
+				projectId,
+				contractCost: convertToPrimaryAmount(
+					displayAmount,
+					displayCurrencyId,
+					options,
+				),
+			}).unwrap()
+			showToast({
+				status: 'success',
+				description: t('components.invoiceSummary.contractCostSaved'),
+			})
+			onClose()
+		} catch (error) {
+			showToast({
+				status: 'error',
+				description: getApiErrorMessage(
+					error,
+					t('components.invoiceSummary.contractCostError'),
+				),
+			})
+		}
+	}
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} isCentered>
+			<ModalOverlay />
+			<ModalContent borderRadius="xl">
+				<ModalHeader fontWeight={700}>
+					{t('components.invoiceSummary.contractCost')}
+				</ModalHeader>
+				<ModalCloseButton
+					size="lg"
+					sx={{
+						left: isArabic ? '0.4rem' : 'auto',
+						right: isArabic ? 'auto' : '0.4rem',
+						marginRight: 0,
+					}}
+				/>
+				<ModalBody>
+					<InputLabel
+						label={t('common.amount')}
+						inputPlaceholder={t('common.amount')}
+						inputType="text"
+						styles={documentNameStyles}
+						value={amount}
+						hasCurrency={true}
+						currency="$"
+						onChange={(value: string) => setAmount(parseNumberValue(value, 2))}
+					/>
+				</ModalBody>
+				<ModalFooter gap={2}>
+					<Button variant="outline" onClick={onClose}>
+						{t('common.cancel')}
+					</Button>
+					<Button
+						bg={PAGE_COLORS.primary}
+						color="white"
+						_hover={{ bg: '#1D4ED8' }}
+						onClick={handleSave}
+						isLoading={isLoading}
+						isDisabled={!amount.trim()}
+					>
+						{t('common.save')}
+					</Button>
+				</ModalFooter>
+			</ModalContent>
+		</Modal>
 	)
 }
 

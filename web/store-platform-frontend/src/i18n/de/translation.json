@@ -753,6 +753,9 @@
 			"employeeCosts": "Mitarbeiterkosten",
 			"otherCosts": "Sonstige Kosten",
 			"receiptEntries": "Eingänge",
+			"contractCost": "Vertragskosten",
+			"contractCostSaved": "Vertragskosten gespeichert.",
+			"contractCostError": "Die Vertragskosten konnten nicht gespeichert werden.",
 			"projectProfit": "Gewinn"
 		},
 		"supplier": {

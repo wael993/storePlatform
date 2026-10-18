@@ -777,6 +777,9 @@
 			"employeeCosts": "تكاليف الموظفين",
 			"otherCosts": "التكاليف الأخرى",
 			"receiptEntries": "سندات القبض",
+			"contractCost": "تكلفة العقد",
+			"contractCostSaved": "تم حفظ تكلفة العقد.",
+			"contractCostError": "تعذر حفظ تكلفة العقد.",
 			"projectProfit": "الربح"
 		},
 		"supplier": {

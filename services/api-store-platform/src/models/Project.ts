@@ -6,6 +6,7 @@ export interface IProject extends Document {
 	projectId: string
 	internalCode?: string
 	name: string
+	contractCost?: number
 	createdAt?: Date
 	updatedAt?: Date
 	createdBy: {
@@ -27,6 +28,7 @@ const ProjectSchema = new Schema<IProject>(
 		projectId: { type: String, required: true, index: true, unique: true },
 		internalCode: { type: String, uppercase: true },
 		name: { type: String, required: true, index: true },
+		contractCost: { type: Number, min: 0 },
 	},
 	{ timestamps: true },
 )

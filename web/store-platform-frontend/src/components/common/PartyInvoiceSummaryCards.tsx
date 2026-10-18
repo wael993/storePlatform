@@ -488,6 +488,7 @@ interface PartyInvoiceSummaryCardsProps {
 		employeeCosts?: number
 		otherCosts?: number
 		receiptEntries?: number
+		contractCost?: number | null
 		profit?: number | null
 	}
 }
@@ -573,11 +574,22 @@ const PartyInvoiceSummaryCards = ({
 							iconColor="#15803D"
 						/>
 						<SummaryRow
-							label={t('components.invoiceSummary.projectProfit')}
-							value="—"
+							label={t('components.invoiceSummary.contractCost')}
+							value={
+								totals.contractCost == null
+									? '—'
+									: formatAmount(totals.contractCost)
+							}
 							icon={<DollarSignIcon fill="none" />}
 							iconBg="#F3F4F6"
 							iconColor="#6B7280"
+						/>
+						<SummaryRow
+							label={t('components.invoiceSummary.projectProfit')}
+							value={totals.profit == null ? '—' : formatAmount(totals.profit)}
+							icon={<DollarSignIcon fill="none" />}
+							iconBg="#ECFDF5"
+							iconColor="#047857"
 						/>
 					</>
 				)}

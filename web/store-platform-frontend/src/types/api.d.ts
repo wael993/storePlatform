@@ -138,6 +138,7 @@ interface Project {
 		employeeCosts?: number
 		otherCosts?: number
 		receiptEntries?: number
+		contractCost?: number | null
 		profit?: number | null
 	}
 }

@@ -856,6 +856,18 @@ const getQuery = (
 			providesTags: ['project'],
 		}),
 
+		updateProject: builder.mutation<
+			Project,
+			{ projectId: string; contractCost: number }
+		>({
+			query: ({ projectId, contractCost }) => ({
+				url: `projects/${projectId}`,
+				method: 'PATCH',
+				body: { contractCost },
+			}),
+			invalidatesTags: ['project'],
+		}),
+
 		getCategories: builder.query<Category[], void>({
 			query: () => ({
 				url: 'categories',
@@ -2843,6 +2855,7 @@ export const {
 	useDeleteProjectMutation,
 	useBulkDeleteProjectsMutation,
 	useGetSingleProjectQuery,
+	useUpdateProjectMutation,
 	useGetCategoriesQuery,
 	useCreateCategoryMutation,
 	useDeleteCategoryMutation,
