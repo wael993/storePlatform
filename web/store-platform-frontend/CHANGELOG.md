@@ -6,11 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-19
+
 ### Fixed
+
+- Project list total shows what the project owes us, or what we owe the project
 
 ### Added
 
+- Newsroom feed of release notes, with pin and unread, plus Super Admin topics and editor
 - New Project page with it's all invoices and entries
+- Employee costs and other costs on a project, as credit owed to us
+- Contract cost on a project, and profit from that cost minus selling invoices, employee costs, and other costs
+- Cash history shows the sum of a filtered movement type, by currency
 - Dashboard cards for sales, profit, receivables, best sellers, and cash balances by currency
 - Bulk edit for selected products
 - Opening balances on customer and supplier summaries
@@ -24,10 +32,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Invoice summaries and party balances use the saved exchange rate
 - Lists explain why a record cannot be deleted when it is still in use
+- A selling invoice or a receipt can be assigned to a project
+- Customer, supplier, and partner codes are generated the same way as project codes
 - A new app build reloads hidden tabs; hashed assets stay cached and the shell is fetched fresh
 
 ### Removed
 
 - Unused daily-action screens, the old customer and supplier invoice tabs, and other unused UI
-
-## [1.1.155] - 2026-10-07
