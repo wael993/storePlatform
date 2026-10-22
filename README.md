@@ -15,7 +15,9 @@ docker compose up --build
 | Frontend | http://localhost:3000 |
 | API      | http://localhost:3001 |
 
-The frontend nginx container proxies `/api/data` to the API (same pattern as Vercel → Render).
+The frontend nginx container proxies `/api/data` to the API (same pattern as Vercel → Render). Product import, invoice extract, newsroom, and invoice settings go through that proxy, up to 45 MB.
+
+If `BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING` in the root `.env` is still the `.env.example` placeholder, the API prints that and exits once. It does not restart. Put a real URI in `.env`, or use the isolated stack below (the overlay replaces the URI).
 
 ### Environment (Docker)
 
@@ -31,7 +33,7 @@ The API container uses whatever `BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING` i
 No Atlas — bundled Mongo + auto-seed (CI uses this too):
 
 ```bash
-cp .env.example .env   # JWT + SUPER_ADMIN_* only; Mongo URI comes from overlay
+cp .env.example .env   # JWT + SUPER_ADMIN_* only; overlay replaces the example Mongo URI
 docker compose -f docker-compose.yml -f docker-compose.ci.yml up --build
 ```
 

@@ -4,7 +4,8 @@ services:
     build:
       context: .
       dockerfile: services/api-store-platform/Dockerfile
-    restart: unless-stopped
+    # on-failure: the example Mongo URI exits 0 and must stay stopped
+    restart: on-failure
     ports:
       - '3001:3001'
     env_file:
@@ -37,7 +38,7 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/']
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/']
       interval: 10s
       timeout: 5s
       retries: 5
