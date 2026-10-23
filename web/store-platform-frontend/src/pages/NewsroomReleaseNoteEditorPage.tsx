@@ -684,6 +684,12 @@ const NewsroomReleaseNoteEditorPage = () => {
 											>
 												<FormLabel>{t('newsroom.topic')}</FormLabel>
 												<Select
+													sx={{
+														'& + div': {
+															left: '0.75rem',
+															right: 'auto',
+														},
+													}}
 													value={change.topicId}
 													onChange={event =>
 														patchChange(change.clientId, {

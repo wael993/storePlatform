@@ -166,6 +166,12 @@ const NewsroomPage = () => {
 								maxW="14rem"
 								value={topicId}
 								onChange={event => setTopicId(event.target.value)}
+								sx={{
+									'& + div': {
+										left: '0.75rem',
+										right: 'auto',
+									},
+								}}
 							>
 								<option value="">{t('newsroom.allTopics')}</option>
 								{topics.map(topic => (

@@ -322,6 +322,12 @@ const EmployeeProfilePage = () => {
 							<FormControl isRequired>
 								<FormLabel>{t('employees.employmentType')}</FormLabel>
 								<Select
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
 									value={employmentType}
 									onChange={event => setEmploymentType(event.target.value)}
 								>
@@ -335,6 +341,12 @@ const EmployeeProfilePage = () => {
 							<FormControl>
 								<FormLabel>{t('employees.status')}</FormLabel>
 								<Select
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
 									value={status}
 									onChange={event => setStatus(event.target.value)}
 								>
@@ -463,6 +475,12 @@ const EmployeeProfilePage = () => {
 							<FormControl>
 								<FormLabel>{t('employees.salaryType')}</FormLabel>
 								<Select
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
 									value={salaryType}
 									onChange={event => setSalaryType(event.target.value)}
 								>
@@ -484,6 +502,12 @@ const EmployeeProfilePage = () => {
 							<FormControl>
 								<FormLabel>{t('employees.currency')}</FormLabel>
 								<Select
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
 									value={salaryCurrencyId}
 									onChange={event => setSalaryCurrencyId(event.target.value)}
 								>
@@ -593,6 +617,12 @@ const EmployeeProfilePage = () => {
 							<FormControl>
 								<FormLabel>{t('employees.currency')}</FormLabel>
 								<Select
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
 									value={payoutCurrencyId}
 									onChange={event => setPayoutCurrencyId(event.target.value)}
 								>

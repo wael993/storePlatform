@@ -250,6 +250,12 @@ const EmployeesPage = () => {
 						<FormControl mb={3} isRequired>
 							<FormLabel>{t('employees.employmentType')}</FormLabel>
 							<Select
+								sx={{
+									'& + div': {
+										left: '0.75rem',
+										right: 'auto',
+									},
+								}}
 								value={employmentType}
 								onChange={event => setEmploymentType(event.target.value)}
 							>

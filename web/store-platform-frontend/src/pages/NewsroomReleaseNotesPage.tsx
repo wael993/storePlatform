@@ -166,6 +166,12 @@ const NewsroomReleaseNotesPage = () => {
 					/>
 					<Select
 						maxW="12rem"
+						sx={{
+							'& + div': {
+								left: '0.75rem',
+								right: 'auto',
+							},
+						}}
 						value={status}
 						onChange={event => setStatus(event.target.value)}
 					>
@@ -184,6 +190,12 @@ const NewsroomReleaseNotesPage = () => {
 					/>
 					<Select
 						maxW="14rem"
+						sx={{
+							'& + div': {
+								left: '0.75rem',
+								right: 'auto',
+							},
+						}}
 						value={topicId}
 						onChange={event => setTopicId(event.target.value)}
 					>

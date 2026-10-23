@@ -113,11 +113,7 @@ export const NewsroomReleaseCard = ({
 		>
 			<Stack p={4} gap={3}>
 				<Flex justify="space-between" align="flex-start" gap={3}>
-					{note.topicName ? (
-						<Badge colorScheme="blue">{note.topicName}</Badge>
-					) : (
-						<Box />
-					)}
+					<Box />
 					<PinButton
 						pinned={note.pinned}
 						decorative={pinDecorative}
@@ -184,6 +180,7 @@ export const NewsroomReleaseDetail = ({
 						borderColor="gray.200"
 						borderRadius="lg"
 						p={4}
+						bg="#FFFFFF"
 					>
 						<Flex gap={2} wrap="wrap" mb={2}>
 							{change.type ? (

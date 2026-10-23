@@ -506,6 +506,12 @@ const TenantsList = () => {
 								<FormControl>
 									<FormLabel>{t('common.status')}</FormLabel>
 									<Select
+										sx={{
+											'& + div': {
+												left: '0.75rem',
+												right: 'auto',
+											},
+										}}
 										value={selectedTenant?.status ?? 'active'}
 										onChange={event =>
 											setSelectedTenant(prev =>

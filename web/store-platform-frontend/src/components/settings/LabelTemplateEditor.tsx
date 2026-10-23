@@ -190,6 +190,12 @@ const LabelTemplateEditor = ({
 									{t('components.labelTemplates.orientation')}
 								</FormLabel>
 								<Select
+									sx={{
+										'& + div': {
+											left: '0.75rem',
+											right: 'auto',
+										},
+									}}
 									value={isVerticalLayout(layout) ? 'vertical' : 'horizontal'}
 									onChange={event =>
 										setLayout(current =>
@@ -214,6 +220,12 @@ const LabelTemplateEditor = ({
 										{t('components.labelTemplates.addField')}
 									</FormLabel>
 									<Select
+										sx={{
+											'& + div': {
+												left: '0.75rem',
+												right: 'auto',
+											},
+										}}
 										placeholder={t('components.labelTemplates.selectField')}
 										onChange={event => {
 											if (event.target.value) {
@@ -279,6 +291,12 @@ const LabelTemplateEditor = ({
 													{t('components.labelTemplates.align')}
 												</FormLabel>
 												<Select
+													sx={{
+														'& + div': {
+															left: '0.75rem',
+															right: 'auto',
+														},
+													}}
 													value={selected.align ?? 'left'}
 													onChange={event =>
 														updateField(selected.id, {
