@@ -221,6 +221,8 @@ export type SellingInvoicesQueryParams = {
 	dateFrom?: string
 	dateTo?: string
 	customerId?: string
+	/** Scopes best-seller / top-profit product lists to this product.supplierId. */
+	supplierId?: string
 	/** Dashboard reads `summary` only. Omit the invoice rows from the response. */
 	summaryOnly?: boolean
 }

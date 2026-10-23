@@ -221,6 +221,7 @@
 		},
 		"inventory": {
 			"soldCount": "{{count}} مبيع",
+			"supplier": "المورد",
 			"cards": {
 				"inventoryWarnings": "تحذيرات المخزون",
 				"bestProfitProducts": "أفضل المنتجات ربحاً",

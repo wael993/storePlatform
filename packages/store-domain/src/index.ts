@@ -42,6 +42,7 @@ export { PRODUCT_NAME_MAX_LENGTH } from './productRules'
 export {
 	allocateNetLineRevenues,
 	buildPeriodProductAggregates,
+	filterAggregatesByProductIds,
 	getProductProfitAggregate,
 	invoiceLineRevenue,
 	mergeInvoiceItemsPreservingUnitCost,

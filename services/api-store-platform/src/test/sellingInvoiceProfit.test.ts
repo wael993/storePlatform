@@ -12,6 +12,7 @@ import {
 import {
 	allocateNetLineRevenues,
 	buildPeriodProductAggregates,
+	filterAggregatesByProductIds,
 	invoiceLineRevenue,
 	mergeInvoiceItemsPreservingUnitCost,
 	originalSaleUnitCostByProduct,
@@ -662,6 +663,33 @@ describe('net revenue and profit', () => {
 		).toEqual(['f', 'e', 'd', 'c', 'b'])
 
 		expect(pickTopProfitSummaryProduct(aggregates)?.productId).toBe('f')
+	})
+
+	it('scopes ranking lists to allowed product ids', () => {
+		const aggregates = new Map<string, ProductProfitAggregate>()
+
+		for (const row of [
+			{ productId: 'a', quantitySold: 10, profit: 1 },
+			{ productId: 'b', quantitySold: 8, profit: 9 },
+			{ productId: 'c', quantitySold: 6, profit: 2 },
+		]) {
+			aggregates.set(row.productId, {
+				...row,
+				productName: row.productId,
+				revenue: 0,
+				cogs: 0,
+			})
+		}
+
+		const scoped = filterAggregatesByProductIds(aggregates, new Set(['b', 'c']))
+
+		expect(
+			pickBestSellerSummaryProducts(scoped).map(product => product.productId),
+		).toEqual(['b', 'c'])
+
+		expect(
+			pickTopProfitSummaryProducts(scoped).map(product => product.productId),
+		).toEqual(['b', 'c'])
 	})
 
 	it('keeps stamped unitCost when invoice items are replaced', () => {

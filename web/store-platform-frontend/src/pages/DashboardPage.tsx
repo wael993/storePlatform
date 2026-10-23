@@ -7,11 +7,13 @@ import {
 	Text,
 	VStack,
 } from '@chakra-ui/react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useGetSuppliersQuery } from '../api/apiStore'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
 import EmptyState from '../components/common/EmptyState'
 import DatePickerLabel from '../components/common/DatePickerLabel'
+import DropdownLabel from '../components/DropdownLabel'
 import CashPaymentsCard from '../components/dashboard/CashPaymentsCard'
 import InvoiceSummaryKpiCard from '../components/dashboard/InvoiceSummaryKpiCard'
 import OverviewKpiCard from '../components/dashboard/OverviewKpiCard'
@@ -28,12 +30,15 @@ import {
 	resolveDashboardShellStatus,
 	SALES_PROFIT_CHART_IDS,
 } from '../shared/dashboardShell'
+import { useSee } from '../shared/hooks/useSee'
 import { generateBreadcrumbs } from '../shared/routes'
+import { SEE } from '../shared/seeFlags'
 import { pageContentMinHeight } from '../theme/layout'
 import { datePickerStyles } from '../theme/styles'
 
 const DashboardPage = () => {
 	const { t } = useTranslation()
+	const { canSee } = useSee()
 	const breadCrumbItems = generateBreadcrumbs()
 	const status = resolveDashboardShellStatus()
 	const [dateFrom, setDateFrom] = useState(
@@ -41,6 +46,22 @@ const DashboardPage = () => {
 	)
 	const [dateTo, setDateTo] = useState(
 		() => getDashboardDefaultDateRange().dateTo,
+	)
+	const [supplierId, setSupplierId] = useState('')
+	const canSeeSupplier = canSee(SEE.supplier)
+	const { data: suppliers = [], isLoading: isSuppliersLoading } =
+		useGetSuppliersQuery({}, { skip: !canSeeSupplier })
+	const supplierOptions = useMemo(
+		() =>
+			suppliers.map(supplier => ({
+				value: supplier.supplierId,
+				label: supplier.name,
+			})),
+		[suppliers],
+	)
+	const selectedSupplier = useMemo(
+		() => supplierOptions.filter(option => option.value === supplierId),
+		[supplierOptions, supplierId],
 	)
 
 	return (
@@ -106,15 +127,38 @@ const DashboardPage = () => {
 					<VStack align="stretch" spacing={{ base: 8, md: 10 }}>
 						{DASHBOARD_SECTIONS.map(sectionId => (
 							<Box as="section" key={sectionId}>
-								<Heading
-									as="h2"
-									fontSize="1.125rem"
-									fontWeight={700}
+								<Flex
+									align={{ base: 'stretch', sm: 'flex-end' }}
+									justify="space-between"
+									gap={3}
+									flexWrap="wrap"
 									mb={4}
-									color="gray.800"
 								>
-									{t(`dashboard.sections.${sectionId}`)}
-								</Heading>
+									<Heading
+										as="h2"
+										fontSize="1.125rem"
+										fontWeight={700}
+										color="gray.800"
+										mb={0}
+									>
+										{t(`dashboard.sections.${sectionId}`)}
+									</Heading>
+									{sectionId === 'inventory' && canSeeSupplier ? (
+										<Box minW="10rem" maxW="14rem" flex="1">
+											<DropdownLabel
+												isSingle
+												isSearchable
+												showClearOptions
+												label={t('dashboard.inventory.supplier')}
+												placeholder={t('dashboard.inventory.supplier')}
+												options={supplierOptions}
+												selectedOptions={selectedSupplier}
+												onSelect={values => setSupplierId(values[0] ?? '')}
+												isLoading={isSuppliersLoading}
+											/>
+										</Box>
+									) : null}
+								</Flex>
 								{sectionId === 'overview' ? (
 									<SimpleGrid
 										minChildWidth={{
@@ -164,6 +208,12 @@ const DashboardPage = () => {
 												cardId={cardId}
 												dateFrom={dateFrom}
 												dateTo={dateTo}
+												supplierId={
+													cardId === 'bestSellerProducts' ||
+													cardId === 'bestProfitProducts'
+														? supplierId || undefined
+														: undefined
+												}
 											/>
 										))}
 									</SimpleGrid>

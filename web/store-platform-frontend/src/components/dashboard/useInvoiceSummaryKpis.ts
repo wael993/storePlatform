@@ -13,7 +13,11 @@ import { readInvoiceSummaryKpis } from './invoiceSummaryKpis'
 export type InvoiceSummaryKpiStatus =
 	'loading' | 'offline' | 'unavailable' | 'error' | 'ready'
 
-export const useInvoiceSummaryKpis = (dateFrom: Date, dateTo: Date) => {
+export const useInvoiceSummaryKpis = (
+	dateFrom: Date,
+	dateTo: Date,
+	supplierId?: string,
+) => {
 	const { canSee } = useSee()
 	const allowed = canSee(SEE.sellingInvoicesSummary)
 	const params = useMemo(
@@ -21,8 +25,9 @@ export const useInvoiceSummaryKpis = (dateFrom: Date, dateTo: Date) => {
 			dateFrom: format(dateFrom, 'yyyy-MM-dd'),
 			dateTo: format(dateTo, 'yyyy-MM-dd'),
 			summaryOnly: true,
+			...(supplierId ? { supplierId } : {}),
 		}),
-		[dateFrom, dateTo],
+		[dateFrom, dateTo, supplierId],
 	)
 	const query = useGetSellingInvoicesQuery(params, {
 		skip: !allowed,

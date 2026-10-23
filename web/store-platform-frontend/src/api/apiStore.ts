@@ -407,6 +407,8 @@ export interface SellingInvoicesQueryParams {
 	dateFrom?: string
 	dateTo?: string
 	customerId?: string
+	/** Scopes best-seller / top-profit product lists to this product.supplierId. */
+	supplierId?: string
 	summaryOnly?: boolean
 }
 

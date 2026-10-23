@@ -123,19 +123,26 @@ interface InventoryListCardProps {
 	cardId: InventoryCardId
 	dateFrom: Date
 	dateTo: Date
+	supplierId?: string
 }
 
 const LiveProductCard = ({
 	cardId,
 	dateFrom,
 	dateTo,
+	supplierId,
 }: {
 	cardId: LiveProductCardId
 	dateFrom: Date
 	dateTo: Date
+	supplierId?: string
 }) => {
 	const { t } = useTranslation()
-	const { status, kpis, formatMoney } = useInvoiceSummaryKpis(dateFrom, dateTo)
+	const { status, kpis, formatMoney } = useInvoiceSummaryKpis(
+		dateFrom,
+		dateTo,
+		supplierId,
+	)
 	const Icon = CARD_ICONS[cardId]
 	const tone = LIVE_ICON_TONES[cardId]
 	const ranked =
@@ -197,10 +204,16 @@ export const InventoryListCard = ({
 	cardId,
 	dateFrom,
 	dateTo,
+	supplierId,
 }: InventoryListCardProps) => {
 	if (cardId === 'bestSellerProducts' || cardId === 'bestProfitProducts') {
 		return (
-			<LiveProductCard cardId={cardId} dateFrom={dateFrom} dateTo={dateTo} />
+			<LiveProductCard
+				cardId={cardId}
+				dateFrom={dateFrom}
+				dateTo={dateTo}
+				supplierId={supplierId}
+			/>
 		)
 	}
 

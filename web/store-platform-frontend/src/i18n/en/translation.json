@@ -221,6 +221,7 @@
 		},
 		"inventory": {
 			"soldCount": "{{count}} selling",
+			"supplier": "Supplier",
 			"cards": {
 				"inventoryWarnings": "Inventory warnings",
 				"bestProfitProducts": "Best profit products",

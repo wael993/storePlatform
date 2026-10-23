@@ -948,6 +948,7 @@ export const listCashLedgerEntries = async (params: {
 
 	for (const row of sumRows) {
 		if (!row._id) continue
+
 		totalsByCurrency[row._id] = row.amount
 	}
 

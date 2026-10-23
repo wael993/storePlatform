@@ -250,6 +250,13 @@ export const buildPeriodProductAggregates = (
 	return { aggregates, profitReliable }
 }
 
+/** Keep only products whose ids are in `allowed` (e.g. one supplier's catalog). */
+export const filterAggregatesByProductIds = (
+	aggregates: Map<string, ProductProfitAggregate>,
+	allowed: ReadonlySet<string>,
+): Map<string, ProductProfitAggregate> =>
+	new Map([...aggregates].filter(([productId]) => allowed.has(productId)))
+
 const soldProducts = (aggregates: Map<string, ProductProfitAggregate>) =>
 	[...aggregates.values()].filter(aggregate => aggregate.quantitySold > 0)
 

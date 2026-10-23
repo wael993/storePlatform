@@ -56,11 +56,13 @@ import {
 import { CASH_REFERENCE_TYPES } from '../../shared/cashAccounts/types'
 import {
 	buildPeriodProductAggregates,
+	filterAggregatesByProductIds,
 	originalSaleUnitCostByProduct,
 	pickBestSellerSummaryProducts,
 	pickTopProfitSummaryProducts,
 	selectCurrentSaleMovings,
 	totalProfitFromAggregates,
+	type ProductProfitAggregate,
 } from '../../shared/sellingInvoiceProfit'
 import {
 	CustomerInvoiceSummary,
@@ -501,8 +503,16 @@ export default class SellingInvoiceController {
 			selectCurrentSaleMovings(periodInvoices, stockMovings),
 		)
 
-		const bestSellers = pickBestSellerSummaryProducts(aggregates)
-		const topProfitProducts = pickTopProfitSummaryProducts(aggregates)
+		const rankedAggregates = filters.supplierId
+			? await this.aggregatesForSupplier(
+					requestContext,
+					aggregates,
+					filters.supplierId,
+				)
+			: aggregates
+
+		const bestSellers = pickBestSellerSummaryProducts(rankedAggregates)
+		const topProfitProducts = pickTopProfitSummaryProducts(rankedAggregates)
 
 		return {
 			todaySales,
@@ -517,6 +527,26 @@ export default class SellingInvoiceController {
 			topProfitProduct: topProfitProducts[0] ?? null,
 			topProfitProducts,
 		}
+	}
+
+	/** Keep period totals unfiltered; only product ranking lists follow supplier. */
+	private async aggregatesForSupplier(
+		requestContext: RequestContext,
+		aggregates: Map<string, ProductProfitAggregate>,
+		supplierId: string,
+	): Promise<Map<string, ProductProfitAggregate>> {
+		const tenantId = this.getTenantId(requestContext)
+		const products = await withTenantScope(
+			Product.find({ supplierId }).select({ productId: 1 }),
+			tenantId,
+		).lean<Array<{ productId?: string }>>()
+		const allowed = new Set(
+			products
+				.map(product => product.productId)
+				.filter((id): id is string => Boolean(id)),
+		)
+
+		return filterAggregatesByProductIds(aggregates, allowed)
 	}
 
 	private async tenantAllowsOversell(

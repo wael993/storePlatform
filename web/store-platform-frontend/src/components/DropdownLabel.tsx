@@ -17,6 +17,7 @@ interface DropdownLabelProps {
 	isSearchable?: boolean
 	disabledTooltip?: string
 	isLoading?: boolean
+	showClearOptions?: boolean
 	noOptionsSelection?: DropdownOption
 	customStyles?: DropdownStylesObject
 }
@@ -32,6 +33,7 @@ const DropdownLabel = ({
 	isSearchable = false,
 	disabledTooltip,
 	isLoading = false,
+	showClearOptions = false,
 	noOptionsSelection,
 	customStyles,
 }: DropdownLabelProps) => {
@@ -71,7 +73,7 @@ const DropdownLabel = ({
 				isSingle={isSingle}
 				isSearchable={isSearchable}
 				selectedValues={selectedOptions.map(option => option.value)}
-				showClearOptions={false}
+				showClearOptions={showClearOptions}
 				disabled={isDisabled}
 				customStyles={{
 					menuButton: dropdownStyles.dropdownMenu,
