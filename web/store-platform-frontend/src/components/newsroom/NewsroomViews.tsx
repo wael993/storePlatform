@@ -6,9 +6,15 @@ import {
 	Heading,
 	IconButton,
 	Image,
+	Modal,
+	ModalBody,
+	ModalCloseButton,
+	ModalContent,
+	ModalOverlay,
 	Stack,
 	Text,
 } from '@chakra-ui/react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StarIcon } from '../../shared/icons/Star'
@@ -105,15 +111,6 @@ export const NewsroomReleaseCard = ({
 			overflow="hidden"
 			bg="white"
 		>
-			{note.image ? (
-				<Image
-					src={note.image}
-					alt=""
-					w="100%"
-					maxH="220px"
-					objectFit="cover"
-				/>
-			) : null}
 			<Stack p={4} gap={3}>
 				<Flex justify="space-between" align="flex-start" gap={3}>
 					{note.topicName ? (
@@ -159,6 +156,7 @@ export const NewsroomReleaseDetail = ({
 	pinDecorative?: boolean
 }) => {
 	const { t, i18n } = useTranslation()
+	const [previewSrc, setPreviewSrc] = useState<string | null>(null)
 
 	return (
 		<Stack gap={6}>
@@ -205,12 +203,51 @@ export const NewsroomReleaseDetail = ({
 								maxH="240px"
 								borderRadius="md"
 								mb={3}
+								cursor="pointer"
+								aria-label={t('newsroom.preview')}
+								role="button"
+								tabIndex={0}
+								onClick={() => setPreviewSrc(change.image)}
+								onKeyDown={event => {
+									if (event.key === 'Enter' || event.key === ' ') {
+										event.preventDefault()
+										setPreviewSrc(change.image)
+									}
+								}}
 							/>
 						) : null}
 						<Text whiteSpace="pre-wrap">{change.description}</Text>
 					</Box>
 				))}
 			</Stack>
+			<Modal
+				isOpen={!!previewSrc}
+				onClose={() => setPreviewSrc(null)}
+				size="6xl"
+				isCentered
+			>
+				<ModalOverlay bg="blackAlpha.800" />
+				<ModalContent bg="transparent" boxShadow="none" maxW="90vw">
+					<ModalCloseButton color="white" />
+					<ModalBody
+						p={0}
+						display="flex"
+						justifyContent="center"
+						alignItems="center"
+					>
+						{previewSrc ? (
+							<Image
+								src={previewSrc}
+								alt=""
+								maxH="90vh"
+								maxW="90vw"
+								objectFit="contain"
+								borderRadius="md"
+							/>
+						) : null}
+					</ModalBody>
+				</ModalContent>
+			</Modal>
 		</Stack>
 	)
 }

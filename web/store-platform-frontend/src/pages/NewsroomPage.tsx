@@ -8,7 +8,6 @@ import {
 	Button,
 	Container,
 	Flex,
-	Heading,
 	Input,
 	Select,
 	Spinner,
@@ -131,11 +130,6 @@ const NewsroomPage = () => {
 						{t('newsroom.close')}
 					</Button>
 				</Flex>
-				<Heading size="lg">
-					{releaseNoteId
-						? (detail?.title ?? t('newsroom.title'))
-						: t('newsroom.title')}
-				</Heading>
 				{feedback ? (
 					<Alert status="error" borderRadius="md">
 						<AlertIcon />
