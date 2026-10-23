@@ -38,4 +38,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+- Old TopBar announcement popup images (replaced by Newsroom)
 - Unused daily-action screens, the old customer and supplier invoice tabs, and other unused UI
