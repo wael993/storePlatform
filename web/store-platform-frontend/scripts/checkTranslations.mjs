@@ -2,6 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import process from 'node:process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const frontendRoot = join(__dirname, '..')
@@ -14,8 +15,7 @@ const localeFiles = ['en', 'de', 'ar'].map(locale => ({
 
 const KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)*$/
 
-const looksLikeI18nKey = key =>
-	KEY_PATTERN.test(key) && key.includes('.')
+const looksLikeI18nKey = key => KEY_PATTERN.test(key) && key.includes('.')
 
 const SOURCE_PATTERNS = [
 	/\bt\(\s*['"]([^'"]+)['"]/g,
@@ -32,9 +32,7 @@ const QUOTED_I18N_KEY_PATTERN = /['"]([a-zA-Z][\w]*(?:\.[\w]+)*)['"]/g
 const DYNAMIC_PREFIX_PATTERN = /\bt\(\s*`([a-zA-Z][\w.]*)?\$\{/g
 
 const stripComments = content =>
-	content
-		.replace(/\/\*[\s\S]*?\*\//g, '')
-		.replace(/(^|[^:])\/\/.*$/gm, '$1')
+	content.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 
 const walkFiles = (dir, files = []) => {
 	for (const entry of readdirSync(dir)) {
@@ -61,9 +59,7 @@ const flattenTranslationKeys = (value, prefix = '') => {
 	for (const [key, nested] of Object.entries(value)) {
 		const fullKey = prefix ? `${prefix}.${key}` : key
 		const isLeaf =
-			nested == null ||
-			typeof nested !== 'object' ||
-			Array.isArray(nested)
+			nested == null || typeof nested !== 'object' || Array.isArray(nested)
 
 		if (isLeaf) {
 			keys.set(fullKey, 'leaf')
@@ -169,7 +165,10 @@ const collectUsedKeys = (sourceFiles, referenceKeys) => {
 
 		DYNAMIC_PREFIX_PATTERN.lastIndex = 0
 		for (const match of content.matchAll(DYNAMIC_PREFIX_PATTERN)) {
-			for (const key of expandDynamicPrefixKeys(match[1] ?? '', referenceKeys)) {
+			for (const key of expandDynamicPrefixKeys(
+				match[1] ?? '',
+				referenceKeys,
+			)) {
 				used.add(key)
 			}
 		}

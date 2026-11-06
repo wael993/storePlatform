@@ -109,7 +109,7 @@ styled-system-studio
 
 # Local notes / tickets / architecture drafts — not for the remote
 docs/
-documentation/
+# documentation/
 
 # Logo working files — product copies live in web/store-platform-frontend/public/
 brand/

@@ -21,5 +21,6 @@
 			"store-domain": ["../../packages/store-domain/src/index.ts"]
 		}
 	},
-	"include": ["src", "vercel.ts", "../../packages/store-domain/src"]
+	"include": ["src", "vercel.ts", "../../packages/store-domain/src"],
+	"exclude": ["**/*.test.ts", "**/*.test.tsx", "src/test/**"]
 }
