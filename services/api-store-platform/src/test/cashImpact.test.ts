@@ -21,6 +21,7 @@ import {
 import {
 	CASH_ACCOUNT_TYPES,
 	CASH_MOVEMENT_TYPES,
+	validateCashExchangeInput,
 	validateCashTransferInput,
 } from '../shared/cashAccounts/types'
 
@@ -294,6 +295,73 @@ describe('cashImpact', () => {
 				amount: 5,
 			}),
 		).toThrow('From account type is invalid.')
+	})
+
+	it('validates exchange input against the submitted rate snapshot', () => {
+		// 100 EUR @ 0.9 per primary → 111.11111111 primary → × 0.972 USD = 108 USD
+		const base = {
+			accountType: CASH_ACCOUNT_TYPES.DAILY_CASH,
+			fromCurrencyId: 'eur',
+			toCurrencyId: 'usd',
+			fromAmount: 100,
+			toAmount: 108,
+			fromExchangeRateToPrimary: 0.9,
+			toExchangeRateToPrimary: 0.972,
+		}
+
+		expect(validateCashExchangeInput(base)).toMatchObject({
+			fromAmount: 100,
+			toAmount: 108,
+			fromExchangeRateToPrimary: 0.9,
+			toExchangeRateToPrimary: 0.972,
+		})
+
+		expect(() =>
+			validateCashExchangeInput({ ...base, toCurrencyId: 'eur' }),
+		).toThrow('From and To currencies must be different.')
+
+		expect(() => validateCashExchangeInput({ ...base, fromAmount: 0 })).toThrow(
+			'Exchange amounts must be greater than zero.',
+		)
+
+		expect(() =>
+			validateCashExchangeInput({ ...base, toExchangeRateToPrimary: 0 }),
+		).toThrow('Exchange rates must be greater than zero.')
+
+		expect(() =>
+			validateCashExchangeInput({ ...base, fromExchangeRateToPrimary: NaN }),
+		).toThrow('Exchange rates must be greater than zero.')
+
+		expect(() => validateCashExchangeInput({ ...base, toAmount: 120 })).toThrow(
+			'Exchange amount does not match the exchange rates.',
+		)
+
+		expect(() =>
+			validateCashExchangeInput({ ...base, accountType: 'vault' }),
+		).toThrow('Cash account type is invalid.')
+
+		const settingsRates = new Map([
+			['eur', 0.9],
+			['usd', 0.972],
+		])
+
+		expect(validateCashExchangeInput({ ...base, settingsRates })).toMatchObject(
+			{ toAmount: 108 },
+		)
+
+		expect(() =>
+			validateCashExchangeInput({
+				...base,
+				settingsRates: new Map([...settingsRates, ['usd', 1.1]]),
+			}),
+		).toThrow('Exchange rate does not match currency settings.')
+
+		expect(() =>
+			validateCashExchangeInput({
+				...base,
+				settingsRates: new Map([['eur', 0.9]]),
+			}),
+		).toThrow('Exchange rate does not match currency settings.')
 	})
 
 	it('posts the currency amount that was paid, not a primary conversion', () => {

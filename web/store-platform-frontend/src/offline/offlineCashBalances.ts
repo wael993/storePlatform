@@ -194,7 +194,39 @@ export const cashPostsFromPendingCreate = (
 	if (entity === 'buyingInvoice') return postsForInvoice(payload, -1)
 	if (entity === 'dailyAction') return postsForDailyAction(payload)
 	if (entity === 'cashTransfer') return postsForCashTransfer(payload)
+	if (entity === 'cashExchange') return postsForCashExchange(payload)
 	return []
+}
+
+/** Same account: −from currency, +to currency, using the stored snapshot amounts. */
+const postsForCashExchange = (payload: {
+	accountType?: unknown
+	fromCurrencyId?: unknown
+	toCurrencyId?: unknown
+	fromAmount?: unknown
+	toAmount?: unknown
+}) => {
+	const accountType = String(payload.accountType ?? '')
+	const fromCurrencyId = String(payload.fromCurrencyId ?? '').trim()
+	const toCurrencyId = String(payload.toCurrencyId ?? '').trim()
+	const fromAmount = roundPrimary(Math.abs(Number(payload.fromAmount)))
+	const toAmount = roundPrimary(Math.abs(Number(payload.toAmount)))
+
+	if (
+		!CASH_ACCOUNT_TYPES.has(accountType) ||
+		!fromCurrencyId ||
+		!toCurrencyId ||
+		fromCurrencyId === toCurrencyId ||
+		!(fromAmount > 0) ||
+		!(toAmount > 0)
+	) {
+		return []
+	}
+
+	return [
+		{ accountType, currencyId: fromCurrencyId, amount: -fromAmount },
+		{ accountType, currencyId: toCurrencyId, amount: toAmount },
+	]
 }
 
 const postsForCashTransfer = (payload: {
@@ -285,7 +317,8 @@ export const readOfflineCashBalances = async (
 				(entry.entity === 'invoice' ||
 					entry.entity === 'buyingInvoice' ||
 					entry.entity === 'dailyAction' ||
-					entry.entity === 'cashTransfer'),
+					entry.entity === 'cashTransfer' ||
+					entry.entity === 'cashExchange'),
 		)
 		.toArray()
 

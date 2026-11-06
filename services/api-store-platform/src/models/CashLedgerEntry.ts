@@ -18,6 +18,9 @@ export interface ICashLedgerEntry extends Document {
 	transferGroupId?: string
 	reversesLedgerEntryId?: string
 	reason?: string
+	/** Exchange only: settings rates (primary → currency) at create time. */
+	fromExchangeRateToPrimary?: number
+	toExchangeRateToPrimary?: number
 	createdBy: {
 		_id: string
 		displayName: string
@@ -91,6 +94,8 @@ const CashLedgerEntrySchema: Schema<ICashLedgerEntry> = new mongoose.Schema(
 			type: String,
 			trim: true,
 		},
+		fromExchangeRateToPrimary: Number,
+		toExchangeRateToPrimary: Number,
 	},
 	{ timestamps: true },
 )

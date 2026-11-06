@@ -69,6 +69,10 @@ const MOVEMENT_OPTIONS = [
 		labelKey: 'dashboard.cashAccounts.movementTypes.TRANSFER',
 	},
 	{
+		value: 'EXCHANGE',
+		labelKey: 'dashboard.cashAccounts.movementTypes.EXCHANGE',
+	},
+	{
 		value: 'OPENING_BALANCE',
 		labelKey: 'dashboard.cashAccounts.movementTypes.OPENING_BALANCE',
 	},
@@ -93,6 +97,7 @@ const REFERENCE_LABEL_KEYS: Record<string, string> = {
 	buying_invoice: 'dashboard.cashAccounts.referenceTypes.buying_invoice',
 	daily_action: 'dashboard.cashAccounts.referenceTypes.daily_action',
 	cash_transfer: 'dashboard.cashAccounts.referenceTypes.cash_transfer',
+	cash_exchange: 'dashboard.cashAccounts.referenceTypes.cash_exchange',
 	opening_balance: 'dashboard.cashAccounts.referenceTypes.opening_balance',
 	migration: 'dashboard.cashAccounts.referenceTypes.migration',
 }
@@ -231,7 +236,27 @@ const CashAccountHistoryPage = () => {
 		referenceType: string
 		referenceLabel?: string
 		referenceId: string
+		currencyId?: string
+		amount: number
+		fromExchangeRateToPrimary?: number
+		toExchangeRateToPrimary?: number
+		exchangeCounterLeg?: { currencyId: string; amount: number }
 	}) => {
+		const counter = entry.exchangeCounterLeg
+		if (entry.referenceType === 'cash_exchange' && counter) {
+			// Stored snapshot only: 1 source = toRate / fromRate target.
+			const [fromId, toId] =
+				entry.amount < 0
+					? [entry.currencyId, counter.currencyId]
+					: [counter.currencyId, entry.currencyId]
+			const fromRate = entry.fromExchangeRateToPrimary ?? 0
+			const toRate = entry.toExchangeRateToPrimary ?? 0
+			const rate =
+				fromRate > 0 && toRate > 0
+					? ` · ${t('components.sellingInvoices.entries.exchangeRate')} 1 ${currencyCodeFor(fromId)} = ${formatNumber(toRate / fromRate, { maximumDecimals: 4 }) ?? ''} ${currencyCodeFor(toId)}`
+					: ''
+			return `${formatAmount(counter.amount, counter.currencyId)}${rate}`
+		}
 		if (!entry.referenceLabel) return entry.referenceId
 		if (entry.referenceType === 'cash_transfer') {
 			return t(ACCOUNT_LABEL_KEYS[entry.referenceLabel] ?? entry.referenceLabel)

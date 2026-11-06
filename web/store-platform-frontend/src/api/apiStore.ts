@@ -1071,6 +1071,9 @@ const getQuery = (
 					referenceLabel?: string
 					transferGroupId?: string
 					reason?: string
+					fromExchangeRateToPrimary?: number
+					toExchangeRateToPrimary?: number
+					exchangeCounterLeg?: { currencyId: string; amount: number }
 					createdAt: string
 					createdBy: {
 						_id: string
@@ -1129,6 +1132,36 @@ const getQuery = (
 		>({
 			query: body => ({
 				url: 'cash-accounts/transfers',
+				method: 'POST',
+				body,
+			}),
+			invalidatesTags: ['cash-accounts'],
+		}),
+
+		postCashExchange: builder.mutation<
+			{
+				exchangeId: string
+				warehouseId: string
+				accountType: string
+				fromCurrencyId: string
+				toCurrencyId: string
+				fromAmount: number
+				toAmount: number
+			},
+			{
+				accountType: string
+				fromCurrencyId: string
+				toCurrencyId: string
+				fromAmount: number
+				toAmount: number
+				fromExchangeRateToPrimary: number
+				toExchangeRateToPrimary: number
+				exchangeId: string
+				reason?: string
+			}
+		>({
+			query: body => ({
+				url: 'cash-accounts/exchanges',
 				method: 'POST',
 				body,
 			}),
@@ -2878,6 +2911,7 @@ export const {
 	useGetCashAccountBalancesQuery,
 	useGetCashAccountLedgerQuery,
 	usePostCashTransferMutation,
+	usePostCashExchangeMutation,
 	useGetUnitsQuery,
 	useLazyGetUnitsQuery,
 	useGetSingleProductQuery,

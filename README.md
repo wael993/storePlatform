@@ -37,7 +37,7 @@ cp .env.example .env   # JWT + SUPER_ADMIN_* only; overlay replaces the example 
 docker compose -f docker-compose.yml -f docker-compose.ci.yml up --build
 ```
 
-Mongo on host: `mongodb://127.0.0.1:27018`
+Mongo on host: `mongodb://127.0.0.1:27018/?directConnection=true` (single-node replica set `rs0`, needed for transactions)
 
 ### Login
 

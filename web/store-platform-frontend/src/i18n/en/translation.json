@@ -170,6 +170,7 @@
 				"PAYMENT": "Payment",
 				"EXPENSE": "Expense",
 				"TRANSFER": "Transfer",
+				"EXCHANGE": "Exchange",
 				"OPENING_BALANCE": "Opening balance",
 				"ADJUSTMENT": "Adjustment",
 				"REVERSAL": "Reversal"
@@ -179,6 +180,7 @@
 				"buying_invoice": "Buying invoice",
 				"daily_action": "Daily entry",
 				"cash_transfer": "Transfer",
+				"cash_exchange": "Currency exchange",
 				"opening_balance": "Opening balance",
 				"migration": "Migration"
 			}
@@ -885,6 +887,18 @@
 				"transferReason": "Reason (optional)",
 				"transferSavedSuccessfully": "Transfer completed successfully.",
 				"transferFailed": "Transfer failed.",
+				"exchange": "Exchange",
+				"exchangeAccount": "Cash account",
+				"exchangeAmount": "Exchange amount",
+				"exchangeAmountTo": "Exchange amount to",
+				"exchangeFrom": "Exchange from",
+				"exchangeTo": "Exchange to",
+				"exchangeSavedSuccessfully": "Exchange completed successfully.",
+				"exchangeFailed": "Exchange failed.",
+				"exchangeSameCurrency": "From and To currencies must be different.",
+				"exchangeMissingRate": "Exchange rate is missing or invalid for the selected currencies.",
+				"exchangeBalancesUnavailable": "Cash balances are unavailable. Go online once to load them.",
+				"exchangeRate": "Rate",
 				"saveFailed": "Failed to save entry.",
 				"insufficientBalance": "Amount exceeds available balance ({{available}} {{currency}})."
 			},

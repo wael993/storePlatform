@@ -24,6 +24,7 @@ export type OutboxEntity =
 	| 'expense'
 	| 'dailyAction'
 	| 'cashTransfer'
+	| 'cashExchange'
 	| 'currency'
 	| 'unit'
 	| 'userSettings'

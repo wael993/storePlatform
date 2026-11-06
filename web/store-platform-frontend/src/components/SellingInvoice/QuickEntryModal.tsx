@@ -22,6 +22,7 @@ import {
 	useGetExpensesQuery,
 	useGetPartnersQuery,
 	useGetProjectsQuery,
+	usePostCashExchangeMutation,
 	usePostCashTransferMutation,
 	usePostDailyActionMutation,
 	useUpdateDailyActionMutation,
@@ -45,7 +46,12 @@ import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { currencyBalanceOf } from 'store-domain'
 
-import { buildDisplayCurrencyOptions } from './currencyDisplay'
+import { generateId } from '../../offline/utils'
+import {
+	buildDisplayCurrencyOptions,
+	convertPrimaryAmount,
+	convertToPrimaryAmount,
+} from './currencyDisplay'
 import {
 	getDailyActionId,
 	mapDailyActionToQuickEntryForm,
@@ -76,7 +82,8 @@ const ENTRY_TYPES: QuickEntryType[] = [
 ]
 
 const TRANSFER_TAB = 'transfer' as const
-type ModalTab = QuickEntryType | typeof TRANSFER_TAB
+const EXCHANGE_TAB = 'exchange' as const
+type ModalTab = QuickEntryType | typeof TRANSFER_TAB | typeof EXCHANGE_TAB
 
 const CASH_ACCOUNT_OPTIONS = [
 	{ value: 'daily_cash', labelKey: 'dashboard.cashAccounts.dailyCash' },
@@ -92,6 +99,25 @@ type TransferFormState = {
 	currencyName: string
 	reason: string
 }
+
+type ExchangeFormState = {
+	/** Minted once per form so a re-submit after an error reuses it (server/outbox dedupe). */
+	exchangeId: string
+	accountType: string
+	fromCurrencyId: string
+	toCurrencyId: string
+	amount: string
+	reason: string
+}
+
+const createInitialExchangeForm = (): ExchangeFormState => ({
+	exchangeId: generateId(),
+	accountType: 'daily_cash',
+	fromCurrencyId: '',
+	toCurrencyId: '',
+	amount: '',
+	reason: '',
+})
 
 const getTodayDateInputValue = () => {
 	const today = new Date()
@@ -153,6 +179,7 @@ const QuickEntryModal = ({
 
 	const [form, setForm] = useState(createInitialFormState)
 	const [transferForm, setTransferForm] = useState(createInitialTransferForm)
+	const [exchangeForm, setExchangeForm] = useState(createInitialExchangeForm)
 	const [activeTab, setActiveTab] = useState<ModalTab>(
 		DailyActionType.RECEIPT_ENTRY,
 	)
@@ -162,14 +189,20 @@ const QuickEntryModal = ({
 		useUpdateDailyActionMutation()
 	const [postCashTransfer, { isLoading: isTransferring }] =
 		usePostCashTransferMutation()
+	const [postCashExchange, { isLoading: isExchanging }] =
+		usePostCashExchangeMutation()
 
 	const isTransferTab = activeTab === TRANSFER_TAB
-	const isSaving = isCreating || isUpdating || isTransferring
+	const isExchangeTab = activeTab === EXCHANGE_TAB
+	/** Transfer and Exchange are cash-account tabs with no party / daily action. */
+	const isCashTab = isTransferTab || isExchangeTab
+	const isSaving = isCreating || isUpdating || isTransferring || isExchanging
 
 	const { data: currencySettings, isLoading: isCurrenciesLoading } =
 		useGetCurrencySettingsQuery(undefined, {
 			skip: !isOpen || isReadOnly,
-			refetchOnMountOrArgChange: false,
+			// Server rejects exchanges at stale rates, so refresh settings on open if older than 60s.
+			refetchOnMountOrArgChange: 60,
 		})
 	const displayCurrencyOptions = useMemo(
 		() => buildDisplayCurrencyOptions(currencySettings),
@@ -189,16 +222,16 @@ const QuickEntryModal = ({
 	})
 	const { data: expenses = [], isLoading: isExpensesLoading } =
 		useGetExpensesQuery(undefined, {
-			skip: !isOpen || isReadOnly || isTransferTab,
+			skip: !isOpen || isReadOnly || isCashTab,
 			refetchOnMountOrArgChange: false,
 		})
 	const { data: partners = [], isLoading: isPartnersLoading } =
 		useGetPartnersQuery(undefined, {
-			skip: !isOpen || isReadOnly || isTransferTab,
+			skip: !isOpen || isReadOnly || isCashTab,
 			refetchOnMountOrArgChange: false,
 		})
 	const { data: projects = [] } = useGetProjectsQuery(undefined, {
-		skip: !isOpen || isReadOnly || isTransferTab,
+		skip: !isOpen || isReadOnly || isCashTab,
 		refetchOnMountOrArgChange: false,
 	})
 	const { data: employees = [], isLoading: isEmployeesLoading } =
@@ -224,6 +257,7 @@ const QuickEntryModal = ({
 			previousEntryType.current = DailyActionType.RECEIPT_ENTRY
 			setForm(createInitialFormState())
 			setTransferForm(createInitialTransferForm())
+			setExchangeForm(createInitialExchangeForm())
 			setActiveTab(DailyActionType.RECEIPT_ENTRY)
 			return
 		}
@@ -289,6 +323,11 @@ const QuickEntryModal = ({
 			...current,
 			currencyId: defaultCurrency.value,
 			currencyName: defaultCurrency.label,
+		}))
+		setExchangeForm(current => ({
+			...current,
+			fromCurrencyId: defaultCurrency.value,
+			toCurrencyId: currencyOptions[1]?.value ?? '',
 		}))
 		hasInitializedCurrency.current = true
 	}, [currencyOptions, isOpen, mode])
@@ -459,7 +498,7 @@ const QuickEntryModal = ({
 	useEffect(() => {
 		if (
 			isReadOnly ||
-			isTransferTab ||
+			isCashTab ||
 			form.entryType === previousEntryType.current
 		) {
 			return
@@ -487,7 +526,7 @@ const QuickEntryModal = ({
 		isEmployeesLoading,
 		isPartnersLoading,
 		isReadOnly,
-		isTransferTab,
+		isCashTab,
 		initialProjectId,
 	])
 
@@ -587,6 +626,66 @@ const QuickEntryModal = ({
 		transferForm.currencyName,
 	])
 
+	const exchangeFromOption = displayCurrencyOptions.find(
+		option => option.currencyId === exchangeForm.fromCurrencyId,
+	)
+	const exchangeToOption = displayCurrencyOptions.find(
+		option => option.currencyId === exchangeForm.toCurrencyId,
+	)
+	const exchangeFromAmount = useMemo(() => {
+		const amountRaw = formatNumberForDb(exchangeForm.amount, 2)
+		const amount = amountRaw == null ? NaN : Number(amountRaw)
+		return amount > 0 ? amount : 0
+	}, [exchangeForm.amount])
+	const hasValidExchangeRates =
+		Number(exchangeFromOption?.exchangeRate) > 0 &&
+		Number(exchangeToOption?.exchangeRate) > 0
+	// Pivot through primary, same helpers the rest of the app uses.
+	const exchangeToAmount =
+		hasValidExchangeRates && exchangeFromAmount > 0
+			? convertPrimaryAmount(
+					convertToPrimaryAmount(
+						exchangeFromAmount,
+						exchangeForm.fromCurrencyId,
+						displayCurrencyOptions,
+					),
+					exchangeForm.toCurrencyId,
+					displayCurrencyOptions,
+				)
+			: 0
+	const exchangeAccountBalance = currencyBalanceOf(
+		cashBalances?.accounts.find(item => item.type === exchangeForm.accountType)
+			?.balances,
+		exchangeForm.fromCurrencyId,
+	)
+	const isSameExchangeCurrency =
+		Boolean(exchangeForm.fromCurrencyId) &&
+		exchangeForm.fromCurrencyId === exchangeForm.toCurrencyId
+	const isInsufficientExchange =
+		hasCashBalances &&
+		exchangeFromAmount > 0 &&
+		exchangeFromAmount > exchangeAccountBalance
+
+	const exchangeErrorMessage = (() => {
+		if (!isExchangeTab) return null
+		if (isSameExchangeCurrency) {
+			return t('components.sellingInvoices.entries.exchangeSameCurrency')
+		}
+		if (exchangeFromOption && exchangeToOption && !hasValidExchangeRates) {
+			return t('components.sellingInvoices.entries.exchangeMissingRate')
+		}
+		if (!hasCashBalances) {
+			return t('components.sellingInvoices.entries.exchangeBalancesUnavailable')
+		}
+		if (isInsufficientExchange) {
+			return t('components.sellingInvoices.entries.insufficientBalance', {
+				available: formatNumber(exchangeAccountBalance) ?? '0.00',
+				currency: exchangeFromOption?.label ?? '',
+			})
+		}
+		return null
+	})()
+
 	const isCashOutEntry =
 		form.entryType === DailyActionType.PAYMENT_ENTRY ||
 		form.entryType === DailyActionType.EXPENSE_ENTRY
@@ -645,7 +744,7 @@ const QuickEntryModal = ({
 	const availableCashOut = selectedCashAccountBalance + previousCashOut
 
 	const isInsufficientCashOut =
-		!isTransferTab &&
+		!isCashTab &&
 		isCashOutEntry &&
 		!isReadOnly &&
 		hasCashBalances &&
@@ -714,9 +813,20 @@ const QuickEntryModal = ({
 		!transferForm.amount.trim() ||
 		isInsufficientTransfer
 
+	const isExchangeSaveDisabled =
+		isSaving ||
+		isCurrenciesLoading ||
+		!exchangeForm.accountType ||
+		!exchangeFromOption ||
+		!exchangeToOption ||
+		!(exchangeToAmount > 0) ||
+		Boolean(exchangeErrorMessage)
+
 	const isSaveDisabled = isTransferTab
 		? isTransferSaveDisabled
-		: isEntrySaveDisabled
+		: isExchangeTab
+			? isExchangeSaveDisabled
+			: isEntrySaveDisabled
 
 	const isPartnerSelection = (entityId: string) =>
 		partnerOptions.some(option => option.value === entityId)
@@ -825,6 +935,37 @@ const QuickEntryModal = ({
 				return
 			}
 
+			if (isExchangeTab) {
+				if (
+					isExchangeSaveDisabled ||
+					!exchangeFromOption ||
+					!exchangeToOption
+				) {
+					return
+				}
+
+				await postCashExchange({
+					accountType: exchangeForm.accountType,
+					fromCurrencyId: exchangeForm.fromCurrencyId,
+					toCurrencyId: exchangeForm.toCurrencyId,
+					fromAmount: exchangeFromAmount,
+					toAmount: exchangeToAmount,
+					fromExchangeRateToPrimary: exchangeFromOption.exchangeRate,
+					toExchangeRateToPrimary: exchangeToOption.exchangeRate,
+					exchangeId: exchangeForm.exchangeId,
+					reason: exchangeForm.reason.trim() || undefined,
+				}).unwrap()
+
+				showToast({
+					status: 'success',
+					description: t(
+						'components.sellingInvoices.entries.exchangeSavedSuccessfully',
+					),
+				})
+				onClose()
+				return
+			}
+
 			const payload = buildPayload()
 
 			if (isInsufficientCashOut) return
@@ -849,7 +990,9 @@ const QuickEntryModal = ({
 					error,
 					isTransferTab
 						? t('components.sellingInvoices.entries.transferFailed')
-						: t('components.sellingInvoices.entries.saveFailed'),
+						: isExchangeTab
+							? t('components.sellingInvoices.entries.exchangeFailed')
+							: t('components.sellingInvoices.entries.saveFailed'),
 				),
 			})
 		}
@@ -906,7 +1049,7 @@ const QuickEntryModal = ({
 								tabButton(
 									entryType,
 									entryTypeLabels[entryType],
-									!isTransferTab && form.entryType === entryType,
+									!isCashTab && form.entryType === entryType,
 									() => {
 										setActiveTab(entryType)
 										setForm(current => ({ ...current, entryType }))
@@ -920,12 +1063,126 @@ const QuickEntryModal = ({
 									isTransferTab,
 									() => setActiveTab(TRANSFER_TAB),
 								)}
+							{canShowTransferTab &&
+								currencyOptions.length > 1 &&
+								tabButton(
+									EXCHANGE_TAB,
+									t('components.sellingInvoices.entries.exchange'),
+									isExchangeTab,
+									() => setActiveTab(EXCHANGE_TAB),
+								)}
 						</HStack>
 					)}
 
 					<Divider mb={4} borderColor={PAGE_COLORS.border} />
 
-					{isTransferTab ? (
+					{isExchangeTab ? (
+						<>
+							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+								<DropdownLabel
+									label={t(
+										'components.sellingInvoices.entries.exchangeAccount',
+									)}
+									placeholder={t(
+										'components.sellingInvoices.entries.exchangeAccount',
+									)}
+									options={cashAccountOptions}
+									selectedOptions={cashAccountOptions.filter(
+										option => option.value === exchangeForm.accountType,
+									)}
+									isSingle
+									onSelect={(values: string[]) =>
+										setExchangeForm(current => ({
+											...current,
+											accountType: values[0] ?? 'daily_cash',
+										}))
+									}
+								/>
+								<InputLabel
+									label={t('components.sellingInvoices.entries.exchangeAmount')}
+									inputPlaceholder={t('common.amount')}
+									inputType="text"
+									styles={documentNameStyles}
+									value={exchangeForm.amount}
+									onChange={(value: string) =>
+										setExchangeForm(current => ({
+											...current,
+											amount: parseNumberValue(value, 2),
+										}))
+									}
+								/>
+								<DropdownLabel
+									label={t('components.sellingInvoices.entries.exchangeFrom')}
+									placeholder={t('common.currencyName')}
+									options={currencyOptions}
+									selectedOptions={currencyOptions.filter(
+										option => option.value === exchangeForm.fromCurrencyId,
+									)}
+									isSingle
+									isLoading={isCurrenciesLoading}
+									onSelect={(values: string[]) =>
+										setExchangeForm(current => ({
+											...current,
+											fromCurrencyId: values[0] ?? '',
+										}))
+									}
+								/>
+								<DropdownLabel
+									label={t('components.sellingInvoices.entries.exchangeTo')}
+									placeholder={t('common.currencyName')}
+									options={currencyOptions}
+									selectedOptions={currencyOptions.filter(
+										option => option.value === exchangeForm.toCurrencyId,
+									)}
+									isSingle
+									isLoading={isCurrenciesLoading}
+									onSelect={(values: string[]) =>
+										setExchangeForm(current => ({
+											...current,
+											toCurrencyId: values[0] ?? '',
+										}))
+									}
+								/>
+								<InputLabel
+									label={t(
+										'components.sellingInvoices.entries.exchangeAmountTo',
+									)}
+									inputPlaceholder={t(
+										'components.sellingInvoices.entries.exchangeAmountTo',
+									)}
+									inputType="text"
+									styles={documentNameStyles}
+									value={
+										exchangeToAmount > 0
+											? (formatNumber(exchangeToAmount) ?? '')
+											: ''
+									}
+									isDisabled
+									onChange={() => undefined}
+								/>
+								<InputLabel
+									label={t('components.sellingInvoices.entries.transferReason')}
+									inputPlaceholder={t(
+										'components.sellingInvoices.entries.transferReason',
+									)}
+									inputType="text"
+									styles={documentNameStyles}
+									value={exchangeForm.reason}
+									onChange={(value: string) =>
+										setExchangeForm(current => ({
+											...current,
+											reason: value,
+										}))
+									}
+								/>
+							</SimpleGrid>
+							{exchangeErrorMessage && (
+								<Text mt={3} fontSize="sm" color="red.500">
+									{exchangeErrorMessage}
+								</Text>
+							)}
+						</>
+					) : isTransferTab ? (
 						<>
 							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
 								<DropdownLabel

@@ -684,6 +684,42 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/data/cash-accounts/exchanges:
+    post:
+      tags:
+        - CashAccounts
+      summary: Exchange currency inside one cash account
+      operationId: postApiDataCash-accountsExchanges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: x-warehouse-scope
+          in: header
+          required: false
+          description: "Comma-separated warehouse ids (working scope)"
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CashExchangeRequest'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashExchangeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/data/categories:
     get:
       tags:
@@ -7047,6 +7083,64 @@ components:
       type: object
       additionalProperties: true
       description: From/to cash account types, amount, currency
+    CashExchangeRequest:
+      type: object
+      required:
+        - accountType
+        - fromCurrencyId
+        - toCurrencyId
+        - fromAmount
+        - toAmount
+        - fromExchangeRateToPrimary
+        - toExchangeRateToPrimary
+      properties:
+        accountType:
+          type: string
+          enum: [daily_cash, cash_reserve, online]
+        fromCurrencyId:
+          type: string
+        toCurrencyId:
+          type: string
+          description: Must differ from fromCurrencyId
+        fromAmount:
+          type: number
+          exclusiveMinimum: 0
+        toAmount:
+          type: number
+          exclusiveMinimum: 0
+          description: >-
+            Must equal round2(round8(fromAmount / fromExchangeRateToPrimary) *
+            toExchangeRateToPrimary) within 0.01. Never recalculated server-side.
+        fromExchangeRateToPrimary:
+          type: number
+          exclusiveMinimum: 0
+          description: Settings rate (primary → currency) snapshot at create; primary is 1
+        toExchangeRateToPrimary:
+          type: number
+          exclusiveMinimum: 0
+        reason:
+          type: string
+        exchangeId:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{1,64}$'
+          description: Client id for idempotent replay; server mints one if omitted
+    CashExchangeResponse:
+      type: object
+      properties:
+        exchangeId:
+          type: string
+        warehouseId:
+          type: string
+        accountType:
+          type: string
+        fromCurrencyId:
+          type: string
+        toCurrencyId:
+          type: string
+        fromAmount:
+          type: number
+        toAmount:
+          type: number
     ProductImportParseRequest:
       type: object
       properties:

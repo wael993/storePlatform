@@ -22,6 +22,7 @@ import {
 	CASH_MOVEMENT_TYPES,
 	CASH_REFERENCE_TYPES,
 	INITIAL_CASH_ACCOUNT_TYPES,
+	validateCashExchangeInput,
 	validateCashTransferInput,
 	type CashAccountType,
 	type DesiredCashPost,
@@ -238,6 +239,8 @@ const insertLedgerEntry = async (
 		transferGroupId?: string
 		reversesLedgerEntryId?: string
 		reason?: string
+		fromExchangeRateToPrimary?: number
+		toExchangeRateToPrimary?: number
 	},
 	session?: ClientSession,
 ) => {
@@ -259,6 +262,8 @@ const insertLedgerEntry = async (
 					transferGroupId: params.transferGroupId,
 					reversesLedgerEntryId: params.reversesLedgerEntryId,
 					reason: params.reason,
+					fromExchangeRateToPrimary: params.fromExchangeRateToPrimary,
+					toExchangeRateToPrimary: params.toExchangeRateToPrimary,
 					createdBy: params.actor,
 				},
 			],
@@ -292,6 +297,8 @@ const postSingleEffect = async (
 		actor: Actor
 		reason?: string
 		transferGroupId?: string
+		fromExchangeRateToPrimary?: number
+		toExchangeRateToPrimary?: number
 	},
 	session?: ClientSession,
 ) => {
@@ -317,6 +324,8 @@ const postSingleEffect = async (
 			actor: params.actor,
 			reason: params.reason,
 			transferGroupId: params.transferGroupId,
+			fromExchangeRateToPrimary: params.fromExchangeRateToPrimary,
+			toExchangeRateToPrimary: params.toExchangeRateToPrimary,
 		},
 		session,
 	)
@@ -589,6 +598,139 @@ export const postInternalCashTransfer = async (params: {
 	}
 }
 
+const EXCHANGE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
+/**
+ * Same-account currency exchange: −fromAmount in fromCurrency, +toAmount in
+ * toCurrency, one transaction. `exchangeId` makes replays idempotent.
+ */
+export const postInternalCashExchange = async (params: {
+	requestContext: RequestContext
+	warehouseId: string
+	accountType: unknown
+	fromCurrencyId: unknown
+	toCurrencyId: unknown
+	fromAmount: unknown
+	toAmount: unknown
+	fromExchangeRateToPrimary: unknown
+	toExchangeRateToPrimary: unknown
+	exchangeId?: unknown
+	reason?: string
+	settingsRates?: ReadonlyMap<string, number>
+}) => {
+	const input = (() => {
+		try {
+			return validateCashExchangeInput(params)
+		} catch (error) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				error instanceof Error ? error.message : 'Invalid exchange.',
+			)
+		}
+	})()
+
+	const exchangeId =
+		params.exchangeId === undefined || params.exchangeId === ''
+			? uuidv4()
+			: String(params.exchangeId).trim()
+
+	if (!EXCHANGE_ID_PATTERN.test(exchangeId)) {
+		throw new BusinessLogicError(
+			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+			'Exchange id is invalid.',
+		)
+	}
+
+	const tenantId = getTenantContext(params.requestContext).tenantId
+
+	// A duplicate key inside a transaction aborts it, so answer replays before starting one.
+	const posted = await withTenantScope(
+		CashLedgerEntry.find({
+			referenceType: CASH_REFERENCE_TYPES.EXCHANGE,
+			referenceId: exchangeId,
+		}),
+		tenantId,
+	).lean<Array<{ accountType: string; currencyId: string; amount: number }>>()
+	const postedFrom = posted.find(leg => leg.amount < 0)
+	const postedTo = posted.find(leg => leg.amount > 0)
+
+	if (postedFrom && postedTo) {
+		if (
+			postedFrom.currencyId !== input.fromCurrencyId ||
+			postedTo.currencyId !== input.toCurrencyId ||
+			roundPrimary(-postedFrom.amount) !== input.fromAmount ||
+			roundPrimary(postedTo.amount) !== input.toAmount
+		) {
+			throw new BusinessLogicError(
+				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+				'This exchange was already recorded with different values.',
+			)
+		}
+
+		return {
+			...input,
+			accountType: postedFrom.accountType as CashAccountType,
+			fromCurrencyId: postedFrom.currencyId,
+			toCurrencyId: postedTo.currencyId,
+			fromAmount: -postedFrom.amount,
+			toAmount: postedTo.amount,
+			exchangeId,
+		}
+	}
+
+	const actor = buildActor(params.requestContext)
+	const fromCurrencyId = currencyKey(input.fromCurrencyId)
+	const toCurrencyId = currencyKey(input.toCurrencyId)
+	const shared = {
+		tenantId,
+		warehouseId: params.warehouseId,
+		referenceType: CASH_REFERENCE_TYPES.EXCHANGE,
+		referenceId: exchangeId,
+		actor,
+		reason: params.reason,
+		transferGroupId: exchangeId,
+		fromExchangeRateToPrimary: input.fromExchangeRateToPrimary,
+		toExchangeRateToPrimary: input.toExchangeRateToPrimary,
+	}
+	const session = await mongoose.startSession()
+
+	try {
+		await session.withTransaction(async () => {
+			await postSingleEffect(
+				{
+					...shared,
+					post: {
+						accountType: input.accountType,
+						currencyId: fromCurrencyId,
+						amount: -input.fromAmount,
+						movementType: CASH_MOVEMENT_TYPES.EXCHANGE,
+					},
+					idempotencyKey: `${CASH_REFERENCE_TYPES.EXCHANGE}:${exchangeId}:from`,
+				},
+				session,
+			)
+
+			await postSingleEffect(
+				{
+					...shared,
+					post: {
+						accountType: input.accountType,
+						currencyId: toCurrencyId,
+						amount: input.toAmount,
+						movementType: CASH_MOVEMENT_TYPES.EXCHANGE,
+					},
+					idempotencyKey: `${CASH_REFERENCE_TYPES.EXCHANGE}:${exchangeId}:to`,
+				},
+				session,
+			)
+		})
+	} finally {
+		await session.endSession()
+	}
+
+	return { ...input, fromCurrencyId, toCurrencyId, exchangeId }
+}
+
 export const postOpeningBalance = async (params: {
 	tenantId: string
 	warehouseId: string
@@ -727,6 +869,10 @@ export type CashLedgerListEntry = {
 	referenceLabel?: string
 	transferGroupId?: string
 	reason?: string
+	/** Exchange only: rate snapshot + the other leg of the same exchange. */
+	fromExchangeRateToPrimary?: number
+	toExchangeRateToPrimary?: number
+	exchangeCounterLeg?: { currencyId: string; amount: number }
 	createdAt: Date
 	createdBy: {
 		_id: string
@@ -754,7 +900,8 @@ const enrichLedgerReferenceLabels = async (
 		} else if (entry.referenceType === CASH_REFERENCE_TYPES.DAILY_ACTION) {
 			actionIds.add(entry.referenceId)
 		} else if (
-			entry.referenceType === CASH_REFERENCE_TYPES.TRANSFER &&
+			(entry.referenceType === CASH_REFERENCE_TYPES.TRANSFER ||
+				entry.referenceType === CASH_REFERENCE_TYPES.EXCHANGE) &&
 			entry.transferGroupId
 		) {
 			transferGroupIds.add(entry.transferGroupId)
@@ -800,12 +947,16 @@ const enrichLedgerReferenceLabels = async (
 				? withTenantScope(
 						CashLedgerEntry.find({
 							transferGroupId: { $in: [...transferGroupIds] },
-						}).select('transferGroupId accountType amount'),
+						}).select(
+							'ledgerEntryId transferGroupId accountType currencyId amount',
+						),
 						tenantId,
 					).lean<
 						Array<{
+							ledgerEntryId: string
 							transferGroupId?: string
 							accountType: string
+							currencyId: string
 							amount: number
 						}>
 					>()
@@ -822,11 +973,14 @@ const enrichLedgerReferenceLabels = async (
 	const actionById = new Map(actionRows.map(row => [row.actionId, row]))
 
 	const transferOtherByGroup = new Map<string, Set<string>>()
+	const groupLegs = new Map<string, typeof transferRows>()
 
 	for (const row of transferRows) {
 		const groupId = row.transferGroupId
 
 		if (!groupId) continue
+
+		groupLegs.set(groupId, [...(groupLegs.get(groupId) ?? []), row])
 
 		const types = transferOtherByGroup.get(groupId) ?? new Set()
 
@@ -877,6 +1031,25 @@ const enrichLedgerReferenceLabels = async (
 			}
 		}
 
+		if (
+			entry.referenceType === CASH_REFERENCE_TYPES.EXCHANGE &&
+			entry.transferGroupId
+		) {
+			const other = groupLegs
+				.get(entry.transferGroupId)
+				?.find(leg => leg.ledgerEntryId !== entry.ledgerEntryId)
+
+			if (other) {
+				return {
+					...entry,
+					exchangeCounterLeg: {
+						currencyId: other.currencyId,
+						amount: other.amount,
+					},
+				}
+			}
+		}
+
 		return referenceLabel ? { ...entry, referenceLabel } : entry
 	})
 }
@@ -914,7 +1087,7 @@ export const listCashLedgerEntries = async (params: {
 			.skip(skip)
 			.limit(limit)
 			.select(
-				'ledgerEntryId warehouseId cashAccountId accountType currencyId amount movementType referenceType referenceId transferGroupId reason createdAt createdBy',
+				'ledgerEntryId warehouseId cashAccountId accountType currencyId amount movementType referenceType referenceId transferGroupId reason fromExchangeRateToPrimary toExchangeRateToPrimary createdAt createdBy',
 			)
 			.lean(),
 		CashLedgerEntry.aggregate<{ _id?: string; amount: number }>([
@@ -935,6 +1108,8 @@ export const listCashLedgerEntries = async (params: {
 		referenceId: row.referenceId,
 		transferGroupId: row.transferGroupId,
 		reason: row.reason,
+		fromExchangeRateToPrimary: row.fromExchangeRateToPrimary,
+		toExchangeRateToPrimary: row.toExchangeRateToPrimary,
 		createdAt: row.createdAt,
 		createdBy: {
 			_id: row.createdBy?._id ?? '',

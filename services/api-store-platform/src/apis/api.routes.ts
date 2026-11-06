@@ -500,6 +500,15 @@ export default class StoreRoutes extends PlatformValidator {
 			)
 
 		app
+			.route(`${baseRoute}/cash-accounts/exchanges`)
+			.post(
+				this.startCalc.bind(this),
+				logIncomingRequests.bind(this),
+				this.authorizationValidator.bind(this),
+				this.postCashExchange.bind(this),
+			)
+
+		app
 			.route(`${baseRoute}/budget-overview/:entityType/:id`)
 			.get(
 				this.startCalc.bind(this),
@@ -994,6 +1003,26 @@ export default class StoreRoutes extends PlatformValidator {
 		try {
 			const resp = await this.productController.postCashTransfer(
 				request.body,
+				requestContext,
+			)
+
+			response.status(201).json(resp)
+		} catch (error: any) {
+			handleError(error, 409, response)
+		} finally {
+			this.stopCalc()
+		}
+	}
+
+	private async postCashExchange(
+		request: any,
+		response: express.Response,
+	): Promise<void> {
+		const requestContext = this.getRequestContext(request)
+
+		try {
+			const resp = await this.productController.postCashExchange(
+				request.body ?? {},
 				requestContext,
 			)
 

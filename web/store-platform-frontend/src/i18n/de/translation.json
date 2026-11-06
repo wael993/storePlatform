@@ -170,6 +170,7 @@
 				"PAYMENT": "Zahlung",
 				"EXPENSE": "Ausgabe",
 				"TRANSFER": "Transfer",
+				"EXCHANGE": "Geldwechsel",
 				"OPENING_BALANCE": "Anfangssaldo",
 				"ADJUSTMENT": "Korrektur",
 				"REVERSAL": "Storno"
@@ -179,6 +180,7 @@
 				"buying_invoice": "Einkaufsrechnung",
 				"daily_action": "Tageseintrag",
 				"cash_transfer": "Transfer",
+				"cash_exchange": "Geldwechsel",
 				"opening_balance": "Anfangssaldo",
 				"migration": "Migration"
 			}
@@ -885,6 +887,18 @@
 				"transferReason": "Grund (optional)",
 				"transferSavedSuccessfully": "Umbuchung erfolgreich abgeschlossen.",
 				"transferFailed": "Umbuchung fehlgeschlagen.",
+				"exchange": "Wechsel",
+				"exchangeAccount": "Kasse",
+				"exchangeAmount": "Wechselbetrag",
+				"exchangeAmountTo": "Erhaltener Betrag",
+				"exchangeFrom": "Wechseln von",
+				"exchangeTo": "Wechseln nach",
+				"exchangeSavedSuccessfully": "Geldwechsel erfolgreich abgeschlossen.",
+				"exchangeFailed": "Geldwechsel fehlgeschlagen.",
+				"exchangeSameCurrency": "Ausgangs- und Zielwährung müssen unterschiedlich sein.",
+				"exchangeMissingRate": "Wechselkurs fehlt oder ist für die gewählten Währungen ungültig.",
+				"exchangeBalancesUnavailable": "Kassensalden sind nicht verfügbar. Bitte einmal online gehen, um sie zu laden.",
+				"exchangeRate": "Kurs",
 				"saveFailed": "Buchung konnte nicht gespeichert werden.",
 				"insufficientBalance": "Betrag übersteigt den verfügbaren Saldo ({{available}} {{currency}})."
 			},

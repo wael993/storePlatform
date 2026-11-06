@@ -79,6 +79,7 @@ export const outboxIdempotencyKey = (
 		payload.invoiceId,
 		payload.buyingInvoiceId,
 		payload.actionId,
+		payload.exchangeId,
 		payload.productId,
 		payload.customerId,
 		payload.supplierId,

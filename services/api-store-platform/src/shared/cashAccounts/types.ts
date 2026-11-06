@@ -63,6 +63,95 @@ export const validateCashTransferInput = (params: {
 	}
 }
 
+const finitePositive = (value: unknown) => {
+	const n = typeof value === 'number' ? value : Number(value)
+
+	return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/**
+ * Pure exchange input checks (no DB). Trusts the client rate snapshot but
+ * rejects a `toAmount` that does not match primary-pivot math.
+ */
+export const validateCashExchangeInput = (params: {
+	accountType: unknown
+	fromCurrencyId: unknown
+	toCurrencyId: unknown
+	fromAmount: unknown
+	toAmount: unknown
+	fromExchangeRateToPrimary: unknown
+	toExchangeRateToPrimary: unknown
+	/** Current settings rates; pass for live requests, omit for sync replays (snapshot wins). */
+	settingsRates?: ReadonlyMap<string, number>
+}) => {
+	if (!isCashAccountType(params.accountType)) {
+		throw new Error('Cash account type is invalid.')
+	}
+
+	const fromCurrencyId =
+		typeof params.fromCurrencyId === 'string'
+			? params.fromCurrencyId.trim()
+			: ''
+	const toCurrencyId =
+		typeof params.toCurrencyId === 'string' ? params.toCurrencyId.trim() : ''
+
+	if (!fromCurrencyId || !toCurrencyId) {
+		throw new Error('Exchange currencies are required.')
+	}
+
+	if (fromCurrencyId === toCurrencyId) {
+		throw new Error('From and To currencies must be different.')
+	}
+
+	const fromAmount = finitePositive(params.fromAmount)
+	const toAmount = finitePositive(params.toAmount)
+
+	if (fromAmount === null || toAmount === null) {
+		throw new Error('Exchange amounts must be greater than zero.')
+	}
+
+	const fromRate = finitePositive(params.fromExchangeRateToPrimary)
+	const toRate = finitePositive(params.toExchangeRateToPrimary)
+
+	if (fromRate === null || toRate === null) {
+		throw new Error('Exchange rates must be greater than zero.')
+	}
+
+	// Same math as FE currencyDisplay: primary at 8dp, display at 2dp.
+	const primary = Math.round((fromAmount / fromRate) * 1e8) / 1e8
+	const expectedTo = Math.round(primary * toRate * 100) / 100
+
+	if (Math.abs(expectedTo - toAmount) > 0.011) {
+		throw new Error('Exchange amount does not match the exchange rates.')
+	}
+
+	if (params.settingsRates) {
+		for (const [currencyId, rate] of [
+			[fromCurrencyId, fromRate],
+			[toCurrencyId, toRate],
+		] as const) {
+			const settingsRate = params.settingsRates.get(currencyId)
+
+			if (
+				settingsRate === undefined ||
+				Math.abs(rate - settingsRate) > settingsRate * 1e-9
+			) {
+				throw new Error('Exchange rate does not match currency settings.')
+			}
+		}
+	}
+
+	return {
+		accountType: params.accountType,
+		fromCurrencyId,
+		toCurrencyId,
+		fromAmount: Math.round(fromAmount * 1e8) / 1e8,
+		toAmount: Math.round(toAmount * 1e8) / 1e8,
+		fromExchangeRateToPrimary: fromRate,
+		toExchangeRateToPrimary: toRate,
+	}
+}
+
 export const CASH_MOVEMENT_TYPES = {
 	SALE: 'SALE',
 	PURCHASE: 'PURCHASE',
@@ -70,6 +159,7 @@ export const CASH_MOVEMENT_TYPES = {
 	PAYMENT: 'PAYMENT',
 	EXPENSE: 'EXPENSE',
 	TRANSFER: 'TRANSFER',
+	EXCHANGE: 'EXCHANGE',
 	OPENING_BALANCE: 'OPENING_BALANCE',
 	ADJUSTMENT: 'ADJUSTMENT',
 	REVERSAL: 'REVERSAL',
@@ -83,6 +173,7 @@ export const CASH_REFERENCE_TYPES = {
 	BUYING_INVOICE: 'buying_invoice',
 	DAILY_ACTION: 'daily_action',
 	TRANSFER: 'cash_transfer',
+	EXCHANGE: 'cash_exchange',
 	OPENING: 'opening_balance',
 	MIGRATION: 'migration',
 } as const

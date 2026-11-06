@@ -170,6 +170,7 @@
 				"PAYMENT": "دفع",
 				"EXPENSE": "مصروف",
 				"TRANSFER": "تحويل",
+				"EXCHANGE": "صرافة",
 				"OPENING_BALANCE": "رصيد افتتاحي",
 				"ADJUSTMENT": "تعديل",
 				"REVERSAL": "عكس"
@@ -179,6 +180,7 @@
 				"buying_invoice": "فاتورة شراء",
 				"daily_action": "قيد يومي",
 				"cash_transfer": "تحويل",
+				"cash_exchange": "صرافة عملات",
 				"opening_balance": "رصيد افتتاحي",
 				"migration": "ترحيل"
 			}
@@ -885,6 +887,18 @@
 				"transferReason": "السبب (اختياري)",
 				"transferSavedSuccessfully": "تم التحويل بنجاح.",
 				"transferFailed": "فشل التحويل.",
+				"exchange": "صرافة",
+				"exchangeAccount": "الصندوق",
+				"exchangeAmount": "مبلغ الصرف",
+				"exchangeAmountTo": "المبلغ المستلم",
+				"exchangeFrom": "من عملة",
+				"exchangeTo": "إلى عملة",
+				"exchangeSavedSuccessfully": "تمت عملية الصرف بنجاح.",
+				"exchangeFailed": "فشلت عملية الصرف.",
+				"exchangeSameCurrency": "يجب أن تكون عملتا الصرف مختلفتين.",
+				"exchangeMissingRate": "سعر الصرف غير موجود أو غير صالح للعملات المحددة.",
+				"exchangeBalancesUnavailable": "أرصدة الصناديق غير متوفرة. اتصل بالإنترنت مرة لتحميلها.",
+				"exchangeRate": "السعر",
 				"saveFailed": "فشل حفظ السند.",
 				"insufficientBalance": "المبلغ يتجاوز الرصيد المتاح ({{available}} {{currency}})."
 			},

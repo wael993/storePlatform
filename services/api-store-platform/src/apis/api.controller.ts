@@ -35,6 +35,7 @@ import {
 	buildActor,
 	getCashBalancesForWarehouses,
 	listCashLedgerEntries,
+	postInternalCashExchange,
 	postInternalCashTransfer,
 } from '../shared/cashAccounts/ledgerService'
 import {
@@ -4415,6 +4416,74 @@ export default class ProductController {
 		}
 	}
 
+	public async postCashExchange(
+		requestBody: Record<string, unknown>,
+		requestContext: RequestContext,
+		isSyncReplay = false,
+	) {
+		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
+		const warehouseId = requireOperationalWarehouseId(requestContext)
+		const settings = await CurrencySettings.findOne({
+			tenantId: this.getTenantId(requestContext),
+		})
+			.select('primaryCurrency secondaryCurrencies')
+			.lean()
+		const settingsRates = new Map<string, number>(
+			[settings?.primaryCurrency, ...(settings?.secondaryCurrencies ?? [])]
+				.filter(currency => currency?.currencyId)
+				.map(currency => [
+					currency!.currencyId,
+					currency === settings?.primaryCurrency
+						? 1
+						: (currency!.exchangeRate ?? 1),
+				]),
+		)
+
+		for (const currencyId of [
+			requestBody.fromCurrencyId,
+			requestBody.toCurrencyId,
+		]) {
+			if (
+				typeof currencyId !== 'string' ||
+				!settingsRates.has(currencyId.trim())
+			) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Exchange currency is not configured.',
+				)
+			}
+		}
+
+		const result = await postInternalCashExchange({
+			requestContext,
+			warehouseId,
+			accountType: requestBody.accountType,
+			fromCurrencyId: requestBody.fromCurrencyId,
+			toCurrencyId: requestBody.toCurrencyId,
+			fromAmount: requestBody.fromAmount,
+			toAmount: requestBody.toAmount,
+			fromExchangeRateToPrimary: requestBody.fromExchangeRateToPrimary,
+			toExchangeRateToPrimary: requestBody.toExchangeRateToPrimary,
+			exchangeId: requestBody.exchangeId,
+			// Live requests must use today's rates; sync replays keep their create-time snapshot.
+			settingsRates: isSyncReplay ? undefined : settingsRates,
+			reason:
+				typeof requestBody.reason === 'string'
+					? requestBody.reason.trim() || undefined
+					: undefined,
+		})
+
+		return {
+			exchangeId: result.exchangeId,
+			warehouseId,
+			accountType: result.accountType,
+			fromCurrencyId: result.fromCurrencyId,
+			toCurrencyId: result.toCurrencyId,
+			fromAmount: result.fromAmount,
+			toAmount: result.toAmount,
+		}
+	}
+
 	public async getBudgetOverview(
 		targetType: TargetType,
 		targetId: string,
@@ -6899,6 +6968,20 @@ export default class ProductController {
 						reason?: string
 					},
 					requestContext,
+				)) as Record<string, unknown>
+
+				await this.recordSyncMutation(
+					requestContext,
+					entry.clientMutationId,
+					entry.entity,
+					entry.operation,
+					data,
+				)
+			} else if (entry.entity === 'cashExchange' && entry.method === 'POST') {
+				data = (await this.postCashExchange(
+					payload as Record<string, unknown>,
+					requestContext,
+					true,
 				)) as Record<string, unknown>
 
 				await this.recordSyncMutation(

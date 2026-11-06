@@ -43,6 +43,7 @@ import {
 	isLowStock,
 	mergeInvoiceItemsPreservingUnitCost,
 	normalizeOpeningBalances,
+	currencyBalanceOf,
 	ratesFromCurrencySettings,
 } from 'store-domain'
 import {
@@ -526,6 +527,10 @@ const buildBuyingInvoicesSummary = (invoices: LocalBuyingInvoice[]) => {
 const entityFromUrl = (path: string, method: string): OutboxEntity | null => {
 	if (path === 'cash-accounts/transfers' && method === 'POST') {
 		return 'cashTransfer'
+	}
+
+	if (path === 'cash-accounts/exchanges' && method === 'POST') {
+		return 'cashExchange'
 	}
 
 	const segment = path.split('/')[0]
@@ -1346,6 +1351,53 @@ const applyLocalEntityMutation = async (
 		payload.warehouseId = requireOperationalWarehouseId(
 			typeof payload.warehouseId === 'string' ? payload.warehouseId : undefined,
 		)
+		return
+	}
+
+	if (entity === 'cashExchange' && op === 'create') {
+		const accountType = String(payload.accountType ?? '')
+		const fromCurrencyId = String(payload.fromCurrencyId ?? '').trim()
+		const toCurrencyId = String(payload.toCurrencyId ?? '').trim()
+		const fromAmount = Number(payload.fromAmount)
+		const numbers = [
+			fromAmount,
+			Number(payload.toAmount),
+			Number(payload.fromExchangeRateToPrimary),
+			Number(payload.toExchangeRateToPrimary),
+		]
+
+		if (!CASH_ACCOUNT_TYPES.has(accountType)) {
+			throw new Error('Cash account type is invalid.')
+		}
+
+		if (!fromCurrencyId || !toCurrencyId || fromCurrencyId === toCurrencyId) {
+			throw new Error('From and To currencies must be different.')
+		}
+
+		if (!numbers.every(value => Number.isFinite(value) && value > 0)) {
+			throw new Error('Exchange amounts and rates must be greater than zero.')
+		}
+
+		payload.warehouseId = requireOperationalWarehouseId(
+			typeof payload.warehouseId === 'string' ? payload.warehouseId : undefined,
+		)
+
+		// Chains on pending outbox work, so two queued exchanges cannot spend the same balance.
+		const balances = await readOfflineCashBalances(
+			ratesFromCurrencySettings(await getLocalCurrencySettings()),
+		)
+		if (!balances) {
+			throw new Error('Offline cash balances are unavailable.')
+		}
+		const available = currencyBalanceOf(
+			balances.accounts.find(account => account.type === accountType)?.balances,
+			fromCurrencyId,
+		)
+		if (fromAmount > available) {
+			throw new Error('Amount exceeds available balance.')
+		}
+
+		payload.exchangeId = String(payload.exchangeId ?? generateId())
 		return
 	}
 
@@ -2645,7 +2697,11 @@ export const isOfflineCapableEndpoint = (url: string): boolean => {
 	if (path.startsWith('subscription')) return false
 	if (path.startsWith('users')) return false
 	if (path.startsWith('employees')) return false
-	if (path === 'cash-accounts/balances' || path === 'cash-accounts/transfers') {
+	if (
+		path === 'cash-accounts/balances' ||
+		path === 'cash-accounts/transfers' ||
+		path === 'cash-accounts/exchanges'
+	) {
 		return true
 	}
 	if (path.startsWith('cash-accounts')) return false
