@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+	bigserial,
 	boolean,
 	index,
 	integer,
@@ -84,6 +85,7 @@ export const refreshTokens = platform.table(
 
 export const roles = platform.table('roles', {
 	id: text().primaryKey(), // uppercase role key, not an ObjectId
+	seq: bigserial({ mode: 'number' }).notNull(), // insertion order (see columns.ts)
 	name: text().notNull(),
 	resources: jsonb().notNull().default({}),
 	include: text()

@@ -1,7 +1,7 @@
+import { pgFindOne } from '../db/mongoQuery'
 import { BusinessLogicError } from '../middleware/errorHandler'
 import { Product } from '../models/Products'
 import { ERROR_CODES } from './errorCodes'
-import { withTenantScope } from './mongodb/tenantScopedModel'
 import {
 	allBarcodes,
 	barcodeCollisionMessage,
@@ -27,15 +27,15 @@ export const findTenantBarcodeCollision = async (
 	for (const key of uniqueKeys) {
 		const source = codes.find(code => barcodeCompareKey(code) === key) ?? key
 		const re = new RegExp(`^${escapeRegex(source)}$`, 'i')
-		const hit = await withTenantScope(
-			Product.findOne({
+		const hit = await (pgFindOne(
+			Product,
+			tenantId,
+			{
 				...(excludeProductId ? { productId: { $ne: excludeProductId } } : {}),
 				$or: [{ barcode: re }, { additionalBarcodes: re }],
-			})
-				.select({ productId: 1, barcode: 1, additionalBarcodes: 1 })
-				.lean<ProductBarcodeFields | null>(),
-			tenantId,
-		)
+			},
+			{ select: { productId: 1, barcode: 1, additionalBarcodes: 1 } },
+		) as unknown as Promise<ProductBarcodeFields | null>)
 
 		if (hit) {
 			const matched =

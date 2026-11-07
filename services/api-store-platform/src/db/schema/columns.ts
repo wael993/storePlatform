@@ -1,11 +1,18 @@
-import { text, timestamp } from 'drizzle-orm/pg-core'
+import { bigserial, text, timestamp } from 'drizzle-orm/pg-core'
 
 // Keys are camelCase; the client and drizzle-kit both run with casing: 'snake_case'.
 
 export const tz = () => timestamp({ withTimezone: true })
 
-/** Mongo `_id` (ObjectId hex or the string id the model sets), kept so every reference stays valid. */
-export const docId = { id: text().primaryKey() }
+/**
+ * Mongo `_id` (ObjectId hex or the string id the model sets), kept so every
+ * reference stays valid. `seq` = insertion order, Mongo's natural order for
+ * unsorted queries and sort ties (the ETL inserts in Mongo's order). Never returned.
+ */
+export const docId = {
+	id: text().primaryKey(),
+	seq: bigserial({ mode: 'number' }).notNull(),
+}
 
 export const tenantCol = { tenantId: text().notNull() }
 

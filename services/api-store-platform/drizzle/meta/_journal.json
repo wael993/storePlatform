@@ -15,6 +15,13 @@
       "when": 1794020258565,
       "tag": "0001_tenant_backup_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794061038938,
+      "tag": "0002_natural_order",
+      "breakpoints": true
     }
   ]
 }

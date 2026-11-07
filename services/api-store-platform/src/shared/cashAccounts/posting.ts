@@ -1,3 +1,4 @@
+import { pgFindOne } from '../../db/mongoQuery'
 import type { DbTx } from '../../db'
 
 import CurrencySettings from '../../models/CurrencySettings'
@@ -32,9 +33,12 @@ const asFiniteNumber = (value: unknown) => {
 export const loadCashCurrencyRates = async (
 	tenantId: string,
 ): Promise<CostCurrencyRate[]> => {
-	const settings = await CurrencySettings.findOne({ tenantId })
-		.select('primaryCurrency secondaryCurrencies')
-		.lean()
+	const settings = await pgFindOne(
+		CurrencySettings,
+		tenantId,
+		{ tenantId },
+		{ select: 'primaryCurrency secondaryCurrencies' },
+	)
 
 	return ratesFromCurrencySettings(settings)
 }

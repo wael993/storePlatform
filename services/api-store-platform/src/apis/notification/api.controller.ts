@@ -128,10 +128,10 @@ const hydrateDigestProducts = async (
 	requestContext: RequestContext,
 ): Promise<ProductRequestBody[]> => {
 	const [products, inventory] = await Promise.all([
-		Product.find({
+		pgFind(Product, tenantId, {
 			tenantId,
 			productId: { $in: productIds },
-		}).lean<ProductAPI[]>(),
+		}) as unknown as Promise<ProductAPI[]>,
 		pgFind(Inventory, tenantId, {
 			productId: { $in: productIds },
 		}) as unknown as Promise<InventoryDocument[]>,
@@ -178,14 +178,17 @@ const lowStockDigestProducts = async (
 	const matchedProductIds = [...new Set(rows.map(row => row.productId))]
 	const warehouseIds = [...new Set(rows.map(row => row.warehouseId))]
 	const [products, warehouses] = await Promise.all([
-		Product.find({
+		pgFind(Product, tenantId, {
 			tenantId,
 			status: 'active',
 			productId: { $in: matchedProductIds },
-		}).lean<ProductAPI[]>(),
-		Warehouse.find({ tenantId, warehouseId: { $in: warehouseIds } })
-			.select({ warehouseId: 1, name: 1, _id: 0 })
-			.lean<Array<{ warehouseId: string; name?: string }>>(),
+		}) as unknown as Promise<ProductAPI[]>,
+		pgFind(
+			Warehouse,
+			tenantId,
+			{ tenantId, warehouseId: { $in: warehouseIds } },
+			{ select: { warehouseId: 1, name: 1, _id: 0 } },
+		) as unknown as Promise<Array<{ warehouseId: string; name?: string }>>,
 	])
 	const productById = new Map(
 		products.map(product => [product.productId, product]),

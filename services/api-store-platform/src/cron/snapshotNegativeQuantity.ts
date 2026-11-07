@@ -151,16 +151,25 @@ const persistProductDigestSnapshot = async (
 	runAt: Date,
 	type: ProductDigestType,
 	filter: Record<string, unknown>,
+	/** Field-to-field condition (former `$expr`), checked in code. */
+	keep?: (product: {
+		price?: { retailPrice?: number; purchasePrice?: number }
+	}) => boolean,
 ) => {
-	const rows = await Product.find({ tenantId, ...filter })
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
+	const rows = await pgFind<{
+		productId?: string
+		price?: { retailPrice?: number; purchasePrice?: number }
+	}>(Product, tenantId, filter, {
+		select: { productId: 1, price: 1, _id: 0 },
+	})
 
 	return persistDigestSnapshot(
 		tenantId,
 		runAt,
 		type,
-		uniqueProductIds(rows.map(row => row.productId)),
+		uniqueProductIds(
+			rows.filter(row => !keep || keep(row)).map(row => row.productId),
+		),
 	)
 }
 
@@ -181,13 +190,16 @@ export const findLowStockRows = async (
 		return []
 	}
 
-	const products = await Product.find({
+	const products = await (pgFind(
+		Product,
 		tenantId,
-		status: 'active',
-		...(onlyProductIds ? { productId: { $in: onlyProductIds } } : {}),
-	})
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
+		{
+			tenantId,
+			status: 'active',
+			...(onlyProductIds ? { productId: { $in: onlyProductIds } } : {}),
+		},
+		{ select: { productId: 1, _id: 0 } },
+	) as unknown as Promise<Array<{ productId?: string }>>)
 
 	const activeIds = products
 		.map(product => product.productId)
@@ -283,11 +295,15 @@ const persistTenantDigests = async (tenantId: string, runAt: Date) => {
 				$nor: [{ 'price.retailPrice': { $gt: 0 } }],
 			}),
 		(id: string, at: Date) =>
-			persistProductDigestSnapshot(id, at, RETAIL_BELOW_PURCHASE_DIGEST, {
-				'price.purchasePrice': { $gt: 0 },
-				'price.retailPrice': { $gt: 0 },
-				$expr: { $lt: ['$price.retailPrice', '$price.purchasePrice'] },
-			}),
+			persistProductDigestSnapshot(
+				id,
+				at,
+				RETAIL_BELOW_PURCHASE_DIGEST,
+				{ 'price.purchasePrice': { $gt: 0 }, 'price.retailPrice': { $gt: 0 } },
+				product =>
+					Number(product.price?.retailPrice) <
+					Number(product.price?.purchasePrice),
+			),
 		persistLowStockSnapshot,
 	]) {
 		try {

@@ -1,4 +1,4 @@
-import { and, eq, SQL } from 'drizzle-orm'
+import { and, eq, sql, SQL } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
@@ -46,7 +46,7 @@ export const rowToDoc = (table: PgTable, row: Row): Doc => {
 		const key = column.name
 		const value = row[key]
 
-		if (value === null || value === undefined) continue
+		if (value === null || value === undefined || key === 'seq') continue
 
 		if (key in CREATED) {
 			createdBy[CREATED[key as keyof typeof CREATED]] = value
@@ -455,7 +455,12 @@ export const findDocs = async (
 	)
 	let query = db.select().from(table).where(scoped).$dynamic()
 
-	if (options.order?.length) query = query.orderBy(...options.order)
+	// no explicit order = Mongo natural (insertion) order
+	query = query.orderBy(
+		...(options.order?.length
+			? options.order
+			: [sql`${column(table, 'seq')} asc`]),
+	)
 
 	if (options.limit !== undefined) query = query.limit(options.limit)
 
@@ -655,6 +660,48 @@ export const insertDocs = async (
 	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
 	docs: Doc[],
 	db: Executor = getDb(),
-) => {
-	for (const doc of docs) await insertDoc(model, doc, db)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> => {
+	const created: Doc[] = []
+
+	for (const doc of docs) created.push(await insertDoc(model, doc, db))
+
+	return created
 }
+
+/**
+ * `doc.save()` for a lean doc that was loaded and changed in place: writes it
+ * back (validated, row locked). Throws when the row is gone, like Mongoose.
+ */
+export const saveDoc = async (
+	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+	tenantId: string | undefined,
+	doc: Doc,
+	tx?: DbTx,
+): Promise<Doc> => {
+	const table = specForModel(model).table
+	const fields: Doc = { ...doc }
+
+	for (const key of ['_id', 'tenantId', 'createdAt', 'createdBy'])
+		delete fields[key]
+
+	const saved = await updateDoc(
+		model,
+		tenantId,
+		eq(column(table, 'id'), String(doc._id)),
+		fields,
+		tx,
+	)
+
+	if (!saved)
+		throw new Error(`${model.modelName} ${String(doc._id)} no longer exists`)
+
+	return saved
+}
+
+/** Child tables of a parent table, with the extra condition that selects its rows. */
+export const childLinksOf = (table: PgTable) =>
+	(CHILD_LINKS.get(table) ?? []).map(child => ({
+		table: child.table,
+		extra: child.extra ?? {},
+	}))

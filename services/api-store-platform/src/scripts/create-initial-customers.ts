@@ -1,6 +1,7 @@
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../db/mongoQuery'
 import mongoose from 'mongoose'
 import { closeDb } from '../db'
-import { insertDocs } from '../db/docs'
+import { insertDoc, insertDocs } from '../db/docs'
 import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
 import { Customer } from '../models/Customer'
@@ -29,7 +30,7 @@ const SEED_USER = {
 }
 
 async function resolveUsdCurrency() {
-	const currencies = await Currency.find({ tenantId: TENANT_ID }).lean()
+	const currencies = await pgFind(Currency, TENANT_ID, {})
 	const usd = currencies.find(currency => {
 		const code = (currency.internalCode || '').toUpperCase()
 		const name = (currency.name || '').toUpperCase()
@@ -53,10 +54,7 @@ async function resolveUsdCurrency() {
 }
 
 async function resolvePieceUnitId(): Promise<string> {
-	const existing = await Unit.findOne({
-		tenantId: TENANT_ID,
-		name: DEFAULT_UNIT_NAME,
-	}).lean()
+	const existing = await pgFindOne(Unit, TENANT_ID, { name: DEFAULT_UNIT_NAME })
 
 	if (existing) {
 		return existing.unitId
@@ -64,7 +62,7 @@ async function resolvePieceUnitId(): Promise<string> {
 
 	const unitId = uuidv4()
 
-	await Unit.create({
+	await insertDoc(Unit, {
 		tenantId: TENANT_ID,
 		unitId,
 		name: DEFAULT_UNIT_NAME,
@@ -76,7 +74,9 @@ async function resolvePieceUnitId(): Promise<string> {
 }
 
 async function ensureOpeningProduct(unitId: string) {
-	await Product.updateOne(
+	await pgFindOneAndUpdate(
+		Product,
+		TENANT_ID,
 		{ tenantId: TENANT_ID, productId: OPENING_PRODUCT_ID },
 		{
 			$set: {
@@ -134,7 +134,7 @@ async function createInitialCustomers() {
 			}
 		})
 
-		await Customer.insertMany(customers)
+		await insertDocs(Customer, customers)
 
 		const receivableRows = INITIAL_CUSTOMERS_DATA.map((row, index) => ({
 			row,

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { pgFind } from '../../db/mongoQuery'
+import { pgFind, pgFindOne } from '../../db/mongoQuery'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -9,7 +9,6 @@ import { Partner } from '../../models/Partner'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
@@ -249,12 +248,9 @@ export default class PartnerController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Partner.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Partner, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -265,10 +261,9 @@ export default class PartnerController {
 
 		const partnerId = resolveSyncClientId(requestBody.partnerId)
 
-		const existingById = await withTenantScope(
-			Partner.findOne({ partnerId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Partner, tenantContext.tenantId, {
+			partnerId,
+		})
 
 		if (existingById) {
 			return {

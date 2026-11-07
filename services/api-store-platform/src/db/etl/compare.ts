@@ -86,3 +86,35 @@ export const roundFloats = (value: unknown, digits = 12): unknown => {
 
 	return value
 }
+
+/**
+ * Removes from `b` the `keys` that `a` lacks at the same path: accepted
+ * additions (timestamps the Postgres side filled in where Mongo had none).
+ */
+export const dropAddedKeys = (
+	a: unknown,
+	b: unknown,
+	keys: ReadonlySet<string>,
+): unknown => {
+	if (Array.isArray(a) && Array.isArray(b)) {
+		return b.map((item, index) => dropAddedKeys(a[index], item, keys))
+	}
+
+	if (
+		a &&
+		b &&
+		typeof a === 'object' &&
+		typeof b === 'object' &&
+		!Array.isArray(b)
+	) {
+		const left = a as Record<string, unknown>
+
+		return Object.fromEntries(
+			Object.entries(b as Record<string, unknown>)
+				.filter(([key]) => !(keys.has(key) && !(key in left)))
+				.map(([key, value]) => [key, dropAddedKeys(left[key], value, keys)]),
+		)
+	}
+
+	return b
+}

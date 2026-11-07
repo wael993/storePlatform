@@ -9,12 +9,18 @@
  */
 import { isDeepStrictEqual } from 'util'
 
-import { firstDiff, normalize, roundFloats, sortDeep } from '../db/etl/compare'
+import {
+	dropAddedKeys,
+	firstDiff,
+	normalize,
+	roundFloats,
+	sortDeep,
+} from '../db/etl/compare'
 
 type Json = unknown
 
 /**
- * Group 1 (money + stock) read endpoints. `id` = field in the list items used
+ * Group 1 (money + stock) and group 2 (catalog, parties, master data) read endpoints. `id` = field in the list items used
  * for the detail call; `items` = key holding the list (default `data`).
  * Not here: `/sync/bootstrap` allocates offline number blocks on every call, so it is not a read.
  */
@@ -47,6 +53,29 @@ const ENDPOINTS: Array<{
 	{ list: '/daily-actions', detail: '/daily-actions/:id', id: 'actionId' },
 	{ list: '/daily-actions/filter-values' },
 	{ list: '/sync/changes?since=1970-01-01T00:00:00.000Z' },
+	// group 2: catalog, parties, master data
+	{
+		list: '/products',
+		detail: '/products/:id',
+		id: 'productId',
+		items: 'products',
+	},
+	{ list: '/products?search=a' },
+	{ list: '/products/catalog' },
+	{ list: '/filter-values' },
+	{ list: '/categories' },
+	{ list: '/brands' },
+	{ list: '/units' },
+	{ list: '/shelves' },
+	{ list: '/warehouses' },
+	{ list: '/currencies' },
+	{ list: '/currency-settings' },
+	{ list: '/customers', detail: '/customers/:id', id: 'customerId' },
+	{ list: '/suppliers', detail: '/suppliers/:id', id: 'supplierId' },
+	{ list: '/partners', detail: '/partners/:id', id: 'partnerId' },
+	{ list: '/projects', detail: '/projects/:id', id: 'projectId' },
+	{ list: '/employees', detail: '/employees/:id', id: 'employeeId' },
+	{ list: '/expenses', detail: '/expenses/:id', id: 'expenseId' },
 ]
 
 /**
@@ -54,7 +83,21 @@ const ENDPOINTS: Array<{
  * (internal version counter, read by nothing; Postgres has none).
  */
 const VOLATILE_KEYS = new Set(['serverTime', 'generatedAt', 'requestId', '__v'])
+const ADDED_KEYS = new Set(['createdAt', 'updatedAt'])
 const DETAIL_SAMPLES = 5
+
+/** Product `price._id` (Mongoose subdocument id) is not kept in Postgres; nothing reads it. */
+const withoutPriceId = (value: Json): Json =>
+	JSON.parse(
+		JSON.stringify(value, (key, item) =>
+			key === 'price' &&
+			item &&
+			typeof item === 'object' &&
+			!Array.isArray(item)
+				? Object.fromEntries(Object.entries(item).filter(([k]) => k !== '_id'))
+				: item,
+		),
+	)
 
 const env = (name: string) => {
 	const value = process.env[name]
@@ -115,8 +158,13 @@ const main = async () => {
 			get(a, tokenA, path),
 			get(b, tokenB, path),
 		])
-		const na = roundFloats(normalize(ra, VOLATILE_KEYS))
-		const nb = roundFloats(normalize(rb, VOLATILE_KEYS))
+		const na = roundFloats(normalize(withoutPriceId(ra), VOLATILE_KEYS))
+		// Accepted: timestamps filled where Mongo had none; product price._id not kept.
+		const nb = dropAddedKeys(
+			na,
+			roundFloats(normalize(rb, VOLATILE_KEYS)),
+			ADDED_KEYS,
+		)
 
 		if (isDeepStrictEqual(na, nb)) {
 			console.log(`same        ${path} (${ra.status})`)

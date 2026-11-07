@@ -1,16 +1,15 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
-import { pgFind } from '../../db/mongoQuery'
+import { pgFind, pgFindOne, pgUpdateMany } from '../../db/mongoQuery'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Invoice } from '../../models/Invoice'
-import { Product } from '../../models/Products'
-import { Supplier } from '../../models/Supplier'
+import { IProduct, Product } from '../../models/Products'
+import { ISupplier, Supplier } from '../../models/Supplier'
 import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import {
@@ -293,10 +292,9 @@ export default class BuyingInvoiceController {
 	) {
 		const tenantContext = getTenantContext(requestContext)
 		const requestedProductIds = [...new Set(items.map(item => item.productId))]
-		const products = await withTenantScope(
-			Product.find({ productId: { $in: requestedProductIds } }),
-			tenantContext.tenantId,
-		).lean()
+		const products = await pgFind(Product, tenantContext.tenantId, {
+			productId: { $in: requestedProductIds },
+		})
 
 		if (products.length !== requestedProductIds.length) {
 			throw new BusinessLogicError(
@@ -1195,19 +1193,20 @@ export default class BuyingInvoiceController {
 		try {
 			const extraction = await extractInvoice(input)
 			// ponytail: full live catalog into RAM per extract (O(n) scan). Upgrade: candidate prefilter / indexed lookup if catalogs grow.
-			const products = await withTenantScope(
-				Product.find({})
-					.select(
+			const products = await pgFind(
+				Product,
+				tenantId,
+				{},
+				{
+					select:
 						'productId name latinName barcode additionalBarcodes internalCode productFactoryCode aliases unitId categoryId supplierId',
-					)
-					.lean(),
-				tenantId,
+				},
 			)
-			const suppliers = await withTenantScope(
-				Supplier.find({})
-					.select('supplierId name internalCode email vatId aliases')
-					.lean(),
+			const suppliers = await pgFind(
+				Supplier,
 				tenantId,
+				{},
+				{ select: 'supplierId name internalCode email vatId aliases' },
 			)
 
 			return await matchExtractedInvoice(
@@ -1271,10 +1270,9 @@ export default class BuyingInvoiceController {
 		const normalizedAlias = alias.toLowerCase()
 
 		if (kind === 'product') {
-			const product = await withTenantScope(
-				Product.findOne({ productId: id }).lean(),
-				tenantId,
-			)
+			const product = await pgFindOne<IProduct>(Product, tenantId, {
+				productId: id,
+			})
 
 			if (!product) {
 				throw new BusinessLogicError(
@@ -1292,12 +1290,13 @@ export default class BuyingInvoiceController {
 				return { ok: true }
 			}
 
-			await withTenantScope(
-				Product.findOneAndUpdate(
-					{ productId: id },
-					{ $addToSet: { aliases: alias } },
-				),
+			await pgUpdateMany(
+				Product,
 				tenantId,
+				{ productId: id },
+				{
+					$addToSet: { aliases: alias },
+				},
 			)
 
 			await this.ops.invalidateEntityCache('products', requestContext, id)
@@ -1305,10 +1304,9 @@ export default class BuyingInvoiceController {
 			return { ok: true }
 		}
 
-		const supplier = await withTenantScope(
-			Supplier.findOne({ supplierId: id }).lean(),
-			tenantId,
-		)
+		const supplier = await pgFindOne<ISupplier>(Supplier, tenantId, {
+			supplierId: id,
+		})
 
 		if (!supplier) {
 			throw new BusinessLogicError(
@@ -1326,12 +1324,13 @@ export default class BuyingInvoiceController {
 			return { ok: true }
 		}
 
-		await withTenantScope(
-			Supplier.findOneAndUpdate(
-				{ supplierId: id },
-				{ $addToSet: { aliases: alias } },
-			),
+		await pgUpdateMany(
+			Supplier,
 			tenantId,
+			{ supplierId: id },
+			{
+				$addToSet: { aliases: alias },
+			},
 		)
 
 		await redisCache.del(redisCache.buildSupplierListKey(tenantId))

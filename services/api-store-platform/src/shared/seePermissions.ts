@@ -1,7 +1,7 @@
+import { pgFind } from '../db/mongoQuery'
 import Tenant from '../models/Tenant'
 import TenantRolePermission from '../models/TenantRolePermission'
 import { Product } from '../models/Products'
-import { withTenantScope } from './mongodb/tenantScopedModel'
 import { resolveAccessiblePagesForTenant } from './constants/tenantPageAccess'
 import { AuthorizationError } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
@@ -343,10 +343,9 @@ export const ensureInvoiceEditFieldSee = async (
 		>()
 
 		if (newProductIds.length) {
-			const products = await withTenantScope(
-				Product.find({ productId: { $in: newProductIds } }).lean(),
-				requestContext.tenantId,
-			)
+			const products = await pgFind(Product, requestContext.tenantId, {
+				productId: { $in: newProductIds },
+			})
 
 			for (const product of products) {
 				catalogByProductId.set(product.productId, {

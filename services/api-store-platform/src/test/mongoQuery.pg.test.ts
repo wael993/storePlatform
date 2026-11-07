@@ -5,10 +5,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { closeDb, getDb } from '../db'
 import { Doc, MapResult, mapDocs, SPECS } from '../db/etl/mongoToPg'
 import { normalize } from '../db/etl/compare'
-import { pgFind } from '../db/mongoQuery'
+import { pgFind, pgUpdateMany } from '../db/mongoQuery'
 import { DailyAction } from '../models/DailyAction'
 import { Invoice } from '../models/Invoice'
 import { Supplier } from '../models/Supplier'
+import { Product } from '../models/Products'
+import { Customer } from '../models/Customer'
 
 /**
  * Differential check: the same documents in a real Mongo and (via the ETL
@@ -56,6 +58,53 @@ const FIXTURES: Record<string, Doc[]> = {
 			invoiceDate: at(3),
 			exchangeRateToPrimary: 0.5,
 		},
+	],
+	Products: [
+		{
+			productId: 'pr1',
+			name: 'Tea',
+			status: 'active',
+			price: { retailPrice: 5, purchasePrice: 3, currency: 'USD' },
+		},
+		{
+			productId: 'pr2',
+			name: 'pot',
+			status: 'active',
+			price: { retailPrice: 2, purchasePrice: 4, currency: 'SYP' },
+		},
+		{
+			productId: 'pr3',
+			name: 'Pot',
+			status: 'inactive',
+			price: { retailPrice: 9, currency: 'USD' },
+		},
+	],
+	Customer: [
+		{
+			customerId: 'cu1',
+			name: 'Ali',
+			openingBalances: [
+				{
+					currencyId: 'usd',
+					currencyCode: 'USD',
+					amount: 10,
+					direction: 'owed_to_us',
+				},
+			],
+		},
+		{
+			customerId: 'cu2',
+			name: 'Bea',
+			openingBalances: [
+				{
+					currencyId: 'syp',
+					currencyCode: 'SYP',
+					amount: 5,
+					direction: 'we_owe',
+				},
+			],
+		},
+		{ customerId: 'cu3', name: 'Cem' },
 	],
 	Supplier: [
 		{ supplierId: 's1', name: 'One', aliases: ['x', 'y'] },
@@ -122,6 +171,21 @@ const CASES: Array<{
 		filter: { 'createdBy._id': 'u-1' },
 		select: 'actionId customerName',
 	},
+	{
+		model: 'Products',
+		filter: { 'price.retailPrice': { $gte: 5 } },
+		sort: { 'price.retailPrice': -1 },
+	},
+	{ model: 'Products', filter: { 'price.purchasePrice': { $exists: false } } },
+	{ model: 'Products', filter: { 'price.currency': 'USD', status: 'active' } },
+	// byte order like Mongo: 'Pot' < 'Tea' < 'pot' (language order would put 'pot' first)
+	{ model: 'Products', filter: {}, sort: { name: 1 } },
+	{ model: 'Products', filter: {}, sort: { name: -1 } },
+	{ model: 'Customer', filter: { 'openingBalances.direction': 'we_owe' } },
+	{
+		model: 'Customer',
+		filter: { 'openingBalances.currencyId': { $in: ['usd', 'syp'] } },
+	},
 	{ model: 'Supplier', filter: { aliases: 'x' } },
 	{ model: 'Supplier', filter: { aliases: { $in: ['y', 'z'] } } },
 	{ model: 'Invoice', filter: { 'items.productId': { $in: ['p1', 'p9'] } } },
@@ -133,6 +197,8 @@ const MODELS: Record<string, mongoose.Model<any>> = {
 	DailyAction,
 	Supplier,
 	Invoice,
+	Products: Product,
+	Customer,
 } // eslint-disable-line @typescript-eslint/no-explicit-any
 
 describe.skipIf(!enabled)('mongoQuery matches Mongo semantics', () => {
@@ -206,6 +272,34 @@ describe.skipIf(!enabled)('mongoQuery matches Mongo semantics', () => {
 
 			expect(normalize(fromPg)).toEqual(normalize(mongoProjected))
 		}
+	})
+
+	it('$addToSet appends only when missing, like Mongo', async () => {
+		const collection = conn.collection(Supplier.collection.collectionName)
+
+		for (const alias of ['y', 'z']) {
+			await collection.updateMany(
+				{ tenantId, supplierId: { $in: ['s1', 's3'] } },
+				{ $addToSet: { aliases: alias } },
+			)
+
+			await pgUpdateMany(
+				Supplier,
+				tenantId,
+				{ supplierId: { $in: ['s1', 's3'] } },
+				{ $addToSet: { aliases: alias } },
+			)
+		}
+
+		const mongo = await collection
+			.find({ tenantId })
+			.sort({ supplierId: 1 })
+			.toArray()
+		const pg = await pgFind(Supplier, tenantId, {}, { sort: { supplierId: 1 } })
+
+		expect(pg.map(doc => doc.aliases ?? null)).toEqual(
+			mongo.map(doc => doc.aliases ?? null),
+		)
 	})
 
 	it('refuses what it cannot translate', async () => {

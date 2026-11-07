@@ -5,7 +5,6 @@ import { Inventory } from '../../models/Inventory'
 import { Product } from '../../models/Products'
 import { StockMoving } from '../../models/StockMovings'
 import { InvoiceStatus } from '../globalEnums'
-import { withTenantScope } from '../mongodb/tenantScopedModel'
 import {
 	getPrimaryInvoiceCurrencyAmounts,
 	InvoiceAmountSource,
@@ -599,11 +598,11 @@ const lowStock = async (tenantId: string) => {
 	const sample = rows.slice(0, 3)
 	const productIds = sample.map(row => row.productId).filter(Boolean)
 	const products = productIds.length
-		? await withTenantScope(
-				Product.find({ productId: { $in: productIds } })
-					.select({ productId: 1, name: 1 })
-					.lean(),
+		? await pgFind(
+				Product,
 				tenantId,
+				{ productId: { $in: productIds } },
+				{ select: { productId: 1, name: 1 } },
 			)
 		: []
 	const namesById = new Map(

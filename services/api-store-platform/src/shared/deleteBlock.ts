@@ -4,7 +4,6 @@ import { CashLedgerEntry } from '../models/CashLedgerEntry'
 import { DailyAction } from '../models/DailyAction'
 import { Employee } from '../models/Employee'
 import { Invoice } from '../models/Invoice'
-import { withTenantScope } from './mongodb/tenantScopedModel'
 
 export const DeleteBlockReason = {
 	invoice: 'invoice',
@@ -103,16 +102,16 @@ export const findCurrencyDeleteBlocks = async (
 			{ currencyId: { $in: ids } },
 			{ select: { currencyId: 1 } },
 		),
-		withTenantScope(
-			Employee.find({
+		pgFind(
+			Employee,
+			tenantId,
+			{
 				$or: [
 					{ 'salaries.currencyId': { $in: ids } },
 					{ 'payouts.currencyId': { $in: ids } },
 				],
-			})
-				.select({ salaries: 1, payouts: 1 })
-				.lean(),
-			tenantId,
+			},
+			{ select: { salaries: 1, payouts: 1 } },
 		),
 	])
 

@@ -134,7 +134,9 @@ New models are fine if they are flat and tenant-scoped. Production hotfixes are 
 - ETL: `npm run pg:etl -- --tenant <id> [--global]` (`src/scripts/pg-etl.ts`, mapping in `src/db/etl/mongoToPg.ts`).
   Reads Mongo raw, replaces the tenant's rows in one Postgres transaction (rerun-safe), compares row counts.
   Writes nothing when a doc can't be loaded (missing required value, non-number money) or a field would be dropped.
-  Fields Mongoose already strips on read are dropped on purpose via `dropped` per spec, each with a reason.
+  Fields outside the Mongoose schema are dropped on purpose via `dropped` per spec, each with a reason.
+  Correction (2026-11-07): `.lean()` reads did return such fields to the API; they are dropped because
+  nothing reads them (checked per field across API, web and store-domain), not because Mongoose hid them.
 - Dry run 2026-11-07, dev Atlas → local Postgres 17: 11 of 12 tenants load with equal counts
   (incl. zobani-car: 2,810 products, 147 invoices).
 
@@ -191,6 +193,34 @@ one-off `scripts/migrate-cash-accounts.ts` are deleted.
 **Findings kept as-is (no behavior change in the port):** invoice numbers have no unique index
 (INV-NUM-1, `docs/backlog/later-tickets.md`); online buying numbers ignore the offline floor, so an
 offline-reserved buying number can be taken online and the offline invoice is renumbered on sync.
+
+## Group 2 switched (catalog, parties, master data) — 2026-11-07
+
+Postgres also owns products, categories, brands, units, shelves, warehouses, currencies + settings,
+customers, suppliers, partners, projects, employees, expenses. The three cross-store `shortcut:` writes
+(product create, purchase-price edit, product import) are gone: products and inventory share one
+transaction again.
+
+New since group 1:
+
+- `pgFindOneAndUpdate` / `pgFindOneAndDelete` / `pgCount` / `saveDoc` (employee load–change–save).
+- Translator: flattened paths (`price.retailPrice`), `openingBalances.*` on the shared party table,
+  `$addToSet`; text sorts use `COLLATE "C"` (Mongo compares strings byte-wise; the database default
+  `en_US` would sort `pot < Pot`, Mongo `Pot < pot`). Checked against a real Mongo.
+- `seq` column (insertion order) on every main table = Mongo natural order for unsorted queries and
+  sort ties; the ETL inserts in Mongo's order. Never returned.
+- `pg:etl --models a,b,c`: load only these models (and only their child rows), so staging's
+  Postgres-written group-1 data survives a group-2 reload.
+- Deleted one-off scripts: `migrate-multi-tenant`, `migrate-warehouse-brand-uuids`,
+  `migrate-inventory-warehouse-scope`.
+
+`api:diff` group-2-on-Mongo vs group-2-on-Postgres (tenant `app`): equal apart from accepted
+differences — filled timestamps (suppliers/partners gain `createdAt`; lists sorted by `createdAt` now
+use the real date; `/sync/changes` now includes categories, which never matched `updatedAt` in Mongo),
+product `price._id`, dropped orphan field `roundConvertedCurrencyAmounts`.
+
+For groups 3–4: four handlers check Mongo's duplicate-key code `11000` (label templates,
+notifications, newsroom, subscription requests); Postgres raises `23505`.
 
 ## Open questions
 

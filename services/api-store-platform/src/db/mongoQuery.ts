@@ -2,8 +2,14 @@ import { and, or, sql, SQL } from 'drizzle-orm'
 import { AnyPgColumn, getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
-import { anyOf, DbTx, Executor, inTransaction, requireTenantId } from '.'
-import { deleteDocs, findDocs, specForModel } from './docs'
+import { anyOf, DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
+import {
+	deleteDocs,
+	findDocs,
+	insertDoc,
+	specForModel,
+	updateDoc,
+} from './docs'
 import { Doc } from './etl/mongoToPg'
 import * as t from './schema'
 
@@ -27,6 +33,29 @@ type Filter = Record<string, unknown>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyModel = Model<any>
 
+type ChildLink = {
+	table: PgTable
+	link: string
+	parentKey: string
+	/** Extra equality on the child row (shared child tables, e.g. party type). */
+	extra?: Record<string, string>
+}
+
+/** Subdocument fields the schema flattened into columns of the same table. */
+const FLAT_PATHS = new Map<PgTable, Record<string, string>>([
+	[
+		t.products,
+		{
+			'price.purchasePrice': 'purchasePrice',
+			'price.retailPrice': 'retailPrice',
+			'price.wholesalePrice': 'wholesalePrice',
+			'price.semiWholesalePrice': 'semiWholesalePrice',
+			'price.discount': 'discount',
+			'price.currency': 'priceCurrency',
+		},
+	],
+])
+
 const AUDIT_PATHS: Record<string, string> = {
 	'createdBy._id': 'createdById',
 	'createdBy.displayName': 'createdByName',
@@ -39,10 +68,7 @@ const AUDIT_PATHS: Record<string, string> = {
 }
 
 /** Array fields stored as child tables: parent table → field → child table + link. */
-const CHILD_FIELDS = new Map<
-	PgTable,
-	Record<string, { table: PgTable; link: string; parentKey: string }>
->([
+const CHILD_FIELDS = new Map<PgTable, Record<string, ChildLink>>([
 	[
 		t.invoices,
 		{
@@ -80,6 +106,28 @@ const CHILD_FIELDS = new Map<
 		},
 	],
 	[
+		t.customers,
+		{
+			openingBalances: {
+				table: t.partyOpeningBalances,
+				link: 'partyId',
+				parentKey: 'customerId',
+				extra: { partyType: 'customer' },
+			},
+		},
+	],
+	[
+		t.suppliers,
+		{
+			openingBalances: {
+				table: t.partyOpeningBalances,
+				link: 'partyId',
+				parentKey: 'supplierId',
+				extra: { partyType: 'supplier' },
+			},
+		},
+	],
+	[
 		t.employees,
 		{
 			salaries: {
@@ -108,9 +156,12 @@ const resolve = (
 	path: string,
 ): {
 	column: AnyPgColumn
-	child?: { table: PgTable; link: string; parentKey: string }
+	child?: ChildLink
 } => {
-	const name = path === '_id' ? 'id' : (AUDIT_PATHS[path] ?? path)
+	const name =
+		path === '_id'
+			? 'id'
+			: (AUDIT_PATHS[path] ?? FLAT_PATHS.get(table)?.[path] ?? path)
 	const direct = columnOf(table, name)
 
 	if (direct) return { column: direct as AnyPgColumn }
@@ -240,7 +291,11 @@ export const whereOf = (table: PgTable, filter: Filter = {}): SQL => {
 		const link = columnOf(child.table, child.link)!
 
 		parts.push(
-			sql`exists (select 1 from ${child.table} where ${link} = ${parent} and ${fieldCondition(column, value)})`,
+			sql`exists (select 1 from ${child.table} where ${link} = ${parent}${sql.join(
+				Object.entries(child.extra ?? {}).map(
+					([key, extra]) => sql` and ${columnOf(child.table, key)} = ${extra}`,
+				),
+			)} and ${fieldCondition(column, value)})`,
 		)
 	}
 
@@ -259,13 +314,19 @@ export const orderOf = (
 		const descending =
 			direction === -1 || direction === 'desc' || direction === 'descending'
 
+		// Mongo compares strings byte-wise; "C" collation = UTF-8 byte (code point) order.
+		const key =
+			column.columnType === 'PgText'
+				? sql`${column} collate "C"`
+				: sql`${column}`
+
 		return descending
-			? sql`${column} desc nulls last`
-			: sql`${column} asc nulls first`
+			? sql`${key} desc nulls last`
+			: sql`${key} asc nulls first`
 	})
 
 	// insertion order (Mongo natural order) breaks ties
-	return [...order, sql`${columnOf(table, 'id')} asc`]
+	return [...order, sql`${columnOf(table, 'seq')} asc`]
 }
 
 /** `.select()` projection: 'a b' / '-a' / { a: 1 } / { a: 0 }. */
@@ -395,7 +456,12 @@ export const pgUpdateMany = async (
 
 			if (op === '$set') set[key] = asValue(value)
 			else if (op === '$unset') set[key] = null
-			else if (op === '$inc')
+			else if (op === '$addToSet' && column.columnType === 'PgArray') {
+				// append only when missing, like Mongo's $addToSet
+				set[key] =
+					sql`case when ${value} = any(coalesce(${column}, '{}')) then ${column}
+					else array_append(coalesce(${column}, '{}'), ${value}) end`
+			} else if (op === '$inc')
 				set[key] = sql`coalesce(${column}, 0) + ${String(value)}::numeric`
 			else unsupported(`update operator ${op}`)
 		}
@@ -416,3 +482,113 @@ export const pgUpdateMany = async (
 		return { matchedCount: rows.length, modifiedCount: rows.length }
 	})
 }
+
+export const pgCount = async (
+	model: AnyModel,
+	tenantId: string | undefined,
+	filter: Filter = {},
+	db: Executor = getDb(),
+): Promise<number> => {
+	const table = tableOf(model)
+	const [{ count }] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(table)
+		.where(
+			and(
+				sql`${columnOf(table, 'tenantId')} = ${requireTenantId(tenantId)}`,
+				whereOf(table, filter),
+			),
+		)
+
+	return count
+}
+
+/** Plain equalities of a filter (what an upsert copies into the new doc). */
+const equalities = (filter: Filter) =>
+	Object.fromEntries(
+		Object.entries(filter).filter(
+			([key, value]) => !key.startsWith('$') && !isOperatorObject(value),
+		),
+	)
+
+/**
+ * `findOneAndUpdate(filter, update, { new, upsert })` on ONE document: `$set`
+ * goes through updateDoc (validated, nested fields + child arrays), other
+ * operators through pgUpdateMany on that document. A plain object counts as `$set`.
+ */
+export const pgFindOneAndUpdate = (
+	model: AnyModel,
+	tenantId: string | undefined,
+	filter: Filter,
+	update: Record<string, unknown>,
+	options: { new?: boolean; upsert?: boolean; tx?: DbTx } = {},
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> =>
+	inTransaction(options.tx, async db => {
+		const ops: Record<string, unknown> = Object.keys(update).some(key =>
+			key.startsWith('$'),
+		)
+			? { ...update }
+			: { $set: update }
+		const target = await pgFindOne(model, tenantId, filter, { db, lock: true })
+
+		if (!target) {
+			if (!options.upsert) return null
+
+			const created = await insertDoc(
+				model,
+				{
+					...equalities(filter),
+					...((ops.$setOnInsert as Doc) ?? {}),
+					...((ops.$set as Doc) ?? {}),
+					tenantId: requireTenantId(tenantId),
+				},
+				db,
+			)
+
+			return options.new
+				? pgFindOne(model, tenantId, { _id: created._id }, { db })
+				: null
+		}
+
+		const byId = { _id: target._id }
+
+		// on an existing document Mongo ignores $setOnInsert
+		delete ops.$setOnInsert
+
+		if (Object.keys(ops).every(op => op === '$set')) {
+			await updateDoc(
+				model,
+				tenantId,
+				whereOf(tableOf(model), byId),
+				ops.$set as Doc,
+				db,
+			)
+		} else {
+			await pgUpdateMany(model, tenantId, byId, ops, db)
+		}
+
+		return options.new ? pgFindOne(model, tenantId, byId, { db }) : target
+	})
+
+/** `findOneAndDelete(filter)`: deletes one matching doc (locked), returns it or null. */
+export const pgFindOneAndDelete = async (
+	model: AnyModel,
+	tenantId: string | undefined,
+	filter: Filter,
+	tx?: DbTx,
+) =>
+	inTransaction(tx, async db => {
+		const target = await pgFindOne(model, tenantId, filter, { db, lock: true })
+
+		if (!target) return null
+
+		await deleteDocs(
+			tableOf(model),
+			tenantId,
+			whereOf(tableOf(model), { _id: target._id }),
+			db,
+		)
+
+		return target
+	})

@@ -50,8 +50,22 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | `api:diff` Mongo vs Postgres build on the same data | Done: equal (4 documented differences, see ADR) |
 | Staging Render Postgres (PG 18) created, migrated, all 11 dev tenants loaded + verified | Done |
 | Review fixes (write order, deadlock retry, atomic delete, 65k-param limit, tests, −1,600 lines) | Done |
-| Staging: switch Render dev branch to `pg-migration`, deploy, smoke | **Next** |
+| Staging: Render dev on `pg-migration` (b9affd9), 8-step app smoke + database invariants | **Done** 2026-11-07 |
+| Group 2 (catalog, parties, master data) switched; 3 cross-store shortcuts removed; `api:diff` equal (accepted differences in ADR) | Done locally — staging next |
+| Groups 3–4 (settings/reports/notifications, platform) | Open |
 | Groups 2–4 (catalog/parties, settings/reports, platform) | Open |
+
+**Staging smoke (2026-11-07):** sell, buy, cash transfer, cash exchange, stock transfer + delete,
+offline sale + sync, edit + delete invoice: all OK in the app. Database afterwards: transfers paired,
+deleted invoices leave no active cash effect (only intended `return_in` history), no duplicate invoice
+numbers, offline sale recorded once, API = Postgres within the user's warehouse scope.
+
+**Rehearsal must check (found in dev data, already in Mongo before the switch):**
+1. Cash balance vs ledger sum: float noise (e.g. `0.00714286` vs `0.007142860000000084`) and one real
+   gap (test tenant `zobani-car`: ledger −1,278.50 vs balance 321.50). Reconcile with tolerance 1e-6;
+   noise: recompute balances from the ledger once; real gaps: decide per account before cutover.
+2. A `sale` stock movement whose invoice no longer exists (1 in `zobani-car`). `return_in` rows for
+   deleted invoices are intended history, not leftovers.
 
 **Checkboxes that no longer apply as written (ADR: Postgres-only, single cutover):**
 "Flag switches implementation", "≥ 7 days shadow reconcile", "rollback = flag back to mongo",
@@ -224,11 +238,11 @@ they must move together — decide in PG-MIG-0 and follow that list.
 
 ### Acceptance
 
-- [ ] At least cash + inventory + invoices work on Postgres in staging with the
+- [x] At least cash + inventory + invoices work on Postgres in staging with the
   same HTTP shapes
 - [ ] Flag switches implementation without frontend changes
 - [x] Missing tenant context fails closed on the Postgres path
-- [ ] One automated check per ported domain that fails if ledger/stock invariants break
+- [x] One automated check per ported domain that fails if ledger/stock invariants break
 
 ### Out of scope
 
@@ -270,7 +284,7 @@ Prefer **shadow then switch** over long dual-write, given tenant count.
 ### Go / no-go before PG-MIG-4
 
 - [x] Schema covers every migrate-list model  
-- [ ] Cash + inventory + invoices green on staging Postgres  
+- [x] Cash + inventory + invoices green on staging Postgres  
 - [ ] Reconcile green for pilot ≥ 7 days  
 - [ ] Cutover rehearsal once on staging clone (lock → dump → load → flip → smoke → rollback)  
 - [ ] Rollback rehearsal: flag back to mongo + Mongo snapshot still valid  

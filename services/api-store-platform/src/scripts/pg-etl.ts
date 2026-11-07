@@ -4,6 +4,7 @@
  * transaction, so a rerun is safe.
  *
  *   DATABASE_URL=postgres://… npm run pg:etl -- --tenant <tenantId> [--global] [--allow-unmapped]
+ *     [--models Products,Customer,...]  only these Mongoose models (and their child rows)
  *
  * Exits non-zero when a Mongo field would be dropped (unless --allow-unmapped)
  * or when a Mongo collection count differs from its Postgres table after the load.
@@ -15,16 +16,9 @@ import { eq, sql } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { config } from '../config/config'
 import { createDb } from '../db/client'
-import { toDocs } from '../db/docs'
+import { childLinksOf, toDocs } from '../db/docs'
 import { firstDiff, normalize } from '../db/etl/compare'
-import {
-	CHILD_TABLES,
-	Doc,
-	MapResult,
-	Row,
-	mapDocs,
-	SPECS,
-} from '../db/etl/mongoToPg'
+import { Doc, MapResult, Row, mapDocs, SPECS } from '../db/etl/mongoToPg'
 
 const CHUNK = 500
 
@@ -54,7 +48,22 @@ const main = async () => {
 	}
 
 	const withGlobal = flag('--global')
-	const specs = SPECS.filter(s => s.scope === 'tenant' || withGlobal)
+	const onlyModels = args.includes('--models')
+		? new Set(args[args.indexOf('--models') + 1].split(','))
+		: undefined
+	const specs = SPECS.filter(
+		s =>
+			(s.scope === 'tenant' || withGlobal) &&
+			(!onlyModels || onlyModels.has(s.model)),
+	)
+
+	if (onlyModels && specs.length !== onlyModels.size) {
+		throw new Error('unknown or non-selected model in --models')
+	}
+
+	// Child rows follow their parents: never touch children of models not loaded.
+	const childLinks = specs.flatMap(spec => childLinksOf(spec.table))
+	const childTables = [...new Set(childLinks.map(link => link.table))]
 
 	await mongoose.connect(config.mongoDB.connectionString, {
 		dbName: config.mongoDB.databaseName,
@@ -79,7 +88,10 @@ const main = async () => {
 		mapDocs(spec, docs, result)
 	}
 
-	if (!mongoCounts.get(SPECS[0].table)) {
+	// checked directly: with --models the Tenant collection may not be loaded
+	if (
+		!(await mongoose.model('Tenant').collection.countDocuments({ tenantId }))
+	) {
 		throw new Error(`tenant ${tenantId} not found in Mongo`)
 	}
 
@@ -109,7 +121,7 @@ const main = async () => {
 
 	console.log(`[pg-etl] target ${new URL(process.env.DATABASE_URL!).host}`)
 	const parents = specs.map(s => s.table)
-	const touched = [...CHILD_TABLES, ...parents]
+	const touched = [...childTables, ...parents]
 
 	await db.transaction(async tx => {
 		// Children first; global tables are replaced whole, tenant tables per tenant.
@@ -119,13 +131,34 @@ const main = async () => {
 			if (spec?.scope === 'global') {
 				await tx.execute(sql`delete from ${table}`)
 			} else {
+				// shared child tables (party opening balances) are narrowed by party type
+				const extras = childLinks
+					.filter(link => link.table === table)
+					.map(link => link.extra)
+				const narrowed =
+					extras.length && extras.every(extra => Object.keys(extra).length)
+						? sql` and (${sql.join(
+								extras.map(
+									extra =>
+										sql`(${sql.join(
+											Object.entries(extra).map(
+												([key, value]) =>
+													sql`${sql.identifier(key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`))} = ${value}`,
+											),
+											sql` and `,
+										)})`,
+								),
+								sql` or `,
+							)})`
+						: sql``
+
 				await tx.execute(
-					sql`delete from ${table} where tenant_id = ${tenantId}`,
+					sql`delete from ${table} where tenant_id = ${tenantId}${narrowed}`,
 				)
 			}
 		}
 
-		for (const table of [...parents, ...CHILD_TABLES]) {
+		for (const table of [...parents, ...childTables]) {
 			const rows = result.rows.get(table) ?? []
 
 			for (let i = 0; i < rows.length; i += CHUNK) {
@@ -152,7 +185,7 @@ const main = async () => {
 		)
 	}
 
-	for (const table of CHILD_TABLES) {
+	for (const table of childTables) {
 		console.log(
 			`     ${tableName(table).padEnd(42)} rows ${result.rows.get(table)?.length ?? 0}`,
 		)
@@ -166,7 +199,7 @@ const main = async () => {
 			getTableConfig(table).columns.find(c => c.name === 'tenantId')!
 		const children = new Map<PgTable, Row[]>()
 
-		for (const table of CHILD_TABLES) {
+		for (const table of childTables) {
 			children.set(
 				table,
 				await db

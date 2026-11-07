@@ -22,8 +22,9 @@ export type Spec = {
 	/** Returns the doc to map generically; remove keys that go to children. */
 	flatten?: (doc: Doc) => Doc
 	/**
-	 * Fields that exist in Mongo but not in the Mongoose schema. Mongoose strips
-	 * them on read, so the app never sees them; dropping keeps behavior.
+	 * Fields that exist in Mongo but not in the Mongoose schema. `.lean()` reads
+	 * DID return them, but no code (API, web, store-domain) reads them (grep
+	 * checked per field), so they are dropped on purpose.
 	 */
 	dropped?: string[]
 	children?: (doc: Doc) => Child[]
@@ -499,19 +500,4 @@ export const SPECS: Spec[] = [
 	},
 	{ model: 'OfflineSyncState', table: t.offlineSyncStates, scope: 'tenant' },
 	{ model: 'SyncMutation', table: t.syncMutations, scope: 'tenant' },
-]
-
-/** Child tables per spec (for delete order and counts). */
-export const CHILD_TABLES: PgTable[] = [
-	t.currencySettingItems,
-	t.partyOpeningBalances,
-	t.employeeSalaries,
-	t.employeePayouts,
-	t.cashAccountBalances,
-	t.invoiceItems,
-	t.invoiceCurrencyAmounts,
-	t.invoiceTenders,
-	t.buyingInvoiceItems,
-	t.buyingInvoiceCurrencyAmounts,
-	t.buyingInvoiceTenders,
 ]

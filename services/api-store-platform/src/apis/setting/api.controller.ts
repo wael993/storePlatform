@@ -1,3 +1,9 @@
+import { insertDoc } from '../../db/docs'
+import {
+	pgDeleteMany,
+	pgFindOne,
+	pgFindOneAndUpdate,
+} from '../../db/mongoQuery'
 import express from 'express'
 
 import {
@@ -303,17 +309,23 @@ export default class SettingController {
 				)
 			}
 
-			let currencySettings = await CurrencySettings.findOne({ tenantId })
+			let currencySettings = await pgFindOne<ICurrencySettings>(
+				CurrencySettings,
+				tenantId,
+				{
+					tenantId,
+				},
+			)
 
 			if (!currencySettings) {
-				currencySettings = await CurrencySettings.create({
+				currencySettings = (await insertDoc(CurrencySettings, {
 					tenantId,
 					primaryCurrency: null,
 					secondaryCurrencies: [],
-				})
+				})) as unknown as ICurrencySettings
 			}
 
-			const plain = currencySettings.toObject()
+			const plain = currencySettings
 			const secondaryIds = (plain.secondaryCurrencies ?? []).map(
 				item => item.currencyId,
 			)
@@ -414,7 +426,13 @@ export default class SettingController {
 					}))
 			: []
 
-		const existingSettings = await CurrencySettings.findOne({ tenantId })
+		const existingSettings = await pgFindOne<ICurrencySettings>(
+			CurrencySettings,
+			tenantId,
+			{
+				tenantId,
+			},
+		)
 		const previousSecondaryIds =
 			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ?? []
 		const nextSecondaryIds = new Set(
@@ -487,7 +505,9 @@ export default class SettingController {
 			secondaryCurrencies: resolvedSecondary,
 		}
 
-		const currencySettings = await CurrencySettings.findOneAndUpdate(
+		const currencySettings = await pgFindOneAndUpdate(
+			CurrencySettings,
+			tenantId,
 			{ tenantId },
 			updateData,
 			{ new: true, upsert: true },
@@ -677,12 +697,13 @@ export default class SettingController {
 
 			if (nameChanged || codeChanged) {
 				if (normalizedCode) {
-					const conflictingCode = await withTenantScope(
-						Currency.findOne({
+					const conflictingCode = await pgFindOne(
+						Currency,
+						tenantContext.tenantId,
+						{
 							internalCode: normalizedCode,
 							currencyId: { $ne: existing.currencyId },
-						}).lean(),
-						tenantContext.tenantId,
+						},
 					)
 
 					if (conflictingCode) {
@@ -693,24 +714,23 @@ export default class SettingController {
 					}
 				}
 
-				await withTenantScope(
-					Currency.findOneAndUpdate(
-						{ currencyId: existing.currencyId },
-						{
-							$set: {
-								name: normalizedName,
-								internalCode: normalizedCode,
-								updatedBy: {
-									_id: requestContext.userId ?? '',
-									displayName:
-										`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-									updatedAt: new Date(),
-								},
+				await pgFindOneAndUpdate(
+					Currency,
+					tenantContext.tenantId,
+					{ currencyId: existing.currencyId },
+					{
+						$set: {
+							name: normalizedName,
+							internalCode: normalizedCode,
+							updatedBy: {
+								_id: requestContext.userId ?? '',
+								displayName:
+									`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+								updatedAt: new Date(),
 							},
 						},
-						{ new: true, runValidators: true },
-					),
-					tenantContext.tenantId,
+					},
+					{ new: true },
 				)
 			}
 
@@ -740,20 +760,16 @@ export default class SettingController {
 		internalCode?: string,
 		name?: string,
 	) {
-		const existingById = await withTenantScope(
-			Currency.findOne({ currencyId }).lean(),
-			tenantId,
-		)
+		const existingById = await pgFindOne(Currency, tenantId, { currencyId })
 
 		if (existingById) {
 			return existingById
 		}
 
 		if (internalCode) {
-			const existingByCode = await withTenantScope(
-				Currency.findOne({ internalCode }).lean(),
-				tenantId,
-			)
+			const existingByCode = await pgFindOne(Currency, tenantId, {
+				internalCode,
+			})
 
 			if (existingByCode) {
 				return existingByCode
@@ -761,12 +777,9 @@ export default class SettingController {
 		}
 
 		if (name) {
-			const existingByName = await withTenantScope(
-				Currency.findOne({
-					name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-				}).lean(),
-				tenantId,
-			)
+			const existingByName = await pgFindOne(Currency, tenantId, {
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			})
 
 			if (existingByName) {
 				return existingByName
@@ -782,8 +795,7 @@ export default class SettingController {
 	): Promise<void> {
 		const tenantContext = getTenantContext(requestContext)
 
-		await Currency.deleteMany({
-			tenantId: tenantContext.tenantId,
+		await pgDeleteMany(Currency, tenantContext.tenantId, {
 			currencyId: { $in: currencyIds },
 		})
 	}

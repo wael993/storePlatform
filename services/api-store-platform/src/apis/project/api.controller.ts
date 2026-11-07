@@ -1,5 +1,5 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
-import { pgFind } from '../../db/mongoQuery'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
 import { Project, type IProject } from '../../models/Project'
@@ -9,7 +9,6 @@ import { ERROR_CODES } from '../../shared/errorCodes'
 import { COLLECTION_NAMES } from '../../shared/general'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { getTenantContext } from '../../shared/tenant'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import {
@@ -396,12 +395,9 @@ export default class ProjectController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Project.findOne({
-				name: new RegExp(`^${this.escapeRegex(name.trim())}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Project, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name.trim())}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -412,10 +408,9 @@ export default class ProjectController {
 
 		const projectId = resolveSyncClientId(requestBody.projectId)
 
-		const existingById = await withTenantScope(
-			Project.findOne({ projectId }).lean<IProject | null>(),
-			tenantContext.tenantId,
-		)
+		const existingById = await (pgFindOne(Project, tenantContext.tenantId, {
+			projectId,
+		}) as unknown as Promise<IProject | null>)
 
 		if (existingById) {
 			return {
@@ -485,13 +480,10 @@ export default class ProjectController {
 				)
 			}
 
-			const duplicate = await withTenantScope(
-				Project.findOne({
-					projectId: { $ne: projectId },
-					name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-				}),
-				tenantId,
-			).lean()
+			const duplicate = await pgFindOne(Project, tenantId, {
+				projectId: { $ne: projectId },
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			})
 
 			if (duplicate) {
 				throw new BusinessLogicError(
@@ -520,10 +512,13 @@ export default class ProjectController {
 			updates.contractCost = contractCost
 		}
 
-		const updated = await withTenantScope(
-			Project.findOneAndUpdate({ projectId }, { $set: updates }, { new: true }),
+		const updated = (await pgFindOneAndUpdate(
+			Project,
 			tenantId,
-		).lean<IProject | null>()
+			{ projectId },
+			{ $set: updates },
+			{ new: true },
+		)) as IProject | null
 
 		if (!updated) {
 			throw new BusinessLogicError(

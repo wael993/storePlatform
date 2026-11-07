@@ -1,9 +1,10 @@
+import { insertDocs } from '../../db/docs'
+import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
 import { v4 as uuidv4 } from 'uuid'
 
 import { Category } from '../../models/Category'
 import { Supplier } from '../../models/Supplier'
 import { Unit } from '../../models/Unit'
-import { withTenantScope } from '../mongodb/tenantScopedModel'
 import type { MasterDataImportField } from '../constants/productImport'
 
 export const normalizeMasterName = (value: string): string =>
@@ -53,18 +54,9 @@ export const loadMasterCandidates = async (
 	tenantId: string,
 ): Promise<Record<MasterDataImportField, MasterCandidate[]>> => {
 	const [categories, suppliers, units] = await Promise.all([
-		withTenantScope(
-			Category.find().select({ categoryId: 1, name: 1 }).lean(),
-			tenantId,
-		),
-		withTenantScope(
-			Supplier.find().select({ supplierId: 1, name: 1 }).lean(),
-			tenantId,
-		),
-		withTenantScope(
-			Unit.find().select({ unitId: 1, name: 1 }).lean(),
-			tenantId,
-		),
+		pgFind(Category, tenantId, {}, { select: { categoryId: 1, name: 1 } }),
+		pgFind(Supplier, tenantId, {}, { select: { supplierId: 1, name: 1 } }),
+		pgFind(Unit, tenantId, {}, { select: { unitId: 1, name: 1 } }),
 	])
 
 	return {
@@ -189,7 +181,7 @@ export const applyMasterDecisions = async (
 		if (decision.kind === 'category') {
 			const categoryId = uuidv4()
 
-			await Category.insertMany([
+			await insertDocs(Category, [
 				{
 					tenantId,
 					categoryId,
@@ -203,7 +195,7 @@ export const applyMasterDecisions = async (
 		} else if (decision.kind === 'supplier') {
 			const supplierId = uuidv4()
 
-			await Supplier.insertMany([
+			await insertDocs(Supplier, [
 				{
 					tenantId,
 					supplierId,
@@ -221,7 +213,7 @@ export const applyMasterDecisions = async (
 		} else {
 			const unitId = uuidv4()
 
-			await Unit.insertMany([
+			await insertDocs(Unit, [
 				{
 					tenantId,
 					unitId,
@@ -248,19 +240,17 @@ export const rollbackCreatedMasterData = async (
 
 	await Promise.all([
 		created.categoryIds.length
-			? Category.deleteMany({
+			? pgDeleteMany(Category, tenantId, {
 					categoryId: { $in: created.categoryIds },
-				}).setOptions({ __tenantContext: { tenantId } })
+				})
 			: Promise.resolve(),
 		created.supplierIds.length
-			? Supplier.deleteMany({
+			? pgDeleteMany(Supplier, tenantId, {
 					supplierId: { $in: created.supplierIds },
-				}).setOptions({ __tenantContext: { tenantId } })
+				})
 			: Promise.resolve(),
 		created.unitIds.length
-			? Unit.deleteMany({ unitId: { $in: created.unitIds } }).setOptions({
-					__tenantContext: { tenantId },
-				})
+			? pgDeleteMany(Unit, tenantId, { unitId: { $in: created.unitIds } })
 			: Promise.resolve(),
 	])
 }

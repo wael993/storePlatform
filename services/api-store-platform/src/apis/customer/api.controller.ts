@@ -1,5 +1,5 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
-import { pgFind } from '../../db/mongoQuery'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Customer, type ICustomer } from '../../models/Customer'
 import { DailyAction } from '../../models/DailyAction'
@@ -314,12 +314,9 @@ export default class CustomerController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Customer.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Customer, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -330,10 +327,9 @@ export default class CustomerController {
 
 		const customerId = resolveSyncClientId(requestBody.customerId)
 
-		const existingById = await withTenantScope(
-			Customer.findOne({ customerId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Customer, tenantContext.tenantId, {
+			customerId,
+		})
 
 		if (existingById) {
 			return {
@@ -385,9 +381,12 @@ export default class CustomerController {
 	) {
 		await ensureSeeIds(requestContext, [SEE.customersAdd])
 		const tenantId = this.getTenantId(requestContext)
-		const settings = await CurrencySettings.findOne({ tenantId })
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const settings = await pgFindOne(
+			CurrencySettings,
+			tenantId,
+			{ tenantId },
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const currencies = ratesFromCurrencySettings(settings).map(rate => ({
 			currencyId: rate.currencyId,
 			code: rate.label,
@@ -407,24 +406,23 @@ export default class CustomerController {
 			)
 		}
 
-		const updated = await withTenantScope(
-			Customer.findOneAndUpdate(
-				{ customerId },
-				{
-					$set: {
-						openingBalances,
-						updatedBy: {
-							_id: requestContext.userId as string,
-							displayName:
-								`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-							updatedAt: new Date(),
-						},
+		const updated = (await pgFindOneAndUpdate(
+			Customer,
+			tenantId,
+			{ customerId },
+			{
+				$set: {
+					openingBalances,
+					updatedBy: {
+						_id: requestContext.userId as string,
+						displayName:
+							`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+						updatedAt: new Date(),
 					},
 				},
-				{ new: true },
-			),
-			tenantId,
-		).lean<ICustomer | null>()
+			},
+			{ new: true },
+		)) as ICustomer | null
 
 		if (!updated) {
 			throw new BusinessLogicError(

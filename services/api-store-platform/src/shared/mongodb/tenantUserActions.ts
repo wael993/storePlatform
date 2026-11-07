@@ -1,3 +1,4 @@
+import { pgFind } from '../../db/mongoQuery'
 import User, { IUser } from '../../models/User'
 import RefreshToken from '../../models/RefreshToken'
 import { Warehouse } from '../../models/Warehaus'
@@ -93,10 +94,9 @@ export const updateTenantUser = async (
 		}
 
 		if (uniqueIds.length > 0) {
-			const warehouses = await withTenantScope(
-				Warehouse.find({ warehouseId: { $in: uniqueIds } }).lean(),
-				tenantContext.tenantId,
-			)
+			const warehouses = await pgFind(Warehouse, tenantContext.tenantId, {
+				warehouseId: { $in: uniqueIds },
+			})
 			const found = new Set(
 				warehouses.map(warehouse => warehouse.warehouseId as string),
 			)

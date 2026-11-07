@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
-import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
+import { pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -11,7 +11,6 @@ import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import {
@@ -287,10 +286,9 @@ export default class SellingInvoiceController {
 	) {
 		const tenantContext = getTenantContext(requestContext)
 		const requestedProductIds = [...new Set(items.map(item => item.productId))]
-		const products = await withTenantScope(
-			Product.find({ productId: { $in: requestedProductIds } }),
-			tenantContext.tenantId,
-		).lean()
+		const products = await pgFind(Product, tenantContext.tenantId, {
+			productId: { $in: requestedProductIds },
+		})
 
 		if (products.length !== requestedProductIds.length) {
 			throw new BusinessLogicError(
@@ -534,10 +532,12 @@ export default class SellingInvoiceController {
 		supplierId: string,
 	): Promise<Map<string, ProductProfitAggregate>> {
 		const tenantId = this.getTenantId(requestContext)
-		const products = await withTenantScope(
-			Product.find({ supplierId }).select({ productId: 1 }),
+		const products = await (pgFind(
+			Product,
 			tenantId,
-		).lean<Array<{ productId?: string }>>()
+			{ supplierId },
+			{ select: { productId: 1 } },
+		) as unknown as Promise<Array<{ productId?: string }>>)
 		const allowed = new Set(
 			products
 				.map(product => product.productId)
@@ -629,9 +629,12 @@ export default class SellingInvoiceController {
 		)
 
 		const tenantId = getTenantContext(requestContext).tenantId
-		const currencySettings = await CurrencySettings.findOne({ tenantId })
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const currencySettings = await pgFindOne(
+			CurrencySettings,
+			tenantId,
+			{ tenantId },
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const purchaseCost = catalogCostToPrimary(
 			product?.price?.purchasePrice,
 			product?.price?.currency,

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import { closeDb } from '../db'
-import { insertDocs } from '../db/docs'
+import { insertDoc, insertDocs } from '../db/docs'
 import { pgDeleteMany } from '../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
@@ -57,20 +57,20 @@ const wipe = async () => {
 	await Promise.all([
 		User.deleteMany(filter),
 		UserSettings.deleteMany(filter),
-		CurrencySettings.deleteMany(filter),
+		pgDeleteMany(CurrencySettings, TENANT_ID, {}),
 		InvoiceSettings.deleteMany(filter),
-		Currency.deleteMany(filter),
-		Unit.deleteMany(filter),
-		Warehouse.deleteMany(filter),
-		Shelf.deleteMany(filter),
-		Brand.deleteMany(filter),
-		Category.deleteMany(filter),
-		Supplier.deleteMany(filter),
-		Customer.deleteMany(filter),
-		Partner.deleteMany(filter),
-		Employee.deleteMany(filter),
-		Expense.deleteMany(filter),
-		Product.deleteMany(filter),
+		pgDeleteMany(Currency, TENANT_ID, {}),
+		pgDeleteMany(Unit, TENANT_ID, {}),
+		pgDeleteMany(Warehouse, TENANT_ID, {}),
+		pgDeleteMany(Shelf, TENANT_ID, {}),
+		pgDeleteMany(Brand, TENANT_ID, {}),
+		pgDeleteMany(Category, TENANT_ID, {}),
+		pgDeleteMany(Supplier, TENANT_ID, {}),
+		pgDeleteMany(Customer, TENANT_ID, {}),
+		pgDeleteMany(Partner, TENANT_ID, {}),
+		pgDeleteMany(Employee, TENANT_ID, {}),
+		pgDeleteMany(Expense, TENANT_ID, {}),
+		pgDeleteMany(Product, TENANT_ID, {}),
 		pgDeleteMany(Inventory, TENANT_ID, {}),
 		pgDeleteMany(Invoice, TENANT_ID, {}),
 		pgDeleteMany(BuyingInvoice, TENANT_ID, {}),
@@ -181,8 +181,8 @@ async function seedAppTenant() {
 		createdBy: BY,
 	}
 
-	await Currency.insertMany([usd, syp])
-	await CurrencySettings.create({
+	await insertDocs(Currency, [usd, syp])
+	await insertDoc(CurrencySettings, {
 		tenantId: TENANT_ID,
 		primaryCurrency: {
 			currencyId: usd.currencyId,
@@ -231,7 +231,7 @@ async function seedAppTenant() {
 		createdBy: BY,
 	}
 
-	await Unit.create(piece)
+	await insertDoc(Unit, piece)
 
 	const warehouse = {
 		tenantId: TENANT_ID,
@@ -251,8 +251,8 @@ async function seedAppTenant() {
 		createdBy: BY,
 	}
 
-	await Warehouse.create(warehouse)
-	await Shelf.create(shelf)
+	await insertDoc(Warehouse, warehouse)
+	await insertDoc(Shelf, shelf)
 
 	const brandRows = [
 		{ name: 'سامسونج', description: 'هواتف وشاشات وأجهزة منزلية' },
@@ -261,7 +261,8 @@ async function seedAppTenant() {
 		{ name: 'إل جي', description: 'تلفزيونات وأجهزة منزلية' },
 		{ name: 'شاومي', description: 'هواتف وإلكترونيات بأسعار مناسبة' },
 	]
-	const brands = await Brand.insertMany(
+	const brands = await insertDocs(
+		Brand,
 		brandRows.map(brand => ({
 			...brand,
 			tenantId: TENANT_ID,
@@ -306,7 +307,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Category.insertMany(
+	await insertDocs(
+		Category,
 		categoryRows.map(category => ({
 			...category,
 			tenantId: TENANT_ID,
@@ -338,7 +340,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Supplier.insertMany(
+	await insertDocs(
+		Supplier,
 		suppliers.map(supplier => ({
 			...supplier,
 			tenantId: TENANT_ID,
@@ -370,7 +373,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Customer.insertMany(
+	await insertDocs(
+		Customer,
 		customers.map(customer => ({
 			...customer,
 			tenantId: TENANT_ID,
@@ -378,7 +382,7 @@ async function seedAppTenant() {
 		})),
 	)
 
-	await Partner.insertMany([
+	await insertDocs(Partner, [
 		{
 			_id: id('par-1'),
 			tenantId: TENANT_ID,
@@ -401,7 +405,7 @@ async function seedAppTenant() {
 		},
 	])
 
-	await Employee.insertMany([
+	await insertDocs(Employee, [
 		{
 			_id: id('emp-1'),
 			tenantId: TENANT_ID,
@@ -465,7 +469,7 @@ async function seedAppTenant() {
 		},
 	])
 
-	await Expense.insertMany([
+	await insertDocs(Expense, [
 		{
 			_id: id('exp-rent'),
 			tenantId: TENANT_ID,
@@ -615,7 +619,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Product.insertMany(
+	await insertDocs(
+		Product,
 		products.map(product => ({
 			tenantId: TENANT_ID,
 			productId: product.productId,

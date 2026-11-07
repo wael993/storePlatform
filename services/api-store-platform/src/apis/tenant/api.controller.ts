@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { pgDeleteMany } from '../../db/mongoQuery'
+import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -269,9 +269,11 @@ export default class TenantController {
 			const inviterScope = getAllowedWarehouseIds(requestContext)
 
 			if (inviterScope === null) {
-				const warehouses = (await withTenantScope(
-					Warehouse.find({}).select('warehouseId').lean(),
+				const warehouses = (await pgFind(
+					Warehouse,
 					tenantContext.tenantId,
+					{},
+					{ select: 'warehouseId' },
 				)) as Array<{ warehouseId?: string }>
 
 				warehouseIds = warehouses
@@ -557,8 +559,8 @@ export default class TenantController {
 		await Promise.all([
 			User.deleteMany({ tenantId }),
 			RefreshToken.deleteMany({ tenantId }),
-			Product.deleteMany({ tenantId }),
-			Project.deleteMany({ tenantId }),
+			pgDeleteMany(Product, tenantId, {}),
+			pgDeleteMany(Project, tenantId, {}),
 			pgDeleteMany(Invoice, tenantId, {}),
 			pgDeleteMany(Inventory, tenantId, {}),
 			Report.deleteMany({ tenantId }),

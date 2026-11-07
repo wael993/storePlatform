@@ -1,7 +1,7 @@
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
 import { inTransaction } from '../../db'
-import { insertDoc } from '../../db/docs'
-import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
+import { insertDocs } from '../../db/docs'
+import { pgCount, pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 import {
 	AuthorizationError,
 	BusinessLogicError,
@@ -172,9 +172,7 @@ export const getProductImportStatus = async (
 	assertOwnerOrAdmin(requestContext)
 	const { tenantId } = getTenantContext(requestContext)
 	const tenant = await loadTenant(tenantId)
-	const productCount = await Product.countDocuments().setOptions({
-		__tenantContext: { tenantId },
-	})
+	const productCount = await pgCount(Product, tenantId)
 	const session = await ProductImportSession.findOne({
 		tenantId,
 		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
@@ -252,9 +250,7 @@ const assertImportAllowed = async (
 	}
 
 	if (!options?.ignoreExistingProducts) {
-		const productCount = await Product.countDocuments().setOptions({
-			__tenantContext: { tenantId },
-		})
+		const productCount = await pgCount(Product, tenantId)
 
 		if (productCount > 0) {
 			throw new BusinessLogicError(
@@ -268,9 +264,12 @@ const assertImportAllowed = async (
 }
 
 const loadCurrencySettings = async (tenantId: string) => {
-	const settings = await CurrencySettings.findOne({ tenantId })
-		.select('primaryCurrency secondaryCurrencies')
-		.lean()
+	const settings = await pgFindOne(
+		CurrencySettings,
+		tenantId,
+		{ tenantId },
+		{ select: 'primaryCurrency secondaryCurrencies' },
+	)
 
 	if (!settings?.primaryCurrency) {
 		throw new BusinessLogicError(
@@ -489,11 +488,11 @@ const summarizeRows = (mapped: ReturnType<typeof mapSourceRows>) => {
 }
 
 const loadExistingBarcodeKeys = async (tenantId: string) => {
-	const products = await withTenantScope(
-		Product.find({})
-			.select({ productId: 1, barcode: 1, additionalBarcodes: 1 })
-			.lean(),
+	const products = await pgFind(
+		Product,
 		tenantId,
+		{},
+		{ select: { productId: 1, barcode: 1, additionalBarcodes: 1 } },
 	)
 	const keys = new Set<string>()
 
@@ -836,18 +835,16 @@ export const commitProductImport = async (
 		rowProductIds(session.sessionId, row),
 	)
 	const sessionStarted = sessionProductIds.length
-		? await withTenantScope(
-				Product.findOne({ productId: { $in: sessionProductIds } })
-					.select({ productId: 1 })
-					.lean(),
+		? await pgFindOne(
+				Product,
 				tenantId,
+				{ productId: { $in: sessionProductIds } },
+				{ select: { productId: 1 } },
 			)
 		: null
 
 	if (!sessionStarted) {
-		const productCount = await Product.countDocuments().setOptions({
-			__tenantContext: { tenantId },
-		})
+		const productCount = await pgCount(Product, tenantId)
 
 		if (productCount > 0) {
 			throw new BusinessLogicError(
@@ -872,17 +869,17 @@ export const commitProductImport = async (
 	const alreadyImported = new Set(
 		productIds.length
 			? (
-					await withTenantScope(
-						Product.find({
+					await pgFind(
+						Product,
+						tenantId,
+						{
 							productId: {
 								$in: batch.flatMap(row =>
 									rowProductIds(session.sessionId, row),
 								),
 							},
-						})
-							.select({ productId: 1 })
-							.lean(),
-						tenantId,
+						},
+						{ select: { productId: 1 } },
 					)
 				).map(item => item.productId)
 			: [],
@@ -938,12 +935,12 @@ export const commitProductImport = async (
 	// operational warehouse, never in an arbitrary one.
 	const importWarehouseId = requireOperationalWarehouseId(requestContext)
 
-	const warehouseExists = await withTenantScope(
-		Warehouse.findOne({ warehouseId: importWarehouseId })
-			.select('warehouseId')
-			.lean<{ warehouseId?: string }>(),
+	const warehouseExists = await (pgFindOne(
+		Warehouse,
 		tenantId,
-	)
+		{ warehouseId: importWarehouseId },
+		{ select: 'warehouseId' },
+	) as unknown as Promise<{ warehouseId?: string }>)
 
 	if (!warehouseExists?.warehouseId) {
 		throw new BusinessLogicError(
@@ -978,13 +975,8 @@ export const commitProductImport = async (
 
 		try {
 			await inTransaction(undefined, async tx => {
-				for (const inventory of inventories) {
-					await insertDoc(Inventory, inventory, tx)
-				}
-
-				// shortcut: products are still in Mongo (group 2): no shared transaction.
-				// Inserted last, so a failure rolls back the Postgres inventory. Upgrade with group 2.
-				await Product.insertMany(products, { ordered: true })
+				await insertDocs(Product, products, tx)
+				await insertDocs(Inventory, inventories, tx)
 			})
 		} catch (error) {
 			if (!sessionStarted && session.createdMasterData) {

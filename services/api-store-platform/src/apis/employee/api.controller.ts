@@ -1,3 +1,6 @@
+import { insertDoc, saveDoc } from '../../db/docs'
+import type { Doc } from '../../db/etl/mongoToPg'
+import { pgFind, pgFindOne } from '../../db/mongoQuery'
 import { v4 as uuidv4 } from 'uuid'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
@@ -20,7 +23,6 @@ import {
 	toEmployeeDto,
 } from '../../models/Employee'
 import { ERROR_CODES } from '../../shared/errorCodes'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { getTenantContext } from '../../shared/tenant'
 import { ensureSeeIds } from '../../shared/seePermissions'
 import { SEE } from '../../shared/seeCatalog'
@@ -61,10 +63,9 @@ export default class EmployeeController {
 		tenantId: string,
 		employeeId: string,
 	): Promise<IEmployee> {
-		const employee = (await withTenantScope(
-			Employee.findOne({ employeeId }),
-			tenantId,
-		)) as IEmployee | null
+		const employee = (await pgFindOne(Employee, tenantId, {
+			employeeId,
+		})) as IEmployee | null
 
 		if (!employee) {
 			throw businessError('Employee not found')
@@ -77,10 +78,7 @@ export default class EmployeeController {
 		tenantId: string,
 		currencyId: string,
 	): Promise<string> {
-		const currency = await withTenantScope(
-			Currency.findOne({ currencyId }).lean(),
-			tenantId,
-		)
+		const currency = await pgFindOne(Currency, tenantId, { currencyId })
 
 		if (!currency) {
 			throw businessError('Currency not found')
@@ -103,9 +101,16 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 	): Promise<{ data: EmployeeDto[]; totalCount: number }> {
 		const tenantId = await this.requireAccess(requestContext)
-		const employees = (await withTenantScope(Employee.find(), tenantId).sort({
-			name: 1,
-		})) as IEmployee[]
+		const employees = (await pgFind(
+			Employee,
+			tenantId,
+			{},
+			{
+				sort: {
+					name: 1,
+				},
+			},
+		)) as IEmployee[]
 		const data = employees.map(toEmployeeDto)
 
 		return { data, totalCount: data.length }
@@ -142,7 +147,7 @@ export default class EmployeeController {
 		const employeeId = uuidv4()
 		const created = actor(requestContext)
 
-		await Employee.create({
+		await insertDoc(Employee, {
 			_id: employeeId,
 			tenantId,
 			employeeId,
@@ -219,7 +224,7 @@ export default class EmployeeController {
 		employee.endDate = dates.endDate
 		this.guardHourlySchedule(employee)
 		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await employee.save()
+		await saveDoc(Employee, tenantId, employee as unknown as Doc)
 
 		return toEmployeeDto(employee)
 	}
@@ -242,7 +247,7 @@ export default class EmployeeController {
 
 		this.guardHourlySchedule(employee)
 		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await employee.save()
+		await saveDoc(Employee, tenantId, employee as unknown as Doc)
 
 		return toEmployeeDto(employee)
 	}
@@ -264,7 +269,7 @@ export default class EmployeeController {
 		})
 
 		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await employee.save()
+		await saveDoc(Employee, tenantId, employee as unknown as Doc)
 
 		return toEmployeeDto(employee)
 	}
@@ -292,7 +297,7 @@ export default class EmployeeController {
 		payout.currencyName = currencyName
 		payout.note = next.note
 		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await employee.save()
+		await saveDoc(Employee, tenantId, employee as unknown as Doc)
 
 		return toEmployeeDto(employee)
 	}
@@ -313,9 +318,8 @@ export default class EmployeeController {
 		}
 
 		employee.payouts = nextPayouts
-		employee.markModified('payouts')
 		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await employee.save()
+		await saveDoc(Employee, tenantId, employee as unknown as Doc)
 
 		return toEmployeeDto(employee)
 	}
