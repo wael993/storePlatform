@@ -1,5 +1,5 @@
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
-import { getDb } from '../../db'
+import { inTransaction } from '../../db'
 import { insertDoc } from '../../db/docs'
 import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
 import {
@@ -977,7 +977,7 @@ export const commitProductImport = async (
 		await assertNoTenantBarcodeCollisionsForProducts(tenantId, products)
 
 		try {
-			await getDb().transaction(async tx => {
+			await inTransaction(undefined, async tx => {
 				for (const inventory of inventories) {
 					await insertDoc(Inventory, inventory, tx)
 				}

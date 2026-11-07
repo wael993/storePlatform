@@ -1,8 +1,8 @@
-import { and, eq, inArray, SQL } from 'drizzle-orm'
+import { and, eq, SQL } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
-import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
+import { anyOf, DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
 import { Doc, MapResult, mapDocs, Row, Spec, SPECS } from './etl/mongoToPg'
 import * as t from './schema'
 
@@ -473,7 +473,7 @@ export const findDocs = async (
 
 		const conditions = [
 			eq(column(child.table, 'tenantId'), tenantId!),
-			inArray(column(child.table, child.link), keys),
+			anyOf(column(child.table, child.link), keys),
 			...Object.entries(child.extra ?? {}).map(([key, value]) =>
 				eq(column(child.table, key), value),
 			),
@@ -564,7 +564,7 @@ const deleteChildren = async (
 			.where(
 				and(
 					eq(column(child.table, 'tenantId'), tenantId),
-					inArray(column(child.table, child.link), keys),
+					anyOf(column(child.table, child.link), keys),
 					...Object.entries(child.extra ?? {}).map(([key, value]) =>
 						eq(column(child.table, key), value),
 					),
@@ -631,7 +631,7 @@ export const deleteDocs = (
 
 		await deleteChildren(db, table, requireTenantId(tenantId), docs)
 		await db.delete(table).where(
-			inArray(
+			anyOf(
 				column(table, 'id'),
 				docs.map(doc => String(doc._id)),
 			),

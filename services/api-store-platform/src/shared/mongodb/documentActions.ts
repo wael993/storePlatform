@@ -7,7 +7,7 @@ import { ERROR_CODES } from '../errorCodes'
 import logger, { EntityType } from '../logger/logger'
 import { SortOrder } from 'mongoose'
 import { COLLECTION_NAMES } from '../general'
-import { insertDoc, updateDoc } from '../../db/docs'
+import { deleteDocs, insertDoc, updateDoc } from '../../db/docs'
 import { whereOf, pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 import { asMongoSession, asTx, isPgModel, Session } from '../../db/ownership'
 import { specForModel } from '../../db/docs'
@@ -279,18 +279,22 @@ export const deleteDocument = async (
 	const idField = RESOURCE_ID_FIELD[resource]
 
 	if (isPgModel(model)) {
-		const target = await pgFindOne(model, tenantId, { [idField]: id })
+		// Locks then deletes: of two parallel deletes, the second finds nothing (like findOneAndDelete).
+		const table = specForModel(model).table
+		const [deleted] = await deleteDocs(
+			table,
+			tenantId,
+			whereOf(table, { [idField]: id }),
+		)
 
-		if (target) await pgDeleteMany(model, tenantId, { _id: target._id })
-
-		if (!target) {
+		if (!deleted) {
 			throw new BusinessLogicError(
 				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
 				`${resource} not found.`,
 			)
 		}
 
-		return target
+		return deleted
 	}
 
 	const deleted = await withTenantScope(

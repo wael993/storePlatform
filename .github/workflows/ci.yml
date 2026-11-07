@@ -46,7 +46,7 @@ jobs:
     services:
       # Throwaway DB for the Postgres migration (PG-MIG-1): migrations must apply cleanly.
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: store_platform

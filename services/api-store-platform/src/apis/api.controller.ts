@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import { DbTx, getDb } from '../db'
+import { DbTx, inTransaction } from '../db'
 import { pgDeleteMany, pgFind, pgFindOne, pgUpdateMany } from '../db/mongoQuery'
 import {
 	adjustInventoryQuantity,
@@ -53,7 +53,7 @@ import {
 	listCashLedgerEntries,
 	postInternalCashExchange,
 	postInternalCashTransfer,
-} from '../shared/cashAccounts/ledgerService.pg'
+} from '../shared/cashAccounts/ledgerService'
 import {
 	loadCashCurrencyRates,
 	syncDailyActionCashLedger,
@@ -1786,21 +1786,19 @@ export default class ProductController {
 		await this.runInTransaction(async session => {
 			await this.mongoDbClient.createDocument(
 				{
-					collectionName: COLLECTION_NAMES.PRODUCTS,
-					data: productData,
-					session,
-				},
-				Product,
-				requestContext,
-			)
-
-			await this.mongoDbClient.createDocument(
-				{
 					collectionName: COLLECTION_NAMES.INVENTORY,
 					data: inventoryData,
 					session,
 				},
 				Inventory,
+				requestContext,
+			)
+
+			// shortcut: products are still in Mongo (group 2), so no shared transaction.
+			// Written last: if it fails, the Postgres inventory row rolls back. Upgrade with group 2.
+			await this.mongoDbClient.createDocument(
+				{ collectionName: COLLECTION_NAMES.PRODUCTS, data: productData },
+				Product,
 				requestContext,
 			)
 		})
@@ -2174,7 +2172,7 @@ export default class ProductController {
 	public async runInTransaction<T>(
 		work: (session: DbTx) => Promise<T>,
 	): Promise<T> {
-		return getDb().transaction(tx => work(tx))
+		return inTransaction(undefined, work)
 	}
 
 	/**

@@ -1,4 +1,13 @@
+import { sql, SQLWrapper } from 'drizzle-orm'
+
 import { createDb, Db } from './client'
+
+/**
+ * `column = any($1)` with all values in ONE array parameter. `IN (...)` / `inArray`
+ * send one parameter per value, and Postgres refuses more than 65,535.
+ */
+export const anyOf = (column: SQLWrapper, values: unknown[]) =>
+	sql`${column} = any(${sql.param(values)})`
 
 let instance: ReturnType<typeof createDb> | undefined
 
@@ -19,11 +28,37 @@ export type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0]
 /** Anything that can run a query: the client or an open transaction. */
 export type Executor = Db | DbTx
 
-/** Runs `work` in the caller's transaction, or opens one. */
-export const inTransaction = <T>(
+/** Deadlock / serialization failure: safe to run the whole transaction again. */
+const RETRYABLE = new Set(['40P01', '40001'])
+const MAX_ATTEMPTS = 3
+
+const pgErrorCode = (error: unknown): string | undefined => {
+	const { code, cause } = (error ?? {}) as { code?: string; cause?: unknown }
+
+	return code ?? (cause as { code?: string } | undefined)?.code
+}
+
+/**
+ * Runs `work` in the caller's transaction, or opens one. An own transaction is
+ * retried on deadlock / serialization failure, like Mongo's withTransaction
+ * retried transient errors (callbacks must stay re-runnable, as they had to be).
+ */
+export const inTransaction = async <T>(
 	tx: DbTx | undefined,
 	work: (tx: DbTx) => Promise<T>,
-): Promise<T> => (tx ? work(tx) : getDb().transaction(work))
+): Promise<T> => {
+	if (tx) return work(tx)
+
+	for (let attempt = 1; ; attempt++) {
+		try {
+			return await getDb().transaction(work)
+		} catch (error) {
+			if (attempt >= MAX_ATTEMPTS || !RETRYABLE.has(pgErrorCode(error) ?? '')) {
+				throw error
+			}
+		}
+	}
+}
 
 /** Same message as the Mongo tenant plugin: every store query needs a tenant. */
 export const requireTenantId = (tenantId: string | undefined): string => {

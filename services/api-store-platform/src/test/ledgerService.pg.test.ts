@@ -10,7 +10,7 @@ import {
 	postInternalCashTransfer,
 	postOpeningBalance,
 	syncCashEffectsForReference,
-} from '../shared/cashAccounts/ledgerService.pg'
+} from '../shared/cashAccounts/ledgerService'
 import type { RequestContext } from '../shared/types'
 
 // Real Postgres (migrated). CI provides DATABASE_URL; locally see docs/architecture/postgres-migration.md.

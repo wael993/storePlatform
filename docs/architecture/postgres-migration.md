@@ -19,7 +19,7 @@ Not a reason: the offline client. Dexie/outbox stays on the HTTP contract and do
 
 | Topic | Decision | Why (with the roadmap in mind) |
 | --- | --- | --- |
-| Database | PostgreSQL **17**, one database | One DB for store, marketplace and webshop; split later only if a context grows out of it. |
+| Database | PostgreSQL **18** (what Render provides; CI and local use the same), one database | One DB for store, marketplace and webshop; split later only if a context grows out of it. |
 | Hosting | **Render Postgres**, same region as the API service (Frankfurt), connected over Render's internal URL. Staging/rehearsal = a second, small Render Postgres loaded from a prod dump, deleted afterwards. | API already runs on Render: private network, no cross-provider latency, one bill. EU region for GDPR (webshop end customers). SAP connects over APIs, never to our DB, so host choice does not limit it. |
 | Driver / ORM | **Drizzle ORM + `pg` (node-postgres)**, migrations with `drizzle-kit` | SQL-first: marketplace search, reports and SAP export queries stay plain SQL. Interactive transactions for the ledger. `numeric` comes back as **string** → no float; money math stays in `store-domain` (house rule). No query engine binary, no codegen step. Prisma rejected: relation-first API, Decimal.js type, harder raw SQL. |
 | Connection | `pg.Pool` (small pool, e.g. 10) on `DATABASE_URL` = Render internal URL. | We need interactive transactions (`ledgerService`, product import, `api.controller`); pool size stays under the plan's connection limit. |
@@ -124,7 +124,7 @@ New models are fine if they are flat and tenant-scoped. Production hotfixes are 
 - Code: `services/api-store-platform/src/db/schema/` (`platform.ts`, `store.ts`, `columns.ts`); config `drizzle.config.ts`; migrations `drizzle/`.
 - Commands (`DATABASE_URL`, default `postgres://postgres:postgres@127.0.0.1:5433/store_platform`):
   `npm run db:generate` after a schema change · `npm run db:migrate` to apply.
-- Local throwaway DB: `docker run -d --rm --name pgmig -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=store_platform -p 127.0.0.1:5433:5432 postgres:17`.
+- Local throwaway DB: `docker run -d --rm --name pgmig -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=store_platform -p 127.0.0.1:5433:5432 postgres:18`.
 - Down (empty DB only): `drop schema store cascade; drop schema platform cascade; drop schema drizzle cascade;`. Drizzle has no down migrations; forward-fix after cutover.
 - CI (backend job): Postgres 17 service → `db:migrate` → `db:generate` must produce no new file.
 - `src/test/pgSchemaCoverage.test.ts`: fails when a Mongoose model has no table, a `store` table lacks `tenant_id`, or a column is float.
@@ -176,9 +176,17 @@ calls equal, after these documented rules:
 | Rows Mongo upserted without timestamps now have `createdAt` | Filled from ObjectId time; lists sorted by `createdAt` show them at their real date instead of last |
 | Array order in `/sync/changes` | Client applies the whole set |
 
-**Temporary cross-store writes** (`shortcut:` comments; fixed when group 2 moves): product purchase-price
-edit (Mongo product + Postgres cost sync) and product import (Mongo products + Postgres inventory). The
-Mongo write runs last inside the Postgres transaction, so its failure rolls back the Postgres part.
+**Temporary cross-store writes** (`shortcut:` comments; fixed when group 2 moves): product create (Mongo
+product + Postgres inventory row), product purchase-price edit (Mongo product + Postgres cost sync) and
+product import (Mongo products + Postgres inventory). The Mongo write always runs last inside the Postgres
+transaction, so its failure rolls back the Postgres part.
+
+**Transactions:** an own transaction is retried up to 3 times on deadlock / serialization failure
+(`40P01` / `40001`, `db/index.ts` `inTransaction`), as Mongo's `withTransaction` retried transient
+errors. `IN` lists go as one array parameter (`anyOf`): Postgres allows at most 65,535 parameters.
+
+**Ledger:** one file, `shared/cashAccounts/ledgerService.ts` (Postgres). The Mongo ledger and the
+one-off `scripts/migrate-cash-accounts.ts` are deleted.
 
 **Findings kept as-is (no behavior change in the port):** invoice numbers have no unique index
 (INV-NUM-1, `docs/backlog/later-tickets.md`); online buying numbers ignore the offline floor, so an

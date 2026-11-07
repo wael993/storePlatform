@@ -2,14 +2,16 @@ import { randomUUID } from 'crypto'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { closeDb, getDb } from '../db'
+import { closeDb, getDb, inTransaction } from '../db'
 import { insertDoc } from '../db/docs'
 import {
 	adjustInventoryQuantity,
 	claimWarehouseTransferLegs,
 	purchaseInventoryAdjustment,
 } from '../db/repos/inventory'
+import { pgFind } from '../db/mongoQuery'
 import { inventories } from '../db/schema'
+import { Inventory } from '../models/Inventory'
 import { StockMoving } from '../models/StockMovings'
 
 const enabled = Boolean(process.env.DATABASE_URL)
@@ -136,6 +138,57 @@ describe.skipIf(!enabled)('inventory writes (Postgres)', () => {
 			)
 
 		expect(Number(row.quantity)).toBe(1)
+	})
+
+	it('retries a transaction that lost a deadlock (Mongo withTransaction did too)', async () => {
+		const base = setup()
+		const p1 = { ...base, productId: 'p-1' }
+		const p2 = { ...base, productId: 'p-2' }
+
+		await adjust(p1, 10)
+		await adjust(p2, 10)
+
+		// Both transactions lock their first row, meet here, then want the other's row.
+		let arrived = 0
+		let release = () => {}
+		const bothLocked = new Promise<void>(resolve => (release = resolve))
+		const meet = async () => {
+			arrived += 1
+
+			if (arrived === 2) release()
+
+			await bothLocked
+		}
+		const crossing = (first: typeof p1, second: typeof p1) =>
+			inTransaction(undefined, async tx => {
+				await adjustInventoryQuantity(tx, { ...first, quantityDelta: 1 })
+				await meet()
+				await adjustInventoryQuantity(tx, { ...second, quantityDelta: 1 })
+			})
+
+		const results = await Promise.allSettled([
+			crossing(p1, p2),
+			crossing(p2, p1),
+		])
+
+		expect(results.map(r => r.status)).toEqual(['fulfilled', 'fulfilled'])
+
+		const rows = await pgFind(
+			Inventory,
+			base.tenantId,
+			{},
+			{ sort: { productId: 1 } },
+		)
+
+		expect(rows.map(row => row.quantity)).toEqual([12, 12])
+	})
+
+	it('accepts 70,000 ids in one $in (one array parameter, not 70,000)', async () => {
+		const ids = Array.from({ length: 70_000 }, (_, i) => `p-${i}`)
+
+		await expect(
+			pgFind(Inventory, setup().tenantId, { productId: { $in: ids } }),
+		).resolves.toEqual([])
 	})
 
 	it('reverses a warehouse transfer only once', async () => {

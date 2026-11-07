@@ -2,7 +2,7 @@ import { and, or, sql, SQL } from 'drizzle-orm'
 import { AnyPgColumn, getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
-import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
+import { anyOf, DbTx, Executor, inTransaction, requireTenantId } from '.'
 import { deleteDocs, findDocs, specForModel } from './docs'
 import { Doc } from './etl/mongoToPg'
 import * as t from './schema'
@@ -151,14 +151,8 @@ const fieldCondition = (column: AnyPgColumn, condition: unknown): SQL => {
 		if (present.length) {
 			parts.push(
 				isArray
-					? sql`${column} && array[${sql.join(
-							present.map(v => sql`${v}`),
-							sql`, `,
-						)}]::text[]`
-					: sql`${column} in (${sql.join(
-							present.map(v => sql`${v}`),
-							sql`, `,
-						)})`,
+					? sql`${column} && ${sql.param(present)}::text[]`
+					: anyOf(column, present),
 			)
 		}
 
@@ -361,45 +355,6 @@ export const pgFindOne = async <T = any>(
 ): Promise<T | null> =>
 	(await pgFind<T>(model, tenantId, filter, { ...options, limit: 1 }))[0] ??
 	null
-
-export const pgCount = async (
-	model: AnyModel,
-	tenantId: string | undefined,
-	filter: Filter = {},
-	db: Executor = getDb(),
-): Promise<number> => {
-	const table = tableOf(model)
-	const [{ count }] = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(table)
-		.where(
-			and(
-				sql`${columnOf(table, 'tenantId')} = ${requireTenantId(tenantId)}`,
-				whereOf(table, filter),
-			),
-		)
-
-	return count
-}
-
-export const pgDistinct = async (
-	model: AnyModel,
-	tenantId: string | undefined,
-	field: string,
-	filter: Filter = {},
-): Promise<unknown[]> => {
-	const values = new Set<unknown>()
-
-	for (const doc of await pgFind(model, tenantId, filter, { select: field })) {
-		const value = doc[field]
-
-		for (const item of Array.isArray(value) ? value : [value]) {
-			if (item !== undefined && item !== null) values.add(item)
-		}
-	}
-
-	return [...values]
-}
 
 export const pgDeleteMany = async (
 	model: AnyModel,

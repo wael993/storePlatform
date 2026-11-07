@@ -97,6 +97,7 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 			blockStart: 1,
 			blockEnd: 500,
 		})
+
 		// buying online numbers ignore the offline floor (as in Mongo)
 		expect(await nextInvoiceSequence(tenantId, 'buying')).toBe(1)
 	})

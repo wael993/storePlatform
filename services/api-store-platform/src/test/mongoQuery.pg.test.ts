@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { closeDb, getDb } from '../db'
 import { Doc, MapResult, mapDocs, SPECS } from '../db/etl/mongoToPg'
 import { normalize } from '../db/etl/compare'
-import { pgCount, pgFind } from '../db/mongoQuery'
+import { pgFind } from '../db/mongoQuery'
 import { DailyAction } from '../models/DailyAction'
 import { Invoice } from '../models/Invoice'
 import { Supplier } from '../models/Supplier'
@@ -196,7 +196,6 @@ describe.skipIf(!enabled)('mongoQuery matches Mongo semantics', () => {
 		const ids = (docs: Doc[]) => docs.map(doc => String(doc._id))
 
 		expect(ids(fromPg)).toEqual(ids(fromMongo))
-		expect(await pgCount(Model, tenantId, filter)).toBe(fromMongo.length)
 
 		if (select) {
 			const projection = Object.fromEntries(select.split(' ').map(f => [f, 1]))

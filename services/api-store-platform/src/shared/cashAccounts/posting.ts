@@ -19,7 +19,7 @@ import {
 	desiredPostsForSellingInvoice,
 	type InvoiceCashTender,
 } from './cashImpact'
-import { syncCashEffectsForReference } from './ledgerService.pg'
+import { syncCashEffectsForReference } from './ledgerService'
 import { CASH_REFERENCE_TYPES, isCashAccountType } from './types'
 
 const asFiniteNumber = (value: unknown) => {

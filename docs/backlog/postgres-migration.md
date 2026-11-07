@@ -48,7 +48,9 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | Sync mutations + changes-since (`db/repos/sync.ts`) | Done, tested |
 | Switch: controllers → Postgres (generic layer, `pgFind`, repos), seeds, migrate at boot | Done |
 | `api:diff` Mongo vs Postgres build on the same data | Done: equal (4 documented differences, see ADR) |
-| Staging: Render Postgres + `DATABASE_URL`, load data, deploy branch, smoke | **Next** (needs Render dashboard) |
+| Staging Render Postgres (PG 18) created, migrated, all 11 dev tenants loaded + verified | Done |
+| Review fixes (write order, deadlock retry, atomic delete, 65k-param limit, tests, −1,600 lines) | Done |
+| Staging: switch Render dev branch to `pg-migration`, deploy, smoke | **Next** |
 | Groups 2–4 (catalog/parties, settings/reports, platform) | Open |
 
 **Checkboxes that no longer apply as written (ADR: Postgres-only, single cutover):**
