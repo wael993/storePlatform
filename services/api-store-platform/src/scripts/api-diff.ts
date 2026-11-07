@@ -9,6 +9,8 @@
  */
 import { isDeepStrictEqual } from 'util'
 
+import { firstDiff, normalize, sortDeep } from '../db/etl/compare'
+
 type Json = unknown
 
 /**
@@ -61,67 +63,6 @@ const env = (name: string) => {
 	return value
 }
 
-const normalize = (value: Json): Json => {
-	if (Array.isArray(value)) {
-		return value.map(normalize)
-	}
-
-	if (value && typeof value === 'object') {
-		return Object.fromEntries(
-			Object.entries(value as Record<string, Json>)
-				.filter(([key]) => !VOLATILE_KEYS.has(key))
-				.sort(([a], [b]) => a.localeCompare(b))
-				.map(([key, item]) => [key, normalize(item)]),
-		)
-	}
-
-	return value
-}
-
-const sortDeep = (value: Json): Json => {
-	if (Array.isArray(value)) {
-		return value
-			.map(sortDeep)
-			.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
-	}
-
-	if (value && typeof value === 'object') {
-		return Object.fromEntries(
-			Object.entries(value as Record<string, Json>).map(([k, v]) => [
-				k,
-				sortDeep(v),
-			]),
-		)
-	}
-
-	return value
-}
-
-/** First path where a and b differ, for the report. */
-const firstDiff = (a: Json, b: Json, at = '$'): string | null => {
-	if (isDeepStrictEqual(a, b)) {
-		return null
-	}
-
-	if (a && b && typeof a === 'object' && typeof b === 'object') {
-		const keys = new Set([...Object.keys(a), ...Object.keys(b)])
-
-		for (const key of keys) {
-			const found = firstDiff(
-				(a as Record<string, Json>)[key],
-				(b as Record<string, Json>)[key],
-				`${at}.${key}`,
-			)
-
-			if (found) {
-				return found
-			}
-		}
-	}
-
-	return `${at}: ${JSON.stringify(a)?.slice(0, 120)} ≠ ${JSON.stringify(b)?.slice(0, 120)}`
-}
-
 const login = async (base: string) => {
 	const response = await fetch(`${base}/api/data/login`, {
 		method: 'POST',
@@ -171,8 +112,8 @@ const main = async () => {
 			get(a, tokenA, path),
 			get(b, tokenB, path),
 		])
-		const na = normalize(ra)
-		const nb = normalize(rb)
+		const na = normalize(ra, VOLATILE_KEYS)
+		const nb = normalize(rb, VOLATILE_KEYS)
 
 		if (isDeepStrictEqual(na, nb)) {
 			console.log(`same        ${path} (${ra.status})`)

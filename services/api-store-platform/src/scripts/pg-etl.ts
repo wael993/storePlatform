@@ -11,14 +11,17 @@
 import { readdirSync } from 'fs'
 import mongoose from 'mongoose'
 import path from 'path'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { config } from '../config/config'
 import { createDb } from '../db/client'
+import { toDocs } from '../db/docs'
+import { firstDiff, normalize } from '../db/etl/compare'
 import {
 	CHILD_TABLES,
 	Doc,
 	MapResult,
+	Row,
 	mapDocs,
 	SPECS,
 } from '../db/etl/mongoToPg'
@@ -62,6 +65,7 @@ const main = async () => {
 	// Read raw documents (native driver: no Mongoose defaults, casts or hooks).
 	const result: MapResult = { rows: new Map(), unmapped: new Map(), errors: [] }
 	const mongoCounts = new Map<PgTable, number>()
+	const mongoDocs = new Map<PgTable, Doc[]>()
 
 	for (const spec of specs) {
 		const filter = spec.scope === 'tenant' ? { tenantId } : {}
@@ -71,6 +75,7 @@ const main = async () => {
 			.toArray()) as Doc[]
 
 		mongoCounts.set(spec.table, docs.length)
+		mongoDocs.set(spec.table, docs)
 		mapDocs(spec, docs, result)
 	}
 
@@ -153,10 +158,86 @@ const main = async () => {
 		)
 	}
 
+	// --verify: every Postgres row read back as a lean doc must equal its Mongo original.
+	let docDiffs = 0
+
+	if (flag('--verify')) {
+		const tenantColumn = (table: PgTable) =>
+			getTableConfig(table).columns.find(c => c.name === 'tenantId')!
+		const children = new Map<PgTable, Row[]>()
+
+		for (const table of CHILD_TABLES) {
+			children.set(
+				table,
+				await db
+					.select()
+					.from(table)
+					.where(eq(tenantColumn(table), tenantId)),
+			)
+		}
+
+		for (const spec of specs) {
+			const rows = await (spec.scope === 'tenant'
+				? db
+						.select()
+						.from(spec.table)
+						.where(eq(tenantColumn(spec.table), tenantId))
+				: db.select().from(spec.table))
+			const fromPg = new Map(
+				toDocs(spec.table, rows, children).map(doc => [String(doc._id), doc]),
+			)
+			const diffs: string[] = []
+
+			for (const original of mongoDocs.get(spec.table) ?? []) {
+				const expected: Doc = { ...original }
+
+				for (const key of ['__v', ...(spec.dropped ?? [])]) delete expected[key]
+
+				const actual: Doc | undefined = fromPg.get(String(original._id))
+
+				// Known, accepted differences: timestamps the upsert path never set
+				// are filled from the ObjectId time; product price._id is not kept.
+				// A stored empty list reads back as no field (both mean "none"; only
+				// `!tenders?.length` reads it).
+				if (actual) {
+					for (const key of ['createdAt', 'updatedAt']) {
+						if (expected[key] === undefined) delete actual[key]
+					}
+
+					for (const [key, value] of Object.entries(expected)) {
+						if (Array.isArray(value) && !value.length && !(key in actual)) {
+							delete expected[key]
+						}
+					}
+				}
+
+				if (expected.price && typeof expected.price === 'object') {
+					expected.price = { ...(expected.price as Doc) }
+					delete (expected.price as Doc)._id
+				}
+
+				const diff = firstDiff(normalize(expected), normalize(actual))
+
+				if (diff) diffs.push(`_id ${String(original._id)} ${diff}`)
+			}
+
+			docDiffs += diffs.length
+			console.log(
+				`${diffs.length ? 'DOCS' : 'docs'} ${tableName(spec.table).padEnd(42)} ${diffs.length} of ${mongoDocs.get(spec.table)?.length ?? 0} differ`,
+			)
+
+			for (const diff of diffs.slice(0, 3)) console.log(`       ${diff}`)
+		}
+	}
+
 	await pool.end()
 	await mongoose.disconnect()
 	if (mismatch) {
 		throw new Error('row counts differ')
+	}
+
+	if (docDiffs) {
+		throw new Error(`${docDiffs} documents read back differently`)
 	}
 
 	console.log('[pg-etl] done')
