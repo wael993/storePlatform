@@ -21,6 +21,41 @@ and future marketplace / online-shop work.
 Drizzle + `pg`, Render Postgres (Frankfurt), Postgres-only repos, single cutover
 window, backup out of epic (PG-MIG-5 dropped).
 
+## Status (2026-11-07)
+
+Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`, running on Mongo today.
+
+| Ticket | State | Notes |
+| --- | --- | --- |
+| PG-MIG-0 ADR + inventory | **Done** | ADR in `../architecture/postgres-migration.md` |
+| PG-MIG-1 Schema | **Done** | 53 tables, CI migrate + drift check, ETL `pg:etl`, dry run: 11 of 12 dev tenants load equal |
+| PG-MIG-2 Repositories | **In progress** | Group 1 (money + stock) being ported; nothing wired to Postgres yet |
+| PG-MIG-3 Reconcile / go-no-go | Partly prepared | `pg:etl --verify` (field-by-field) and `api:diff` exist; rehearsal not started |
+| PG-MIG-4 Cutover | Open | Single window for all tenants (ADR), not per tenant |
+| PG-MIG-5 Backup v2 | **Dropped** | Backup never shipped (parked in stash); rebuild on Postgres later |
+| PG-MIG-6 Remove Mongo | Open | Also: replace Mongoose as validation-only library |
+
+**PG-MIG-2, group 1 (money + stock)**
+
+| Part | State |
+| --- | --- |
+| Shared Postgres layer (client, transactions, fail-closed tenant check) | Done |
+| Document store: rows ↔ exact Mongo shape, insert/update/delete, Mongoose validation kept | Done, verified on all loadable dev tenants |
+| Cash ledger (`ledgerService.pg.ts`) | Done, tested (ledger = balances, overdraft, replay, exchange) |
+| Stock writes (`db/repos/inventory.ts`) | Done, tested incl. concurrent sale + double transfer delete |
+| Selling + buying invoices (create/edit/cancel/read, number allocation) | **Next** |
+| Daily actions, sync mutations, offline number blocks, `/sync/changes` | Open |
+| Switch commit: controllers → Postgres, delete group-1 Mongo code | Open |
+| `api:diff` Mongo vs Postgres build, staging deploy + smoke | Open |
+| Groups 2–4 (catalog/parties, settings/reports, platform) | Open |
+
+**Checkboxes that no longer apply as written (ADR: Postgres-only, single cutover):**
+"Flag switches implementation", "≥ 7 days shadow reconcile", "rollback = flag back to mongo",
+per-tenant cutover order. Rollback is instead: redeploy the last Mongo build on the frozen Mongo data.
+
+**Waiting on the owner:** `zobani-sy` legacy data (fix / delete / leave out); 8 `isDeleted` customers in
+`zobani-car` (clean up or keep).
+
 **Approach:** phased. Keep OpenAPI + offline outbox contracts stable. Introduce
 Postgres behind repositories, shadow/reconcile, per-tenant cutover, then rewrite
 backup and remove Mongo.
@@ -187,7 +222,7 @@ they must move together — decide in PG-MIG-0 and follow that list.
 - [ ] At least cash + inventory + invoices work on Postgres in staging with the
   same HTTP shapes
 - [ ] Flag switches implementation without frontend changes
-- [ ] Missing tenant context fails closed on the Postgres path
+- [x] Missing tenant context fails closed on the Postgres path
 - [ ] One automated check per ported domain that fails if ledger/stock invariants break
 
 ### Out of scope
@@ -229,7 +264,7 @@ Prefer **shadow then switch** over long dual-write, given tenant count.
 
 ### Go / no-go before PG-MIG-4
 
-- [ ] Schema covers every migrate-list model  
+- [x] Schema covers every migrate-list model  
 - [ ] Cash + inventory + invoices green on staging Postgres  
 - [ ] Reconcile green for pilot ≥ 7 days  
 - [ ] Cutover rehearsal once on staging clone (lock → dump → load → flip → smoke → rollback)  
