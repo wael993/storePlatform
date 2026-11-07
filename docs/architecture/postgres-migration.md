@@ -26,8 +26,11 @@ Not a reason: the offline client. Dexie/outbox stays on the HTTP contract and do
 | Schemas | Postgres schemas: `platform` (users, tenants, billing, newsroom), `store` (tenant business data). Later `market` / `shop` for the new bounded contexts. | Global vs tenant split; new contexts get a clean namespace without a second DB. |
 | Tenant isolation | App-level, fail-closed: a `tenantDb(ctx)` helper that every repo uses and that throws without tenant context (same role as `withTenantScope`). `tenant_id text not null` + index on every `store.*` table. **No RLS now.** | Marketplace needs deliberate cross-tenant reads; RLS would fight that. RLS can be added later as a second layer. |
 | Ids | Keep every public id unchanged. Mongo `_id` hex → `id text primary key`. Business ids (`productId`, invoice numbers, idempotency keys) stay as-is, with the same unique constraints. | API + Dexie identity must not change. |
-| Money | `numeric(20,6)` for amounts and rates, `numeric(20,4)` for quantities (exact sizes chosen in PG-MIG-1 from current data) | `cash-accounts.md`: never float. |
+| Money | Unconstrained `numeric` for every amount, rate and quantity; Drizzle returns it as a string. | `cash-accounts.md`: never float. No precision cap, so the ETL loads today's Mongo doubles without rounding and reconcile can compare exactly. |
 | Nested objects | `createdBy` / `updatedBy` → columns (`created_by_id`, `created_by_name`). Line items → child tables. Truly free-form blobs (AI/report payloads) → `jsonb`. | One convention, queryable by SAP export later. |
+| Arrays | Money-bearing arrays → child tables (invoice items / currency amounts / tenders, opening balances, salaries, payouts, currency setting items, cash balances). Plain string lists → `text[]`. UI/config blobs (label layout, column configs, role maps, import drafts) → `jsonb`. | Money stays `numeric` and summable; nothing else gets a table it doesn't need. |
+| Uniques | Every business id unique per tenant `(tenant_id, x)`. A few Mongo indexes were global (`customerId`, `projectId`, `shelfId`, `invoiceId`, …); they are UUIDs, so per-tenant is what the app means. | Same rule everywhere. |
+| Enums | Plain `text`; the app keeps validating values. | Adding a status needs no migration. |
 | Cutover | **Single maintenance window, Postgres-only code.** No Mongo+Postgres dual repos, no per-tenant `dataStore` flag, no long shadow. Rehearse on a Neon branch with a prod dump, reconcile, then cut. Rollback = point the API back at the frozen Mongo (code on the last Mongo tag). | 2 active tenants. Dual implementations would double PG-MIG-2 for a flexibility we don't need. |
 | Search (webshop) | Postgres full-text + `pg_trgm`. No Elasticsearch until it hurts. | Enough for a catalog of this size. |
 | Integrations (SAP / channels) | **Not built in this epic.** Schema must not block it: stable ids, `updated_at` on every table. Later: `integration_outbox` table written in the same transaction, and `external_refs (tenant_id, system, entity, local_id, external_id)`. | Avoid speculative code; keep the door open. |
@@ -99,6 +102,20 @@ Everything moves; nothing stays on Mongo.
 
 Until cutover: no new Mongo-only features (new aggregation pipelines, new embedded maps).
 New models are fine if they are flat and tenant-scoped. Production hotfixes are exempt.
+
+## Schema (PG-MIG-1, shipped on branch `pg-mig-1-schema`)
+
+- Code: `services/api-store-platform/src/db/schema/` (`platform.ts`, `store.ts`, `columns.ts`); config `drizzle.config.ts`; migrations `drizzle/`.
+- Commands (`DATABASE_URL`, default `postgres://postgres:postgres@127.0.0.1:5433/store_platform`):
+  `npm run db:generate` after a schema change · `npm run db:migrate` to apply.
+- Local throwaway DB: `docker run -d --rm --name pgmig -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=store_platform -p 127.0.0.1:5433:5432 postgres:17`.
+- Down (empty DB only): `drop schema store cascade; drop schema platform cascade; drop schema drizzle cascade;`. Drizzle has no down migrations; forward-fix after cutover.
+- CI (backend job): Postgres 17 service → `db:migrate` → `db:generate` must produce no new file.
+- `src/test/pgSchemaCoverage.test.ts`: fails when a Mongoose model has no table, a `store` table lacks `tenant_id`, or a column is float.
+- `tsconfig.build.json` no longer sets `skipLibCheck: false`: Drizzle ships `.d.ts` for MySQL/Gel that don't compile without those drivers.
+- Child rows of invoices reference the parent's `id` (Mongo `_id`), because `invoiceId` is optional in Mongo.
+- Legacy `SellingInvoiceItem` → `store.legacy_selling_invoices` (items as `jsonb`, `shortcut:` comment in schema).
+- Still open: the dry-run load of one dormant tenant needs the ETL script, which is PG-MIG-3's copier, written once and used for both.
 
 ## Open questions
 

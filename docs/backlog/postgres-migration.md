@@ -134,9 +134,9 @@ are `numeric`.
 
 ### Acceptance
 
-- [ ] Schema checked in; empty migrate up/down works in CI or documented local cmd
-- [ ] Money fields are `numeric` (not float/double)
-- [ ] Inventory unique constraint matches `(tenantId, warehouseId, productId)`
+- [x] Schema checked in; empty migrate up/down works in CI or documented local cmd
+- [x] Money fields are `numeric` (not float/double)
+- [x] Inventory unique constraint matches `(tenantId, warehouseId, productId)`
 - [ ] Dry-run can insert one tenant’s worth of rows without inventing new public ids
 
 ### Out of scope
