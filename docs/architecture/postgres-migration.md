@@ -142,8 +142,8 @@ New models are fine if they are flat and tenant-scoped. Production hotfixes are 
 
 | Finding | Decision |
 | --- | --- |
-| `zobani-sy`: 1 unit without `unitId`, 6 products without `price.retailPrice` (pre-refactor shape, also `stock` / `unit`) | **Open, owner decides:** fix or delete in Mongo, or leave the tenant out. ETL refuses to invent ids. |
-| `customers.isDeleted` (zobani-car, 8 docs, some `true`) | Dropped. Today's app ignores it and lists those customers; behavior unchanged. Clean up separately if they should be gone. |
+| `zobani-sy`: 1 unit without `unitId`, 6 products without `price.retailPrice` (pre-refactor shape, also `stock` / `unit`) | Test tenant: left out of dev rehearsals, no data change. ETL refuses to invent ids; production is checked in the PG-MIG-3 rehearsal. |
+| `customers.isDeleted` (zobani-car, 8 docs, some `true`) | Dropped. Today's app ignores it and lists those customers; behavior unchanged. Test tenant: kept as is. |
 | `tenants.rolePermissions` | Dropped: superseded by `TenantRolePermission`. |
 | `tenants.backupRetentionCount` | Kept (column added) for the parked backup feature. |
 | `tenants.backupRestoreStartedAt`, `currencySettings.roundConvertedCurrencyAmounts` | Dropped: parked lock / orphan field. |

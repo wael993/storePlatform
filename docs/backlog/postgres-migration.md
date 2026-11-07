@@ -53,8 +53,9 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 "Flag switches implementation", "≥ 7 days shadow reconcile", "rollback = flag back to mongo",
 per-tenant cutover order. Rollback is instead: redeploy the last Mongo build on the frozen Mongo data.
 
-**Waiting on the owner:** `zobani-sy` legacy data (fix / delete / leave out); 8 `isDeleted` customers in
-`zobani-car` (clean up or keep).
+**Dev data findings resolved:** `zobani-sy` and `zobani-car` are test tenants. `zobani-sy` is left out of
+dev rehearsals (legacy records, no change); `zobani-car` is copied as is. Real check: run `pg:etl --verify`
+on a production copy in the PG-MIG-3 rehearsal and decide any finding there.
 
 **Approach:** phased. Keep OpenAPI + offline outbox contracts stable. Introduce
 Postgres behind repositories, shadow/reconcile, per-tenant cutover, then rewrite
