@@ -38,6 +38,22 @@ Not a reason: the offline client. Dexie/outbox stays on the HTTP contract and do
 | Backup | **Out of this epic.** The backup feature is parked in `git stash@{0}`, never shipped. When it is picked up again, it is built on Postgres directly (row export, no BSON). PG-MIG-5 is dropped. | Nothing in production to migrate. |
 | Cash exchange | Already shipped; out of scope. Smoke-tested at cutover only. | Locked in planning. |
 
+### Branch plan (decided 2026-11-07)
+
+All porting happens on the long-lived branch `pg-migration`; staging (Render dev + Vercel `dev`) runs it on Postgres.
+On `main`, API data-layer changes are frozen until cutover (UI work and hotfixes are fine); merge `main` into
+`pg-migration` often. No dual Mongo/Postgres code paths.
+
+Port by **transaction group**, because one transaction cannot span Mongo and Postgres. Each collection lives in
+exactly one store at a time; reads across stores are fine.
+
+1. Money + stock (one Mongo transaction today): invoices, buying invoices, inventories, stock movings,
+   cash accounts + ledger, daily actions, sync mutations, offline sync state.
+2. Catalog + parties + master data. 3. Settings, reports, notifications, import. 4. Platform (tenants, users, roles, newsroom).
+
+Safety net before porting: a response-diff script that runs the Mongo and the Postgres build against the same
+loaded data and fails on any JSON difference for the group's read endpoints.
+
 ### Effect on the backlog
 
 - **PG-MIG-2:** repositories are Postgres-only. Controllers keep their HTTP shapes. No `DATA_STORE` flag.

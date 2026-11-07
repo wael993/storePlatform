@@ -1,0 +1,224 @@
+/**
+ * Response diff between two running API builds (e.g. Mongo build vs Postgres
+ * build) over the same data. Only calls endpoints that do not write.
+ *
+ *   DIFF_A=http://localhost:3001 DIFF_B=http://localhost:3002 \
+ *   DIFF_EMAIL=… DIFF_PASSWORD=… [DIFF_SCOPE=warehouseId,…] npm run api:diff
+ *
+ * Exits non-zero on any difference. "order only" = same items, different array order.
+ */
+import { isDeepStrictEqual } from 'util'
+
+type Json = unknown
+
+/**
+ * Group 1 (money + stock) read endpoints. `id` = field in the list items used
+ * for the detail call; `items` = key holding the list (default `data`).
+ * Not here: `/sync/bootstrap` allocates offline number blocks on every call, so it is not a read.
+ */
+const ENDPOINTS: Array<{
+	list: string
+	detail?: string
+	id?: string
+	items?: string
+}> = [
+	{
+		list: '/selling-invoices',
+		detail: '/selling-invoices/:id',
+		id: 'invoiceId',
+		items: 'invoices',
+	},
+	{
+		list: '/buying-invoices',
+		detail: '/buying-invoices/:id',
+		id: 'buyingInvoiceId',
+		items: 'invoices',
+	},
+	{ list: '/inventory' },
+	{
+		list: '/inventory/warehouse-transfers',
+		detail: '/inventory/warehouse-transfers/:id',
+		id: 'referenceId',
+	},
+	{ list: '/cash-accounts/balances' },
+	{ list: '/cash-accounts/ledger' },
+	{ list: '/daily-actions', detail: '/daily-actions/:id', id: 'actionId' },
+	{ list: '/daily-actions/filter-values' },
+	{ list: '/sync/changes?since=1970-01-01T00:00:00.000Z' },
+]
+
+/** Values that differ per request by design. */
+const VOLATILE_KEYS = new Set(['serverTime', 'generatedAt', 'requestId'])
+const DETAIL_SAMPLES = 5
+
+const env = (name: string) => {
+	const value = process.env[name]
+
+	if (!value) {
+		throw new Error(`${name} is not set`)
+	}
+
+	return value
+}
+
+const normalize = (value: Json): Json => {
+	if (Array.isArray(value)) {
+		return value.map(normalize)
+	}
+
+	if (value && typeof value === 'object') {
+		return Object.fromEntries(
+			Object.entries(value as Record<string, Json>)
+				.filter(([key]) => !VOLATILE_KEYS.has(key))
+				.sort(([a], [b]) => a.localeCompare(b))
+				.map(([key, item]) => [key, normalize(item)]),
+		)
+	}
+
+	return value
+}
+
+const sortDeep = (value: Json): Json => {
+	if (Array.isArray(value)) {
+		return value
+			.map(sortDeep)
+			.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+	}
+
+	if (value && typeof value === 'object') {
+		return Object.fromEntries(
+			Object.entries(value as Record<string, Json>).map(([k, v]) => [
+				k,
+				sortDeep(v),
+			]),
+		)
+	}
+
+	return value
+}
+
+/** First path where a and b differ, for the report. */
+const firstDiff = (a: Json, b: Json, at = '$'): string | null => {
+	if (isDeepStrictEqual(a, b)) {
+		return null
+	}
+
+	if (a && b && typeof a === 'object' && typeof b === 'object') {
+		const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+
+		for (const key of keys) {
+			const found = firstDiff(
+				(a as Record<string, Json>)[key],
+				(b as Record<string, Json>)[key],
+				`${at}.${key}`,
+			)
+
+			if (found) {
+				return found
+			}
+		}
+	}
+
+	return `${at}: ${JSON.stringify(a)?.slice(0, 120)} ≠ ${JSON.stringify(b)?.slice(0, 120)}`
+}
+
+const login = async (base: string) => {
+	const response = await fetch(`${base}/api/data/login`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({
+			email: env('DIFF_EMAIL'),
+			password: env('DIFF_PASSWORD'),
+		}),
+	})
+	const body = (await response.json()) as { accessToken?: string }
+
+	if (!response.ok || !body.accessToken) {
+		throw new Error(`login failed on ${base}: ${response.status}`)
+	}
+
+	return body.accessToken
+}
+
+const get = async (base: string, token: string, path: string) => {
+	const headers: Record<string, string> = { authorization: `Bearer ${token}` }
+
+	if (process.env.DIFF_SCOPE) {
+		headers['x-warehouse-scope'] = process.env.DIFF_SCOPE
+	}
+
+	const response = await fetch(`${base}/api/data${path}`, { headers })
+
+	return {
+		status: response.status,
+		body: (await response.json().catch(() => null)) as Json,
+	}
+}
+
+const itemsOf = (body: Json, key = 'data'): Array<Record<string, Json>> => {
+	const data = (body as Record<string, Json>)?.[key] ?? body
+
+	return Array.isArray(data) ? (data as Array<Record<string, Json>>) : []
+}
+
+const main = async () => {
+	const [a, b] = [env('DIFF_A'), env('DIFF_B')]
+	const [tokenA, tokenB] = await Promise.all([login(a), login(b)])
+	let failed = 0
+
+	const compare = async (path: string) => {
+		const [ra, rb] = await Promise.all([
+			get(a, tokenA, path),
+			get(b, tokenB, path),
+		])
+		const na = normalize(ra)
+		const nb = normalize(rb)
+
+		if (isDeepStrictEqual(na, nb)) {
+			console.log(`same        ${path} (${ra.status})`)
+
+			return ra.body
+		}
+
+		failed += 1
+		const orderOnly = isDeepStrictEqual(sortDeep(na), sortDeep(nb))
+
+		console.log(
+			`${orderOnly ? 'order only' : 'DIFF      '}  ${path}\n            ${firstDiff(na, nb)}`,
+		)
+
+		return ra.body
+	}
+
+	for (const endpoint of ENDPOINTS) {
+		const body = await compare(endpoint.list)
+
+		if (!endpoint.detail || !endpoint.id) {
+			continue
+		}
+
+		const ids = itemsOf(body, endpoint.items)
+			.map(item => item[endpoint.id!])
+			.filter((id): id is string => typeof id === 'string')
+			.slice(0, DETAIL_SAMPLES)
+
+		if (!ids.length) {
+			console.log(`no ids      ${endpoint.list} → ${endpoint.detail} skipped`)
+		}
+
+		for (const id of ids) {
+			await compare(endpoint.detail.replace(':id', encodeURIComponent(id)))
+		}
+	}
+
+	if (failed) {
+		throw new Error(`${failed} endpoint(s) differ`)
+	}
+
+	console.log('[api-diff] all responses equal')
+}
+
+main().catch(error => {
+	console.error('[api-diff] failed:', (error as Error).message)
+	process.exit(1)
+})
