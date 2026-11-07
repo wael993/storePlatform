@@ -108,7 +108,7 @@ styled-system-studio
 .next
 
 # Local notes / tickets / architecture drafts — not for the remote
-docs/
+#docs/
 # documentation/
 
 # Logo working files — product copies live in web/store-platform-frontend/public/
