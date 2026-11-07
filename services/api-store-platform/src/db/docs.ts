@@ -2,7 +2,7 @@ import { and, eq, inArray, SQL } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
-import { Executor, getDb, requireTenantId } from '.'
+import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
 import { Doc, MapResult, mapDocs, Row, Spec, SPECS } from './etl/mongoToPg'
 import * as t from './schema'
 
@@ -444,6 +444,8 @@ export const findDocs = async (
 		limit?: number
 		offset?: number
 		db?: Executor
+		/** SELECT … FOR UPDATE (inside a transaction). */
+		lock?: boolean
 	} = {},
 ): Promise<Doc[]> => {
 	const db = options.db ?? getDb()
@@ -458,6 +460,8 @@ export const findDocs = async (
 	if (options.limit !== undefined) query = query.limit(options.limit)
 
 	if (options.offset !== undefined) query = query.offset(options.offset)
+
+	if (options.lock) query = query.for('update')
 
 	const rows = (await query) as Row[]
 	const children: Children = new Map()
@@ -492,8 +496,9 @@ export const findDoc = async (
 	tenantId: string | undefined,
 	where: SQL,
 	db?: Executor,
+	lock = false,
 ): Promise<Doc | null> =>
-	(await findDocs(table, tenantId, { where, limit: 1, db }))[0] ?? null
+	(await findDocs(table, tenantId, { where, limit: 1, db, lock }))[0] ?? null
 
 /**
  * Create one document like `new Model(payload).save()`: the Mongoose model still
@@ -506,33 +511,141 @@ export const insertDoc = async (
 	payload: Doc,
 	db: Executor = getDb(),
 ): Promise<Doc> => {
-	const spec = SPECS.find(s => s.model === model.modelName)
-
-	if (!spec) throw new Error(`no Postgres table for model ${model.modelName}`)
-
+	const spec = specForModel(model)
 	const document = new model(payload)
 
 	await document.validate()
 
 	const plain = document.toObject() as Doc
+	const rows = writeRows(spec, plain)
+
+	await db.insert(spec.table).values((rows.get(spec.table) ?? []) as never)
+
+	for (const [table, childRows] of rows) {
+		if (table !== spec.table && childRows.length) {
+			await db.insert(table).values(childRows as never)
+		}
+	}
+
+	return { ...plain, _id: String(plain._id) }
+}
+
+const writeRows = (spec: Spec, plain: Doc) => {
 	const result: MapResult = { rows: new Map(), unmapped: new Map(), errors: [] }
 
 	mapDocs(spec, [plain], result)
 
 	if (result.errors.length || result.unmapped.size) {
-		throw new Error(
-			`cannot store ${model.modelName}: ${[...result.errors, ...[...result.unmapped.keys()].map(k => `no column for ${k}`)].join('; ')}`,
+		const problems = [
+			...result.errors,
+			...[...result.unmapped.keys()].map(key => `no column for ${key}`),
+		]
+
+		throw new Error(`cannot store ${spec.model}: ${problems.join('; ')}`)
+	}
+
+	return result.rows
+}
+
+const deleteChildren = async (
+	db: Executor,
+	table: PgTable,
+	tenantId: string,
+	parents: Doc[],
+) => {
+	for (const child of CHILD_LINKS.get(table) ?? []) {
+		const field = child.parentKey === 'id' ? '_id' : child.parentKey
+		const keys = [...new Set(parents.map(doc => String(doc[field])))]
+
+		if (!keys.length) continue
+
+		await db
+			.delete(child.table)
+			.where(
+				and(
+					eq(column(child.table, 'tenantId'), tenantId),
+					inArray(column(child.table, child.link), keys),
+					...Object.entries(child.extra ?? {}).map(([key, value]) =>
+						eq(column(child.table, key), value),
+					),
+				),
+			)
+	}
+}
+
+/**
+ * `findOneAndUpdate(filter, { $set: payload }, { runValidators: true, new: true })`:
+ * validates only the changed paths (old records stay editable), locks the row,
+ * replaces child arrays, returns the updated lean doc or null when nothing matched.
+ */
+export const updateDoc = (
+	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+	tenantId: string | undefined,
+	where: SQL,
+	payload: Doc,
+	tx?: DbTx,
+): Promise<Doc | null> =>
+	inTransaction(tx, async db => {
+		const spec = specForModel(model)
+		const existing = await findDoc(spec.table, tenantId, where, db, true)
+
+		if (!existing) return null
+
+		const document = new model({ ...existing, ...payload })
+
+		await document.validate(Object.keys(payload))
+
+		const rows = writeRows(spec, document.toObject() as Doc)
+		const changes: Row = { ...(rows.get(spec.table) ?? [])[0] }
+		const idColumn = column(spec.table, 'id')
+
+		for (const key of ['id', 'tenantId', 'createdAt']) delete changes[key]
+
+		await db
+			.update(spec.table)
+			.set({ ...changes, updatedAt: new Date() } as never)
+			.where(eq(idColumn, String(existing._id)))
+
+		await deleteChildren(db, spec.table, requireTenantId(tenantId), [existing])
+
+		for (const [table, childRows] of rows) {
+			if (table !== spec.table && childRows.length) {
+				await db.insert(table).values(childRows as never)
+			}
+		}
+
+		return findDoc(spec.table, tenantId, eq(idColumn, String(existing._id)), db)
+	})
+
+/** Deletes matching docs and their child rows; returns the deleted lean docs. */
+export const deleteDocs = (
+	table: PgTable,
+	tenantId: string | undefined,
+	where: SQL,
+	tx?: DbTx,
+): Promise<Doc[]> =>
+	inTransaction(tx, async db => {
+		const docs = await findDocs(table, tenantId, { where, db, lock: true })
+
+		if (!docs.length) return docs
+
+		await deleteChildren(db, table, requireTenantId(tenantId), docs)
+		await db.delete(table).where(
+			inArray(
+				column(table, 'id'),
+				docs.map(doc => String(doc._id)),
+			),
 		)
-	}
 
-	for (const [table, rows] of result.rows) {
-		if (table === spec.table) await db.insert(table).values(rows as never)
-	}
+		return docs
+	})
 
-	for (const [table, rows] of result.rows) {
-		if (table !== spec.table && rows.length)
-			await db.insert(table).values(rows as never)
-	}
+export const specForModel = (
+	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+): Spec => {
+	const spec = SPECS.find(s => s.model === model.modelName)
 
-	return { ...plain, _id: String(plain._id) }
+	if (!spec) throw new Error(`no Postgres table for model ${model.modelName}`)
+
+	return spec
 }

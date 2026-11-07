@@ -2,8 +2,8 @@ import { randomUUID } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { closeDb } from '../db'
-import { findDoc, findDocs, insertDoc } from '../db/docs'
+import { closeDb, getDb } from '../db'
+import { deleteDocs, findDoc, findDocs, insertDoc, updateDoc } from '../db/docs'
 import * as t from '../db/schema'
 import { Invoice } from '../models/Invoice'
 import { Unit } from '../models/Unit'
@@ -94,6 +94,84 @@ describe.skipIf(!enabled)('document store (Postgres)', () => {
 			name: 'kg', // trim
 			internalCode: 'KG', // uppercase
 		})
+	})
+
+	it('updates like $set: replaces child arrays, validates only changed paths, no lost update', async () => {
+		const tenantId = `t-${randomUUID()}`
+		const byId = eq(t.invoices.invoiceId, 'inv-old')
+
+		// old record without the now-required issuedAt (Mongo allowed editing it)
+		await getDb()
+			.insert(t.invoices)
+			.values({
+				id: randomUUID().replace(/-/g, '').slice(0, 24),
+				tenantId,
+				invoiceId: 'inv-old',
+				status: 'draft',
+			})
+
+		await getDb()
+			.insert(t.invoiceItems)
+			.values({
+				invoiceRowId: (await findDoc(t.invoices, tenantId, byId))!
+					._id as string,
+				tenantId,
+				position: 0,
+				productId: 'p-old',
+				name: 'Old',
+				quantity: '1',
+				unitPrice: '1',
+			})
+
+		const updated = await updateDoc(Invoice, tenantId, byId, {
+			items: [{ productId: 'p-new', name: 'New', quantity: 3, unitPrice: 2 }],
+		})
+
+		expect(
+			(updated?.items as Array<{ productId: string }>).map(i => i.productId),
+		).toEqual(['p-new'])
+
+		await updateDoc(Invoice, tenantId, byId, { notes: 'n0' })
+
+		// A edits and keeps its transaction open; B edits meanwhile. B must wait
+		// for A and keep A's change (no lost update).
+		let releaseA = () => {}
+		const aHeld = new Promise<void>(resolve => (releaseA = resolve))
+		let aLocked = () => {}
+		const aUpdated = new Promise<void>(resolve => (aLocked = resolve))
+		const a = getDb().transaction(async tx => {
+			await updateDoc(Invoice, tenantId, byId, { notes: 'note' }, tx)
+			aLocked()
+			await aHeld
+		})
+
+		await aUpdated
+		const b = updateDoc(Invoice, tenantId, byId, { salesPerson: 'Sam' })
+
+		await new Promise(resolve => setTimeout(resolve, 150))
+		releaseA()
+		await Promise.all([a, b])
+
+		expect(await findDoc(t.invoices, tenantId, byId)).toMatchObject({
+			notes: 'note',
+			salesPerson: 'Sam',
+		})
+
+		expect(
+			await updateDoc(Invoice, tenantId, eq(t.invoices.invoiceId, 'nope'), {
+				notes: 'x',
+			}),
+		).toBeNull()
+
+		const deleted = await deleteDocs(t.invoices, tenantId, byId)
+
+		expect(deleted).toHaveLength(1)
+		expect(
+			await getDb()
+				.select()
+				.from(t.invoiceItems)
+				.where(eq(t.invoiceItems.tenantId, tenantId)),
+		).toEqual([])
 	})
 
 	it('fails closed without tenant', async () => {
