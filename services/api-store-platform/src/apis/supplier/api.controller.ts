@@ -1,4 +1,5 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { pgFind } from '../../db/mongoQuery'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
@@ -230,18 +231,30 @@ export default class SupplierController {
 					'supplierId',
 					'customerId',
 				]),
-				withTenantScope(
-					BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
-						createdAt: 'desc',
-					}),
+				pgFind(
+					BuyingInvoice,
 					tenantId,
-				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
-				withTenantScope(
-					Invoice.find({ customerId: { $in: ids } }).sort({
-						createdAt: 'desc',
-					}),
+					{ supplierId: { $in: ids } },
+					{
+						sort: {
+							createdAt: 'desc',
+						},
+					},
+				) as unknown as Promise<
+					Array<Record<string, unknown> & { warehouseId?: string }>
+				>,
+				pgFind(
+					Invoice,
 					tenantId,
-				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+					{ customerId: { $in: ids } },
+					{
+						sort: {
+							createdAt: 'desc',
+						},
+					},
+				) as unknown as Promise<
+					Array<Record<string, unknown> & { warehouseId?: string }>
+				>,
 				loadCashCurrencyRates(tenantId),
 			],
 		)
@@ -463,23 +476,23 @@ export default class SupplierController {
 						.lean(),
 					tenantId,
 				),
-				withTenantScope(
-					BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
-						.select({ supplierId: 1 })
-						.lean(),
+				pgFind(
+					BuyingInvoice,
 					tenantId,
+					{ supplierId: { $in: uniqueIds } },
+					{ select: { supplierId: 1 } },
 				),
-				withTenantScope(
-					Invoice.find({ customerId: { $in: uniqueIds } })
-						.select({ customerId: 1 })
-						.lean(),
+				pgFind(
+					Invoice,
 					tenantId,
+					{ customerId: { $in: uniqueIds } },
+					{ select: { customerId: 1 } },
 				),
-				withTenantScope(
-					DailyAction.find({ supplierId: { $in: uniqueIds } })
-						.select({ supplierId: 1 })
-						.lean(),
+				pgFind(
+					DailyAction,
 					tenantId,
+					{ supplierId: { $in: uniqueIds } },
+					{ select: { supplierId: 1 } },
 				),
 			])
 

@@ -9,7 +9,7 @@
  */
 import { isDeepStrictEqual } from 'util'
 
-import { firstDiff, normalize, sortDeep } from '../db/etl/compare'
+import { firstDiff, normalize, roundFloats, sortDeep } from '../db/etl/compare'
 
 type Json = unknown
 
@@ -49,8 +49,11 @@ const ENDPOINTS: Array<{
 	{ list: '/sync/changes?since=1970-01-01T00:00:00.000Z' },
 ]
 
-/** Values that differ per request by design. */
-const VOLATILE_KEYS = new Set(['serverTime', 'generatedAt', 'requestId'])
+/**
+ * Ignored keys: values that differ per request by design, and Mongoose's `__v`
+ * (internal version counter, read by nothing; Postgres has none).
+ */
+const VOLATILE_KEYS = new Set(['serverTime', 'generatedAt', 'requestId', '__v'])
 const DETAIL_SAMPLES = 5
 
 const env = (name: string) => {
@@ -112,8 +115,8 @@ const main = async () => {
 			get(a, tokenA, path),
 			get(b, tokenB, path),
 		])
-		const na = normalize(ra, VOLATILE_KEYS)
-		const nb = normalize(rb, VOLATILE_KEYS)
+		const na = roundFloats(normalize(ra, VOLATILE_KEYS))
+		const nb = roundFloats(normalize(rb, VOLATILE_KEYS))
 
 		if (isDeepStrictEqual(na, nb)) {
 			console.log(`same        ${path} (${ra.status})`)

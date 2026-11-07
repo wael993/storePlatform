@@ -22,11 +22,25 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: store_platform
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     depends_on:
       mongodb:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/store_platform
       BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING: mongodb://mongodb:27017/bsp-BUSINESS-platform-store-dev
       BUSINESS_PLATFORM_MONGO_DB_DATABASE_NAME: bsp-BUSINESS-platform-store-dev
 

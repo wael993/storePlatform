@@ -1,4 +1,5 @@
 import { BuyingInvoice } from '../models/BuyingInvoices'
+import { pgFind } from '../db/mongoQuery'
 import { CashLedgerEntry } from '../models/CashLedgerEntry'
 import { DailyAction } from '../models/DailyAction'
 import { Employee } from '../models/Employee'
@@ -84,29 +85,23 @@ export const findCurrencyDeleteBlocks = async (
 	if (ids.length === 0) return blocked
 
 	const [invoices, buying, actions, ledger, employees] = await Promise.all([
-		withTenantScope(
-			Invoice.find(currencyQuery(ids))
-				.select({ invoiceCurrencyId: 1, currencyAmounts: 1, tenders: 1 })
-				.lean<CurrencyRow[]>(),
+		pgFind(Invoice, tenantId, currencyQuery(ids), {
+			select: { invoiceCurrencyId: 1, currencyAmounts: 1, tenders: 1 },
+		}) as unknown as Promise<CurrencyRow[]>,
+		pgFind(BuyingInvoice, tenantId, currencyQuery(ids), {
+			select: { invoiceCurrencyId: 1, currencyAmounts: 1, tenders: 1 },
+		}) as unknown as Promise<CurrencyRow[]>,
+		pgFind(
+			DailyAction,
 			tenantId,
+			{ currencyId: { $in: ids } },
+			{ select: { currencyId: 1 } },
 		),
-		withTenantScope(
-			BuyingInvoice.find(currencyQuery(ids))
-				.select({ invoiceCurrencyId: 1, currencyAmounts: 1, tenders: 1 })
-				.lean<CurrencyRow[]>(),
+		pgFind(
+			CashLedgerEntry,
 			tenantId,
-		),
-		withTenantScope(
-			DailyAction.find({ currencyId: { $in: ids } })
-				.select({ currencyId: 1 })
-				.lean(),
-			tenantId,
-		),
-		withTenantScope(
-			CashLedgerEntry.find({ currencyId: { $in: ids } })
-				.select({ currencyId: 1 })
-				.lean(),
-			tenantId,
+			{ currencyId: { $in: ids } },
+			{ select: { currencyId: 1 } },
 		),
 		withTenantScope(
 			Employee.find({
@@ -165,11 +160,11 @@ export const findExpenseDeleteBlocks = async (
 
 	if (keys.length === 0) return blocked
 
-	const actions = await withTenantScope(
-		DailyAction.find({ expenseId: { $in: keys } })
-			.select({ expenseId: 1 })
-			.lean(),
+	const actions = await pgFind(
+		DailyAction,
 		tenantId,
+		{ expenseId: { $in: keys } },
+		{ select: { expenseId: 1 } },
 	)
 	const used = new Set(
 		actions

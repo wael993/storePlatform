@@ -1,3 +1,8 @@
+/**
+ * Mongo ledger: no longer used at runtime (ledgerService.pg.ts is). Kept for its
+ * pure helpers (list filters, paging, buildActor, types) and the one-off
+ * scripts/migrate-cash-accounts.ts. Mongo parts go in PG-MIG-6.
+ */
 import mongoose, { ClientSession } from 'mongoose'
 import { v4 as uuidv4 } from 'uuid'
 

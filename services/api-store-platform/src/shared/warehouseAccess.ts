@@ -1,10 +1,10 @@
 import { Inventory } from '../models/Inventory'
+import { pgFind } from '../db/mongoQuery'
 import {
 	AuthorizationError,
 	BusinessLogicError,
 } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
-import { withTenantScope } from './mongodb/tenantScopedModel'
 import { SUPER_ADMIN_ROLE } from './tenant'
 import { RequestContext } from './types'
 
@@ -242,10 +242,9 @@ export const loadAccessibleProductIds = async (
 		return null
 	}
 
-	const rows = await withTenantScope(
-		Inventory.find(warehouse).select('productId'),
-		tenantId,
-	).lean<{ productId?: string }[]>()
+	const rows = await (pgFind(Inventory, tenantId, warehouse, {
+		select: 'productId',
+	}) as unknown as Promise<{ productId?: string }[]>)
 
 	return [
 		...new Set(

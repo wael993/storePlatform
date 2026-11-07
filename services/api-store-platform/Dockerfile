@@ -14,6 +14,7 @@ ENV NODE_ENV=production
 COPY services/api-store-platform/package.json services/api-store-platform/package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/services/api-store-platform/dist ./dist
+COPY services/api-store-platform/drizzle ./drizzle
 COPY services/api-store-platform/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chown -R node:node /app && chmod +x /usr/local/bin/docker-entrypoint.sh
 USER node

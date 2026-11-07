@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose'
+import type { DbTx } from '../../db'
 
 import CurrencySettings from '../../models/CurrencySettings'
 import { InvoicePaymentType } from '../globalEnums'
@@ -19,7 +19,7 @@ import {
 	desiredPostsForSellingInvoice,
 	type InvoiceCashTender,
 } from './cashImpact'
-import { syncCashEffectsForReference } from './ledgerService'
+import { syncCashEffectsForReference } from './ledgerService.pg'
 import { CASH_REFERENCE_TYPES, isCashAccountType } from './types'
 
 const asFiniteNumber = (value: unknown) => {
@@ -203,7 +203,7 @@ export const syncSellingInvoiceCashLedger = async (params: {
 	currencyAmounts?: InvoiceAmountRow[]
 	amount?: number
 	paidAmount?: number
-	session?: ClientSession
+	session?: DbTx
 }) => {
 	const desired = cashPostsForInvoice('sale', params)
 
@@ -214,7 +214,7 @@ export const syncSellingInvoiceCashLedger = async (params: {
 		referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
 		referenceId: params.invoiceId,
 		desired,
-		session: params.session,
+		tx: params.session,
 	})
 }
 
@@ -231,7 +231,7 @@ export const syncBuyingInvoiceCashLedger = async (params: {
 	currencyAmounts?: InvoiceAmountRow[]
 	amount?: number
 	paidAmount?: number
-	session?: ClientSession
+	session?: DbTx
 }) => {
 	const desired = cashPostsForInvoice('purchase', params)
 
@@ -242,7 +242,7 @@ export const syncBuyingInvoiceCashLedger = async (params: {
 		referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
 		referenceId: params.buyingInvoiceId,
 		desired,
-		session: params.session,
+		tx: params.session,
 	})
 }
 
@@ -255,7 +255,7 @@ export const syncDailyActionCashLedger = async (params: {
 	amount: number
 	currencyId?: string | null
 	accountType?: string | null
-	session?: ClientSession
+	session?: DbTx
 	clear?: boolean
 }) => {
 	const tenantId = getTenantContext(params.requestContext).tenantId
@@ -275,7 +275,7 @@ export const syncDailyActionCashLedger = async (params: {
 		referenceType: CASH_REFERENCE_TYPES.DAILY_ACTION,
 		referenceId: params.actionId,
 		desired,
-		session: params.session,
+		tx: params.session,
 	})
 }
 
@@ -284,7 +284,7 @@ export const clearCashLedgerForReference = async (params: {
 	warehouseId: string
 	referenceType: string
 	referenceId: string
-	session?: ClientSession
+	session?: DbTx
 }) => {
 	await syncCashEffectsForReference({
 		requestContext: params.requestContext,
@@ -293,6 +293,6 @@ export const clearCashLedgerForReference = async (params: {
 		referenceType: params.referenceType,
 		referenceId: params.referenceId,
 		desired: [],
-		session: params.session,
+		tx: params.session,
 	})
 }

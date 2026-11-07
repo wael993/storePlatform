@@ -65,3 +65,24 @@ export const firstDiff = (a: unknown, b: unknown, at = '$'): string | null => {
 
 	return `${at}: ${JSON.stringify(a)?.slice(0, 120)} ≠ ${JSON.stringify(b)?.slice(0, 120)}`
 }
+
+/**
+ * Numbers to `digits` significant digits: hides double-precision noise (Mongo
+ * summed doubles, Postgres sums exactly) without hiding a real money difference.
+ */
+export const roundFloats = (value: unknown, digits = 12): unknown => {
+	if (typeof value === 'number') return Number(value.toPrecision(digits))
+
+	if (Array.isArray(value)) return value.map(item => roundFloats(item, digits))
+
+	if (value && typeof value === 'object') {
+		return Object.fromEntries(
+			Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+				k,
+				roundFloats(v, digits),
+			]),
+		)
+	}
+
+	return value
+}

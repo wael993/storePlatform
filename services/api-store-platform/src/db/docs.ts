@@ -649,3 +649,12 @@ export const specForModel = (
 
 	return spec
 }
+
+/** `Model.insertMany(docs)` equivalent (validated one by one, like `create`). */
+export const insertDocs = async (
+	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+	docs: Doc[],
+	db: Executor = getDb(),
+) => {
+	for (const doc of docs) await insertDoc(model, doc, db)
+}

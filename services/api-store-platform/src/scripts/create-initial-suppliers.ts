@@ -1,4 +1,6 @@
 import mongoose from 'mongoose'
+import { closeDb } from '../db'
+import { insertDocs } from '../db/docs'
 import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
 import { Supplier } from '../models/Supplier'
@@ -140,7 +142,8 @@ async function createInitialSuppliers() {
 			n: index + 1,
 		})).filter(({ row }) => row.direction === 'payable')
 
-		await BuyingInvoice.insertMany(
+		await insertDocs(
+			BuyingInvoice,
 			payableRows.map(({ row, supplier, n }) => {
 				const amount = Number(row.amount.toFixed(2))
 
@@ -204,6 +207,7 @@ async function createInitialSuppliers() {
 		process.exit(1)
 	} finally {
 		await mongoose.disconnect()
+		await closeDb()
 		console.log('MongoDB disconnected')
 	}
 }

@@ -1,3 +1,4 @@
+import { pgFind } from '../../db/mongoQuery'
 import {
 	LOW_STOCK_DIGEST,
 	MISSING_PURCHASE_PRICE_DIGEST,
@@ -131,10 +132,9 @@ const hydrateDigestProducts = async (
 			tenantId,
 			productId: { $in: productIds },
 		}).lean<ProductAPI[]>(),
-		Inventory.find({
-			tenantId,
+		pgFind(Inventory, tenantId, {
 			productId: { $in: productIds },
-		}).lean<InventoryDocument[]>(),
+		}) as unknown as Promise<InventoryDocument[]>,
 	])
 
 	const productById = new Map(

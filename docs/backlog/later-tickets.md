@@ -148,3 +148,29 @@ from both banners.
 
 Upload logo/QR to object storage; API/DB store URLs only. Migrate existing
 Base64 values. Keep PDF/header rendering working.
+
+---
+
+## INV-NUM-1 — Unique invoice numbers per tenant (race)
+
+**Type:** Bug · **Priority:** Medium · **Found:** PG-MIG-2 port (2026-11-07)
+
+### Problem
+
+`allocateInvoiceNumberForCreate` finds a free number, then the invoice is inserted. There is no unique
+index on `(tenantId, invoiceNumber)` for selling or buying invoices (the code comment claims
+"unique-index conflicts retry", but the index does not exist). Two simultaneous creates in one tenant can
+get the same number. Same in Mongo today and in the Postgres port (kept as-is on purpose).
+
+### Do
+
+1. Check existing data for duplicates per tenant (selling and buying separately); decide how to renumber
+   or keep legacy duplicates (partial index / cutoff).
+2. Add `UNIQUE (tenant_id, invoice_number)` on Postgres (after cutover, or in the PG schema if data is clean).
+3. On conflict inside the create transaction: retry allocation (Postgres: `ON CONFLICT` or catch `23505`
+   and retry the whole transaction).
+
+### Acceptance
+
+- [ ] Two parallel creates never share a number (test with concurrent transactions)
+- [ ] Offline-reserved numbers still accepted when free

@@ -1,4 +1,4 @@
-import { ClientSession, Model } from 'mongoose'
+import { Model } from 'mongoose'
 import { withTenantScope } from './tenantScopedModel'
 import { RequestContext } from '../types'
 import { TenantResource, ensureTenantAccess, getTenantContext } from '../tenant'
@@ -7,6 +7,10 @@ import { ERROR_CODES } from '../errorCodes'
 import logger, { EntityType } from '../logger/logger'
 import { SortOrder } from 'mongoose'
 import { COLLECTION_NAMES } from '../general'
+import { insertDoc, updateDoc } from '../../db/docs'
+import { whereOf, pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
+import { asMongoSession, asTx, isPgModel, Session } from '../../db/ownership'
+import { specForModel } from '../../db/docs'
 
 type Sort = Record<string, SortOrder>
 
@@ -100,6 +104,10 @@ export const getDocuments = async <T>(
 	await ensureTenantAccess(requestContext, collectionName)
 	const tenantContext = getTenantContext(requestContext)
 
+	if (isPgModel(model)) {
+		return (await pgFind(model, tenantContext.tenantId, {}, { sort })) as T[]
+	}
+
 	return withTenantScope(model.find(), tenantContext.tenantId)
 		.sort(sort)
 		.lean<T[]>()
@@ -111,17 +119,27 @@ export const getDocumentByField = async <T>(
 	resource: TenantResource,
 	model: EntityModel,
 	{ fieldName, fieldValue }: Record<string, string>,
-	session?: ClientSession,
+	session?: Session,
 ): Promise<T | null> => {
 	await ensureTenantAccess(requestContext, resource)
 	const tenantContext = getTenantContext(requestContext)
 
+	if (isPgModel(model)) {
+		return (await pgFindOne(
+			model,
+			tenantContext.tenantId,
+			{ [fieldName]: fieldValue },
+			{ db: asTx(session) },
+		)) as T | null
+	}
+
+	const mongoSession = asMongoSession(session)
 	const query = withTenantScope(
 		model.findOne({ [fieldName]: fieldValue }),
 		tenantContext.tenantId,
 	)
 
-	return (session ? query.session(session) : query).lean<T>().exec()
+	return (mongoSession ? query.session(mongoSession) : query).lean<T>().exec()
 }
 
 export const createDocument = async (
@@ -129,7 +147,7 @@ export const createDocument = async (
 	resource: TenantResource,
 	model: EntityModel,
 	payload: Record<string, unknown>,
-	session?: ClientSession,
+	session?: Session,
 ): Promise<{ _id: string }> => {
 	logger.debug(`Starting createDocument for resource: ${resource}`, {
 		entity: EntityType.MONGODB,
@@ -160,7 +178,15 @@ export const createDocument = async (
 		},
 	)
 
-	const created = await new model(documentToCreate).save({ session })
+	if (isPgModel(model)) {
+		const created = await insertDoc(model, documentToCreate, asTx(session))
+
+		return { _id: String(created._id) }
+	}
+
+	const created = await new model(documentToCreate).save({
+		session: asMongoSession(session),
+	})
 
 	logger.debug(
 		`Created MongoDB document successfully: ${JSON.stringify(created)}`,
@@ -179,13 +205,38 @@ export const updateDocument = async (
 	model: EntityModel,
 	id: string,
 	payload: Record<string, unknown>,
-	session?: ClientSession,
+	session?: Session,
 ) => {
 	await ensureTenantAccess(requestContext, resource)
 	const tenantContext = getTenantContext(requestContext)
 
 	const idField = RESOURCE_ID_FIELD[resource]
 	const updatePayload = omitIdentityFields(payload)
+
+	if (isPgModel(model)) {
+		const updated = await updateDoc(
+			model,
+			tenantContext.tenantId,
+			whereOf(specForModel(model).table, { [idField]: id }),
+			{
+				...updatePayload,
+				tenantId: tenantContext.tenantId,
+				updatedBy: buildUpdatedBy(requestContext, resource),
+			},
+			asTx(session),
+		)
+
+		if (!updated) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
+				`${resource} not found.`,
+			)
+		}
+
+		return updated
+	}
+
+	const mongoSession = asMongoSession(session)
 
 	const query = withTenantScope(
 		model.findOneAndUpdate(
@@ -202,7 +253,9 @@ export const updateDocument = async (
 		tenantContext.tenantId,
 	)
 
-	const updated = await (session ? query.session(session) : query).lean()
+	const updated = await (
+		mongoSession ? query.session(mongoSession) : query
+	).lean()
 
 	if (!updated) {
 		throw new BusinessLogicError(
@@ -224,6 +277,21 @@ export const deleteDocument = async (
 	const { tenantId } = getTenantContext(requestContext)
 
 	const idField = RESOURCE_ID_FIELD[resource]
+
+	if (isPgModel(model)) {
+		const target = await pgFindOne(model, tenantId, { [idField]: id })
+
+		if (target) await pgDeleteMany(model, tenantId, { _id: target._id })
+
+		if (!target) {
+			throw new BusinessLogicError(
+				ERROR_CODES.DOCUMENTS.DOCUMENT_DELETE_ERROR,
+				`${resource} not found.`,
+			)
+		}
+
+		return target
+	}
 
 	const deleted = await withTenantScope(
 		model.findOneAndDelete({ [idField]: id }).lean(),
@@ -256,10 +324,14 @@ export const deleteDocuments = async (
 	const { tenantId } = getTenantContext(requestContext)
 
 	const valuesToDelete = Array.from(new Set(fieldValues))
-	const deleted = await model
-		.deleteMany({ [fieldName]: { $in: valuesToDelete } })
-		.setOptions({ __tenantContext: { tenantId } })
-		.exec()
+	const deleted = isPgModel(model)
+		? await pgDeleteMany(model, tenantId, {
+				[fieldName]: { $in: valuesToDelete },
+			})
+		: await model
+				.deleteMany({ [fieldName]: { $in: valuesToDelete } })
+				.setOptions({ __tenantContext: { tenantId } })
+				.exec()
 
 	if (deleted.deletedCount === 0) {
 		throw new BusinessLogicError(

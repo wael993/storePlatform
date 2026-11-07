@@ -1,5 +1,7 @@
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
-import mongoose from 'mongoose'
+import { getDb } from '../../db'
+import { insertDoc } from '../../db/docs'
+import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
 import {
 	AuthorizationError,
 	BusinessLogicError,
@@ -974,19 +976,15 @@ export const commitProductImport = async (
 		// Write-path check: preview map is not enough (post-preview races).
 		await assertNoTenantBarcodeCollisionsForProducts(tenantId, products)
 
-		const mongoSession = await mongoose.startSession()
-
 		try {
-			await mongoSession.withTransaction(async () => {
-				await Product.insertMany(products, {
-					session: mongoSession,
-					ordered: true,
-				})
+			await getDb().transaction(async tx => {
+				for (const inventory of inventories) {
+					await insertDoc(Inventory, inventory, tx)
+				}
 
-				await Inventory.insertMany(inventories, {
-					session: mongoSession,
-					ordered: true,
-				})
+				// shortcut: products are still in Mongo (group 2): no shared transaction.
+				// Inserted last, so a failure rolls back the Postgres inventory. Upgrade with group 2.
+				await Product.insertMany(products, { ordered: true })
 			})
 		} catch (error) {
 			if (!sessionStarted && session.createdMasterData) {
@@ -997,8 +995,6 @@ export const commitProductImport = async (
 			}
 
 			throw error
-		} finally {
-			await mongoSession.endSession()
 		}
 	}
 
@@ -1072,17 +1068,17 @@ export const findProductDeleteBlocks = async (
 	}
 
 	const [invoices, buying, sellingItems, movings, actions] = await Promise.all([
-		withTenantScope(
-			Invoice.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
+		pgFind(
+			Invoice,
 			tenantId,
+			{ 'items.productId': { $in: ids } },
+			{ select: { items: 1 } },
 		),
-		withTenantScope(
-			BuyingInvoice.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
+		pgFind(
+			BuyingInvoice,
 			tenantId,
+			{ 'items.productId': { $in: ids } },
+			{ select: { items: 1 } },
 		),
 		withTenantScope(
 			SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
@@ -1090,17 +1086,17 @@ export const findProductDeleteBlocks = async (
 				.lean(),
 			tenantId,
 		),
-		withTenantScope(
-			StockMoving.find({ productId: { $in: ids } })
-				.select({ productId: 1 })
-				.lean(),
+		pgFind(
+			StockMoving,
 			tenantId,
+			{ productId: { $in: ids } },
+			{ select: { productId: 1 } },
 		),
-		withTenantScope(
-			DailyAction.find({ productId: { $in: ids } })
-				.select({ productId: 1 })
-				.lean(),
+		pgFind(
+			DailyAction,
 			tenantId,
+			{ productId: { $in: ids } },
+			{ select: { productId: 1 } },
 		),
 	])
 
@@ -1156,7 +1152,5 @@ export const deleteProductInventory = async (
 	tenantId: string,
 	productIds: string[],
 ) => {
-	await Inventory.deleteMany({ productId: { $in: productIds } }).setOptions({
-		__tenantContext: { tenantId },
-	})
+	await pgDeleteMany(Inventory, tenantId, { productId: { $in: productIds } })
 }

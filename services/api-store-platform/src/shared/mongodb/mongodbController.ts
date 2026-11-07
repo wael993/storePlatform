@@ -5,7 +5,8 @@ import {
 	Document,
 	MongoClient,
 } from 'mongodb'
-import { ClientSession, SortOrder } from 'mongoose'
+import { SortOrder } from 'mongoose'
+import type { Session } from '../../db/ownership'
 
 import logger, { EntityType } from '../logger/logger'
 import { config } from '../../config/config'
@@ -56,13 +57,13 @@ type Maybe<T> = T | undefined
 interface CreateDocumentContext {
 	collectionName: TenantResource
 	data: any
-	session?: ClientSession
+	session?: Session
 }
 
 interface UpdateDocumentContext {
 	collectionName: TenantResource
 	id: string
-	session?: ClientSession
+	session?: Session
 }
 interface DeleteDocumentContext {
 	collectionName: TenantResource
@@ -281,7 +282,7 @@ export default class MongodbController {
 		resource: TenantResource,
 		model: EntityModel,
 		{ fieldName, fieldValue }: Record<string, string>,
-		session?: ClientSession,
+		session?: Session,
 	): Promise<T | null> {
 		const startTime = new Date().getTime()
 

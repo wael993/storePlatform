@@ -29,7 +29,7 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | --- | --- | --- |
 | PG-MIG-0 ADR + inventory | **Done** | ADR in `../architecture/postgres-migration.md` |
 | PG-MIG-1 Schema | **Done** | 53 tables, CI migrate + drift check, ETL `pg:etl`, dry run: 11 of 12 dev tenants load equal |
-| PG-MIG-2 Repositories | **In progress** | Group 1 (money + stock) being ported; nothing wired to Postgres yet |
+| PG-MIG-2 Repositories | **In progress** | Group 1 (money + stock) **switched to Postgres** on the branch; groups 2–4 open |
 | PG-MIG-3 Reconcile / go-no-go | Partly prepared | `pg:etl --verify` (field-by-field) and `api:diff` exist; rehearsal not started |
 | PG-MIG-4 Cutover | Open | Single window for all tenants (ADR), not per tenant |
 | PG-MIG-5 Backup v2 | **Dropped** | Backup never shipped (parked in stash); rebuild on Postgres later |
@@ -43,10 +43,12 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | Document store: rows ↔ exact Mongo shape, insert/update/delete, Mongoose validation kept | Done, verified on all loadable dev tenants |
 | Cash ledger (`ledgerService.pg.ts`) | Done, tested (ledger = balances, overdraft, replay, exchange) |
 | Stock writes (`db/repos/inventory.ts`) | Done, tested incl. concurrent sale + double transfer delete |
-| Selling + buying invoices (create/edit/cancel/read, number allocation) | **Next** |
-| Daily actions, sync mutations, offline number blocks, `/sync/changes` | Open |
-| Switch commit: controllers → Postgres, delete group-1 Mongo code | Open |
-| `api:diff` Mongo vs Postgres build, staging deploy + smoke | Open |
+| Generic update/delete (`$set` semantics, row lock, changed-paths validation) | Done, tested incl. lost update |
+| Invoice numbers, offline blocks (atomic), last prices (`db/repos/invoices.ts`) | Done, tested |
+| Sync mutations + changes-since (`db/repos/sync.ts`) | Done, tested |
+| Switch: controllers → Postgres (generic layer, `pgFind`, repos), seeds, migrate at boot | Done |
+| `api:diff` Mongo vs Postgres build on the same data | Done: equal (4 documented differences, see ADR) |
+| Staging: Render Postgres + `DATABASE_URL`, load data, deploy branch, smoke | **Next** (needs Render dashboard) |
 | Groups 2–4 (catalog/parties, settings/reports, platform) | Open |
 
 **Checkboxes that no longer apply as written (ADR: Postgres-only, single cutover):**

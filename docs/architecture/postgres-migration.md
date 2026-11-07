@@ -148,6 +148,42 @@ New models are fine if they are flat and tenant-scoped. Production hotfixes are 
 | `tenants.backupRetentionCount` | Kept (column added) for the parked backup feature. |
 | `tenants.backupRestoreStartedAt`, `currencySettings.roundConvertedCurrencyAmounts` | Dropped: parked lock / orphan field. |
 
+## Group 1 switched (money + stock) — 2026-11-07, branch `pg-migration`
+
+Postgres owns: invoices, buying invoices, inventories, stock movings, cash accounts + ledger, daily
+actions, sync mutations, offline sync state (`src/db/ownership.ts`). Everything else is still Mongo.
+
+How the code reaches Postgres:
+
+- Generic layer (`shared/mongodb/documentActions.ts`) routes by model owner; `insertDoc` / `updateDoc`
+  keep Mongoose validation, casting and defaults (Mongoose = validation-only library until PG-MIG-6).
+- Direct queries: `pgFind` / `pgFindOne` / `pgDeleteMany` / `pgUpdateMany` (`src/db/mongoQuery.ts`) take
+  the same Mongo filter objects; semantics are checked against a real Mongo in
+  `mongoQuery.pg.test.ts` (CI runs a throwaway mongod). Unsupported operators throw.
+- Atomic writes: `db/repos/inventory.ts`, `db/repos/invoices.ts`, `db/repos/sync.ts`,
+  `shared/cashAccounts/ledgerService.pg.ts`.
+- Startup: `docker-entrypoint.sh` requires `DATABASE_URL` and runs `dist/scripts/db-migrate.js`.
+- Seeds write group-1 data to Postgres (and the demo seed's daily actions got the `warehouseId` they
+  were missing since 2026-09-13; seeding an empty DB failed before this).
+
+**Proof:** `api:diff` Mongo build vs Postgres build on the same data (tenant `app`): all 28 group-1 read
+calls equal, after these documented rules:
+
+| Difference | Why accepted |
+| --- | --- |
+| `__v` gone | Mongoose version counter; nothing reads it |
+| Sums differ in the 12th digit | Postgres sums exactly, Mongo summed doubles |
+| Rows Mongo upserted without timestamps now have `createdAt` | Filled from ObjectId time; lists sorted by `createdAt` show them at their real date instead of last |
+| Array order in `/sync/changes` | Client applies the whole set |
+
+**Temporary cross-store writes** (`shortcut:` comments; fixed when group 2 moves): product purchase-price
+edit (Mongo product + Postgres cost sync) and product import (Mongo products + Postgres inventory). The
+Mongo write runs last inside the Postgres transaction, so its failure rolls back the Postgres part.
+
+**Findings kept as-is (no behavior change in the port):** invoice numbers have no unique index
+(INV-NUM-1, `docs/backlog/later-tickets.md`); online buying numbers ignore the offline floor, so an
+offline-reserved buying number can be taken online and the offline invoice is renumbered on sync.
+
 ## Open questions
 
 1. **Active vs dormant tenants:** ops note, kept outside git (no tenant ids here).

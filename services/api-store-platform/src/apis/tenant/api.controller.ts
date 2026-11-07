@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { pgDeleteMany } from '../../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -558,8 +559,8 @@ export default class TenantController {
 			RefreshToken.deleteMany({ tenantId }),
 			Product.deleteMany({ tenantId }),
 			Project.deleteMany({ tenantId }),
-			Invoice.deleteMany({ tenantId }),
-			Inventory.deleteMany({ tenantId }),
+			pgDeleteMany(Invoice, tenantId, {}),
+			pgDeleteMany(Inventory, tenantId, {}),
 			Report.deleteMany({ tenantId }),
 			SubscriptionRenewalRequest.deleteMany({ tenantId }),
 		])

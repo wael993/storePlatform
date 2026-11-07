@@ -1,4 +1,5 @@
 import cron from 'node-cron'
+import { pgFind } from '../db/mongoQuery'
 import mongoose from 'mongoose'
 import { config } from '../config/config'
 import { Inventory } from '../models/Inventory'
@@ -196,27 +197,29 @@ export const findLowStockRows = async (
 		return []
 	}
 
-	const rows = await Inventory.find({
+	const rows = (await pgFind(
+		Inventory,
 		tenantId,
-		productId: { $in: activeIds },
-		minQuantity: { $gt: 0 },
-		...(warehouseIds ? { warehouseId: { $in: warehouseIds } } : {}),
-	})
-		.select({
-			productId: 1,
-			warehouseId: 1,
-			quantity: 1,
-			minQuantity: 1,
-			_id: 0,
-		})
-		.lean<
-			Array<{
-				productId?: string
-				warehouseId?: string
-				quantity?: number
-				minQuantity?: number
-			}>
-		>()
+		{
+			productId: { $in: activeIds },
+			minQuantity: { $gt: 0 },
+			...(warehouseIds ? { warehouseId: { $in: warehouseIds } } : {}),
+		},
+		{
+			select: {
+				productId: 1,
+				warehouseId: 1,
+				quantity: 1,
+				minQuantity: 1,
+				_id: 0,
+			},
+		},
+	)) as unknown as Array<{
+		productId?: string
+		warehouseId?: string
+		quantity?: number
+		minQuantity?: number
+	}>
 
 	return rows.flatMap(row => {
 		if (!row.productId || !row.warehouseId) {
@@ -253,9 +256,12 @@ const persistNegativeQuantitySnapshot = async (
 	tenantId: string,
 	runAt: Date,
 ) => {
-	const rows = await Inventory.find({ tenantId, quantity: { $lt: 0 } })
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
+	const rows = (await pgFind(
+		Inventory,
+		tenantId,
+		{ quantity: { $lt: 0 } },
+		{ select: { productId: 1, _id: 0 } },
+	)) as Array<{ productId?: string }>
 
 	return persistDigestSnapshot(
 		tenantId,

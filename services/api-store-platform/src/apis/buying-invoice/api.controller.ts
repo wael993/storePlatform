@@ -1,5 +1,6 @@
-import mongoose from 'mongoose'
 import { v4 as uuidv4 } from 'uuid'
+import { DbTx } from '../../db'
+import { pgFind } from '../../db/mongoQuery'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -91,19 +92,17 @@ export type BuyingInvoiceCollaborator = {
 		prefix: InvoiceNumberPrefix,
 		requestedNumber: string | undefined,
 		model: typeof BuyingInvoice,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	): Promise<string>
 	resolveNextBuyingInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number>
-	runInTransaction<T>(
-		work: (session: mongoose.ClientSession) => Promise<T>,
-	): Promise<T>
+	runInTransaction<T>(work: (session: DbTx) => Promise<T>): Promise<T>
 	getInventoryByProductId(
 		requestContext: RequestContext,
 		productId: string,
 		warehouseId: string,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	): Promise<InventoryDocument | null>
 	atomicAdjustInventoryQuantity(
 		requestContext: RequestContext,
@@ -113,7 +112,7 @@ export type BuyingInvoiceCollaborator = {
 			quantityDelta: number
 			allowNegative?: boolean
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<InventoryDocument>
 	atomicPurchaseInventoryAdjustment(
 		requestContext: RequestContext,
@@ -123,7 +122,7 @@ export type BuyingInvoiceCollaborator = {
 			purchaseQuantity: number
 			purchaseUnitPrice: number
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<InventoryDocument>
 	buildInvoiceCurrencyAmounts(
 		tenantId: string,
@@ -389,7 +388,7 @@ export default class BuyingInvoiceController {
 		buyingInvoiceId: string,
 		invoiceNumber: string,
 		items: NonNullable<BuyingInvoiceRequestBody['items']>,
-		session: mongoose.ClientSession,
+		session: DbTx,
 		warehouseId: string,
 	): Promise<string[]> {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
@@ -438,7 +437,7 @@ export default class BuyingInvoiceController {
 		buyingInvoiceId: string,
 		invoiceNumber: string,
 		items: NonNullable<BuyingInvoiceRequestBody['items']>,
-		session: mongoose.ClientSession,
+		session: DbTx,
 		warehouseId: string,
 	): Promise<string[]> {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
@@ -491,10 +490,12 @@ export default class BuyingInvoiceController {
 		const warehouse = filters.supplierId
 			? warehouseAclMongoFilter(requestContext)
 			: warehouseMongoFilter(requestContext)
-		const documents = await withTenantScope(
-			BuyingInvoice.find(warehouse ?? {}).sort({ createdAt: -1 }),
+		const documents = await pgFind(
+			BuyingInvoice,
 			this.getTenantId(requestContext),
-		).lean()
+			warehouse ?? {},
+			{ sort: { createdAt: -1 } },
+		)
 
 		const invoices = documents.filter(isPlainRecord) as Array<
 			Record<string, unknown> & { warehouseId?: string }
@@ -573,15 +574,21 @@ export default class BuyingInvoiceController {
 						[filters.supplierId],
 						['customerId'],
 					),
-					withTenantScope(
-						Invoice.find({
+					pgFind(
+						Invoice,
+						this.getTenantId(requestContext),
+						{
 							customerId: filters.supplierId,
 							...(warehouseAclMongoFilter(requestContext) ?? {}),
-						}).sort({
-							createdAt: 'desc',
-						}),
-						this.getTenantId(requestContext),
-					).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+						},
+						{
+							sort: {
+								createdAt: 'desc',
+							},
+						},
+					) as unknown as Promise<
+						Array<Record<string, unknown> & { warehouseId?: string }>
+					>,
 					loadCashCurrencyRates(this.getTenantId(requestContext)),
 				])
 			const own = this.ops.buildSupplierInvoiceSummary(

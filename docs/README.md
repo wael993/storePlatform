@@ -21,7 +21,7 @@ the index). Treat them as constraints, not optional background.
 | --- | --- | --- |
 | Warehouse | [warehouse-tickets.md](backlog/warehouse-tickets.md) | WH-REL-1 migration cutover; later: WH-ARCH-7/3/9/10 (examples, rename, last price, transfer page) |
 | Product / nav | [product.md](backlog/product.md) | Rename nav to Daily; unit exchange; bulk edit; optimistic UI; return/replace; import follow-ups; profit follow-ups |
-| FE / offline | [later-tickets.md](backlog/later-tickets.md) | FE-NUM-1 amount parse; FE-MONEY-1 `Fee` + EU format / default-currency display; FE-OFF-1 pending outbox review; INV-SET-1 logo/QR storage |
+| FE / offline | [later-tickets.md](backlog/later-tickets.md) | FE-NUM-1 amount parse; FE-MONEY-1 `Fee` + EU format / default-currency display; FE-OFF-1 pending outbox review; INV-SET-1 logo/QR storage; INV-NUM-1 unique invoice numbers (race) |
 | Cash / FX | [cash-exchange.md](backlog/cash-exchange.md) | CASH-EX-1 API/ledger/offline; CASH-EX-2 Quick Entry tab; CASH-EX-3 Cash History (order: 1 → 2∥3) |
 | Dashboard | [dashboard.md](backlog/dashboard.md) | Charts, activity, trends, DASH-029/030 move summaries, Owner dashboard, SEC-001…003 |
 | Newsroom | [newsroom.md](backlog/newsroom.md) | Full Newsroom / Release Notes epic |

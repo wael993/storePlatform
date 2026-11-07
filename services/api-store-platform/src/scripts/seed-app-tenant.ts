@@ -1,4 +1,7 @@
 import mongoose from 'mongoose'
+import { closeDb } from '../db'
+import { insertDocs } from '../db/docs'
+import { pgDeleteMany } from '../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
 import { config } from '../config/config'
@@ -68,10 +71,10 @@ const wipe = async () => {
 		Employee.deleteMany(filter),
 		Expense.deleteMany(filter),
 		Product.deleteMany(filter),
-		Inventory.deleteMany(filter),
-		Invoice.deleteMany(filter),
-		BuyingInvoice.deleteMany(filter),
-		DailyAction.deleteMany(filter),
+		pgDeleteMany(Inventory, TENANT_ID, {}),
+		pgDeleteMany(Invoice, TENANT_ID, {}),
+		pgDeleteMany(BuyingInvoice, TENANT_ID, {}),
+		pgDeleteMany(DailyAction, TENANT_ID, {}),
 	])
 }
 
@@ -638,7 +641,8 @@ async function seedAppTenant() {
 		})),
 	)
 
-	await Inventory.insertMany(
+	await insertDocs(
+		Inventory,
 		products.map((product, index) => ({
 			tenantId: TENANT_ID,
 			inventoryId: id(`inv-${index + 1}`),
@@ -714,10 +718,10 @@ async function seedAppTenant() {
 		},
 	)
 
-	await Invoice.insertMany(sellingInvoices)
+	await insertDocs(Invoice, sellingInvoices)
 	const firstSale = sellingInvoices[0]
 
-	await BuyingInvoice.insertMany([
+	await insertDocs(BuyingInvoice, [
 		{
 			tenantId: TENANT_ID,
 			buyingInvoiceId: id('bi-1'),
@@ -779,9 +783,10 @@ async function seedAppTenant() {
 		},
 	])
 
-	await DailyAction.insertMany([
+	await insertDocs(DailyAction, [
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-buy'),
 			entryType: 'BUYING_ENTRY',
 			productId: phone.productId,
@@ -802,6 +807,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-sell'),
 			entryType: 'SELLING_ENTRY',
 			productId: firstSale.items[0].productId,
@@ -822,6 +828,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-exp'),
 			entryType: 'EXPENSE_ENTRY',
 			expenseId: id('exp-rent'),
@@ -835,6 +842,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-rec'),
 			entryType: 'RECEIPT_ENTRY',
 			customerId: customers[2].customerId,
@@ -848,6 +856,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-pay'),
 			entryType: 'PAYMENT_ENTRY',
 			supplierId: suppliers[1].supplierId,
@@ -872,4 +881,5 @@ seedAppTenant()
 	})
 	.finally(async () => {
 		await mongoose.disconnect()
+		await closeDb()
 	})
