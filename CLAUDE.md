@@ -6,7 +6,6 @@ Monorepo: API in `services/api-store-platform`, web app in `web/store-platform-f
 
 - Read `docs/README.md`, then the matching `docs/reference/*` and `docs/architecture/*`.
   They are rules, not background. Ticket specs live in `docs/backlog/`.
-  (`docs/` is gitignored; if it is missing, ask for it.)
 - Larger features: also `docs/architecture/implementation-guide.md`.
 - New feature: clone the closest shipped sibling (Transfer → Exchange). No second stack.
 
