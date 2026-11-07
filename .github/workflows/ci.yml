@@ -67,8 +67,9 @@ jobs:
       - run: npm run lint:ci
       - run: npm run typecheck
       - run: npm run format:check
-      - run: npm run test
+      # Migrate first: *.pg.test.ts run against this database.
       - run: npm run db:migrate
+      - run: npm run test
       # Fails when the schema changed but no migration was generated.
       - run: npm run db:generate && test -z "$(git status --porcelain drizzle)"
       - run: npm run build
