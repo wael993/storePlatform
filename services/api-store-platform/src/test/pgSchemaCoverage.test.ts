@@ -59,14 +59,17 @@ const tables = Object.values(schema)
 describe('Postgres schema covers every Mongo model', () => {
 	it('maps each registered model to an existing table', async () => {
 		const modelsDir = path.join(__dirname, '../models')
+
 		for (const file of readdirSync(modelsDir)) {
 			await import(path.join(modelsDir, file))
 		}
+
 		const tableNames = new Set(tables.map(t => `${t.schema}.${t.name}`))
 
 		expect(mongoose.modelNames().sort()).toEqual(
 			Object.keys(MODEL_TABLES).sort(),
 		)
+
 		for (const table of Object.values(MODEL_TABLES)) {
 			expect(tableNames).toContain(table)
 		}
@@ -77,6 +80,7 @@ describe('Postgres schema covers every Mongo model', () => {
 			.filter(t => t.schema === 'store')
 			.filter(t => !t.columns.some(c => c.name === 'tenantId'))
 			.map(t => t.name)
+
 		expect(missing).toEqual([])
 	})
 
@@ -86,6 +90,7 @@ describe('Postgres schema covers every Mongo model', () => {
 				.filter(c => ['PgReal', 'PgDoublePrecision'].includes(c.columnType))
 				.map(c => `${t.name}.${c.name}`),
 		)
+
 		expect(floats).toEqual([])
 	})
 })

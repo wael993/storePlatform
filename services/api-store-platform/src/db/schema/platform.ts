@@ -30,6 +30,7 @@ export const tenants = platform.table('tenants', {
 	invoiceAiUsedInPeriod: integer(),
 	invoiceAiCarryOver: integer(),
 	productImportStatus: text(),
+	backupRetentionCount: integer(), // set by the parked backup feature (stash); kept for when it returns
 	subscriptionStartDate: tz(),
 	subscriptionRenewalDate: tz(),
 	subscriptionStatus: text(),

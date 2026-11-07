@@ -115,7 +115,22 @@ New models are fine if they are flat and tenant-scoped. Production hotfixes are 
 - `tsconfig.build.json` no longer sets `skipLibCheck: false`: Drizzle ships `.d.ts` for MySQL/Gel that don't compile without those drivers.
 - Child rows of invoices reference the parent's `id` (Mongo `_id`), because `invoiceId` is optional in Mongo.
 - Legacy `SellingInvoiceItem` → `store.legacy_selling_invoices` (items as `jsonb`, `shortcut:` comment in schema).
-- Still open: the dry-run load of one dormant tenant needs the ETL script, which is PG-MIG-3's copier, written once and used for both.
+- ETL: `npm run pg:etl -- --tenant <id> [--global]` (`src/scripts/pg-etl.ts`, mapping in `src/db/etl/mongoToPg.ts`).
+  Reads Mongo raw, replaces the tenant's rows in one Postgres transaction (rerun-safe), compares row counts.
+  Writes nothing when a doc can't be loaded (missing required value, non-number money) or a field would be dropped.
+  Fields Mongoose already strips on read are dropped on purpose via `dropped` per spec, each with a reason.
+- Dry run 2026-11-07, dev Atlas → local Postgres 17: 11 of 12 tenants load with equal counts
+  (incl. zobani-car: 2,810 products, 147 invoices).
+
+### Data findings (dev DB; check production before cutover)
+
+| Finding | Decision |
+| --- | --- |
+| `zobani-sy`: 1 unit without `unitId`, 6 products without `price.retailPrice` (pre-refactor shape, also `stock` / `unit`) | **Open, owner decides:** fix or delete in Mongo, or leave the tenant out. ETL refuses to invent ids. |
+| `customers.isDeleted` (zobani-car, 8 docs, some `true`) | Dropped. Today's app ignores it and lists those customers; behavior unchanged. Clean up separately if they should be gone. |
+| `tenants.rolePermissions` | Dropped: superseded by `TenantRolePermission`. |
+| `tenants.backupRetentionCount` | Kept (column added) for the parked backup feature. |
+| `tenants.backupRestoreStartedAt`, `currencySettings.roundConvertedCurrencyAmounts` | Dropped: parked lock / orphan field. |
 
 ## Open questions
 

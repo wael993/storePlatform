@@ -41,7 +41,8 @@
 		"vm": "npm version minor",
 		"vma": "npm version major",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "drizzle-kit migrate"
+		"db:migrate": "drizzle-kit migrate",
+		"pg:etl": "ts-node src/scripts/pg-etl.ts"
 	},
 	"keywords": [],
 	"author": "",
