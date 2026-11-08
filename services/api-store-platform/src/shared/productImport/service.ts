@@ -1,6 +1,7 @@
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
 import { inTransaction } from '../../db'
-import { insertDocs } from '../../db/docs'
+import { insertDoc, insertDocs, saveDoc } from '../../db/docs'
+import type { Doc } from '../../db/etl/mongoToPg'
 import { pgCount, pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 import {
 	AuthorizationError,
@@ -50,7 +51,9 @@ import { Product } from '../../models/Products'
 import { Warehouse } from '../../models/Warehaus'
 import { requireOperationalWarehouseId } from '../warehouseAccess'
 import Tenant from '../../models/Tenant'
-import ProductImportSession from '../../models/ProductImportSession'
+import ProductImportSession, {
+	IProductImportSession,
+} from '../../models/ProductImportSession'
 import { Invoice } from '../../models/Invoice'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { SellingInvoiceItem } from '../../models/SellingInvoices'
@@ -173,13 +176,16 @@ export const getProductImportStatus = async (
 	const { tenantId } = getTenantContext(requestContext)
 	const tenant = await loadTenant(tenantId)
 	const productCount = await pgCount(Product, tenantId)
-	const session = await ProductImportSession.findOne({
+	const session = await pgFindOne<IProductImportSession>(
+		ProductImportSession,
 		tenantId,
-		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
-		expiresAt: { $gt: new Date() },
-	})
-		.sort({ updatedAt: -1 })
-		.lean()
+		{
+			tenantId,
+			status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
+			expiresAt: { $gt: new Date() },
+		},
+		{ sort: { updatedAt: -1 } },
+	)
 	const headers = session
 		? [...new Set(session.files.flatMap(file => file.headers))]
 		: []
@@ -383,7 +389,7 @@ export const parseProductImportFiles = async (
 
 	const sessionId = uuidv4()
 
-	await ProductImportSession.create({
+	await insertDoc(ProductImportSession, {
 		sessionId,
 		tenantId,
 		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
@@ -411,7 +417,14 @@ export const parseProductImportFiles = async (
 }
 
 const loadSession = async (tenantId: string, sessionId: string) => {
-	const session = await ProductImportSession.findOne({ sessionId, tenantId })
+	const session = await pgFindOne<IProductImportSession>(
+		ProductImportSession,
+		tenantId,
+		{
+			sessionId,
+			tenantId,
+		},
+	)
 
 	if (!session || session.expiresAt.getTime() < Date.now()) {
 		throw new BusinessLogicError(
@@ -580,7 +593,7 @@ export const prepareProductImportMasterData = async (
 	const mapping = readMapping(mappingRaw, selectedFields)
 
 	session.mapping = mapping
-	await session.save()
+	await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
 
 	const rows = flattenSessionRows(session)
 	const candidates = await loadMasterCandidates(tenantId)
@@ -704,7 +717,7 @@ export const confirmProductImportMasterData = async (
 
 		session.masterResolutions = resolutions
 		session.createdMasterData = created
-		await session.save()
+		await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
 
 		return {
 			sessionId: session.sessionId,
@@ -748,7 +761,7 @@ export const previewProductImport = async (
 	)
 
 	session.mapping = mapping
-	await session.save()
+	await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
 	const rows = flattenSessionRows(session)
 	const { mapped, valid, duplicates, invalid } = summarizeRows(
 		await mapImportRows(
@@ -827,7 +840,7 @@ export const commitProductImport = async (
 	)
 
 	session.mapping = mapping
-	await session.save()
+	await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
 
 	const rates = ratesFromCurrencySettings(settings)
 	const rows = flattenSessionRows(session)
@@ -983,7 +996,7 @@ export const commitProductImport = async (
 				await rollbackCreatedMasterData(tenantId, session.createdMasterData)
 				session.createdMasterData = undefined
 				session.masterResolutions = undefined
-				await session.save()
+				await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
 			}
 
 			throw error
@@ -1003,7 +1016,7 @@ export const commitProductImport = async (
 		session.status = PRODUCT_IMPORT_STATUS.COMPLETED
 		// Keep created master rows; drop rollback tags.
 		session.createdMasterData = undefined
-		await session.save()
+		await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
 		await invalidateCaches()
 	}
 

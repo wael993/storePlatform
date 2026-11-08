@@ -5866,12 +5866,9 @@ export default class ProductController {
 		])
 
 		const tenantContext = getTenantContext(requestContext)
-		const userSettings = await withTenantScope(
-			UserSettings.findOne({
-				userId: requestContext.userId,
-			}).lean(),
-			tenantContext.tenantId,
-		)
+		const userSettings = await pgFindOne(UserSettings, tenantContext.tenantId, {
+			userId: requestContext.userId,
+		})
 
 		const currencySettings = await pgFindOne(
 			CurrencySettings,
@@ -5881,9 +5878,13 @@ export default class ProductController {
 			},
 		)
 
-		const invoiceSettings = await InvoiceSettings.findOne({
-			tenantId: tenantContext.tenantId,
-		}).lean()
+		const invoiceSettings = await pgFindOne(
+			InvoiceSettings,
+			tenantContext.tenantId,
+			{
+				tenantId: tenantContext.tenantId,
+			},
+		)
 
 		const nextInvoiceNumberBlock =
 			await this.allocateOfflineInvoiceBlock(requestContext)

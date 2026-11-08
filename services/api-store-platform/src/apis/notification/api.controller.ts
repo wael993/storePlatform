@@ -1,4 +1,5 @@
-import { pgFind } from '../../db/mongoQuery'
+import { isUniqueViolation } from '../../db'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import {
 	LOW_STOCK_DIGEST,
 	MISSING_PURCHASE_PRICE_DIGEST,
@@ -13,10 +14,7 @@ import { NotificationRead } from '../../models/NotificationRead'
 import { Product } from '../../models/Products'
 import { Inventory } from '../../models/Inventory'
 import { Warehouse } from '../../models/Warehaus'
-import {
-	ensureProductDigestIndexes,
-	findLowStockRows,
-} from '../../cron/snapshotNegativeQuantity'
+import { findLowStockRows } from '../../cron/snapshotNegativeQuantity'
 import { getAllowedWarehouseIds } from '../../shared/warehouseAccess'
 import ProductsMapper from '../mappings/ProductsMapper'
 import { SEE, SeeId, stripProductSeeFields } from '../../shared/seeCatalog'
@@ -77,33 +75,17 @@ const upsertRead = async (
 	runAt: Date,
 	type: ProductDigestType,
 ) => {
-	await ensureProductDigestIndexes()
-
 	try {
-		await NotificationRead.updateOne(
-			{ tenantId, userId, runAt, type },
+		await pgFindOneAndUpdate(
+			NotificationRead,
+			tenantId,
+			{ userId, runAt, type },
 			{ $setOnInsert: { tenantId, userId, runAt, type } },
 			{ upsert: true },
 		)
 	} catch (error: unknown) {
-		const duplicateKey =
-			typeof error === 'object' &&
-			error !== null &&
-			'code' in error &&
-			error.code === 11000
-
-		const keyPattern =
-			typeof error === 'object' &&
-			error !== null &&
-			'keyPattern' in error &&
-			typeof error.keyPattern === 'object' &&
-			error.keyPattern !== null
-				? error.keyPattern
-				: null
-
-		if (!duplicateKey || !keyPattern || !('type' in keyPattern)) {
-			throw error
-		}
+		// a parallel request recorded the same read first
+		if (!isUniqueViolation(error)) throw error
 	}
 }
 
@@ -253,9 +235,12 @@ export default class NotificationController {
 		const userId = await assertCanSeeNotifications(requestContext)
 		const { tenantId } = getTenantContext(requestContext)
 		const includeRead = options.includeRead === true
-		const snapshots = await NegativeQuantitySnapshot.find({ tenantId })
-			.select({ type: 1, runAt: 1, count: 1, productIds: 1, _id: 0 })
-			.lean()
+		const snapshots = await pgFind(
+			NegativeQuantitySnapshot,
+			tenantId,
+			{ tenantId },
+			{ select: { type: 1, runAt: 1, count: 1, productIds: 1, _id: 0 } },
+		)
 
 		if (snapshots.length === 0) {
 			return { items: [] }
@@ -265,13 +250,15 @@ export default class NotificationController {
 			? new Set<string>()
 			: new Set(
 					(
-						await NotificationRead.find({
+						await pgFind(
+							NotificationRead,
 							tenantId,
-							userId,
-							runAt: { $in: snapshots.map(snapshot => snapshot.runAt) },
-						})
-							.select({ runAt: 1, type: 1, _id: 0 })
-							.lean()
+							{
+								userId,
+								runAt: { $in: snapshots.map(snapshot => snapshot.runAt) },
+							},
+							{ select: { runAt: 1, type: 1, _id: 0 } },
+						)
 					).map(read => `${digestTypeOf(read.type)}:${read.runAt.getTime()}`),
 				)
 
@@ -333,19 +320,25 @@ export default class NotificationController {
 
 		const { tenantId } = getTenantContext(requestContext)
 		const snapshot =
-			(await NegativeQuantitySnapshot.findOne({
+			(await pgFindOne(
+				NegativeQuantitySnapshot,
 				tenantId,
-				type: digestType,
-			})
-				.select({ runAt: 1, productIds: 1, _id: 0 })
-				.lean()) ||
+				{
+					tenantId,
+					type: digestType,
+				},
+				{ select: { runAt: 1, productIds: 1, _id: 0 } },
+			)) ||
 			(digestType === NEGATIVE_QUANTITY_DIGEST
-				? await NegativeQuantitySnapshot.findOne({
+				? await pgFindOne(
+						NegativeQuantitySnapshot,
 						tenantId,
-						type: { $exists: false },
-					})
-						.select({ runAt: 1, productIds: 1, _id: 0 })
-						.lean()
+						{
+							tenantId,
+							type: { $exists: false },
+						},
+						{ select: { runAt: 1, productIds: 1, _id: 0 } },
+					)
 				: null)
 
 		if (!snapshot) {
@@ -389,18 +382,21 @@ export default class NotificationController {
 		}
 
 		const { tenantId } = getTenantContext(requestContext)
-		const snapshots = await NegativeQuantitySnapshot.find({
+		const snapshots = await pgFind(
+			NegativeQuantitySnapshot,
 			tenantId,
-			...(markAll
-				? {}
-				: markType === NEGATIVE_QUANTITY_DIGEST
-					? {
-							$or: [{ type: markType }, { type: { $exists: false } }],
-						}
-					: { type: markType }),
-		})
-			.select({ type: 1, runAt: 1, _id: 0 })
-			.lean()
+			{
+				tenantId,
+				...(markAll
+					? {}
+					: markType === NEGATIVE_QUANTITY_DIGEST
+						? {
+								$or: [{ type: markType }, { type: { $exists: false } }],
+							}
+						: { type: markType }),
+			},
+			{ select: { type: 1, runAt: 1, _id: 0 } },
+		)
 
 		for (const snapshot of snapshots) {
 			await upsertRead(

@@ -551,9 +551,12 @@ export default class SellingInvoiceController {
 		requestContext: RequestContext,
 	): Promise<boolean> {
 		const { tenantId } = getTenantContext(requestContext)
-		const settings = await InvoiceSettings.findOne({ tenantId })
-			.select('allowOversell')
-			.lean<{ allowOversell?: boolean }>()
+		const settings = await (pgFindOne(
+			InvoiceSettings,
+			tenantId,
+			{ tenantId },
+			{ select: 'allowOversell' },
+		) as unknown as Promise<{ allowOversell?: boolean }>)
 
 		return settings?.allowOversell === true
 	}

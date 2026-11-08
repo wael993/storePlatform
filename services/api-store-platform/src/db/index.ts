@@ -60,6 +60,10 @@ export const inTransaction = async <T>(
 	}
 }
 
+/** Postgres unique violation (23505), possibly wrapped by Drizzle. Was Mongo's 11000. */
+export const isUniqueViolation = (error: unknown) =>
+	pgErrorCode(error) === '23505'
+
 /** Same message as the Mongo tenant plugin: every store query needs a tenant. */
 export const requireTenantId = (tenantId: string | undefined): string => {
 	if (!tenantId) {

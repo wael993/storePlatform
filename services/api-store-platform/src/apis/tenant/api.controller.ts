@@ -563,7 +563,7 @@ export default class TenantController {
 			pgDeleteMany(Project, tenantId, {}),
 			pgDeleteMany(Invoice, tenantId, {}),
 			pgDeleteMany(Inventory, tenantId, {}),
-			Report.deleteMany({ tenantId }),
+			pgDeleteMany(Report, tenantId, {}),
 			SubscriptionRenewalRequest.deleteMany({ tenantId }),
 		])
 

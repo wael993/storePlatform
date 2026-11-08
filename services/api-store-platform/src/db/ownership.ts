@@ -4,7 +4,8 @@ import type { DbTx } from '.'
 
 /**
  * Which store owns each collection during the migration (one owner at a time,
- * ADR "port by transaction group"). Group 1 = money + stock; group 2 = catalog, parties, master data.
+ * ADR "port by transaction group"). Group 1 = money + stock; group 2 = catalog, parties,
+ * master data; group 3 = settings, reports, notifications, import drafts.
  * shortcut: grows with each group; deleted with Mongo in PG-MIG-6.
  */
 const PG_MODELS = new Set([
@@ -32,6 +33,15 @@ const PG_MODELS = new Set([
 	'Project',
 	'Employee',
 	'Expense',
+	// group 3: settings, reports, notifications, import drafts
+	'InvoiceSettings',
+	'LabelTemplate',
+	'UserSettings',
+	'TenantRolePermission',
+	'Report',
+	'NegativeQuantitySnapshot',
+	'NotificationRead',
+	'ProductImportSession',
 ])
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

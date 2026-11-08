@@ -1,6 +1,10 @@
 import cron from 'node-cron'
-import { pgFind } from '../db/mongoQuery'
-import mongoose from 'mongoose'
+import {
+	pgDeleteMany,
+	pgFind,
+	pgFindOneAndUpdate,
+	pgUpdateMany,
+} from '../db/mongoQuery'
 import { config } from '../config/config'
 import { Inventory } from '../models/Inventory'
 import {
@@ -13,7 +17,6 @@ import {
 	RETAIL_BELOW_PURCHASE_DIGEST,
 } from '../models/NegativeQuantitySnapshot'
 import { isLowStock } from '../shared/inventoryCost'
-import { NotificationRead } from '../models/NotificationRead'
 import { Product } from '../models/Products'
 import Tenant from '../models/Tenant'
 import { TENANT_STATUS } from '../shared/constants/tenant.constants'
@@ -22,81 +25,6 @@ import logger from '../shared/logger/logger'
 const CRON_ACTOR = {
 	_id: 'cron',
 	displayName: 'Cron',
-}
-
-const INDEX_NOT_FOUND = 27
-
-const dropIndexIfExists = async (
-	collection: mongoose.Collection,
-	name: string,
-) => {
-	try {
-		await collection.dropIndex(name)
-	} catch (error: unknown) {
-		const code =
-			typeof error === 'object' && error !== null && 'code' in error
-				? error.code
-				: undefined
-
-		if (code !== INDEX_NOT_FOUND) {
-			throw error
-		}
-	}
-}
-
-let digestIndexesReady: Promise<void> | null = null
-
-export const ensureProductDigestIndexes = (): Promise<void> => {
-	if (!digestIndexesReady) {
-		digestIndexesReady = (async () => {
-			await mongoose.connection.asPromise()
-
-			const snapshotIndexes =
-				await NegativeQuantitySnapshot.collection.indexes()
-
-			for (const index of snapshotIndexes) {
-				const key = index.key as Record<string, number>
-
-				if (
-					index.unique &&
-					index.name &&
-					Object.keys(key).length === 1 &&
-					key.tenantId === 1
-				) {
-					await dropIndexIfExists(
-						NegativeQuantitySnapshot.collection,
-						index.name,
-					)
-				}
-			}
-
-			const readIndexes = await NotificationRead.collection.indexes()
-
-			for (const index of readIndexes) {
-				const key = index.key as Record<string, number>
-
-				if (
-					index.unique &&
-					index.name &&
-					key.tenantId === 1 &&
-					key.userId === 1 &&
-					key.runAt === 1 &&
-					key.type === undefined
-				) {
-					await dropIndexIfExists(NotificationRead.collection, index.name)
-				}
-			}
-
-			await NegativeQuantitySnapshot.syncIndexes()
-			await NotificationRead.syncIndexes()
-		})().catch(error => {
-			digestIndexesReady = null
-
-			throw error
-		})
-	}
-
-	return digestIndexesReady
 }
 
 const uniqueProductIds = (ids: Array<string | undefined>): string[] =>
@@ -109,8 +37,7 @@ const persistDigestSnapshot = async (
 	productIds: string[],
 ) => {
 	if (productIds.length === 0) {
-		await NegativeQuantitySnapshot.deleteMany({
-			tenantId,
+		await pgDeleteMany(NegativeQuantitySnapshot, tenantId, {
 			...(type === NEGATIVE_QUANTITY_DIGEST
 				? { $or: [{ type }, { type: { $exists: false } }] }
 				: { type }),
@@ -120,14 +47,18 @@ const persistDigestSnapshot = async (
 	}
 
 	if (type === NEGATIVE_QUANTITY_DIGEST) {
-		await NegativeQuantitySnapshot.updateMany(
-			{ tenantId, type: { $exists: false } },
+		await pgUpdateMany(
+			NegativeQuantitySnapshot,
+			tenantId,
+			{ type: { $exists: false } },
 			{ $set: { type: NEGATIVE_QUANTITY_DIGEST } },
 		)
 	}
 
-	await NegativeQuantitySnapshot.findOneAndUpdate(
-		{ tenantId, type },
+	await pgFindOneAndUpdate(
+		NegativeQuantitySnapshot,
+		tenantId,
+		{ type },
 		{
 			$set: {
 				type,
@@ -332,8 +263,6 @@ const logSnapshotResult = (result: {
 export const runNegativeQuantitySnapshot = async (
 	runAt = new Date(),
 ): Promise<void> => {
-	await ensureProductDigestIndexes()
-
 	const tenants = await Tenant.find({ status: TENANT_STATUS.ACTIVE })
 		.select({ tenantId: 1, _id: 0 })
 		.lean()
@@ -349,10 +278,6 @@ export const runNegativeQuantitySnapshot = async (
 
 export function startNegativeQuantitySnapshotCron(): void {
 	const { dailySchedule, timezone } = config.cron
-
-	void ensureProductDigestIndexes().catch(error => {
-		logger.error(`Cron: product digest index sync failed: ${error}`)
-	})
 
 	cron.schedule(
 		dailySchedule,

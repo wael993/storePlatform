@@ -1,4 +1,4 @@
-import { pgFind } from '../db/mongoQuery'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../db/mongoQuery'
 import Tenant from '../models/Tenant'
 import TenantRolePermission from '../models/TenantRolePermission'
 import { Product } from '../models/Products'
@@ -67,7 +67,10 @@ export const getSeeSet = async (
 	let stored: string[] | null = null
 
 	if (role !== 'owner') {
-		const doc = await TenantRolePermission.findOne({ tenantId, role }).lean()
+		const doc = await pgFindOne(TenantRolePermission, tenantId, {
+			tenantId,
+			role,
+		})
 
 		stored = doc?.see ?? null
 	}
@@ -511,8 +514,10 @@ export const saveRoleSee = async (
 	const pages = await loadTenantPages(tenantId)
 	const see = sanitizeSeeIdsForSave(pages, incoming)
 
-	await TenantRolePermission.updateOne(
-		{ tenantId, role },
+	await pgFindOneAndUpdate(
+		TenantRolePermission,
+		tenantId,
+		{ role },
 		{ $set: { tenantId, role, see } },
 		{ upsert: true },
 	)

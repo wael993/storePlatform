@@ -76,6 +76,15 @@ const ENDPOINTS: Array<{
 	{ list: '/projects', detail: '/projects/:id', id: 'projectId' },
 	{ list: '/employees', detail: '/employees/:id', id: 'employeeId' },
 	{ list: '/expenses', detail: '/expenses/:id', id: 'expenseId' },
+	// group 3: settings, reports, notifications
+	{ list: '/invoice-settings' },
+	{ list: '/user-settings' },
+	{ list: '/label-templates' },
+	{ list: '/reports', detail: '/reports/:id', id: 'reportId' },
+	{ list: '/role-permissions/catalog' },
+	{ list: '/role-permissions/cashier' },
+	{ list: '/products/notifications' },
+	{ list: '/products/notifications/digest' },
 ]
 
 /**

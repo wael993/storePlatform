@@ -56,9 +56,9 @@ const wipe = async () => {
 
 	await Promise.all([
 		User.deleteMany(filter),
-		UserSettings.deleteMany(filter),
+		pgDeleteMany(UserSettings, TENANT_ID, {}),
 		pgDeleteMany(CurrencySettings, TENANT_ID, {}),
-		InvoiceSettings.deleteMany(filter),
+		pgDeleteMany(InvoiceSettings, TENANT_ID, {}),
 		pgDeleteMany(Currency, TENANT_ID, {}),
 		pgDeleteMany(Unit, TENANT_ID, {}),
 		pgDeleteMany(Warehouse, TENANT_ID, {}),
@@ -201,7 +201,7 @@ async function seedAppTenant() {
 		],
 	})
 
-	await InvoiceSettings.create({
+	await insertDoc(InvoiceSettings, {
 		tenantId: TENANT_ID,
 		noMergeInvoiceLines: false,
 		allowOversell: false,
@@ -213,7 +213,8 @@ async function seedAppTenant() {
 		footerNote: 'شكراً لتسوقكم من آب — ضمان رسمي على كل الأجهزة',
 	})
 
-	await UserSettings.insertMany(
+	await insertDocs(
+		UserSettings,
 		users.map(user => ({
 			tenantId: TENANT_ID,
 			userId: user.userId,

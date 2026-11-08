@@ -572,6 +572,8 @@ export const pgFindOneAndUpdate = (
 		// on an existing document Mongo ignores $setOnInsert
 		delete ops.$setOnInsert
 
+		if (!Object.keys(ops).length) return target // nothing to apply, like Mongo
+
 		if (Object.keys(ops).every(op => op === '$set')) {
 			await updateDoc(
 				model,

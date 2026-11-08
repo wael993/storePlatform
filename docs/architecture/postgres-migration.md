@@ -222,6 +222,26 @@ product `price._id`, dropped orphan field `roundConvertedCurrencyAmounts`.
 For groups 3–4: four handlers check Mongo's duplicate-key code `11000` (label templates,
 notifications, newsroom, subscription requests); Postgres raises `23505`.
 
+## Group 3 switched (settings, reports, notifications, import drafts) — 2026-11-08
+
+Postgres also owns invoice settings, label templates, user settings, role permissions (SEE), reports,
+product digest snapshots, notification reads, product import drafts.
+
+- Duplicate-key handlers use `isUniqueViolation` (`23505`, `db/index.ts`): one default label
+  template per tenant (partial unique index), parallel "mark as read".
+- `pgFindOneAndUpdate` with only `$setOnInsert` on an existing row is a no-op (as in Mongo).
+- Import drafts: `saveDoc` replaces `session.save()`; Mongo's TTL index on `expiresAt` is replaced by
+  the hourly cleanup job (`cron/cleanExpiredTokens.ts`).
+- Removed the Mongo-only digest index maintenance (`ensureProductDigestIndexes`); indexes come from
+  the migrations.
+- Translator fix found in the group-2 staging smoke: `{ field: /re/ }` values (barcode and
+  "name already exists" checks) are pattern matches; an empty operator object throws.
+- `api:diff` group-3-on-Mongo vs Postgres (tenant `app`): all read endpoints equal. Write paths covered
+  by `group3Writes.pg.test.ts`.
+
+Still in Mongo (group 4): tenants, users, refresh tokens, roles, subscription settings + renewal
+requests, newsroom.
+
 ## Open questions
 
 1. **Active vs dormant tenants:** ops note, kept outside git (no tenant ids here).

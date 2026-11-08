@@ -1,8 +1,10 @@
+import { isUniqueViolation } from '../../db'
 import { insertDoc } from '../../db/docs'
 import {
 	pgDeleteMany,
 	pgFindOne,
 	pgFindOneAndUpdate,
+	pgUpdateMany,
 } from '../../db/mongoQuery'
 import express from 'express'
 
@@ -33,7 +35,6 @@ import UserSettings, {
 } from '../../models/UserSettings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger from '../../shared/logger/logger'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import {
 	DeleteBlockReason,
@@ -218,13 +219,13 @@ export default class SettingController {
 				)
 			}
 
-			let userSettings = await UserSettings.findOne({
+			let userSettings = await pgFindOne(UserSettings, tenantId, {
 				tenantId,
 				userId,
 			})
 
 			if (!userSettings) {
-				userSettings = await UserSettings.create({
+				userSettings = await insertDoc(UserSettings, {
 					tenantId,
 					userId,
 					productsPerPage: 20,
@@ -281,8 +282,10 @@ export default class SettingController {
 				updateData.columnConfigs = parseColumnConfigs(columnConfigs)
 			}
 
-			const userSettings = await UserSettings.findOneAndUpdate(
-				{ tenantId, userId },
+			const userSettings = await pgFindOneAndUpdate(
+				UserSettings,
+				tenantId,
+				{ userId },
 				updateData,
 				{ new: true, upsert: true },
 			)
@@ -532,10 +535,12 @@ export default class SettingController {
 				)
 			}
 
-			let invoiceSettings = await InvoiceSettings.findOne({ tenantId })
+			let invoiceSettings = await pgFindOne(InvoiceSettings, tenantId, {
+				tenantId,
+			})
 
 			if (!invoiceSettings) {
-				invoiceSettings = await InvoiceSettings.create({
+				invoiceSettings = await insertDoc(InvoiceSettings, {
 					tenantId,
 					noMergeInvoiceLines: false,
 					allowOversell: false,
@@ -622,7 +627,9 @@ export default class SettingController {
 			}
 		}
 
-		const invoiceSettings = await InvoiceSettings.findOneAndUpdate(
+		const invoiceSettings = await pgFindOneAndUpdate(
+			InvoiceSettings,
+			tenantId,
 			{ tenantId },
 			updateData,
 			{ new: true, upsert: true },
@@ -656,13 +663,12 @@ export default class SettingController {
 				payload.defaultInvoiceCurrencyId?.trim() || undefined
 		}
 
-		const userSettings = await withTenantScope(
-			UserSettings.findOneAndUpdate(
-				{ userId: requestContext.userId },
-				updateData,
-				{ new: true, upsert: true },
-			).lean(),
+		const userSettings = await pgFindOneAndUpdate(
+			UserSettings,
 			tenantContext.tenantId,
+			{ userId: requestContext.userId },
+			updateData,
+			{ new: true, upsert: true },
 		)
 
 		return (userSettings ?? {}) as Record<string, unknown>
@@ -1078,30 +1084,31 @@ export default class SettingController {
 		}
 
 		if (templateId === SYSTEM_LABEL_TEMPLATE_ID) {
-			await LabelTemplate.updateMany(
-				{ tenantId },
+			await pgUpdateMany(
+				LabelTemplate,
+				tenantId,
+				{},
 				{ $set: { isDefault: false } },
 			)
 		} else {
 			await this.requireCustomTemplate(requestContext, templateId)
-			await LabelTemplate.updateMany(
-				{ tenantId },
+			await pgUpdateMany(
+				LabelTemplate,
+				tenantId,
+				{},
 				{ $set: { isDefault: false } },
 			)
 
 			try {
-				await LabelTemplate.updateOne(
-					{ tenantId, templateId },
+				await pgUpdateMany(
+					LabelTemplate,
+					tenantId,
+					{ templateId },
 					{ $set: { isDefault: true } },
 				)
 			} catch (error: unknown) {
-				const duplicateKey =
-					typeof error === 'object' &&
-					error !== null &&
-					'code' in error &&
-					error.code === 11000
-
-				if (duplicateKey) {
+				// partial unique index: one default template per tenant
+				if (isUniqueViolation(error)) {
 					throw new BusinessLogicError(
 						ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 						'Another template is already the default',
