@@ -66,6 +66,7 @@ describe.skipIf(!enabled)('group 4 writes (Postgres)', () => {
 		await expect(pgFind(Tenant, undefined, { domain })).rejects.toThrow(
 			'missing tenant context',
 		)
+
 		expect(await pgFindOne(Tenant, 'other-tenant', { domain })).toBeNull()
 		expect(await pgFindOne(Tenant, ALL_TENANTS, { domain })).toMatchObject({
 			tenantId,
