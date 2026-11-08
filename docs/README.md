@@ -30,6 +30,8 @@ the index). Treat them as constraints, not optional background.
 | Auth | [reset-pass.md](backlog/reset-pass.md) | Password reset via Superadmin |
 | RIVO | [report-ai.md](backlog/report-ai.md) | RA-BUG-1…7 + future tools (detail in reference) |
 | Backup | [backup.md](backlog/backup.md) | Shipped: API, web UI, Drive/Dropbox/OneDrive. Open: live test of Dropbox + OneDrive |
+| Roadmap | [roadmap.md](backlog/roadmap.md) | Order after Postgres: staging test, smoke, hard review, rehearsal, switch, remove Mongo, structure, clean code, docs |
+| QA | [smoke-test-plan.md](backlog/smoke-test-plan.md) | Smoke test from zero to everything (★ = critical path after the switch) |
 | Postgres | [postgres-migration.md](backlog/postgres-migration.md) | PG-MIG-0…6: ADR → schema → repos → shadow → cutover (2 active) → backup v2 → remove Mongo |
 
 ---

@@ -42,7 +42,7 @@ const PASSWORD = 'W123-456z'
 const NOW = new Date()
 const BY = {
 	_id: 'seed-app',
-	displayName: 'بذرة النظام',
+	displayName: 'seed of the System',
 	role: 'owner',
 	createdAt: NOW,
 }
