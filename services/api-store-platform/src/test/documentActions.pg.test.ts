@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { closeDb } from '../db'
+import { closeDb, inTransaction } from '../db'
 import { pgFindOne } from '../db/mongoQuery'
 import { Invoice } from '../models/Invoice'
 import { COLLECTION_NAMES } from '../shared/general'
@@ -105,5 +105,35 @@ describe.skipIf(!enabled)('documentActions on Postgres', () => {
 		])
 
 		expect(results.map(r => r.status).sort()).toEqual(['fulfilled', 'rejected'])
+	})
+
+	it('keeps the invoice when the rest of its delete transaction fails', async () => {
+		const tenantId = `t-${randomUUID()}`
+		const ctx = contextFor(tenantId)
+
+		await createDocument(
+			ctx,
+			COLLECTION_NAMES.INVOICES,
+			Invoice,
+			invoice('inv-3'),
+		)
+
+		await expect(
+			inTransaction(undefined, async tx => {
+				await deleteDocument(
+					ctx,
+					COLLECTION_NAMES.INVOICES,
+					Invoice,
+					'inv-3',
+					tx,
+				)
+
+				throw new Error('stock reversal failed') // e.g. the next step in deleteInvoice
+			}),
+		).rejects.toThrow('stock reversal failed')
+
+		expect(
+			await pgFindOne(Invoice, tenantId, { invoiceId: 'inv-3' }),
+		).not.toBeNull()
 	})
 })

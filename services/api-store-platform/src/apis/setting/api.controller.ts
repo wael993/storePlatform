@@ -477,7 +477,7 @@ export default class SettingController {
 			)
 		}
 
-		const resolvedSecondary: ICurrencySettingItem[] = await Promise.all(
+		const resolvedAll: ICurrencySettingItem[] = await Promise.all(
 			normalizedSecondary.map(async item => {
 				const resolved = await this.syncCurrencyFromSettings(
 					requestContext,
@@ -492,11 +492,18 @@ export default class SettingController {
 			}),
 		)
 
-		const resolvedSecondaryIds = new Set(
-			resolvedSecondary.map(item => item.currencyId),
-		)
+		// one row per currency (primary key tenant + currency): "EUR" and "eur", or the
+		// primary listed again as a secondary, resolve to the same currencyId
+		const keptIds = new Set(resolvedPrimary ? [resolvedPrimary.currencyId] : [])
+		const resolvedSecondary = resolvedAll.filter(item => {
+			if (keptIds.has(item.currencyId)) return false
+
+			keptIds.add(item.currencyId)
+
+			return true
+		})
 		const idsToDelete = removedSecondaryIds.filter(
-			currencyId => !resolvedSecondaryIds.has(currencyId),
+			currencyId => !keptIds.has(currencyId), // never delete the primary
 		)
 
 		if (idsToDelete.length > 0) {

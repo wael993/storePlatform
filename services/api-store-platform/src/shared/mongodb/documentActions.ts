@@ -272,6 +272,7 @@ export const deleteDocument = async (
 	resource: TenantResource,
 	model: EntityModel,
 	id: string,
+	session?: Session,
 ) => {
 	await ensureTenantAccess(requestContext, resource)
 	const { tenantId } = getTenantContext(requestContext)
@@ -285,6 +286,7 @@ export const deleteDocument = async (
 			table,
 			tenantId,
 			whereOf(table, { [idField]: id }),
+			asTx(session),
 		)
 
 		if (!deleted) {

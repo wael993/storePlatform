@@ -37,7 +37,7 @@ describe.skipIf(!enabled)('group 3 writes (Postgres)', () => {
 		await markRead()
 		await markRead() // existing row: nothing to apply, must not throw
 
-		// two at once: one inserts, the other hits the unique index (handled by callers)
+		// two at once: one inserts, the other updates the row it lost the race to
 		const results = await Promise.allSettled([markRead(), markRead()])
 
 		for (const result of results) {
@@ -87,6 +87,23 @@ describe.skipIf(!enabled)('group 3 writes (Postgres)', () => {
 
 		expect(await save(20)).toMatchObject({ userId: 'u-1', productsPerPage: 20 })
 		expect(await save(50)).toMatchObject({ productsPerPage: 50 })
+		expect(await pgFind(UserSettings, tenantId, {})).toHaveLength(1)
+	})
+
+	it('lets parallel first saves all succeed (a lost insert race updates the winner)', async () => {
+		const tenantId = `t-${randomUUID()}`
+		const save = (productsPerPage: number) =>
+			pgFindOneAndUpdate(
+				UserSettings,
+				tenantId,
+				{ userId: 'u-1' },
+				{ productsPerPage },
+				{ new: true, upsert: true },
+			)
+
+		const results = await Promise.allSettled([10, 20, 30, 40].map(save))
+
+		expect(results.filter(r => r.status === 'rejected')).toEqual([])
 		expect(await pgFind(UserSettings, tenantId, {})).toHaveLength(1)
 	})
 })

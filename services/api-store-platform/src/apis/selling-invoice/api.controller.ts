@@ -1526,55 +1526,50 @@ export default class SellingInvoiceController {
 			? requireWarehouseId(existingInvoice.warehouseId)
 			: undefined
 
-		const touchedInventoryIds =
-			wasStockAffecting && existingInvoice
-				? await this.ops.runInTransaction(async session => {
-						const originalUnitCosts = originalSaleUnitCostByProduct(
-							await this.getSaleStockMovingsForInvoice(
-								requestContext,
-								existingInvoice.invoiceId,
-								session,
-							),
-						)
+		// one transaction, invoice row first: a crash cannot leave the invoice with its
+		// stock already returned, and a parallel second delete finds nothing and rolls back
+		const { deleteResponse, touchedInventoryIds } =
+			await this.ops.runInTransaction(async session => {
+				const deleted = await this.mongoDbClient.deleteDocument(
+					{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
+					requestContext,
+					Invoice,
+					session,
+				)
+				let inventoryIds: string[] = []
 
-						const inventoryIds = await this.reverseSaleInventoryAdjustments(
+				if (wasStockAffecting && existingInvoice) {
+					const originalUnitCosts = originalSaleUnitCostByProduct(
+						await this.getSaleStockMovingsForInvoice(
 							requestContext,
 							existingInvoice.invoiceId,
-							existingInvoice.invoiceNumber,
-							asInvoiceLines(existingInvoice.items),
 							session,
-							requireWarehouseId(existingInvoice.warehouseId),
-							originalUnitCosts,
-						)
+						),
+					)
 
-						await clearCashLedgerForReference({
-							requestContext,
-							warehouseId: requireWarehouseId(existingInvoice.warehouseId),
-							referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
-							referenceId: existingInvoice.invoiceId,
-							session,
-						})
+					inventoryIds = await this.reverseSaleInventoryAdjustments(
+						requestContext,
+						existingInvoice.invoiceId,
+						existingInvoice.invoiceNumber,
+						asInvoiceLines(existingInvoice.items),
+						session,
+						requireWarehouseId(existingInvoice.warehouseId),
+						originalUnitCosts,
+					)
+				}
 
-						return inventoryIds
+				if (warehouseIdForCash && existingInvoice) {
+					await clearCashLedgerForReference({
+						requestContext,
+						warehouseId: warehouseIdForCash,
+						referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
+						referenceId: existingInvoice.invoiceId,
+						session,
 					})
-				: warehouseIdForCash && existingInvoice
-					? await (async () => {
-							await clearCashLedgerForReference({
-								requestContext,
-								warehouseId: warehouseIdForCash,
-								referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
-								referenceId: existingInvoice.invoiceId,
-							})
+				}
 
-							return [] as string[]
-						})()
-					: []
-
-		const deleteResponse = await this.mongoDbClient.deleteDocument(
-			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
-			requestContext,
-			Invoice,
-		)
+				return { deleteResponse: deleted, touchedInventoryIds: inventoryIds }
+			})
 
 		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
 

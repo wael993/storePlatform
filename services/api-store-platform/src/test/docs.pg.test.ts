@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 
 import { closeDb, getDb, inTransaction } from '../db'
 import { deleteDocs, findDoc, findDocs, insertDoc, updateDoc } from '../db/docs'
+import { pgFindOne } from '../db/mongoQuery'
 import * as t from '../db/schema'
 import { Invoice } from '../models/Invoice'
 import { Unit } from '../models/Unit'
@@ -60,6 +61,20 @@ describe.skipIf(!enabled)('document store (Postgres)', () => {
 		})
 
 		expect(created._id).toMatch(/^[0-9a-f]{24}$/) // same _id format as Mongo
+
+		// a select loads only the child tables it names, but always those
+		const only = (select: Record<string, number>) =>
+			pgFindOne(Invoice, tenantId, { invoiceId: 'inv-1' }, { select })
+
+		expect((await only({ items: 1 })).items).toHaveLength(2)
+		expect(await only({ 'currencyAmounts.currencyId': 1 })).toMatchObject({
+			currencyAmounts: [{ currencyId: 'usd' }],
+		})
+
+		expect(await only({ invoiceId: 1 })).toEqual({
+			_id: created._id,
+			invoiceId: 'inv-1',
+		})
 
 		const found = await findDoc(
 			t.invoices,

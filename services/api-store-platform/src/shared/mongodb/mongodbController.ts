@@ -382,8 +382,15 @@ export default class MongodbController {
 		{ collectionName, id }: DeleteDocumentContext,
 		requestContext: RequestContext,
 		model: EntityModel,
+		session?: Session,
 	) {
-		return deleteDocumentAction(requestContext, collectionName, model, id)
+		return deleteDocumentAction(
+			requestContext,
+			collectionName,
+			model,
+			id,
+			session,
+		)
 	}
 
 	public async deleteDocuments(

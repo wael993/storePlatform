@@ -9,6 +9,7 @@ import {
 	Executor,
 	getDb,
 	inTransaction,
+	isUniqueViolation,
 	requireTenantId,
 	TenantScope,
 } from '.'
@@ -385,14 +386,10 @@ export const orderOf = (
 }
 
 /** `.select()` projection: 'a b' / '-a' / { a: 1 } / { a: 0 }. */
-const project = (
-	docs: Doc[],
-	select?: string | Record<string, unknown>,
-): Doc[] => {
-	if (!select) return docs
-
-	const entries =
-		typeof select === 'string'
+const selectFields = (select?: string | Record<string, unknown>) => {
+	const entries = !select
+		? []
+		: typeof select === 'string'
 			? select
 					.split(/\s+/)
 					.filter(Boolean)
@@ -406,6 +403,17 @@ const project = (
 	const exclude = new Set(
 		entries.filter(([, flag]) => !flag).map(([field]) => String(field)),
 	)
+
+	return { include, exclude }
+}
+
+const project = (
+	docs: Doc[],
+	select?: string | Record<string, unknown>,
+): Doc[] => {
+	if (!select) return docs
+
+	const { include, exclude } = selectFields(select)
 
 	return docs.map(doc => {
 		if (include.length) {
@@ -450,7 +458,16 @@ export const pgFind = async <T = any>(
 	options: FindOptions = {},
 ): Promise<T[]> => {
 	const table = tableOf(model)
+	const { include } = selectFields(options.select)
+	const named = new Set(include.map(field => field.split('.')[0]))
+	// an include list loads only the child tables it names (e.g. not invoice items for an id)
+	const skipChildren = include.length
+		? Object.entries(CHILD_FIELDS.get(table) ?? {})
+				.filter(([field]) => !named.has(field))
+				.map(([, link]) => link.table)
+		: []
 	const docs = await findDocs(table, tenantId, {
+		skipChildren,
 		where: whereOf(table, filter),
 		order: orderOf(table, options.sort),
 		limit: options.limit,
@@ -575,27 +592,39 @@ export const pgFindOneAndUpdate = (
 		)
 			? { ...update }
 			: { $set: update }
-		const target = await pgFindOne(model, tenantId, filter, { db, lock: true })
+		let target = await pgFindOne(model, tenantId, filter, { db, lock: true })
 
 		if (!target) {
 			if (!options.upsert) return null
 
-			const created = await insertDoc(
-				model,
-				{
-					...equalities(filter),
-					...((ops.$setOnInsert as Doc) ?? {}),
-					...((ops.$set as Doc) ?? {}),
-					...(tenantId === ALL_TENANTS
-						? {}
-						: { tenantId: requireTenantId(tenantId) }),
-				},
-				db,
-			)
+			try {
+				// savepoint: a lost insert race must not abort the caller's transaction
+				const created = await db.transaction(savepoint =>
+					insertDoc(
+						model,
+						{
+							...equalities(filter),
+							...((ops.$setOnInsert as Doc) ?? {}),
+							...((ops.$set as Doc) ?? {}),
+							...(tenantId === ALL_TENANTS
+								? {}
+								: { tenantId: requireTenantId(tenantId) }),
+						},
+						savepoint,
+					),
+				)
 
-			return options.new
-				? pgFindOne(model, tenantId, { _id: created._id }, { db })
-				: null
+				return options.new
+					? pgFindOne(model, tenantId, { _id: created._id }, { db })
+					: null
+			} catch (error) {
+				if (!isUniqueViolation(error)) throw error
+
+				// a parallel request created it first: update that row, like Mongo's upsert retry
+				target = await pgFindOne(model, tenantId, filter, { db, lock: true })
+
+				if (!target) throw error
+			}
 		}
 
 		const byId = { _id: target._id }

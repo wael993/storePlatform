@@ -461,6 +461,8 @@ export const findDocs = async (
 		db?: Executor
 		/** SELECT … FOR UPDATE (inside a transaction). */
 		lock?: boolean
+		/** Child tables not to load (their array fields come back empty). */
+		skipChildren?: PgTable[]
 	} = {},
 ): Promise<Doc[]> => {
 	const db = options.db ?? getDb()
@@ -484,6 +486,8 @@ export const findDocs = async (
 	const children: Children = new Map()
 
 	for (const child of CHILD_LINKS.get(table) ?? []) {
+		if (options.skipChildren?.includes(child.table)) continue
+
 		const keys = [...new Set(rows.map(row => row[child.parentKey] as string))]
 
 		if (!keys.length) continue

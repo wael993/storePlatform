@@ -595,9 +595,12 @@ export default class NewsroomController {
 	): Promise<{ pinned: boolean }> {
 		await ensureNewsroomRead(requestContext)
 		await this.requirePublicNote(releaseNoteId)
-		await this.upsertUserState(
+		await pgFindOneAndUpdate(
+			NewsroomUserState,
+			ALL_TENANTS,
 			{ userId: requestContext.userId, newsroomItemId: releaseNoteId },
-			{ pinned },
+			{ $set: { pinned } },
+			{ upsert: true },
 		)
 
 		return { pinned }
@@ -610,9 +613,12 @@ export default class NewsroomController {
 
 		const lastVisitedAt = new Date()
 
-		await this.upsertUserState(
+		await pgFindOneAndUpdate(
+			NewsroomUserState,
+			ALL_TENANTS,
 			{ userId: requestContext.userId, newsroomItemId: NEWSROOM_FEED_STATE_ID },
-			{ lastVisitedAt, pinned: false },
+			{ $set: { lastVisitedAt, pinned: false } },
+			{ upsert: true },
 		)
 
 		return { lastVisitedAt: lastVisitedAt.toISOString() }
@@ -693,29 +699,6 @@ export default class NewsroomController {
 		}
 
 		return note
-	}
-
-	/** Upsert; two parallel first clicks: the loser hits the unique index and retries as an update. */
-	private async upsertUserState(
-		key: { userId?: string; newsroomItemId: string },
-		changes: Record<string, unknown>,
-	): Promise<void> {
-		const upsert = () =>
-			pgFindOneAndUpdate(
-				NewsroomUserState,
-				ALL_TENANTS,
-				key,
-				{ $set: changes },
-				{ upsert: true },
-			)
-
-		try {
-			await upsert()
-		} catch (error: unknown) {
-			if (!isUniqueViolation(error)) throw error
-
-			await upsert()
-		}
 	}
 
 	private async assertTopicsExist(
