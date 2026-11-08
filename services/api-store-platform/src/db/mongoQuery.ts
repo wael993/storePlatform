@@ -181,6 +181,7 @@ const isOperatorObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' &&
 	!Array.isArray(value) &&
 	!(value instanceof Date) &&
+	!(value instanceof RegExp) &&
 	Object.keys(value as object).every(key => key.startsWith('$'))
 
 const valueList = (value: unknown) =>
@@ -212,7 +213,29 @@ const fieldCondition = (column: AnyPgColumn, condition: unknown): SQL => {
 		return parts.length ? or(...parts)! : sql`false`
 	}
 
+	/** Pattern match; on an array column any element may match (like Mongo). */
+	const matches = (pattern: unknown, options: string): SQL => {
+		const source = pattern instanceof RegExp ? pattern.source : String(pattern)
+		const insensitive =
+			options.includes('i') ||
+			(pattern instanceof RegExp && pattern.flags.includes('i'))
+		const op = insensitive ? sql.raw('~*') : sql.raw('~')
+
+		return isArray
+			? sql`exists (select 1 from unnest(${column}) as element where element ${op} ${source})`
+			: sql`${column} ${op} ${source}`
+	}
+
+	// `{ field: /re/ }` is a pattern match in Mongo, not an equality
+	if (condition instanceof RegExp) return matches(condition, '')
+
 	if (!isOperatorObject(condition)) return equals(condition)
+
+	if (!Object.keys(condition).length) {
+		return unsupported(
+			'empty operator object {} (Mongo compares to an empty document)',
+		)
+	}
 
 	const parts = Object.entries(condition).map(([op, value]): SQL => {
 		switch (op) {
@@ -234,15 +257,8 @@ const fieldCondition = (column: AnyPgColumn, condition: unknown): SQL => {
 				return sql`${column} <= ${value}`
 			case '$exists':
 				return value ? sql`${column} is not null` : sql`${column} is null`
-			case '$regex': {
-				const options = String(condition.$options ?? '')
-				const source = value instanceof RegExp ? value.source : String(value)
-
-				return options.includes('i') ||
-					(value instanceof RegExp && value.flags.includes('i'))
-					? sql`${column} ~* ${source}`
-					: sql`${column} ~ ${source}`
-			}
+			case '$regex':
+				return matches(value, String(condition.$options ?? ''))
 			case '$options':
 				return sql`true`
 

@@ -186,6 +186,15 @@ const CASES: Array<{
 		model: 'Customer',
 		filter: { 'openingBalances.currencyId': { $in: ['usd', 'syp'] } },
 	},
+	// RegExp values are pattern matches (barcode collision check uses them)
+	{ model: 'Products', filter: { name: /^TEA$/i } },
+	{
+		model: 'Products',
+		filter: { $or: [{ name: /^pot$/i }, { name: /^zzz$/ }] },
+	},
+	{ model: 'Products', filter: { name: /^nothing-matches$/i } },
+	{ model: 'Supplier', filter: { aliases: /^X$/i } },
+	{ model: 'Supplier', filter: { aliases: { $regex: '^y', $options: 'i' } } },
 	{ model: 'Supplier', filter: { aliases: 'x' } },
 	{ model: 'Supplier', filter: { aliases: { $in: ['y', 'z'] } } },
 	{ model: 'Invoice', filter: { 'items.productId': { $in: ['p1', 'p9'] } } },
@@ -314,5 +323,9 @@ describe.skipIf(!enabled)('mongoQuery matches Mongo semantics', () => {
 		await expect(
 			pgFind(DailyAction, tenantId, { note: { $size: 1 } }),
 		).rejects.toThrow('unsupported operator')
+
+		await expect(pgFind(DailyAction, tenantId, { note: {} })).rejects.toThrow(
+			'empty operator object',
+		)
 	})
 })

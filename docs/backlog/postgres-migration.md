@@ -52,6 +52,9 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | Review fixes (write order, deadlock retry, atomic delete, 65k-param limit, tests, −1,600 lines) | Done |
 | Staging: Render dev on `pg-migration` (b9affd9), 8-step app smoke + database invariants | **Done** 2026-11-07 |
 | Group 2 (catalog, parties, master data) switched; 3 cross-store shortcuts removed; `api:diff` equal (accepted differences in ADR) | Done locally — staging next |
+| Staging smoke group 2 (2026-11-08): opening balances, employees, currencies, sell online/offline OK | Done |
+| Fix: RegExp filter values matched every row (barcode + 13 "name already exists" checks) | Fixed, tested vs Mongo — redeploy + retest create product / alias / barcode |
+| TO-DO: smoke product import on a new tenant without products | Open (owner, later) |
 | Groups 3–4 (settings/reports/notifications, platform) | Open |
 | Groups 2–4 (catalog/parties, settings/reports, platform) | Open |
 
