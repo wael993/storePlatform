@@ -39,7 +39,8 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"pg:etl": "ts-node src/scripts/pg-etl.ts",
-		"api:diff": "ts-node src/scripts/api-diff.ts"
+		"api:diff": "ts-node src/scripts/api-diff.ts",
+		"stress": "ts-node src/scripts/stress.ts"
 	},
 	"keywords": [],
 	"author": "",
