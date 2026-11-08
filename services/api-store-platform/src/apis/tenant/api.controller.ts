@@ -1,5 +1,12 @@
 import crypto from 'crypto'
-import { pgDeleteMany, pgFind } from '../../db/mongoQuery'
+import { ALL_TENANTS, inTransaction } from '../../db'
+import { insertDoc } from '../../db/docs'
+import {
+	pgDeleteMany,
+	pgFind,
+	pgFindOne,
+	pgFindOneAndUpdate,
+} from '../../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -19,7 +26,6 @@ import { Warehouse } from '../../models/Warehaus'
 import SubscriptionRenewalRequest from '../../models/SubscriptionRenewalRequest'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { getTenantPermissions } from '../../shared/Permissions'
 import {
 	DEFAULT_TENANT_ACCESSIBLE_PAGES,
@@ -121,10 +127,9 @@ export default class TenantController {
 	}
 
 	private async requireTenantById(tenantId: string): Promise<ITenant> {
-		const tenant = await Tenant.findOne({
-			tenantId,
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId, {
 			status: 'active',
-		}).lean<ITenant | null>()
+		})
 
 		if (!tenant) {
 			throw new BusinessLogicError(
@@ -142,10 +147,12 @@ export default class TenantController {
 		await ensureSeeIds(requestContext, [SEE.usersList])
 		const tenantContext = getTenantContext(requestContext)
 
-		const users = await withTenantScope(
-			User.find({}, { password: 0, tokenVersion: 0 }).sort({ createdAt: -1 }),
+		const users = await pgFind<TenantUserLean>(
+			User,
 			tenantContext.tenantId,
-		).lean<TenantUserLean[]>()
+			{},
+			{ select: { password: 0, tokenVersion: 0 }, sort: { createdAt: -1 } },
+		)
 
 		return users.map(user => this.mapTenantUser(user))
 	}
@@ -245,10 +252,9 @@ export default class TenantController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			User.findOne({ email: email.toLowerCase() }),
-			tenantContext.tenantId,
-		).lean<IUser | null>()
+		const existing = await pgFindOne<IUser>(User, tenantContext.tenantId, {
+			email: email.toLowerCase(),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -284,7 +290,7 @@ export default class TenantController {
 			}
 		}
 
-		const created = await User.create({
+		const created = await insertDoc(User, {
 			tenantId: tenantContext.tenantId,
 			userId: uuidv4(),
 			displayName: `${firstName} ${lastName}`,
@@ -309,8 +315,8 @@ export default class TenantController {
 		})
 
 		return {
-			_id: created.id,
-			email: created.email,
+			_id: String(created._id),
+			email: String(created.email),
 			tenantId: tenantContext.tenantId,
 			role,
 			temporaryPassword,
@@ -343,9 +349,12 @@ export default class TenantController {
 	): Promise<TenantSummary[]> {
 		await ensureSuperAdmin(requestContext)
 
-		const tenants = await Tenant.find()
-			.sort({ createdAt: -1 })
-			.lean<ITenant[]>()
+		const tenants = await pgFind<ITenant>(
+			Tenant,
+			ALL_TENANTS,
+			{},
+			{ sort: { createdAt: -1 } },
+		)
 
 		const synced = await Promise.all(
 			tenants.map(
@@ -363,7 +372,7 @@ export default class TenantController {
 	): Promise<TenantSummary> {
 		await ensureSuperAdmin(requestContext)
 
-		const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 		if (!tenant) {
 			throw new BusinessLogicError(
@@ -479,10 +488,10 @@ export default class TenantController {
 
 		if (requestBody.tenantName?.trim()) {
 			const nextTenantName = requestBody.tenantName.trim()
-			const conflictingTenant = await Tenant.findOne({
+			const conflictingTenant = await pgFindOne(Tenant, ALL_TENANTS, {
 				name: nextTenantName,
 				tenantId: { $ne: tenantId },
-			}).lean()
+			})
 
 			if (conflictingTenant) {
 				throw new BusinessLogicError(
@@ -516,11 +525,13 @@ export default class TenantController {
 			)
 		}
 
-		const updated = await Tenant.findOneAndUpdate(
-			{ tenantId },
+		const updated = (await pgFindOneAndUpdate(
+			Tenant,
+			tenantId,
+			{},
 			{ $set: updates },
-			{ new: true, runValidators: true },
-		).lean<ITenant | null>()
+			{ new: true },
+		)) as ITenant | null
 
 		if (!updated) {
 			throw new BusinessLogicError(
@@ -538,7 +549,7 @@ export default class TenantController {
 	): Promise<void> {
 		await ensureSuperAdmin(requestContext)
 
-		const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 		if (!tenant) {
 			throw new BusinessLogicError(
@@ -556,18 +567,21 @@ export default class TenantController {
 			)
 		}
 
-		await Promise.all([
-			User.deleteMany({ tenantId }),
-			RefreshToken.deleteMany({ tenantId }),
-			pgDeleteMany(Product, tenantId, {}),
-			pgDeleteMany(Project, tenantId, {}),
-			pgDeleteMany(Invoice, tenantId, {}),
-			pgDeleteMany(Inventory, tenantId, {}),
-			pgDeleteMany(Report, tenantId, {}),
-			SubscriptionRenewalRequest.deleteMany({ tenantId }),
-		])
-
-		await Tenant.deleteOne({ tenantId })
+		await inTransaction(undefined, async tx => {
+			for (const model of [
+				User,
+				RefreshToken,
+				Product,
+				Project,
+				Invoice,
+				Inventory,
+				Report,
+				SubscriptionRenewalRequest,
+				Tenant,
+			]) {
+				await pgDeleteMany(model, tenantId, {}, tx)
+			}
+		})
 	}
 
 	public async addTenant(
@@ -617,9 +631,9 @@ export default class TenantController {
 			)
 		}
 
-		const existingTenant = await Tenant.findOne({
+		const existingTenant = await pgFindOne(Tenant, ALL_TENANTS, {
 			$or: [{ name: tenantName.trim() }, { domain: normalizedDomain }],
-		}).lean()
+		})
 
 		if (existingTenant) {
 			throw new BusinessLogicError(
@@ -641,48 +655,55 @@ export default class TenantController {
 
 		const hashedPassword = await bcrypt.hash(ownerPassword, 10)
 		const now = new Date()
-		const tenant = await Tenant.create({
-			tenantId,
-			name: tenantName.trim(),
-			domain: normalizedDomain,
-			status: 'active',
-			accessiblePages: [...DEFAULT_TENANT_ACCESSIBLE_PAGES],
-			subscription: createSubscription(now, now, getSubscriptionConfig()),
-		})
-
-		const owner = await User.create({
-			tenantId,
-			userId: uuidv4(),
-			displayName: `${ownerFirstName.trim()} ${ownerLastName.trim()}`,
-			user: {
-				firstName: ownerFirstName.trim(),
-				lastName: ownerLastName.trim(),
-			},
-			email: normalizedOwnerEmail,
-			password: hashedPassword,
-			role: 'owner',
-			avatarColorId: Math.floor(Math.random() * 1000000),
-			createdBy: {
-				_id: requestContext.userId ?? '',
-				displayName: `${ownerFirstName.trim()} ${ownerLastName.trim()}`,
-				role: 'owner',
-				createdAt: new Date(),
-			},
-		})
+		const { tenant, owner } = await inTransaction(undefined, async tx => ({
+			tenant: await insertDoc(
+				Tenant,
+				{
+					tenantId,
+					name: tenantName.trim(),
+					domain: normalizedDomain,
+					status: 'active',
+					accessiblePages: [...DEFAULT_TENANT_ACCESSIBLE_PAGES],
+					subscription: createSubscription(now, now, getSubscriptionConfig()),
+				},
+				tx,
+			),
+			owner: await insertDoc(
+				User,
+				{
+					tenantId,
+					userId: uuidv4(),
+					displayName: `${ownerFirstName.trim()} ${ownerLastName.trim()}`,
+					user: {
+						firstName: ownerFirstName.trim(),
+						lastName: ownerLastName.trim(),
+					},
+					email: normalizedOwnerEmail,
+					password: hashedPassword,
+					role: 'owner',
+					avatarColorId: Math.floor(Math.random() * 1000000),
+					createdBy: {
+						_id: requestContext.userId ?? '',
+						displayName: `${ownerFirstName.trim()} ${ownerLastName.trim()}`,
+						role: 'owner',
+						createdAt: new Date(),
+					},
+				},
+				tx,
+			),
+		}))
 
 		return {
-			tenantId: tenant.tenantId,
-			tenantName: tenant.name,
-			tenantDomain: tenant.domain,
-			ownerUserId: owner.userId,
+			tenantId: String(tenant.tenantId),
+			tenantName: String(tenant.name),
+			tenantDomain: String(tenant.domain),
+			ownerUserId: String(owner.userId),
 		}
 	}
 
 	public async getOwnSubscription(requestContext: RequestContext) {
 		const tenantContext = getTenantContext(requestContext)
-		const tenant = await Tenant.findOne({
-			tenantId: tenantContext.tenantId,
-		}).lean<ITenant | null>()
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantContext.tenantId)
 
 		if (!tenant) {
 			throw new BusinessLogicError(
@@ -717,9 +738,7 @@ export default class TenantController {
 	public async createOwnRenewalRequest(requestContext: RequestContext) {
 		assertCanRequestRenewal(requestContext)
 		const tenantContext = getTenantContext(requestContext)
-		const tenant = await Tenant.findOne({
-			tenantId: tenantContext.tenantId,
-		}).lean<ITenant | null>()
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantContext.tenantId)
 
 		if (!tenant) {
 			throw new BusinessLogicError(

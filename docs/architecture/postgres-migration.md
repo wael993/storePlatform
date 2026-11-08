@@ -239,8 +239,36 @@ product digest snapshots, notification reads, product import drafts.
 - `api:diff` group-3-on-Mongo vs Postgres (tenant `app`): all read endpoints equal. Write paths covered
   by `group3Writes.pg.test.ts`.
 
-Still in Mongo (group 4): tenants, users, refresh tokens, roles, subscription settings + renewal
-requests, newsroom.
+## Group 4 switched (platform) — 2026-11-08
+
+Postgres now owns every model the app reads: tenants, users, refresh tokens, subscription renewal
+requests + payment settings, newsroom (topics, release notes, changes, user states), and the legacy
+`SellingInvoiceItem` reads (customer/product delete checks; one jsonb `items` array). Mongo is no longer
+read or written by the API (connection still opened at boot until PG-MIG-6).
+
+- **Global lookups:** `ALL_TENANTS` (`db/index.ts`) is the only way to query without a tenant filter
+  (tenant by domain at login, refresh token by hash, super-admin lists, platform tables). A missing
+  tenant id still fails closed.
+- Nested Mongo paths map to flat columns in filters and updates (`user.*`, `invoiceAi.*`,
+  `subscription.*`, `productImport.status`, `requestedBy.*` / `reviewedBy.*`). `{ subscription:
+  { $exists: false } }` became "no `subscription.renewalDate`" (same rows on flat columns).
+- **Atomic checks kept:** refresh token rotation (row lock; `pgFindOneAndDelete` returns only what it
+  really deleted), renewal claim / approve / reject (`status: 'pending'` filter under row lock),
+  subscription and Invoice AI period compare-and-set, Invoice AI credit reserve (one `UPDATE … WHERE
+  remaining > 0`, replaces Mongo's `$expr`). Duplicate handlers use `isUniqueViolation` (newsroom topic
+  name, one pending renewal per tenant).
+- Multi-document writes now share one transaction: tenant + owner on create, tenant delete, change
+  password + token revoke, newsroom note + its changes (removed the old "insert then delete" ceiling).
+- Newsroom `.save()` on hydrated documents → `pgFindOneAndUpdate`; `insertDoc` now returns
+  `createdAt` / `updatedAt` like `save()` (Mongoose `initializeTimestamps`).
+- Refresh tokens: Mongo's TTL index → the hourly cleanup job. Scripts and the boot seed
+  (`seed-if-empty`, `create-super-admin-user`, `seed-app-tenant`, …) no longer connect to Mongo.
+- `Roles` is write-only (only `seed-roles` / `init-collections` write it; nothing reads it): not
+  ported, deleted in PG-MIG-6 together with `drop-stale-indexes` (Mongo-only).
+- `api:diff` group-4-on-Mongo vs Postgres, as shop user and as super admin: all responses equal
+  (`zobani-sy` platform row skipped: old-format data). Live check on the Postgres build: login,
+  refresh rotation, reused token refused, wrong password, logout-all. Write paths:
+  `group4Writes.pg.test.ts` (each guard verified by mutation).
 
 ## Open questions
 

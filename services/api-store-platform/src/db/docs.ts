@@ -2,7 +2,16 @@ import { and, eq, sql, SQL } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
-import { anyOf, DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
+import {
+	ALL_TENANTS,
+	anyOf,
+	DbTx,
+	Executor,
+	getDb,
+	inTransaction,
+	requireTenantId,
+	TenantScope,
+} from '.'
 import { Doc, MapResult, mapDocs, Row, Spec, SPECS } from './etl/mongoToPg'
 import * as t from './schema'
 
@@ -431,13 +440,19 @@ const column = (table: PgTable, name: string) => {
 	return found
 }
 
+/** The tenant condition; none for ALL_TENANTS. */
+export const tenantWhere = (table: PgTable, tenantId: TenantScope) =>
+	tenantId === ALL_TENANTS
+		? undefined
+		: eq(column(table, 'tenantId'), requireTenantId(tenantId))
+
 /**
  * Lean documents from one table, tenant-scoped, with child arrays attached.
  * `where` narrows further (Drizzle condition); `order` / `limit` / `offset` as in SQL.
  */
 export const findDocs = async (
 	table: PgTable,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	options: {
 		where?: SQL
 		order?: SQL[]
@@ -449,10 +464,7 @@ export const findDocs = async (
 	} = {},
 ): Promise<Doc[]> => {
 	const db = options.db ?? getDb()
-	const scoped = and(
-		eq(column(table, 'tenantId'), requireTenantId(tenantId)),
-		options.where,
-	)
+	const scoped = and(tenantWhere(table, tenantId), options.where)
 	let query = db.select().from(table).where(scoped).$dynamic()
 
 	// no explicit order = Mongo natural (insertion) order
@@ -477,7 +489,7 @@ export const findDocs = async (
 		if (!keys.length) continue
 
 		const conditions = [
-			eq(column(child.table, 'tenantId'), tenantId!),
+			tenantWhere(child.table, tenantId),
 			anyOf(column(child.table, child.link), keys),
 			...Object.entries(child.extra ?? {}).map(([key, value]) =>
 				eq(column(child.table, key), value),
@@ -498,7 +510,7 @@ export const findDocs = async (
 
 export const findDoc = async (
 	table: PgTable,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	where: SQL,
 	db?: Executor,
 	lock = false,
@@ -519,6 +531,7 @@ export const insertDoc = async (
 	const spec = specForModel(model)
 	const document = new model(payload)
 
+	document.initializeTimestamps?.() // like save(): createdAt/updatedAt in the returned doc too
 	await document.validate()
 
 	const plain = document.toObject() as Doc
@@ -555,7 +568,7 @@ const writeRows = (spec: Spec, plain: Doc) => {
 const deleteChildren = async (
 	db: Executor,
 	table: PgTable,
-	tenantId: string,
+	tenantId: TenantScope,
 	parents: Doc[],
 ) => {
 	for (const child of CHILD_LINKS.get(table) ?? []) {
@@ -568,7 +581,7 @@ const deleteChildren = async (
 			.delete(child.table)
 			.where(
 				and(
-					eq(column(child.table, 'tenantId'), tenantId),
+					tenantWhere(child.table, tenantId),
 					anyOf(column(child.table, child.link), keys),
 					...Object.entries(child.extra ?? {}).map(([key, value]) =>
 						eq(column(child.table, key), value),
@@ -585,7 +598,7 @@ const deleteChildren = async (
  */
 export const updateDoc = (
 	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	where: SQL,
 	payload: Doc,
 	tx?: DbTx,
@@ -611,7 +624,7 @@ export const updateDoc = (
 			.set({ ...changes, updatedAt: new Date() } as never)
 			.where(eq(idColumn, String(existing._id)))
 
-		await deleteChildren(db, spec.table, requireTenantId(tenantId), [existing])
+		await deleteChildren(db, spec.table, tenantId, [existing])
 
 		for (const [table, childRows] of rows) {
 			if (table !== spec.table && childRows.length) {
@@ -625,7 +638,7 @@ export const updateDoc = (
 /** Deletes matching docs and their child rows; returns the deleted lean docs. */
 export const deleteDocs = (
 	table: PgTable,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	where: SQL,
 	tx?: DbTx,
 ): Promise<Doc[]> =>
@@ -634,7 +647,7 @@ export const deleteDocs = (
 
 		if (!docs.length) return docs
 
-		await deleteChildren(db, table, requireTenantId(tenantId), docs)
+		await deleteChildren(db, table, tenantId, docs)
 		await db.delete(table).where(
 			anyOf(
 				column(table, 'id'),
@@ -675,7 +688,7 @@ export const insertDocs = async (
  */
 export const saveDoc = async (
 	model: Model<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	doc: Doc,
 	tx?: DbTx,
 ): Promise<Doc> => {

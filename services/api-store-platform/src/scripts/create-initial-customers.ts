@@ -1,9 +1,7 @@
 import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../db/mongoQuery'
-import mongoose from 'mongoose'
 import { closeDb } from '../db'
 import { insertDoc, insertDocs } from '../db/docs'
 import { v4 as uuidv4 } from 'uuid'
-import { config } from '../config/config'
 import { Customer } from '../models/Customer'
 import { Currency } from '../models/Currency'
 import { Invoice } from '../models/Invoice'
@@ -105,13 +103,7 @@ async function ensureOpeningProduct(unitId: string) {
 
 async function createInitialCustomers() {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString, {
-			dbName: config.mongoDB.databaseName,
-		})
-
-		console.log('Connected to MongoDB')
-
-		const tenant = await Tenant.findOne({ tenantId: TENANT_ID }).lean()
+		const tenant = await pgFindOne(Tenant, TENANT_ID)
 
 		if (!tenant) {
 			throw new Error(`Tenant "${TENANT_ID}" was not found`)
@@ -209,7 +201,6 @@ async function createInitialCustomers() {
 		console.error('Error creating initial customers:', error)
 		process.exit(1)
 	} finally {
-		await mongoose.disconnect()
 		await closeDb()
 		console.log('MongoDB disconnected')
 	}

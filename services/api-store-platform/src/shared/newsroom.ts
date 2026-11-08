@@ -1,3 +1,4 @@
+import { pgFindOne } from '../db/mongoQuery'
 import {
 	AuthorizationError,
 	BusinessLogicError,
@@ -51,10 +52,9 @@ export const ensureNewsroomRead = async (
 	}
 
 	const tenantContext = getTenantContext(requestContext)
-	const tenant = await Tenant.findOne({
-		tenantId: tenantContext.tenantId,
+	const tenant = await pgFindOne(Tenant, tenantContext.tenantId, {
 		status: TENANT_STATUS.ACTIVE,
-	}).lean()
+	})
 
 	assertNewsroomTenantEligible(tenant)
 }

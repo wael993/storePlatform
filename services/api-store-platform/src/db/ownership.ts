@@ -5,11 +5,13 @@ import type { DbTx } from '.'
 /**
  * Which store owns each collection during the migration (one owner at a time,
  * ADR "port by transaction group"). Group 1 = money + stock; group 2 = catalog, parties,
- * master data; group 3 = settings, reports, notifications, import drafts.
+ * master data; group 3 = settings, reports, notifications, import drafts;
+ * group 4 = platform (tenants, users, tokens, subscriptions, newsroom).
  * shortcut: grows with each group; deleted with Mongo in PG-MIG-6.
  */
 const PG_MODELS = new Set([
 	'Invoice',
+	'SellingInvoiceItem', // legacy invoices, read-only
 	'BuyingInvoice',
 	'Inventory',
 	'StockMovings',
@@ -42,6 +44,16 @@ const PG_MODELS = new Set([
 	'NegativeQuantitySnapshot',
 	'NotificationRead',
 	'ProductImportSession',
+	// group 4: platform
+	'Tenant',
+	'User',
+	'RefreshToken',
+	'SubscriptionRenewalRequest',
+	'SubscriptionPaymentSettings',
+	'NewsroomTopic',
+	'NewsroomReleaseNote',
+	'NewsroomChange',
+	'NewsroomUserState',
 ])
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

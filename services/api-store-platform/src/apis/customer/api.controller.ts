@@ -8,7 +8,6 @@ import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
@@ -451,11 +450,11 @@ export default class CustomerController {
 					{ customerId: { $in: uniqueIds } },
 					{ select: { customerId: 1 } },
 				),
-				withTenantScope(
-					SellingInvoiceItem.find({ customerId: { $in: uniqueIds } })
-						.select({ customerId: 1 })
-						.lean(),
+				pgFind(
+					SellingInvoiceItem,
 					tenantId,
+					{ customerId: { $in: uniqueIds } },
+					{ select: { customerId: 1 } },
 				),
 				pgFind(
 					BuyingInvoice,

@@ -85,6 +85,22 @@ const ENDPOINTS: Array<{
 	{ list: '/role-permissions/cashier' },
 	{ list: '/products/notifications' },
 	{ list: '/products/notifications/digest' },
+	// group 4: platform (super-admin lists answer 403 for a shop user: run once per role)
+	{ list: '/users' },
+	{ list: '/subscription' },
+	{ list: '/subscription/payment-info' },
+	{ list: '/buying-invoices/invoice-ai-usage' },
+	{ list: '/newsroom/topics' },
+	{
+		list: '/newsroom/release-notes',
+		detail: '/newsroom/release-notes/:id',
+		id: 'releaseNoteId',
+	},
+	{ list: '/newsroom/feed', detail: '/newsroom/feed/:id', id: 'releaseNoteId' },
+	{ list: '/newsroom/unread-count' },
+	{ list: '/tenants' },
+	{ list: '/tenants/renewal-requests' },
+	{ list: '/tenants/subscription-payment' },
 ]
 
 /**

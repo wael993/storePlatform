@@ -1,10 +1,8 @@
-import mongoose from 'mongoose'
 import { closeDb } from '../db'
 import { insertDoc, insertDocs } from '../db/docs'
-import { pgDeleteMany } from '../db/mongoQuery'
+import { pgDeleteMany, pgFindOneAndUpdate } from '../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
-import { config } from '../config/config'
 import Tenant from '../models/Tenant'
 import User from '../models/User'
 import UserSettings from '../models/UserSettings'
@@ -52,10 +50,8 @@ const BY = {
 const id = (suffix: string) => `${TENANT_ID}-${suffix}`
 
 const wipe = async () => {
-	const filter = { tenantId: TENANT_ID }
-
 	await Promise.all([
-		User.deleteMany(filter),
+		pgDeleteMany(User, TENANT_ID, {}),
 		pgDeleteMany(UserSettings, TENANT_ID, {}),
 		pgDeleteMany(CurrencySettings, TENANT_ID, {}),
 		pgDeleteMany(InvoiceSettings, TENANT_ID, {}),
@@ -97,20 +93,16 @@ const money = (
 })
 
 async function seedAppTenant() {
-	await mongoose.connect(config.mongoDB.connectionString, {
-		dbName: config.mongoDB.databaseName,
-	})
-
-	await User.syncIndexes()
 	await wipe()
 
 	const subscription = createSubscription(NOW, NOW, getSubscriptionConfig())
 
-	await Tenant.findOneAndUpdate(
-		{ tenantId: TENANT_ID },
+	await pgFindOneAndUpdate(
+		Tenant,
+		TENANT_ID,
+		{},
 		{
 			$set: {
-				tenantId: TENANT_ID,
 				name: TENANT_NAME,
 				domain: DOMAIN,
 				status: TENANT_STATUS.ACTIVE,
@@ -154,7 +146,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await User.insertMany(
+	await insertDocs(
+		User,
 		users.map((user, index) => ({
 			tenantId: TENANT_ID,
 			...user,
@@ -886,6 +879,5 @@ seedAppTenant()
 		process.exit(1)
 	})
 	.finally(async () => {
-		await mongoose.disconnect()
 		await closeDb()
 	})

@@ -37,7 +37,7 @@ export const invalidateSeeCache = (tenantId: string) => {
 }
 
 const loadTenantPages = async (tenantId: string): Promise<string[]> => {
-	const tenant = await Tenant.findOne({ tenantId }).lean()
+	const tenant = await pgFindOne(Tenant, tenantId)
 
 	if (!tenant) return []
 

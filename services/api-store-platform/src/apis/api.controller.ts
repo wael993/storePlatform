@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import { DbTx, inTransaction } from '../db'
-import { findDocs } from '../db/docs'
+import { ALL_TENANTS, DbTx, inTransaction } from '../db'
+import { findDocs, insertDoc } from '../db/docs'
 import * as t from '../db/schema'
 import { sql } from 'drizzle-orm'
 import {
@@ -713,7 +713,7 @@ export default class ProductController {
 			Date.now() + config.refreshTokenTTLDays * 24 * 60 * 60 * 1000,
 		)
 
-		await RefreshToken.create({
+		await insertDoc(RefreshToken, {
 			tenantId,
 			userId,
 			tokenHash,
@@ -727,7 +727,7 @@ export default class ProductController {
 
 	private async requireTenantByEmail(email: string) {
 		const domain = getEmailDomain(email)
-		const tenant = (await Tenant.findOne({ domain }).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, ALL_TENANTS, { domain })
 
 		if (!tenant) {
 			throw new AuthenticationError(
@@ -760,7 +760,7 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<void> {
 		const tenantId = this.getTenantId(requestContext)
-		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 		if (!tenant || !this.resolveOfflineEnabledForAuth(tenant)) {
 			throw new BusinessLogicError(
@@ -774,9 +774,7 @@ export default class ProductController {
 		accessiblePages: TenantAccessiblePage[]
 		subscriptionExpired: boolean
 	}> {
-		const tenant = (await Tenant.findOne({
-			tenantId,
-		}).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 		if (!tenant) {
 			throw new AuthenticationError(
@@ -834,10 +832,9 @@ export default class ProductController {
 	public async validateUser(request: any, token: string) {
 		const decoded = jwt.verify(token, config.jwtSecret) as TokenPayload
 
-		const user = (await withTenantScope(
-			User.findOne({ userId: decoded.userId }),
-			decoded.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, decoded.tenantId, {
+			userId: decoded.userId,
+		})
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -898,10 +895,9 @@ export default class ProductController {
 		}
 
 		const tenant = await this.requireTenantByEmail(loginEmail)
-		const user = (await withTenantScope(
-			User.findOne({ email: loginEmail.toLowerCase() }),
-			tenant.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, tenant.tenantId, {
+			email: loginEmail.toLowerCase(),
+		})
 
 		if (!user) {
 			logger.warn('Failed login: user not found', {
@@ -976,9 +972,10 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const storedToken = (await RefreshToken.findOneAndDelete({
+		// row lock: of two parallel refreshes with one token only one wins
+		const storedToken = (await pgFindOneAndDelete(RefreshToken, ALL_TENANTS, {
 			tokenHash,
-		}).lean()) as IRefreshToken | null
+		})) as IRefreshToken | null
 
 		if (!storedToken) {
 			logger.warn('Refresh token reuse detected — revoking all sessions', {
@@ -1004,10 +1001,9 @@ export default class ProductController {
 			)
 		}
 
-		const user = (await withTenantScope(
-			User.findOne({ _id: storedToken.userId }),
-			storedToken.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, storedToken.tenantId, {
+			_id: String(storedToken.userId),
+		})
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -1018,9 +1014,7 @@ export default class ProductController {
 
 		assertPersistedUserMayAuthenticate(user)
 
-		const tenant = (await Tenant.findOne({
-			tenantId: storedToken.tenantId,
-		}).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, storedToken.tenantId)
 
 		if (!tenant) {
 			throw new AuthenticationError(
@@ -1081,7 +1075,9 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const deleted = await RefreshToken.findOneAndDelete({ tokenHash }).lean()
+		const deleted = await pgFindOneAndDelete(RefreshToken, ALL_TENANTS, {
+			tokenHash,
+		})
 
 		if (deleted) {
 			logger.info('User logged out (current device)', {
@@ -1102,7 +1098,11 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const storedToken = await RefreshToken.findOne({ tokenHash }).lean()
+		const storedToken = await pgFindOne<IRefreshToken>(
+			RefreshToken,
+			ALL_TENANTS,
+			{ tokenHash },
+		)
 
 		if (!storedToken) {
 			throw new AuthenticationError(
@@ -1111,9 +1111,8 @@ export default class ProductController {
 			)
 		}
 
-		const result = await RefreshToken.deleteMany({
-			userId: storedToken.userId,
-			tenantId: storedToken.tenantId,
+		const result = await pgDeleteMany(RefreshToken, storedToken.tenantId, {
+			userId: String(storedToken.userId),
 		})
 
 		logger.info('User logged out from all devices', {
@@ -4610,10 +4609,12 @@ export default class ProductController {
 			await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS)
 		}
 
-		const user = (await withTenantScope(
-			User.findOne({ userId }, { role: 1 }),
+		const user = await pgFindOne<Pick<IUser, 'role'>>(
+			User,
 			tenantContext.tenantId,
-		).lean()) as Pick<IUser, 'role'> | null
+			{ userId },
+			{ select: { role: 1 } },
+		)
 
 		if (!user) {
 			throw new BusinessLogicError(
@@ -4651,10 +4652,9 @@ export default class ProductController {
 
 		const tenantContext = getTenantContext(requestContext)
 
-		const user = (await withTenantScope(
-			User.findOne({ userId: requestContext.userId }),
-			tenantContext.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, tenantContext.tenantId, {
+			userId: requestContext.userId,
+		})
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -4674,17 +4674,27 @@ export default class ProductController {
 
 		const hashed = await bcrypt.hash(newPassword, 12)
 
-		await withTenantScope(
-			User.findByIdAndUpdate(user._id, {
-				$set: { password: hashed, tokenVersion: (user.tokenVersion ?? 0) + 1 },
-			}),
-			tenantContext.tenantId,
-		)
+		await inTransaction(undefined, async tx => {
+			await pgUpdateMany(
+				User,
+				tenantContext.tenantId,
+				{ _id: String(user._id) },
+				{
+					$set: {
+						password: hashed,
+						tokenVersion: (user.tokenVersion ?? 0) + 1,
+					},
+				},
+				tx,
+			)
 
-		// Revoke all refresh tokens so the user must log in again on other devices
-		await RefreshToken.deleteMany({
-			userId: user._id,
-			tenantId: tenantContext.tenantId,
+			// Revoke all refresh tokens so the user must log in again on other devices
+			await pgDeleteMany(
+				RefreshToken,
+				tenantContext.tenantId,
+				{ userId: String(user._id) },
+				tx,
+			)
 		})
 	}
 

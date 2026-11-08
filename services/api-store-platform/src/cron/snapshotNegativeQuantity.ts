@@ -1,4 +1,5 @@
 import cron from 'node-cron'
+import { ALL_TENANTS } from '../db'
 import {
 	pgDeleteMany,
 	pgFind,
@@ -263,9 +264,12 @@ const logSnapshotResult = (result: {
 export const runNegativeQuantitySnapshot = async (
 	runAt = new Date(),
 ): Promise<void> => {
-	const tenants = await Tenant.find({ status: TENANT_STATUS.ACTIVE })
-		.select({ tenantId: 1, _id: 0 })
-		.lean()
+	const tenants = await pgFind<{ tenantId: string }>(
+		Tenant,
+		ALL_TENANTS,
+		{ status: TENANT_STATUS.ACTIVE },
+		{ select: { tenantId: 1, _id: 0 } },
+	)
 
 	logger.info(
 		`Cron: product digest snapshots starting (${tenants.length} active tenant(s))`,

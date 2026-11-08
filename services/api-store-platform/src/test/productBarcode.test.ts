@@ -27,11 +27,7 @@ import {
 } from '../shared/seePermissions'
 import { getTenantContext } from '../shared/tenant'
 
-vi.mock('../models/Tenant', () => ({
-	default: { findOne: vi.fn() },
-}))
-
-// role permissions are read from Postgres (group 3)
+// tenant (group 4) and role permissions (group 3) are read from Postgres
 vi.mock('../db/mongoQuery', async original => ({
 	...(await original<typeof import('../db/mongoQuery')>()),
 	pgFindOne: vi.fn(),
@@ -44,18 +40,19 @@ const context = (tenantId: string) => ({
 })
 
 const stubRoleSee = (see: string[]) => {
-	vi.mocked(Tenant.findOne).mockReturnValue({
-		lean: () =>
-			Promise.resolve({
-				tenantId: 'shop',
-				name: 'Shop',
-				domain: 'shop.test',
-				accessiblePages: ['PRODUCTS'],
-			}),
-	} as never)
+	const tenant = {
+		tenantId: 'shop',
+		name: 'Shop',
+		domain: 'shop.test',
+		accessiblePages: ['PRODUCTS'],
+	}
 
 	vi.mocked(pgFindOne).mockImplementation(async model =>
-		model.modelName === TenantRolePermission.modelName ? { see } : null,
+		model.modelName === TenantRolePermission.modelName
+			? { see }
+			: model.modelName === Tenant.modelName
+				? tenant
+				: null,
 	)
 }
 

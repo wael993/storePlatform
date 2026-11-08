@@ -1,8 +1,17 @@
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
-import { inTransaction } from '../../db'
+import { and, eq, sql } from 'drizzle-orm'
+
+import { getDb, inTransaction } from '../../db'
+import { legacySellingInvoices } from '../../db/schema'
 import { insertDoc, insertDocs, saveDoc } from '../../db/docs'
 import type { Doc } from '../../db/etl/mongoToPg'
-import { pgCount, pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
+import {
+	pgCount,
+	pgDeleteMany,
+	pgFind,
+	pgFindOne,
+	pgUpdateMany,
+} from '../../db/mongoQuery'
 import {
 	AuthorizationError,
 	BusinessLogicError,
@@ -16,7 +25,6 @@ import {
 import { assertNoTenantBarcodeCollisionsForProducts } from '../productBarcodeCollision'
 import { ensureTenantAccess, getTenantContext } from '../tenant'
 import { COLLECTION_NAMES } from '../general'
-import { withTenantScope } from '../mongodb/tenantScopedModel'
 import {
 	PRODUCT_IMPORT_FIELDS,
 	PRODUCT_IMPORT_LIMITS,
@@ -56,7 +64,6 @@ import ProductImportSession, {
 } from '../../models/ProductImportSession'
 import { Invoice } from '../../models/Invoice'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
-import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { StockMoving } from '../../models/StockMovings'
 import { DailyAction } from '../../models/DailyAction'
 import { DeleteBlockReason } from '../deleteBlock'
@@ -140,14 +147,16 @@ const tenantImportStatus = (tenant: {
 }
 
 const setTenantImportStatus = async (tenantId: string, status: string) => {
-	await Tenant.updateOne(
-		{ tenantId },
+	await pgUpdateMany(
+		Tenant,
+		tenantId,
+		{},
 		{ $set: { 'productImport.status': status } },
 	)
 }
 
 const loadTenant = async (tenantId: string) => {
-	const tenant = await Tenant.findOne({ tenantId }).lean()
+	const tenant = await pgFindOne(Tenant, tenantId)
 
 	if (!tenant) {
 		throw new BusinessLogicError(
@@ -1085,12 +1094,17 @@ export const findProductDeleteBlocks = async (
 			{ 'items.productId': { $in: ids } },
 			{ select: { items: 1 } },
 		),
-		withTenantScope(
-			SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
-			tenantId,
-		),
+		// legacy items are one jsonb array (no child table)
+		getDb()
+			.select({ items: legacySellingInvoices.items })
+			.from(legacySellingInvoices)
+			.where(
+				and(
+					eq(legacySellingInvoices.tenantId, tenantId),
+					sql`exists (select 1 from jsonb_array_elements(${legacySellingInvoices.items}) as item
+						where item->>'productId' = any(${sql.param(ids)}::text[]))`,
+				),
+			) as Promise<Array<{ items: Array<{ productId: string }> }>>,
 		pgFind(
 			StockMoving,
 			tenantId,

@@ -1,4 +1,10 @@
-import { pgFind } from '../../db/mongoQuery'
+import {
+	pgDeleteMany,
+	pgFind,
+	pgFindOne,
+	pgFindOneAndDelete,
+	pgFindOneAndUpdate,
+} from '../../db/mongoQuery'
 import User, { IUser } from '../../models/User'
 import RefreshToken from '../../models/RefreshToken'
 import { Warehouse } from '../../models/Warehaus'
@@ -8,7 +14,6 @@ import {
 	ensureTenantAccess,
 	getTenantContext,
 } from '../tenant'
-import { withTenantScope } from './tenantScopedModel'
 import {
 	AuthorizationError,
 	BusinessLogicError,
@@ -51,10 +56,11 @@ export const updateTenantUser = async (
 			)
 		}
 
-		const targetUser = (await withTenantScope(
-			User.findOne({ userId }).lean(),
+		const targetUser = await pgFindOne<Pick<IUser, 'userId' | 'role'>>(
+			User,
 			tenantContext.tenantId,
-		)) as Pick<IUser, 'userId' | 'role'> | null
+			{ userId },
+		)
 
 		if (
 			targetUser?.role === 'owner' &&
@@ -126,18 +132,13 @@ export const updateTenantUser = async (
 		)
 	}
 
-	const updated = (await withTenantScope(
-		User.findOneAndUpdate(
-			{ userId },
-			{ $set: updates },
-			{
-				new: true,
-				runValidators: true,
-				projection: { password: 0, tokenVersion: 0 },
-			},
-		),
+	const updated = (await pgFindOneAndUpdate(
+		User,
 		tenantContext.tenantId,
-	).lean()) as IUser | null
+		{ userId },
+		{ $set: updates },
+		{ new: true },
+	)) as IUser | null
 
 	if (!updated) {
 		throw new BusinessLogicError(
@@ -146,7 +147,12 @@ export const updateTenantUser = async (
 		)
 	}
 
-	return updated
+	// like the Mongo projection { password: 0, tokenVersion: 0 }
+	return Object.fromEntries(
+		Object.entries(updated).filter(
+			([key]) => key !== 'password' && key !== 'tokenVersion',
+		),
+	) as unknown as IUser
 }
 
 export const deleteTenantUser = async (
@@ -156,10 +162,9 @@ export const deleteTenantUser = async (
 	await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS)
 	const tenantContext = getTenantContext(requestContext)
 
-	const targetUser = (await withTenantScope(
-		User.findOne({ userId }),
-		tenantContext.tenantId,
-	).lean()) as IUser | null
+	const targetUser = await pgFindOne<IUser>(User, tenantContext.tenantId, {
+		userId,
+	})
 
 	if (!targetUser) {
 		throw new BusinessLogicError(
@@ -185,10 +190,9 @@ export const deleteTenantUser = async (
 		)
 	}
 
-	const deleted = (await withTenantScope(
-		User.findOneAndDelete({ userId }),
-		tenantContext.tenantId,
-	).lean()) as IUser | null
+	const deleted = (await pgFindOneAndDelete(User, tenantContext.tenantId, {
+		userId,
+	})) as IUser | null
 
 	if (!deleted) {
 		throw new BusinessLogicError(
@@ -197,8 +201,7 @@ export const deleteTenantUser = async (
 		)
 	}
 
-	await RefreshToken.deleteMany({
-		userId: deleted._id,
-		tenantId: tenantContext.tenantId,
+	await pgDeleteMany(RefreshToken, tenantContext.tenantId, {
+		userId: String(deleted._id),
 	})
 }

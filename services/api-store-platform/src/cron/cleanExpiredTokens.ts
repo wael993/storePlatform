@@ -1,22 +1,21 @@
 import { lt } from 'drizzle-orm'
 import cron from 'node-cron'
-import RefreshToken from '../models/RefreshToken'
 import { getDb } from '../db'
-import { productImportSessions } from '../db/schema'
+import { productImportSessions, refreshTokens } from '../db/schema'
 import logger from '../shared/logger/logger'
 
 export function startTokenCleanupCron(): void {
 	// Run every hour
 	cron.schedule('0 * * * *', async () => {
 		try {
-			const result = await RefreshToken.deleteMany({
-				expiresAt: { $lt: new Date() },
-			})
+			// replaces Mongo's TTL index on expiresAt
+			const deleted = await getDb()
+				.delete(refreshTokens)
+				.where(lt(refreshTokens.expiresAt, new Date()))
+				.returning({ id: refreshTokens.id })
 
-			if (result.deletedCount > 0) {
-				logger.info(
-					`Cron: cleaned ${result.deletedCount} expired refresh tokens`,
-				)
+			if (deleted.length > 0) {
+				logger.info(`Cron: cleaned ${deleted.length} expired refresh tokens`)
 			}
 		} catch (error) {
 			logger.error('Cron: failed to clean expired refresh tokens', error)

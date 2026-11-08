@@ -2,12 +2,22 @@ import { and, or, sql, SQL } from 'drizzle-orm'
 import { AnyPgColumn, getTableConfig, PgTable } from 'drizzle-orm/pg-core'
 import { Model } from 'mongoose'
 
-import { anyOf, DbTx, Executor, getDb, inTransaction, requireTenantId } from '.'
+import {
+	ALL_TENANTS,
+	anyOf,
+	DbTx,
+	Executor,
+	getDb,
+	inTransaction,
+	requireTenantId,
+	TenantScope,
+} from '.'
 import {
 	deleteDocs,
 	findDocs,
 	insertDoc,
 	specForModel,
+	tenantWhere,
 	updateDoc,
 } from './docs'
 import { Doc } from './etl/mongoToPg'
@@ -52,6 +62,35 @@ const FLAT_PATHS = new Map<PgTable, Record<string, string>>([
 			'price.semiWholesalePrice': 'semiWholesalePrice',
 			'price.discount': 'discount',
 			'price.currency': 'priceCurrency',
+		},
+	],
+	[t.users, { 'user.firstName': 'firstName', 'user.lastName': 'lastName' }],
+	[
+		t.tenants,
+		{
+			'invoiceAi.monthlyLimit': 'invoiceAiMonthlyLimit',
+			'invoiceAi.activatedAt': 'invoiceAiActivatedAt',
+			'invoiceAi.periodStart': 'invoiceAiPeriodStart',
+			'invoiceAi.usedInPeriod': 'invoiceAiUsedInPeriod',
+			'invoiceAi.carryOver': 'invoiceAiCarryOver',
+			'productImport.status': 'productImportStatus',
+			'subscription.startDate': 'subscriptionStartDate',
+			'subscription.renewalDate': 'subscriptionRenewalDate',
+			'subscription.status': 'subscriptionStatus',
+			'subscription.renewalEnabled': 'subscriptionRenewalEnabled',
+			'subscription.lastRenewalDate': 'subscriptionLastRenewalDate',
+			'subscription.notifiedForDate': 'subscriptionNotifiedForDate',
+			'subscription.createdAt': 'subscriptionCreatedAt',
+			'subscription.updatedAt': 'subscriptionUpdatedAt',
+		},
+	],
+	[
+		t.subscriptionRenewalRequests,
+		{
+			'requestedBy.userId': 'requestedById',
+			'requestedBy.displayName': 'requestedByName',
+			'reviewedBy.userId': 'reviewedById',
+			'reviewedBy.displayName': 'reviewedByName',
 		},
 	],
 ])
@@ -406,7 +445,7 @@ const tableOf = (model: AnyModel) => specForModel(model).table
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const pgFind = async <T = any>(
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter = {},
 	options: FindOptions = {},
 ): Promise<T[]> => {
@@ -426,7 +465,7 @@ export const pgFind = async <T = any>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const pgFindOne = async <T = any>(
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter = {},
 	options: FindOptions = {},
 ): Promise<T | null> =>
@@ -435,7 +474,7 @@ export const pgFindOne = async <T = any>(
 
 export const pgDeleteMany = async (
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter,
 	tx?: DbTx,
 ): Promise<{ deletedCount: number }> => {
@@ -448,7 +487,7 @@ export const pgDeleteMany = async (
 /** `updateMany(filter, { $set, $inc, $unset })` on plain columns; child arrays / nested paths throw. */
 export const pgUpdateMany = async (
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter,
 	update: Record<string, unknown>,
 	tx?: DbTx,
@@ -487,12 +526,7 @@ export const pgUpdateMany = async (
 		const rows = await db
 			.update(table)
 			.set(set as never)
-			.where(
-				and(
-					sql`${columnOf(table, 'tenantId')} = ${requireTenantId(tenantId)}`,
-					whereOf(table, filter),
-				),
-			)
+			.where(and(tenantWhere(table, tenantId), whereOf(table, filter)))
 			.returning({ id: columnOf(table, 'id')! })
 
 		return { matchedCount: rows.length, modifiedCount: rows.length }
@@ -501,7 +535,7 @@ export const pgUpdateMany = async (
 
 export const pgCount = async (
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter = {},
 	db: Executor = getDb(),
 ): Promise<number> => {
@@ -509,12 +543,7 @@ export const pgCount = async (
 	const [{ count }] = await db
 		.select({ count: sql<number>`count(*)::int` })
 		.from(table)
-		.where(
-			and(
-				sql`${columnOf(table, 'tenantId')} = ${requireTenantId(tenantId)}`,
-				whereOf(table, filter),
-			),
-		)
+		.where(and(tenantWhere(table, tenantId), whereOf(table, filter)))
 
 	return count
 }
@@ -534,7 +563,7 @@ const equalities = (filter: Filter) =>
  */
 export const pgFindOneAndUpdate = (
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter,
 	update: Record<string, unknown>,
 	options: { new?: boolean; upsert?: boolean; tx?: DbTx } = {},
@@ -557,7 +586,9 @@ export const pgFindOneAndUpdate = (
 					...equalities(filter),
 					...((ops.$setOnInsert as Doc) ?? {}),
 					...((ops.$set as Doc) ?? {}),
-					tenantId: requireTenantId(tenantId),
+					...(tenantId === ALL_TENANTS
+						? {}
+						: { tenantId: requireTenantId(tenantId) }),
 				},
 				db,
 			)
@@ -592,7 +623,7 @@ export const pgFindOneAndUpdate = (
 /** `findOneAndDelete(filter)`: deletes one matching doc (locked), returns it or null. */
 export const pgFindOneAndDelete = async (
 	model: AnyModel,
-	tenantId: string | undefined,
+	tenantId: TenantScope,
 	filter: Filter,
 	tx?: DbTx,
 ) =>
@@ -601,12 +632,12 @@ export const pgFindOneAndDelete = async (
 
 		if (!target) return null
 
-		await deleteDocs(
+		const [deleted] = await deleteDocs(
 			tableOf(model),
 			tenantId,
 			whereOf(tableOf(model), { _id: target._id }),
 			db,
 		)
 
-		return target
+		return deleted ?? null // only what this call really deleted
 	})

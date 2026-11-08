@@ -29,7 +29,7 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | --- | --- | --- |
 | PG-MIG-0 ADR + inventory | **Done** | ADR in `../architecture/postgres-migration.md` |
 | PG-MIG-1 Schema | **Done** | 53 tables, CI migrate + drift check, ETL `pg:etl`, dry run: 11 of 12 dev tenants load equal |
-| PG-MIG-2 Repositories | **In progress** | Groups 1–3 live on staging; group 4 open |
+| PG-MIG-2 Repositories | **In progress** | Groups 1–3 live on staging; group 4 done locally — staging next |
 | PG-MIG-3 Reconcile / go-no-go | Partly prepared | `pg:etl --verify` (field-by-field) and `api:diff` exist; rehearsal not started |
 | PG-MIG-4 Cutover | Open | Single window for all tenants (ADR), not per tenant |
 | PG-MIG-5 Backup v2 | **Dropped** | Backup never shipped (parked in stash); rebuild on Postgres later |
@@ -58,7 +58,7 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | Group 3 (settings, reports, notifications, import drafts) switched; `api:diff` equal; write tests | Done, live on staging |
 | Staging smoke group 3 (2026-11-08): invoice settings + print, label templates + default, user settings, notifications mark-as-read, AI report OK | Done |
 | TO-DO: as owner change a cashier role's SEE list, log in as the cashier and check what they see | Open (owner, later) |
-| Group 4 (platform: tenants, users, tokens, roles, subscriptions, newsroom) | Open |
+| Group 4 (platform: tenants, users, tokens, subscriptions, newsroom) + legacy invoice reads switched; `api:diff` equal (shop user + super admin); write tests | Done locally — staging next |
 
 **Staging smoke (2026-11-07):** sell, buy, cash transfer, cash exchange, stock transfer + delete,
 offline sale + sync, edit + delete invoice: all OK in the app. Database afterwards: transfers paired,
@@ -411,7 +411,8 @@ passed with no flip-back, delete the Mongo path.
 ### Do
 
 1. Remove Mongoose models, `shared/mongodb`, Mongo connection, Mongo scripts
-   that only serve the old store.
+   that only serve the old store (`seed-roles`, `init-collections`, `drop-stale-indexes`;
+   the `Roles` model and `platform.roles` table are write-only).
 2. Drop `mongoose` from `package.json`; CI/docker no longer needs Mongo for the
    API (keep only if something platform-global intentionally remains — otherwise
    none).

@@ -1,4 +1,6 @@
 import cron from 'node-cron'
+import { ALL_TENANTS } from '../db'
+import { pgFind } from '../db/mongoQuery'
 import Tenant from '../models/Tenant'
 import { config } from '../config/config'
 import { TENANT_STATUS } from '../shared/constants/tenant.constants'
@@ -7,13 +9,16 @@ import { persistRolledInvoiceAiUsage } from '../shared/invoiceAi/usage'
 import logger from '../shared/logger/logger'
 
 const runInvoiceAiUsageRoll = async (): Promise<void> => {
-	const tenants = await Tenant.find({
-		status: TENANT_STATUS.ACTIVE,
-		accessiblePages: TENANT_ACCESSIBLE_PAGE.INVOICE_AI,
-		'invoiceAi.activatedAt': { $exists: true },
-	})
-		.select({ tenantId: 1, _id: 0 })
-		.lean()
+	const tenants = await pgFind<{ tenantId: string }>(
+		Tenant,
+		ALL_TENANTS,
+		{
+			status: TENANT_STATUS.ACTIVE,
+			accessiblePages: TENANT_ACCESSIBLE_PAGE.INVOICE_AI,
+			'invoiceAi.activatedAt': { $exists: true },
+		},
+		{ select: { tenantId: 1, _id: 0 } },
+	)
 
 	logger.info(
 		`Cron: Invoice AI usage roll starting (${tenants.length} tenant(s))`,

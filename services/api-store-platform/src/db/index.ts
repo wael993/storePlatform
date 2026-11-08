@@ -64,6 +64,14 @@ export const inTransaction = async <T>(
 export const isUniqueViolation = (error: unknown) =>
 	pgErrorCode(error) === '23505'
 
+/**
+ * Deliberate "no tenant filter" for global lookups: a tenant by its domain, a
+ * refresh token by its hash, platform tables (roles, newsroom, payment settings).
+ * A missing tenant id still fails closed; only this marker opts out.
+ */
+export const ALL_TENANTS = Symbol('all tenants')
+export type TenantScope = string | typeof ALL_TENANTS | undefined
+
 /** Same message as the Mongo tenant plugin: every store query needs a tenant. */
 export const requireTenantId = (tenantId: string | undefined): string => {
 	if (!tenantId) {
