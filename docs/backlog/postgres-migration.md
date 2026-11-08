@@ -29,7 +29,7 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | --- | --- | --- |
 | PG-MIG-0 ADR + inventory | **Done** | ADR in `../architecture/postgres-migration.md` |
 | PG-MIG-1 Schema | **Done** | 53 tables, CI migrate + drift check, ETL `pg:etl`, dry run: 11 of 12 dev tenants load equal |
-| PG-MIG-2 Repositories | **In progress** | Groups 1–2 live on staging; group 3 done locally; group 4 open |
+| PG-MIG-2 Repositories | **In progress** | Groups 1–3 live on staging; group 4 open |
 | PG-MIG-3 Reconcile / go-no-go | Partly prepared | `pg:etl --verify` (field-by-field) and `api:diff` exist; rehearsal not started |
 | PG-MIG-4 Cutover | Open | Single window for all tenants (ADR), not per tenant |
 | PG-MIG-5 Backup v2 | **Dropped** | Backup never shipped (parked in stash); rebuild on Postgres later |
@@ -51,13 +51,14 @@ Branch `pg-migration` (not pushed). Staging = Render dev service + Vercel `dev`,
 | Staging Render Postgres (PG 18) created, migrated, all 11 dev tenants loaded + verified | Done |
 | Review fixes (write order, deadlock retry, atomic delete, 65k-param limit, tests, −1,600 lines) | Done |
 | Staging: Render dev on `pg-migration` (b9affd9), 8-step app smoke + database invariants | **Done** 2026-11-07 |
-| Group 2 (catalog, parties, master data) switched; 3 cross-store shortcuts removed; `api:diff` equal (accepted differences in ADR) | Done locally — staging next |
+| Group 2 (catalog, parties, master data) switched; 3 cross-store shortcuts removed; `api:diff` equal (accepted differences in ADR) | Done, live on staging |
 | Staging smoke group 2 (2026-11-08): opening balances, employees, currencies, sell online/offline OK | Done |
 | Fix: RegExp filter values matched every row (barcode + 13 "name already exists" checks) | Fixed, tested vs Mongo, retested on staging 2026-11-08 (create product, alias/barcode, cost follows catalog price, duplicate names refused) |
 | TO-DO: smoke product import on a new tenant without products | Open (owner, later) |
-| Group 3 (settings, reports, notifications, import drafts) switched; `api:diff` equal; write tests | Done locally — staging next |
+| Group 3 (settings, reports, notifications, import drafts) switched; `api:diff` equal; write tests | Done, live on staging |
+| Staging smoke group 3 (2026-11-08): invoice settings + print, label templates + default, user settings, notifications mark-as-read, AI report OK | Done |
+| TO-DO: as owner change a cashier role's SEE list, log in as the cashier and check what they see | Open (owner, later) |
 | Group 4 (platform: tenants, users, tokens, roles, subscriptions, newsroom) | Open |
-| Groups 2–4 (catalog/parties, settings/reports, platform) | Open |
 
 **Staging smoke (2026-11-07):** sell, buy, cash transfer, cash exchange, stock transfer + delete,
 offline sale + sync, edit + delete invoice: all OK in the app. Database afterwards: transfers paired,
