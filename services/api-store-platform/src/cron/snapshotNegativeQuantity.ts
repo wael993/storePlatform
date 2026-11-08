@@ -1,5 +1,11 @@
 import cron from 'node-cron'
-import mongoose from 'mongoose'
+import { ALL_TENANTS } from '../db'
+import {
+	pgDeleteMany,
+	pgFind,
+	pgFindOneAndUpdate,
+	pgUpdateMany,
+} from '../db/mongoQuery'
 import { config } from '../config/config'
 import { Inventory } from '../models/Inventory'
 import {
@@ -12,7 +18,6 @@ import {
 	RETAIL_BELOW_PURCHASE_DIGEST,
 } from '../models/NegativeQuantitySnapshot'
 import { isLowStock } from '../shared/inventoryCost'
-import { NotificationRead } from '../models/NotificationRead'
 import { Product } from '../models/Products'
 import Tenant from '../models/Tenant'
 import { TENANT_STATUS } from '../shared/constants/tenant.constants'
@@ -21,81 +26,6 @@ import logger from '../shared/logger/logger'
 const CRON_ACTOR = {
 	_id: 'cron',
 	displayName: 'Cron',
-}
-
-const INDEX_NOT_FOUND = 27
-
-const dropIndexIfExists = async (
-	collection: mongoose.Collection,
-	name: string,
-) => {
-	try {
-		await collection.dropIndex(name)
-	} catch (error: unknown) {
-		const code =
-			typeof error === 'object' && error !== null && 'code' in error
-				? error.code
-				: undefined
-
-		if (code !== INDEX_NOT_FOUND) {
-			throw error
-		}
-	}
-}
-
-let digestIndexesReady: Promise<void> | null = null
-
-export const ensureProductDigestIndexes = (): Promise<void> => {
-	if (!digestIndexesReady) {
-		digestIndexesReady = (async () => {
-			await mongoose.connection.asPromise()
-
-			const snapshotIndexes =
-				await NegativeQuantitySnapshot.collection.indexes()
-
-			for (const index of snapshotIndexes) {
-				const key = index.key as Record<string, number>
-
-				if (
-					index.unique &&
-					index.name &&
-					Object.keys(key).length === 1 &&
-					key.tenantId === 1
-				) {
-					await dropIndexIfExists(
-						NegativeQuantitySnapshot.collection,
-						index.name,
-					)
-				}
-			}
-
-			const readIndexes = await NotificationRead.collection.indexes()
-
-			for (const index of readIndexes) {
-				const key = index.key as Record<string, number>
-
-				if (
-					index.unique &&
-					index.name &&
-					key.tenantId === 1 &&
-					key.userId === 1 &&
-					key.runAt === 1 &&
-					key.type === undefined
-				) {
-					await dropIndexIfExists(NotificationRead.collection, index.name)
-				}
-			}
-
-			await NegativeQuantitySnapshot.syncIndexes()
-			await NotificationRead.syncIndexes()
-		})().catch(error => {
-			digestIndexesReady = null
-
-			throw error
-		})
-	}
-
-	return digestIndexesReady
 }
 
 const uniqueProductIds = (ids: Array<string | undefined>): string[] =>
@@ -108,8 +38,7 @@ const persistDigestSnapshot = async (
 	productIds: string[],
 ) => {
 	if (productIds.length === 0) {
-		await NegativeQuantitySnapshot.deleteMany({
-			tenantId,
+		await pgDeleteMany(NegativeQuantitySnapshot, tenantId, {
 			...(type === NEGATIVE_QUANTITY_DIGEST
 				? { $or: [{ type }, { type: { $exists: false } }] }
 				: { type }),
@@ -119,14 +48,18 @@ const persistDigestSnapshot = async (
 	}
 
 	if (type === NEGATIVE_QUANTITY_DIGEST) {
-		await NegativeQuantitySnapshot.updateMany(
-			{ tenantId, type: { $exists: false } },
+		await pgUpdateMany(
+			NegativeQuantitySnapshot,
+			tenantId,
+			{ type: { $exists: false } },
 			{ $set: { type: NEGATIVE_QUANTITY_DIGEST } },
 		)
 	}
 
-	await NegativeQuantitySnapshot.findOneAndUpdate(
-		{ tenantId, type },
+	await pgFindOneAndUpdate(
+		NegativeQuantitySnapshot,
+		tenantId,
+		{ type },
 		{
 			$set: {
 				type,
@@ -150,16 +83,25 @@ const persistProductDigestSnapshot = async (
 	runAt: Date,
 	type: ProductDigestType,
 	filter: Record<string, unknown>,
+	/** Field-to-field condition (former `$expr`), checked in code. */
+	keep?: (product: {
+		price?: { retailPrice?: number; purchasePrice?: number }
+	}) => boolean,
 ) => {
-	const rows = await Product.find({ tenantId, ...filter })
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
+	const rows = await pgFind<{
+		productId?: string
+		price?: { retailPrice?: number; purchasePrice?: number }
+	}>(Product, tenantId, filter, {
+		select: { productId: 1, price: 1, _id: 0 },
+	})
 
 	return persistDigestSnapshot(
 		tenantId,
 		runAt,
 		type,
-		uniqueProductIds(rows.map(row => row.productId)),
+		uniqueProductIds(
+			rows.filter(row => !keep || keep(row)).map(row => row.productId),
+		),
 	)
 }
 
@@ -180,13 +122,16 @@ export const findLowStockRows = async (
 		return []
 	}
 
-	const products = await Product.find({
+	const products = await (pgFind(
+		Product,
 		tenantId,
-		status: 'active',
-		...(onlyProductIds ? { productId: { $in: onlyProductIds } } : {}),
-	})
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
+		{
+			tenantId,
+			status: 'active',
+			...(onlyProductIds ? { productId: { $in: onlyProductIds } } : {}),
+		},
+		{ select: { productId: 1, _id: 0 } },
+	) as unknown as Promise<Array<{ productId?: string }>>)
 
 	const activeIds = products
 		.map(product => product.productId)
@@ -196,27 +141,29 @@ export const findLowStockRows = async (
 		return []
 	}
 
-	const rows = await Inventory.find({
+	const rows = (await pgFind(
+		Inventory,
 		tenantId,
-		productId: { $in: activeIds },
-		minQuantity: { $gt: 0 },
-		...(warehouseIds ? { warehouseId: { $in: warehouseIds } } : {}),
-	})
-		.select({
-			productId: 1,
-			warehouseId: 1,
-			quantity: 1,
-			minQuantity: 1,
-			_id: 0,
-		})
-		.lean<
-			Array<{
-				productId?: string
-				warehouseId?: string
-				quantity?: number
-				minQuantity?: number
-			}>
-		>()
+		{
+			productId: { $in: activeIds },
+			minQuantity: { $gt: 0 },
+			...(warehouseIds ? { warehouseId: { $in: warehouseIds } } : {}),
+		},
+		{
+			select: {
+				productId: 1,
+				warehouseId: 1,
+				quantity: 1,
+				minQuantity: 1,
+				_id: 0,
+			},
+		},
+	)) as unknown as Array<{
+		productId?: string
+		warehouseId?: string
+		quantity?: number
+		minQuantity?: number
+	}>
 
 	return rows.flatMap(row => {
 		if (!row.productId || !row.warehouseId) {
@@ -253,9 +200,12 @@ const persistNegativeQuantitySnapshot = async (
 	tenantId: string,
 	runAt: Date,
 ) => {
-	const rows = await Inventory.find({ tenantId, quantity: { $lt: 0 } })
-		.select({ productId: 1, _id: 0 })
-		.lean<Array<{ productId?: string }>>()
+	const rows = (await pgFind(
+		Inventory,
+		tenantId,
+		{ quantity: { $lt: 0 } },
+		{ select: { productId: 1, _id: 0 } },
+	)) as Array<{ productId?: string }>
 
 	return persistDigestSnapshot(
 		tenantId,
@@ -277,11 +227,15 @@ const persistTenantDigests = async (tenantId: string, runAt: Date) => {
 				$nor: [{ 'price.retailPrice': { $gt: 0 } }],
 			}),
 		(id: string, at: Date) =>
-			persistProductDigestSnapshot(id, at, RETAIL_BELOW_PURCHASE_DIGEST, {
-				'price.purchasePrice': { $gt: 0 },
-				'price.retailPrice': { $gt: 0 },
-				$expr: { $lt: ['$price.retailPrice', '$price.purchasePrice'] },
-			}),
+			persistProductDigestSnapshot(
+				id,
+				at,
+				RETAIL_BELOW_PURCHASE_DIGEST,
+				{ 'price.purchasePrice': { $gt: 0 }, 'price.retailPrice': { $gt: 0 } },
+				product =>
+					Number(product.price?.retailPrice) <
+					Number(product.price?.purchasePrice),
+			),
 		persistLowStockSnapshot,
 	]) {
 		try {
@@ -310,11 +264,12 @@ const logSnapshotResult = (result: {
 export const runNegativeQuantitySnapshot = async (
 	runAt = new Date(),
 ): Promise<void> => {
-	await ensureProductDigestIndexes()
-
-	const tenants = await Tenant.find({ status: TENANT_STATUS.ACTIVE })
-		.select({ tenantId: 1, _id: 0 })
-		.lean()
+	const tenants = await pgFind<{ tenantId: string }>(
+		Tenant,
+		ALL_TENANTS,
+		{ status: TENANT_STATUS.ACTIVE },
+		{ select: { tenantId: 1, _id: 0 } },
+	)
 
 	logger.info(
 		`Cron: product digest snapshots starting (${tenants.length} active tenant(s))`,
@@ -327,10 +282,6 @@ export const runNegativeQuantitySnapshot = async (
 
 export function startNegativeQuantitySnapshotCron(): void {
 	const { dailySchedule, timezone } = config.cron
-
-	void ensureProductDigestIndexes().catch(error => {
-		logger.error(`Cron: product digest index sync failed: ${error}`)
-	})
 
 	cron.schedule(
 		dailySchedule,

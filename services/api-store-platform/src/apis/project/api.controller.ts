@@ -1,4 +1,5 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import { DailyAction } from '../../models/DailyAction'
 import { Invoice } from '../../models/Invoice'
 import { Project, type IProject } from '../../models/Project'
@@ -8,7 +9,6 @@ import { ERROR_CODES } from '../../shared/errorCodes'
 import { COLLECTION_NAMES } from '../../shared/general'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { getTenantContext } from '../../shared/tenant'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import {
@@ -213,31 +213,27 @@ export default class ProjectController {
 		const tenantId = this.getTenantId(requestContext)
 		const ids = [...new Set(rows.map(row => row.projectId).filter(Boolean))]
 		const [sellingInvoices, entries, rates] = await Promise.all([
-			withTenantScope(
-				Invoice.find({ projectId: { $in: ids } }).lean<
-					Array<
-						Record<string, unknown> & {
-							warehouseId?: string
-							projectId?: string
-						}
-					>
-				>(),
-				tenantId,
-			),
-			withTenantScope(
-				DailyAction.find({
-					projectId: { $in: ids },
-					entryType: {
-						$in: [
-							'RECEIPT_ENTRY',
-							'PAYMENT_ENTRY',
-							'EMPLOYEE_COST',
-							'OTHER_COST',
-						],
-					},
-				}).lean<DailyActionResponse['data']>(),
-				tenantId,
-			),
+			pgFind(Invoice, tenantId, {
+				projectId: { $in: ids },
+			}) as unknown as Promise<
+				Array<
+					Record<string, unknown> & {
+						warehouseId?: string
+						projectId?: string
+					}
+				>
+			>,
+			pgFind(DailyAction, tenantId, {
+				projectId: { $in: ids },
+				entryType: {
+					$in: [
+						'RECEIPT_ENTRY',
+						'PAYMENT_ENTRY',
+						'EMPLOYEE_COST',
+						'OTHER_COST',
+					],
+				},
+			}) as unknown as Promise<DailyActionResponse['data']>,
 			loadCashCurrencyRates(tenantId),
 		])
 		const invoices = filterByWarehouseAcl(requestContext, sellingInvoices)
@@ -317,14 +313,22 @@ export default class ProjectController {
 
 		const tenantId = this.getTenantId(requestContext)
 		const [sellingInvoices, entries, rates] = await Promise.all([
-			withTenantScope(
-				Invoice.find({ projectId: project.projectId }).sort({
-					createdAt: 'desc',
-				}),
+			pgFind(
+				Invoice,
 				tenantId,
-			).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
-			withTenantScope(
-				DailyAction.find({
+				{ projectId: project.projectId },
+				{
+					sort: {
+						createdAt: 'desc',
+					},
+				},
+			) as unknown as Promise<
+				Array<Record<string, unknown> & { warehouseId?: string }>
+			>,
+			pgFind(
+				DailyAction,
+				tenantId,
+				{
 					projectId: project.projectId,
 					entryType: {
 						$in: [
@@ -334,9 +338,9 @@ export default class ProjectController {
 							'OTHER_COST',
 						],
 					},
-				}).sort({ createdAt: 'desc' }),
-				tenantId,
-			).lean<DailyActionResponse['data']>(),
+				},
+				{ sort: { createdAt: 'desc' } },
+			) as unknown as Promise<DailyActionResponse['data']>,
 			loadCashCurrencyRates(tenantId),
 		])
 		const invoices = filterByWarehouseAcl(requestContext, sellingInvoices)
@@ -391,12 +395,9 @@ export default class ProjectController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Project.findOne({
-				name: new RegExp(`^${this.escapeRegex(name.trim())}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Project, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name.trim())}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -407,10 +408,9 @@ export default class ProjectController {
 
 		const projectId = resolveSyncClientId(requestBody.projectId)
 
-		const existingById = await withTenantScope(
-			Project.findOne({ projectId }).lean<IProject | null>(),
-			tenantContext.tenantId,
-		)
+		const existingById = await (pgFindOne(Project, tenantContext.tenantId, {
+			projectId,
+		}) as unknown as Promise<IProject | null>)
 
 		if (existingById) {
 			return {
@@ -480,13 +480,10 @@ export default class ProjectController {
 				)
 			}
 
-			const duplicate = await withTenantScope(
-				Project.findOne({
-					projectId: { $ne: projectId },
-					name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-				}),
-				tenantId,
-			).lean()
+			const duplicate = await pgFindOne(Project, tenantId, {
+				projectId: { $ne: projectId },
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			})
 
 			if (duplicate) {
 				throw new BusinessLogicError(
@@ -515,10 +512,13 @@ export default class ProjectController {
 			updates.contractCost = contractCost
 		}
 
-		const updated = await withTenantScope(
-			Project.findOneAndUpdate({ projectId }, { $set: updates }, { new: true }),
+		const updated = (await pgFindOneAndUpdate(
+			Project,
 			tenantId,
-		).lean<IProject | null>()
+			{ projectId },
+			{ $set: updates },
+			{ new: true },
+		)) as IProject | null
 
 		if (!updated) {
 			throw new BusinessLogicError(
@@ -536,17 +536,17 @@ export default class ProjectController {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
 		const [invoices, actions] = await Promise.all([
-			withTenantScope(
-				Invoice.find({ projectId: { $in: uniqueIds } })
-					.select({ projectId: 1 })
-					.lean(),
+			pgFind(
+				Invoice,
 				tenantId,
+				{ projectId: { $in: uniqueIds } },
+				{ select: { projectId: 1 } },
 			),
-			withTenantScope(
-				DailyAction.find({ projectId: { $in: uniqueIds } })
-					.select({ projectId: 1 })
-					.lean(),
+			pgFind(
+				DailyAction,
 				tenantId,
+				{ projectId: { $in: uniqueIds } },
+				{ select: { projectId: 1 } },
 			),
 		])
 

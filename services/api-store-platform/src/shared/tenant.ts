@@ -1,4 +1,5 @@
 import { RequestContext } from './types'
+import { pgFindOne } from '../db/mongoQuery'
 import {
 	AuthenticationError,
 	AuthorizationError,
@@ -127,10 +128,9 @@ export const ensureSuperAdmin = async (
 		)
 	}
 
-	const tenant = await Tenant.findOne({
-		tenantId: requestContext.tenantId,
+	const tenant = await pgFindOne(Tenant, requestContext.tenantId, {
 		status: TENANT_STATUS.ACTIVE,
-	}).lean()
+	})
 
 	if (!tenant) {
 		throw new AuthorizationError(

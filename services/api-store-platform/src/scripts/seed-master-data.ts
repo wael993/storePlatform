@@ -1,6 +1,6 @@
-import mongoose from 'mongoose'
+import { pgDeleteMany, pgFindOne } from '../db/mongoQuery'
+import { insertDoc, insertDocs } from '../db/docs'
 import { v4 as uuidv4 } from 'uuid'
-import { config } from '../config/config'
 import { Brand } from '../models/Brand'
 import { Category } from '../models/Category'
 import { Supplier } from '../models/Supplier'
@@ -155,17 +155,11 @@ const SUPPLIERS_DATA = [
 
 async function seedMasterData() {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString, {
-			dbName: config.mongoDB.databaseName,
-		})
-
-		console.log('Connected to MongoDB')
-
 		// Get or create default tenant
-		let tenant = await Tenant.findOne({ tenantId: DEFAULT_TENANT_ID })
+		let tenant = await pgFindOne(Tenant, DEFAULT_TENANT_ID)
 
 		if (!tenant) {
-			tenant = await Tenant.create({
+			tenant = await insertDoc(Tenant, {
 				tenantId: DEFAULT_TENANT_ID,
 				name: DEFAULT_TENANT_NAME,
 				domain: DEFAULT_TENANT_DOMAIN,
@@ -184,39 +178,39 @@ async function seedMasterData() {
 
 		// Seed Brands
 		console.log('Seeding brands...')
-		await Brand.deleteMany({ tenantId })
+		await pgDeleteMany(Brand, tenantId, {})
 		const brandDocs = BRANDS_DATA.map(brand => ({
 			...brand,
 			brandId: uuidv4(),
 			tenantId,
 			createdBy: systemUser,
 		}))
-		const createdBrands = await Brand.insertMany(brandDocs)
+		const createdBrands = await insertDocs(Brand, brandDocs)
 
 		console.log(`✓ Created ${createdBrands.length} brands`)
 
 		// Seed Categories
 		console.log('Seeding categories...')
-		await Category.deleteMany({ tenantId })
+		await pgDeleteMany(Category, tenantId, {})
 		const categoryDocs = CATEGORIES_DATA.map(category => ({
 			...category,
 			categoryId: uuidv4(),
 			tenantId,
 			createdBy: systemUser,
 		}))
-		const createdCategories = await Category.insertMany(categoryDocs)
+		const createdCategories = await insertDocs(Category, categoryDocs)
 
 		console.log(`✓ Created ${createdCategories.length} categories`)
 
 		// Seed Suppliers
 		console.log('Seeding suppliers...')
-		await Supplier.deleteMany({ tenantId })
+		await pgDeleteMany(Supplier, tenantId, {})
 		const supplierDocs = SUPPLIERS_DATA.map(supplier => ({
 			...supplier,
 			tenantId,
 			createdBy: systemUser,
 		}))
-		const createdSuppliers = await Supplier.insertMany(supplierDocs)
+		const createdSuppliers = await insertDocs(Supplier, supplierDocs)
 
 		console.log(`✓ Created ${createdSuppliers.length} suppliers`)
 

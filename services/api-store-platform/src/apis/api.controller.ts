@@ -1,5 +1,33 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import { ALL_TENANTS, DbTx, inTransaction } from '../db'
+import { findDocs, insertDoc } from '../db/docs'
+import * as t from '../db/schema'
+import { sql } from 'drizzle-orm'
+import {
+	pgCount,
+	pgDeleteMany,
+	pgFind,
+	pgFindOne,
+	pgFindOneAndDelete,
+	pgFindOneAndUpdate,
+	pgUpdateMany,
+	whereOf,
+} from '../db/mongoQuery'
+import {
+	adjustInventoryQuantity,
+	claimWarehouseTransferLegs as claimTransferLegs,
+	purchaseInventoryAdjustment,
+} from '../db/repos/inventory'
+import {
+	allocateInvoiceNumber,
+	allocateOfflineBlock,
+	lastUnitPricesByProduct,
+	latestInvoiceSequence,
+	nextInvoiceSequence,
+} from '../db/repos/invoices'
+import { recordSyncMutation as pgRecordSyncMutation } from '../db/repos/sync'
+import { isPgModel } from '../db/ownership'
 import bcrypt from 'bcrypt'
 import express from 'express'
 import { isAfter } from 'date-fns'
@@ -24,6 +52,7 @@ import Tenant, { ITenant } from '../models/Tenant'
 import UserSettings, { IUserSettings } from '../models/UserSettings'
 import CurrencySettings, {
 	ICurrencySettingItem,
+	ICurrencySettings,
 } from '../models/CurrencySettings'
 import InvoiceSettings from '../models/InvoiceSettings'
 import { Invoice } from '../models/Invoice'
@@ -46,7 +75,6 @@ import { resolveCashAccountType } from '../shared/cashAccounts/types'
 import { ERROR_CODES } from '../shared/errorCodes'
 import logger, { EntityType } from '../shared/logger/logger'
 import MongodbController from '../shared/mongodb/mongodbController'
-import { purchaseAverageCostExpression } from '../shared/movingAverageCost'
 import {
 	ESTABLISHED_COST_MOVING_TYPES,
 	establishedWarehouseIdsFromMovings,
@@ -199,12 +227,7 @@ import {
 } from '../shared/subscription/persist'
 import { getPrimaryInvoiceCurrencyAmounts } from '../shared/invoiceCurrency'
 import { mapInvoiceFiltersToUiStatus } from '../shared/constants'
-import {
-	formatInvoiceNumber,
-	isPrefixedInvoiceNumber,
-	parseInvoiceSequence,
-	type InvoiceNumberPrefix,
-} from '../shared/invoiceNumbering'
+import { type InvoiceNumberPrefix } from '../shared/invoiceNumbering'
 import type { Workbook } from 'exceljs'
 import { generateDailyActionsExcel } from '../shared/files/excel'
 import { Partner } from '../models/Partner'
@@ -221,9 +244,17 @@ import { Brand } from '../models/Brand'
 import { Shelf } from '../models/Shelf'
 import { Warehouse } from '../models/Warehaus'
 import { SyncMutation } from '../models/SyncMutation'
-import { OfflineSyncState } from '../models/OfflineSyncState'
 
 const OFFLINE_INVOICE_NUMBER_BLOCK = 500
+
+/** createdBy for rows the stock writes create (same fields as before). */
+const inventoryActor = (requestContext: RequestContext) => ({
+	_id: requestContext.userId ?? '',
+	displayName:
+		`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+	role: requestContext.user?.role ?? requestContext.role,
+	createdAt: new Date(),
+})
 
 const MAX_WAREHOUSE_TRANSFER_ITEMS = 200
 
@@ -682,7 +713,7 @@ export default class ProductController {
 			Date.now() + config.refreshTokenTTLDays * 24 * 60 * 60 * 1000,
 		)
 
-		await RefreshToken.create({
+		await insertDoc(RefreshToken, {
 			tenantId,
 			userId,
 			tokenHash,
@@ -696,7 +727,7 @@ export default class ProductController {
 
 	private async requireTenantByEmail(email: string) {
 		const domain = getEmailDomain(email)
-		const tenant = (await Tenant.findOne({ domain }).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, ALL_TENANTS, { domain })
 
 		if (!tenant) {
 			throw new AuthenticationError(
@@ -729,7 +760,7 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<void> {
 		const tenantId = this.getTenantId(requestContext)
-		const tenant = (await Tenant.findOne({ tenantId }).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 		if (!tenant || !this.resolveOfflineEnabledForAuth(tenant)) {
 			throw new BusinessLogicError(
@@ -743,9 +774,7 @@ export default class ProductController {
 		accessiblePages: TenantAccessiblePage[]
 		subscriptionExpired: boolean
 	}> {
-		const tenant = (await Tenant.findOne({
-			tenantId,
-		}).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 		if (!tenant) {
 			throw new AuthenticationError(
@@ -803,10 +832,9 @@ export default class ProductController {
 	public async validateUser(request: any, token: string) {
 		const decoded = jwt.verify(token, config.jwtSecret) as TokenPayload
 
-		const user = (await withTenantScope(
-			User.findOne({ userId: decoded.userId }),
-			decoded.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, decoded.tenantId, {
+			userId: decoded.userId,
+		})
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -867,10 +895,9 @@ export default class ProductController {
 		}
 
 		const tenant = await this.requireTenantByEmail(loginEmail)
-		const user = (await withTenantScope(
-			User.findOne({ email: loginEmail.toLowerCase() }),
-			tenant.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, tenant.tenantId, {
+			email: loginEmail.toLowerCase(),
+		})
 
 		if (!user) {
 			logger.warn('Failed login: user not found', {
@@ -945,9 +972,10 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const storedToken = (await RefreshToken.findOneAndDelete({
+		// row lock: of two parallel refreshes with one token only one wins
+		const storedToken = (await pgFindOneAndDelete(RefreshToken, ALL_TENANTS, {
 			tokenHash,
-		}).lean()) as IRefreshToken | null
+		})) as IRefreshToken | null
 
 		if (!storedToken) {
 			logger.warn('Refresh token reuse detected — revoking all sessions', {
@@ -973,10 +1001,9 @@ export default class ProductController {
 			)
 		}
 
-		const user = (await withTenantScope(
-			User.findOne({ _id: storedToken.userId }),
-			storedToken.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, storedToken.tenantId, {
+			_id: String(storedToken.userId),
+		})
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -987,9 +1014,7 @@ export default class ProductController {
 
 		assertPersistedUserMayAuthenticate(user)
 
-		const tenant = (await Tenant.findOne({
-			tenantId: storedToken.tenantId,
-		}).lean()) as ITenant | null
+		const tenant = await pgFindOne<ITenant>(Tenant, storedToken.tenantId)
 
 		if (!tenant) {
 			throw new AuthenticationError(
@@ -1050,7 +1075,9 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const deleted = await RefreshToken.findOneAndDelete({ tokenHash }).lean()
+		const deleted = await pgFindOneAndDelete(RefreshToken, ALL_TENANTS, {
+			tokenHash,
+		})
 
 		if (deleted) {
 			logger.info('User logged out (current device)', {
@@ -1071,7 +1098,11 @@ export default class ProductController {
 		}
 
 		const tokenHash = this.hashToken(rawToken)
-		const storedToken = await RefreshToken.findOne({ tokenHash }).lean()
+		const storedToken = await pgFindOne<IRefreshToken>(
+			RefreshToken,
+			ALL_TENANTS,
+			{ tokenHash },
+		)
 
 		if (!storedToken) {
 			throw new AuthenticationError(
@@ -1080,9 +1111,8 @@ export default class ProductController {
 			)
 		}
 
-		const result = await RefreshToken.deleteMany({
-			userId: storedToken.userId,
-			tenantId: storedToken.tenantId,
+		const result = await pgDeleteMany(RefreshToken, storedToken.tenantId, {
+			userId: String(storedToken.userId),
 		})
 
 		logger.info('User logged out from all devices', {
@@ -1165,12 +1195,10 @@ export default class ProductController {
 
 		if (searchText) {
 			// note: in-memory scan of search fields for tenant products matching other filters; upgrade to Atlas Search at 100k
-			const searchDocs = await withTenantScope(
-				Product.find(mongoQuery).select(
+			const searchDocs = await (pgFind(Product, tenantId, mongoQuery, {
+				select:
 					'productId name latinName barcode additionalBarcodes internalCode productFactoryCode status',
-				),
-				tenantId,
-			).lean<(SearchableProduct & { status?: string })[]>()
+			}) as unknown as Promise<(SearchableProduct & { status?: string })[]>)
 			const matched = searchProducts(searchDocs, searchText).sort((a, b) => {
 				const inactiveLast = (status?: string) =>
 					status === 'inactive' ? 1 : 0
@@ -1190,10 +1218,9 @@ export default class ProductController {
 			const [page, lookups] = await Promise.all([
 				pageIds.length === 0
 					? Promise.resolve([] as ProductAPI[])
-					: withTenantScope(
-							Product.find({ productId: { $in: pageIds } }),
-							tenantId,
-						).lean<ProductAPI[]>(),
+					: (pgFind(Product, tenantId, {
+							productId: { $in: pageIds },
+						}) as unknown as Promise<ProductAPI[]>),
 				this.getProductRelationLookups(requestContext),
 			])
 			const productById = new Map(
@@ -1207,22 +1234,18 @@ export default class ProductController {
 			relationLookups = lookups
 		} else {
 			const [page, count, lookups] = await Promise.all([
-				// note: inactive last; rank cannot use the status+name index
-				Product.aggregate<ProductAPI>([
-					{ $match: { tenantId, ...mongoQuery } },
-					{
-						$addFields: {
-							inactiveLast: {
-								$cond: [{ $eq: ['$status', 'inactive'] }, 1, 0],
-							},
-						},
-					},
-					{ $sort: { inactiveLast: 1, name: 1 } },
-					{ $skip: offset },
-					{ $limit: limit },
-					{ $project: { inactiveLast: 0 } },
-				]),
-				Product.countDocuments({ tenantId, ...mongoQuery }),
+				// note: inactive last, then name in Mongo's byte order ("C" collation)
+				findDocs(t.products, tenantId, {
+					where: whereOf(t.products, mongoQuery),
+					order: [
+						sql`coalesce(${t.products.status} = 'inactive', false)`,
+						sql`${t.products.name} collate "C" asc nulls first`,
+						sql`${t.products.seq} asc`,
+					],
+					offset,
+					limit,
+				}) as unknown as Promise<ProductAPI[]>,
+				pgCount(Product, tenantId, mongoQuery),
 				this.getProductRelationLookups(requestContext),
 			])
 
@@ -1235,13 +1258,10 @@ export default class ProductController {
 		const inventory =
 			productIds.length === 0
 				? []
-				: await withTenantScope(
-						Inventory.find({
-							productId: { $in: productIds },
-							...(warehouseMongoFilter(requestContext) ?? {}),
-						}),
-						tenantId,
-					).lean<InventoryDocument[]>()
+				: ((await pgFind(Inventory, tenantId, {
+						productId: { $in: productIds },
+						...(warehouseMongoFilter(requestContext) ?? {}),
+					})) as unknown as InventoryDocument[])
 		const inventoryByProductId = aggregateInventoryByProductId(inventory)
 
 		const productSee = new Set((requestContext.see || []) as SeeId[])
@@ -1293,9 +1313,12 @@ export default class ProductController {
 			// note: tenant-wide product master only. Qty / averageCost / location
 			// are warehouse-scoped — attach on read, never persist in this key.
 			const [products, relationLookups] = await Promise.all([
-				withTenantScope(Product.find({}).sort({ name: 1 }), tenantId).lean<
-					ProductAPI[]
-				>(),
+				pgFind(
+					Product,
+					tenantId,
+					{},
+					{ sort: { name: 1 } },
+				) as unknown as Promise<ProductAPI[]>,
 				this.getProductRelationLookups(requestContext),
 			])
 
@@ -1334,15 +1357,12 @@ export default class ProductController {
 		const averageCostByProductId = new Map<string, number>()
 
 		if (seeBuying && visibleProducts.length > 0) {
-			const scopedInventory = await withTenantScope(
-				Inventory.find({
-					productId: {
-						$in: visibleProducts.map(product => product.productId),
-					},
-					...(warehouseMongoFilter(requestContext) ?? {}),
-				}),
-				tenantId,
-			).lean<InventoryDocument[]>()
+			const scopedInventory = (await pgFind(Inventory, tenantId, {
+				productId: {
+					$in: visibleProducts.map(product => product.productId),
+				},
+				...(warehouseMongoFilter(requestContext) ?? {}),
+			})) as unknown as InventoryDocument[]
 
 			// note: qty-weighted averageCost across scoped warehouses.
 			const totals = new Map<
@@ -1395,83 +1415,13 @@ export default class ProductController {
 	private async resolveLastSellingPricesByProductId(
 		tenantId: string,
 	): Promise<Map<string, number>> {
-		const rows = (await Invoice.aggregate([
-			{
-				$match: {
-					tenantId,
-					status: {
-						$nin: [
-							InvoiceStatus.DRAFT,
-							InvoiceStatus.CANCELLED,
-							InvoiceStatus.VOID,
-						],
-					},
-				},
-			},
-			{ $sort: { issuedAt: -1 } },
-			{ $unwind: '$items' },
-			{
-				$group: {
-					_id: '$items.productId',
-					lastSellingPrice: { $first: '$items.unitPrice' },
-				},
-			},
-		])) as Array<{ _id: string; lastSellingPrice?: number }>
-
-		const map = new Map<string, number>()
-
-		for (const row of rows) {
-			if (!row._id || row.lastSellingPrice == null) continue
-
-			const price = Number(row.lastSellingPrice)
-
-			if (Number.isFinite(price)) {
-				map.set(row._id, price)
-			}
-		}
-
-		return map
+		return lastUnitPricesByProduct(tenantId, 'selling')
 	}
 
 	private async resolveLastBuyingPricesByProductId(
 		tenantId: string,
 	): Promise<Map<string, number>> {
-		const rows = (await BuyingInvoice.aggregate([
-			{
-				$match: {
-					tenantId,
-					status: {
-						$nin: [
-							InvoiceStatus.DRAFT,
-							InvoiceStatus.CANCELLED,
-							InvoiceStatus.VOID,
-						],
-					},
-				},
-			},
-			{ $sort: { issuedAt: -1 } },
-			{ $unwind: '$items' },
-			{
-				$group: {
-					_id: '$items.productId',
-					lastBuyingPrice: { $first: '$items.unitPrice' },
-				},
-			},
-		])) as Array<{ _id: string; lastBuyingPrice?: number }>
-
-		const map = new Map<string, number>()
-
-		for (const row of rows) {
-			if (!row._id || row.lastBuyingPrice == null) continue
-
-			const price = Number(row.lastBuyingPrice)
-
-			if (Number.isFinite(price)) {
-				map.set(row._id, price)
-			}
-		}
-
-		return map
+		return lastUnitPricesByProduct(tenantId, 'buying')
 	}
 
 	private mapProductCatalogItem(
@@ -1528,12 +1478,12 @@ export default class ProductController {
 
 		const [products, categoriesResponse, brandsResponse, suppliersResponse] =
 			await Promise.all([
-				withTenantScope(
-					Product.find({})
-						.select('supplierId brandId categoryId status')
-						.lean<ProductFilterValueSource[]>(),
+				pgFind(
+					Product,
 					tenantId,
-				),
+					{},
+					{ select: 'supplierId brandId categoryId status' },
+				) as unknown as Promise<ProductFilterValueSource[]>,
 				canAccessCategoryFilter
 					? this.requireCategoryController().getCategories(requestContext)
 					: Promise.resolve({
@@ -1759,10 +1709,9 @@ export default class ProductController {
 			productId,
 		)
 
-		const existingById = await withTenantScope(
-			Product.findOne({ productId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Product, tenantContext.tenantId, {
+			productId,
+		})
 
 		if (existingById) {
 			return {
@@ -1783,11 +1732,14 @@ export default class ProductController {
 
 		ensureWarehouseAccess(requestContext, scopedWarehouseId)
 
-		const currencySettings = await CurrencySettings.findOne({
-			tenantId: tenantContext.tenantId,
-		})
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const currencySettings = await pgFindOne(
+			CurrencySettings,
+			tenantContext.tenantId,
+			{
+				tenantId: tenantContext.tenantId,
+			},
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const openingAverageCost = catalogCostToPrimary(
 			price.purchasePrice,
 			price.currency,
@@ -1844,21 +1796,21 @@ export default class ProductController {
 		await this.runInTransaction(async session => {
 			await this.mongoDbClient.createDocument(
 				{
-					collectionName: COLLECTION_NAMES.PRODUCTS,
-					data: productData,
-					session,
-				},
-				Product,
-				requestContext,
-			)
-
-			await this.mongoDbClient.createDocument(
-				{
 					collectionName: COLLECTION_NAMES.INVENTORY,
 					data: inventoryData,
 					session,
 				},
 				Inventory,
+				requestContext,
+			)
+
+			await this.mongoDbClient.createDocument(
+				{
+					collectionName: COLLECTION_NAMES.PRODUCTS,
+					data: productData,
+					session,
+				},
+				Product,
 				requestContext,
 			)
 		})
@@ -1894,10 +1846,9 @@ export default class ProductController {
 		await ensureSeeIds(requestContext, [SEE.productsEdit])
 		const allowedUpdates = normalizeProductPatchRequest(requestBody)
 		const tenantContext = getTenantContext(requestContext)
-		const existingProduct = await withTenantScope(
-			Product.findOne({ productId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingProduct = await pgFindOne(Product, tenantContext.tenantId, {
+			productId,
+		})
 
 		if (
 			allowedUpdates.barcode !== undefined ||
@@ -1948,7 +1899,7 @@ export default class ProductController {
 			Number.isFinite(nextPurchasePrice) &&
 			Number(previousPurchasePrice) !== Number(nextPurchasePrice)
 
-		const persistProduct = (session?: mongoose.ClientSession) =>
+		const persistProduct = (session?: DbTx) =>
 			this.mongoDbClient.updateDocument(
 				{
 					collectionName: COLLECTION_NAMES.PRODUCTS,
@@ -1962,8 +1913,6 @@ export default class ProductController {
 
 		const updateResponse = shouldSyncOpeningCost
 			? await this.runInTransaction(async session => {
-					const updated = await persistProduct(session)
-
 					await this.syncOpeningAverageCostOnPurchasePriceEdit(
 						requestContext,
 						productId,
@@ -1973,7 +1922,7 @@ export default class ProductController {
 						nextCurrency,
 					)
 
-					return updated
+					return persistProduct(session)
 				})
 			: await persistProduct()
 
@@ -1994,16 +1943,18 @@ export default class ProductController {
 		productId: string,
 		previousPurchasePrice: number | undefined,
 		nextPurchasePrice: number | undefined,
-		session: mongoose.ClientSession,
+		session: DbTx,
 		currencyCode?: string,
 	) {
 		const tenantContext = getTenantContext(requestContext)
-		const currencySettings = await CurrencySettings.findOne({
-			tenantId: tenantContext.tenantId,
-		})
-			.session(session)
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const currencySettings = await pgFindOne(
+			CurrencySettings,
+			tenantContext.tenantId,
+			{
+				tenantId: tenantContext.tenantId,
+			},
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const openingCost = catalogCostToPrimary(
 			nextPurchasePrice,
 			currencyCode,
@@ -2017,32 +1968,36 @@ export default class ProductController {
 			return
 		}
 
-		const query = StockMoving.find({
-			productId,
-			type: { $in: [...ESTABLISHED_COST_MOVING_TYPES, 'return_out'] },
-		})
-			.select('warehouseId type referenceId referenceType')
-			.lean()
-
-		if (session) {
-			query.session(session)
-		}
-
-		const movings = await withTenantScope(query, tenantContext.tenantId)
+		const movings = (await pgFind(
+			StockMoving,
+			tenantContext.tenantId,
+			{
+				productId,
+				type: { $in: [...ESTABLISHED_COST_MOVING_TYPES, 'return_out'] },
+			},
+			{ select: 'warehouseId type referenceId referenceType', db: session },
+		)) as Array<{
+			warehouseId: string
+			type?: string
+			referenceId: string
+			referenceType?: string
+		}>
 		const establishedWarehouseIds = [
 			...establishedWarehouseIdsFromMovings(movings),
 		]
 
-		await Inventory.updateMany(
+		await pgUpdateMany(
+			Inventory,
+			tenantContext.tenantId,
 			{
-				tenantId: tenantContext.tenantId,
 				productId,
 				...(establishedWarehouseIds.length
 					? { warehouseId: { $nin: establishedWarehouseIds } }
 					: {}),
 			},
 			{ $set: { averageCost: openingCost } },
-		).session(session)
+			session,
+		)
 	}
 
 	public async generateProductBarcode(
@@ -2053,10 +2008,7 @@ export default class ProductController {
 
 		return ensurePrintableProductBarcode(productId, requestContext, {
 			findProduct: (id, scopeTenantId) =>
-				withTenantScope(
-					Product.findOne({ productId: id }).lean(),
-					scopeTenantId,
-				),
+				pgFindOne(Product, scopeTenantId, { productId: id }),
 			assertBarcodeAvailable: barcode =>
 				assertNoTenantBarcodeCollision(tenantId, [barcode], productId),
 			persistBarcode: async (id, barcode) => {
@@ -2211,41 +2163,26 @@ export default class ProductController {
 		requestContext: RequestContext,
 		productId: string,
 		warehouseId: string,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	): Promise<InventoryDocument | null> {
 		const tenantId = this.getTenantId(requestContext)
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
 
 		ensureWarehouseAccess(requestContext, scopedWarehouseId)
 
-		let query = withTenantScope(
-			Inventory.findOne({ productId, warehouseId: scopedWarehouseId }),
+		return (await pgFindOne(
+			Inventory,
 			tenantId,
-		)
-
-		if (session) {
-			query = query.session(session)
-		}
-
-		return (await query.lean()) as InventoryDocument | null
+			{ productId, warehouseId: scopedWarehouseId },
+			{ db: session },
+		)) as unknown as InventoryDocument | null
 	}
 
+	/** Group 1 (money + stock) lives in Postgres: one Postgres transaction. */
 	public async runInTransaction<T>(
-		work: (session: mongoose.ClientSession) => Promise<T>,
+		work: (session: DbTx) => Promise<T>,
 	): Promise<T> {
-		const session = await mongoose.startSession()
-
-		try {
-			let result: T | undefined
-
-			await session.withTransaction(async () => {
-				result = await work(session)
-			})
-
-			return result as T
-		} finally {
-			await session.endSession()
-		}
+		return inTransaction(undefined, work)
 	}
 
 	/**
@@ -2270,7 +2207,7 @@ export default class ProductController {
 			 */
 			allowNegative?: boolean
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<InventoryDocument> {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
@@ -2292,86 +2229,15 @@ export default class ProductController {
 			}
 		}
 
-		const { productId, quantityDelta } = params
-		const isGatedDecrease = quantityDelta < 0 && !params.allowNegative
-		const needed = isGatedDecrease ? -quantityDelta : 0
-
-		const inventoryId = uuidv4()
-		const createdBy = {
-			_id: requestContext.userId ?? '',
-			displayName:
-				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-			role: requestContext.user?.role ?? requestContext.role,
-			createdAt: new Date(),
-		}
-
-		const setFields: Record<string, unknown> = {
-			inventoryId: { $ifNull: ['$inventoryId', inventoryId] },
-			productId: { $ifNull: ['$productId', productId] },
-			warehouseId: { $ifNull: ['$warehouseId', warehouseId] },
-			createdBy: { $ifNull: ['$createdBy', createdBy] },
-			quantity: {
-				$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
-			},
-			availableQuantity: {
-				// same rule as availableQuantityFromStock(quantity, reserved)
-				$max: [
-					0,
-					{
-						$subtract: [
-							{
-								$add: [{ $ifNull: ['$quantity', 0] }, quantityDelta],
-							},
-							{ $ifNull: ['$reservedQuantity', 0] },
-						],
-					},
-				],
-			},
-		}
-
-		// Transfer-in: qty-weighted averageCost (same formula as purchase).
-		if (params.seedAverageCost !== undefined && quantityDelta > 0) {
-			setFields.averageCost = purchaseAverageCostExpression(
-				quantityDelta,
-				params.seedAverageCost,
-			)
-		}
-
-		const filter: Record<string, unknown> = {
+		return (await adjustInventoryQuantity(session, {
 			tenantId: tenantContext.tenantId,
-			productId,
+			productId: params.productId,
 			warehouseId,
-		}
-
-		if (isGatedDecrease) {
-			// Atomic stock gate: blocks concurrent oversell / over-transfer.
-			filter.$expr = {
-				$gte: [
-					{
-						$subtract: [
-							{ $ifNull: ['$quantity', 0] },
-							{ $ifNull: ['$reservedQuantity', 0] },
-						],
-					},
-					needed,
-				],
-			}
-		}
-
-		const updated = await Inventory.findOneAndUpdate(
-			filter,
-			[{ $set: setFields }],
-			{ new: true, upsert: !isGatedDecrease, session },
-		).lean()
-
-		if (!updated) {
-			throw new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				`Insufficient stock for product ${productId}.`,
-			)
-		}
-
-		return updated as unknown as InventoryDocument
+			quantityDelta: params.quantityDelta,
+			allowNegative: params.allowNegative,
+			seedAverageCost: params.seedAverageCost,
+			actor: inventoryActor(requestContext),
+		})) as unknown as InventoryDocument
 	}
 
 	/**
@@ -2387,7 +2253,7 @@ export default class ProductController {
 			purchaseQuantity: number
 			purchaseUnitPrice: number
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<InventoryDocument> {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
@@ -2404,54 +2270,14 @@ export default class ProductController {
 			)
 		}
 
-		const { productId, purchaseQuantity, purchaseUnitPrice } = params
-
-		const inventoryId = uuidv4()
-		const createdBy = {
-			_id: requestContext.userId ?? '',
-			displayName:
-				`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-			role: requestContext.user?.role ?? requestContext.role,
-			createdAt: new Date(),
-		}
-
-		const updated = await Inventory.findOneAndUpdate(
-			{ tenantId: tenantContext.tenantId, productId, warehouseId },
-			[
-				{
-					$set: {
-						inventoryId: { $ifNull: ['$inventoryId', inventoryId] },
-						productId: { $ifNull: ['$productId', productId] },
-						warehouseId: { $ifNull: ['$warehouseId', warehouseId] },
-						createdBy: { $ifNull: ['$createdBy', createdBy] },
-						quantity: {
-							$add: [{ $ifNull: ['$quantity', 0] }, purchaseQuantity],
-						},
-						availableQuantity: {
-							// same rule as availableQuantityFromStock(quantity, reserved)
-							$max: [
-								0,
-								{
-									$subtract: [
-										{
-											$add: [{ $ifNull: ['$quantity', 0] }, purchaseQuantity],
-										},
-										{ $ifNull: ['$reservedQuantity', 0] },
-									],
-								},
-							],
-						},
-						averageCost: purchaseAverageCostExpression(
-							purchaseQuantity,
-							purchaseUnitPrice,
-						),
-					},
-				},
-			],
-			{ new: true, upsert: true, session },
-		).lean()
-
-		return updated as unknown as InventoryDocument
+		return (await purchaseInventoryAdjustment(session, {
+			tenantId: tenantContext.tenantId,
+			productId: params.productId,
+			warehouseId,
+			purchaseQuantity: params.purchaseQuantity,
+			purchaseUnitPrice: params.purchaseUnitPrice,
+			actor: inventoryActor(requestContext),
+		})) as unknown as InventoryDocument
 	}
 
 	public async getInventoryByProductAcrossAcl(
@@ -2467,19 +2293,16 @@ export default class ProductController {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
 		const tenantId = this.getTenantId(requestContext)
-		const rows = await withTenantScope(
-			Inventory.find({
-				productId,
-				...(warehouseAclMongoFilter(requestContext) ?? {}),
-			}).select('warehouseId quantity availableQuantity'),
+		const rows = (await pgFind(
+			Inventory,
 			tenantId,
-		).lean<
-			Array<{
-				warehouseId?: string
-				quantity?: number
-				availableQuantity?: number
-			}>
-		>()
+			{ productId, ...(warehouseAclMongoFilter(requestContext) ?? {}) },
+			{ select: 'warehouseId quantity availableQuantity' },
+		)) as Array<{
+			warehouseId?: string
+			quantity?: number
+			availableQuantity?: number
+		}>
 
 		return rows
 			.filter(row => Boolean(row.warehouseId))
@@ -2813,30 +2636,30 @@ export default class ProductController {
 					}
 				: {}
 
-		const movings = await withTenantScope(
-			StockMoving.find({
+		const movings = (await pgFind(
+			StockMoving,
+			tenantId,
+			{
 				referenceType: 'warehouse_transfer',
 				type: { $in: ['transfer_out', 'transfer_in'] },
 				...createdAtFilter,
-			}).sort({ 'createdBy.createdAt': 'desc' }),
-			tenantId,
-		).lean<
-			Array<{
-				referenceId: string
-				referenceType?: string
-				type?: string
-				productId: string
-				warehouseId: string
-				quantity: number
+			},
+			{ sort: { 'createdBy.createdAt': 'desc' } },
+		)) as unknown as Array<{
+			referenceId: string
+			referenceType?: string
+			type?: string
+			productId: string
+			warehouseId: string
+			quantity: number
+			createdAt?: Date
+			createdBy?: {
+				_id?: string
+				displayName?: string
 				createdAt?: Date
-				createdBy?: {
-					_id?: string
-					displayName?: string
-					createdAt?: Date
-				}
-				note?: string
-			}>
-		>()
+			}
+			note?: string
+		}>
 
 		const grouped = groupWarehouseTransferMovings(
 			movings.map(moving => ({
@@ -2934,12 +2757,14 @@ export default class ProductController {
 		fromWarehouseId: string,
 		toWarehouseId: string,
 	) {
-		const warehouses = await withTenantScope(
-			Warehouse.find({
-				warehouseId: { $in: [fromWarehouseId, toWarehouseId] },
-			}).select('warehouseId name'),
+		const warehouses = await (pgFind(
+			Warehouse,
 			tenantId,
-		).lean<Array<{ warehouseId: string; name?: string }>>()
+			{
+				warehouseId: { $in: [fromWarehouseId, toWarehouseId] },
+			},
+			{ select: 'warehouseId name' },
+		) as unknown as Promise<Array<{ warehouseId: string; name?: string }>>)
 
 		const warehouseNameById = new Map(
 			warehouses.map(row => [
@@ -2968,10 +2793,12 @@ export default class ProductController {
 		tenantId: string,
 		productIds: string[],
 	) {
-		const products = await withTenantScope(
-			Product.find({ productId: { $in: productIds } }).select('productId'),
+		const products = await (pgFind(
+			Product,
 			tenantId,
-		).lean<Array<{ productId: string }>>()
+			{ productId: { $in: productIds } },
+			{ select: 'productId' },
+		) as unknown as Promise<Array<{ productId: string }>>)
 
 		const found = new Set(products.map(product => product.productId))
 		const missing = productIds.filter(productId => !found.has(productId))
@@ -2994,7 +2821,7 @@ export default class ProductController {
 			toName: string
 			items: Array<{ productId: string; quantity: number }>
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	) {
 		const note = `${params.fromName} → ${params.toName}`
 
@@ -3097,6 +2924,10 @@ export default class ProductController {
 	 * transaction opened, so this is what stops a concurrent edit or a double-clicked
 	 * delete from reversing the same transfer twice and inventing stock.
 	 */
+	/**
+	 * Removes the transfer's legs inside the caller's transaction and fails unless
+	 * this call is the one that removed them (see db/repos/inventory.ts).
+	 */
 	private async claimWarehouseTransferLegs(
 		tenantId: string,
 		existing: {
@@ -3105,60 +2936,9 @@ export default class ProductController {
 			toWarehouseId: string
 			items: Array<{ productId: string; quantity: number }>
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<void> {
-		const changedMeanwhile = () =>
-			new BusinessLogicError(
-				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-				'This warehouse transfer changed meanwhile. Reload and try again.',
-			)
-
-		const legs = await StockMoving.find({
-			tenantId,
-			referenceType: 'warehouse_transfer',
-			referenceId: existing.referenceId,
-		})
-			.select('_id productId type warehouseId quantity')
-			.session(session)
-			.lean<
-				Array<{
-					_id: unknown
-					productId?: string
-					type?: string
-					warehouseId?: string
-					quantity?: number
-				}>
-			>()
-
-		const expected = new Set(
-			existing.items.flatMap(item => [
-				`${item.productId}|transfer_out|${existing.fromWarehouseId}|${item.quantity}`,
-				`${item.productId}|transfer_in|${existing.toWarehouseId}|${item.quantity}`,
-			]),
-		)
-
-		if (legs.length !== expected.size) {
-			throw changedMeanwhile()
-		}
-
-		for (const leg of legs) {
-			const key = `${leg.productId}|${leg.type}|${leg.warehouseId}|${leg.quantity}`
-
-			if (!expected.delete(key)) {
-				throw changedMeanwhile()
-			}
-		}
-
-		const result = await StockMoving.deleteMany({
-			tenantId,
-			referenceType: 'warehouse_transfer',
-			referenceId: existing.referenceId,
-			_id: { $in: legs.map(leg => leg._id) },
-		}).session(session)
-
-		if (result.deletedCount !== legs.length) {
-			throw changedMeanwhile()
-		}
+		await claimTransferLegs(session, tenantId, existing)
 	}
 
 	private async reverseWarehouseTransferItems(
@@ -3168,7 +2948,7 @@ export default class ProductController {
 			toWarehouseId: string
 			items: Array<{ productId: string; quantity: number }>
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	) {
 		for (const item of existing.items) {
 			try {
@@ -3241,22 +3021,24 @@ export default class ProductController {
 		const [products, warehouses] = await Promise.all([
 			productIds.length === 0
 				? Promise.resolve([])
-				: withTenantScope(
-						Product.find({ productId: { $in: productIds } }).select(
-							'productId name unitId',
-						),
+				: (pgFind(
+						Product,
 						tenantId,
-					).lean<
+						{ productId: { $in: productIds } },
+						{ select: 'productId name unitId' },
+					) as unknown as Promise<
 						Array<{ productId: string; name?: string; unitId?: string }>
-					>(),
+					>),
 			warehouseIds.length === 0
 				? Promise.resolve([])
-				: withTenantScope(
-						Warehouse.find({ warehouseId: { $in: warehouseIds } }).select(
-							'warehouseId name',
-						),
+				: (pgFind(
+						Warehouse,
 						tenantId,
-					).lean<Array<{ warehouseId: string; name?: string }>>(),
+						{ warehouseId: { $in: warehouseIds } },
+						{ select: 'warehouseId name' },
+					) as unknown as Promise<
+						Array<{ warehouseId: string; name?: string }>
+					>),
 		])
 
 		const unitIds = [
@@ -3269,10 +3051,12 @@ export default class ProductController {
 		const units =
 			unitIds.length === 0
 				? []
-				: await withTenantScope(
-						Unit.find({ unitId: { $in: unitIds } }).select('unitId name'),
+				: await (pgFind(
+						Unit,
 						tenantId,
-					).lean<Array<{ unitId: string; name?: string }>>()
+						{ unitId: { $in: unitIds } },
+						{ select: 'unitId name' },
+					) as unknown as Promise<Array<{ unitId: string; name?: string }>>)
 
 		const productById = new Map(products.map(row => [row.productId, row]))
 		const warehouseById = new Map(
@@ -3330,30 +3114,25 @@ export default class ProductController {
 		if (!referenceId) return null
 
 		const tenantId = this.getTenantId(requestContext)
-		const movings = await withTenantScope(
-			StockMoving.find({
-				referenceType: 'warehouse_transfer',
-				referenceId,
-				type: { $in: ['transfer_out', 'transfer_in'] },
-			}),
-			tenantId,
-		).lean<
-			Array<{
-				referenceId: string
-				referenceType?: string
-				type?: string
-				productId: string
-				warehouseId: string
-				quantity: number
+		const movings = (await pgFind(StockMoving, tenantId, {
+			referenceType: 'warehouse_transfer',
+			referenceId,
+			type: { $in: ['transfer_out', 'transfer_in'] },
+		})) as unknown as Array<{
+			referenceId: string
+			referenceType?: string
+			type?: string
+			productId: string
+			warehouseId: string
+			quantity: number
+			createdAt?: Date
+			createdBy?: {
+				_id?: string
+				displayName?: string
 				createdAt?: Date
-				createdBy?: {
-					_id?: string
-					displayName?: string
-					createdAt?: Date
-				}
-				note?: string
-			}>
-		>()
+			}
+			note?: string
+		}>
 
 		if (movings.length === 0) return null
 
@@ -3394,147 +3173,49 @@ export default class ProductController {
 		return detail
 	}
 
-	private async resolveLatestInvoiceSequence(
-		requestContext: RequestContext,
-		model: typeof Invoice | typeof BuyingInvoice,
-	): Promise<number> {
-		const tenantContext = getTenantContext(requestContext)
-		const invoices = (await withTenantScope(
-			(model as typeof Invoice).find({}, { invoiceNumber: 1 }),
-			tenantContext.tenantId,
-		).lean()) as Array<{ invoiceNumber?: string }>
-
-		let maxSequence = 0
-
-		for (const invoice of invoices) {
-			maxSequence = Math.max(
-				maxSequence,
-				parseInvoiceSequence(invoice.invoiceNumber),
-			)
-		}
-
-		return maxSequence + 1
-	}
-
 	private async resolveLatestInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number> {
-		return this.resolveLatestInvoiceSequence(requestContext, Invoice)
+		return latestInvoiceSequence(this.getTenantId(requestContext), 'selling')
 	}
 
 	public async resolveNextInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number> {
-		const tenantId = this.getTenantId(requestContext)
-		const latestFromInvoices =
-			await this.resolveLatestInvoiceNumber(requestContext)
-		const offlineState = await withTenantScope(
-			OfflineSyncState.findOne({}).lean(),
-			tenantId,
-		)
-		const minOnlineInvoiceNumber = offlineState?.minOnlineInvoiceNumber ?? 1
-
-		return Math.max(latestFromInvoices, minOnlineInvoiceNumber)
+		return nextInvoiceSequence(this.getTenantId(requestContext), 'selling')
 	}
 
 	/**
 	 * Server-side allocation as SI-000001 / BI-000001.
 	 * Accepts a client-prefixed number only when unused (offline reserved blocks).
 	 * Ignores bare numeric client drafts that caused "already in use" races.
-	 * Call inside a transaction so unique-index conflicts retry with a fresh number.
+	 * No unique index backs this (INV-NUM-1): parallel creates can collide.
 	 */
 	public async allocateInvoiceNumberForCreate(
 		requestContext: RequestContext,
 		prefix: InvoiceNumberPrefix,
 		requestedNumber: string | undefined,
-		model: typeof Invoice | typeof BuyingInvoice,
-		session?: mongoose.ClientSession,
+		_model: typeof Invoice | typeof BuyingInvoice,
+		session?: DbTx,
 	): Promise<string> {
-		const tenantId = getTenantContext(requestContext).tenantId
-		const requested = requestedNumber?.trim()
-
-		if (requested && isPrefixedInvoiceNumber(requested, prefix)) {
-			const existingQuery = withTenantScope(
-				(model as typeof Invoice).findOne({ invoiceNumber: requested }),
-				tenantId,
-			)
-			const existing = await (
-				session ? existingQuery.session(session) : existingQuery
-			).lean()
-
-			if (!existing) {
-				return requested
-			}
-		}
-
-		const sequence =
-			prefix === 'SI'
-				? await this.resolveNextInvoiceNumber(requestContext)
-				: await this.resolveNextBuyingInvoiceNumber(requestContext)
-
-		for (let offset = 0; offset < 50; offset++) {
-			const candidate = formatInvoiceNumber(prefix, sequence + offset)
-			const existingQuery = withTenantScope(
-				(model as typeof Invoice).findOne({ invoiceNumber: candidate }),
-				tenantId,
-			)
-			const existing = await (
-				session ? existingQuery.session(session) : existingQuery
-			).lean()
-
-			if (!existing) {
-				return candidate
-			}
-		}
-
-		throw new BusinessLogicError(
-			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
-			`Unable to allocate a unique ${prefix} invoice number.`,
+		return allocateInvoiceNumber(
+			getTenantContext(requestContext).tenantId,
+			prefix,
+			requestedNumber,
+			session,
 		)
 	}
 
 	private async allocateOfflineInvoiceBlock(
 		requestContext: RequestContext,
 	): Promise<{ nextInvoiceNumber: number; invoiceNumberBlockEnd: number }> {
-		const tenantId = this.getTenantId(requestContext)
-		const latestFromInvoices =
-			await this.resolveLatestInvoiceNumber(requestContext)
-		const session = await mongoose.startSession()
+		const { blockStart, blockEnd } = await allocateOfflineBlock(
+			this.getTenantId(requestContext),
+			'selling',
+			OFFLINE_INVOICE_NUMBER_BLOCK,
+		)
 
-		try {
-			let blockStart = latestFromInvoices
-			let blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
-
-			await session.withTransaction(async () => {
-				const existing = await withTenantScope(
-					OfflineSyncState.findOne({}).session(session),
-					tenantId,
-				)
-
-				blockStart = existing?.nextBlockStart ?? latestFromInvoices
-				blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
-				const nextBlockStart = blockEnd + 1
-
-				await withTenantScope(
-					OfflineSyncState.findOneAndUpdate(
-						{},
-						{
-							$set: { nextBlockStart },
-							$max: { minOnlineInvoiceNumber: nextBlockStart },
-						},
-						{ upsert: true, session, new: true },
-					),
-					tenantId,
-				)
-			})
-
-			return {
-				nextInvoiceNumber: blockStart,
-				invoiceNumberBlockEnd: blockEnd,
-			}
-		} finally {
-			await session.endSession()
-		}
+		return { nextInvoiceNumber: blockStart, invoiceNumberBlockEnd: blockEnd }
 	}
 
 	private async allocateOfflineBuyingInvoiceBlock(
@@ -3543,47 +3224,15 @@ export default class ProductController {
 		nextBuyingInvoiceNumber: number
 		buyingInvoiceNumberBlockEnd: number
 	}> {
-		const tenantId = this.getTenantId(requestContext)
-		const latestFromInvoices =
-			await this.resolveLatestBuyingInvoiceNumber(requestContext)
-		const session = await mongoose.startSession()
+		const { blockStart, blockEnd } = await allocateOfflineBlock(
+			this.getTenantId(requestContext),
+			'buying',
+			OFFLINE_INVOICE_NUMBER_BLOCK,
+		)
 
-		try {
-			let blockStart = latestFromInvoices
-			let blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
-
-			await session.withTransaction(async () => {
-				const existing = await withTenantScope(
-					OfflineSyncState.findOne({}).session(session),
-					tenantId,
-				)
-
-				blockStart = existing?.buyingNextBlockStart ?? latestFromInvoices
-
-				blockEnd = blockStart + OFFLINE_INVOICE_NUMBER_BLOCK - 1
-				const nextBlockStart = blockEnd + 1
-
-				await withTenantScope(
-					OfflineSyncState.findOneAndUpdate(
-						{},
-						{
-							$set: { buyingNextBlockStart: nextBlockStart },
-							$max: {
-								minOnlineBuyingInvoiceNumber: nextBlockStart,
-							},
-						},
-						{ upsert: true, session, new: true },
-					),
-					tenantId,
-				)
-			})
-
-			return {
-				nextBuyingInvoiceNumber: blockStart,
-				buyingInvoiceNumberBlockEnd: blockEnd,
-			}
-		} finally {
-			await session.endSession()
+		return {
+			nextBuyingInvoiceNumber: blockStart,
+			buyingInvoiceNumberBlockEnd: blockEnd,
 		}
 	}
 
@@ -3733,7 +3382,11 @@ export default class ProductController {
 			discount: number
 		},
 	) {
-		const settings = await CurrencySettings.findOne({ tenantId })
+		const settings = await pgFindOne<ICurrencySettings>(
+			CurrencySettings,
+			tenantId,
+			{ tenantId },
+		)
 
 		if (!settings?.primaryCurrency) {
 			return []
@@ -3769,16 +3422,11 @@ export default class ProductController {
 		}))
 	}
 
-	private async resolveLatestBuyingInvoiceNumber(
-		requestContext: RequestContext,
-	): Promise<number> {
-		return this.resolveLatestInvoiceSequence(requestContext, BuyingInvoice)
-	}
-
+	/** Buying numbers ignore the offline floor (unlike selling); kept as it was. */
 	public async resolveNextBuyingInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number> {
-		return this.resolveLatestBuyingInvoiceNumber(requestContext)
+		return latestInvoiceSequence(this.getTenantId(requestContext), 'buying')
 	}
 
 	public async getInventory(
@@ -3810,10 +3458,9 @@ export default class ProductController {
 
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVENTORY)
 
-		return withTenantScope(
-			Inventory.find(warehouse).sort({ createdAt: -1 }),
-			tenantId,
-		).lean<InventoryDocument[]>()
+		return pgFind(Inventory, tenantId, warehouse, {
+			sort: { createdAt: -1 },
+		}) as unknown as Promise<InventoryDocument[]>
 	}
 
 	public async getInventoryItem(
@@ -3933,9 +3580,10 @@ export default class ProductController {
 		await ensureSeeIds(requestContext, [SEE.productsEdit])
 		const allowedUpdates = normalizeInventoryPatchRequest(requestBody)
 		const tenantContext = getTenantContext(requestContext)
-		const existingInventory = await withTenantScope(
-			Inventory.findOne({ inventoryId }).lean(),
+		const existingInventory = await pgFindOne(
+			Inventory,
 			tenantContext.tenantId,
+			{ inventoryId },
 		)
 
 		if (!existingInventory) {
@@ -3946,7 +3594,7 @@ export default class ProductController {
 		}
 
 		const existingWarehouseId = requireWarehouseId(
-			(existingInventory as InventoryDocument).warehouseId,
+			(existingInventory as unknown as InventoryDocument).warehouseId,
 		)
 
 		ensureWarehouseAccess(requestContext, existingWarehouseId)
@@ -3989,7 +3637,10 @@ export default class ProductController {
 		if (allowedUpdates.quantity !== undefined) {
 			allowedUpdates.availableQuantity = availableQuantityFromStock(
 				allowedUpdates.quantity,
-				Number((existingInventory as InventoryDocument).reservedQuantity ?? 0),
+				Number(
+					(existingInventory as unknown as InventoryDocument)
+						.reservedQuantity ?? 0,
+				),
 			)
 		}
 
@@ -4011,9 +3662,10 @@ export default class ProductController {
 		requestContext: RequestContext,
 	) {
 		const tenantContext = getTenantContext(requestContext)
-		const existingInventory = await withTenantScope(
-			Inventory.findOne({ inventoryId }).lean(),
+		const existingInventory = await pgFindOne(
+			Inventory,
 			tenantContext.tenantId,
+			{ inventoryId },
 		)
 
 		if (!existingInventory) {
@@ -4024,7 +3676,7 @@ export default class ProductController {
 		}
 
 		const existingWarehouseId = requireWarehouseId(
-			(existingInventory as InventoryDocument).warehouseId,
+			(existingInventory as unknown as InventoryDocument).warehouseId,
 		)
 
 		ensureWarehouseAccess(requestContext, existingWarehouseId)
@@ -4058,15 +3710,19 @@ export default class ProductController {
 
 		if (uniqueIds.length === 0 || fields.length === 0) return []
 
-		const rows = await withTenantScope(
-			DailyAction.find({
+		const rows = await (pgFind(
+			DailyAction,
+			this.getTenantId(requestContext),
+			{
 				...partyEntryQuery(uniqueIds, fields),
 				...(warehouseAclMongoFilter(requestContext) ?? {}),
-			}).sort({
-				createdAt: 'desc',
-			}),
-			this.getTenantId(requestContext),
-		).lean<DailyActionResponse['data']>()
+			},
+			{
+				sort: {
+					createdAt: 'desc',
+				},
+			},
+		) as unknown as Promise<DailyActionResponse['data']>)
 
 		return rows
 	}
@@ -4189,10 +3845,9 @@ export default class ProductController {
 			dailyActionQueryClauses.length > 0
 				? { $and: dailyActionQueryClauses }
 				: {}
-		const dailyActions = await withTenantScope(
-			DailyAction.find(mongoQuery).sort({ createdAt: 'desc' }),
-			tenantId,
-		).lean<DailyActionResponse['data']>()
+		const dailyActions = await (pgFind(DailyAction, tenantId, mongoQuery, {
+			sort: { createdAt: 'desc' },
+		}) as unknown as Promise<DailyActionResponse['data']>)
 
 		if (useTenantCache) {
 			await redisCache.setJson(cacheKey, {
@@ -4208,14 +3863,15 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<DailyActionFilterValuesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const dailyActions = await withTenantScope(
-			DailyAction.find(warehouseMongoFilter(requestContext) ?? {})
-				.select(
-					'warehouseId entryType productId productName supplierId supplierName customerId customerName expenseId expenseName partnerId partnerName',
-				)
-				.lean<DailyActionFilterValueSource[]>(),
+		const dailyActions = await (pgFind(
+			DailyAction,
 			tenantId,
-		)
+			warehouseMongoFilter(requestContext) ?? {},
+			{
+				select:
+					'warehouseId entryType productId productName supplierId supplierName customerId customerName expenseId expenseName partnerId partnerName',
+			},
+		) as unknown as Promise<DailyActionFilterValueSource[]>)
 
 		const entryTypeMap = new Map<string, FilterValueOption>()
 		const productNameMap = new Map<string, FilterValueOption>()
@@ -4336,10 +3992,12 @@ export default class ProductController {
 		let warehouseIds = getEffectiveWarehouseIds(requestContext)
 
 		if (warehouseIds === null) {
-			const warehouses = await withTenantScope(
-				Warehouse.find({}).select('warehouseId'),
+			const warehouses = await (pgFind(
+				Warehouse,
 				tenantId,
-			).lean<Array<{ warehouseId: string }>>()
+				{},
+				{ select: 'warehouseId' },
+			) as unknown as Promise<Array<{ warehouseId: string }>>)
 
 			warehouseIds = warehouses.map(row => row.warehouseId)
 		}
@@ -4423,11 +4081,14 @@ export default class ProductController {
 	) {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
 		const warehouseId = requireOperationalWarehouseId(requestContext)
-		const settings = await CurrencySettings.findOne({
-			tenantId: this.getTenantId(requestContext),
-		})
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const settings = await pgFindOne(
+			CurrencySettings,
+			this.getTenantId(requestContext),
+			{
+				tenantId: this.getTenantId(requestContext),
+			},
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const settingsRates = new Map<string, number>(
 			[settings?.primaryCurrency, ...(settings?.secondaryCurrencies ?? [])]
 				.filter(currency => currency?.currencyId)
@@ -4560,13 +4221,17 @@ export default class ProductController {
 			(requestBody as DailyActionRequestBody & { actionId?: string }).actionId,
 		)
 
-		const existingById = await withTenantScope(
-			DailyAction.findOne({ actionId }).lean(),
+		const existingById = await pgFindOne(
+			DailyAction,
 			getTenantContext(requestContext).tenantId,
+			{ actionId },
 		)
 
 		if (existingById) {
-			return { _id: String(existingById._id), actionId: existingById.actionId }
+			return {
+				_id: String(existingById._id),
+				actionId: existingById.actionId as string,
+			}
 		}
 
 		// Entries feed the warehouse-scoped cash balance, so they are attributed to the
@@ -4682,10 +4347,12 @@ export default class ProductController {
 			return
 		}
 
-		const rows = await withTenantScope(
-			DailyAction.find({ actionId: { $in: actionIds } }).select('warehouseId'),
+		const rows = await (pgFind(
+			DailyAction,
 			this.getTenantId(requestContext),
-		).lean<Array<{ warehouseId?: string }>>()
+			{ actionId: { $in: actionIds } },
+			{ select: 'warehouseId' },
+		) as unknown as Promise<Array<{ warehouseId?: string }>>)
 
 		for (const row of rows) {
 			ensureWarehouseAccess(requestContext, row.warehouseId)
@@ -4758,12 +4425,12 @@ export default class ProductController {
 				).replace(/,/g, ''),
 			)
 
-			const existing = await withTenantScope(
-				DailyAction.findOne({ actionId }).select('warehouseId'),
+			const existing = await (pgFindOne(
+				DailyAction,
 				this.getTenantId(requestContext),
-			)
-				.session(session)
-				.lean<{ warehouseId?: string } | null>()
+				{ actionId },
+				{ select: 'warehouseId', db: session },
+			) as unknown as Promise<{ warehouseId?: string } | null>)
 
 			const warehouseId = requireWarehouseId(existing?.warehouseId)
 
@@ -4799,12 +4466,12 @@ export default class ProductController {
 			uniqueActionIds,
 		)
 
-		const rows = await withTenantScope(
-			DailyAction.find({ actionId: { $in: uniqueActionIds } }).select(
-				'actionId warehouseId',
-			),
+		const rows = await (pgFind(
+			DailyAction,
 			this.getTenantId(requestContext),
-		).lean<Array<{ actionId: string; warehouseId?: string }>>()
+			{ actionId: { $in: uniqueActionIds } },
+			{ select: 'actionId warehouseId' },
+		) as unknown as Promise<Array<{ actionId: string; warehouseId?: string }>>)
 
 		await this.runInTransaction(async session => {
 			for (const row of rows) {
@@ -4818,11 +4485,12 @@ export default class ProductController {
 				})
 			}
 
-			await DailyAction.deleteMany({ actionId: { $in: uniqueActionIds } })
-				.setOptions({
-					__tenantContext: { tenantId: this.getTenantId(requestContext) },
-				})
-				.session(session)
+			await pgDeleteMany(
+				DailyAction,
+				this.getTenantId(requestContext),
+				{ actionId: { $in: uniqueActionIds } },
+				session,
+			)
 		})
 
 		for (const actionId of uniqueActionIds) {
@@ -4941,10 +4609,12 @@ export default class ProductController {
 			await ensureTenantAccess(requestContext, COLLECTION_NAMES.USERS)
 		}
 
-		const user = (await withTenantScope(
-			User.findOne({ userId }, { role: 1 }),
+		const user = await pgFindOne<Pick<IUser, 'role'>>(
+			User,
 			tenantContext.tenantId,
-		).lean()) as Pick<IUser, 'role'> | null
+			{ userId },
+			{ select: { role: 1 } },
+		)
 
 		if (!user) {
 			throw new BusinessLogicError(
@@ -4982,10 +4652,9 @@ export default class ProductController {
 
 		const tenantContext = getTenantContext(requestContext)
 
-		const user = (await withTenantScope(
-			User.findOne({ userId: requestContext.userId }),
-			tenantContext.tenantId,
-		).lean()) as IUser | null
+		const user = await pgFindOne<IUser>(User, tenantContext.tenantId, {
+			userId: requestContext.userId,
+		})
 
 		if (!user) {
 			throw new AuthenticationError(
@@ -5005,17 +4674,27 @@ export default class ProductController {
 
 		const hashed = await bcrypt.hash(newPassword, 12)
 
-		await withTenantScope(
-			User.findByIdAndUpdate(user._id, {
-				$set: { password: hashed, tokenVersion: (user.tokenVersion ?? 0) + 1 },
-			}),
-			tenantContext.tenantId,
-		)
+		await inTransaction(undefined, async tx => {
+			await pgUpdateMany(
+				User,
+				tenantContext.tenantId,
+				{ _id: String(user._id) },
+				{
+					$set: {
+						password: hashed,
+						tokenVersion: (user.tokenVersion ?? 0) + 1,
+					},
+				},
+				tx,
+			)
 
-		// Revoke all refresh tokens so the user must log in again on other devices
-		await RefreshToken.deleteMany({
-			userId: user._id,
-			tenantId: tenantContext.tenantId,
+			// Revoke all refresh tokens so the user must log in again on other devices
+			await pgDeleteMany(
+				RefreshToken,
+				tenantContext.tenantId,
+				{ userId: String(user._id) },
+				tx,
+			)
 		})
 	}
 
@@ -5152,12 +4831,9 @@ export default class ProductController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Expense.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Expense, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -5168,10 +4844,9 @@ export default class ProductController {
 
 		const expenseId = resolveSyncClientId(requestBody.expenseId)
 
-		const existingById = await withTenantScope(
-			Expense.findOne({ expenseId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Expense, tenantContext.tenantId, {
+			expenseId,
+		})
 
 		if (existingById) {
 			return {
@@ -5236,16 +4911,13 @@ export default class ProductController {
 			updateData.name = requestBody.name
 		}
 
-		const updated = await withTenantScope(
-			Expense.findOneAndUpdate(
-				{
-					$or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }],
-				},
-				{ $set: updateData },
-				{ new: true, runValidators: true },
-			),
+		const updated = await pgFindOneAndUpdate(
+			Expense,
 			tenantId,
-		).lean()
+			{ $or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }] },
+			{ $set: updateData },
+			{ new: true },
+		)
 
 		if (!updated) {
 			throw new BusinessLogicError(
@@ -5266,12 +4938,9 @@ export default class ProductController {
 		await ensureTenantAccess(requestContext, COLLECTION_NAMES.EXPENSES)
 
 		const { tenantId } = getTenantContext(requestContext)
-		const existing = await withTenantScope(
-			Expense.findOne({
-				$or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }],
-			}).lean(),
-			tenantId,
-		)
+		const existing = await pgFindOne(Expense, tenantId, {
+			$or: [{ expenseId }, { _id: expenseId }, { internalCode: expenseId }],
+		})
 
 		if (!existing) {
 			throw new BusinessLogicError(
@@ -5295,10 +4964,9 @@ export default class ProductController {
 			)
 		}
 
-		const deleted = await withTenantScope(
-			Expense.findOneAndDelete({ expenseId: existing.expenseId }).lean(),
-			tenantId,
-		)
+		const deleted = await pgFindOneAndDelete(Expense, tenantId, {
+			expenseId: existing.expenseId,
+		})
 
 		if (!deleted) {
 			throw new BusinessLogicError(
@@ -5355,12 +5023,9 @@ export default class ProductController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Currency.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Currency, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -5371,10 +5036,9 @@ export default class ProductController {
 
 		const currencyId = resolveSyncClientId(requestBody.currencyId)
 
-		const existingById = await withTenantScope(
-			Currency.findOne({ currencyId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Currency, tenantContext.tenantId, {
+			currencyId,
+		})
 
 		if (existingById) {
 			return {
@@ -5469,12 +5133,9 @@ export default class ProductController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Unit.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Unit, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -5485,10 +5146,9 @@ export default class ProductController {
 
 		const unitId = resolveSyncClientId(requestBody.unitId)
 
-		const existingById = await withTenantScope(
-			Unit.findOne({ unitId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Unit, tenantContext.tenantId, {
+			unitId,
+		})
 
 		if (existingById) {
 			return { _id: String(existingById._id), unitId: existingById.unitId }
@@ -5587,21 +5247,17 @@ export default class ProductController {
 
 		const brandId = resolveSyncClientId(requestBody.brandId)
 
-		const existingById = await withTenantScope(
-			Brand.findOne({ brandId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Brand, tenantContext.tenantId, {
+			brandId,
+		})
 
 		if (existingById) {
 			return { _id: brandId }
 		}
 
-		const existing = await withTenantScope(
-			Brand.findOne({
-				name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Brand, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -5732,10 +5388,7 @@ export default class ProductController {
 
 		const shelfId = requestBody.shelfId?.trim() || uuidv4()
 
-		const existing = await withTenantScope(
-			Shelf.findOne({ shelfId }),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Shelf, tenantContext.tenantId, { shelfId })
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -5889,10 +5542,9 @@ export default class ProductController {
 
 		const warehouseId = resolveSyncClientId(requestBody.warehouseId)
 
-		const existingById = (await withTenantScope(
-			Warehouse.findOne({ warehouseId }),
-			tenantContext.tenantId,
-		).lean()) as { name?: string } | null
+		const existingById = (await pgFindOne(Warehouse, tenantContext.tenantId, {
+			warehouseId,
+		})) as { name?: string } | null
 
 		if (existingById) {
 			const existingName =
@@ -5962,10 +5614,7 @@ export default class ProductController {
 	} | null> {
 		const tenantContext = getTenantContext(requestContext)
 
-		return withTenantScope(
-			SyncMutation.findOne({ clientMutationId }).lean(),
-			tenantContext.tenantId,
-		)
+		return pgFindOne(SyncMutation, tenantContext.tenantId, { clientMutationId })
 	}
 
 	public async recordSyncMutation(
@@ -5978,21 +5627,13 @@ export default class ProductController {
 	) {
 		const tenantContext = getTenantContext(requestContext)
 
-		await withTenantScope(
-			SyncMutation.findOneAndUpdate(
-				{ clientMutationId },
-				{
-					clientMutationId,
-					entity,
-					operation,
-					result,
-					error,
-					processedAt: new Date(),
-				},
-				{ upsert: true, new: true },
-			),
-			tenantContext.tenantId,
-		)
+		await pgRecordSyncMutation(tenantContext.tenantId, {
+			clientMutationId,
+			entity,
+			operation,
+			result,
+			error,
+		})
 	}
 
 	private async getDocumentsSince(
@@ -6003,11 +5644,13 @@ export default class ProductController {
 		extraQuery: Record<string, unknown> = {},
 	) {
 		const tenantContext = getTenantContext(requestContext)
+		const filter = { updatedAt: { $gte: since }, ...extraQuery }
 
-		return withTenantScope(
-			model.find({ updatedAt: { $gte: since }, ...extraQuery }).lean(),
-			tenantContext.tenantId,
-		)
+		if (isPgModel(model)) {
+			return pgFind(model, tenantContext.tenantId, filter)
+		}
+
+		return withTenantScope(model.find(filter).lean(), tenantContext.tenantId)
 	}
 
 	private async getDocumentsSinceIfSee(
@@ -6045,8 +5688,10 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		return withTenantScope(
-			Invoice.find({
+		return pgFind(
+			Invoice,
+			tenantContext.tenantId,
+			{
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
 					{
@@ -6057,10 +5702,8 @@ export default class ProductController {
 					},
 				],
 				...(warehouseMongoFilter(requestContext) ?? {}),
-			})
-				.sort({ createdAt: -1 })
-				.lean(),
-			tenantContext.tenantId,
+			},
+			{ sort: { createdAt: -1 } },
 		) as Promise<Array<Record<string, unknown>>>
 	}
 
@@ -6070,8 +5713,10 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		return withTenantScope(
-			BuyingInvoice.find({
+		return pgFind(
+			BuyingInvoice,
+			tenantContext.tenantId,
+			{
 				$or: [
 					{ issuedAt: { $gte: cutoff } },
 					{
@@ -6082,10 +5727,8 @@ export default class ProductController {
 					},
 				],
 				...(warehouseMongoFilter(requestContext) ?? {}),
-			})
-				.sort({ createdAt: -1 })
-				.lean(),
-			tenantContext.tenantId,
+			},
+			{ sort: { createdAt: -1 } },
 		) as Promise<Array<Record<string, unknown>>>
 	}
 
@@ -6095,15 +5738,15 @@ export default class ProductController {
 		const tenantContext = getTenantContext(requestContext)
 		const cutoff = this.getOfflineRetentionCutoff()
 
-		return withTenantScope(
-			DailyAction.find({
+		return pgFind(
+			DailyAction,
+			tenantContext.tenantId,
+			{
 				invoiceDate: { $gte: cutoff },
 				...(warehouseMongoFilter(requestContext) ?? {}),
-			})
-				.sort({ createdAt: -1 })
-				.lean(),
-			tenantContext.tenantId,
-		) as Promise<DailyActionResponse['data']>
+			},
+			{ sort: { createdAt: -1 } },
+		) as unknown as Promise<DailyActionResponse['data']>
 	}
 
 	public async getSyncBootstrap(
@@ -6233,20 +5876,25 @@ export default class ProductController {
 		])
 
 		const tenantContext = getTenantContext(requestContext)
-		const userSettings = await withTenantScope(
-			UserSettings.findOne({
-				userId: requestContext.userId,
-			}).lean(),
+		const userSettings = await pgFindOne(UserSettings, tenantContext.tenantId, {
+			userId: requestContext.userId,
+		})
+
+		const currencySettings = await pgFindOne(
+			CurrencySettings,
 			tenantContext.tenantId,
+			{
+				tenantId: tenantContext.tenantId,
+			},
 		)
 
-		const currencySettings = await CurrencySettings.findOne({
-			tenantId: tenantContext.tenantId,
-		}).lean()
-
-		const invoiceSettings = await InvoiceSettings.findOne({
-			tenantId: tenantContext.tenantId,
-		}).lean()
+		const invoiceSettings = await pgFindOne(
+			InvoiceSettings,
+			tenantContext.tenantId,
+			{
+				tenantId: tenantContext.tenantId,
+			},
+		)
 
 		const nextInvoiceNumberBlock =
 			await this.allocateOfflineInvoiceBlock(requestContext)
@@ -6634,21 +6282,23 @@ export default class ProductController {
 		const tenantId = this.getTenantId(requestContext)
 
 		if (entry.entity === 'invoice') {
-			const invoice = await withTenantScope(
-				Invoice.findOne({ invoiceId: documentId }).select('warehouseId'),
+			const invoice = await (pgFindOne(
+				Invoice,
 				tenantId,
-			).lean<{ warehouseId?: string }>()
+				{ invoiceId: documentId },
+				{ select: 'warehouseId' },
+			) as unknown as Promise<{ warehouseId?: string }>)
 
 			return invoice?.warehouseId?.trim() || undefined
 		}
 
 		if (entry.entity === 'buyingInvoice') {
-			const buyingInvoice = await withTenantScope(
-				BuyingInvoice.findOne({ buyingInvoiceId: documentId }).select(
-					'warehouseId',
-				),
+			const buyingInvoice = await (pgFindOne(
+				BuyingInvoice,
 				tenantId,
-			).lean<{ warehouseId?: string }>()
+				{ buyingInvoiceId: documentId },
+				{ select: 'warehouseId' },
+			) as unknown as Promise<{ warehouseId?: string }>)
 
 			return buyingInvoice?.warehouseId?.trim() || undefined
 		}
@@ -7264,9 +6914,8 @@ export default class ProductController {
 		const retryClientMutationIds = requestBody.retryClientMutationIds ?? []
 
 		if (retryClientMutationIds.length > 0) {
-			await SyncMutation.deleteMany({
+			await pgDeleteMany(SyncMutation, tenantId, {
 				clientMutationId: { $in: retryClientMutationIds },
-				tenantId,
 			})
 		}
 

@@ -6,6 +6,7 @@ import {
 } from '../middleware/errorHandler'
 import Tenant from '../models/Tenant'
 import TenantRolePermission from '../models/TenantRolePermission'
+import { pgFindOne } from '../db/mongoQuery'
 import { normalizeProductPatchRequest } from '../apis/productHelper/productPatchNormalize'
 import {
 	allBarcodes,
@@ -26,12 +27,10 @@ import {
 } from '../shared/seePermissions'
 import { getTenantContext } from '../shared/tenant'
 
-vi.mock('../models/Tenant', () => ({
-	default: { findOne: vi.fn() },
-}))
-
-vi.mock('../models/TenantRolePermission', () => ({
-	default: { findOne: vi.fn() },
+// tenant (group 4) and role permissions (group 3) are read from Postgres
+vi.mock('../db/mongoQuery', async original => ({
+	...(await original<typeof import('../db/mongoQuery')>()),
+	pgFindOne: vi.fn(),
 }))
 
 const context = (tenantId: string) => ({
@@ -41,19 +40,20 @@ const context = (tenantId: string) => ({
 })
 
 const stubRoleSee = (see: string[]) => {
-	vi.mocked(Tenant.findOne).mockReturnValue({
-		lean: () =>
-			Promise.resolve({
-				tenantId: 'shop',
-				name: 'Shop',
-				domain: 'shop.test',
-				accessiblePages: ['PRODUCTS'],
-			}),
-	} as never)
+	const tenant = {
+		tenantId: 'shop',
+		name: 'Shop',
+		domain: 'shop.test',
+		accessiblePages: ['PRODUCTS'],
+	}
 
-	vi.mocked(TenantRolePermission.findOne).mockReturnValue({
-		lean: () => Promise.resolve({ see }),
-	} as never)
+	vi.mocked(pgFindOne).mockImplementation(async model =>
+		model.modelName === TenantRolePermission.modelName
+			? { see }
+			: model.modelName === Tenant.modelName
+				? tenant
+				: null,
+	)
 }
 
 afterEach(() => {

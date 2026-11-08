@@ -1,5 +1,14 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { ALL_TENANTS, DbTx, inTransaction, isUniqueViolation } from '../../db'
+import { insertDoc, insertDocs } from '../../db/docs'
+import {
+	pgCount,
+	pgDeleteMany,
+	pgFind,
+	pgFindOne,
+	pgFindOneAndUpdate,
+} from '../../db/mongoQuery'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import {
 	INewsroomReleaseNote,
@@ -19,7 +28,6 @@ import {
 	ensureNewsroomRead,
 	escapeRegex,
 	countUnreadNewsroomNotes,
-	isMongoDuplicateKey,
 	isNewsroomPubliclyVisible,
 	NEWSROOM_FEED_STATE_ID,
 	pinnedIdsForUser,
@@ -148,7 +156,12 @@ export default class NewsroomController {
 	): Promise<{ data: NewsroomTopicView[] }> {
 		await ensureNewsroomRead(requestContext)
 
-		const topics = await NewsroomTopic.find().sort({ name: 1 }).exec()
+		const topics = await pgFind<INewsroomTopic>(
+			NewsroomTopic,
+			ALL_TENANTS,
+			{},
+			{ sort: { name: 1 } },
+		)
 
 		return { data: topics.map(mapTopic) }
 	}
@@ -163,15 +176,15 @@ export default class NewsroomController {
 		const nameKey = topicNameKey(name)
 
 		try {
-			const topic = await NewsroomTopic.create({
+			const topic = await insertDoc(NewsroomTopic, {
 				topicId: uuidv4(),
 				name,
 				nameKey,
 			})
 
-			return mapTopic(topic)
+			return mapTopic(topic as unknown as INewsroomTopic)
 		} catch (error: unknown) {
-			if (isMongoDuplicateKey(error)) {
+			if (isUniqueViolation(error)) {
 				throw duplicateNameError()
 			}
 
@@ -188,26 +201,29 @@ export default class NewsroomController {
 
 		const name = parseTopicName(requestBody.name)
 		const nameKey = topicNameKey(name)
-		const topic = await NewsroomTopic.findOne({ topicId }).exec()
+		let topic: INewsroomTopic | null
+
+		try {
+			topic = await pgFindOneAndUpdate(
+				NewsroomTopic,
+				ALL_TENANTS,
+				{ topicId },
+				{ $set: { name, nameKey } },
+				{ new: true },
+			)
+		} catch (error: unknown) {
+			if (isUniqueViolation(error)) {
+				throw duplicateNameError()
+			}
+
+			throw error
+		}
 
 		if (!topic) {
 			throw new BusinessLogicError(
 				ERROR_CODES.DOCUMENTS.DOCUMENT_UPDATE_ERROR,
 				'Topic not found.',
 			)
-		}
-
-		topic.name = name
-		topic.nameKey = nameKey
-
-		try {
-			await topic.save()
-		} catch (error: unknown) {
-			if (isMongoDuplicateKey(error)) {
-				throw duplicateNameError()
-			}
-
-			throw error
 		}
 
 		return mapTopic(topic)
@@ -219,7 +235,7 @@ export default class NewsroomController {
 	): Promise<void> {
 		await ensureNewsroomManage(requestContext)
 
-		const topic = await NewsroomTopic.findOne({ topicId }).lean()
+		const topic = await pgFindOne(NewsroomTopic, ALL_TENANTS, { topicId })
 
 		if (!topic) {
 			throw new BusinessLogicError(
@@ -228,9 +244,9 @@ export default class NewsroomController {
 			)
 		}
 
-		assertTopicUnused(await NewsroomChange.countDocuments({ topicId }))
+		assertTopicUnused(await pgCount(NewsroomChange, ALL_TENANTS, { topicId }))
 
-		await NewsroomTopic.deleteOne({ topicId })
+		await pgDeleteMany(NewsroomTopic, ALL_TENANTS, { topicId })
 	}
 
 	public async listReleaseNotes(
@@ -255,19 +271,23 @@ export default class NewsroomController {
 		}
 
 		if (filters.topicId) {
-			const matching = await NewsroomChange.find({
-				topicId: filters.topicId,
-			})
-				.select('releaseNoteId')
-				.lean()
+			const matching = await pgFind<{ releaseNoteId: string }>(
+				NewsroomChange,
+				ALL_TENANTS,
+				{ topicId: filters.topicId },
+				{ select: 'releaseNoteId' },
+			)
 			const ids = [...new Set(matching.map(change => change.releaseNoteId))]
 
 			noteFilter.releaseNoteId = { $in: ids }
 		}
 
-		const notes = await NewsroomReleaseNote.find(noteFilter)
-			.sort({ releaseDateTime: -1, createdAt: -1 })
-			.exec()
+		const notes = await pgFind<INewsroomReleaseNote>(
+			NewsroomReleaseNote,
+			ALL_TENANTS,
+			noteFilter,
+			{ sort: { releaseDateTime: -1, createdAt: -1 } },
+		)
 
 		return { data: await this.toListItems(notes) }
 	}
@@ -278,13 +298,7 @@ export default class NewsroomController {
 	): Promise<NewsroomReleaseNoteView> {
 		await ensureNewsroomManage(requestContext)
 
-		const note = await NewsroomReleaseNote.findOne({ releaseNoteId }).exec()
-
-		if (!note) {
-			throw noteNotFound('read')
-		}
-
-		return this.toDetail(note)
+		return this.toDetail(await this.requireNote(releaseNoteId, 'read'))
 	}
 
 	public async createReleaseNote(
@@ -298,19 +312,27 @@ export default class NewsroomController {
 		await this.assertTopicsExist(parsed.changes)
 
 		const releaseNoteId = uuidv4()
-		const note = await NewsroomReleaseNote.create({
-			releaseNoteId,
-			title: parsed.title,
-			description: parsed.description,
-			version: parsed.version,
-			contentType: 'release_note',
-			status: NEWSROOM_NOTE_STATUS.DRAFT,
-			releaseDateTime: parsed.releaseDateTime ?? undefined,
-			releaseDate: parsed.releaseDate ?? undefined,
-			createdBy: newsroomActor(requestContext, 'create'),
-		})
+		const note = await inTransaction(undefined, async tx => {
+			const created = await insertDoc(
+				NewsroomReleaseNote,
+				{
+					releaseNoteId,
+					title: parsed.title,
+					description: parsed.description,
+					version: parsed.version,
+					contentType: 'release_note',
+					status: NEWSROOM_NOTE_STATUS.DRAFT,
+					releaseDateTime: parsed.releaseDateTime ?? undefined,
+					releaseDate: parsed.releaseDate ?? undefined,
+					createdBy: newsroomActor(requestContext, 'create'),
+				},
+				tx,
+			)
 
-		await this.replaceChanges(releaseNoteId, parsed)
+			await this.replaceChanges(releaseNoteId, parsed, tx)
+
+			return created as unknown as INewsroomReleaseNote
+		})
 
 		return this.toDetail(note)
 	}
@@ -330,16 +352,26 @@ export default class NewsroomController {
 
 		await this.assertTopicsExist(parsed.changes)
 
-		note.title = parsed.title
-		note.description = parsed.description
-		note.version = parsed.version
-		note.set('releaseDateTime', parsed.releaseDateTime)
-		note.set('releaseDate', parsed.releaseDate)
-		note.updatedBy = newsroomActor(requestContext, 'update')
-		await note.save()
-		await this.replaceChanges(releaseNoteId, parsed)
+		const updated = await inTransaction(undefined, async tx => {
+			const saved = await this.updateNote(
+				releaseNoteId,
+				{
+					title: parsed.title,
+					description: parsed.description,
+					version: parsed.version,
+					releaseDateTime: parsed.releaseDateTime,
+					releaseDate: parsed.releaseDate,
+					updatedBy: newsroomActor(requestContext, 'update'),
+				},
+				tx,
+			)
 
-		return this.toDetail(note)
+			await this.replaceChanges(releaseNoteId, parsed, tx)
+
+			return saved
+		})
+
+		return this.toDetail(updated)
 	}
 
 	public async publishReleaseNote(
@@ -361,13 +393,16 @@ export default class NewsroomController {
 
 		await this.assertTopicsExist(changes)
 
-		if (note.status !== NEWSROOM_NOTE_STATUS.PUBLISHED) {
-			note.status = NEWSROOM_NOTE_STATUS.PUBLISHED
-			note.updatedBy = newsroomActor(requestContext, 'update')
-			await note.save()
+		if (note.status === NEWSROOM_NOTE_STATUS.PUBLISHED) {
+			return this.toDetail(note)
 		}
 
-		return this.toDetail(note)
+		return this.toDetail(
+			await this.updateNote(releaseNoteId, {
+				status: NEWSROOM_NOTE_STATUS.PUBLISHED,
+				updatedBy: newsroomActor(requestContext, 'update'),
+			}),
+		)
 	}
 
 	public async unpublishReleaseNote(
@@ -385,11 +420,12 @@ export default class NewsroomController {
 			)
 		}
 
-		note.status = NEWSROOM_NOTE_STATUS.UNPUBLISHED
-		note.updatedBy = newsroomActor(requestContext, 'update')
-		await note.save()
-
-		return this.toDetail(note)
+		return this.toDetail(
+			await this.updateNote(releaseNoteId, {
+				status: NEWSROOM_NOTE_STATUS.UNPUBLISHED,
+				updatedBy: newsroomActor(requestContext, 'update'),
+			}),
+		)
 	}
 
 	public async deleteReleaseNote(
@@ -399,9 +435,22 @@ export default class NewsroomController {
 		await ensureNewsroomManage(requestContext)
 
 		await this.requireNote(releaseNoteId, 'delete')
-		await NewsroomChange.deleteMany({ releaseNoteId })
-		await NewsroomUserState.deleteMany({ newsroomItemId: releaseNoteId })
-		await NewsroomReleaseNote.deleteOne({ releaseNoteId })
+		await inTransaction(undefined, async tx => {
+			await pgDeleteMany(NewsroomChange, ALL_TENANTS, { releaseNoteId }, tx)
+			await pgDeleteMany(
+				NewsroomUserState,
+				ALL_TENANTS,
+				{ newsroomItemId: releaseNoteId },
+				tx,
+			)
+
+			await pgDeleteMany(
+				NewsroomReleaseNote,
+				ALL_TENANTS,
+				{ releaseNoteId },
+				tx,
+			)
+		})
 	}
 
 	public async duplicateReleaseNote(
@@ -413,20 +462,25 @@ export default class NewsroomController {
 		const note = await this.requireNote(releaseNoteId, 'read')
 		const changes = await this.loadChangeViews(releaseNoteId)
 		const copyId = uuidv4()
-		const copy = await NewsroomReleaseNote.create({
-			releaseNoteId: copyId,
-			title: `${note.title} (copy)`,
-			description: note.description,
-			version: note.version,
-			contentType: note.contentType,
-			status: NEWSROOM_NOTE_STATUS.DRAFT,
-			releaseDateTime: note.releaseDateTime,
-			releaseDate: note.releaseDate,
-			createdBy: newsroomActor(requestContext, 'create'),
-		})
+		const copy = await inTransaction(undefined, async tx => {
+			const created = await insertDoc(
+				NewsroomReleaseNote,
+				{
+					releaseNoteId: copyId,
+					title: `${note.title} (copy)`,
+					description: note.description,
+					version: note.version,
+					contentType: note.contentType,
+					status: NEWSROOM_NOTE_STATUS.DRAFT,
+					releaseDateTime: note.releaseDateTime,
+					releaseDate: note.releaseDate,
+					createdBy: newsroomActor(requestContext, 'create'),
+				},
+				tx,
+			)
 
-		if (changes.length > 0) {
-			await NewsroomChange.insertMany(
+			await insertDocs(
+				NewsroomChange,
 				changes.map((change, sortOrder) => ({
 					changeId: uuidv4(),
 					releaseNoteId: copyId,
@@ -437,8 +491,11 @@ export default class NewsroomController {
 					topicId: change.topicId,
 					sortOrder,
 				})),
+				tx,
 			)
-		}
+
+			return created as unknown as INewsroomReleaseNote
+		})
 
 		return this.toDetail(copy)
 	}
@@ -462,21 +519,23 @@ export default class NewsroomController {
 		}
 
 		if (filters.topicId) {
-			const matching = await NewsroomChange.find({
-				topicId: filters.topicId,
-			})
-				.select('releaseNoteId')
-				.lean()
+			const matching = await pgFind<{ releaseNoteId: string }>(
+				NewsroomChange,
+				ALL_TENANTS,
+				{ topicId: filters.topicId },
+				{ select: 'releaseNoteId' },
+			)
 
 			scopedIds = [...new Set(matching.map(change => change.releaseNoteId))]
 		}
 
 		if (filters.pinned) {
-			const pins = await NewsroomUserState.find({
-				userId: requestContext.userId,
-			})
-				.select('userId newsroomItemId pinned')
-				.lean()
+			const pins = await pgFind(
+				NewsroomUserState,
+				ALL_TENANTS,
+				{ userId: requestContext.userId },
+				{ select: 'userId newsroomItemId pinned' },
+			)
 			const pinIds = pinnedIdsForUser(pins, requestContext.userId ?? '')
 
 			scopedIds = scopedIds
@@ -489,9 +548,12 @@ export default class NewsroomController {
 		}
 
 		const notes = selectPublicNewsroomNotes(
-			await NewsroomReleaseNote.find(noteFilter)
-				.sort({ releaseDateTime: -1 })
-				.exec(),
+			await pgFind<INewsroomReleaseNote>(
+				NewsroomReleaseNote,
+				ALL_TENANTS,
+				noteFilter,
+				{ sort: { releaseDateTime: -1 } },
+			),
 		)
 
 		return {
@@ -507,10 +569,10 @@ export default class NewsroomController {
 
 		const note = await this.requirePublicNote(releaseNoteId)
 		const detail = await this.toDetail(note)
-		const pin = await NewsroomUserState.findOne({
+		const pin = await pgFindOne(NewsroomUserState, ALL_TENANTS, {
 			userId: requestContext.userId,
 			newsroomItemId: releaseNoteId,
-		}).lean()
+		})
 
 		return {
 			releaseNoteId: detail.releaseNoteId,
@@ -533,11 +595,10 @@ export default class NewsroomController {
 	): Promise<{ pinned: boolean }> {
 		await ensureNewsroomRead(requestContext)
 		await this.requirePublicNote(releaseNoteId)
-		await NewsroomUserState.findOneAndUpdate(
-			{
-				userId: requestContext.userId,
-				newsroomItemId: releaseNoteId,
-			},
+		await pgFindOneAndUpdate(
+			NewsroomUserState,
+			ALL_TENANTS,
+			{ userId: requestContext.userId, newsroomItemId: releaseNoteId },
 			{ $set: { pinned } },
 			{ upsert: true },
 		)
@@ -552,11 +613,10 @@ export default class NewsroomController {
 
 		const lastVisitedAt = new Date()
 
-		await NewsroomUserState.findOneAndUpdate(
-			{
-				userId: requestContext.userId,
-				newsroomItemId: NEWSROOM_FEED_STATE_ID,
-			},
+		await pgFindOneAndUpdate(
+			NewsroomUserState,
+			ALL_TENANTS,
+			{ userId: requestContext.userId, newsroomItemId: NEWSROOM_FEED_STATE_ID },
 			{ $set: { lastVisitedAt, pinned: false } },
 			{ upsert: true },
 		)
@@ -569,13 +629,16 @@ export default class NewsroomController {
 	): Promise<{ count: number }> {
 		await ensureNewsroomRead(requestContext)
 
-		const visit = await NewsroomUserState.findOne({
+		const visit = await pgFindOne(NewsroomUserState, ALL_TENANTS, {
 			userId: requestContext.userId,
 			newsroomItemId: NEWSROOM_FEED_STATE_ID,
-		}).lean()
-		const notes = await NewsroomReleaseNote.find(publicReleaseNoteFilter())
-			.select('status releaseDateTime')
-			.lean()
+		})
+		const notes = await pgFind(
+			NewsroomReleaseNote,
+			ALL_TENANTS,
+			publicReleaseNoteFilter(),
+			{ select: 'status releaseDateTime' },
+		)
 
 		return {
 			count: countUnreadNewsroomNotes(notes, visit?.lastVisitedAt),
@@ -585,7 +648,11 @@ export default class NewsroomController {
 	private async requirePublicNote(
 		releaseNoteId: string,
 	): Promise<INewsroomReleaseNote> {
-		const note = await NewsroomReleaseNote.findOne({ releaseNoteId }).exec()
+		const note = await pgFindOne<INewsroomReleaseNote>(
+			NewsroomReleaseNote,
+			ALL_TENANTS,
+			{ releaseNoteId },
+		)
 
 		if (
 			!note ||
@@ -601,10 +668,34 @@ export default class NewsroomController {
 		releaseNoteId: string,
 		action: 'update' | 'read' | 'delete',
 	): Promise<INewsroomReleaseNote> {
-		const note = await NewsroomReleaseNote.findOne({ releaseNoteId }).exec()
+		const note = await pgFindOne<INewsroomReleaseNote>(
+			NewsroomReleaseNote,
+			ALL_TENANTS,
+			{ releaseNoteId },
+		)
 
 		if (!note) {
 			throw noteNotFound(action)
+		}
+
+		return note
+	}
+
+	private async updateNote(
+		releaseNoteId: string,
+		changes: Record<string, unknown>,
+		tx?: DbTx,
+	): Promise<INewsroomReleaseNote> {
+		const note = await pgFindOneAndUpdate(
+			NewsroomReleaseNote,
+			ALL_TENANTS,
+			{ releaseNoteId },
+			{ $set: changes },
+			{ new: true, tx },
+		)
+
+		if (!note) {
+			throw noteNotFound('update')
 		}
 
 		return note
@@ -619,9 +710,12 @@ export default class NewsroomController {
 
 		if (ids.length === 0) return
 
-		const found = await NewsroomTopic.find({ topicId: { $in: ids } })
-			.select('topicId')
-			.lean()
+		const found = await pgFind<{ topicId: string }>(
+			NewsroomTopic,
+			ALL_TENANTS,
+			{ topicId: { $in: ids } },
+			{ select: 'topicId' },
+		)
 		const foundIds = new Set(found.map(topic => topic.topicId))
 		const fields: Record<string, string> = {}
 
@@ -644,8 +738,8 @@ export default class NewsroomController {
 	private async replaceChanges(
 		releaseNoteId: string,
 		parsed: DraftNoteInput,
+		tx: DbTx,
 	): Promise<void> {
-		// note: insert-then-delete. Ceiling: a failed delete leaves duplicate changes until next save. Upgrade: mongoose session.
 		const incoming = parsed.changes.map((change, sortOrder) => ({
 			changeId: uuidv4(),
 			releaseNoteId,
@@ -657,29 +751,24 @@ export default class NewsroomController {
 			sortOrder,
 		}))
 
-		if (incoming.length > 0) {
-			await NewsroomChange.insertMany(incoming)
-		}
-
-		await NewsroomChange.deleteMany({
-			releaseNoteId,
-			...(incoming.length > 0
-				? { changeId: { $nin: incoming.map(change => change.changeId) } }
-				: {}),
-		})
+		await pgDeleteMany(NewsroomChange, ALL_TENANTS, { releaseNoteId }, tx)
+		await insertDocs(NewsroomChange, incoming, tx)
 	}
 
 	private async loadChangeViews(
 		releaseNoteId: string,
 	): Promise<NewsroomChangeView[]> {
-		const changes = await NewsroomChange.find({ releaseNoteId })
-			.sort({ sortOrder: 1 })
-			.exec()
+		const changes = await pgFind(
+			NewsroomChange,
+			ALL_TENANTS,
+			{ releaseNoteId },
+			{ sort: { sortOrder: 1 } },
+		)
 		const topicIds = [
 			...new Set(changes.map(change => change.topicId).filter(Boolean)),
 		]
 		const topics = topicIds.length
-			? await NewsroomTopic.find({ topicId: { $in: topicIds } }).lean()
+			? await pgFind(NewsroomTopic, ALL_TENANTS, { topicId: { $in: topicIds } })
 			: []
 		const names = new Map(topics.map(topic => [topic.topicId, topic.name]))
 
@@ -716,16 +805,17 @@ export default class NewsroomController {
 		if (notes.length === 0) return []
 
 		const ids = notes.map(note => note.releaseNoteId)
-		const changes = await NewsroomChange.find({
-			releaseNoteId: { $in: ids },
-		})
-			.sort({ sortOrder: 1 })
-			.lean()
+		const changes = await pgFind(
+			NewsroomChange,
+			ALL_TENANTS,
+			{ releaseNoteId: { $in: ids } },
+			{ sort: { sortOrder: 1 } },
+		)
 		const topicIds = [
 			...new Set(changes.map(change => change.topicId).filter(Boolean)),
 		]
 		const topics = topicIds.length
-			? await NewsroomTopic.find({ topicId: { $in: topicIds } }).lean()
+			? await pgFind(NewsroomTopic, ALL_TENANTS, { topicId: { $in: topicIds } })
 			: []
 		const names = new Map(topics.map(topic => [topic.topicId, topic.name]))
 		const byNote = new Map<string, NewsroomChangeView[]>()
@@ -780,11 +870,12 @@ export default class NewsroomController {
 		const list = await this.toListItems(notes)
 		const byId = new Map(notes.map(note => [note.releaseNoteId, note]))
 		const ids = notes.map(note => note.releaseNoteId)
-		const changes = await NewsroomChange.find({
-			releaseNoteId: { $in: ids },
-		})
-			.sort({ sortOrder: 1 })
-			.lean()
+		const changes = await pgFind(
+			NewsroomChange,
+			ALL_TENANTS,
+			{ releaseNoteId: { $in: ids } },
+			{ sort: { sortOrder: 1 } },
+		)
 		const firstImage = new Map<string, string>()
 
 		for (const change of changes) {
@@ -794,13 +885,12 @@ export default class NewsroomController {
 		}
 
 		const pins = userId
-			? await NewsroomUserState.find({
-					userId,
-					pinned: true,
-					newsroomItemId: { $in: ids },
-				})
-					.select('newsroomItemId')
-					.lean()
+			? await pgFind(
+					NewsroomUserState,
+					ALL_TENANTS,
+					{ userId, pinned: true, newsroomItemId: { $in: ids } },
+					{ select: 'newsroomItemId' },
+				)
 			: []
 		const pinSet = new Set(pins.map(pin => pin.newsroomItemId))
 

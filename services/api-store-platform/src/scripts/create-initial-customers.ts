@@ -1,6 +1,7 @@
-import mongoose from 'mongoose'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../db/mongoQuery'
+import { closeDb } from '../db'
+import { insertDoc, insertDocs } from '../db/docs'
 import { v4 as uuidv4 } from 'uuid'
-import { config } from '../config/config'
 import { Customer } from '../models/Customer'
 import { Currency } from '../models/Currency'
 import { Invoice } from '../models/Invoice'
@@ -27,7 +28,7 @@ const SEED_USER = {
 }
 
 async function resolveUsdCurrency() {
-	const currencies = await Currency.find({ tenantId: TENANT_ID }).lean()
+	const currencies = await pgFind(Currency, TENANT_ID, {})
 	const usd = currencies.find(currency => {
 		const code = (currency.internalCode || '').toUpperCase()
 		const name = (currency.name || '').toUpperCase()
@@ -51,10 +52,7 @@ async function resolveUsdCurrency() {
 }
 
 async function resolvePieceUnitId(): Promise<string> {
-	const existing = await Unit.findOne({
-		tenantId: TENANT_ID,
-		name: DEFAULT_UNIT_NAME,
-	}).lean()
+	const existing = await pgFindOne(Unit, TENANT_ID, { name: DEFAULT_UNIT_NAME })
 
 	if (existing) {
 		return existing.unitId
@@ -62,7 +60,7 @@ async function resolvePieceUnitId(): Promise<string> {
 
 	const unitId = uuidv4()
 
-	await Unit.create({
+	await insertDoc(Unit, {
 		tenantId: TENANT_ID,
 		unitId,
 		name: DEFAULT_UNIT_NAME,
@@ -74,7 +72,9 @@ async function resolvePieceUnitId(): Promise<string> {
 }
 
 async function ensureOpeningProduct(unitId: string) {
-	await Product.updateOne(
+	await pgFindOneAndUpdate(
+		Product,
+		TENANT_ID,
 		{ tenantId: TENANT_ID, productId: OPENING_PRODUCT_ID },
 		{
 			$set: {
@@ -103,13 +103,7 @@ async function ensureOpeningProduct(unitId: string) {
 
 async function createInitialCustomers() {
 	try {
-		await mongoose.connect(config.mongoDB.connectionString, {
-			dbName: config.mongoDB.databaseName,
-		})
-
-		console.log('Connected to MongoDB')
-
-		const tenant = await Tenant.findOne({ tenantId: TENANT_ID }).lean()
+		const tenant = await pgFindOne(Tenant, TENANT_ID)
 
 		if (!tenant) {
 			throw new Error(`Tenant "${TENANT_ID}" was not found`)
@@ -132,7 +126,7 @@ async function createInitialCustomers() {
 			}
 		})
 
-		await Customer.insertMany(customers)
+		await insertDocs(Customer, customers)
 
 		const receivableRows = INITIAL_CUSTOMERS_DATA.map((row, index) => ({
 			row,
@@ -140,7 +134,8 @@ async function createInitialCustomers() {
 			n: index + 1,
 		})).filter(({ row }) => row.direction === 'receivable')
 
-		await Invoice.insertMany(
+		await insertDocs(
+			Invoice,
 			receivableRows.map(({ row, customer, n }) => {
 				const amount = Number(row.amount.toFixed(2))
 
@@ -206,7 +201,7 @@ async function createInitialCustomers() {
 		console.error('Error creating initial customers:', error)
 		process.exit(1)
 	} finally {
-		await mongoose.disconnect()
+		await closeDb()
 		console.log('MongoDB disconnected')
 	}
 }

@@ -1,7 +1,7 @@
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../db/mongoQuery'
 import Tenant from '../models/Tenant'
 import TenantRolePermission from '../models/TenantRolePermission'
 import { Product } from '../models/Products'
-import { withTenantScope } from './mongodb/tenantScopedModel'
 import { resolveAccessiblePagesForTenant } from './constants/tenantPageAccess'
 import { AuthorizationError } from '../middleware/errorHandler'
 import { ERROR_CODES } from './errorCodes'
@@ -37,7 +37,7 @@ export const invalidateSeeCache = (tenantId: string) => {
 }
 
 const loadTenantPages = async (tenantId: string): Promise<string[]> => {
-	const tenant = await Tenant.findOne({ tenantId }).lean()
+	const tenant = await pgFindOne(Tenant, tenantId)
 
 	if (!tenant) return []
 
@@ -67,7 +67,10 @@ export const getSeeSet = async (
 	let stored: string[] | null = null
 
 	if (role !== 'owner') {
-		const doc = await TenantRolePermission.findOne({ tenantId, role }).lean()
+		const doc = await pgFindOne(TenantRolePermission, tenantId, {
+			tenantId,
+			role,
+		})
 
 		stored = doc?.see ?? null
 	}
@@ -343,10 +346,9 @@ export const ensureInvoiceEditFieldSee = async (
 		>()
 
 		if (newProductIds.length) {
-			const products = await withTenantScope(
-				Product.find({ productId: { $in: newProductIds } }).lean(),
-				requestContext.tenantId,
-			)
+			const products = await pgFind(Product, requestContext.tenantId, {
+				productId: { $in: newProductIds },
+			})
 
 			for (const product of products) {
 				catalogByProductId.set(product.productId, {
@@ -512,8 +514,10 @@ export const saveRoleSee = async (
 	const pages = await loadTenantPages(tenantId)
 	const see = sanitizeSeeIdsForSave(pages, incoming)
 
-	await TenantRolePermission.updateOne(
-		{ tenantId, role },
+	await pgFindOneAndUpdate(
+		TenantRolePermission,
+		tenantId,
+		{ role },
 		{ $set: { tenantId, role, see } },
 		{ upsert: true },
 	)

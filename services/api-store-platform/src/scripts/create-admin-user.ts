@@ -1,6 +1,7 @@
-import mongoose from 'mongoose'
+import { closeDb } from '../db'
+import { insertDoc } from '../db/docs'
+import { pgFindOneAndUpdate } from '../db/mongoQuery'
 import bcrypt from 'bcrypt'
-import { config } from '../config/config'
 import User from '../models/User'
 import Tenant from '../models/Tenant'
 import {
@@ -34,20 +35,10 @@ const INITIAL_USERS = [
 
 async function createInitialUsers() {
 	try {
-		// Connect to MongoDB
-		await mongoose.connect(config.mongoDB.connectionString, {
-			dbName: config.mongoDB.databaseName,
-		})
-
-		console.log('✅ Connected to MongoDB')
-
-		// Ensure stale unique indexes from previous schemas (e.g. username_1)
-		// do not break tenant-aware seed inserts.
-		await User.syncIndexes()
-		console.log('🔧 User indexes synchronized')
-
-		await Tenant.updateOne(
-			{ tenantId: DEFAULT_TENANT_ID },
+		await pgFindOneAndUpdate(
+			Tenant,
+			DEFAULT_TENANT_ID,
+			{},
 			{
 				$set: {
 					name: DEFAULT_TENANT_NAME,
@@ -68,7 +59,7 @@ async function createInitialUsers() {
 			const hashedPassword = await bcrypt.hash(userData.password, 10)
 
 			// Create user
-			const user = new User({
+			const user = (await insertDoc(User, {
 				tenantId: DEFAULT_TENANT_ID,
 				userId: userData.userId,
 				displayName: userData.displayName,
@@ -81,9 +72,9 @@ async function createInitialUsers() {
 				password: hashedPassword,
 				role: userData.role,
 				avatarColorId: userData.avatarColorId,
-			})
+				createdBy: { _id: 'seed', displayName: 'seed', createdAt: new Date() },
+			})) as unknown as InstanceType<typeof User>
 
-			await user.save()
 			console.log(
 				`✅ ${userData.role.toUpperCase()} user created successfully!`,
 			)
@@ -113,8 +104,7 @@ async function createInitialUsers() {
 		console.error('❌ Error creating initial users:', error)
 		process.exit(1)
 	} finally {
-		await mongoose.disconnect()
-		console.log('🔌 MongoDB disconnected')
+		await closeDb()
 	}
 }
 

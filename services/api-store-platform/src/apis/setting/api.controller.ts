@@ -1,3 +1,11 @@
+import { isUniqueViolation } from '../../db'
+import { insertDoc } from '../../db/docs'
+import {
+	pgDeleteMany,
+	pgFindOne,
+	pgFindOneAndUpdate,
+	pgUpdateMany,
+} from '../../db/mongoQuery'
 import express from 'express'
 
 import {
@@ -27,7 +35,6 @@ import UserSettings, {
 } from '../../models/UserSettings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger from '../../shared/logger/logger'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import {
 	DeleteBlockReason,
@@ -212,13 +219,13 @@ export default class SettingController {
 				)
 			}
 
-			let userSettings = await UserSettings.findOne({
+			let userSettings = await pgFindOne(UserSettings, tenantId, {
 				tenantId,
 				userId,
 			})
 
 			if (!userSettings) {
-				userSettings = await UserSettings.create({
+				userSettings = await insertDoc(UserSettings, {
 					tenantId,
 					userId,
 					productsPerPage: 20,
@@ -275,8 +282,10 @@ export default class SettingController {
 				updateData.columnConfigs = parseColumnConfigs(columnConfigs)
 			}
 
-			const userSettings = await UserSettings.findOneAndUpdate(
-				{ tenantId, userId },
+			const userSettings = await pgFindOneAndUpdate(
+				UserSettings,
+				tenantId,
+				{ userId },
 				updateData,
 				{ new: true, upsert: true },
 			)
@@ -303,17 +312,23 @@ export default class SettingController {
 				)
 			}
 
-			let currencySettings = await CurrencySettings.findOne({ tenantId })
+			let currencySettings = await pgFindOne<ICurrencySettings>(
+				CurrencySettings,
+				tenantId,
+				{
+					tenantId,
+				},
+			)
 
 			if (!currencySettings) {
-				currencySettings = await CurrencySettings.create({
+				currencySettings = (await insertDoc(CurrencySettings, {
 					tenantId,
 					primaryCurrency: null,
 					secondaryCurrencies: [],
-				})
+				})) as unknown as ICurrencySettings
 			}
 
-			const plain = currencySettings.toObject()
+			const plain = currencySettings
 			const secondaryIds = (plain.secondaryCurrencies ?? []).map(
 				item => item.currencyId,
 			)
@@ -414,7 +429,13 @@ export default class SettingController {
 					}))
 			: []
 
-		const existingSettings = await CurrencySettings.findOne({ tenantId })
+		const existingSettings = await pgFindOne<ICurrencySettings>(
+			CurrencySettings,
+			tenantId,
+			{
+				tenantId,
+			},
+		)
 		const previousSecondaryIds =
 			existingSettings?.secondaryCurrencies?.map(item => item.currencyId) ?? []
 		const nextSecondaryIds = new Set(
@@ -456,7 +477,7 @@ export default class SettingController {
 			)
 		}
 
-		const resolvedSecondary: ICurrencySettingItem[] = await Promise.all(
+		const resolvedAll: ICurrencySettingItem[] = await Promise.all(
 			normalizedSecondary.map(async item => {
 				const resolved = await this.syncCurrencyFromSettings(
 					requestContext,
@@ -471,11 +492,18 @@ export default class SettingController {
 			}),
 		)
 
-		const resolvedSecondaryIds = new Set(
-			resolvedSecondary.map(item => item.currencyId),
-		)
+		// one row per currency (primary key tenant + currency): "EUR" and "eur", or the
+		// primary listed again as a secondary, resolve to the same currencyId
+		const keptIds = new Set(resolvedPrimary ? [resolvedPrimary.currencyId] : [])
+		const resolvedSecondary = resolvedAll.filter(item => {
+			if (keptIds.has(item.currencyId)) return false
+
+			keptIds.add(item.currencyId)
+
+			return true
+		})
 		const idsToDelete = removedSecondaryIds.filter(
-			currencyId => !resolvedSecondaryIds.has(currencyId),
+			currencyId => !keptIds.has(currencyId), // never delete the primary
 		)
 
 		if (idsToDelete.length > 0) {
@@ -487,7 +515,9 @@ export default class SettingController {
 			secondaryCurrencies: resolvedSecondary,
 		}
 
-		const currencySettings = await CurrencySettings.findOneAndUpdate(
+		const currencySettings = await pgFindOneAndUpdate(
+			CurrencySettings,
+			tenantId,
 			{ tenantId },
 			updateData,
 			{ new: true, upsert: true },
@@ -512,10 +542,12 @@ export default class SettingController {
 				)
 			}
 
-			let invoiceSettings = await InvoiceSettings.findOne({ tenantId })
+			let invoiceSettings = await pgFindOne(InvoiceSettings, tenantId, {
+				tenantId,
+			})
 
 			if (!invoiceSettings) {
-				invoiceSettings = await InvoiceSettings.create({
+				invoiceSettings = await insertDoc(InvoiceSettings, {
 					tenantId,
 					noMergeInvoiceLines: false,
 					allowOversell: false,
@@ -602,7 +634,9 @@ export default class SettingController {
 			}
 		}
 
-		const invoiceSettings = await InvoiceSettings.findOneAndUpdate(
+		const invoiceSettings = await pgFindOneAndUpdate(
+			InvoiceSettings,
+			tenantId,
 			{ tenantId },
 			updateData,
 			{ new: true, upsert: true },
@@ -636,13 +670,12 @@ export default class SettingController {
 				payload.defaultInvoiceCurrencyId?.trim() || undefined
 		}
 
-		const userSettings = await withTenantScope(
-			UserSettings.findOneAndUpdate(
-				{ userId: requestContext.userId },
-				updateData,
-				{ new: true, upsert: true },
-			).lean(),
+		const userSettings = await pgFindOneAndUpdate(
+			UserSettings,
 			tenantContext.tenantId,
+			{ userId: requestContext.userId },
+			updateData,
+			{ new: true, upsert: true },
 		)
 
 		return (userSettings ?? {}) as Record<string, unknown>
@@ -677,12 +710,13 @@ export default class SettingController {
 
 			if (nameChanged || codeChanged) {
 				if (normalizedCode) {
-					const conflictingCode = await withTenantScope(
-						Currency.findOne({
+					const conflictingCode = await pgFindOne(
+						Currency,
+						tenantContext.tenantId,
+						{
 							internalCode: normalizedCode,
 							currencyId: { $ne: existing.currencyId },
-						}).lean(),
-						tenantContext.tenantId,
+						},
 					)
 
 					if (conflictingCode) {
@@ -693,24 +727,23 @@ export default class SettingController {
 					}
 				}
 
-				await withTenantScope(
-					Currency.findOneAndUpdate(
-						{ currencyId: existing.currencyId },
-						{
-							$set: {
-								name: normalizedName,
-								internalCode: normalizedCode,
-								updatedBy: {
-									_id: requestContext.userId ?? '',
-									displayName:
-										`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-									updatedAt: new Date(),
-								},
+				await pgFindOneAndUpdate(
+					Currency,
+					tenantContext.tenantId,
+					{ currencyId: existing.currencyId },
+					{
+						$set: {
+							name: normalizedName,
+							internalCode: normalizedCode,
+							updatedBy: {
+								_id: requestContext.userId ?? '',
+								displayName:
+									`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+								updatedAt: new Date(),
 							},
 						},
-						{ new: true, runValidators: true },
-					),
-					tenantContext.tenantId,
+					},
+					{ new: true },
 				)
 			}
 
@@ -740,20 +773,16 @@ export default class SettingController {
 		internalCode?: string,
 		name?: string,
 	) {
-		const existingById = await withTenantScope(
-			Currency.findOne({ currencyId }).lean(),
-			tenantId,
-		)
+		const existingById = await pgFindOne(Currency, tenantId, { currencyId })
 
 		if (existingById) {
 			return existingById
 		}
 
 		if (internalCode) {
-			const existingByCode = await withTenantScope(
-				Currency.findOne({ internalCode }).lean(),
-				tenantId,
-			)
+			const existingByCode = await pgFindOne(Currency, tenantId, {
+				internalCode,
+			})
 
 			if (existingByCode) {
 				return existingByCode
@@ -761,12 +790,9 @@ export default class SettingController {
 		}
 
 		if (name) {
-			const existingByName = await withTenantScope(
-				Currency.findOne({
-					name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-				}).lean(),
-				tenantId,
-			)
+			const existingByName = await pgFindOne(Currency, tenantId, {
+				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+			})
 
 			if (existingByName) {
 				return existingByName
@@ -782,8 +808,7 @@ export default class SettingController {
 	): Promise<void> {
 		const tenantContext = getTenantContext(requestContext)
 
-		await Currency.deleteMany({
-			tenantId: tenantContext.tenantId,
+		await pgDeleteMany(Currency, tenantContext.tenantId, {
 			currencyId: { $in: currencyIds },
 		})
 	}
@@ -1066,30 +1091,31 @@ export default class SettingController {
 		}
 
 		if (templateId === SYSTEM_LABEL_TEMPLATE_ID) {
-			await LabelTemplate.updateMany(
-				{ tenantId },
+			await pgUpdateMany(
+				LabelTemplate,
+				tenantId,
+				{},
 				{ $set: { isDefault: false } },
 			)
 		} else {
 			await this.requireCustomTemplate(requestContext, templateId)
-			await LabelTemplate.updateMany(
-				{ tenantId },
+			await pgUpdateMany(
+				LabelTemplate,
+				tenantId,
+				{},
 				{ $set: { isDefault: false } },
 			)
 
 			try {
-				await LabelTemplate.updateOne(
-					{ tenantId, templateId },
+				await pgUpdateMany(
+					LabelTemplate,
+					tenantId,
+					{ templateId },
 					{ $set: { isDefault: true } },
 				)
 			} catch (error: unknown) {
-				const duplicateKey =
-					typeof error === 'object' &&
-					error !== null &&
-					'code' in error &&
-					error.code === 11000
-
-				if (duplicateKey) {
+				// partial unique index: one default template per tenant
+				if (isUniqueViolation(error)) {
 					throw new BusinessLogicError(
 						ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 						'Another template is already the default',

@@ -1,7 +1,8 @@
-import mongoose from 'mongoose'
+import { closeDb } from '../db'
+import { insertDoc, insertDocs } from '../db/docs'
+import { pgDeleteMany, pgFindOneAndUpdate } from '../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
-import { config } from '../config/config'
 import Tenant from '../models/Tenant'
 import User from '../models/User'
 import UserSettings from '../models/UserSettings'
@@ -49,29 +50,27 @@ const BY = {
 const id = (suffix: string) => `${TENANT_ID}-${suffix}`
 
 const wipe = async () => {
-	const filter = { tenantId: TENANT_ID }
-
 	await Promise.all([
-		User.deleteMany(filter),
-		UserSettings.deleteMany(filter),
-		CurrencySettings.deleteMany(filter),
-		InvoiceSettings.deleteMany(filter),
-		Currency.deleteMany(filter),
-		Unit.deleteMany(filter),
-		Warehouse.deleteMany(filter),
-		Shelf.deleteMany(filter),
-		Brand.deleteMany(filter),
-		Category.deleteMany(filter),
-		Supplier.deleteMany(filter),
-		Customer.deleteMany(filter),
-		Partner.deleteMany(filter),
-		Employee.deleteMany(filter),
-		Expense.deleteMany(filter),
-		Product.deleteMany(filter),
-		Inventory.deleteMany(filter),
-		Invoice.deleteMany(filter),
-		BuyingInvoice.deleteMany(filter),
-		DailyAction.deleteMany(filter),
+		pgDeleteMany(User, TENANT_ID, {}),
+		pgDeleteMany(UserSettings, TENANT_ID, {}),
+		pgDeleteMany(CurrencySettings, TENANT_ID, {}),
+		pgDeleteMany(InvoiceSettings, TENANT_ID, {}),
+		pgDeleteMany(Currency, TENANT_ID, {}),
+		pgDeleteMany(Unit, TENANT_ID, {}),
+		pgDeleteMany(Warehouse, TENANT_ID, {}),
+		pgDeleteMany(Shelf, TENANT_ID, {}),
+		pgDeleteMany(Brand, TENANT_ID, {}),
+		pgDeleteMany(Category, TENANT_ID, {}),
+		pgDeleteMany(Supplier, TENANT_ID, {}),
+		pgDeleteMany(Customer, TENANT_ID, {}),
+		pgDeleteMany(Partner, TENANT_ID, {}),
+		pgDeleteMany(Employee, TENANT_ID, {}),
+		pgDeleteMany(Expense, TENANT_ID, {}),
+		pgDeleteMany(Product, TENANT_ID, {}),
+		pgDeleteMany(Inventory, TENANT_ID, {}),
+		pgDeleteMany(Invoice, TENANT_ID, {}),
+		pgDeleteMany(BuyingInvoice, TENANT_ID, {}),
+		pgDeleteMany(DailyAction, TENANT_ID, {}),
 	])
 }
 
@@ -94,20 +93,16 @@ const money = (
 })
 
 async function seedAppTenant() {
-	await mongoose.connect(config.mongoDB.connectionString, {
-		dbName: config.mongoDB.databaseName,
-	})
-
-	await User.syncIndexes()
 	await wipe()
 
 	const subscription = createSubscription(NOW, NOW, getSubscriptionConfig())
 
-	await Tenant.findOneAndUpdate(
-		{ tenantId: TENANT_ID },
+	await pgFindOneAndUpdate(
+		Tenant,
+		TENANT_ID,
+		{},
 		{
 			$set: {
-				tenantId: TENANT_ID,
 				name: TENANT_NAME,
 				domain: DOMAIN,
 				status: TENANT_STATUS.ACTIVE,
@@ -151,7 +146,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await User.insertMany(
+	await insertDocs(
+		User,
 		users.map((user, index) => ({
 			tenantId: TENANT_ID,
 			...user,
@@ -178,8 +174,8 @@ async function seedAppTenant() {
 		createdBy: BY,
 	}
 
-	await Currency.insertMany([usd, syp])
-	await CurrencySettings.create({
+	await insertDocs(Currency, [usd, syp])
+	await insertDoc(CurrencySettings, {
 		tenantId: TENANT_ID,
 		primaryCurrency: {
 			currencyId: usd.currencyId,
@@ -198,7 +194,7 @@ async function seedAppTenant() {
 		],
 	})
 
-	await InvoiceSettings.create({
+	await insertDoc(InvoiceSettings, {
 		tenantId: TENANT_ID,
 		noMergeInvoiceLines: false,
 		allowOversell: false,
@@ -210,7 +206,8 @@ async function seedAppTenant() {
 		footerNote: 'شكراً لتسوقكم من آب — ضمان رسمي على كل الأجهزة',
 	})
 
-	await UserSettings.insertMany(
+	await insertDocs(
+		UserSettings,
 		users.map(user => ({
 			tenantId: TENANT_ID,
 			userId: user.userId,
@@ -228,7 +225,7 @@ async function seedAppTenant() {
 		createdBy: BY,
 	}
 
-	await Unit.create(piece)
+	await insertDoc(Unit, piece)
 
 	const warehouse = {
 		tenantId: TENANT_ID,
@@ -248,8 +245,8 @@ async function seedAppTenant() {
 		createdBy: BY,
 	}
 
-	await Warehouse.create(warehouse)
-	await Shelf.create(shelf)
+	await insertDoc(Warehouse, warehouse)
+	await insertDoc(Shelf, shelf)
 
 	const brandRows = [
 		{ name: 'سامسونج', description: 'هواتف وشاشات وأجهزة منزلية' },
@@ -258,7 +255,8 @@ async function seedAppTenant() {
 		{ name: 'إل جي', description: 'تلفزيونات وأجهزة منزلية' },
 		{ name: 'شاومي', description: 'هواتف وإلكترونيات بأسعار مناسبة' },
 	]
-	const brands = await Brand.insertMany(
+	const brands = await insertDocs(
+		Brand,
 		brandRows.map(brand => ({
 			...brand,
 			tenantId: TENANT_ID,
@@ -303,7 +301,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Category.insertMany(
+	await insertDocs(
+		Category,
 		categoryRows.map(category => ({
 			...category,
 			tenantId: TENANT_ID,
@@ -335,7 +334,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Supplier.insertMany(
+	await insertDocs(
+		Supplier,
 		suppliers.map(supplier => ({
 			...supplier,
 			tenantId: TENANT_ID,
@@ -367,7 +367,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Customer.insertMany(
+	await insertDocs(
+		Customer,
 		customers.map(customer => ({
 			...customer,
 			tenantId: TENANT_ID,
@@ -375,7 +376,7 @@ async function seedAppTenant() {
 		})),
 	)
 
-	await Partner.insertMany([
+	await insertDocs(Partner, [
 		{
 			_id: id('par-1'),
 			tenantId: TENANT_ID,
@@ -398,7 +399,7 @@ async function seedAppTenant() {
 		},
 	])
 
-	await Employee.insertMany([
+	await insertDocs(Employee, [
 		{
 			_id: id('emp-1'),
 			tenantId: TENANT_ID,
@@ -462,7 +463,7 @@ async function seedAppTenant() {
 		},
 	])
 
-	await Expense.insertMany([
+	await insertDocs(Expense, [
 		{
 			_id: id('exp-rent'),
 			tenantId: TENANT_ID,
@@ -612,7 +613,8 @@ async function seedAppTenant() {
 		},
 	]
 
-	await Product.insertMany(
+	await insertDocs(
+		Product,
 		products.map(product => ({
 			tenantId: TENANT_ID,
 			productId: product.productId,
@@ -638,7 +640,8 @@ async function seedAppTenant() {
 		})),
 	)
 
-	await Inventory.insertMany(
+	await insertDocs(
+		Inventory,
 		products.map((product, index) => ({
 			tenantId: TENANT_ID,
 			inventoryId: id(`inv-${index + 1}`),
@@ -714,10 +717,10 @@ async function seedAppTenant() {
 		},
 	)
 
-	await Invoice.insertMany(sellingInvoices)
+	await insertDocs(Invoice, sellingInvoices)
 	const firstSale = sellingInvoices[0]
 
-	await BuyingInvoice.insertMany([
+	await insertDocs(BuyingInvoice, [
 		{
 			tenantId: TENANT_ID,
 			buyingInvoiceId: id('bi-1'),
@@ -779,9 +782,10 @@ async function seedAppTenant() {
 		},
 	])
 
-	await DailyAction.insertMany([
+	await insertDocs(DailyAction, [
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-buy'),
 			entryType: 'BUYING_ENTRY',
 			productId: phone.productId,
@@ -802,6 +806,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-sell'),
 			entryType: 'SELLING_ENTRY',
 			productId: firstSale.items[0].productId,
@@ -822,6 +827,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-exp'),
 			entryType: 'EXPENSE_ENTRY',
 			expenseId: id('exp-rent'),
@@ -835,6 +841,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-rec'),
 			entryType: 'RECEIPT_ENTRY',
 			customerId: customers[2].customerId,
@@ -848,6 +855,7 @@ async function seedAppTenant() {
 		},
 		{
 			tenantId: TENANT_ID,
+			warehouseId: warehouse.warehouseId,
 			actionId: id('da-pay'),
 			entryType: 'PAYMENT_ENTRY',
 			supplierId: suppliers[1].supplierId,
@@ -871,5 +879,5 @@ seedAppTenant()
 		process.exit(1)
 	})
 	.finally(async () => {
-		await mongoose.disconnect()
+		await closeDb()
 	})
