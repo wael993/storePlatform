@@ -8,7 +8,12 @@ export const createDb = (url = process.env.DATABASE_URL) => {
 		throw new Error('DATABASE_URL is not set')
 	}
 
-	const pool = new Pool({ connectionString: url, max: 10 })
+	// fail after 10s instead of waiting forever for a free connection
+	const pool = new Pool({
+		connectionString: url,
+		max: 10,
+		connectionTimeoutMillis: 10_000,
+	})
 
 	return { db: drizzle({ client: pool, schema, casing: 'snake_case' }), pool }
 }

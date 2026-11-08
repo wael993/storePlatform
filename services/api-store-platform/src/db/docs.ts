@@ -698,6 +698,11 @@ export const saveDoc = async (
 	for (const key of ['_id', 'tenantId', 'createdAt', 'createdBy'])
 		delete fields[key]
 
+	// `doc.x = undefined; doc.save()` unset x in Mongoose; null clears the column
+	for (const key of Object.keys(fields)) {
+		if (fields[key] === undefined) fields[key] = null
+	}
+
 	const saved = await updateDoc(
 		model,
 		tenantId,

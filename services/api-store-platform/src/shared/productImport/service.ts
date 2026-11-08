@@ -3,8 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 
 import { getDb, inTransaction } from '../../db'
 import { legacySellingInvoices } from '../../db/schema'
-import { insertDoc, insertDocs, saveDoc } from '../../db/docs'
-import type { Doc } from '../../db/etl/mongoToPg'
+import { insertDoc, insertDocs } from '../../db/docs'
 import {
 	pgCount,
 	pgDeleteMany,
@@ -445,6 +444,14 @@ const loadSession = async (tenantId: string, sessionId: string) => {
 	return session
 }
 
+/** Writes only the given fields (never the whole session from a stale copy, nor the large `files`). */
+const updateSession = (
+	tenantId: string,
+	sessionId: string,
+	fields: Record<string, unknown>,
+) =>
+	pgUpdateMany(ProductImportSession, tenantId, { sessionId }, { $set: fields })
+
 const readSelectedFields = (raw: unknown): ProductImportField[] => {
 	if (!Array.isArray(raw) || raw.length === 0) {
 		return [...PRODUCT_IMPORT_FIELDS]
@@ -602,7 +609,7 @@ export const prepareProductImportMasterData = async (
 	const mapping = readMapping(mappingRaw, selectedFields)
 
 	session.mapping = mapping
-	await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
+	await updateSession(tenantId, session.sessionId, { mapping })
 
 	const rows = flattenSessionRows(session)
 	const candidates = await loadMasterCandidates(tenantId)
@@ -648,6 +655,11 @@ export const confirmProductImportMasterData = async (
 		await rollbackCreatedMasterData(tenantId, session.createdMasterData)
 		session.createdMasterData = undefined
 		session.masterResolutions = undefined
+		// saved now: if the new decisions fail, no resolution points at deleted rows
+		await updateSession(tenantId, session.sessionId, {
+			createdMasterData: null,
+			masterResolutions: null,
+		})
 	}
 
 	const decisions: MasterDecision[] = Array.isArray(decisionsRaw)
@@ -726,7 +738,10 @@ export const confirmProductImportMasterData = async (
 
 		session.masterResolutions = resolutions
 		session.createdMasterData = created
-		await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
+		await updateSession(tenantId, session.sessionId, {
+			masterResolutions: resolutions,
+			createdMasterData: created,
+		})
 
 		return {
 			sessionId: session.sessionId,
@@ -770,7 +785,11 @@ export const previewProductImport = async (
 	)
 
 	session.mapping = mapping
-	await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
+	await updateSession(tenantId, session.sessionId, {
+		mapping,
+		currency: session.currency,
+	})
+
 	const rows = flattenSessionRows(session)
 	const { mapped, valid, duplicates, invalid } = summarizeRows(
 		await mapImportRows(
@@ -849,7 +868,10 @@ export const commitProductImport = async (
 	)
 
 	session.mapping = mapping
-	await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
+	await updateSession(tenantId, session.sessionId, {
+		mapping,
+		currency: session.currency,
+	})
 
 	const rates = ratesFromCurrencySettings(settings)
 	const rows = flattenSessionRows(session)
@@ -1005,7 +1027,10 @@ export const commitProductImport = async (
 				await rollbackCreatedMasterData(tenantId, session.createdMasterData)
 				session.createdMasterData = undefined
 				session.masterResolutions = undefined
-				await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
+				await updateSession(tenantId, session.sessionId, {
+					createdMasterData: null,
+					masterResolutions: null,
+				})
 			}
 
 			throw error
@@ -1025,7 +1050,11 @@ export const commitProductImport = async (
 		session.status = PRODUCT_IMPORT_STATUS.COMPLETED
 		// Keep created master rows; drop rollback tags.
 		session.createdMasterData = undefined
-		await saveDoc(ProductImportSession, tenantId, session as unknown as Doc)
+		await updateSession(tenantId, session.sessionId, {
+			status: session.status,
+			createdMasterData: null,
+		})
+
 		await invalidateCaches()
 	}
 

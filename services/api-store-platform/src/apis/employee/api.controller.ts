@@ -1,3 +1,4 @@
+import { DbTx, inTransaction } from '../../db'
 import { insertDoc, saveDoc } from '../../db/docs'
 import type { Doc } from '../../db/etl/mongoToPg'
 import { pgFind, pgFindOne } from '../../db/mongoQuery'
@@ -62,16 +63,38 @@ export default class EmployeeController {
 	private async findEmployee(
 		tenantId: string,
 		employeeId: string,
+		tx?: DbTx,
 	): Promise<IEmployee> {
-		const employee = (await pgFindOne(Employee, tenantId, {
-			employeeId,
-		})) as IEmployee | null
+		const employee = (await pgFindOne(
+			Employee,
+			tenantId,
+			{ employeeId },
+			tx ? { db: tx, lock: true } : {},
+		)) as IEmployee | null
 
 		if (!employee) {
 			throw businessError('Employee not found')
 		}
 
 		return employee
+	}
+
+	/** Load (row lock) → change → save in one transaction: parallel payouts or edits cannot overwrite each other. */
+	private changeEmployee(
+		tenantId: string,
+		employeeId: string,
+		requestContext: RequestContext,
+		change: (employee: IEmployee) => Promise<void>,
+	): Promise<EmployeeDto> {
+		return inTransaction(undefined, async tx => {
+			const employee = await this.findEmployee(tenantId, employeeId, tx)
+
+			await change(employee)
+			employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
+			await saveDoc(Employee, tenantId, employee as unknown as Doc, tx)
+
+			return toEmployeeDto(employee)
+		})
 	}
 
 	private async currencyName(
@@ -175,58 +198,65 @@ export default class EmployeeController {
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
 		const tenantId = await this.requireAccess(requestContext)
-		const employee = await this.findEmployee(tenantId, employeeId)
 
-		if (body.name !== undefined) {
-			employee.name = parseOrThrow(() => parseRequiredName(body.name))
-		}
+		return this.changeEmployee(
+			tenantId,
+			employeeId,
+			requestContext,
+			async employee => {
+				if (body.name !== undefined) {
+					employee.name = parseOrThrow(() => parseRequiredName(body.name))
+				}
 
-		if (body.phone !== undefined) {
-			employee.phone = parseOrThrow(() => parseOptionalText(body.phone))
-		}
+				if (body.phone !== undefined) {
+					employee.phone = parseOrThrow(() => parseOptionalText(body.phone))
+				}
 
-		if (body.address !== undefined) {
-			employee.address = parseOrThrow(() => parseOptionalText(body.address))
-		}
+				if (body.address !== undefined) {
+					employee.address = parseOrThrow(() => parseOptionalText(body.address))
+				}
 
-		if (body.employmentType !== undefined) {
-			employee.employmentType = parseOrThrow(() =>
-				parseEmploymentType(body.employmentType),
-			)
-		}
+				if (body.employmentType !== undefined) {
+					employee.employmentType = parseOrThrow(() =>
+						parseEmploymentType(body.employmentType),
+					)
+				}
 
-		if (body.workingDays !== undefined) {
-			employee.workingDays = parseOrThrow(() =>
-				parseWorkingDays(body.workingDays),
-			)
-		}
+				if (body.workingDays !== undefined) {
+					employee.workingDays = parseOrThrow(() =>
+						parseWorkingDays(body.workingDays),
+					)
+				}
 
-		if (body.workStart !== undefined) {
-			employee.workStart = parseOrThrow(() =>
-				parseOptionalClock(body.workStart),
-			)
-		}
+				if (body.workStart !== undefined) {
+					employee.workStart = parseOrThrow(() =>
+						parseOptionalClock(body.workStart),
+					)
+				}
 
-		if (body.workEnd !== undefined) {
-			employee.workEnd = parseOrThrow(() => parseOptionalClock(body.workEnd))
-		}
+				if (body.workEnd !== undefined) {
+					employee.workEnd = parseOrThrow(() =>
+						parseOptionalClock(body.workEnd),
+					)
+				}
 
-		const status = parseOrThrow(() => parseStatus(body.status, employee.status))
-		const startDate =
-			body.startDate !== undefined ? body.startDate : employee.startDate
-		const endDate = body.endDate !== undefined ? body.endDate : employee.endDate
-		const dates = parseOrThrow(() =>
-			resolveEmploymentDates(status, startDate, endDate),
+				const status = parseOrThrow(() =>
+					parseStatus(body.status, employee.status),
+				)
+				const startDate =
+					body.startDate !== undefined ? body.startDate : employee.startDate
+				const endDate =
+					body.endDate !== undefined ? body.endDate : employee.endDate
+				const dates = parseOrThrow(() =>
+					resolveEmploymentDates(status, startDate, endDate),
+				)
+
+				employee.status = status
+				employee.startDate = dates.startDate
+				employee.endDate = dates.endDate
+				this.guardHourlySchedule(employee)
+			},
 		)
-
-		employee.status = status
-		employee.startDate = dates.startDate
-		employee.endDate = dates.endDate
-		this.guardHourlySchedule(employee)
-		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await saveDoc(Employee, tenantId, employee as unknown as Doc)
-
-		return toEmployeeDto(employee)
 	}
 
 	public async postSalary(
@@ -235,21 +265,27 @@ export default class EmployeeController {
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
 		const tenantId = await this.requireAccess(requestContext)
-		const employee = await this.findEmployee(tenantId, employeeId)
-		const salary = parseOrThrow(() => parseSalaryInput(body))
-		const currencyName = await this.currencyName(tenantId, salary.currencyId)
 
-		employee.salaries.push({
-			...salary,
-			salaryId: uuidv4(),
-			currencyName,
-		})
+		return this.changeEmployee(
+			tenantId,
+			employeeId,
+			requestContext,
+			async employee => {
+				const salary = parseOrThrow(() => parseSalaryInput(body))
+				const currencyName = await this.currencyName(
+					tenantId,
+					salary.currencyId,
+				)
 
-		this.guardHourlySchedule(employee)
-		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await saveDoc(Employee, tenantId, employee as unknown as Doc)
+				employee.salaries.push({
+					...salary,
+					salaryId: uuidv4(),
+					currencyName,
+				})
 
-		return toEmployeeDto(employee)
+				this.guardHourlySchedule(employee)
+			},
+		)
 	}
 
 	public async postPayout(
@@ -258,20 +294,25 @@ export default class EmployeeController {
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
 		const tenantId = await this.requireAccess(requestContext)
-		const employee = await this.findEmployee(tenantId, employeeId)
-		const payout = parseOrThrow(() => parsePayoutInput(body))
-		const currencyName = await this.currencyName(tenantId, payout.currencyId)
 
-		employee.payouts.push({
-			...payout,
-			payoutId: uuidv4(),
-			currencyName,
-		})
+		return this.changeEmployee(
+			tenantId,
+			employeeId,
+			requestContext,
+			async employee => {
+				const payout = parseOrThrow(() => parsePayoutInput(body))
+				const currencyName = await this.currencyName(
+					tenantId,
+					payout.currencyId,
+				)
 
-		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await saveDoc(Employee, tenantId, employee as unknown as Doc)
-
-		return toEmployeeDto(employee)
+				employee.payouts.push({
+					...payout,
+					payoutId: uuidv4(),
+					currencyName,
+				})
+			},
+		)
 	}
 
 	public async patchPayout(
@@ -281,25 +322,30 @@ export default class EmployeeController {
 		body: Record<string, unknown>,
 	): Promise<EmployeeDto> {
 		const tenantId = await this.requireAccess(requestContext)
-		const employee = await this.findEmployee(tenantId, employeeId)
-		const payout = employee.payouts.find(item => item.payoutId === payoutId)
 
-		if (!payout) {
-			throw businessError('Payout not found')
-		}
+		return this.changeEmployee(
+			tenantId,
+			employeeId,
+			requestContext,
+			async employee => {
+				const payout = employee.payouts.find(item => item.payoutId === payoutId)
 
-		const next = parseOrThrow(() => parsePayoutInput({ ...payout, ...body }))
-		const currencyName = await this.currencyName(tenantId, next.currencyId)
+				if (!payout) {
+					throw businessError('Payout not found')
+				}
 
-		payout.date = next.date
-		payout.amount = next.amount
-		payout.currencyId = next.currencyId
-		payout.currencyName = currencyName
-		payout.note = next.note
-		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await saveDoc(Employee, tenantId, employee as unknown as Doc)
+				const next = parseOrThrow(() =>
+					parsePayoutInput({ ...payout, ...body }),
+				)
+				const currencyName = await this.currencyName(tenantId, next.currencyId)
 
-		return toEmployeeDto(employee)
+				payout.date = next.date
+				payout.amount = next.amount
+				payout.currencyId = next.currencyId
+				payout.currencyName = currencyName
+				payout.note = next.note
+			},
+		)
 	}
 
 	public async deletePayout(
@@ -308,19 +354,22 @@ export default class EmployeeController {
 		requestContext: RequestContext,
 	): Promise<EmployeeDto> {
 		const tenantId = await this.requireAccess(requestContext)
-		const employee = await this.findEmployee(tenantId, employeeId)
-		const nextPayouts = employee.payouts.filter(
-			item => item.payoutId !== payoutId,
+
+		return this.changeEmployee(
+			tenantId,
+			employeeId,
+			requestContext,
+			async employee => {
+				const nextPayouts = employee.payouts.filter(
+					item => item.payoutId !== payoutId,
+				)
+
+				if (nextPayouts.length === employee.payouts.length) {
+					throw businessError('Payout not found')
+				}
+
+				employee.payouts = nextPayouts
+			},
 		)
-
-		if (nextPayouts.length === employee.payouts.length) {
-			throw businessError('Payout not found')
-		}
-
-		employee.payouts = nextPayouts
-		employee.updatedBy = { ...actor(requestContext), updatedAt: new Date() }
-		await saveDoc(Employee, tenantId, employee as unknown as Doc)
-
-		return toEmployeeDto(employee)
 	}
 }

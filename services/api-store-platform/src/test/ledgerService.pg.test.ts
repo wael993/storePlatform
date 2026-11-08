@@ -161,6 +161,12 @@ describe.skipIf(!enabled)('ledgerService (Postgres)', () => {
 		expect(await ledgerCount(tenantId)).toBe(3)
 		expect((await balances(tenantId)).daily_cash).toEqual({ usd: 40 })
 		await expectLedgerMatchesBalances(tenantId)
+
+		await sync(50) // back to the first amount: must post again, not dedupe against it
+		expect((await balances(tenantId)).daily_cash).toEqual({ usd: 50 })
+		await sync(50) // replay
+		expect(await ledgerCount(tenantId)).toBe(5)
+		await expectLedgerMatchesBalances(tenantId)
 	})
 
 	it('answers exchange replays and rejects changed values', async () => {

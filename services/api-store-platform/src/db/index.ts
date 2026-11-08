@@ -10,6 +10,7 @@ export const anyOf = (column: SQLWrapper, values: unknown[]) =>
 	sql`${column} = any(${sql.param(values)})`
 
 let instance: ReturnType<typeof createDb> | undefined
+let txInstance: ReturnType<typeof createDb> | undefined
 
 /** Process-wide Postgres client, created on first use (fails closed without DATABASE_URL). */
 export const getDb = (): Db => {
@@ -18,9 +19,21 @@ export const getDb = (): Db => {
 	return instance.db
 }
 
+/**
+ * Transactions get their own pool: a read inside a transaction that misses
+ * `db: tx` takes a connection from getDb()'s pool, which no transaction holds,
+ * so N open transactions can never starve each other.
+ */
+const getTxDb = (): Db => {
+	txInstance ??= createDb()
+
+	return txInstance.db
+}
+
 export const closeDb = async () => {
-	await instance?.pool.end()
+	await Promise.all([instance?.pool.end(), txInstance?.pool.end()])
 	instance = undefined
+	txInstance = undefined
 }
 
 export type DbTx = Parameters<Parameters<Db['transaction']>[0]>[0]
@@ -51,7 +64,7 @@ export const inTransaction = async <T>(
 
 	for (let attempt = 1; ; attempt++) {
 		try {
-			return await getDb().transaction(work)
+			return await getTxDb().transaction(work)
 		} catch (error) {
 			if (attempt >= MAX_ATTEMPTS || !RETRYABLE.has(pgErrorCode(error) ?? '')) {
 				throw error

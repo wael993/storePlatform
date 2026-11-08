@@ -488,13 +488,16 @@ const listActiveEffectsForReference = async (
 			.filter((id): id is string => Boolean(id)),
 	)
 
-	return entries
+	const active = entries
 		.filter(
 			entry =>
 				entry.movementType !== CASH_MOVEMENT_TYPES.REVERSAL &&
 				!reversedIds.has(entry.ledgerEntryId),
 		)
 		.map(entry => ({ ...entry, amount: Number(entry.amount) }))
+
+	// grows with every post and reversal: X → Y → X gets a new key for the second X
+	return { active, revision: entries.length }
 }
 
 const postsMatch = (left: DesiredCashPost[], right: DesiredCashPost[]) => {
@@ -551,7 +554,7 @@ export const syncCashEffectsForReference = (params: {
 
 		await ensureCashAccountsForWarehouse(tenantId, warehouseId, actor, tx)
 
-		const active = await listActiveEffectsForReference(
+		const { active, revision } = await listActiveEffectsForReference(
 			tenantId,
 			referenceType,
 			referenceId,
@@ -615,7 +618,7 @@ export const syncCashEffectsForReference = (params: {
 					post,
 					referenceType,
 					referenceId,
-					idempotencyKey: `${referenceType}:${referenceId}:${post.accountType}:${post.currencyId}:${post.movementType}:${amountKey}:n${index}`,
+					idempotencyKey: `${referenceType}:${referenceId}:${post.accountType}:${post.currencyId}:${post.movementType}:${amountKey}:n${index}:r${revision}`,
 					actor,
 					reason: params.reason,
 				},

@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { closeDb, getDb } from '../db'
+import { closeDb, getDb, inTransaction } from '../db'
 import { deleteDocs, findDoc, findDocs, insertDoc, updateDoc } from '../db/docs'
 import * as t from '../db/schema'
 import { Invoice } from '../models/Invoice'
@@ -13,6 +13,22 @@ const actor = { _id: 'u-1', displayName: 'Ana', createdAt: new Date() }
 
 describe.skipIf(!enabled)('document store (Postgres)', () => {
 	afterAll(closeDb)
+
+	it('does not freeze when more transactions than pool slots each read outside the tx', async () => {
+		// all 12 hold a connection, then each asks for one more (a read without db: tx)
+		const done = await Promise.all(
+			Array.from({ length: 12 }, () =>
+				inTransaction(undefined, async tx => {
+					await tx.execute(sql`select pg_sleep(0.2)`)
+					await getDb().execute(sql`select 1`)
+
+					return true
+				}),
+			),
+		)
+
+		expect(done).toHaveLength(12)
+	}, 15_000)
 
 	it('stores an invoice like Mongoose and reads the same document back', async () => {
 		const tenantId = `t-${randomUUID()}`
