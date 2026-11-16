@@ -2,7 +2,8 @@
 
 What comes next, in order, and when each part counts as done. Detail for the Postgres
 steps lives in [postgres-migration.md](postgres-migration.md); the full test checklist in
-[smoke-test-plan.md](smoke-test-plan.md).
+[smoke-test-plan.md](smoke-test-plan.md); the Postgres audit and the smoke-test fix list in
+[postgres-audit.md](postgres-audit.md) (part of phase 3; its Part A blocks PG-MIG-3).
 
 **Why this order:** first make the database switch safe (test, review, rehearse, switch),
 then delete the old Mongo code (less code to restructure), then restructure, then clean
