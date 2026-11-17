@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 
 import {
@@ -16,6 +16,7 @@ import {
 	pgFindOneAndDelete,
 	pgFindOneAndUpdate,
 } from '../db/mongoQuery'
+import ProductController from '../apis/api.controller'
 import RefreshToken from '../models/RefreshToken'
 import SubscriptionRenewalRequest from '../models/SubscriptionRenewalRequest'
 import Tenant from '../models/Tenant'
@@ -120,6 +121,51 @@ describe.skipIf(!enabled)('group 4 writes (Postgres)', () => {
 
 		expect(first).not.toBeNull()
 		expect(await second).toBeNull()
+	})
+
+	it('log out of all devices also ends access tokens already handed out (S-4)', async () => {
+		const tenantId = await newTenant()
+		const userId = '0123456789abcdef0123abcd'
+
+		await insertDoc(User, {
+			_id: userId,
+			tenantId,
+			userId: randomUUID(),
+			displayName: 'Ana',
+			user: { firstName: 'Ana', lastName: 'Nour' },
+			email: `ana@${tenantId}.test`,
+			password: 'hashed-password',
+			createdBy: { _id: 'u-0', displayName: 'Owner', createdAt: new Date() },
+			role: 'owner',
+			tokenVersion: 3,
+		})
+
+		const raw = ['device-a', 'device-b'].map(
+			device => `${device}-${randomUUID()}`,
+		)
+
+		for (const token of raw) {
+			await insertDoc(RefreshToken, {
+				tenantId,
+				userId,
+				tokenHash: createHash('sha256').update(token).digest('hex'),
+				ip: '127.0.0.1',
+				userAgent: 'test',
+				expiresAt: new Date(Date.now() + 60_000),
+			})
+		}
+
+		const controller = new ProductController({} as never, {} as never)
+		const result = await controller.logoutAll({
+			cookies: { refreshToken: raw[0] },
+		} as never)
+
+		expect(result.sessionsRevoked).toBe(2)
+		expect(
+			(await pgFindOne(User, tenantId, { _id: userId })).tokenVersion,
+		).toBe(4)
+
+		expect(await pgFind(RefreshToken, tenantId, { userId })).toHaveLength(0)
 	})
 
 	it('never reserves more Invoice AI credits than the allowance', async () => {

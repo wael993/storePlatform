@@ -310,6 +310,9 @@ Flipping production flags (PG-MIG-4).
 
 ## PG-MIG-4 — Per-tenant cutover (2 active + dormant batch)
 
+> **Superseded 2026-11-17:** the ADR decided one maintenance window for all tenants. The runbook is
+> [pg-mig-4-runbook.md](pg-mig-4-runbook.md); the per-tenant steps below are kept for history only.
+
 **Type:** Release / Ops  
 **Priority:** High  
 **Labels:** postgres, production, migration  

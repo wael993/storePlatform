@@ -1112,8 +1112,18 @@ export default class ProductController {
 			)
 		}
 
-		const result = await pgDeleteMany(RefreshToken, storedToken.tenantId, {
-			userId: String(storedToken.userId),
+		const userId = String(storedToken.userId)
+		const result = await inTransaction(undefined, async tx => {
+			// Like a password change: access tokens already handed out (15 min) stop
+			// working at once, not only the refresh tokens (S-4).
+			await tx
+				.update(t.users)
+				.set({ tokenVersion: sql`coalesce(${t.users.tokenVersion}, 0) + 1` })
+				.where(
+					sql`${t.users.tenantId} = ${storedToken.tenantId} and ${t.users.id} = ${userId}`,
+				)
+
+			return pgDeleteMany(RefreshToken, storedToken.tenantId, { userId }, tx)
 		})
 
 		logger.info('User logged out from all devices', {

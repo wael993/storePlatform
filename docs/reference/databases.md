@@ -28,6 +28,10 @@ Demo tenant login: `user@app.com` / `W123-456z`. Super admin: `SUPER_ADMIN_EMAIL
 
 ## Keep them current
 
+- Remote databases (staging, production): migrate with
+  `DATABASE_URL='<external url>?sslmode=require' npx ts-node src/scripts/db-migrate.ts` (prints
+  `[db-migrate] done`). `npm run db:migrate` (drizzle-kit) failed silently against Render on 2026-11-17.
+
 - `drizzle/` changed (pull, branch switch, `db:generate`) → run both `db:migrate` lines again.
 - Reset one: `docker rm -f store-test-pg` (or `store-local-pg` + `docker volume rm store-local-pgdata`), then set up again.
 

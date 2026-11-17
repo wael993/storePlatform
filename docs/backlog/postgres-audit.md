@@ -38,7 +38,7 @@ none of them block PG-MIG-3. Each becomes its own ticket. Suggested order = prio
 
 | # | Smoke row | What happened / what is wrong | Type (bug / missing / UX) | Priority | Fix state |
 | --- | --- | --- | --- | --- | --- |
-| S-4 | 2.5 | Log out of all devices: other browser stays logged in. Likely cause: `logoutAll` deletes refresh tokens but does not bump `tokenVersion` (change password does), so the 15-min access token keeps working | bug (security) | High | open |
+| S-4 | 2.5 | Log out of all devices: other browser stays logged in. Likely cause: `logoutAll` deletes refresh tokens but does not bump `tokenVersion` (change password does), so the 15-min access token keeps working | bug (security) | High | fixed 2026-11-17: `logoutAll` bumps `tokenVersion` with the token delete in one transaction (`group4Writes.pg.test.ts`); retest smoke 2.5 after deploy |
 | S-2 | 1.4 | Subscription payment image not displayed correctly. Need: what was shown (broken icon / too small) and the URL type (share link vs direct image) | bug | Medium | open |
 | S-3 | 8.5 | Renewal success message shows on every login (should be first login after renewal, or first week) | bug | Medium | open |
 | S-1 | 1.3 | Allowed pages / offline toggle only apply after logout + login, not after reload; dashboard cannot be removed (confirm intended) | bug / UX | Low | open |
