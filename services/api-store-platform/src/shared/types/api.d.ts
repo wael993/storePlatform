@@ -131,6 +131,8 @@ interface DailyActionRequestBody {
 	expenseName?: string
 	currencyId: string
 	currencyName: string
+	/** Rate the device stamped when it queued the entry offline; used on sync replay only. */
+	exchangeRateToPrimary?: number
 	/** Cash account for receipt/payment/expense. Defaults to daily_cash. */
 	cashAccountType?: string
 	unitId?: string

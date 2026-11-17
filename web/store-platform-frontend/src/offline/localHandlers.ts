@@ -1143,6 +1143,17 @@ const handleGenericMutation = async (
 
 const CASH_ACCOUNT_TYPES = new Set(['daily_cash', 'cash_reserve', 'online'])
 
+/** The rate at entry time travels with the queued entry; the server keeps it on sync. */
+const stampOfflineDailyActionRate = async (
+	payload: Record<string, unknown>,
+) => {
+	const rate = ratesFromCurrencySettings(await getLocalCurrencySettings()).find(
+		item => item.currencyId === payload.currencyId,
+	)?.exchangeRate
+
+	if (rate && rate > 0) payload.exchangeRateToPrimary = rate
+}
+
 const applyLocalEntityMutation = async (
 	entity: OutboxEntity,
 	method: string,
@@ -1404,6 +1415,7 @@ const applyLocalEntityMutation = async (
 	if (entity === 'dailyAction' && op === 'create') {
 		const actionId = String(payload.actionId ?? generateId())
 		payload.actionId = actionId
+		await stampOfflineDailyActionRate(payload)
 		payload.warehouseId = requireOperationalWarehouseId(
 			typeof payload.warehouseId === 'string' ? payload.warehouseId : undefined,
 		)
@@ -1426,6 +1438,7 @@ const applyLocalEntityMutation = async (
 
 	if (entity === 'dailyAction' && op === 'update') {
 		const actionId = path.split('/')[1]
+		await stampOfflineDailyActionRate(payload)
 		const existing = await offlineDb.dailyActions.get(actionId)
 		if (existing) {
 			await offlineDb.dailyActions.put({

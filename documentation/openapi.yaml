@@ -1316,6 +1316,10 @@ paths:
       tags:
         - DailyActions
       summary: Create daily action
+      description: >-
+        Stores `exchangeRateToPrimary` from today's currency settings. A currency that is not in
+        the settings is refused. Replays through `/sync/push` keep the `exchangeRateToPrimary` the
+        device stamped when it queued the entry offline.
       operationId: postApiDataDaily-actions
       security:
         - bearerAuth: []
@@ -1524,6 +1528,10 @@ paths:
       tags:
         - DailyActions
       summary: Update daily action
+      description: >-
+        Keeps the stored `exchangeRateToPrimary` while the currency stays the same; a new currency
+        takes today's settings rate (or the device-stamped rate on a sync replay). A currency that
+        is not in the settings is refused.
       operationId: patchApiDataDaily-actionsId
       security:
         - bearerAuth: []

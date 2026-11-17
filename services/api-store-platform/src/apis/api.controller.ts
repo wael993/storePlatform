@@ -88,6 +88,7 @@ import {
 	type CostCurrencyRate,
 } from '../shared/inventoryCost'
 import { withTenantScope } from '../shared/mongodb/tenantScopedModel'
+import { resolveDailyActionRate } from '../shared/dailyActionRate'
 import { resolveSyncClientId } from '../shared/uuid'
 import {
 	ensureWarehouseAccess,
@@ -4215,6 +4216,7 @@ export default class ProductController {
 	public async postDailyAction(
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	): Promise<CreateDailyActionResponse> {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesAdd])
 		const actionId = resolveSyncClientId(
@@ -4250,9 +4252,10 @@ export default class ProductController {
 
 		const createdAt = new Date()
 		const optionalString = (value?: string) => value?.trim() || undefined
-		const exchangeRateToPrimary = await this.exchangeRateForCurrency(
+		const exchangeRateToPrimary = await this.dailyActionRate(
 			this.getTenantId(requestContext),
 			requestBody.currencyId,
+			isSyncReplay ? requestBody.exchangeRateToPrimary : undefined,
 		)
 		const dailyActionData = {
 			actionId,
@@ -4363,14 +4366,22 @@ export default class ProductController {
 		actionId: string,
 		requestBody: DailyActionRequestBody,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.invoicesEntriesEdit])
 		await this.ensureDailyActionsInWarehouseScope(requestContext, [actionId])
 
 		const optionalString = (value?: string) => value?.trim() || undefined
-		const exchangeRateToPrimary = await this.exchangeRateForCurrency(
-			this.getTenantId(requestContext),
+		const tenantId = this.getTenantId(requestContext)
+		const existing = await pgFindOne<{
+			currencyId?: string
+			exchangeRateToPrimary?: number
+		}>(DailyAction, tenantId, { actionId })
+		const exchangeRateToPrimary = await this.dailyActionRate(
+			tenantId,
 			requestBody.currencyId,
+			isSyncReplay ? requestBody.exchangeRateToPrimary : undefined,
+			existing,
 		)
 		const dailyActionData = {
 			entryType: requestBody.entryType,
@@ -4527,10 +4538,18 @@ export default class ProductController {
 		}
 	}
 
-	private async exchangeRateForCurrency(tenantId: string, currencyId: string) {
-		const rates = await loadCashCurrencyRates(tenantId)
-
-		return rates.find(rate => rate.currencyId === currencyId)?.exchangeRate ?? 1
+	private async dailyActionRate(
+		tenantId: string,
+		currencyId: string,
+		replaySnapshot?: unknown,
+		existing?: { currencyId?: string; exchangeRateToPrimary?: unknown } | null,
+	) {
+		return resolveDailyActionRate({
+			currencyId,
+			rates: await loadCashCurrencyRates(tenantId),
+			replaySnapshot,
+			existing,
+		})
 	}
 
 	private parseActionAmount(
@@ -6645,6 +6664,7 @@ export default class ProductController {
 				data = (await this.postDailyAction(
 					payload as unknown as DailyActionRequestBody,
 					requestContext,
+					true,
 				)) as Record<string, unknown>
 
 				await this.recordSyncMutation(
@@ -6797,6 +6817,7 @@ export default class ProductController {
 					actionId,
 					payload as unknown as DailyActionRequestBody,
 					requestContext,
+					true,
 				)
 
 				data = { success: true }

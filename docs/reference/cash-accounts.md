@@ -67,6 +67,16 @@ Receipt / payment / expense: user picks the cash account in Quick Entry
 amount is posted as-is in `currencyId`. `exchangeRateToPrimary` on the action
 is for party valuation, not the ledger.
 
+`exchangeRateToPrimary` is a snapshot taken once (`shared/dailyActionRate.ts`):
+
+- Create: today's currency-settings rate. Offline, the device stamps its settings
+  rate into the queued payload; the sync replay keeps it (no revaluation on sync).
+- Edit: the stored rate stays while the currency stays the same; a changed currency
+  takes today's rate (or the device-stamped one on replay).
+- A currency missing from the settings is refused, never valued 1 : 1.
+- Rows without a rate (legacy) still fall back to live rates when valued
+  (`amountToPrimaryWithSnapshot`); stamping them is a data decision (PG-MIG-3).
+
 | Entry | Field | Sign |
 | --- | --- | --- |
 | Receipt | To account | + |
