@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { closeDb, getDb } from '../db'
+import { closeDb, DbTx, getDb, inTransaction } from '../db'
 import { insertDoc } from '../db/docs'
 import {
 	allocateInvoiceNumber,
@@ -20,31 +20,36 @@ const sale = (
 	tenantId: string,
 	invoiceNumber: string,
 	extra: Record<string, unknown> = {},
+	db?: DbTx,
 ) =>
-	insertDoc(Invoice, {
-		tenantId,
-		invoiceId: randomUUID(),
-		invoiceNumber,
-		warehouseId: 'wh-1',
-		issuedAt: new Date('2026-01-01'),
-		status: 'paid',
-		createdBy: actor,
-		currencyAmounts: [
-			{
-				currencyId: 'usd',
-				name: 'USD',
-				exchangeRate: 1,
-				isPrimary: true,
-				amount: 1,
-				paidAmount: 1,
-				remainingAmount: 0,
-				subtotal: 1,
-				tax: 0,
-				discount: 0,
-			},
-		],
-		...extra,
-	})
+	insertDoc(
+		Invoice,
+		{
+			tenantId,
+			invoiceId: randomUUID(),
+			invoiceNumber,
+			warehouseId: 'wh-1',
+			issuedAt: new Date('2026-01-01'),
+			status: 'paid',
+			createdBy: actor,
+			currencyAmounts: [
+				{
+					currencyId: 'usd',
+					name: 'USD',
+					exchangeRate: 1,
+					isPrimary: true,
+					amount: 1,
+					paidAmount: 1,
+					remainingAmount: 0,
+					subtotal: 1,
+					tax: 0,
+					discount: 0,
+				},
+			],
+			...extra,
+		},
+		db,
+	)
 
 describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 	afterAll(closeDb)
@@ -74,6 +79,28 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 
 		// bare client drafts are ignored
 		expect(await allocateInvoiceNumber(tenantId, 'SI', '42')).toBe('SI-001008')
+	})
+
+	it('gives parallel creates different numbers (INV-NUM-1)', async () => {
+		const tenantId = tenant()
+		const create = () =>
+			inTransaction(undefined, async tx => {
+				const invoiceNumber = await allocateInvoiceNumber(
+					tenantId,
+					'SI',
+					undefined,
+					tx,
+				)
+
+				// stands in for the stock and cash writes between number and insert
+				await new Promise(resolve => setTimeout(resolve, 50))
+				await sale(tenantId, invoiceNumber, {}, tx)
+
+				return invoiceNumber
+			})
+		const numbers = await Promise.all(Array.from({ length: 8 }, create))
+
+		expect(new Set(numbers).size).toBe(8)
 	})
 
 	it('reserves offline blocks atomically and raises the online floor', async () => {

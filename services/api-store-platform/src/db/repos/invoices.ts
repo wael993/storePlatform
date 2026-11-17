@@ -24,8 +24,8 @@ import {
  * `api.controller.ts`. Same rules; the offline block is one atomic upsert
  * instead of read-then-write.
  *
- * Known gap kept as-is (no behavior change in the port): invoice numbers have no
- * unique constraint, so two simultaneous creates can pick the same number, as in Mongo.
+ * Invoice numbers have no unique constraint yet (legacy duplicates exist, INV-NUM-1);
+ * `allocateInvoiceNumber` serializes allocation per tenant and kind instead.
  */
 
 type Kind = 'selling' | 'buying'
@@ -76,6 +76,11 @@ export const nextInvoiceSequence = async (
 /**
  * `allocateInvoiceNumberForCreate`: a client-prefixed number is used when free
  * (offline reserved blocks); otherwise the first free one from the next sequence.
+ *
+ * Call it inside the transaction that inserts the invoice: the advisory lock is
+ * held until that transaction ends, so a parallel create in the same tenant waits
+ * and then sees this number as taken (INV-NUM-1). Outside a transaction the lock
+ * is released at once and nothing is protected.
  */
 export const allocateInvoiceNumber = async (
 	tenantId: string,
@@ -85,6 +90,11 @@ export const allocateInvoiceNumber = async (
 ): Promise<string> => {
 	const kind: Kind = prefix === 'SI' ? 'selling' : 'buying'
 	const table = tableOf(kind)
+
+	await db.execute(
+		sql`select pg_advisory_xact_lock(hashtext(${`invoice-number:${requireTenantId(tenantId)}:${kind}`}))`,
+	)
+
 	const taken = async (invoiceNumber: string) =>
 		(
 			await db

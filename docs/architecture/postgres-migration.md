@@ -191,7 +191,8 @@ errors. `IN` lists go as one array parameter (`anyOf`): Postgres allows at most 
 one-off `scripts/migrate-cash-accounts.ts` are deleted.
 
 **Findings kept as-is (no behavior change in the port):** invoice numbers have no unique index
-(INV-NUM-1, `docs/backlog/later-tickets.md`); online buying numbers ignore the offline floor, so an
+(INV-NUM-1, `docs/backlog/later-tickets.md`; the race itself is fixed since 2026-11-17 by a
+per-tenant transaction lock in `allocateInvoiceNumber`); online buying numbers ignore the offline floor, so an
 offline-reserved buying number can be taken online and the offline invoice is renumbered on sync.
 
 ## Group 2 switched (catalog, parties, master data) — 2026-11-07

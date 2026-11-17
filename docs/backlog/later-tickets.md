@@ -153,7 +153,12 @@ Base64 values. Keep PDF/header rendering working.
 
 ## INV-NUM-1 — Unique invoice numbers per tenant (race)
 
-**Type:** Bug · **Priority:** Medium · **Found:** PG-MIG-2 port (2026-11-07)
+**Type:** Bug · **Priority:** High · **Found:** PG-MIG-2 port (2026-11-07) · **Seen on staging:** 5 × `SI-104501` in `cafeshop` (2026-11-08, PG-AUDIT 1.4)
+
+**State (2026-11-17):** race fixed — `allocateInvoiceNumber` takes a per-tenant, per-kind
+`pg_advisory_xact_lock` inside the create transaction (`db/repos/invoices.ts`). Covered by
+`invoices.pg.test.ts` (8 parallel creates) and `npm run stress` (unique numbers check). Open: steps 1–2
+(unique index as a second net; needs a decision on the legacy duplicates).
 
 ### Problem
 
@@ -172,5 +177,6 @@ get the same number. Same in Mongo today and in the Postgres port (kept as-is on
 
 ### Acceptance
 
-- [ ] Two parallel creates never share a number (test with concurrent transactions)
-- [ ] Offline-reserved numbers still accepted when free
+- [x] Two parallel creates never share a number (test with concurrent transactions)
+- [x] Offline-reserved numbers still accepted when free (existing test unchanged, passes)
+- [ ] Unique index on `(tenant_id, invoice_number)` after legacy duplicates are resolved

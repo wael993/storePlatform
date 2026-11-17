@@ -64,6 +64,7 @@ const ok = async (method: string, path: string, body?: unknown) => {
 const round = (n: number) => Math.round(n * 1e6) / 1e6
 
 const main = async () => {
+	const runStartedAt = new Date()
 	const login = await ok('POST', '/login', {
 		email: env('STRESS_EMAIL'),
 		password: env('STRESS_PASSWORD'),
@@ -180,8 +181,13 @@ const main = async () => {
 		const seconds = (Date.now() - started) / 1000
 		const answered = results
 			.filter(r => r.status === 'fulfilled')
-			.map(r => (r as PromiseFulfilledResult<{ status: number }>).value)
-		const sold = answered.filter(r => r.status < 300).length
+			.map(
+				r =>
+					(r as PromiseFulfilledResult<{ status: number; body: Json }>).value,
+			)
+		const succeeded = answered.filter(r => r.status < 300)
+		const sold = succeeded.length
+		const numbers = succeeded.map(r => r.body.invoiceNumber as string)
 
 		check(
 			'parallel sales: every request answered',
@@ -193,6 +199,12 @@ const main = async () => {
 			'parallel sales: only available stock sold',
 			sold === STOCK,
 			`${sold} sold of ${STOCK}`,
+		)
+
+		check(
+			'parallel sales: invoice numbers unique (INV-NUM-1)',
+			numbers.every(Boolean) && new Set(numbers).size === sold,
+			numbers.join(', '),
 		)
 
 		check(
@@ -325,6 +337,21 @@ const main = async () => {
 				 join store.products p on p.tenant_id = i.tenant_id and p.product_id = i.product_id
 				 where i.tenant_id = $1 and i.quantity < 0 and p.name like $2`,
 				[tenantId, `stress % ${run}`],
+			)
+
+			// only this run's invoices: older duplicates (before INV-NUM-1) stay out
+			const duplicates = await pool.query(
+				`select count(*)::int as n from (
+				   select invoice_number from store.invoices
+				   where tenant_id = $1 and created_at >= $2
+				   group by 1 having count(*) > 1) d`,
+				[tenantId, runStartedAt],
+			)
+
+			check(
+				'db: no duplicate invoice numbers in this run',
+				duplicates.rows[0].n === 0,
+				`${duplicates.rows[0].n} numbers used more than once`,
 			)
 
 			check(

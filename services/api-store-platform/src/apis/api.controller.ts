@@ -3189,7 +3189,7 @@ export default class ProductController {
 	 * Server-side allocation as SI-000001 / BI-000001.
 	 * Accepts a client-prefixed number only when unused (offline reserved blocks).
 	 * Ignores bare numeric client drafts that caused "already in use" races.
-	 * No unique index backs this (INV-NUM-1): parallel creates can collide.
+	 * Serialized per tenant by a transaction lock (INV-NUM-1); pass the create's tx.
 	 */
 	public async allocateInvoiceNumberForCreate(
 		requestContext: RequestContext,
