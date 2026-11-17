@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
 import { pgFind, pgFindOne, pgUpdateMany } from '../../db/mongoQuery'
 import { lockUnchangedInvoice } from '../../db/repos/invoices'
+import { checkInvoiceRequestMoney } from '../../shared/invoiceMoney'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -650,6 +651,7 @@ export default class BuyingInvoiceController {
 	public async postBuyingInvoice(
 		requestBody: BuyingInvoiceRequestBody,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.invoicesBuyingAdd])
 		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
@@ -696,6 +698,12 @@ export default class BuyingInvoiceController {
 			requestContext,
 			buyingInvoiceItems,
 		)
+
+		await checkInvoiceRequestMoney({
+			tenantId: tenantContext.tenantId,
+			request: requestBody,
+			isSyncReplay,
+		})
 
 		const grandTotal = buyingInvoiceItems.reduce(
 			(total, item) =>
@@ -885,6 +893,7 @@ export default class BuyingInvoiceController {
 		buyingInvoiceId: string,
 		requestBody: Partial<BuyingInvoiceRequestBody>,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.invoicesBuyingEdit])
 		const existingInvoice = await this.getBuyingInvoice(
@@ -915,6 +924,13 @@ export default class BuyingInvoiceController {
 			requestBody,
 			'buying',
 		)
+
+		await checkInvoiceRequestMoney({
+			tenantId: this.getTenantId(requestContext),
+			request: requestBody,
+			stored: existingInvoice,
+			isSyncReplay,
+		})
 
 		const wasStockAffecting = Boolean(
 			existingInvoice &&

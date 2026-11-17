@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
 import { pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 import { lockUnchangedInvoice } from '../../db/repos/invoices'
+import { checkInvoiceRequestMoney } from '../../shared/invoiceMoney'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -1045,6 +1046,7 @@ export default class SellingInvoiceController {
 	public async postInvoice(
 		requestBody: InvoiceRequestBody,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.sellingInvoicesSellingButton])
 		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
@@ -1088,6 +1090,12 @@ export default class SellingInvoiceController {
 		await this.ensureInvoiceProductsBelongToTenant(requestContext, invoiceItems)
 
 		const tenantContext = getTenantContext(requestContext)
+
+		await checkInvoiceRequestMoney({
+			tenantId: tenantContext.tenantId,
+			request: requestBody,
+			isSyncReplay,
+		})
 
 		const currencyAmounts =
 			requestBody.currencyAmounts?.length &&
@@ -1293,6 +1301,7 @@ export default class SellingInvoiceController {
 		invoiceId: string,
 		requestBody: Partial<InvoiceRequestBody>,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.sellingInvoicesEdit])
 		await this.ops.ensureProjectBelongsToTenant(
@@ -1325,6 +1334,13 @@ export default class SellingInvoiceController {
 			requestBody,
 			'selling',
 		)
+
+		await checkInvoiceRequestMoney({
+			tenantId: this.getTenantId(requestContext),
+			request: requestBody,
+			stored: existingInvoice,
+			isSyncReplay,
+		})
 
 		const wasStockAffecting = Boolean(
 			existingInvoice &&

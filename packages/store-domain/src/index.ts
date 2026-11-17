@@ -57,3 +57,11 @@ export {
 	type ProfitInvoiceLine,
 	type ProfitStockMoving,
 } from './sellingInvoiceProfit'
+export {
+	calculateInvoiceTotals,
+	calculateLineItemTotal,
+	getLineDiscountAmount,
+	type InvoiceDiscountSettings,
+	type InvoiceTotals,
+	type InvoiceTotalsLine,
+} from './invoiceTotals'

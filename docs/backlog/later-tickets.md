@@ -185,3 +185,58 @@ get the same number. Same in Mongo today and in the Postgres port (kept as-is on
 - [x] Offline-reserved numbers still accepted when free (existing test unchanged, passes)
 - [ ] Unique index on `(tenant_id, invoice_number)` — owner decision 2026-11-17: the 5 legacy
   `SI-104501` duplicates on staging are ignored; check the production copy before adding the index
+
+---
+
+## INV-MONEY-1 — Server checks invoice money (PG-AUDIT H2)
+
+**Type:** Bug (trust boundary) · **Priority:** High, before PG-MIG-4 · **Found:** PG-AUDIT 3.5 (2026-11-17)
+
+### Problem
+
+Selling and buying invoice create / edit take `currencyAmounts` (amount, paid, remaining, subtotal,
+discount, rate) and tenders from the request. The server never checks them against the lines or the
+currency settings (`shared/cashAccounts/posting.ts` `storedInvoiceTenders`): a rate of `0` silently
+becomes `1`, a negative rate passes, and a total of 1 for lines worth 100 is posted as 1 (revenue,
+customer balance, cash). Only cash exchanges are checked today.
+
+### Design
+
+1. **One formula.** Move `calculateInvoiceTotals` / `getLineDiscountAmount` from
+   `web/.../SellingInvoice/invoiceCalculations.ts` into `packages/store-domain` (synced into the API
+   by `npm run sync-domain`). Web and API then compute totals the same way, float for float.
+2. **Always (live and sync replay), refuse with 422 when:**
+   - a rate is not finite or ≤ 0, or the primary row's rate is not 1, or there is not exactly one
+     primary row;
+   - the primary `subtotal` / `discount` / `amount` differ from the recomputed totals by more than
+     0.01 (lines + invoice discount);
+   - a non-primary row's `amount` differs from `primary amount × rate` by more than 0.01;
+   - `paidAmount` < 0 or > `amount` + 0.01, or `paid + remaining` ≠ `amount` (± 0.01).
+3. **Live requests only:** each non-primary rate must equal today's currency settings (same rule as
+   cash exchanges). Sync replays keep their create-time rates (CLAUDE.md "snapshot at create").
+4. **Edit:** the same checks on the merged result (request fields over the stored invoice). Old
+   invoices are never re-checked unless edited; historical invoices (no `invoiceCurrencyId`, no
+   tenders) keep today's behavior.
+
+### Decisions (owner, 2026-11-17)
+
+- A: **refuse** a live invoice whose rate differs from today's settings (reload and save again).
+- B: **refuse at once**, no log-only phase.
+
+### Decisions asked
+
+- **A.** Live rate differs from today's settings (the tab was open while someone changed the rate):
+  refuse and ask to reload (like exchanges), or accept the client's rate?
+- **B.** Roll-out: refuse at once, or log mismatches for a few days on staging first?
+
+### Acceptance
+
+- [x] Shared formula in `store-domain`; web uses it unchanged (existing web tests pass)
+- [x] API test per refusal rule (rate 0 / negative, total ≠ lines, secondary ≠ primary × rate, paid > total) — `invoiceMoney.test.ts`
+- [x] Sync replay with an old rate accepted; live request with an old rate refused (decision A)
+- [ ] `npm run stress` and a manual offline sale still pass on staging
+- [x] `docs/reference` + `openapi.yaml` list the refusals
+
+### Out of scope
+
+Currency rounding (M1) and stored float noise; buying-invoice landed costs.

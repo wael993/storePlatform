@@ -52,6 +52,13 @@ the primary amount due. Each tender converts with the invoice snapshot rate
 rates. The part that covers the remaining due is `appliedAmount`. The rest of
 that tender is `changeAmount`.
 
+The server does not trust the request's money (INV-MONEY-1, `shared/invoiceMoney.ts`): on create and
+on an edit that touches lines, discount or `currencyAmounts`, it recomputes the primary totals with the
+web app's formula (`store-domain` `calculateInvoiceTotals`, ± 0.01) and refuses rates ≤ 0, a primary
+rate ≠ 1, secondary amounts ≠ primary × rate, and paid outside 0 … total. Live requests must use
+today's settings rates ("Exchange rates changed. Reload…"); sync replays keep their snapshot, and
+amounts kept from the stored invoice keep theirs.
+
 Only `appliedAmount` is posted, in the tender's currency. `changeAmount` is
 stored on the tender and is not a ledger row. `currencyAmounts.paidAmount` is
 still capped at the invoice total. Same rule for selling and buying, online

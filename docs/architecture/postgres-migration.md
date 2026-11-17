@@ -264,6 +264,9 @@ read or written by the API (connection still opened at boot until PG-MIG-6).
   `createdAt` / `updatedAt` like `save()` (Mongoose `initializeTimestamps`).
 - Refresh tokens: Mongo's TTL index → the hourly cleanup job. Scripts and the boot seed
   (`seed-if-empty`, `create-super-admin-user`, `seed-app-tenant`, …) no longer connect to Mongo.
+- Since 2026-11-17 (PG-AUDIT H3) the API itself no longer connects to Mongo at start (`db/db.ts`
+  removed, `docker-entrypoint.sh` no longer checks the Mongo URL). `BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING`
+  must still be set (any value; `config.ts` requires it) until PG-MIG-6, for `pg:etl` and Mongoose models.
 - `Roles` is write-only (only `seed-roles` / `init-collections` write it; nothing reads it): not
   ported, deleted in PG-MIG-6 together with `drop-stale-indexes` (Mongo-only).
 - `api:diff` group-4-on-Mongo vs Postgres, as shop user and as super admin: all responses equal

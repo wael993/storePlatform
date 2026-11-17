@@ -12,6 +12,8 @@ Monorepo: API in `services/api-store-platform`, web app in `web/store-platform-f
 ## Commands (done = all green)
 
 - API (`services/api-store-platform`): `npm run typecheck` · `npm run lint:ci` · `npm test`
+  - `*.pg.test.ts` run only with `TEST_DATABASE_URL` (a local / CI Postgres, never staging);
+    `.env`'s `DATABASE_URL` is ignored by tests (`src/test/setup.ts`).
 - Web (`web/store-platform-frontend`): `npm run typecheck` · `npm run lint:ci` ·
   `npm test` · `node scripts/checkTranslations.mjs`
 - Newer-Node vs jsdom test gaps are patched in `web/store-platform-frontend/src/test/jsdomNodeCompat.ts`.
@@ -34,4 +36,5 @@ Monorepo: API in `services/api-store-platform`, web app in `web/store-platform-f
 
 ## Known gaps
 
-- No Mongo test setup: transactions and idempotency are checked by hand.
+- Postgres tests need `TEST_DATABASE_URL`; without it they skip. Concurrency end to end:
+  `npm run stress` against staging.

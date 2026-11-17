@@ -84,7 +84,7 @@ Answer each in a few lines with file references. **Done 2026-11-17** (read from 
 
 | # | Check | Status | Priority | Evidence / note |
 | --- | --- | --- | --- | --- |
-| 1.1 | Postgres is the single source of truth (no reads/writes left in Mongo or cache) | ⚠️ | High | All API models on Postgres (PG-AUDIT-0 0.7). But the server still connects to Mongo at boot and exits without it; role seed scripts write to Mongo only. Redis is an optional read cache invalidated by explicit `del` (0.8). |
+| 1.1 | Postgres is the single source of truth (no reads/writes left in Mongo or cache) | ✅ | — | All API models on Postgres (PG-AUDIT-0 0.7). The server no longer connects to Mongo at start (H3, 2026-11-17; verified: built server runs and serves with Mongo unreachable). Before: role seed scripts write to Mongo only. Redis is an optional read cache invalidated by explicit `del` (0.8). |
 | 1.2 | Tables and relations make sense; jsonb used only where structure is truly free | ✅ | — | 53 tables, Mongo arrays split into child tables; 13 jsonb columns hold free / UI data only (0.2). Relations use **business ids** scoped by tenant (`(tenant_id, product_id)` etc.), not the row `id` — confirmed on staging: every relation matches by business id, none by `id`. |
 | 1.3 | Foreign keys on every real relation | ❌ | Medium | Only 6 FKs (invoice / buying-invoice child rows → parent). None for product, warehouse, customer, supplier, currency, cash account, employee, tenant links. Possible as composite FKs on `(tenant_id, <business id>)` since those are unique — but existing orphans (1.12) must be resolved first. |
 | 1.4 | Unique constraints (tenant-scoped: invoice numbers, names, barcodes, client ids) | ❌ | **High** | 61 unique indexes cover every business id, `sync_mutations (tenant_id, client_mutation_id)`, ledger `idempotency_key`, inventory `(tenant, warehouse, product)`, user email. **Missing:** invoice number per tenant, product barcode, master-data names. **Proven on staging:** `cafeshop` has 5 selling invoices numbered `SI-104501`, created 2026-11-08 03:45:18–20 by one user (Postgres era): `allocateInvoiceNumber` (`db/repos/invoices.ts:80`) reads max + checks "taken" without a lock or constraint, so parallel creates get the same number. = INV-NUM-1 (`later-tickets.md`), found in practice. **Fixed 2026-11-17** (per-tenant transaction lock + tests); unique index still open. Also 1 duplicate barcode (`dev`, 2026-09, Mongo era) and 5 duplicate product names (names may be allowed). Buying invoices: no duplicates. |
@@ -173,10 +173,10 @@ Deliverable: a list of concrete wrong-books examples possible with today's desig
 | --- | --- | --- | --- | --- |
 | 4.1 | `tenant_id` on every tenant-owned table | ✅ | — | Every `store.*` table and the tenant-owned platform tables (tenants, users, refresh tokens, renewal requests) have `tenant_id`, NOT NULL except `refresh_tokens` (super admin). Without it, by design: `newsroom_*`, `roles`, `subscription_payment_settings` (global platform data). Staging: 0 rows in an unknown tenant; 0 child rows (invoice items / tenders / amounts, buying equivalents, cash balances, payouts) whose tenant differs from their parent. |
 | 4.2 | Every query scoped (grep all raw SQL / repos / `pgFind` paths) | ✅ | — | Generic helpers (`pgFind` / `pgFindOne` / `pgUpdate*` / `pgDelete*`, `docs.ts`) require a tenant and fail closed. All 34 hand-written Drizzle queries (`repos/*`, `ledgerService.ts`, `invoiceAi/usage.ts`, `productImport/service.ts`, crons) filter by tenant — the ledger list via `buildCashLedgerListWhere` (`ledgerService.ts:878`); the two cron deletes are global on purpose (expired rows by date). `ALL_TENANTS` outside newsroom: login by email domain, refresh token by hash, tenant admin, renewal requests / payment settings (all behind `ensureSuperAdmin`), crons looping over tenants. Create / update always overwrite `tenantId` from the login (`documentActions.ts`), so a request body cannot redirect a write. |
-| 4.3 | One tenant cannot read or write another's data (test with two tenants) | ⚠️ | Medium | The tenant always comes from the JWT (`api.authorize.ts` → `validateUser`); no route reads a tenant id from body, query, params or headers. Staging: references by business id never resolve only in another tenant (38 relations), **except** 6 `cafeshop` cash accounts pointing at warehouses of `app` and `zobani-car` (2026-10-23 and 2026-11-08, no ledger rows): an owner's `x-warehouse-scope` header was accepted as sent. **Fixed 2026-11-17 (TENANT-WH):** the auth middleware loads the tenant's warehouse ids when an owner / super admin sends the header, and `resolveWarehouseScope` drops foreign ids (`warehouseAccess.test.ts`). No leak was possible (reads and writes stay in the caller's tenant), but foreign-warehouse rows could be written. Open: P1 (two-tenant test per resource) not written; the 6 rows are dev data to delete in PG-MIG-3. |
+| 4.3 | One tenant cannot read or write another's data (test with two tenants) | ⚠️ | Medium | The tenant always comes from the JWT (`api.authorize.ts` → `validateUser`); no route reads a tenant id from body, query, params or headers. Staging: references by business id never resolve only in another tenant (38 relations), **except** 6 `cafeshop` cash accounts pointing at warehouses of `app` and `zobani-car` (2026-10-23 and 2026-11-08, no ledger rows): an owner's `x-warehouse-scope` header was accepted as sent. **Fixed 2026-11-17 (TENANT-WH):** the auth middleware loads the tenant's warehouse ids when an owner / super admin sends the header, and `resolveWarehouseScope` drops foreign ids (`warehouseAccess.test.ts`). Staging (`d90b3ea`): owner of `postgresql` calling `GET /cash-accounts/balances` with a `zobani-car` warehouse in the header → `accounts: []`, 0 accounts created; own warehouse → 3 accounts. That read path (`getCashBalancesForWarehouses` creates accounts per scoped warehouse) is how the 6 `cafeshop` rows were made. No leak was possible (reads and writes stay in the caller's tenant), but foreign-warehouse rows could be written. Open: P1 (two-tenant test per resource) not written; the 6 rows are dev data to delete in PG-MIG-3. |
 | 4.4 | Relations cannot link rows of two tenants (composite FK `(tenant_id, id)`?) | ⚠️ | Low | Relations use `(tenant_id, business id)` in every query, and child rows carry the parent's tenant (staging: 0 mismatches). The DB does not enforce it: no composite FKs (PG-AUDIT-1 1.3). Composite FKs on `(tenant_id, <business id>)` are possible once orphans are cleaned. |
 | 4.5 | Row-level security: worth it as a second net? cost? (never replaces backend checks) | ❌ | — | No RLS. Not worth it now: every query already goes through tenant-requiring helpers (4.2), and RLS on Render needs a per-request `SET app.tenant_id` on pooled connections (two pools, transactions) — real cost and a new failure mode. Revisit when raw SQL spreads or a second service reads the DB. |
-| 4.6 | Server enforces what the UI hides (`SEE.*`) | ⚠️ | High | Write methods guard with `ensureSeeIds`, `ensureTenantAccess` (via `createDocument`), `ensureSuperAdmin`, `ensureNewsroomManage` or `requireAccess`. **Found and fixed 2026-11-17 (SETTINGS-SEE):** currency settings and invoice settings (incl. `allowOversell`) could be changed by any role through the API or sync replay — only "online" was checked. Now `applyCurrencySettingsUpdate` / `applyInvoiceSettingsUpdate` require `settings.currencies` / `settings.invoice`, the same ids the Settings tabs use (`settingsSee.test.ts`). Smoke row 4.3 (SEE per action) is still open. |
+| 4.6 | Server enforces what the UI hides (`SEE.*`) | ⚠️ | High | Write methods guard with `ensureSeeIds`, `ensureTenantAccess` (via `createDocument`), `ensureSuperAdmin`, `ensureNewsroomManage` or `requireAccess`. **Found and fixed 2026-11-17 (SETTINGS-SEE):** currency settings and invoice settings (incl. `allowOversell`) could be changed by any role through the API or sync replay — only "online" was checked. Now `applyCurrencySettingsUpdate` / `applyInvoiceSettingsUpdate` require `settings.currencies` / `settings.invoice`, the same ids the Settings tabs use (`settingsSee.test.ts`). Not yet checked on staging with a real cashier login (no cashier credentials used). Smoke row 4.3 (SEE per action) is still open. |
 | 4.7 | Cron jobs and workers run per tenant and stay scoped | ✅ | — | Crons (`cron/*`): subscription lifecycle, invoice-AI roll and negative-quantity snapshot load active tenants with `ALL_TENANTS` and then work per tenant with that tenant id; token / import-draft cleanup is global by date on purpose. |
 | 4.8 | Warehouse scope: writes need an operational warehouse; combined view never posts | ✅ | — | Invoice, purchase, daily action, transfer, inventory and cash writes call `requireOperationalWarehouseId` (exactly one warehouse) and `ensureWarehouseAccess`; a combined view is refused. Non-owner roles are bounded by `user.warehouseIds`; owners now by the tenant's warehouses (4.3). |
 | 4.9 | Entity model: Tenant / Organization / Store / Branch / Warehouse / Seller — what a marketplace needs that `tenant_id` alone cannot express | ❌ | — | Only Tenant → Warehouse exists (PG-AUDIT-0 0.9). A marketplace / webshop would need what `tenant_id` cannot express: a **channel** (where a sale comes from), **listings** (which product, stock and price is offered where), **stock reservations** per order, and possibly **sellers** below a tenant. All can be added as new tables keyed by `(tenant_id, …)` without changing existing ones — design note for P10. |
@@ -319,16 +319,117 @@ Written after the checklists are filled. Nothing is fixed before the owner appro
    - Low
    - Future marketplace readiness
 
+### Report — 2026-11-17 (Part A: PG-AUDIT-0 … 4)
+
+**Summary.** The Postgres layer is sound for the switch. Every money and stock flow runs in one
+transaction with guarded single-statement updates; tenant scope is enforced by helpers that fail
+closed; history keeps its rates. The audit found five real bugs, all fixed, tested and verified on
+staging the same day: duplicate invoice numbers under parallel sales (INV-NUM-1, 5 × `SI-104501`
+seen on staging), two edits of one invoice corrupting stock (EDIT-RACE), daily actions revalued on
+sync / edit and unknown currencies counted 1 : 1 (DAILY-RATE), an owner's warehouse header naming
+another tenant's warehouse (TENANT-WH, 6 rows on staging), and currency / invoice settings writable
+by any role (SETTINGS-SEE). `npm run stress` now covers them (21 checks, green on staging for
+`d90b3ea`). What is left is mostly a second safety net in the database (constraints), money
+validation on the server, and decisions about old dev data before the production rehearsal. Part B
+(PG-AUDIT-5 … 12: indexes, reports, security, backup, deploy, jobs, monitoring) runs after the
+switch, as planned.
+
+**Strengths.**
+
+- One transaction per flow, READ COMMITTED with explicit locks; stock and cash guards are atomic
+  SQL, proven by parallel tests (2.1–2.4).
+- Corrections are reversing rows, never edits of posted cash (3.13); cash = ledger in every tenant
+  except one known Mongo-era gap (3.12).
+- Rates are snapshotted on invoices and exchanges; history is not recalculated (3.5–3.7, 3.11).
+- Tenant always from the login; all 34 hand-written queries scoped; writes overwrite `tenantId`
+  from the context (4.2, 4.3).
+- Migrations drift-checked in CI and applied before start (0.3).
+
+**Problems, ranked** (open only; fixed items are in the checklists above).
+
+| # | Problem | Where | Bucket |
+| --- | --- | --- | --- |
+| 1 | Data decisions before PG-MIG-3: `zobani-car` cash gap 1,600; 8,930 orphan inventory / movement rows (`center`); 62 orphan links and 6 foreign-warehouse cash accounts (`cafeshop`); 3 rate-less SYP daily actions; 5 × `SI-104501` (owner: ignore) | staging data, 1.12, 3.7c, 4.3 | Critical |
+| 2 | Plain `npm test` loads `.env` (staging `DATABASE_URL`) and runs the `*.pg.test.ts` files against staging — proven by an import probe; no test data found on staging yet | `config/config.ts:4`, `src/test/*.pg.test.ts` | High |
+| 3 | Server takes invoice totals, paid amounts and rates from the request; rate 0 becomes 1, negative passes | `shared/cashAccounts/posting.ts` `storedInvoiceTenders`, 3.5 | High |
+| 4 | API needs Mongo to start although it no longer reads it | `server.ts:13`, `docker-entrypoint.sh`, 0.7 | High |
+| 5 | No unique index on `(tenant_id, invoice_number)` (race fixed in code; DB net missing) | 1.4, INV-NUM-1 | High |
+| 6 | Totals not rounded to the currency (fractions of a cent in cash, float noise stored); no per-currency decimals | 3.1, 3.2 | Medium |
+| 7 | Only 6 FKs, 0 CHECK; 6 nullable key columns (all filled) | 1.3, 1.5, 1.6 | Medium |
+| 8 | No failure-injection test per flow; no two-tenant test per resource (P1, P5) | 2.8, 4.3 | Medium |
+| 9 | Permission (SEE) not yet checked action by action (smoke 4.3) | 4.6 | Medium |
+| 10 | Small: line lock order unsorted (2.7), `numeric` without scale / daily-action money as text (1.10), SSL only via URL (0.1), pools not closed on shutdown, Redis cache relies on every write calling `del`, role seed scripts write Mongo only, `Math.round(x*1e8)` limit above ~90 M units | 0.1, 0.7, 0.8, 1.10, 2.7, 3.2 | Low |
+
+**Plan.** Nothing below is started before the owner approves it.
+
+*Critical — before PG-MIG-3 go / no-go*
+
+- **C1 Old data decisions (#1).** Cause: Mongo-era deletes without guards, a stale warehouse
+  header, legacy imports. Fix: run the read-only checks (`orph.sql`, per-tenant checks) on the
+  production copy; per item decide keep / delete / repair; script the chosen repairs in the
+  rehearsal, never by hand. Impact: data only; no code. For dev-only tenants (`center`, `cafeshop`,
+  `app`): delete or ignore.
+
+*High — before PG-MIG-4*
+
+- ✅ **Done 2026-11-17** — **H1 Tests must never reach a shared database (#2).** Cause: `config.ts` loads `.env` at import,
+  and `.env` points at staging. Fix: Postgres tests read a separate `TEST_DATABASE_URL` (CI sets
+  it), never `DATABASE_URL`; one line in `CLAUDE.md`. Impact: test setup only; CI env change.
+- ✅ **Built 2026-11-17 (INV-MONEY-1), staging check pending** — **H2 Server-side invoice money checks (#3).** Cause: offline-first design trusted the client.
+  Fix: on create / edit, refuse rate ≤ 0 or not finite; recompute the primary total from the lines
+  (± 0.01) and refuse a mismatch; live requests check rates against today's settings, sync
+  replays keep their snapshot (same rule as cash exchanges). Impact: API only; old invoices
+  untouched; a buggy client gets a clear error instead of wrong books. Needs a short design note
+  for offline drafts.
+- ✅ **Done 2026-11-17** — **H3 Start without Mongo (#4).** Cause: migration kept the Mongo connection. Fix: drop
+  `connectDB()` and the Mongo check from `server.ts` / `docker-entrypoint.sh`; keep Mongoose only
+  as validation (it needs no connection). Impact: production depends on one database from the
+  switch on; rollback to Mongo still possible by redeploying the old image.
+- **H4 Unique invoice number index (#5).** Fix: after C1 confirms production has no duplicates,
+  add `UNIQUE (tenant_id, invoice_number)` for selling and buying (staging: a partial index or
+  clean the 5 dev rows first). Impact: one migration; the code already never produces duplicates.
+
+*Medium — after the switch, before new features*
+
+- **M1 Currency rounding (#6).** Add a decimals setting per currency (default 2); round invoice
+  totals and posted cash to it. Impact: new column + rounding in totals; old rows unchanged.
+- **M2 Database constraints (#7).** NOT NULL on the 6 filled key columns; CHECK on prices ≥ 0,
+  rates > 0, quantities > 0 on lines; composite FKs `(tenant_id, business id)` once C1 removed the
+  orphans. Impact: migrations; each fails fast if production data breaks the rule (run on the
+  copy first).
+- **M3 Proof tests (#8).** Failure-injection test per flow (create / edit sale and purchase,
+  transfer, cash exchange) and a two-tenant test per resource (P1, P5). Impact: tests only.
+- **M4 SEE per action (#9).** Finish smoke row 4.3 with a script that calls each write with a
+  role lacking the permission. Impact: tests; fixes where a gap shows up.
+
+*Low — when touched*
+
+- **L1** Sort invoice lines by product before locking; close pools in `gracefulShutdown`; set
+  `ssl` explicitly in `client.ts`; move role seeding to Postgres or delete it (PG-MIG-6);
+  `numeric(18, 6)` / text money only together with M1.
+
+*Future marketplace readiness*
+
+- **F1** New tables keyed by `(tenant_id, …)`: channel, listing (product × channel, own price /
+  stock share), stock reservation per order; optional seller below tenant (4.9). Existing tables
+  stay as they are.
+- **F2** General ledger only when accounting / tax reports need it: then FX gain / loss (3.9,
+  3.10) and card settlement (3.15).
+- **F3** Revisit row-level security when a second service reads the database (4.5).
+
+**Suggested order:** C1 is part of PG-MIG-3. H1 first (a minute of work, removes a real risk), then
+H3 and H4 with the rehearsal, H2 as its own ticket before PG-MIG-4.
+
 ## Done when — proven by tests
 
 | # | Proof | How | ✓ |
 | --- | --- | --- | --- |
 | P1 | One tenant cannot reach another tenant's data | API + repo tests with two tenants, every resource | |
-| P2 | One stock unit cannot be sold twice concurrently | Parallel sale test (`npm run stress` extended) | |
+| P2 | One stock unit cannot be sold twice concurrently | Parallel sale test (`npm run stress` extended) | ✓ 2026-11-17 staging: 12 buyers, 5 in stock → 5 sold, stock 0 |
 | P3 | All money flows keep the books balanced | Invariant query: ledger sum = balances (and debit = credit if a GL is added) after each flow | |
 | P4 | Currency conversions create correct, auditable entries | Exchange tests with snapshot rates and fees | |
 | P5 | Failure inside a transaction rolls back everything | Failure-injection test per flow | |
-| P6 | Retries / resends do not duplicate | Same client id twice → one record | |
+| P6 | Retries / resends do not duplicate | Same client id twice → one record | ✓ 2026-11-17 staging: offline batch sent 4× → each sale once |
 | P7 | A backup restores and the app runs on it | Restore drill on a fresh instance + smoke critical path | |
 | P8 | Migrations deploy without data loss or long downtime | Migrate a production copy, time it, verify | |
 | P9 | Core queries and reports are fast enough | `EXPLAIN ANALYZE` numbers on a production-sized copy | |

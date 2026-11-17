@@ -1,4 +1,3 @@
-import connectDB from './db/db'
 import { config } from './config/config'
 import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
 import { startNegativeQuantitySnapshotCron } from './cron/snapshotNegativeQuantity'
@@ -10,7 +9,6 @@ import { createApp } from './app'
 
 const app = createApp()
 
-connectDB()
 if (config.redis.enabled) {
 	redisCache.connect().catch(() => undefined)
 } else {

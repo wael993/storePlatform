@@ -306,6 +306,11 @@ paths:
       tags:
         - BuyingInvoices
       summary: Create buying invoice
+      description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
       operationId: postApiDataBuying-invoices
       security:
         - bearerAuth: []
@@ -486,6 +491,10 @@ paths:
         - BuyingInvoices
       summary: Update buying invoice
       description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
         Refused (business-logic error, "This invoice changed meanwhile. Reload and try again.")
         when the invoice was saved by another request after this edit read it; reload and retry.
       operationId: patchApiDataBuying-invoicesId
@@ -5102,6 +5111,11 @@ paths:
       tags:
         - SellingInvoices
       summary: Create selling invoice
+      description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
       operationId: postApiDataSelling-invoices
       security:
         - bearerAuth: []
@@ -5176,6 +5190,10 @@ paths:
         - SellingInvoices
       summary: Update selling invoice
       description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
         Refused (business-logic error, "This invoice changed meanwhile. Reload and try again.")
         when the invoice was saved by another request after this edit read it; reload and retry.
       operationId: patchApiDataSelling-invoicesId

@@ -6404,6 +6404,7 @@ export default class ProductController {
 						clientMutationId: entry.clientMutationId,
 					},
 					requestContext,
+					true,
 				)) as Record<string, unknown>
 			} else if (entry.entity === 'invoice' && entry.method === 'PATCH') {
 				const invoiceId = this.extractSyncPathId(entry.url)
@@ -6412,6 +6413,7 @@ export default class ProductController {
 					invoiceId,
 					payload as Partial<InvoiceRequestBody>,
 					requestContext,
+					true,
 				)) as Record<string, unknown>
 
 				await this.recordSyncMutation(
@@ -6445,6 +6447,7 @@ export default class ProductController {
 						clientMutationId: entry.clientMutationId,
 					},
 					requestContext,
+					true,
 				)) as Record<string, unknown>
 			} else if (entry.entity === 'buyingInvoice' && entry.method === 'PATCH') {
 				const buyingInvoiceId = this.extractSyncPathId(entry.url)
@@ -6453,6 +6456,7 @@ export default class ProductController {
 					buyingInvoiceId,
 					payload as Partial<BuyingInvoiceRequestBody>,
 					requestContext,
+					true,
 				)) as Record<string, unknown>
 
 				await this.recordSyncMutation(

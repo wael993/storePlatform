@@ -61,6 +61,7 @@ jobs:
           - 27019:27017
     env:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/store_platform
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/store_platform
       MONGO_TEST_URL: mongodb://127.0.0.1:27019/mq_test
     steps:
       - uses: actions/checkout@v4
