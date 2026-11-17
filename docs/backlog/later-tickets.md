@@ -183,8 +183,8 @@ get the same number. Same in Mongo today and in the Postgres port (kept as-is on
 
 - [x] Two parallel creates never share a number (test with concurrent transactions)
 - [x] Offline-reserved numbers still accepted when free (existing test unchanged, passes)
-- [ ] Unique index on `(tenant_id, invoice_number)` — owner decision 2026-11-17: the 5 legacy
-  `SI-104501` duplicates on staging are ignored; check the production copy before adding the index
+- [ ] ~~Unique index on `(tenant_id, invoice_number)`~~ — owner decision 2026-11-17: not done (H4
+  ignored); the allocation lock is the protection. The 5 `SI-104501` rows were deleted with the dev tenants.
 
 ---
 
@@ -234,9 +234,32 @@ customer balance, cash). Only cash exchanges are checked today.
 - [x] Shared formula in `store-domain`; web uses it unchanged (existing web tests pass)
 - [x] API test per refusal rule (rate 0 / negative, total ≠ lines, secondary ≠ primary × rate, paid > total) — `invoiceMoney.test.ts`
 - [x] Sync replay with an old rate accepted; live request with an old rate refused (decision A)
-- [ ] `npm run stress` and a manual offline sale still pass on staging
+- [x] `npm run stress` and a manual offline sale still pass on staging (2026-11-17, `8fd71e4`)
 - [x] `docs/reference` + `openapi.yaml` list the refusals
 
 ### Out of scope
 
 Currency rounding (M1) and stored float noise; buying-invoice landed costs.
+
+---
+
+## PROD-BARCODE-1 — Merge duplicate products from the 2026-09-22 import
+
+**Type:** Data cleanup · **Priority:** Low · **Found:** PG-MIG-3 rehearsal, tenant `oneDollar` (2026-11-17)
+
+### Problem
+
+414 products share 175 barcodes (same names, up to 8 per barcode), all created by the repeated
+import of 2026-09-22 (Mongo era, before the import commit was one transaction). A barcode scan can
+hit any of them; stock and sales are split across the copies.
+
+### Do
+
+1. List per barcode: products, stock per warehouse, invoice / buying / movement references.
+2. Owner picks the product to keep per barcode (default: the one with sales, else the oldest).
+3. One transaction per barcode: move references and stock to the kept product, delete the rest
+   (stock summed per warehouse, average cost qty-weighted via `store-domain`).
+
+### Out of scope
+
+Preventing it again: the import commit is already transactional (smoke 5.4).

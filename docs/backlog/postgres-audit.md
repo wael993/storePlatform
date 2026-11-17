@@ -364,7 +364,28 @@ switch, as planned.
 
 *Critical — before PG-MIG-3 go / no-go*
 
-- **C1 Old data decisions (#1).** Cause: Mongo-era deletes without guards, a stale warehouse
+- ✅ **Staging done 2026-11-17 (owner decision: delete):** all dev tenants removed except `postgresql` and the super admin (10 tenants, 13 users, 25,164 store rows; backup taken first; dry run, then one transaction). After: 0 orphans, 0 duplicates, cash = ledger, `zobani-car` gap gone with its tenant. **Production copy:** run the same read-only checks in PG-MIG-3 and decide there — real shop data is not deleted wholesale. **First production tenant (2026-11-17):** `rivo testing` (`e630302b-…`) copied to staging with `scripts/copy-prod-tenant.sh` (`--verify` passed, no unmapped fields). Checks: 0 duplicates, cash = ledger, rates / totals valid, cash per invoice = paid amount (18 / 18, all historical invoices without tenders), no foreign warehouses. Findings: 2 purchase invoices (BI-000002, BI-000003) point to suppliers deleted in production on Mongo (names kept on the invoice); 1 negative stock (oversell allowed); 1 ledger row 7.14285714 (M1 rounding). Owner decision: keep the 2 orphans as they are (a).
+  **Biggest production tenant (2026-11-17):** `oneDollar` (`93b80634-…`: 4 users, 2,696 products,
+  1,016 sales, 1,476 ledger rows) copied to staging, `--verify` passed. Clean: 0 duplicate invoice
+  numbers, cash = ledger, rates / totals valid, reversals mirror, transfers net 0, daily actions all
+  rated; cash per invoice correct for 1,007 / 1,016 — the other 9 are 7 Mongo-era invoices whose stored
+  `paidAmount` is a few cents above the total while the ledger got exactly the total, and 2 drafts
+  (no cash, correct). Findings for the cutover decision:
+  1. 16,430 inventory rows (10,996 with quantity) for products that no longer exist — import of
+     2026-09-21/22, same pattern as dev tenant `center`.
+  2. 414 products share 175 barcodes (same names), all created by the 2026-09-22 import.
+  3. 3 empty cash accounts on a warehouse that is not this tenant's, created 2026-11-16 (the
+     TENANT-WH bug in production; fixed in `d90b3ea`).
+  4. 4 invoices point to 2 customers that are not in the copy (OSAMA ALHOMSI, ابو قاسم); 3 are credit
+     with 1,458 open (one a draft). Delete guard exists since 2026-10-14; no sync error found — check
+     production Mongo whether the customers exist there without `tenantId`.
+  5. 268 ledger rows with > 2 decimals (M1 rounding).
+  **Decisions (owner, 2026-11-17):** #1 and #3 deleted at cutover by `scripts/cutover-cleanup.sql`
+  (dry run + apply rehearsed on this copy: 16,430 stock rows, 3 cash accounts; afterwards 2,696
+  stock rows for 2,696 products, cash = ledger). Cause of #1: the same ~2,660-row file imported ~7×
+  on 2026-09-21/22; earlier runs left stock without products — cannot recur (import commit is one
+  transaction; product delete removes stock). #2 → ticket PROD-BARCODE-1. #5 → M1. #4 waits for
+  the production Mongo check. — **C1 Old data decisions (#1).** Cause: Mongo-era deletes without guards, a stale warehouse
   header, legacy imports. Fix: run the read-only checks (`orph.sql`, per-tenant checks) on the
   production copy; per item decide keep / delete / repair; script the chosen repairs in the
   rehearsal, never by hand. Impact: data only; no code. For dev-only tenants (`center`, `cafeshop`,
@@ -375,7 +396,7 @@ switch, as planned.
 - ✅ **Done 2026-11-17** — **H1 Tests must never reach a shared database (#2).** Cause: `config.ts` loads `.env` at import,
   and `.env` points at staging. Fix: Postgres tests read a separate `TEST_DATABASE_URL` (CI sets
   it), never `DATABASE_URL`; one line in `CLAUDE.md`. Impact: test setup only; CI env change.
-- ✅ **Built 2026-11-17 (INV-MONEY-1), staging check pending** — **H2 Server-side invoice money checks (#3).** Cause: offline-first design trusted the client.
+- ✅ **Done 2026-11-17 (INV-MONEY-1), verified on staging (`8fd71e4`):** stress 21/21; online sale SI-011505 and offline-synced sale SI-011005 paid in ليرة (1,680 / 315 = total × 140, ledger equal); all 11 invoices since the deploy: total = lines, secondary = primary × rate, rates = today's — **H2 Server-side invoice money checks (#3).** Cause: offline-first design trusted the client.
   Fix: on create / edit, refuse rate ≤ 0 or not finite; recompute the primary total from the lines
   (± 0.01) and refuse a mismatch; live requests check rates against today's settings, sync
   replays keep their snapshot (same rule as cash exchanges). Impact: API only; old invoices
@@ -385,7 +406,7 @@ switch, as planned.
   `connectDB()` and the Mongo check from `server.ts` / `docker-entrypoint.sh`; keep Mongoose only
   as validation (it needs no connection). Impact: production depends on one database from the
   switch on; rollback to Mongo still possible by redeploying the old image.
-- **H4 Unique invoice number index (#5).** Fix: after C1 confirms production has no duplicates,
+- ⏭️ **Owner decision 2026-11-17: not done.** The per-tenant allocation lock (INV-NUM-1) stays the only protection; staging stress proves no duplicates. — **H4 Unique invoice number index (#5).** Fix: after C1 confirms production has no duplicates,
   add `UNIQUE (tenant_id, invoice_number)` for selling and buying (staging: a partial index or
   clean the 5 dev rows first). Impact: one migration; the code already never produces duplicates.
 

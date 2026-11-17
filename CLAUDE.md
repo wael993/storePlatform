@@ -16,6 +16,8 @@ Monorepo: API in `services/api-store-platform`, web app in `web/store-platform-f
     `.env`'s `DATABASE_URL` is ignored by tests (`src/test/setup.ts`).
 - Web (`web/store-platform-frontend`): `npm run typecheck` · `npm run lint:ci` ·
   `npm test` · `node scripts/checkTranslations.mjs`
+- Databases (local :5434, test :5433, staging; production-tenant copy; `npm run stress:local`):
+  `docs/reference/databases.md`.
 - Newer-Node vs jsdom test gaps are patched in `web/store-platform-frontend/src/test/jsdomNodeCompat.ts`.
 
 ## Hard rules

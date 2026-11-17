@@ -40,7 +40,8 @@
 		"db:migrate": "drizzle-kit migrate",
 		"pg:etl": "ts-node src/scripts/pg-etl.ts",
 		"api:diff": "ts-node src/scripts/api-diff.ts",
-		"stress": "ts-node src/scripts/stress.ts"
+		"stress": "ts-node src/scripts/stress.ts",
+		"stress:local": "npm run build && sh scripts/stress-local.sh"
 	},
 	"keywords": [],
 	"author": "",

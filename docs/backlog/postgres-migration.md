@@ -328,6 +328,9 @@ tenant first, then each active tenant, then batch the rest of the idle tenants.
    restore + `resetRequired` in backup reference.
 3. Final Mongo dump → Postgres load.
 4. Reconcile must be exact.
+4b. Cleanup: `psql "$DATABASE_URL" -f scripts/cutover-cleanup.sql` (dry run, read the counts),
+    then again with `-v apply=1`. Removes stock rows without a product and empty cash accounts on a
+    foreign warehouse (PG-AUDIT C1; rehearsed on the `oneDollar` copy 2026-11-17: 16,430 + 3 rows).
 5. Flip `tenants.dataStore = postgres`.
 6. Smoke: login, sell, buy, cash transfer, cash exchange (already shipped — smoke
    only), stock move, sync pull/push, backup run if enabled.
