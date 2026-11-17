@@ -997,6 +997,9 @@ paths:
       tags:
         - Settings
       summary: Update currency settings
+      description: >-
+        Requires the `settings.currencies` SEE permission (same as the Settings tab in the app); refused
+        otherwise, also when replayed through `/sync/push`.
       operationId: patchApiDataCurrency-settings
       security:
         - bearerAuth: []
@@ -2598,6 +2601,9 @@ paths:
       tags:
         - Settings
       summary: Update invoice settings
+      description: >-
+        Requires the `settings.invoice` SEE permission (same as the Settings tab in the app); refused
+        otherwise, also when replayed through `/sync/push`.
       operationId: patchApiDataInvoice-settings
       security:
         - bearerAuth: []

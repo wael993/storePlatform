@@ -15,6 +15,7 @@ type RequestLike = {
 	}
 	allowedFields?: string[]
 	see?: string[]
+	tenantWarehouseIds?: string[]
 }
 
 export const buildRequestContext = (request: RequestLike): RequestContext => {
@@ -35,6 +36,7 @@ export const buildRequestContext = (request: RequestLike): RequestContext => {
 		warehouseScope: resolveWarehouseScope(
 			base,
 			request.headers['x-warehouse-scope'],
+			request.tenantWarehouseIds,
 		),
 	}
 }

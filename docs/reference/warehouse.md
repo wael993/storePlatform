@@ -45,6 +45,7 @@ The number of selected warehouses decides the mode. The backend enforces this; t
 
 - A non-owner with no `warehouseIds` has no access: lists are empty and writes fail.
 - An owner or `super_admin` with no `x-warehouse-scope` header is unrestricted on **reads** (all tenant warehouses). Writes still require exactly one selected warehouse.
+- An owner or `super_admin` **with** the header gets only ids that are warehouses of their own tenant; another tenant's id (stale browser state after switching accounts, or a forged header) is dropped (`loadTenantWarehouseIds` in the auth middleware → `resolveWarehouseScope`).
 
 The UI defaults a user to the first accessible warehouse so they land in operational mode. Combined view is an explicit multi-select.
 

@@ -42,6 +42,8 @@ import {
 	stampDeleteAvailability,
 } from '../../shared/deleteBlock'
 import { getTenantContext } from '../../shared/tenant'
+import { ensureSeeIds } from '../../shared/seePermissions'
+import { SEE } from '../../shared/seeCatalog'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CreateCurrencyResponse,
@@ -393,6 +395,9 @@ export default class SettingController {
 			secondaryCurrencies?: ICurrencySettingItem[]
 		},
 	): Promise<ICurrencySettings> {
+		// REST and sync replay both land here; the UI hides the tab without this SEE
+		await ensureSeeIds(requestContext, [SEE.settingsCurrencies])
+
 		const tenantId = this.getTenantId(requestContext)
 		const { primaryCurrency, secondaryCurrencies } = body
 
@@ -606,6 +611,8 @@ export default class SettingController {
 			footerNote?: string
 		},
 	): Promise<IInvoiceSettings> {
+		await ensureSeeIds(requestContext, [SEE.settingsInvoice])
+
 		const tenantId = this.getTenantId(requestContext)
 		const updateData: Partial<IInvoiceSettings> = {}
 

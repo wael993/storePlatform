@@ -349,7 +349,103 @@ const main = async () => {
 		)
 	}
 
-	// 6. Database invariants for this tenant (optional)
+	// 6. Daily-action rate snapshot (DAILY-RATE): live = settings, replay = stamped, edit keeps it
+	const secondary = (
+		(await ok('GET', '/currency-settings')).secondaryCurrencies as Json[]
+	)?.[0]
+
+	// a receipt needs a party
+	const customer = ((await ok('GET', '/customers')).data as Json[])?.[0]
+
+	if (!secondary || !customer) {
+		console.log(
+			'skip daily-action rate: tenant needs a secondary currency and a customer',
+		)
+	} else {
+		const settingsRate = Number(secondary.exchangeRate)
+		const stampedRate = settingsRate * 2
+		const entry = (actionId: string, currencyId = secondary.currencyId) => ({
+			actionId,
+			entryType: 'RECEIPT_ENTRY',
+			customerId: customer.customerId,
+			customerName: customer.name,
+			currencyId,
+			currencyName: secondary.name,
+			cashAccountType: 'daily_cash',
+			singleUnitPrice: '1000',
+			totalPrice: '1000',
+			note: `stress rate ${run}`,
+			invoiceDate: new Date().toISOString(),
+			warehouseId,
+		})
+		const rateOf = async (actionId: string) =>
+			Number(
+				(await ok('GET', `/daily-actions/${actionId}`)).data?.[0]
+					?.exchangeRateToPrimary,
+			)
+		const liveId = randomUUID()
+		const replayId = randomUUID()
+
+		try {
+			// a live request ignores a rate in the body
+			await ok('POST', '/daily-actions', {
+				...entry(liveId),
+				exchangeRateToPrimary: stampedRate,
+			})
+
+			check(
+				'daily rate: live create takes settings rate',
+				(await rateOf(liveId)) === settingsRate,
+				`rate ${await rateOf(liveId)} (expected ${settingsRate})`,
+			)
+
+			await ok('POST', '/sync/push', {
+				entries: [
+					{
+						clientMutationId: randomUUID(),
+						entity: 'dailyAction',
+						operation: 'create',
+						url: '/daily-actions',
+						method: 'POST',
+						payload: { ...entry(replayId), exchangeRateToPrimary: stampedRate },
+					},
+				],
+			})
+
+			check(
+				'daily rate: sync replay keeps the device rate',
+				(await rateOf(replayId)) === stampedRate,
+				`rate ${await rateOf(replayId)} (expected ${stampedRate})`,
+			)
+
+			await ok('PATCH', `/daily-actions/${replayId}`, {
+				...entry(replayId),
+				note: `stress rate edited ${run}`,
+			})
+
+			check(
+				'daily rate: edit with same currency keeps the rate',
+				(await rateOf(replayId)) === stampedRate,
+				`rate ${await rateOf(replayId)} (expected ${stampedRate})`,
+			)
+
+			const unknown = await call(
+				'POST',
+				'/daily-actions',
+				entry(randomUUID(), randomUUID()),
+			)
+
+			check(
+				'daily rate: unknown currency refused',
+				unknown.status >= 400,
+				`status ${unknown.status}`,
+			)
+		} finally {
+			await call('DELETE', '/daily-actions', { actionIds: [liveId, replayId] })
+		}
+	}
+
+	// 7. Database invariants for this tenant (optional)
 	if (process.env.STRESS_DATABASE_URL) {
 		const pool = new Pool({ connectionString: process.env.STRESS_DATABASE_URL })
 		const tenantId = login.tenantId as string

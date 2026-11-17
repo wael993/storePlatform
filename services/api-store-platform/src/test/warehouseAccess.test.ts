@@ -46,6 +46,19 @@ describe('warehouseAccess', () => {
 		expect(parseWarehouseScopeHeader(undefined)).toBeUndefined()
 	})
 
+	it("drops another tenant's warehouse from an owner's header", () => {
+		const own = ['w1', 'w2']
+
+		expect(resolveWarehouseScope(ownerCtx, 'w1', own)).toEqual(['w1'])
+		expect(resolveWarehouseScope(ownerCtx, 'other-tenant-wh', own)).toEqual([])
+		expect(resolveWarehouseScope(ownerCtx, 'w2,other-tenant-wh', own)).toEqual([
+			'w2',
+		])
+
+		// no header: still unrestricted
+		expect(resolveWarehouseScope(ownerCtx, undefined, own)).toBeNull()
+	})
+
 	it('resolves scope from ACL and never lets a header widen it', () => {
 		expect(resolveWarehouseScope(ownerCtx, undefined)).toBeNull()
 		expect(resolveWarehouseScope(ownerCtx, 'w1')).toEqual(['w1'])

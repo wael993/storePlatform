@@ -1,4 +1,5 @@
 import { Inventory } from '../models/Inventory'
+import { Warehouse } from '../models/Warehaus'
 import { pgFind } from '../db/mongoQuery'
 import {
 	AuthorizationError,
@@ -66,6 +67,8 @@ export const parseWarehouseScopeHeader = (
 export const resolveWarehouseScope = (
 	requestContext: Pick<RequestContext, 'role' | 'user'>,
 	headerValue?: string | string[],
+	/** The tenant's own warehouses; bounds an unrestricted role's header. */
+	tenantWarehouseIds?: readonly string[],
 ): string[] | null => {
 	const requested = parseWarehouseScopeHeader(headerValue)
 	const allowed = getAllowedWarehouseIds(requestContext as RequestContext)
@@ -75,13 +78,34 @@ export const resolveWarehouseScope = (
 	}
 
 	if (allowed === null) {
-		return requested
+		// another tenant's warehouse id (stale browser state, forged header) is dropped
+		return tenantWarehouseIds
+			? requested.filter(id => tenantWarehouseIds.includes(id))
+			: requested
 	}
 
 	const allowedSet = new Set(allowed)
 
 	return requested.filter(id => allowedSet.has(id))
 }
+
+/**
+ * Warehouse ids of the tenant, loaded by the auth middleware only when an
+ * unrestricted role (owner / super admin) sends a scope header.
+ */
+export const loadTenantWarehouseIds = async (
+	tenantId: string,
+): Promise<string[]> =>
+	(
+		await pgFind<{ warehouseId: string }>(
+			Warehouse,
+			tenantId,
+			{},
+			{
+				select: { warehouseId: 1 },
+			},
+		)
+	).map(row => row.warehouseId)
 
 /** Effective working scope: header-resolved list, or ACL when unset. */
 export const getEffectiveWarehouseIds = (
