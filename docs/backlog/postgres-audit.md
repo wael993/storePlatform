@@ -101,28 +101,28 @@ Answer each in a few lines with file references. **Done 2026-11-17** (read from 
 
 | # | Check | Status | Priority | Evidence / note |
 | --- | --- | --- | --- | --- |
-| 2.1 | Every multi-table write runs in one transaction | | | |
-| 2.2 | All-or-nothing: a throw mid-way leaves nothing behind | | | |
-| 2.3 | Isolation level chosen on purpose per flow | | | |
-| 2.4 | Race conditions blocked (row locks, `FOR UPDATE`, atomic `UPDATE … WHERE`) | | | |
-| 2.5 | No update based on a stale read (read-modify-write inside the lock) | | | |
-| 2.6 | Key business rules also enforced in the database | | | |
-| 2.7 | Deadlocks: lock order consistent; retry exists and is safe to repeat | | | |
-| 2.8 | Failure injection tested (throw after step N) | | | |
+| 2.1 | Every multi-table write runs in one transaction | ✅ | — | One `inTransaction` per flow (`db/index.ts`): sale / purchase create, edit, delete (`apis/selling-invoice`, `apis/buying-invoice`), product create / edit with opening stock, warehouse transfer create / edit / delete, daily action create / edit / delete (`apis/api.controller.ts`), cash transfer / exchange / opening balance (`ledgerService.ts`), employee, newsroom, tenant, import commit. After commit and outside the transaction only: Redis cache `del` and `recordSyncMutation` — safe, a replay finds the existing invoice by its `invoiceId` first. |
+| 2.2 | All-or-nothing: a throw mid-way leaves nothing behind | ✅ | — | Follows from 2.1 (stock, cash, number and invoice row in the same transaction). Proven by test only for invoice delete (`documentActions.pg.test.ts` "keeps the invoice when the rest of its delete transaction fails"); other flows → 2.8. |
+| 2.3 | Isolation level chosen on purpose per flow | ✅ | — | READ COMMITTED everywhere (default), on purpose: correctness comes from guarded single-statement updates and explicit locks (2.4), not from SERIALIZABLE. Fine as long as every read-modify-write takes a lock — 2.5 has the one gap. |
+| 2.4 | Race conditions blocked (row locks, `FOR UPDATE`, atomic `UPDATE … WHERE`) | ✅ | — | Stock: one guarded `UPDATE … WHERE quantity − reserved >= n` / upsert per line (`repos/inventory.ts`), average cost in the same statement. Cash: guarded `UPDATE … WHERE amount + x >= 0` (`ledgerService.ts`). Invoice numbers: per-tenant advisory lock (INV-NUM-1, fixed). Offline blocks: one atomic upsert. Transfer edit / delete: `claimWarehouseTransferLegs` (`FOR UPDATE` + exact-legs check). Invoice delete: deletes the row first, so a second delete finds nothing. Generic updates lock the row (`docs.ts`). Stress on staging 2026-11-17: parallel sales, double delete, replay all pass. |
+| 2.5 | No update based on a stale read (read-modify-write inside the lock) | ✅ | ~~High~~ | **Fixed 2026-11-17 (EDIT-RACE):** both edits now start their transaction with `lockUnchangedInvoice` (`db/repos/invoices.ts`): `SELECT … FOR UPDATE` on the invoice and refuse ("changed meanwhile. Reload and try again.") unless `updatedAt` is still the one the edit read. Tests: `invoices.pg.test.ts` (fails without the check) and `npm run stress` "parallel edits". Original finding: **Sale and purchase invoice edit** read the existing invoice **before** the transaction without a lock (`selling-invoice/api.controller.ts:1302` `patchInvoice`, `buying-invoice/api.controller.ts` `patchBuyingInvoice`), then inside it reverse the *old* items and apply the new ones as stock deltas; the invoice row is locked only at the final save. Two edits of the same invoice at once (two tabs, two cashiers, double click on save) both reverse the same old items. Example: stock 10, sale of 2 → 8. Edit A (→ 3) and edit B (→ 1) run together, both from the old snapshot: A +2 −3 → 7, B +2 −1 → 8. Stock ends at 8 (= 2 sold), but the invoice says 3 or 1, whichever saved last. Cash is not affected (each edit rewrites the invoice's ledger to its final state). The stress "edits back and forth" ran edits one after another, so it did not catch this. Daily action edit (saves first, then reads), transfer edit (claim check) and all deletes are safe. Fix: lock and re-read the invoice inside the transaction (`SELECT … FOR UPDATE`) before reversing. |
+| 2.6 | Key business rules also enforced in the database | ⚠️ | Medium | In the DB: uniqueness of business ids, `sync_mutations (tenant, client_mutation_id)`, ledger `idempotency_key`, inventory `(tenant, warehouse, product)`, one pending renewal per tenant, one default label template. Only in code: stock ≥ 0 when oversell is off, cash ≥ 0, invoice-number uniqueness, sign / rate rules (PG-AUDIT-1 1.4, 1.6). The code guards are atomic SQL, so they hold under concurrency; the gap is only a second safety net. |
+| 2.7 | Deadlocks: lock order consistent; retry exists and is safe to repeat | ⚠️ | Low | Retry: an own transaction is re-run up to 3 times on `40P01` / `40001` (tested: `inventory.pg.test.ts` "retries a transaction that lost a deadlock"); the callbacks only write to the DB, so a re-run is clean. Lock order: invoice lines are locked in request order, not sorted by product — two edits with lines [A, B] and [B, A] can deadlock and get retried. Creates in one tenant no longer deadlock with each other (serialized by the INV-NUM-1 lock). Sorting lines by product id would remove the remaining case. |
+| 2.8 | Failure injection tested (throw after step N) | ⚠️ | Medium | One test: invoice delete rolls back when a later step fails. None for sale / purchase create and edit, transfer, cash transfer / exchange. Root `CLAUDE.md`: no full Mongo/Postgres test setup — but the `*.pg.test.ts` files already run against a real Postgres (CI service), so these can be added there. |
 
 Walk each flow and record the lock order, rows touched, and rollback result:
 
 | Flow | Transaction? | Locks | Rollback tested | Note |
 | --- | --- | --- | --- | --- |
-| Create sales invoice | | | | |
-| Create purchase invoice | | | | |
-| Edit / delete invoice (cancel) | | | | |
-| Returns | | | | |
-| Stock update / transfer / exchange | | | | |
-| Cash account movement / transfer | | | | |
-| Cash exchange (currency conversion) | | | | |
-| Ledger / accounting entries | | | | |
-| Offline sync replay | | | | |
+| Create sales invoice | ✅ one | number lock (tenant) → invoice insert → stock row per line (guarded update) → cash balance (guarded) | ⚠️ not per flow | Duplicate request: unique `invoice_id` aborts the second one; replay finds it by id first |
+| Create purchase invoice | ✅ one | number lock → insert → stock upsert with average cost → cash | ⚠️ | Same as sales |
+| Edit / delete invoice (cancel) | ✅ one | Delete: invoice row first, then stock, cash. Edit: invoice row `FOR UPDATE` + version check first, then stock lines, cash, invoice save | Delete ✅ (test) · Edit ✅ (race test) | Edit race fixed 2026-11-17 — 2.5 |
+| Returns | — | — | — | No separate return flow: a return is a sale edit or delete (`return_in` stock movements), so 2.5 applies |
+| Stock update / transfer / exchange | ✅ one | Transfer: source rows (guarded), target rows; edit / delete claim legs `FOR UPDATE` first | ⚠️ | Double delete of a transfer: tested (`inventory.pg.test.ts`) |
+| Cash account movement / transfer | ✅ one | Guarded `UPDATE` on the source balance, upsert on the target | ⚠️ | Overdraft refused atomically (tested in `ledgerService.pg.test.ts`) |
+| Cash exchange (currency conversion) | ✅ one | Same as transfer, two currencies | ⚠️ | Rate / fee correctness → PG-AUDIT-3 |
+| Ledger / accounting entries | ✅ inside each flow | Ledger rows + `cash_account_balances` in the caller's transaction; unique `idempotency_key` | ⚠️ | Balance = ledger sum: checked on staging (only the known `zobani-car` gap) |
+| Offline sync replay | ✅ per entry | Each entry runs its normal create / edit transaction; `sync_mutations` recorded after | ✅ stress | Crash between commit and record: replay finds the existing record by its id. Replayed edits get the 2.5 check too |
 
 ### PG-AUDIT-3 — Money and multi-currency (brief §6)
 

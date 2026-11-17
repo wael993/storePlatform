@@ -282,7 +282,39 @@ const main = async () => {
 		)
 	}
 
-	// 4. Offline batch pushed twice, then twice at once: each sale exists once
+	// 4. Two edits of one sale at once (EDIT-RACE): stock matches what the invoice says
+	{
+		const productId = await newProduct('edit-race', 100)
+		const body = sale(productId, 2, 20)
+		const invoiceId =
+			(await ok('POST', '/selling-invoices', body)).invoiceId ?? body.invoiceId
+		const edit = (quantity: number) => {
+			const patch: Json = sale(productId, quantity, PRICE * quantity, invoiceId)
+
+			delete patch.invoiceId
+			delete patch.clientMutationId
+
+			return call('PATCH', `/selling-invoices/${invoiceId}`, patch)
+		}
+		const edits = await Promise.all([edit(3), edit(1)])
+		const saved = await ok('GET', `/selling-invoices/${invoiceId}`)
+		const invoiceQuantity = Number(saved.items?.[0]?.quantity)
+		const stockNow = await stock(productId)
+
+		check(
+			'parallel edits: at least one succeeds',
+			edits.some(r => r.status < 300),
+			`statuses ${edits.map(r => r.status).join(', ')}`,
+		)
+
+		check(
+			'parallel edits: stock matches the saved invoice',
+			stockNow === 100 - invoiceQuantity,
+			`stock ${stockNow}, invoice quantity ${invoiceQuantity} (expected stock ${100 - invoiceQuantity})`,
+		)
+	}
+
+	// 5. Offline batch pushed twice, then twice at once: each sale exists once
 	{
 		const productId = await newProduct('sync', 100)
 		const cashBefore = await cash()
@@ -317,7 +349,7 @@ const main = async () => {
 		)
 	}
 
-	// 5. Database invariants for this tenant (optional)
+	// 6. Database invariants for this tenant (optional)
 	if (process.env.STRESS_DATABASE_URL) {
 		const pool = new Pool({ connectionString: process.env.STRESS_DATABASE_URL })
 		const tenantId = login.tenantId as string

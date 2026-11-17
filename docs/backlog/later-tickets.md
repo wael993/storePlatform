@@ -160,6 +160,10 @@ Base64 values. Keep PDF/header rendering working.
 `invoices.pg.test.ts` (8 parallel creates) and `npm run stress` (unique numbers check). Open: steps 1–2
 (unique index as a second net; needs a decision on the legacy duplicates).
 
+**Staging (2026-11-17, deploy of 7eb0f20):** `npm run stress` on tenant `postgresql` — all 15 checks
+passed; 5 parallel sales got `SI-008505` … `SI-008509`. Read-only data checks: no duplicate numbers,
+no orphans, cash = ledger in that tenant.
+
 ### Problem
 
 `allocateInvoiceNumberForCreate` finds a free number, then the invoice is inserted. There is no unique
@@ -179,4 +183,5 @@ get the same number. Same in Mongo today and in the Postgres port (kept as-is on
 
 - [x] Two parallel creates never share a number (test with concurrent transactions)
 - [x] Offline-reserved numbers still accepted when free (existing test unchanged, passes)
-- [ ] Unique index on `(tenant_id, invoice_number)` after legacy duplicates are resolved
+- [ ] Unique index on `(tenant_id, invoice_number)` — owner decision 2026-11-17: the 5 legacy
+  `SI-104501` duplicates on staging are ignored; check the production copy before adding the index

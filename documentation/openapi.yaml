@@ -485,6 +485,9 @@ paths:
       tags:
         - BuyingInvoices
       summary: Update buying invoice
+      description: >-
+        Refused (business-logic error, "This invoice changed meanwhile. Reload and try again.")
+        when the invoice was saved by another request after this edit read it; reload and retry.
       operationId: patchApiDataBuying-invoicesId
       security:
         - bearerAuth: []
@@ -5158,6 +5161,9 @@ paths:
       tags:
         - SellingInvoices
       summary: Update selling invoice
+      description: >-
+        Refused (business-logic error, "This invoice changed meanwhile. Reload and try again.")
+        when the invoice was saved by another request after this edit read it; reload and retry.
       operationId: patchApiDataSelling-invoicesId
       security:
         - bearerAuth: []

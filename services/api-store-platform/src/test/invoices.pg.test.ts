@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto'
+import { eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 
 import { closeDb, DbTx, getDb, inTransaction } from '../db'
@@ -7,6 +8,7 @@ import {
 	allocateInvoiceNumber,
 	allocateOfflineBlock,
 	lastUnitPricesByProduct,
+	lockUnchangedInvoice,
 	nextInvoiceSequence,
 } from '../db/repos/invoices'
 import { invoiceItems, invoices } from '../db/schema'
@@ -101,6 +103,35 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 		const numbers = await Promise.all(Array.from({ length: 8 }, create))
 
 		expect(new Set(numbers).size).toBe(8)
+	})
+
+	it('lets only one of two edits from the same snapshot through (EDIT-RACE)', async () => {
+		const tenantId = tenant()
+		const created = await sale(tenantId, 'SI-000001')
+		const invoiceId = created.invoiceId as string
+		const edit = () =>
+			inTransaction(undefined, async tx => {
+				await lockUnchangedInvoice(
+					tx,
+					'selling',
+					tenantId,
+					invoiceId,
+					created.updatedAt,
+				)
+
+				// stands in for reversing and re-applying the stock lines
+				await new Promise(resolve => setTimeout(resolve, 50))
+				await tx
+					.update(invoices)
+					.set({ updatedAt: new Date() })
+					.where(eq(invoices.invoiceId, invoiceId))
+			})
+		const results = await Promise.allSettled([edit(), edit()])
+
+		expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1)
+		expect(results.find(r => r.status === 'rejected')?.reason?.message).toMatch(
+			/changed meanwhile/,
+		)
 	})
 
 	it('reserves offline blocks atomically and raises the online floor', async () => {

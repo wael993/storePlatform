@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
 import { pgFind, pgFindOne, pgUpdateMany } from '../../db/mongoQuery'
+import { lockUnchangedInvoice } from '../../db/repos/invoices'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -948,6 +949,16 @@ export default class BuyingInvoiceController {
 
 		const { updateResponse, touchedInventoryIds } =
 			await this.ops.runInTransaction(async session => {
+				if (existingInvoice) {
+					await lockUnchangedInvoice(
+						session,
+						'buying',
+						this.getTenantId(requestContext),
+						buyingInvoiceId,
+						existingInvoice.updatedAt,
+					)
+				}
+
 				let inventoryIds: string[] = []
 
 				if (shouldReverse && existingInvoice) {

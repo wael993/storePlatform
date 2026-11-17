@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { Types } from 'mongoose'
 
-import { Executor, getDb, requireTenantId } from '..'
+import { DbTx, Executor, getDb, requireTenantId } from '..'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import { InvoiceStatus } from '../../shared/globalEnums'
@@ -31,6 +31,37 @@ import {
 type Kind = 'selling' | 'buying'
 
 const tableOf = (kind: Kind) => (kind === 'selling' ? invoices : buyingInvoices)
+
+/**
+ * First step of an invoice edit transaction: locks the invoice row and fails
+ * unless it is still the version the edit read (`updatedAt`). The edit reverses
+ * the old lines as stock deltas, so two edits from the same snapshot would both
+ * reverse them; the second one now waits here and is refused (EDIT-RACE).
+ */
+export const lockUnchangedInvoice = async (
+	tx: DbTx,
+	kind: Kind,
+	tenantId: string,
+	id: string,
+	seenUpdatedAt: unknown,
+): Promise<void> => {
+	const table = tableOf(kind)
+	const idColumn =
+		kind === 'selling' ? invoices.invoiceId : buyingInvoices.buyingInvoiceId
+	const [row] = await tx
+		.select({ updatedAt: table.updatedAt })
+		.from(table)
+		.where(and(eq(table.tenantId, requireTenantId(tenantId)), eq(idColumn, id)))
+		.for('update')
+	const seen = new Date(seenUpdatedAt as string | Date).getTime()
+
+	if (!row || row.updatedAt.getTime() !== seen) {
+		throw new BusinessLogicError(
+			ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+			'This invoice changed meanwhile. Reload and try again.',
+		)
+	}
+}
 
 /** `resolveLatestInvoiceSequence`: highest parsed sequence + 1 (same JS parser). */
 export const latestInvoiceSequence = async (
