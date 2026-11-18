@@ -115,10 +115,12 @@ with checks(severity, tenant, check_name, n) as (
 	where not exists (select 1 from store.products p where p.tenant_id = i.tenant_id and p.product_id = i.product_id)
 	group by t.name)
 	union all
-	(select 'INFO', t.name, 'invoices pointing to a missing customer', count(*)
+	(select 'INFO', t.name, 'invoices pointing to a missing customer / partner', count(*)
 	from store.invoices i join platform.tenants t using (tenant_id)
 	where coalesce(i.customer_id, '') <> ''
 		and not exists (select 1 from store.customers c where c.tenant_id = i.tenant_id and c.customer_id = i.customer_id)
+		-- a sale to a partner stores the partner id in customer_id
+		and not exists (select 1 from store.partners p where p.tenant_id = i.tenant_id and p.partner_id = i.customer_id)
 	group by t.name)
 	union all
 	(select 'INFO', t.name, 'purchases pointing to a missing supplier', count(*)

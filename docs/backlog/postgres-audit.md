@@ -376,7 +376,10 @@ switch, as planned.
   2. 414 products share 175 barcodes (same names), all created by the 2026-09-22 import.
   3. 3 empty cash accounts on a warehouse that is not this tenant's, created 2026-11-16 (the
      TENANT-WH bug in production; fixed in `d90b3ea`).
-  4. 4 invoices point to 2 customers that are not in the copy (OSAMA ALHOMSI, ابو قاسم); 3 are credit
+  4. ~~Not an error (2026-11-18):~~ 3 of the 4 invoices are sales to the **partner** OSAMA ALHOMSI —
+     the app stores a partner id in `customer_id` and the partner view shows them; the 4th (SI-129787,
+     ابو قاسم) is a draft the owner ignores. Reconcile now accepts partner ids. Original text:
+     4 invoices point to 2 customers that are not in the copy (OSAMA ALHOMSI, ابو قاسم); 3 are credit
      with 1,458 open (one a draft). Delete guard exists since 2026-10-14; no sync error found — check
      production Mongo whether the customers exist there without `tenantId`.
   5. 268 ledger rows with > 2 decimals (M1 rounding).

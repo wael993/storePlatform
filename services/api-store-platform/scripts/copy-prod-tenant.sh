@@ -27,7 +27,7 @@ staging)
 	url=$(grep -E '^STAGING_DATABASE_URL=' .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
 	[ -n "$url" ] || { echo "STAGING_DATABASE_URL missing in .env" >&2; exit 1; }
 	# Render's external host needs SSL
-	case "$url" in *sslmode*) ;; *\?*) url="$url&sslmode=require" ;; *) url="$url?sslmode=require" ;; esac
+	case "$url" in *sslmode*) ;; *\?*) url="$url&sslmode=verify-full" ;; *) url="$url?sslmode=verify-full" ;; esac
 	extra=
 	printf 'Copy production tenant %s to STAGING (real customer data). Type the tenant id to confirm: ' "$tenant"
 	read -r answer

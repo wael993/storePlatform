@@ -3,7 +3,7 @@
 #
 #   PROD_MONGO_URL='mongodb+srv://user:pass@…' PROD_MONGO_DB='<db name>' \
 #     sh scripts/load-all-tenants.sh local        # or: staging
-#   PROD_MONGO_URL=… PROD_MONGO_DB=… TARGET_DATABASE_URL='<prod external url>?sslmode=require' \
+#   PROD_MONGO_URL=… PROD_MONGO_DB=… TARGET_DATABASE_URL='<prod external url>?sslmode=verify-full' \
 #     sh scripts/load-all-tenants.sh production
 #
 # local      → store-local-pg (127.0.0.1:5434): full dry rehearsal of the night on your Mac
@@ -27,7 +27,7 @@ local) url=postgres://postgres:postgres@127.0.0.1:5434/store_platform ;;
 staging)
 	url=$(grep -E '^STAGING_DATABASE_URL=' .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
 	[ -n "$url" ] || { echo "STAGING_DATABASE_URL missing in .env" >&2; exit 1; }
-	case "$url" in *sslmode*) ;; *\?*) url="$url&sslmode=require" ;; *) url="$url?sslmode=require" ;; esac
+	case "$url" in *sslmode*) ;; *\?*) url="$url&sslmode=verify-full" ;; *) url="$url?sslmode=verify-full" ;; esac
 	;;
 production)
 	url=${TARGET_DATABASE_URL:-}

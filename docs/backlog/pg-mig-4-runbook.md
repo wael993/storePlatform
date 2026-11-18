@@ -1,6 +1,6 @@
 # PG-MIG-4 — Switch production to Postgres (runbook)
 
-**Window:** night Thursday → **Friday 2026-11-20, 02:00** (Europe/Berlin). All 12 production tenants
+**Window:** night Thursday → **Friday 2026-11-20, 12:00** (Europe/Berlin). All 12 production tenants
 keep using Mongo until then. Replaces the per-tenant steps in
 [postgres-migration.md](postgres-migration.md) (PG-MIG-4): the ADR decided **one maintenance window
 for all tenants** ([../architecture/postgres-migration.md](../architecture/postgres-migration.md),
@@ -20,12 +20,12 @@ and checks results it is given, read-only. All commands run in `services/api-sto
 | # | Item | State |
 | --- | --- | --- |
 | G1 | Rehearsal green: biggest tenant (`oneDollar`) and a small one copied to staging, checked, cleaned | ✅ 2026-11-17 |
-| G2 | Missing customers in `oneDollar` (#4) understood and handled in the load | ⏳ owner: Mongo check |
+| G2 | Missing customers in `oneDollar` (#4) understood and handled in the load | ✅ 2026-11-18: partner sales (OSAMA ALHOMSI) + 1 ignored draft — no data error |
 | G3 | Owner clicked through `oneDollar` on staging (sales, invoice, cash, parties, reports) | ✅ 2026-11-18 |
-| G4 | All 12 production tenants listed (ids + names) | ⏳ owner |
+| G4 | All 12 production tenants listed (ids + names) | ✅ 2026-11-18 via the staging dry run: Action Zone, Alaith, Artevia, Ehssan, Lastre, oneDollar, rivo testing, Smile cosmetics, Smoki shop, الزوباني لقطع الغيار, معرض العكاوي + super admin |
 | G5 | Production Postgres created on Render (same region as the API, Frankfurt), empty, migrations applied | ✅ 2026-11-17: `store-platform-prod-db`, PG 18.6, 53 tables, 3 migrations, inbound IP restricted to the owner's Mac |
 | G6 | `load-all-tenants.sh` + `reconcile.sql` in the repo and tested | ✅ 2026-11-17: load tested end to end on throw-away DBs (confirm prompt, stop on error, safe rerun); reconcile GREEN on staging with only the accepted findings |
-| G6b | **Full dry run of all 12 tenants on staging** (section 4) — every tenant loads, reconcile GREEN, duration noted | ⏳ owner |
+| G6b | **Full dry run of all 12 tenants on staging** (section 4) — every tenant loads, reconcile GREEN, duration noted | ✅ 2026-11-18: all 12 loaded, cleanup 16,430 + 6, reconcile GREEN (expected values in section 2); load duration: ⏳ owner |
 | G7 | PR `pg-migration` → `main` open and reviewed, CI green — **merge only in step 7** | ✅ 2026-11-18 reviewed; findings fixed (offline-block lock, rate 0, reconcile purchases, pool close) |
 | G8 | Last Mongo build tagged and pushed: `git tag mongo-final origin/main && git push origin mongo-final` | ✅ 2026-11-18 |
 | G9 | Device check on staging: a device that used staging before a data reload keeps working without reinstall (ids are unchanged by the migration, so no `resetRequired` is expected to be needed) | ✅ 2026-11-18 |
@@ -42,19 +42,19 @@ Before starting: `curl -s https://ifconfig.me` — your IP must match the databa
 4. **Load:**
    ```bash
    PROD_MONGO_URL='<prod mongo url>' PROD_MONGO_DB='<prod db name>' \
-   TARGET_DATABASE_URL='<prod postgres external url>?sslmode=require' \
+   TARGET_DATABASE_URL='<prod postgres external url>?sslmode=verify-full&sslrootcert=/etc/ssl/cert.pem' \
    sh scripts/load-all-tenants.sh production        # type LOAD to confirm
    ```
    Must end with `[load-all] done: 12 tenants loaded`. Any refusal (unmapped field, document that
    cannot be loaded, count mismatch) → stop → section 3. A rerun after a fix is safe.
 5. **Cleanup:**
    ```bash
-   psql '<prod postgres external url>?sslmode=require' -X -f scripts/cutover-cleanup.sql            # read counts
-   psql '<prod postgres external url>?sslmode=require' -X -v apply=1 -f scripts/cutover-cleanup.sql
+   psql '<prod postgres external url>?sslmode=verify-full&sslrootcert=/etc/ssl/cert.pem' -X -f scripts/cutover-cleanup.sql            # read counts
+   psql '<prod postgres external url>?sslmode=verify-full&sslrootcert=/etc/ssl/cert.pem' -X -v apply=1 -f scripts/cutover-cleanup.sql
    ```
 6. **Reconcile:**
    ```bash
-   psql '<prod postgres external url>?sslmode=require' -X -f scripts/reconcile.sql
+   psql '<prod postgres external url>?sslmode=verify-full&sslrootcert=/etc/ssl/cert.pem' -X -f scripts/reconcile.sql
    ```
    Last row must be `VERDICT … GREEN`. INFO rows must match the dry run (G6b). RED → section 3.
 7. **Deploy the Postgres build:** on the production API service set `DATABASE_URL` = the **internal**
@@ -65,6 +65,22 @@ Before starting: `curl -s https://ifconfig.me` — your IP must match the databa
    a cash exchange, a warehouse transfer, an offline sale + sync; then delete the test records.
    Critical-path rows ★ of [smoke-test-plan.md](smoke-test-plan.md).
 9. **Open:** tell the tenants. **Rollback window 14 days:** Mongo and the dump stay untouched.
+
+### Expected results (from the dry run, 2026-11-18)
+
+Production on Friday should look the same; data added since Wednesday only moves the sales / ledger
+counts up a little.
+
+- **Step 4:** `[load-all] done: 12 tenants loaded` (Action Zone, Alaith, Artevia, Ehssan, Lastre,
+  oneDollar, rivo testing, Smile cosmetics, Smoki shop, الزوباني لقطع الغيار, معرض العكاوي, Super Admin
+  Control).
+- **Step 5 (cleanup):** 16,430 stock rows without product (`oneDollar`, 10,996 with quantity);
+  6 empty cash accounts on a foreign warehouse (3 `Action Zone`, 3 `oneDollar`). Anything else or much
+  more → stop and ask.
+- **Step 6 (reconcile):** `VERDICT … GREEN` with only these INFO rows: `Ehssan` 5 and `rivo testing` 2
+  purchases with a deleted supplier; `oneDollar` 1 invoice with a missing customer / partner (draft
+  SI-129787); `oneDollar` 175 and `Smoki shop` 1 duplicate-barcode groups; `app` demo-seed rows (only if
+  production has the demo tenant). A new INFO type or any BLOCKING row → stop and ask.
 
 ## 3. Rollback rule
 
@@ -83,7 +99,7 @@ newsroom and payment settings), then cleanup + reconcile:
 
 ```bash
 PROD_MONGO_URL='<prod mongo url>' PROD_MONGO_DB='<prod db name>' sh scripts/load-all-tenants.sh staging   # type LOAD
-S='<staging external url>?sslmode=require'      # STAGING_DATABASE_URL from .env
+S='<staging external url>?sslmode=verify-full&sslrootcert=/etc/ssl/cert.pem'      # STAGING_DATABASE_URL from .env
 psql "$S" -X -f scripts/cutover-cleanup.sql && psql "$S" -X -v apply=1 -f scripts/cutover-cleanup.sql
 psql "$S" -X -f scripts/reconcile.sql
 ```
