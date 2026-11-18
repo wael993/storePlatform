@@ -1,3 +1,4 @@
+import { closeDb } from './db'
 import { config } from './config/config'
 import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
 import { startNegativeQuantitySnapshotCron } from './cron/snapshotNegativeQuantity'
@@ -38,6 +39,7 @@ const gracefulShutdown = async () => {
 	logger.info('Shutting down server...')
 	clearInterval(cacheMetricsInterval)
 	await redisCache.disconnect()
+	await closeDb()
 	process.exit(0)
 }
 

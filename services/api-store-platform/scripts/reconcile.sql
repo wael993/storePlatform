@@ -73,6 +73,41 @@ with checks(severity, tenant, check_name, n) as (
 	from store.invoice_currency_amounts a join platform.tenants t using (tenant_id)
 	where a.exchange_rate is null or a.exchange_rate <= 0 or (a.is_primary and a.exchange_rate <> 1)
 	group by t.name)
+	union all
+	(select 'BLOCKING', t.name, 'duplicate buying invoice numbers', count(*)
+	from (select tenant_id from store.buying_invoices where coalesce(invoice_number, '') <> ''
+			group by tenant_id, invoice_number having count(*) > 1) d
+		join platform.tenants t using (tenant_id)
+	group by t.name)
+	union all
+	-- purchases post cash out (negative), so the ledger sum is minus the paid amount
+	(select case when t.tenant_id = 'app' then 'INFO' else 'BLOCKING' end, t.name,
+		'purchase: cash posted <> paid (non-draft)' || case when t.tenant_id = 'app' then ' [demo seed]' else '' end, count(*)
+	from (
+		select b.tenant_id
+		from store.buying_invoices b
+			join store.buying_invoice_currency_amounts p on p.buying_invoice_row_id = b.id and p.is_primary
+			left join (select tenant_id, reference_id, sum(amount) s from store.cash_ledger_entries
+					where reference_type = 'buying_invoice' group by 1, 2) c
+				on c.tenant_id = b.tenant_id and c.reference_id = b.buying_invoice_id
+			left join (select buying_invoice_row_id, sum(applied_amount) s from store.buying_invoice_tenders group by 1) tn
+				on tn.buying_invoice_row_id = b.id
+		where coalesce(b.status, '') <> 'draft'
+			and (select count(distinct currency_id) from store.buying_invoice_tenders x where x.buying_invoice_row_id = b.id) <= 1
+			and abs(-coalesce(c.s, 0) - case
+				when tn.s is not null then tn.s
+				when b.payment_type = 'credit' then 0
+				else least(p.paid_amount, p.amount) end) > 0.005) x
+		join platform.tenants t using (tenant_id)
+	group by t.name, t.tenant_id)
+	union all
+	(select 'BLOCKING', 'all', 'buying invoice child row in another tenant than its invoice', count(*)
+	from store.buying_invoice_items c join store.buying_invoices p on p.id = c.buying_invoice_row_id where c.tenant_id <> p.tenant_id)
+	union all
+	(select 'BLOCKING', t.name, 'buying invoice rate <= 0 or primary rate <> 1', count(*)
+	from store.buying_invoice_currency_amounts a join platform.tenants t using (tenant_id)
+	where a.exchange_rate is null or a.exchange_rate <= 0 or (a.is_primary and a.exchange_rate <> 1)
+	group by t.name)
 	-- INFO ---------------------------------------------------------------------------------
 	union all
 	(select 'INFO', t.name, 'stock rows without product (run cutover-cleanup.sql)', count(*)

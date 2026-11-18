@@ -1,4 +1,6 @@
 import { pgFindOne } from '../../db/mongoQuery'
+import { BusinessLogicError } from '../../middleware/errorHandler'
+import { ERROR_CODES } from '../errorCodes'
 import type { DbTx } from '../../db'
 
 import CurrencySettings from '../../models/CurrencySettings'
@@ -96,10 +98,19 @@ export const storedInvoiceTenders = (
 	return allocateCashTenders(
 		inputs,
 		due,
-		(currencyAmounts ?? []).map(row => ({
-			currencyId: String(row.currencyId ?? ''),
-			exchangeRate: asFiniteNumber(row.exchangeRate) || 1,
-		})),
+		(currencyAmounts ?? []).map(row => {
+			const exchangeRate = asFiniteNumber(row.exchangeRate)
+
+			// a rate of 0 used to become 1 here and valued foreign cash 1 : 1 (INV-MONEY-1)
+			if (exchangeRate <= 0) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Invoice exchange rates must be positive numbers.',
+				)
+			}
+
+			return { currencyId: String(row.currencyId ?? ''), exchangeRate }
+		}),
 	)
 }
 

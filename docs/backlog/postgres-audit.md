@@ -459,3 +459,16 @@ H3 and H4 with the rehearsal, H2 as its own ticket before PG-MIG-4.
 Note: there is no Mongo/Postgres test DB setup in CI for every case yet (see root
 `CLAUDE.md`); proofs that need a real database run against a local Postgres or staging and
 are written down here with the date.
+
+## PR review findings (2026-11-18, before PG-MIG-4)
+
+| Finding | Decision |
+| --- | --- |
+| 🔴 `allocateOfflineBlock` without the INV-NUM lock: a block could cover an uncommitted online number | **Fixed:** both share `lockInvoiceNumbers`; the block reserves in its own short transaction (`invoices.pg.test.ts`, fails without the lock) |
+| 🟡 `posting.ts` turned rate 0 into 1 for every caller | **Fixed:** non-positive rates refused (`storedInvoiceTenders.test.ts`) |
+| 🟡 reconcile only checked selling | **Fixed:** duplicate buying numbers, purchase cash ≠ paid, buying rates, buying child tenant |
+| 🟡 `gracefulShutdown` did not close the pools | **Fixed:** `closeDb()` before exit (SIGTERM tested) |
+| 🟡 `latestInvoiceSequence` scans all numbers under the lock (O(n)) | **After the switch** (PG-AUDIT-6): ~1,000 invoices per tenant today, so the lock window stays small; move max/parse into SQL before tenants reach tens of thousands |
+| 🟡 `parseLedgerDateBound` uses the process time zone | **Not migration-related:** Render runs in UTC, so production behaves the same as on Mongo; a per-tenant time zone is a feature ticket |
+| ❓ buying online numbers ignore the offline floor | **Accepted (ADR, Mongo parity):** with the shared lock no two buying invoices get the same number; an offline buying number already taken online is renumbered on sync |
+| 🔵 H4 unique index | Owner decision 2026-11-17: not done; the lock is the protection |

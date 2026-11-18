@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { Types } from 'mongoose'
 
-import { DbTx, Executor, getDb, requireTenantId } from '..'
+import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '..'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import { InvoiceStatus } from '../../shared/globalEnums'
@@ -105,6 +105,16 @@ export const nextInvoiceSequence = async (
 }
 
 /**
+ * Per-tenant, per-kind transaction lock around every invoice-number decision:
+ * online creates and offline block reservations wait for each other, so a
+ * block can never cover a number an uncommitted online create already took.
+ */
+const lockInvoiceNumbers = (db: Executor, tenantId: string, kind: Kind) =>
+	db.execute(
+		sql`select pg_advisory_xact_lock(hashtext(${`invoice-number:${requireTenantId(tenantId)}:${kind}`}))`,
+	)
+
+/**
  * `allocateInvoiceNumberForCreate`: a client-prefixed number is used when free
  * (offline reserved blocks); otherwise the first free one from the next sequence.
  *
@@ -122,9 +132,7 @@ export const allocateInvoiceNumber = async (
 	const kind: Kind = prefix === 'SI' ? 'selling' : 'buying'
 	const table = tableOf(kind)
 
-	await db.execute(
-		sql`select pg_advisory_xact_lock(hashtext(${`invoice-number:${requireTenantId(tenantId)}:${kind}`}))`,
-	)
+	await lockInvoiceNumbers(db, tenantId, kind)
 
 	const taken = async (invoiceNumber: string) =>
 		(
@@ -167,12 +175,23 @@ export const allocateInvoiceNumber = async (
  * `allocateOfflineInvoiceBlock` / buying variant: reserves [start, start + size - 1]
  * and raises the online floor past it, atomically (concurrent devices never overlap).
  */
-export const allocateOfflineBlock = async (
+export const allocateOfflineBlock = (
 	tenantId: string,
 	kind: Kind,
 	blockSize: number,
-	db: Executor = getDb(),
-): Promise<{ blockStart: number; blockEnd: number }> => {
+): Promise<{ blockStart: number; blockEnd: number }> =>
+	inTransaction(undefined, async db => {
+		await lockInvoiceNumbers(db, tenantId, kind)
+
+		return reserveOfflineBlock(db, tenantId, kind, blockSize)
+	})
+
+const reserveOfflineBlock = async (
+	db: DbTx,
+	tenantId: string,
+	kind: Kind,
+	blockSize: number,
+) => {
 	const latest = await latestInvoiceSequence(tenantId, kind, db)
 	const next =
 		kind === 'selling' ? sync.nextBlockStart : sync.buyingNextBlockStart

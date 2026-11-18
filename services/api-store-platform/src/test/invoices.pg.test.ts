@@ -105,6 +105,31 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 		expect(new Set(numbers).size).toBe(8)
 	})
 
+	it('never reserves an offline block over an uncommitted online number', async () => {
+		const tenantId = tenant()
+		let block: Promise<{ blockStart: number; blockEnd: number }> | undefined
+
+		const online = await inTransaction(undefined, async tx => {
+			const invoiceNumber = await allocateInvoiceNumber(
+				tenantId,
+				'SI',
+				undefined,
+				tx,
+			)
+
+			await sale(tenantId, invoiceNumber, {}, tx)
+			// a device asks for its offline block while this sale is not committed yet
+			block = allocateOfflineBlock(tenantId, 'selling', 500)
+			await new Promise(resolve => setTimeout(resolve, 200))
+
+			return invoiceNumber
+		})
+		const { blockStart } = await block!
+
+		expect(online).toBe('SI-000001')
+		expect(blockStart).toBeGreaterThan(1)
+	})
+
 	it('lets only one of two edits from the same snapshot through (EDIT-RACE)', async () => {
 		const tenantId = tenant()
 		const created = await sale(tenantId, 'SI-000001')

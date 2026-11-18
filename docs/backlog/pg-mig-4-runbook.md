@@ -21,15 +21,15 @@ and checks results it is given, read-only. All commands run in `services/api-sto
 | --- | --- | --- |
 | G1 | Rehearsal green: biggest tenant (`oneDollar`) and a small one copied to staging, checked, cleaned | ✅ 2026-11-17 |
 | G2 | Missing customers in `oneDollar` (#4) understood and handled in the load | ⏳ owner: Mongo check |
-| G3 | Owner clicked through `oneDollar` on staging (sales, invoice, cash, parties, reports) | ⏳ owner |
+| G3 | Owner clicked through `oneDollar` on staging (sales, invoice, cash, parties, reports) | ✅ 2026-11-18 |
 | G4 | All 12 production tenants listed (ids + names) | ⏳ owner |
 | G5 | Production Postgres created on Render (same region as the API, Frankfurt), empty, migrations applied | ✅ 2026-11-17: `store-platform-prod-db`, PG 18.6, 53 tables, 3 migrations, inbound IP restricted to the owner's Mac |
 | G6 | `load-all-tenants.sh` + `reconcile.sql` in the repo and tested | ✅ 2026-11-17: load tested end to end on throw-away DBs (confirm prompt, stop on error, safe rerun); reconcile GREEN on staging with only the accepted findings |
-| G6b | **Full dry run of all 12 tenants on your Mac** (section 4) — every tenant loads, reconcile GREEN, duration noted | ⏳ owner |
-| G7 | PR `pg-migration` → `main` open and reviewed, CI green — **merge only in step 7** | ⏳ owner |
-| G8 | Last Mongo build tagged and pushed: `git tag mongo-final origin/main && git push origin mongo-final` | ⏳ owner |
-| G9 | Device check on staging: a device that used staging before a data reload keeps working without reinstall (ids are unchanged by the migration, so no `resetRequired` is expected to be needed) | ⏳ owner |
-| G10 | Window announced to the active tenants; they know to sync all devices before 02:00 | ⏳ owner |
+| G6b | **Full dry run of all 12 tenants on staging** (section 4) — every tenant loads, reconcile GREEN, duration noted | ⏳ owner |
+| G7 | PR `pg-migration` → `main` open and reviewed, CI green — **merge only in step 7** | ✅ 2026-11-18 reviewed; findings fixed (offline-block lock, rate 0, reconcile purchases, pool close) |
+| G8 | Last Mongo build tagged and pushed: `git tag mongo-final origin/main && git push origin mongo-final` | ✅ 2026-11-18 |
+| G9 | Device check on staging: a device that used staging before a data reload keeps working without reinstall (ids are unchanged by the migration, so no `resetRequired` is expected to be needed) | ✅ 2026-11-18 |
+| G10 | Window announced to the active tenants | — not needed (owner, 2026-11-18) |
 
 ## 2. The window (plan ~1–2 h; order matters)
 
@@ -76,21 +76,22 @@ Before starting: `curl -s https://ifconfig.me` — your IP must match the databa
 - Decision maker: the owner. Rule of thumb: if steps 4–8 fail and the cause is not fixed within 30
   minutes, roll back and reschedule.
 
-## 4. Full dry run on your Mac (G6b, before Thursday)
+## 4. Full dry run on staging (G6b, before Thursday)
 
-Loads all 12 tenants into the local database exactly like step 4, then cleanup + reconcile:
+Loads all 12 tenants into staging exactly like step 4 (tenants only — staging keeps its own roles,
+newsroom and payment settings), then cleanup + reconcile:
 
 ```bash
-PROD_MONGO_URL='<prod mongo url>' PROD_MONGO_DB='<prod db name>' sh scripts/load-all-tenants.sh local
-L=postgres://postgres:postgres@127.0.0.1:5434/store_platform
-psql $L -X -f scripts/cutover-cleanup.sql && psql $L -X -v apply=1 -f scripts/cutover-cleanup.sql
-psql $L -X -f scripts/reconcile.sql
+PROD_MONGO_URL='<prod mongo url>' PROD_MONGO_DB='<prod db name>' sh scripts/load-all-tenants.sh staging   # type LOAD
+S='<staging external url>?sslmode=require'      # STAGING_DATABASE_URL from .env
+psql "$S" -X -f scripts/cutover-cleanup.sql && psql "$S" -X -v apply=1 -f scripts/cutover-cleanup.sql
+psql "$S" -X -f scripts/reconcile.sql
 ```
 
 Send Claude the output (no URLs). Note how long the load took — that sets the window length.
-Afterwards the local database holds real customer data: delete it when done
-(`docker rm -f store-local-pg && docker volume rm store-local-pgdata`, then set it up again —
-[databases.md](../reference/databases.md)).
+Staging then holds real customer data of all tenants, and the production super-admin and demo
+tenants replace staging's (same tenant ids): staging logs in with the production super-admin
+password from then on. Delete the copies after the switch (GDPR).
 
 ## 5. Decided / after the window
 
