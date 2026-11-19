@@ -87,7 +87,7 @@ Answer each in a few lines with file references. **Done 2026-11-17** (read from 
 | 1.1 | Postgres is the single source of truth (no reads/writes left in Mongo or cache) | ✅ | — | All API models on Postgres (PG-AUDIT-0 0.7). The server no longer connects to Mongo at start (H3, 2026-11-17; verified: built server runs and serves with Mongo unreachable). Before: role seed scripts write to Mongo only. Redis is an optional read cache invalidated by explicit `del` (0.8). |
 | 1.2 | Tables and relations make sense; jsonb used only where structure is truly free | ✅ | — | 53 tables, Mongo arrays split into child tables; 13 jsonb columns hold free / UI data only (0.2). Relations use **business ids** scoped by tenant (`(tenant_id, product_id)` etc.), not the row `id` — confirmed on staging: every relation matches by business id, none by `id`. |
 | 1.3 | Foreign keys on every real relation | ❌ | Medium | Only 6 FKs (invoice / buying-invoice child rows → parent). None for product, warehouse, customer, supplier, currency, cash account, employee, tenant links. Possible as composite FKs on `(tenant_id, <business id>)` since those are unique — but existing orphans (1.12) must be resolved first. |
-| 1.4 | Unique constraints (tenant-scoped: invoice numbers, names, barcodes, client ids) | ❌ | **High** | 61 unique indexes cover every business id, `sync_mutations (tenant_id, client_mutation_id)`, ledger `idempotency_key`, inventory `(tenant, warehouse, product)`, user email. **Missing:** invoice number per tenant, product barcode, master-data names. **Proven on staging:** `cafeshop` has 5 selling invoices numbered `SI-104501`, created 2026-11-08 03:45:18–20 by one user (Postgres era): `allocateInvoiceNumber` (`db/repos/invoices.ts:80`) reads max + checks "taken" without a lock or constraint, so parallel creates get the same number. = INV-NUM-1 (`later-tickets.md`), found in practice. **Fixed 2026-11-17** (per-tenant transaction lock + tests); unique index still open. Also 1 duplicate barcode (`dev`, 2026-09, Mongo era) and 5 duplicate product names (names may be allowed). Buying invoices: no duplicates. |
+| 1.4 | Unique constraints (tenant-scoped: invoice numbers, names, barcodes, client ids) | ❌ | **High** | 61 unique indexes cover every business id, `sync_mutations (tenant_id, client_mutation_id)`, ledger `idempotency_key`, inventory `(tenant, warehouse, product)`, user email. **Missing:** invoice number per tenant, product barcode, master-data names. **Proven on staging:** `cafeshop` has 5 selling invoices numbered `SI-104501`, created 2026-11-08 03:45:18–20 by one user (Postgres era): `allocateInvoiceNumber` (`db/repos/invoices.ts:80`) reads max + checks "taken" without a lock or constraint, so parallel creates get the same number. = INV-NUM-1 (`later-tickets.md`), found in practice. **Fixed 2026-11-17** (per-tenant transaction lock + tests); unique index not added (owner decision, H4). Also 1 duplicate barcode (`dev`, 2026-09, Mongo era) and 5 duplicate product names (names may be allowed). Buying invoices: no duplicates. |
 | 1.5 | NOT NULL on required fields | ⚠️ | Low | Business ids, tenant, names NOT NULL. `invoices.invoice_id`, `invoice_number`, `warehouse_id`, `buying_invoices.buying_invoice_id` / `warehouse_id`, `daily_actions.action_id` / `warehouse_id` are nullable — staging has **0** null/empty values in all of them, so NOT NULL can be added safely after the production copy confirms the same. |
 | 1.6 | CHECK constraints (qty/amount signs, enums, rate > 0) | ❌ | Medium | 0 CHECK constraints. Staging data is clean: 0 negative prices, 0 invoice items with qty ≤ 0, 0 exchange rates ≤ 0. 9 negative inventory rows — allowed when oversell is on, so no CHECK there. Cash "never below 0" is enforced by the guarded `UPDATE` in `ledgerService.ts`, not by the DB. |
 | 1.7 | ON DELETE / ON UPDATE behavior fits soft/hard delete rules (`master-data-delete.md`) | ⚠️ | Medium | Rule: hard delete only when unused, checked in code (`deleteBlock.ts`, `find*DeleteBlocks`). Only invoice children cascade in the DB. Product delete removes its inventory (`deleteProductInventory`, `api.controller.ts:2046`). Warehouses have no delete route. Without FKs, a missed guard leaves orphans silently — staging has them (1.12). |
@@ -249,15 +249,17 @@ Backup v2 was dropped from the migration epic (see [backup.md](backup.md)). Rate
 
 | # | Check | Status | Priority | Evidence / note |
 | --- | --- | --- | --- | --- |
-| 9.1 | Automatic backups | | | |
-| 9.2 | Retention policy | | | |
-| 9.3 | Copy stored outside the production provider | | | |
-| 9.4 | Backups encrypted | | | |
-| 9.5 | Who can access backups | | | |
-| 9.6 | Point-in-time recovery | | | |
+| 9.1 | Automatic backups | ✅ | — | Render Point-in-Time Recovery on `store-platform-prod-db` ($6 plan, owner 2026-11-18). |
+| 9.2 | Retention policy | ⚠️ | High | Only **3 days** back. A problem found on day 4 cannot be undone. Fix: 9.3. |
+| 9.3 | Copy stored outside the production provider | ❌ | High | None. Fix: daily `pg_dump` to storage outside Render, kept longer than 3 days. Start in the first days after PG-MIG-4. |
+| 9.4 | Backups encrypted | 🔍 | | |
+| 9.5 | Who can access backups | 🔍 | | |
+| 9.6 | Point-in-time recovery | ⚠️ | Medium | Yes, but **whole database only**: the restore creates a new database at a chosen time (🔍 confirm it never overwrites the live one). No per-tenant restore: the tenant backup feature (`reference/backup.md`) is Mongo-only and never shipped; PG-MIG-5 dropped. One tenant = restore into a separate database, then copy that tenant's rows into production in one transaction (all rows carry `tenant_id`). That script does not exist; build it when first needed (`copy-prod-tenant.sh` reads Mongo only). |
 | 9.7 | RPO / RTO written down | | | |
-| 9.8 | Real restore test done, app runs on it | | | |
+| 9.8 | Real restore test done, app runs on it | ❌ | High | Never done. Fix: restore to a new database, start staging against it, smoke, delete it (P7). In the first days after the switch. |
 | 9.9 | Recovery runbook | | | |
+
+**Mongo is not a backup after opening.** After PG-MIG-4 only Postgres receives writes; Mongo stays frozen at the switch. Redeploying `mongo-final` (14-day rollback window) loses every write made on Postgres since opening. From opening on, Point-in-Time Recovery (9.1) is the only backup of current data — hence 9.3 and 9.8 right after the switch.
 
 ### PG-AUDIT-10 — Migrations and deployment (brief §13)
 
@@ -271,8 +273,8 @@ Backup v2 was dropped from the migration epic (see [backup.md](backup.md)). Rate
 | 10.6 | Expand-and-contract for big changes | | | |
 | 10.7 | Lock time on big tables (`CREATE INDEX CONCURRENTLY`, `lock_timeout`) | | | |
 | 10.8 | Rollback / recovery plan per migration | | | |
-| 10.9 | Two instances cannot migrate at once (advisory lock at boot) | | | |
-| 10.10 | Staging never gets unmasked production data | | | |
+| 10.9 | Two instances cannot migrate at once (advisory lock at boot) | ⚠️ | Low | `src/scripts/db-migrate.ts` calls Drizzle's `migrate` without a lock of its own. Safe with one instance (same rule as 11.8). |
+| 10.10 | Staging never gets unmasked production data | ❌ | Medium | The G6b dry run loaded all 12 production tenants unmasked into staging (runbook section 4). Fix: delete the copies after the switch (runbook section 5, GDPR); later rehearsals use the same delete step. |
 
 ### PG-AUDIT-11 — Background jobs and events (brief §14)
 
@@ -285,7 +287,7 @@ Backup v2 was dropped from the migration epic (see [backup.md](backup.md)). Rate
 | 11.5 | Retries with limits | | | |
 | 11.6 | Failure state recorded | | | |
 | 11.7 | Stuck jobs visible | | | |
-| 11.8 | Cron cannot run twice at once (multiple instances) | | | |
+| 11.8 | Cron cannot run twice at once (multiple instances) | ⚠️ | Low | Crons run inside the API process (`node-cron`, `src/cron/*.ts`) with no lock. Safe while the API runs as **one instance**; a second instance runs every job twice (e.g. subscription notices). Fix when scaling out: advisory lock per job. |
 | 11.9 | No lost events if the API dies after commit | | | |
 
 ### PG-AUDIT-12 — Monitoring and maintenance (brief §15)
@@ -293,7 +295,7 @@ Backup v2 was dropped from the migration epic (see [backup.md](backup.md)). Rate
 | # | Check | Status | Priority | Evidence / note |
 | --- | --- | --- | --- | --- |
 | 12.1 | Connection count watched | | | |
-| 12.2 | Pool size / timeouts fit Render plan limits | | | |
+| 12.2 | Pool size / timeouts fit Render plan limits | ✅ | — | 2 pools × `max: 10` = 20 per API instance (`db/client.ts:14`); during a deploy old + new instance overlap → ~40, plus a few for migrations / `psql`. Plan limit 100 (owner 2026-11-18). The tighter limit is the plan's **0.1 CPU / 256 MB RAM**: watch the database Metrics page during the rollback window; upgrade the plan if CPU or memory stays high (no code change). |
 | 12.3 | Slow query log | | | |
 | 12.4 | CPU / memory / disk | | | |
 | 12.5 | Deadlocks | | | |
@@ -358,7 +360,7 @@ switch, as planned.
 | 7 | Only 6 FKs, 0 CHECK; 6 nullable key columns (all filled) | 1.3, 1.5, 1.6 | Medium |
 | 8 | No failure-injection test per flow; no two-tenant test per resource (P1, P5) | 2.8, 4.3 | Medium |
 | 9 | Permission (SEE) not yet checked action by action (smoke 4.3) | 4.6 | Medium |
-| 10 | Small: line lock order unsorted (2.7), `numeric` without scale / daily-action money as text (1.10), SSL only via URL (0.1), pools not closed on shutdown, Redis cache relies on every write calling `del`, role seed scripts write Mongo only, `Math.round(x*1e8)` limit above ~90 M units | 0.1, 0.7, 0.8, 1.10, 2.7, 3.2 | Low |
+| 10 | Small: line lock order unsorted (2.7), `numeric` without scale / daily-action money as text (1.10), SSL only via URL (0.1; runbook commands use `sslmode=verify-full`, API's internal URL 🔍), ~~pools not closed on shutdown~~ (fixed, PR review), Redis cache relies on every write calling `del`, role seed scripts write Mongo only, `Math.round(x*1e8)` limit above ~90 M units | 0.1, 0.7, 0.8, 1.10, 2.7, 3.2 | Low |
 
 **Plan.** Nothing below is started before the owner approves it.
 
@@ -412,6 +414,11 @@ switch, as planned.
 - ⏭️ **Owner decision 2026-11-17: not done.** The per-tenant allocation lock (INV-NUM-1) stays the only protection; staging stress proves no duplicates. — **H4 Unique invoice number index (#5).** Fix: after C1 confirms production has no duplicates,
   add `UNIQUE (tenant_id, invoice_number)` for selling and buying (staging: a partial index or
   clean the 5 dev rows first). Impact: one migration; the code already never produces duplicates.
+
+- **H5 Backups after the switch (9.2, 9.3, 9.8)** — first days after PG-MIG-4. Cause: from opening,
+  Point-in-Time Recovery (3 days, whole database) is the only backup; Mongo is frozen. Fix: one
+  restore test (new database → staging → smoke → delete) and a daily `pg_dump` outside Render.
+  Impact: ops only; no code. Per-tenant restore script only when first needed (9.6).
 
 *Medium — after the switch, before new features*
 
