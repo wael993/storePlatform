@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import { appendFile, copyFile, mkdtemp, readdir, rm, stat, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { closeDb, getDb } from '../db'
@@ -33,6 +33,7 @@ import {
 import { decryptArchive, readArchive, rowLine } from '../shared/backup/archive'
 import {
 	applyArchive,
+	applyRetention,
 	beginRestore,
 	enqueueBackup,
 	processBackup,
@@ -314,6 +315,47 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		expect(restore.status).toBe('COMPLETED')
 		expect((await getBackupJob(backup.id))?.status).toBe(BACKUP_STATUS.COMPLETED)
 		expect(await readdir(storage.dir)).toContain(backup.storageId)
+		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
+	})
+
+	it('skips retention while a restore runs; the next run catches up', async () => {
+		await getDb().update(tenants).set({ backupRetentionCount: 1 }).where(eq(tenants.tenantId, a))
+		const old = await backupNow(a)
+		let lockedAt: Date | null = null
+
+		// the job passed the restore check, then a restore starts during its upload
+		storage.onUpload = async () => {
+			lockedAt = await acquireRestoreLock(a)
+		}
+
+		await backupNow(a).finally(() => (storage.onUpload = undefined))
+
+		expect(lockedAt).not.toBeNull()
+		expect(await readdir(storage.dir)).toContain(old.storageId)
+
+		await releaseRestoreLock(a, lockedAt!)
+		await applyRetention(a)
+		expect(await readdir(storage.dir)).not.toContain(old.storageId)
+		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
+	})
+
+	it('ranks safety backups apart, so restores never push regular backups out', async () => {
+		await getDb().update(tenants).set({ backupRetentionCount: 1 }).where(eq(tenants.tenantId, a))
+		const regular = await backupNow(a)
+
+		expect((await restoreNow(a, regular.id)).status).toBe('COMPLETED')
+		const kept = await backupNow(a)
+		const completed = await getDb()
+			.select({ id: tenantBackups.id, kind: tenantBackups.kind })
+			.from(tenantBackups)
+			.where(and(eq(tenantBackups.tenantId, a), eq(tenantBackups.status, BACKUP_STATUS.COMPLETED)))
+
+		// newest regular + newest safety; the older regular one is gone
+		expect(completed.filter(row => row.kind !== BACKUP_KIND.SAFETY)).toEqual([
+			{ id: kept.id, kind: BACKUP_KIND.MANUAL },
+		])
+
+		expect(completed.filter(row => row.kind === BACKUP_KIND.SAFETY)).toHaveLength(1)
 		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
 	})
 

@@ -313,6 +313,10 @@ export const applyRetention = async (tenantId: string): Promise<void> => {
 	await deleteOldFailedBackups(tenantId, new Date(Date.now() - FAILED_HISTORY_MS))
 
 	const tenant = await loadTenant(tenantId)
+
+	// a running restore may still download any of them; the next backup retries
+	if (isRestoreLockLive(tenant?.backupRestoreHeartbeatAt)) return
+
 	const keep = tenant?.backupRetentionCount ?? DEFAULT_BACKUP_RETENTION
 
 	for (const backup of await expiredBackups(tenantId, keep)) {

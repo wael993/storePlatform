@@ -304,19 +304,29 @@ export const findCompletedBackup = async (
 			)
 	)[0] ?? null
 
-/** Completed backups beyond the newest `keep` (retention deletes their files). */
-export const expiredBackups = (tenantId: string, keep: number) =>
-	getDb()
-		.select()
-		.from(tenantBackups)
-		.where(
-			and(
-				eq(tenantBackups.tenantId, requireTenantId(tenantId)),
-				eq(tenantBackups.status, BACKUP_STATUS.COMPLETED),
-			),
-		)
-		.orderBy(desc(tenantBackups.completedAt))
-		.offset(keep)
+/**
+ * Completed backups beyond the newest `keep` (retention deletes their files). Safety
+ * backups are ranked on their own, so restores never push regular backups out.
+ */
+export const expiredBackups = async (tenantId: string, keep: number) => {
+	const beyondKeep = (safety: boolean) =>
+		getDb()
+			.select()
+			.from(tenantBackups)
+			.where(
+				and(
+					eq(tenantBackups.tenantId, requireTenantId(tenantId)),
+					eq(tenantBackups.status, BACKUP_STATUS.COMPLETED),
+					safety
+						? eq(tenantBackups.kind, BACKUP_KIND.SAFETY)
+						: ne(tenantBackups.kind, BACKUP_KIND.SAFETY),
+				),
+			)
+			.orderBy(desc(tenantBackups.completedAt))
+			.offset(keep)
+
+	return [...(await beyondKeep(false)), ...(await beyondKeep(true))]
+}
 
 export const deleteBackupJob = async (id: string) => {
 	await getDb().delete(tenantBackups).where(eq(tenantBackups.id, id))
