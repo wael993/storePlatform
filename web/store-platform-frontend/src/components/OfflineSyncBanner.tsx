@@ -25,6 +25,7 @@ const OfflineSyncBanner = () => {
 		syncState,
 		pendingCount,
 		lastError,
+		restoreResetPending,
 		isOfflineCapable,
 		offlineEnabled,
 		syncPushResult,
@@ -71,6 +72,15 @@ const OfflineSyncBanner = () => {
 						<AlertIcon />
 						<AlertDescription flex="1">
 							{t('offline.workingOffline', { count: pendingCount })}
+						</AlertDescription>
+					</Alert>
+				)}
+
+				{restoreResetPending && (
+					<Alert status="warning" borderRadius="md" mb={2} variant="left-accent">
+						<AlertIcon />
+						<AlertDescription flex="1">
+							{t('offline.restoreResetPending', { count: pendingCount })}
 						</AlertDescription>
 					</Alert>
 				)}

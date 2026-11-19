@@ -66,8 +66,18 @@ export default class ActivityAuthorization {
 			)
 
 			if (requiredPages || blockedWhileExpired) {
-				const { accessiblePages, subscriptionExpired } =
+				const { accessiblePages, subscriptionExpired, restoreInProgress } =
 					await this.productController.getTenantRequestAccess(user.tenantId)
+
+				// every write is blocked while a backup restore replaces tenant data
+				if (restoreInProgress && blockedWhileExpired) {
+					response.status(423).json({
+						message: 'A backup restore is running. Try again in a few minutes.',
+						errorCode: ERROR_CODES.BUSINESS_LOGIC.BACKUP_RESTORE_IN_PROGRESS,
+					})
+
+					return
+				}
 
 				if (subscriptionExpired && blockedWhileExpired) {
 					response.status(403).json({

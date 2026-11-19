@@ -1,3 +1,4 @@
+import { DEFAULT_BACKUP_RETENTION } from '../../shared/backup/constants'
 import {
 	CustomerDocument,
 	PartnerDocument,
@@ -333,6 +334,8 @@ export const mapTenantSummary = (tenant: ITenant): TenantSummary => {
 		accessiblePages: resolveTenantAccessiblePages(tenant),
 		offlineEnabled: tenant.offlineEnabled !== false,
 		invoiceAiMonthlyLimit: tenant.invoiceAi?.monthlyLimit ?? null,
+		backupRetentionCount:
+			tenant.backupRetentionCount ?? DEFAULT_BACKUP_RETENTION,
 		subscription: tenant.subscription ? toView(tenant.subscription) : null,
 		createdAt: tenant.createdAt,
 		updatedAt: tenant.updatedAt,

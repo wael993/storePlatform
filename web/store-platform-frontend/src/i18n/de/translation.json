@@ -406,8 +406,12 @@
 			"sellingInvoicesDescription": "Verkaufsrechnungsverwaltung.",
 			"invoiceAi": "KI-Rechnungimport",
 			"invoiceAiDescription": "Lieferantenrechnungen lesen und Produkte per KI zuordnen.",
+			"backup": "Cloud-Backup",
+			"backupDescription": "Verschlüsselte Mandanten-Backups in Google Drive, Dropbox oder OneDrive mit manueller Wiederherstellung.",
 			"employeesDescription": "Mitarbeiterprofile, Arbeitszeiten und Gehalt."
-		}
+		},
+		"backupRetentionCount": "Anzahl Backups:",
+		"backupRetentionInvalid": "Die Anzahl Backups muss eine ganze Zahl zwischen 1 und {{max}} sein."
 	},
 	"login": {
 		"welcomeBack": "Willkommen zurück",
@@ -1132,7 +1136,8 @@
 			"displayLanguage": "Anzeigesprache",
 			"english": "Englisch",
 			"german": "Deutsch",
-			"arabic": "Arabisch"
+			"arabic": "Arabisch",
+			"backup": "Backup"
 		},
 		"workModeSettings": {
 			"title": "Arbeitsmodus",
@@ -1366,6 +1371,88 @@
 			"subscriptionRenewBefore": "Bitte vor dem {{date}} verlängern, damit der Mandant aktiv bleibt.",
 			"newRenewalRequest": "Mandant \"{{tenant}}\" hat eine Abo-Verlängerung beantragt.",
 			"reviewRequest": "Antrag prüfen"
+		},
+		"backupSettings": {
+			"description": "Verschlüsselte Kopien aller Geschäftsdaten werden jede Nacht in Ihrem eigenen Cloud-Speicher abgelegt, wenn sich etwas geändert hat. Nur der Inhaber kann Backups verwalten.",
+			"enabled": "Automatisches nächtliches Backup",
+			"connectFirst": "Verbinden Sie zuerst einen Speicher.",
+			"lastBackup": "Letztes Backup",
+			"schedule": "Zeitplan",
+			"scheduleDaily": "Täglich um {{time}} ({{timezone}}), nur bei Änderungen",
+			"retention": "Aufbewahrung",
+			"retentionCount": "Letzte {{number}} erfolgreichen Backups",
+			"storage": "Speicher",
+			"active": "Aktiv",
+			"connectedAs": "Verbunden als {{account}}",
+			"notConnected": "Nicht verbunden",
+			"useProvider": "Für Backups verwenden",
+			"changeAccount": "Konto wechseln",
+			"connect": "Verbinden",
+			"disconnect": "Trennen",
+			"history": "Backups",
+			"backupNow": "Jetzt sichern",
+			"backupRunning": "Backup läuft…",
+			"noBackups": "Noch keine Backups.",
+			"restore": "Wiederherstellen",
+			"onlineOnly": "Backups brauchen eine Internetverbindung. Wechseln Sie in den Online-Modus.",
+			"restoreRunning": "Wiederherstellung läuft. Änderungen sind bis zum Abschluss gesperrt.",
+			"restoreDone": "Wiederherstellung am {{date}} abgeschlossen. Laden Sie die App neu, damit alle Ansichten die wiederhergestellten Daten zeigen.",
+			"restoreFailed": "Wiederherstellung fehlgeschlagen: {{reason}} Ihre Daten vor der Wiederherstellung liegen im Sicherheits-Backup.",
+			"reload": "Neu laden",
+			"restoreCompleted": "Wiederherstellung abgeschlossen.",
+			"backupStarted": "Backup gestartet. Es erscheint nach Abschluss in der Liste.",
+			"backupStartFailed": "Backup konnte nicht gestartet werden.",
+			"restoreStartFailed": "Wiederherstellung konnte nicht gestartet werden.",
+			"connectFailed": "Verbindung konnte nicht gestartet werden.",
+			"restoreConfirmTitle": "Dieses Backup wiederherstellen?",
+			"restoreConfirmBody": "Alle aktuellen Geschäftsdaten werden durch das Backup vom {{date}} ersetzt. Spätere Änderungen gehen verloren. Vorher wird ein Sicherheits-Backup der aktuellen Daten erstellt. Während der Wiederherstellung sind keine Änderungen möglich.",
+			"disconnectConfirmTitle": "Speicher trennen?",
+			"disconnectConfirmBody": "Die gespeicherte Anmeldung für {{provider}} wird entfernt. Dort gespeicherte Backups bleiben in Ihrem Konto, können aber erst nach erneutem Verbinden wiederhergestellt werden.",
+			"connectResult": {
+				"connected": "Speicher verbunden.",
+				"cancelled": "Verbindung abgebrochen.",
+				"error": "Verbindung fehlgeschlagen. Bitte erneut versuchen."
+			},
+			"status": {
+				"PENDING": "Wartend",
+				"PROCESSING": "Wird erstellt",
+				"UPLOADING": "Wird hochgeladen",
+				"COMPLETED": "Erfolgreich",
+				"FAILED": "Fehlgeschlagen"
+			},
+			"kind": {
+				"scheduled": "Automatisch",
+				"manual": "Manuell",
+				"safety": "Sicherheit (vor Wiederherstellung)"
+			},
+			"columns": {
+				"date": "Datum",
+				"type": "Art",
+				"provider": "Speicher",
+				"size": "Größe",
+				"status": "Status"
+			},
+			"errors": {
+				"UNKNOWN": "Etwas ist schiefgelaufen.",
+				"GOOGLE_AUTH_ERROR": "Der Zugriff auf Google Drive ist abgelaufen oder wurde entzogen. Bitte neu verbinden.",
+				"GOOGLE_DRIVE_ACCESS_ERROR": "Google Drive war nicht erreichbar oder ist voll.",
+				"DROPBOX_AUTH_ERROR": "Der Zugriff auf Dropbox ist abgelaufen oder wurde entzogen. Bitte neu verbinden.",
+				"DROPBOX_ACCESS_ERROR": "Dropbox war nicht erreichbar oder ist voll.",
+				"ONEDRIVE_AUTH_ERROR": "Der Zugriff auf OneDrive ist abgelaufen oder wurde entzogen. Bitte neu verbinden.",
+				"ONEDRIVE_ACCESS_ERROR": "OneDrive war nicht erreichbar oder ist voll.",
+				"PROVIDER_NOT_CONNECTED": "Der Speicher dieses Backups ist nicht verbunden.",
+				"UPLOAD_ERROR": "Hochladen fehlgeschlagen.",
+				"DOWNLOAD_ERROR": "Herunterladen fehlgeschlagen.",
+				"RESTORE_VALIDATION_ERROR": "Die Backup-Datei ist beschädigt oder nicht lesbar.",
+				"TENANT_VALIDATION_ERROR": "Das Backup gehört nicht zu diesem Geschäft.",
+				"SAFETY_BACKUP_FAILED": "Das Sicherheits-Backup ist fehlgeschlagen, daher wurde nichts wiederhergestellt.",
+				"RESTORE_ERROR": "Die Wiederherstellung der Daten ist fehlgeschlagen.",
+				"RESTORE_IN_PROGRESS": "Übersprungen, weil eine Wiederherstellung lief.",
+				"WORKER_TIMEOUT": "Das Backup hat zu lange gedauert und wurde abgebrochen.",
+				"MONGODB_ERROR": "Lesen der Geschäftsdaten fehlgeschlagen.",
+				"BACKUP_SERIALIZATION_ERROR": "Erstellen der Backup-Datei fehlgeschlagen.",
+				"ENCRYPTION_ERROR": "Verschlüsseln des Backups fehlgeschlagen."
+			}
 		}
 	},
 	"subscription": {
@@ -1581,6 +1668,7 @@
 	},
 	"offline": {
 		"bootstrapFailed": "Offline-Download fehlgeschlagen",
+		"restoreResetPending": "Die Daten auf dem Server wurden aus einem Backup wiederhergestellt. Dieses Gerät zeigt noch ältere Daten: Synchronisieren oder entfernen Sie die {{count}} wartende(n) Änderung(en), um die wiederhergestellten Daten zu laden.",
 		"workingOffline": "Offline-Modus. {{count}} Änderung(en) warten auf Synchronisation.",
 		"pushChanges": "Änderungen senden",
 		"downloadingData": "Offline-Daten werden heruntergeladen…",

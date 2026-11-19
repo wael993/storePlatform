@@ -33,6 +33,12 @@ export interface ITenant {
 		status: 'NOT_STARTED' | 'IN_PROGRESS' | 'SKIPPED' | 'COMPLETED'
 	}
 	subscription?: TenantSubscription
+	/** Successful backups to keep (superadmin-set; default 3). */
+	backupRetentionCount?: number
+	/** Set while a backup restore runs; identifies the lock owner. */
+	backupRestoreStartedAt?: Date | null
+	/** Refreshed by the running restore; while fresh, tenant writes are blocked. */
+	backupRestoreHeartbeatAt?: Date | null
 	createdAt: Date
 	updatedAt: Date
 }
@@ -104,6 +110,9 @@ const tenantSchema = new Schema<ITenant>(
 			createdAt: { type: Date },
 			updatedAt: { type: Date },
 		},
+		backupRetentionCount: { type: Number, min: 1, max: 30 },
+		backupRestoreStartedAt: { type: Date, default: null },
+		backupRestoreHeartbeatAt: { type: Date, default: null },
 	},
 	{
 		timestamps: true,

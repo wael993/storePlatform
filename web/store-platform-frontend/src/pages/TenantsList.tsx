@@ -58,6 +58,7 @@ import {
 	DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
 	MAX_INVOICE_AI_MONTHLY_LIMIT,
 } from '../shared/invoiceAi'
+import { DEFAULT_BACKUP_RETENTION, MAX_BACKUP_RETENTION } from '../shared/backup'
 import {
 	compareLanguage,
 	getEnabledActions,
@@ -84,6 +85,9 @@ const TenantsList = () => {
 	const [accessibleTenant, setAccessibleTenant] =
 		useState<TenantSummary | null>(null)
 	const [selectedPages, setSelectedPages] = useState<TenantAccessiblePage[]>([])
+	const [backupRetentionCount, setBackupRetentionCount] = useState(
+		DEFAULT_BACKUP_RETENTION,
+	)
 	const [invoiceAiMonthlyLimit, setInvoiceAiMonthlyLimit] = useState(
 		DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
 	)
@@ -142,6 +146,9 @@ const TenantsList = () => {
 		setInvoiceAiMonthlyLimit(
 			tenant.invoiceAiMonthlyLimit ?? DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
 		)
+		setBackupRetentionCount(
+			tenant.backupRetentionCount ?? DEFAULT_BACKUP_RETENTION,
+		)
 		setFeedback('')
 		onOpenEditAccessibleModal()
 	}
@@ -196,12 +203,27 @@ const TenantsList = () => {
 			return
 		}
 
+		const backupEnabled = selectedPages.includes(TENANT_ACCESSIBLE_PAGE.BACKUP)
+
+		if (
+			backupEnabled &&
+			(!Number.isInteger(backupRetentionCount) ||
+				backupRetentionCount < 1 ||
+				backupRetentionCount > MAX_BACKUP_RETENTION)
+		) {
+			setFeedback(
+				t('tenants.backupRetentionInvalid', { max: MAX_BACKUP_RETENTION }),
+			)
+			return
+		}
+
 		try {
 			await updateTenant({
 				tenantId: accessibleTenant.tenantId,
 				body: {
 					accessiblePages: selectedPages,
 					...(invoiceAiEnabled ? { invoiceAiMonthlyLimit } : {}),
+					...(backupEnabled ? { backupRetentionCount } : {}),
 				},
 			}).unwrap()
 			setFeedback(t('tenants.accessiblePagesSaveSuccess'))
@@ -747,6 +769,35 @@ const TenantsList = () => {
 															setInvoiceAiMonthlyLimit(
 																Number(event.target.value),
 															)
+														}
+													/>
+												</Flex>
+											</FormControl>
+										</>
+									) : null}
+
+									{selectedPages.includes(TENANT_ACCESSIBLE_PAGE.BACKUP) ? (
+										<>
+											<Divider />
+											<FormControl>
+												<FormLabel mb={1}>
+													{t('tenants.accessiblePages.backup')}
+												</FormLabel>
+												<Flex align="center" gap={3}>
+													<Text fontSize="sm" color="gray.600">
+														{t('tenants.backupRetentionCount')}
+													</Text>
+													<Input
+														type="number"
+														min={1}
+														max={MAX_BACKUP_RETENTION}
+														step={1}
+														w="5.5rem"
+														size="sm"
+														bg="white"
+														value={backupRetentionCount}
+														onChange={event =>
+															setBackupRetentionCount(Number(event.target.value))
 														}
 													/>
 												</Flex>

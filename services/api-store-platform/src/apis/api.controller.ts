@@ -27,6 +27,11 @@ import {
 	nextInvoiceSequence,
 } from '../db/repos/invoices'
 import { recordSyncMutation as pgRecordSyncMutation } from '../db/repos/sync'
+import { getBackupState, RestoreState } from '../db/repos/backups'
+import {
+	isRestoreLockLive,
+	restoreChangedSince,
+} from '../shared/backup/constants'
 import { isPgModel } from '../db/ownership'
 import bcrypt from 'bcrypt'
 import express from 'express'
@@ -774,6 +779,7 @@ export default class ProductController {
 	public async getTenantRequestAccess(tenantId: string): Promise<{
 		accessiblePages: TenantAccessiblePage[]
 		subscriptionExpired: boolean
+		restoreInProgress: boolean
 	}> {
 		const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
@@ -798,6 +804,7 @@ export default class ProductController {
 		return {
 			accessiblePages: resolveAccessiblePagesForTenant(synced),
 			subscriptionExpired,
+			restoreInProgress: isRestoreLockLive(tenant.backupRestoreHeartbeatAt),
 		}
 	}
 
@@ -832,6 +839,15 @@ export default class ProductController {
 
 	public async validateUser(request: any, token: string) {
 		const decoded = jwt.verify(token, config.jwtSecret) as TokenPayload
+
+		// other JWTs share this secret (backup OAuth state); without a userId the lookup
+		// below would drop the filter and match any user of the tenant
+		if (typeof decoded.userId !== 'string' || !decoded.userId) {
+			throw new AuthenticationError(
+				ERROR_CODES.AUTHORIZATION.INVALID_CREDENTIALS,
+				'Invalid token.',
+			)
+		}
 
 		const user = await pgFindOne<IUser>(User, decoded.tenantId, {
 			userId: decoded.userId,
@@ -6129,8 +6145,15 @@ export default class ProductController {
 	public async getSyncChanges(
 		requestContext: RequestContext,
 		since: Date,
-	): Promise<Partial<SyncBootstrapResponse>> {
+	): Promise<Partial<SyncBootstrapResponse> & { resetRequired?: boolean }> {
 		await this.ensureOfflineEnabledForSync(requestContext)
+
+		const restore = (await getBackupState(requestContext.tenantId as string))
+			?.restore as RestoreState | null | undefined
+
+		if (restoreChangedSince(restore, since)) {
+			return { resetRequired: true, serverTime: new Date().toISOString() }
+		}
 
 		const warehouse = warehouseMongoFilter(requestContext) ?? {}
 		const warehouseAcl = warehouseAclMongoFilter(requestContext) ?? {}

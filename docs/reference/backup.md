@@ -7,40 +7,48 @@ Spec: [backlog/backup.md](../backlog/backup.md). This file is what shipped.
 | Topic | Decision |
 | --- | --- |
 | Entitlement | Superadmin enables page `BACKUP` on the tenant (like `INVOICE_AI`) + `backupRetentionCount` (1–30, default 3) via `PATCH /tenants/:id`. Expired subscription → writes (incl. backup/restore) 403. |
-| Who | Owner role only, every `/backup` endpoint (server-enforced). |
+| Who | Owner role only, every `/backup` endpoint (server-enforced; `admin`, `cashier`, `employee`, `super_admin` get 403, `backupAccess.test.ts`). Not a SEE flag: the owner cannot grant it to other roles, and other roles never see the tab. |
 | Encryption | `BACKUP_MASTER_KEY` (env, base64 32 bytes) → HKDF per tenant + purpose. AES-256-GCM for archives and for stored provider refresh tokens. Key never in the archive. **Losing the env key = all backups and connections unreadable.** No key → backup feature off (cron not started, endpoints 422). |
-| Change detection | `tenantBackupStates.dataVersion` +1 once per mutating tenant request (`bumpTenantDataVersion` middleware, after response; 4xx and `/backup` paths excluded). `lastBackupVersion` only moves on COMPLETED (`$max`). |
-| Queue | `backups` collection is both job queue and history. Scheduler (cron `BACKUP_SCHEDULE`, default `0 3 * * *`, `CRON_TIMEZONE`) only inserts PENDING jobs; in-process worker polls every 10 s, claims atomically (`findOneAndUpdate`), max `BACKUP_WORKER_CONCURRENCY` (default 5) per instance. |
-| Format | Frames = BSON docs (manifest first, then `{c, d}` per record) → gzip → AES-256-GCM. File: `SPBK` + format byte + IV … ciphertext … tag. Raw driver cursor / insert, so ObjectId, Decimal128, Date, Int32/Long round-trip exactly. Streaming to a temp file; nothing held in RAM. |
+| Change detection | `platform.tenant_backup_states.data_version` +1 once per mutating tenant request (`bumpTenantDataVersion` middleware, after response; 4xx and `/backup` paths excluded). `last_backup_version` only moves on COMPLETED (max). The version is read inside the backup's snapshot, so a write after it is backed up next run. |
+| Queue | `platform.tenant_backups` is both job queue and history. Scheduler (cron `BACKUP_SCHEDULE`, default `0 3 * * *`, `CRON_TIMEZONE`) only inserts PENDING jobs; in-process worker polls every 10 s, claims with `FOR UPDATE SKIP LOCKED` (one job → one worker, also across instances), max `BACKUP_WORKER_CONCURRENCY` (default 2: each job holds one read connection for its snapshot) per instance. Partial unique index `tenant_backups_one_in_flight`: one scheduled / manual job in flight per tenant. |
+| Format | v2 (Postgres). Lines: manifest JSON, then `<table>\t<row JSON>` per row → gzip → AES-256-GCM. File: `SPBK` + format byte `2` + IV … ciphertext … tag. Row JSON is Postgres' own `row_to_json` text and is restored with `json_populate_recordset` unchanged, so `numeric` digits, timestamps, arrays and jsonb round-trip exactly (no JS numbers). Read through one server-side cursor per table (1,000-row fetches) inside one `REPEATABLE READ READ ONLY` transaction = one consistent snapshot of the tenant. Streaming to a temp file. |
 | Providers | Driver registry `shared/backup/drivers/index.ts` (shared OAuth/HTTP plumbing in `drivers/http.ts`). Only drivers with env credentials are offered (`configured`); old backups stay restorable via `getDriver`. Google Drive: scope `drive.file`. Dropbox: App-folder app, `token_access_type=offline`, refresh tokens don't rotate. OneDrive: `Files.ReadWrite.AppFolder` (approot), **refresh token rotates → driver saves it via `connection.save`**, chunked upload session (10 MiB, 320 KiB-aligned). Connections stored per provider, so backups made before a switch stay restorable and retention can delete them. |
 | Web UI | Settings → Backup tab (`components/settings/BackupSettings.tsx`): owner + tenant page `BACKUP` only; online only. Toggle, per-provider connect / change account / use / disconnect, Backup now, history (polls every 4 s while a job or restore runs), restore with confirm + status banner + Reload. OAuth returns to `/settings?backup=…`, which opens the tab and toasts the result. Superadmin sets retention in Tenants → access modal. |
 | Offline devices | `GET /sync/changes` answers `{ resetRequired: true }` when a restore started or finished after `since`; the client re-bootstraps (only with an empty outbox, otherwise on the next pull). |
 
-## Collections
+## Tables
 
-`shared/backup/collections.ts`: `BACKUP_MODELS` (restore order) and `EXCLUDED_MODELS`
-(with reason). `backupCollections.test.ts` fails when a new model is in neither list.
-Not backed up: users / refresh tokens (logins), tenant / billing / newsroom (global),
-offline sync bookkeeping (`OfflineSyncState`, `SyncMutation` must not roll back),
-derived snapshots, import drafts, per-user read state.
+`shared/backup/tables.ts`: every `store.*` table is backed up (restore order = declaration
+order in `schema/store.ts`, parents before child tables; delete runs in reverse) except
+`EXCLUDED_TABLES` (with reason): `offline_sync_states`, `sync_mutations` (must not roll back),
+`negative_quantity_snapshots` (derived), `product_import_sessions` (drafts), `notification_reads`
+(per-user UI state). A new store table is backed up by default. `backupTables.test.ts` checks the
+exclude list, parent-before-child order and `tenant_id` on every backed-up table. Never in a backup:
+`platform.*` (users, tokens, tenant, billing, newsroom, the backup tables).
+
+**Schema fingerprint:** the manifest holds a hash of the backed-up tables and their columns
+(`BACKUP_SCHEMA_FINGERPRINT`). A restore refuses a file with another fingerprint
+(`RESTORE_VALIDATION_ERROR`). After a migration that changes a backed-up table, older files cannot
+be restored until a converter exists; take a fresh backup after such a deploy.
 
 ## Flows
 
 - **Connect:** `POST /backup/connections/google_drive` → `{url}` → Google → `GET /backup/oauth/callback?code&state`
-  (no bearer; `state` = 10-min JWT with tenantId+provider, aud `backup-oauth`) → tokens stored, provider becomes active →
+  (no bearer; `state` = 10-min JWT with tenantId+provider+nonce, aud `backup-oauth`; the nonce is stored on `tenant_backup_states.oauth_nonce` at connect and consumed once by the callback, so a copied or replayed `state` is refused; login tokens without `userId` are refused) → tokens stored, provider becomes active →
   redirect `FRONTEND_URL/settings?backup=connected|cancelled|error`.
 - **Switch provider:** `PATCH /backup {provider}` — must already be connected; `testConnection` first. Old backups untouched.
 - **Backup now:** `POST /backup/run` → checks enabled + provider + connection test → PENDING job (returns in-flight job if one exists). Poll `GET /backup/history`.
-- **Job:** read `dataVersion` → stream tenant data (asserts every doc's tenantId) → encrypt → upload → verify remote size → COMPLETED → `lastBackupVersion = max(…, version)` → retention (newest N COMPLETED kept; older deleted through *their* provider; undeletable ones kept and retried later). Failure → FAILED + `errorCode`, tenant stays eligible.
-- **Restore:** `POST /backup/:backupId/restore` → 202. Tenant write lock (`tenants.backupRestoreStartedAt`; all writes → 423 `BACKUP_RESTORE_IN_PROGRESS`) → download via the backup's provider → decrypt (GCM tag = integrity) → validate manifest version + tenantId and **every** document's tenantId → safety backup (active provider, must succeed) → delete tenant docs in backed-up collections → insert from archive → `dataVersion+1`, Redis tenant keys dropped, lock released. Status in `GET /backup` → `restore`.
-- Locks/jobs older than 2 h count as crashed (job → FAILED `WORKER_TIMEOUT`, lock ignored).
+- **Job:** snapshot transaction → read `dataVersion` → stream the tenant's rows (`tenant_id` filter per table) → encrypt → upload → verify remote size → COMPLETED → `lastBackupVersion = max(…, version)` → retention, not after a safety backup (newest N COMPLETED kept; older deleted through *their* provider; undeletable ones kept and retried later). Failure → FAILED + `errorCode`, tenant stays eligible.
+- **Restore:** `POST /backup/:backupId/restore` → tenant write lock + restore status `RUNNING` stored → 202. Lock = `tenants.backupRestoreStartedAt` (owner token) + `backupRestoreHeartbeatAt` (refreshed every 30 s); while the heartbeat is fresh all writes → 423 `BACKUP_RESTORE_IN_PROGRESS` and scheduled backups of the tenant are not queued → download via the backup's provider → decrypt (GCM tag = integrity) → validate format version, tenantId, schema fingerprint, and **every** row's table + `tenant_id` → safety backup (active provider, must succeed) → **one transaction:** delete the tenant's rows (children first), insert from the archive, check inserted = rows in file, check the lock is still this restore's and live (else roll back); any error rolls back and the tenant keeps its data → `dataVersion+1`, Redis tenant keys and this instance's SEE cache dropped, lock released (only if still this restore's). Status writes only touch this restore's record (`restore.startedAt` = lock token). Status in `GET /backup` → `restore`.
+- **Heartbeat:** a running job (`tenant_backups.updated_at`) or restore (`backupRestoreHeartbeatAt`) beats every 30 s. No beat for 5 min = crashed (process killed, deploy): job → FAILED `WORKER_TIMEOUT`, restore lock free, `GET /backup` shows the restore as FAILED. Beating stops after 2 h, so a hung run goes stale too; a restore that lost its lock rolls back at commit. Job status updates only apply while the row is in flight: a hung worker can never complete a stale-failed job (its uploaded file is removed, `lastBackupStatus` is not touched). A failed restore leaves `dataVersion` and the Redis cache untouched. Enabling backups tests the provider connection first.
+- **Offline device after a restore:** with waiting or failed outbox items it does not re-download (that would drop them) and shows a banner (`offline.restoreResetPending`) until they are synced or removed.
 
 ## Error codes (stored on job / restore; customers see code only)
 
-`GOOGLE_AUTH_ERROR`, `GOOGLE_DRIVE_ACCESS_ERROR`, `PROVIDER_NOT_CONNECTED`, `MONGODB_ERROR`,
+`GOOGLE_AUTH_ERROR`, `GOOGLE_DRIVE_ACCESS_ERROR`, `PROVIDER_NOT_CONNECTED`, `DATABASE_ERROR`,
 `BACKUP_SERIALIZATION_ERROR`, `ENCRYPTION_ERROR`, `UPLOAD_ERROR`, `DOWNLOAD_ERROR`,
 `RESTORE_VALIDATION_ERROR`, `TENANT_VALIDATION_ERROR`, `SAFETY_BACKUP_FAILED`, `RESTORE_ERROR`,
-`RESTORE_IN_PROGRESS`, `WORKER_TIMEOUT`. Technical message only in logs / `backups.errorMessage`.
+`RESTORE_IN_PROGRESS`, `WORKER_TIMEOUT`. Technical message only in logs / `tenant_backups.error_message`.
 
 ## Env
 
@@ -52,7 +60,11 @@ scopes `files.content.write`, `files.content.read`, `account_info.read`. Azure a
 
 ## Known limits (`shortcut:` in code)
 
-- Restore is not one transaction (Mongo 60 s / size limits); a mid-way failure leaves partial data → restore the safety backup.
+- No converter for files made before a migration that changed a backed-up table (fingerprint refuses them).
+- A write request already past the lock check when a restore starts can still commit before or after the restore transaction. No other writer bypasses the lock: crons only write `negative_quantity_snapshots` (not backed up) and platform tables.
+- A deploy or crash during a restore keeps tenant writes blocked for up to 5 min (heartbeat timeout); the restore itself rolls back.
+- OAuth `state` is bound to tenant + nonce, not to the browser: whoever opens the consent URL within 10 min connects their account. Archives stay encrypted with the server key, so that account only receives ciphertext.
+- Retention counts safety backups (newest N of all COMPLETED). With retention 1, the next scheduled backup after a restore removes the safety and the restored-from backup.
 - `dataVersion` bump is after commit, not in the business transaction; scripts/crons don't bump.
 - Outbox items queued offline before a restore still replay onto the restored data (they are real user actions).
 - No per-provider rate limit; one concurrency limit per API instance (replicas multiply it).
@@ -61,4 +73,4 @@ scopes `files.content.write`, `files.content.read`, `account_info.read`. Azure a
 
 ## Not done yet
 
-Dropbox and OneDrive are implemented and unit-tested with mocked HTTP but not yet run against real accounts. Next-run time is shown from the cron expression, not per tenant.
+Postgres version (branch `tenant-backup`, 2026-11-19): engine, queue, restore and tests (`backup.pg.test.ts`: exact round trip, other tenant untouched, rollback on a failed restore, safety-backup failure, retention, restore lock, queue claim) run against a local Postgres with an in-memory provider; not yet against a real provider or staging. Dropbox and OneDrive are implemented and unit-tested with mocked HTTP but not yet run against real accounts. Next-run time is shown from the cron expression, not per tenant.

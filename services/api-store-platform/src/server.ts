@@ -4,6 +4,7 @@ import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
 import { startNegativeQuantitySnapshotCron } from './cron/snapshotNegativeQuantity'
 import { startInvoiceAiUsageRollCron } from './cron/rollInvoiceAiUsage'
 import { startSubscriptionLifecycleCron } from './cron/manageSubscriptions'
+import { startBackupCron } from './cron/backups'
 import { redisCache } from './shared/cache/redisCache'
 import logger, { EntityType } from './shared/logger/logger'
 import { createApp } from './app'
@@ -34,6 +35,7 @@ startTokenCleanupCron()
 startNegativeQuantitySnapshotCron()
 startInvoiceAiUsageRollCron()
 startSubscriptionLifecycleCron()
+startBackupCron()
 
 const gracefulShutdown = async () => {
 	logger.info('Shutting down server...')

@@ -32,7 +32,10 @@ import NotificationController from './apis/notification/api.controller'
 import NotificationRoutes from './apis/notification/api.routes'
 import NewsroomController from './apis/newsroom/api.controller'
 import NewsroomRoutes from './apis/newsroom/api.routes'
+import BackupController from './apis/backup/api.controller'
+import BackupRoutes from './apis/backup/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
+import { bumpTenantDataVersion } from './shared/backup/dataVersion'
 import ProductsMapper from './apis/mappings/ProductsMapper'
 // import { requestLogger } from './middleware/middleware'
 
@@ -143,6 +146,7 @@ export const createApp = () => {
 		newsroomController,
 		productController,
 	)
+	const backupRoutes = new BackupRoutes(new BackupController(), productController)
 	const app = express()
 
 	const jsonParser = express.json({ limit: '100kb' })
@@ -172,6 +176,7 @@ export const createApp = () => {
 	})
 
 	app.use(cookieParser())
+	app.use(bumpTenantDataVersion)
 
 	//TODO: improve this middleware to see the logger better in the requestLogger
 	// app.use(requestLogger)
@@ -196,6 +201,7 @@ export const createApp = () => {
 	productImportRoutes.setRoutes(app)
 	notificationRoutes.setRoutes(app)
 	newsroomRoutes.setRoutes(app)
+	backupRoutes.setRoutes(app)
 	storeRoutes.setRoutes(app)
 	tenantRoutes.setRoutes(app)
 

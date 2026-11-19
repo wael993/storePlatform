@@ -161,6 +161,45 @@ export interface InvoiceSettings {
 	updatedAt?: string
 }
 
+export type BackupStatus =
+	| 'PENDING'
+	| 'PROCESSING'
+	| 'UPLOADING'
+	| 'COMPLETED'
+	| 'FAILED'
+
+export type BackupRecord = {
+	backupId: string
+	name: string
+	provider: string
+	kind: 'scheduled' | 'manual' | 'safety'
+	status: BackupStatus
+	size: number | null
+	createdAt: string
+	completedAt: string | null
+	errorCode: string | null
+}
+
+export type BackupSettings = {
+	enabled: boolean
+	provider: string | null
+	providers: string[]
+	connections: { provider: string; accountLabel: string; connectedAt: string }[]
+	retentionCount: number
+	schedule: string
+	timezone: string
+	lastBackupAt: string | null
+	lastBackupStatus: 'COMPLETED' | 'FAILED' | null
+	restore: {
+		status: 'RUNNING' | 'COMPLETED' | 'FAILED'
+		backupId: string
+		safetyBackupId?: string
+		startedAt: string
+		finishedAt?: string
+		errorCode?: string | null
+	} | null
+}
+
 export type NewsroomTopic = {
 	topicId: string
 	name: string
@@ -2706,6 +2745,46 @@ const getQuery = (
 				}
 			},
 		}),
+		// Backup: online only (no offline handler), owner only on the server.
+		getBackupSettings: builder.query<BackupSettings, void>({
+			query: () => ({ url: 'backup' }),
+			providesTags: ['backup'],
+		}),
+		updateBackupSettings: builder.mutation<
+			BackupSettings,
+			{ enabled?: boolean; provider?: string }
+		>({
+			query: body => ({ url: 'backup', method: 'PATCH', body }),
+			invalidatesTags: ['backup'],
+		}),
+		getBackupHistory: builder.query<BackupRecord[], void>({
+			query: () => ({ url: 'backup/history' }),
+			providesTags: ['backup'],
+		}),
+		runBackup: builder.mutation<BackupRecord, void>({
+			query: () => ({ url: 'backup/run', method: 'POST' }),
+			invalidatesTags: ['backup'],
+		}),
+		connectBackupProvider: builder.mutation<{ url: string }, string>({
+			query: provider => ({
+				url: `backup/connections/${encodeURIComponent(provider)}`,
+				method: 'POST',
+			}),
+		}),
+		disconnectBackupProvider: builder.mutation<BackupSettings, string>({
+			query: provider => ({
+				url: `backup/connections/${encodeURIComponent(provider)}`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['backup'],
+		}),
+		restoreBackup: builder.mutation<{ status: string }, string>({
+			query: backupId => ({
+				url: `backup/${encodeURIComponent(backupId)}/restore`,
+				method: 'POST',
+			}),
+			invalidatesTags: ['backup'],
+		}),
 		getNewsroomTopics: builder.query<NewsroomTopic[], void>({
 			query: () => ({
 				url: 'newsroom/topics',
@@ -2949,6 +3028,13 @@ export const {
 	useAddTenantMutation,
 	useGetTenantsQuery,
 	useGetNewsroomTopicsQuery,
+	useGetBackupSettingsQuery,
+	useUpdateBackupSettingsMutation,
+	useGetBackupHistoryQuery,
+	useRunBackupMutation,
+	useConnectBackupProviderMutation,
+	useDisconnectBackupProviderMutation,
+	useRestoreBackupMutation,
 	useCreateNewsroomTopicMutation,
 	useUpdateNewsroomTopicMutation,
 	useDeleteNewsroomTopicMutation,

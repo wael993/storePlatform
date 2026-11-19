@@ -475,6 +475,26 @@ export default class TenantController {
 			}
 		}
 
+		if (requestBody.backupRetentionCount !== undefined) {
+			if (!permissions.canChangeTenantSettings) {
+				throw new BusinessLogicError(
+					ERROR_CODES.AUTHORIZATION.FORBIDDEN,
+					permissions.reason || 'Tenant settings cannot be modified.',
+				)
+			}
+
+			const retention = requestBody.backupRetentionCount
+
+			if (!Number.isInteger(retention) || retention < 1 || retention > 30) {
+				throw new BusinessLogicError(
+					ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+					'Backup retention must be a whole number from 1 to 30.',
+				)
+			}
+
+			updates.backupRetentionCount = retention
+		}
+
 		if (requestBody.offlineEnabled !== undefined) {
 			if (!permissions.canChangeTenantSettings) {
 				throw new BusinessLogicError(

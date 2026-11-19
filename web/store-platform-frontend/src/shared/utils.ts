@@ -72,6 +72,8 @@ export const getGloballyEnabledTenantPages = (
 		PROJECTS: enabledActions.isProjectsEnabled,
 		SELLING_INVOICES: enabledActions.isSellingInvoicesEnabled,
 		INVOICE_AI: enabledActions.isInvoiceAiEnabled,
+		// backup lives under Settings; no separate deploy flag
+		BACKUP: enabledActions.isSettingsEnabled,
 		INVENTORY: enabledActions.isProductsEnabled,
 		REPORTS: enabledActions.isReportsEnabled,
 		SETTINGS: enabledActions.isSettingsEnabled,
@@ -100,6 +102,7 @@ export const getTenantActions = (accessiblePages?: string[] | null) => {
 		isTenantSettingsEnabled: tenantPages.has('SETTINGS'),
 		isTenantSellingInvoicesEnabled: tenantPages.has('SELLING_INVOICES'),
 		isTenantInvoiceAiEnabled: tenantPages.has('INVOICE_AI'),
+		isTenantBackupEnabled: tenantPages.has('BACKUP'),
 		isTenantReportsEnabled: tenantPages.has('REPORTS'),
 		isTenantDashboardEnabled: tenantPages.has('DASHBOARD'),
 		isTenantCustomersEnabled: tenantPages.has('CUSTOMERS'),

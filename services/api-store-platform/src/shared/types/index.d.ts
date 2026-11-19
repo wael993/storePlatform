@@ -470,6 +470,7 @@ export type UpdateTenantRequestBody = {
 	accessiblePages?: string[]
 	offlineEnabled?: boolean
 	invoiceAiMonthlyLimit?: number
+	backupRetentionCount?: number
 }
 export type CreateProductResponse = {
 	_id: string
@@ -556,6 +557,7 @@ export type TenantSummary = {
 	accessiblePages: string[]
 	offlineEnabled: boolean
 	invoiceAiMonthlyLimit: number | null
+	backupRetentionCount: number
 	subscription: {
 		startDate: string
 		renewalDate: string

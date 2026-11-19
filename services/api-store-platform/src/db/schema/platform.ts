@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+	bigint,
 	bigserial,
 	boolean,
 	index,
@@ -31,7 +32,9 @@ export const tenants = platform.table('tenants', {
 	invoiceAiUsedInPeriod: integer(),
 	invoiceAiCarryOver: integer(),
 	productImportStatus: text(),
-	backupRetentionCount: integer(), // set by the parked backup feature (stash); kept for when it returns
+	backupRetentionCount: integer(), // successful backups to keep (superadmin; default 3)
+	backupRestoreStartedAt: tz(), // set while a restore replaces tenant data; identifies the lock owner
+	backupRestoreHeartbeatAt: tz(), // refreshed by the running restore; fresh = writes get 423
 	subscriptionStartDate: tz(),
 	subscriptionRenewalDate: tz(),
 	subscriptionStatus: text(),
@@ -190,3 +193,54 @@ export const newsroomUserStates = platform.table(
 	},
 	t => [uniqueIndex().on(t.userId, t.newsroomItemId)],
 )
+
+/**
+ * Tenant backup: one row is both the queue job and the history entry. Not tenant
+ * business data, so it is never inside a backup itself.
+ */
+export const tenantBackups = platform.table(
+	'tenant_backups',
+	{
+		id: text().primaryKey(), // backupId (uuid)
+		tenantId: text().notNull(),
+		name: text().notNull(),
+		provider: text().notNull(),
+		kind: text().notNull(), // scheduled | manual | safety
+		status: text().notNull(), // PENDING | PROCESSING | UPLOADING | COMPLETED | FAILED
+		dataVersion: integer(),
+		storageId: text(),
+		size: bigint({ mode: 'number' }),
+		startedAt: tz(),
+		completedAt: tz(),
+		errorCode: text(),
+		errorMessage: text(), // internal only, never sent to clients
+		...timestamps,
+	},
+	t => [
+		index().on(t.status, t.createdAt),
+		index().on(t.tenantId, t.status, t.completedAt),
+		// at most one scheduled / manual job in flight per tenant (safety backups run inside a restore)
+		uniqueIndex('tenant_backups_one_in_flight')
+			.on(t.tenantId)
+			.where(
+				sql`${t.kind} <> 'safety' and ${t.status} in ('PENDING', 'PROCESSING', 'UPLOADING')`,
+			),
+	],
+)
+
+/** Per-tenant backup settings, provider connections, change counter and last restore. */
+export const tenantBackupStates = platform.table('tenant_backup_states', {
+	tenantId: text().primaryKey(),
+	/** Bumped once per mutating tenant request; a backup is due when it passed lastBackupVersion. */
+	dataVersion: integer().notNull().default(0),
+	lastBackupVersion: integer().notNull().default(-1), // -1: first backup right after enabling
+	lastBackupAt: tz(),
+	lastBackupStatus: text(),
+	enabled: boolean().notNull().default(false),
+	provider: text(), // active provider for new backups
+	/** provider → { config (driver-owned, secrets encrypted), accountLabel, connectedAt } */
+	connections: jsonb().notNull().default({}),
+	restore: jsonb(), // { status, backupId, safetyBackupId?, startedAt, finishedAt?, errorCode? }
+	oauthNonce: text(), // pending provider connect; the OAuth callback consumes it once
+	...timestamps,
+})

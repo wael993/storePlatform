@@ -1,0 +1,1 @@
+ALTER TABLE "platform"."tenant_backup_states" ADD COLUMN "oauth_nonce" text;

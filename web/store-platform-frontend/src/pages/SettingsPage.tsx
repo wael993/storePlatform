@@ -31,6 +31,8 @@ import InvoiceSettings, {
 	type InvoiceBrandFormValues,
 } from '../components/settings/InvoiceSettings'
 import SettingActions from '../components/settings/SettingActions'
+import BackupSettings from '../components/settings/BackupSettings'
+import { getTenantActions } from '../shared/utils'
 import useCustomToast from '../components/common/CustomToast'
 import {
 	CurrencySettingItem,
@@ -46,6 +48,9 @@ import { useSee } from '../shared/hooks/useSee'
 import { SEE } from '../shared/seeFlags'
 import { deleteErrorDescription } from '../shared/deleteBlock'
 import { useWorkMode } from '../shared/hooks/useWorkMode'
+
+// Backup is owner + tenant-page gated, not a SEE flag
+const BACKUP_TAB_ID = 'backup'
 
 const createEmptyPrimary = (): CurrencySettingItem => ({
 	currencyId: generateId(),
@@ -141,7 +146,10 @@ const SettingsPage = () => {
 	const { data: invoiceSettingsData } = useGetInvoiceSettingsQuery(undefined, {
 		refetchOnMountOrArgChange: false,
 	})
-	const [currentTabIndex, setCurrentTabIndex] = useState<number>(0)
+	// -1 = open the Backup tab (return from the provider's OAuth consent)
+	const [currentTabIndex, setCurrentTabIndex] = useState<number>(() =>
+		new URLSearchParams(window.location.search).has('backup') ? -1 : 0,
+	)
 	const [primaryCurrency, setPrimaryCurrency] =
 		useState<CurrencySettingItem | null>(createEmptyPrimary())
 	const [secondaryCurrencies, setSecondaryCurrencies] = useState<
@@ -156,7 +164,9 @@ const SettingsPage = () => {
 	const breadCrumbItems = generateBreadcrumbs()
 	const { t } = useTranslation()
 	const navigate = useNavigate()
-	const { user } = useUser()
+	const { user, isOwner } = useUser()
+	const showBackupTab =
+		isOwner && getTenantActions(user?.accessiblePages).isTenantBackupEnabled
 	const { canSee } = useSee()
 	const { workMode } = useWorkMode()
 	const settingsLockedOffline = workMode === 'offline'
@@ -399,7 +409,7 @@ const SettingsPage = () => {
 	const getTabTextStyle = (tabIndex: number) => {
 		return {
 			...styles.subHeaderDescription,
-			color: `${currentTabIndex === tabIndex ? '#376288' : '#939596'}`,
+			color: `${activeTabIndex === tabIndex ? '#376288' : '#939596'}`,
 		}
 	}
 
@@ -407,12 +417,12 @@ const SettingsPage = () => {
 		return {
 			...styles.tab,
 			borderBottom: `2px solid ${
-				currentTabIndex === tabIndex ? '#376288' : '#DADADA'
+				activeTabIndex === tabIndex ? '#376288' : '#DADADA'
 			}`,
 		}
 	}
 
-	const visibleSettingsTabs = [
+	const seeSettingsTabs = [
 		{
 			id: SEE.settingsProducts,
 			label: t('components.settingsTabs.product'),
@@ -434,6 +444,16 @@ const SettingsPage = () => {
 			label: t('components.settingsTabs.invoice'),
 		},
 	].filter(tab => canSee(tab.id))
+	const visibleSettingsTabs: { id: string; label: string }[] = [
+		...seeSettingsTabs,
+		...(showBackupTab
+			? [{ id: BACKUP_TAB_ID, label: t('components.settingsTabs.backup') }]
+			: []),
+	]
+	const activeTabIndex =
+		currentTabIndex === -1
+			? Math.max(0, visibleSettingsTabs.length - 1)
+			: currentTabIndex
 
 	const isSaveDisabled =
 		settingsLockedOffline ||
@@ -470,7 +490,7 @@ const SettingsPage = () => {
 			)}
 
 			<Tabs
-				index={currentTabIndex}
+				index={activeTabIndex}
 				onChange={handleTabsChange}
 				variant="unstyled"
 				sx={styles.tabs}
@@ -530,6 +550,7 @@ const SettingsPage = () => {
 								</Box>
 							) : null}
 							{tab.id === SEE.settingsWorkMode ? <WorkModeSettings /> : null}
+							{tab.id === BACKUP_TAB_ID ? <BackupSettings /> : null}
 							{tab.id === SEE.settingsInvoice ? (
 								<Box
 									pointerEvents={settingsLockedOffline ? 'none' : 'auto'}

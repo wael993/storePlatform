@@ -6,6 +6,7 @@ interface TenantSummary {
 	accessiblePages: string[]
 	offlineEnabled: boolean
 	invoiceAiMonthlyLimit?: number | null
+	backupRetentionCount?: number
 	subscription?: TenantSubscriptionView | null
 	createdAt: string
 	updatedAt: string
@@ -77,6 +78,7 @@ interface UpdateTenantRequest {
 	accessiblePages?: string[]
 	offlineEnabled?: boolean
 	invoiceAiMonthlyLimit?: number
+	backupRetentionCount?: number
 }
 
 interface InvoiceAiUsage {

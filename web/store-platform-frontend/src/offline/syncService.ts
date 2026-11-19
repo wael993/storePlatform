@@ -61,6 +61,7 @@ let currentState: OfflineState = {
 	lastError: null,
 	isOfflineCapable: false,
 	syncPushResult: null,
+	restoreResetPending: false,
 }
 
 const emit = (partial: Partial<OfflineState>) => {
@@ -251,6 +252,29 @@ export const pullSyncChanges = async (): Promise<void> => {
 	}
 
 	const payload = await response.json()
+
+	// a backup restore replaced server data: deltas can't express that, so re-download all.
+	// Bootstrap refuses while the outbox has items (incl. failed ones); lastSyncedAt stays old,
+	// so the next pull asks again. Until then the user must see that this device is stale.
+	if (payload.resetRequired) {
+		const tenantId =
+			(await getSyncMeta(SYNC_META_KEYS.sessionTenantId)) ||
+			(await getSyncMeta(SYNC_META_KEYS.tenantId))
+		const pending =
+			(await getPendingOutboxCount()) + (await getProcessingOutboxCount())
+
+		if (!tenantId || pending > 0) {
+			emit({ restoreResetPending: true })
+
+			return
+		}
+
+		await bootstrapOfflineData(tenantId)
+		emit({ restoreResetPending: false })
+
+		return
+	}
+
 	await applySyncChanges(payload)
 	emit({ lastSyncedAt: payload.serverTime, lastError: null })
 }

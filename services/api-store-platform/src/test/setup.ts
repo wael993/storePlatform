@@ -6,3 +6,5 @@ process.env.REFRESH_TOKEN_SECRET ??= 'test-refresh-secret-at-least-32-chars'
 process.env.SUPER_ADMIN_TENANT_ID ??= 'super-admin'
 process.env.BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING ??=
 	'mongodb://127.0.0.1:27017/store-platform-test'
+
+process.env.BACKUP_MASTER_KEY ??= Buffer.alloc(32, 7).toString('base64')

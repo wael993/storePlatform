@@ -1,0 +1,1 @@
+ALTER TABLE "platform"."tenants" ADD COLUMN "backup_restore_heartbeat_at" timestamp with time zone;

@@ -168,4 +168,6 @@ export interface OfflineState {
 	lastError: string | null
 	isOfflineCapable: boolean
 	syncPushResult: SyncPushResultInfo | null
+	/** Server data was restored from a backup, but local changes wait to sync first. */
+	restoreResetPending: boolean
 }

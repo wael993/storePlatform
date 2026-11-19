@@ -9,6 +9,7 @@ export const TENANT_ACCESSIBLE_PAGE = {
 	PROJECTS: 'PROJECTS',
 	SELLING_INVOICES: 'SELLING_INVOICES',
 	INVOICE_AI: 'INVOICE_AI',
+	BACKUP: 'BACKUP',
 	INVENTORY: 'INVENTORY',
 	REPORTS: 'REPORTS',
 	SETTINGS: 'SETTINGS',
@@ -29,6 +30,7 @@ export const CONFIGURABLE_TENANT_PAGES: TenantAccessiblePage[] = [
 	TENANT_ACCESSIBLE_PAGE.PROJECTS,
 	TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES,
 	TENANT_ACCESSIBLE_PAGE.INVOICE_AI,
+	TENANT_ACCESSIBLE_PAGE.BACKUP,
 	TENANT_ACCESSIBLE_PAGE.REPORTS,
 	TENANT_ACCESSIBLE_PAGE.SETTINGS,
 	TENANT_ACCESSIBLE_PAGE.EMPLOYEES,
@@ -46,6 +48,7 @@ export const TENANT_PAGE_LABEL_KEYS: Record<TenantAccessiblePage, string> = {
 	[TENANT_ACCESSIBLE_PAGE.SELLING_INVOICES]:
 		'components.pageHeaders.sellingInvoices',
 	[TENANT_ACCESSIBLE_PAGE.INVOICE_AI]: 'tenants.accessiblePages.invoiceAi',
+	[TENANT_ACCESSIBLE_PAGE.BACKUP]: 'tenants.accessiblePages.backup',
 	[TENANT_ACCESSIBLE_PAGE.INVENTORY]: 'tenants.accessiblePages.inventory',
 	[TENANT_ACCESSIBLE_PAGE.REPORTS]: 'components.pageHeaders.reports',
 	[TENANT_ACCESSIBLE_PAGE.SETTINGS]: 'components.pageHeaders.settings',
@@ -75,6 +78,7 @@ export const TENANT_PAGE_DESCRIPTION_KEYS: Record<
 		'tenants.accessiblePages.sellingInvoicesDescription',
 	[TENANT_ACCESSIBLE_PAGE.INVOICE_AI]:
 		'tenants.accessiblePages.invoiceAiDescription',
+	[TENANT_ACCESSIBLE_PAGE.BACKUP]: 'tenants.accessiblePages.backupDescription',
 	[TENANT_ACCESSIBLE_PAGE.INVENTORY]:
 		'tenants.accessiblePages.inventoryDescription',
 	[TENANT_ACCESSIBLE_PAGE.REPORTS]:

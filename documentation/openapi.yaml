@@ -77,6 +77,8 @@ tags:
     description: "Topics, feed, release notes"
   - name: ProductImport
     description: Excel product import wizard
+  - name: Backup
+    description: "Tenant backup to the tenant's own cloud storage (owner only, BACKUP page)"
   - name: Health
     description: Health checks
 paths:
@@ -3760,6 +3762,221 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/data/backup:
+    get:
+      tags:
+        - Backup
+      summary: "Backup settings, connections, last backup and restore status"
+      operationId: getApiDataBackup
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - Backup
+      summary: "Enable/disable backups or switch to an already connected provider (tested before activation)"
+      operationId: patchApiDataBackup
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                provider:
+                  type: string
+                  enum: [google_drive, dropbox, onedrive]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/data/backup/history:
+    get:
+      tags:
+        - Backup
+      summary: "Latest 50 backups (status, size, provider, errorCode)"
+      operationId: getApiDataBackupHistory
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/data/backup/run:
+    post:
+      tags:
+        - Backup
+      summary: "Backup now: queues a backup for this tenant (returns the in-flight one if any)"
+      operationId: postApiDataBackupRun
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Queued
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/data/backup/connections/{provider}:
+    post:
+      tags:
+        - Backup
+      summary: "Start OAuth: returns { url } to send the browser to"
+      operationId: postApiDataBackupConnection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags:
+        - Backup
+      summary: "Remove stored provider credentials (deactivates backups if it was the active provider)"
+      operationId: deleteApiDataBackupConnection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/data/backup/oauth/callback:
+    get:
+      tags:
+        - Backup
+      summary: "OAuth redirect target (no bearer token; tenant from signed state). Redirects to the web settings page with ?backup=connected|cancelled|error"
+      operationId: getApiDataBackupOauthCallback
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to web app
+  /api/data/backup/{backupId}/restore:
+    post:
+      tags:
+        - Backup
+      summary: "Start restore of a completed backup (safety backup first; tenant writes return 423 while running)"
+      operationId: postApiDataBackupRestore
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: backupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Restore started
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/data/product-import/commit:
     post:
       tags:
@@ -5714,6 +5931,7 @@ paths:
       tags:
         - Sync
       summary: Offline sync changes since timestamp
+      description: "Returns `{ resetRequired: true, serverTime }` instead of changes when a backup restore started or finished after `since`; the client then downloads everything again (only with an empty outbox)."
       operationId: getApiDataSyncChanges
       security:
         - bearerAuth: []

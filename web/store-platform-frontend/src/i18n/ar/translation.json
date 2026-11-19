@@ -406,8 +406,12 @@
 			"sellingInvoicesDescription": "إدارة الفواتير المباعة.",
 			"invoiceAi": "استيراد الفواتير بالذكاء الاصطناعي",
 			"invoiceAiDescription": "قراءة فواتير الموردين ومطابقة المنتجات بالذكاء الاصطناعي.",
+			"backup": "النسخ الاحتياطي السحابي",
+			"backupDescription": "نسخ احتياطية مشفرة لبيانات المستأجر على Google Drive أو Dropbox أو OneDrive مع استعادة يدوية.",
 			"employeesDescription": "ملفات الموظفين وجداول العمل والراتب."
-		}
+		},
+		"backupRetentionCount": "عدد النسخ المحفوظة:",
+		"backupRetentionInvalid": "يجب أن يكون عدد النسخ المحفوظة رقمًا صحيحًا بين 1 و{{max}}."
 	},
 	"login": {
 		"welcomeBack": "مرحبًا بعودتك",
@@ -1132,7 +1136,8 @@
 			"displayLanguage": "لغة العرض",
 			"english": "الإنجليزية",
 			"german": "الألمانية",
-			"arabic": "العربية"
+			"arabic": "العربية",
+			"backup": "النسخ الاحتياطي"
 		},
 		"workModeSettings": {
 			"title": "وضع العمل",
@@ -1366,6 +1371,88 @@
 			"subscriptionRenewBefore": "يرجى التجديد قبل {{date}} لإبقاء المؤسسة نشطة.",
 			"newRenewalRequest": "طلب المستأجر \"{{tenant}}\" تجديد الاشتراك.",
 			"reviewRequest": "مراجعة الطلب"
+		},
+		"backupSettings": {
+			"description": "تُحفظ نسخ مشفرة من جميع بيانات متجرك في التخزين السحابي الخاص بك كل ليلة عند حدوث تغييرات. يمكن للمالك فقط إدارة النسخ الاحتياطية.",
+			"enabled": "نسخ احتياطي تلقائي ليلي",
+			"connectFirst": "قم بربط خدمة تخزين أولاً.",
+			"lastBackup": "آخر نسخة احتياطية",
+			"schedule": "الجدول",
+			"scheduleDaily": "يوميًا الساعة {{time}} ({{timezone}})، فقط عند تغيّر البيانات",
+			"retention": "الاحتفاظ",
+			"retentionCount": "آخر {{number}} نسخ ناجحة",
+			"storage": "التخزين",
+			"active": "نشط",
+			"connectedAs": "متصل بحساب {{account}}",
+			"notConnected": "غير متصل",
+			"useProvider": "استخدامه للنسخ الاحتياطي",
+			"changeAccount": "تغيير الحساب",
+			"connect": "ربط",
+			"disconnect": "فصل",
+			"history": "النسخ الاحتياطية",
+			"backupNow": "نسخ احتياطي الآن",
+			"backupRunning": "جارٍ النسخ الاحتياطي…",
+			"noBackups": "لا توجد نسخ احتياطية بعد.",
+			"restore": "استعادة",
+			"onlineOnly": "تحتاج النسخ الاحتياطية إلى اتصال بالإنترنت. انتقل إلى وضع الاتصال لإدارتها.",
+			"restoreRunning": "الاستعادة قيد التنفيذ. التعديلات محظورة حتى تنتهي.",
+			"restoreDone": "اكتملت الاستعادة في {{date}}. أعد تحميل التطبيق لتظهر البيانات المستعادة في جميع الشاشات.",
+			"restoreFailed": "فشلت الاستعادة: {{reason}} بياناتك قبل الاستعادة محفوظة في نسخة الأمان.",
+			"reload": "إعادة التحميل",
+			"restoreCompleted": "اكتملت الاستعادة.",
+			"backupStarted": "بدأ النسخ الاحتياطي. سيظهر في القائمة عند الانتهاء.",
+			"backupStartFailed": "تعذّر بدء النسخ الاحتياطي.",
+			"restoreStartFailed": "تعذّر بدء الاستعادة.",
+			"connectFailed": "تعذّر بدء الربط.",
+			"restoreConfirmTitle": "استعادة هذه النسخة الاحتياطية؟",
+			"restoreConfirmBody": "سيتم استبدال جميع بيانات المتجر الحالية بالنسخة الاحتياطية من {{date}}. ستضيع التغييرات التي تمت بعد ذلك. يتم أولاً إنشاء نسخة أمان من البيانات الحالية. لا يمكن لأحد إجراء تغييرات أثناء الاستعادة.",
+			"disconnectConfirmTitle": "فصل التخزين؟",
+			"disconnectConfirmBody": "سيتم حذف بيانات تسجيل الدخول المحفوظة لـ {{provider}}. تبقى النسخ المخزنة هناك في حسابك، لكن لا يمكن استعادتها حتى تقوم بالربط مجددًا.",
+			"connectResult": {
+				"connected": "تم ربط التخزين.",
+				"cancelled": "تم إلغاء الربط.",
+				"error": "فشل الربط. حاول مرة أخرى."
+			},
+			"status": {
+				"PENDING": "في الانتظار",
+				"PROCESSING": "قيد الإنشاء",
+				"UPLOADING": "قيد الرفع",
+				"COMPLETED": "ناجحة",
+				"FAILED": "فشلت"
+			},
+			"kind": {
+				"scheduled": "تلقائية",
+				"manual": "يدوية",
+				"safety": "أمان (قبل الاستعادة)"
+			},
+			"columns": {
+				"date": "التاريخ",
+				"type": "النوع",
+				"provider": "التخزين",
+				"size": "الحجم",
+				"status": "الحالة"
+			},
+			"errors": {
+				"UNKNOWN": "حدث خطأ ما.",
+				"GOOGLE_AUTH_ERROR": "انتهت صلاحية الوصول إلى Google Drive أو تم إلغاؤه. قم بالربط مجددًا.",
+				"GOOGLE_DRIVE_ACCESS_ERROR": "تعذّر الوصول إلى Google Drive أو أنه ممتلئ.",
+				"DROPBOX_AUTH_ERROR": "انتهت صلاحية الوصول إلى Dropbox أو تم إلغاؤه. قم بالربط مجددًا.",
+				"DROPBOX_ACCESS_ERROR": "تعذّر الوصول إلى Dropbox أو أنه ممتلئ.",
+				"ONEDRIVE_AUTH_ERROR": "انتهت صلاحية الوصول إلى OneDrive أو تم إلغاؤه. قم بالربط مجددًا.",
+				"ONEDRIVE_ACCESS_ERROR": "تعذّر الوصول إلى OneDrive أو أنه ممتلئ.",
+				"PROVIDER_NOT_CONNECTED": "التخزين الخاص بهذه النسخة غير متصل.",
+				"UPLOAD_ERROR": "فشل الرفع.",
+				"DOWNLOAD_ERROR": "فشل التنزيل.",
+				"RESTORE_VALIDATION_ERROR": "ملف النسخة الاحتياطية تالف أو غير قابل للقراءة.",
+				"TENANT_VALIDATION_ERROR": "النسخة الاحتياطية لا تخص هذا المتجر.",
+				"SAFETY_BACKUP_FAILED": "فشلت نسخة الأمان، لذلك لم تتم أي استعادة.",
+				"RESTORE_ERROR": "فشلت استعادة البيانات.",
+				"RESTORE_IN_PROGRESS": "تم التخطي لأن عملية استعادة كانت قيد التنفيذ.",
+				"WORKER_TIMEOUT": "استغرق النسخ الاحتياطي وقتًا طويلاً وتم إيقافه.",
+				"MONGODB_ERROR": "فشلت قراءة بيانات المتجر.",
+				"BACKUP_SERIALIZATION_ERROR": "فشل إنشاء ملف النسخة الاحتياطية.",
+				"ENCRYPTION_ERROR": "فشل تشفير النسخة الاحتياطية."
+			}
 		}
 	},
 	"subscription": {
@@ -1581,6 +1668,7 @@
 	},
 	"offline": {
 		"bootstrapFailed": "فشل تحميل بيانات العمل بدون اتصال",
+		"restoreResetPending": "تمت استعادة البيانات على الخادم من نسخة احتياطية. هذا الجهاز ما زال يعرض بيانات أقدم: قم بمزامنة التغييرات المنتظرة ({{count}}) أو حذفها لتحميل البيانات المستعادة.",
 		"workingOffline": "العمل بدون اتصال. {{count}} تغيير(ات) في انتظار المزامنة.",
 		"pushChanges": "إرسال التغييرات",
 		"downloadingData": "جاري تحميل بيانات العمل بدون اتصال…",

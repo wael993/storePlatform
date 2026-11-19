@@ -71,6 +71,7 @@ export type TagType =
 	| 'newsroom-release-notes'
 	| 'newsroom-feed'
 	| 'newsroom-unread'
+	| 'backup'
 
 const tagTypes: TagType[] = [
 	'products',
@@ -116,6 +117,7 @@ const tagTypes: TagType[] = [
 	'newsroom-release-notes',
 	'newsroom-feed',
 	'newsroom-unread',
+	'backup',
 ]
 
 const baseQuery = fetchBaseQuery({

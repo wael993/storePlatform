@@ -406,8 +406,12 @@
 			"sellingInvoicesDescription": "Selling invoice management.",
 			"invoiceAi": "Invoice AI import",
 			"invoiceAiDescription": "Read supplier invoices and match products with AI.",
+			"backup": "Cloud backup",
+			"backupDescription": "Encrypted tenant backups to Google Drive, Dropbox or OneDrive with manual restore.",
 			"employeesDescription": "Employee profiles, schedules, and salary."
-		}
+		},
+		"backupRetentionCount": "Backups to keep:",
+		"backupRetentionInvalid": "Backups to keep must be a whole number between 1 and {{max}}."
 	},
 	"login": {
 		"welcomeBack": "Welcome Back",
@@ -1132,7 +1136,8 @@
 			"displayLanguage": "Display Language",
 			"english": "English",
 			"german": "German",
-			"arabic": "Arabic"
+			"arabic": "Arabic",
+			"backup": "Backup"
 		},
 		"workModeSettings": {
 			"title": "Work Mode",
@@ -1366,6 +1371,88 @@
 			"subscriptionRenewBefore": "Please renew before {{date}} to keep your tenant active.",
 			"newRenewalRequest": "Tenant \"{{tenant}}\" has requested a subscription renewal.",
 			"reviewRequest": "Review request"
+		},
+		"backupSettings": {
+			"description": "Encrypted copies of all your store data are saved to your own cloud storage every night when something changed. Only the owner can manage backups.",
+			"enabled": "Automatic nightly backup",
+			"connectFirst": "Connect a storage provider first.",
+			"lastBackup": "Last backup",
+			"schedule": "Schedule",
+			"scheduleDaily": "Daily at {{time}} ({{timezone}}), only if data changed",
+			"retention": "Retention",
+			"retentionCount": "Latest {{number}} successful backups",
+			"storage": "Storage",
+			"active": "Active",
+			"connectedAs": "Connected as {{account}}",
+			"notConnected": "Not connected",
+			"useProvider": "Use for backups",
+			"changeAccount": "Change account",
+			"connect": "Connect",
+			"disconnect": "Disconnect",
+			"history": "Backups",
+			"backupNow": "Backup now",
+			"backupRunning": "Backup running…",
+			"noBackups": "No backups yet.",
+			"restore": "Restore",
+			"onlineOnly": "Backups need an internet connection. Switch to online mode to manage them.",
+			"restoreRunning": "Restore is running. Changes are blocked until it finishes.",
+			"restoreDone": "Restore finished on {{date}}. Reload the app so every screen shows the restored data.",
+			"restoreFailed": "Restore failed: {{reason}} Your data before the restore is kept in the safety backup.",
+			"reload": "Reload",
+			"restoreCompleted": "Restore completed.",
+			"backupStarted": "Backup started. It appears in the list when finished.",
+			"backupStartFailed": "Backup could not be started.",
+			"restoreStartFailed": "Restore could not be started.",
+			"connectFailed": "Could not start the connection.",
+			"restoreConfirmTitle": "Restore this backup?",
+			"restoreConfirmBody": "All current store data will be replaced with the backup from {{date}}. Changes made after that are lost. A safety backup of the current data is created first. Nobody can make changes while the restore runs.",
+			"disconnectConfirmTitle": "Disconnect storage?",
+			"disconnectConfirmBody": "Saved login for {{provider}} will be removed. Backups stored there stay in your account but cannot be restored until you connect it again.",
+			"connectResult": {
+				"connected": "Storage connected.",
+				"cancelled": "Connection cancelled.",
+				"error": "Connection failed. Please try again."
+			},
+			"status": {
+				"PENDING": "Queued",
+				"PROCESSING": "Creating",
+				"UPLOADING": "Uploading",
+				"COMPLETED": "Successful",
+				"FAILED": "Failed"
+			},
+			"kind": {
+				"scheduled": "Automatic",
+				"manual": "Manual",
+				"safety": "Safety (before restore)"
+			},
+			"columns": {
+				"date": "Date",
+				"type": "Type",
+				"provider": "Storage",
+				"size": "Size",
+				"status": "Status"
+			},
+			"errors": {
+				"UNKNOWN": "Something went wrong.",
+				"GOOGLE_AUTH_ERROR": "Google Drive access expired or was revoked. Connect it again.",
+				"GOOGLE_DRIVE_ACCESS_ERROR": "Google Drive could not be reached or is full.",
+				"DROPBOX_AUTH_ERROR": "Dropbox access expired or was revoked. Connect it again.",
+				"DROPBOX_ACCESS_ERROR": "Dropbox could not be reached or is full.",
+				"ONEDRIVE_AUTH_ERROR": "OneDrive access expired or was revoked. Connect it again.",
+				"ONEDRIVE_ACCESS_ERROR": "OneDrive could not be reached or is full.",
+				"PROVIDER_NOT_CONNECTED": "The storage of this backup is not connected.",
+				"UPLOAD_ERROR": "Upload failed.",
+				"DOWNLOAD_ERROR": "Download failed.",
+				"RESTORE_VALIDATION_ERROR": "The backup file is damaged or not readable.",
+				"TENANT_VALIDATION_ERROR": "The backup does not belong to this store.",
+				"SAFETY_BACKUP_FAILED": "The safety backup failed, so nothing was restored.",
+				"RESTORE_ERROR": "Restoring the data failed.",
+				"RESTORE_IN_PROGRESS": "Skipped because a restore was running.",
+				"WORKER_TIMEOUT": "The backup took too long and was stopped.",
+				"MONGODB_ERROR": "Reading the store data failed.",
+				"BACKUP_SERIALIZATION_ERROR": "Creating the backup file failed.",
+				"ENCRYPTION_ERROR": "Encrypting the backup failed."
+			}
 		}
 	},
 	"subscription": {
@@ -1581,6 +1668,7 @@
 	},
 	"offline": {
 		"bootstrapFailed": "Offline download failed",
+		"restoreResetPending": "Data on the server was restored from a backup. This device still shows older data: sync or remove the {{count}} waiting change(s) to load the restored data.",
 		"workingOffline": "Working offline. {{count}} change(s) waiting to sync.",
 		"pushChanges": "Push changes",
 		"downloadingData": "Downloading offline data…",

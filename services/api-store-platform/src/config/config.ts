@@ -79,6 +79,30 @@ export const config = {
 				? subscriptionWarningDays
 				: 30,
 	},
+	backup: {
+		// base64 of 32 random bytes; backups and provider tokens are unreadable without it
+		masterKey: process.env.BACKUP_MASTER_KEY?.trim() || '',
+		workerConcurrency: Math.max(
+			1,
+			// small: each job holds one read connection for the whole snapshot
+			parseInt(process.env.BACKUP_WORKER_CONCURRENCY || '2', 10) || 2,
+		),
+		schedule: process.env.BACKUP_SCHEDULE || '0 3 * * *',
+		oauthRedirectUri: process.env.BACKUP_OAUTH_REDIRECT_URI?.trim() || '',
+		frontendReturnUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings`,
+		googleDrive: {
+			clientId: process.env.GOOGLE_DRIVE_CLIENT_ID?.trim() || '',
+			clientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET || '',
+		},
+		dropbox: {
+			appKey: process.env.DROPBOX_APP_KEY?.trim() || '',
+			appSecret: process.env.DROPBOX_APP_SECRET || '',
+		},
+		oneDrive: {
+			clientId: process.env.ONEDRIVE_CLIENT_ID?.trim() || '',
+			clientSecret: process.env.ONEDRIVE_CLIENT_SECRET || '',
+		},
+	},
 	aiInvoice: {
 		provider: (process.env.AI_INVOICE_PROVIDER || 'mock').toLowerCase(),
 		azure: {
