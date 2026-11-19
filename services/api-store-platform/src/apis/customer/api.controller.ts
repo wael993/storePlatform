@@ -1,4 +1,5 @@
 import { BusinessLogicError } from '../../middleware/errorHandler'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Customer, type ICustomer } from '../../models/Customer'
 import { DailyAction } from '../../models/DailyAction'
@@ -7,7 +8,6 @@ import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
 import { redisCache } from '../../shared/cache/redisCache'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
@@ -238,18 +238,30 @@ export default class CustomerController {
 					'customerId',
 					'supplierId',
 				]),
-				withTenantScope(
-					Invoice.find({ customerId: { $in: ids } }).sort({
-						createdAt: 'desc',
-					}),
+				pgFind(
+					Invoice,
 					tenantId,
-				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
-				withTenantScope(
-					BuyingInvoice.find({ supplierId: { $in: ids } }).sort({
-						createdAt: 'desc',
-					}),
+					{ customerId: { $in: ids } },
+					{
+						sort: {
+							createdAt: 'desc',
+						},
+					},
+				) as unknown as Promise<
+					Array<Record<string, unknown> & { warehouseId?: string }>
+				>,
+				pgFind(
+					BuyingInvoice,
 					tenantId,
-				).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+					{ supplierId: { $in: ids } },
+					{
+						sort: {
+							createdAt: 'desc',
+						},
+					},
+				) as unknown as Promise<
+					Array<Record<string, unknown> & { warehouseId?: string }>
+				>,
 				loadCashCurrencyRates(tenantId),
 			])
 
@@ -301,12 +313,9 @@ export default class CustomerController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Customer.findOne({
-				name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Customer, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -317,10 +326,9 @@ export default class CustomerController {
 
 		const customerId = resolveSyncClientId(requestBody.customerId)
 
-		const existingById = await withTenantScope(
-			Customer.findOne({ customerId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Customer, tenantContext.tenantId, {
+			customerId,
+		})
 
 		if (existingById) {
 			return {
@@ -372,9 +380,12 @@ export default class CustomerController {
 	) {
 		await ensureSeeIds(requestContext, [SEE.customersAdd])
 		const tenantId = this.getTenantId(requestContext)
-		const settings = await CurrencySettings.findOne({ tenantId })
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const settings = await pgFindOne(
+			CurrencySettings,
+			tenantId,
+			{ tenantId },
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const currencies = ratesFromCurrencySettings(settings).map(rate => ({
 			currencyId: rate.currencyId,
 			code: rate.label,
@@ -394,24 +405,23 @@ export default class CustomerController {
 			)
 		}
 
-		const updated = await withTenantScope(
-			Customer.findOneAndUpdate(
-				{ customerId },
-				{
-					$set: {
-						openingBalances,
-						updatedBy: {
-							_id: requestContext.userId as string,
-							displayName:
-								`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
-							updatedAt: new Date(),
-						},
+		const updated = (await pgFindOneAndUpdate(
+			Customer,
+			tenantId,
+			{ customerId },
+			{
+				$set: {
+					openingBalances,
+					updatedBy: {
+						_id: requestContext.userId as string,
+						displayName:
+							`${requestContext.user?.firstName ?? ''} ${requestContext.user?.lastName ?? ''}`.trim(),
+						updatedAt: new Date(),
 					},
 				},
-				{ new: true },
-			),
-			tenantId,
-		).lean<ICustomer | null>()
+			},
+			{ new: true },
+		)) as ICustomer | null
 
 		if (!updated) {
 			throw new BusinessLogicError(
@@ -434,29 +444,29 @@ export default class CustomerController {
 		const reason = DeleteBlockReason.invoice
 		const [invoices, sellingItems, buyingInvoices, actions] = await Promise.all(
 			[
-				withTenantScope(
-					Invoice.find({ customerId: { $in: uniqueIds } })
-						.select({ customerId: 1 })
-						.lean(),
+				pgFind(
+					Invoice,
 					tenantId,
+					{ customerId: { $in: uniqueIds } },
+					{ select: { customerId: 1 } },
 				),
-				withTenantScope(
-					SellingInvoiceItem.find({ customerId: { $in: uniqueIds } })
-						.select({ customerId: 1 })
-						.lean(),
+				pgFind(
+					SellingInvoiceItem,
 					tenantId,
+					{ customerId: { $in: uniqueIds } },
+					{ select: { customerId: 1 } },
 				),
-				withTenantScope(
-					BuyingInvoice.find({ supplierId: { $in: uniqueIds } })
-						.select({ supplierId: 1 })
-						.lean(),
+				pgFind(
+					BuyingInvoice,
 					tenantId,
+					{ supplierId: { $in: uniqueIds } },
+					{ select: { supplierId: 1 } },
 				),
-				withTenantScope(
-					DailyAction.find({ customerId: { $in: uniqueIds } })
-						.select({ customerId: 1 })
-						.lean(),
+				pgFind(
+					DailyAction,
 					tenantId,
+					{ customerId: { $in: uniqueIds } },
+					{ select: { customerId: 1 } },
 				),
 			],
 		)

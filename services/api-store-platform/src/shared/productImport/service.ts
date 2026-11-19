@@ -1,5 +1,16 @@
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid'
-import mongoose from 'mongoose'
+import { and, eq, sql } from 'drizzle-orm'
+
+import { getDb, inTransaction } from '../../db'
+import { legacySellingInvoices } from '../../db/schema'
+import { insertDoc, insertDocs } from '../../db/docs'
+import {
+	pgCount,
+	pgDeleteMany,
+	pgFind,
+	pgFindOne,
+	pgUpdateMany,
+} from '../../db/mongoQuery'
 import {
 	AuthorizationError,
 	BusinessLogicError,
@@ -13,7 +24,6 @@ import {
 import { assertNoTenantBarcodeCollisionsForProducts } from '../productBarcodeCollision'
 import { ensureTenantAccess, getTenantContext } from '../tenant'
 import { COLLECTION_NAMES } from '../general'
-import { withTenantScope } from '../mongodb/tenantScopedModel'
 import {
 	PRODUCT_IMPORT_FIELDS,
 	PRODUCT_IMPORT_LIMITS,
@@ -48,10 +58,11 @@ import { Product } from '../../models/Products'
 import { Warehouse } from '../../models/Warehaus'
 import { requireOperationalWarehouseId } from '../warehouseAccess'
 import Tenant from '../../models/Tenant'
-import ProductImportSession from '../../models/ProductImportSession'
+import ProductImportSession, {
+	IProductImportSession,
+} from '../../models/ProductImportSession'
 import { Invoice } from '../../models/Invoice'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
-import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { StockMoving } from '../../models/StockMovings'
 import { DailyAction } from '../../models/DailyAction'
 import { DeleteBlockReason } from '../deleteBlock'
@@ -135,14 +146,16 @@ const tenantImportStatus = (tenant: {
 }
 
 const setTenantImportStatus = async (tenantId: string, status: string) => {
-	await Tenant.updateOne(
-		{ tenantId },
+	await pgUpdateMany(
+		Tenant,
+		tenantId,
+		{},
 		{ $set: { 'productImport.status': status } },
 	)
 }
 
 const loadTenant = async (tenantId: string) => {
-	const tenant = await Tenant.findOne({ tenantId }).lean()
+	const tenant = await pgFindOne(Tenant, tenantId)
 
 	if (!tenant) {
 		throw new BusinessLogicError(
@@ -170,16 +183,17 @@ export const getProductImportStatus = async (
 	assertOwnerOrAdmin(requestContext)
 	const { tenantId } = getTenantContext(requestContext)
 	const tenant = await loadTenant(tenantId)
-	const productCount = await Product.countDocuments().setOptions({
-		__tenantContext: { tenantId },
-	})
-	const session = await ProductImportSession.findOne({
+	const productCount = await pgCount(Product, tenantId)
+	const session = await pgFindOne<IProductImportSession>(
+		ProductImportSession,
 		tenantId,
-		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
-		expiresAt: { $gt: new Date() },
-	})
-		.sort({ updatedAt: -1 })
-		.lean()
+		{
+			tenantId,
+			status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
+			expiresAt: { $gt: new Date() },
+		},
+		{ sort: { updatedAt: -1 } },
+	)
 	const headers = session
 		? [...new Set(session.files.flatMap(file => file.headers))]
 		: []
@@ -250,9 +264,7 @@ const assertImportAllowed = async (
 	}
 
 	if (!options?.ignoreExistingProducts) {
-		const productCount = await Product.countDocuments().setOptions({
-			__tenantContext: { tenantId },
-		})
+		const productCount = await pgCount(Product, tenantId)
 
 		if (productCount > 0) {
 			throw new BusinessLogicError(
@@ -266,9 +278,12 @@ const assertImportAllowed = async (
 }
 
 const loadCurrencySettings = async (tenantId: string) => {
-	const settings = await CurrencySettings.findOne({ tenantId })
-		.select('primaryCurrency secondaryCurrencies')
-		.lean()
+	const settings = await pgFindOne(
+		CurrencySettings,
+		tenantId,
+		{ tenantId },
+		{ select: 'primaryCurrency secondaryCurrencies' },
+	)
 
 	if (!settings?.primaryCurrency) {
 		throw new BusinessLogicError(
@@ -382,7 +397,7 @@ export const parseProductImportFiles = async (
 
 	const sessionId = uuidv4()
 
-	await ProductImportSession.create({
+	await insertDoc(ProductImportSession, {
 		sessionId,
 		tenantId,
 		status: PRODUCT_IMPORT_STATUS.IN_PROGRESS,
@@ -410,7 +425,14 @@ export const parseProductImportFiles = async (
 }
 
 const loadSession = async (tenantId: string, sessionId: string) => {
-	const session = await ProductImportSession.findOne({ sessionId, tenantId })
+	const session = await pgFindOne<IProductImportSession>(
+		ProductImportSession,
+		tenantId,
+		{
+			sessionId,
+			tenantId,
+		},
+	)
 
 	if (!session || session.expiresAt.getTime() < Date.now()) {
 		throw new BusinessLogicError(
@@ -421,6 +443,14 @@ const loadSession = async (tenantId: string, sessionId: string) => {
 
 	return session
 }
+
+/** Writes only the given fields (never the whole session from a stale copy, nor the large `files`). */
+const updateSession = (
+	tenantId: string,
+	sessionId: string,
+	fields: Record<string, unknown>,
+) =>
+	pgUpdateMany(ProductImportSession, tenantId, { sessionId }, { $set: fields })
 
 const readSelectedFields = (raw: unknown): ProductImportField[] => {
 	if (!Array.isArray(raw) || raw.length === 0) {
@@ -487,11 +517,11 @@ const summarizeRows = (mapped: ReturnType<typeof mapSourceRows>) => {
 }
 
 const loadExistingBarcodeKeys = async (tenantId: string) => {
-	const products = await withTenantScope(
-		Product.find({})
-			.select({ productId: 1, barcode: 1, additionalBarcodes: 1 })
-			.lean(),
+	const products = await pgFind(
+		Product,
 		tenantId,
+		{},
+		{ select: { productId: 1, barcode: 1, additionalBarcodes: 1 } },
 	)
 	const keys = new Set<string>()
 
@@ -579,7 +609,7 @@ export const prepareProductImportMasterData = async (
 	const mapping = readMapping(mappingRaw, selectedFields)
 
 	session.mapping = mapping
-	await session.save()
+	await updateSession(tenantId, session.sessionId, { mapping })
 
 	const rows = flattenSessionRows(session)
 	const candidates = await loadMasterCandidates(tenantId)
@@ -625,6 +655,11 @@ export const confirmProductImportMasterData = async (
 		await rollbackCreatedMasterData(tenantId, session.createdMasterData)
 		session.createdMasterData = undefined
 		session.masterResolutions = undefined
+		// saved now: if the new decisions fail, no resolution points at deleted rows
+		await updateSession(tenantId, session.sessionId, {
+			createdMasterData: null,
+			masterResolutions: null,
+		})
 	}
 
 	const decisions: MasterDecision[] = Array.isArray(decisionsRaw)
@@ -703,7 +738,10 @@ export const confirmProductImportMasterData = async (
 
 		session.masterResolutions = resolutions
 		session.createdMasterData = created
-		await session.save()
+		await updateSession(tenantId, session.sessionId, {
+			masterResolutions: resolutions,
+			createdMasterData: created,
+		})
 
 		return {
 			sessionId: session.sessionId,
@@ -747,7 +785,11 @@ export const previewProductImport = async (
 	)
 
 	session.mapping = mapping
-	await session.save()
+	await updateSession(tenantId, session.sessionId, {
+		mapping,
+		currency: session.currency,
+	})
+
 	const rows = flattenSessionRows(session)
 	const { mapped, valid, duplicates, invalid } = summarizeRows(
 		await mapImportRows(
@@ -826,7 +868,10 @@ export const commitProductImport = async (
 	)
 
 	session.mapping = mapping
-	await session.save()
+	await updateSession(tenantId, session.sessionId, {
+		mapping,
+		currency: session.currency,
+	})
 
 	const rates = ratesFromCurrencySettings(settings)
 	const rows = flattenSessionRows(session)
@@ -834,18 +879,16 @@ export const commitProductImport = async (
 		rowProductIds(session.sessionId, row),
 	)
 	const sessionStarted = sessionProductIds.length
-		? await withTenantScope(
-				Product.findOne({ productId: { $in: sessionProductIds } })
-					.select({ productId: 1 })
-					.lean(),
+		? await pgFindOne(
+				Product,
 				tenantId,
+				{ productId: { $in: sessionProductIds } },
+				{ select: { productId: 1 } },
 			)
 		: null
 
 	if (!sessionStarted) {
-		const productCount = await Product.countDocuments().setOptions({
-			__tenantContext: { tenantId },
-		})
+		const productCount = await pgCount(Product, tenantId)
 
 		if (productCount > 0) {
 			throw new BusinessLogicError(
@@ -870,17 +913,17 @@ export const commitProductImport = async (
 	const alreadyImported = new Set(
 		productIds.length
 			? (
-					await withTenantScope(
-						Product.find({
+					await pgFind(
+						Product,
+						tenantId,
+						{
 							productId: {
 								$in: batch.flatMap(row =>
 									rowProductIds(session.sessionId, row),
 								),
 							},
-						})
-							.select({ productId: 1 })
-							.lean(),
-						tenantId,
+						},
+						{ select: { productId: 1 } },
 					)
 				).map(item => item.productId)
 			: [],
@@ -936,12 +979,12 @@ export const commitProductImport = async (
 	// operational warehouse, never in an arbitrary one.
 	const importWarehouseId = requireOperationalWarehouseId(requestContext)
 
-	const warehouseExists = await withTenantScope(
-		Warehouse.findOne({ warehouseId: importWarehouseId })
-			.select('warehouseId')
-			.lean<{ warehouseId?: string }>(),
+	const warehouseExists = await (pgFindOne(
+		Warehouse,
 		tenantId,
-	)
+		{ warehouseId: importWarehouseId },
+		{ select: 'warehouseId' },
+	) as unknown as Promise<{ warehouseId?: string }>)
 
 	if (!warehouseExists?.warehouseId) {
 		throw new BusinessLogicError(
@@ -974,31 +1017,23 @@ export const commitProductImport = async (
 		// Write-path check: preview map is not enough (post-preview races).
 		await assertNoTenantBarcodeCollisionsForProducts(tenantId, products)
 
-		const mongoSession = await mongoose.startSession()
-
 		try {
-			await mongoSession.withTransaction(async () => {
-				await Product.insertMany(products, {
-					session: mongoSession,
-					ordered: true,
-				})
-
-				await Inventory.insertMany(inventories, {
-					session: mongoSession,
-					ordered: true,
-				})
+			await inTransaction(undefined, async tx => {
+				await insertDocs(Product, products, tx)
+				await insertDocs(Inventory, inventories, tx)
 			})
 		} catch (error) {
 			if (!sessionStarted && session.createdMasterData) {
 				await rollbackCreatedMasterData(tenantId, session.createdMasterData)
 				session.createdMasterData = undefined
 				session.masterResolutions = undefined
-				await session.save()
+				await updateSession(tenantId, session.sessionId, {
+					createdMasterData: null,
+					masterResolutions: null,
+				})
 			}
 
 			throw error
-		} finally {
-			await mongoSession.endSession()
 		}
 	}
 
@@ -1015,7 +1050,11 @@ export const commitProductImport = async (
 		session.status = PRODUCT_IMPORT_STATUS.COMPLETED
 		// Keep created master rows; drop rollback tags.
 		session.createdMasterData = undefined
-		await session.save()
+		await updateSession(tenantId, session.sessionId, {
+			status: session.status,
+			createdMasterData: null,
+		})
+
 		await invalidateCaches()
 	}
 
@@ -1072,35 +1111,40 @@ export const findProductDeleteBlocks = async (
 	}
 
 	const [invoices, buying, sellingItems, movings, actions] = await Promise.all([
-		withTenantScope(
-			Invoice.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
+		pgFind(
+			Invoice,
 			tenantId,
+			{ 'items.productId': { $in: ids } },
+			{ select: { items: 1 } },
 		),
-		withTenantScope(
-			BuyingInvoice.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
+		pgFind(
+			BuyingInvoice,
 			tenantId,
+			{ 'items.productId': { $in: ids } },
+			{ select: { items: 1 } },
 		),
-		withTenantScope(
-			SellingInvoiceItem.find({ 'items.productId': { $in: ids } })
-				.select({ items: 1 })
-				.lean(),
+		// legacy items are one jsonb array (no child table)
+		getDb()
+			.select({ items: legacySellingInvoices.items })
+			.from(legacySellingInvoices)
+			.where(
+				and(
+					eq(legacySellingInvoices.tenantId, tenantId),
+					sql`exists (select 1 from jsonb_array_elements(${legacySellingInvoices.items}) as item
+						where item->>'productId' = any(${sql.param(ids)}::text[]))`,
+				),
+			) as Promise<Array<{ items: Array<{ productId: string }> }>>,
+		pgFind(
+			StockMoving,
 			tenantId,
+			{ productId: { $in: ids } },
+			{ select: { productId: 1 } },
 		),
-		withTenantScope(
-			StockMoving.find({ productId: { $in: ids } })
-				.select({ productId: 1 })
-				.lean(),
+		pgFind(
+			DailyAction,
 			tenantId,
-		),
-		withTenantScope(
-			DailyAction.find({ productId: { $in: ids } })
-				.select({ productId: 1 })
-				.lean(),
-			tenantId,
+			{ productId: { $in: ids } },
+			{ select: { productId: 1 } },
 		),
 	])
 
@@ -1156,7 +1200,5 @@ export const deleteProductInventory = async (
 	tenantId: string,
 	productIds: string[],
 ) => {
-	await Inventory.deleteMany({ productId: { $in: productIds } }).setOptions({
-		__tenantContext: { tenantId },
-	})
+	await pgDeleteMany(Inventory, tenantId, { productId: { $in: productIds } })
 }

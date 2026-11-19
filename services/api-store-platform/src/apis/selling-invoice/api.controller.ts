@@ -1,5 +1,11 @@
-import mongoose from 'mongoose'
 import { v4 as uuidv4 } from 'uuid'
+import { DbTx } from '../../db'
+import { pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
+import { lockUnchangedInvoice } from '../../db/repos/invoices'
+import {
+	checkInvoiceRequestMoney,
+	invoiceRequestTotals,
+} from '../../shared/invoiceMoney'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -10,7 +16,6 @@ import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import {
@@ -97,17 +102,15 @@ export type SellingInvoiceCollaborator = {
 		prefix: InvoiceNumberPrefix,
 		requestedNumber: string | undefined,
 		model: typeof Invoice,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	): Promise<string>
 	resolveNextInvoiceNumber(requestContext: RequestContext): Promise<number>
-	runInTransaction<T>(
-		work: (session: mongoose.ClientSession) => Promise<T>,
-	): Promise<T>
+	runInTransaction<T>(work: (session: DbTx) => Promise<T>): Promise<T>
 	getInventoryByProductId(
 		requestContext: RequestContext,
 		productId: string,
 		warehouseId: string,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	): Promise<InventoryDocument | null>
 	atomicAdjustInventoryQuantity(
 		requestContext: RequestContext,
@@ -117,7 +120,7 @@ export type SellingInvoiceCollaborator = {
 			quantityDelta: number
 			allowNegative?: boolean
 		},
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<InventoryDocument>
 	buildInvoiceCurrencyAmounts(
 		tenantId: string,
@@ -288,10 +291,9 @@ export default class SellingInvoiceController {
 	) {
 		const tenantContext = getTenantContext(requestContext)
 		const requestedProductIds = [...new Set(items.map(item => item.productId))]
-		const products = await withTenantScope(
-			Product.find({ productId: { $in: requestedProductIds } }),
-			tenantContext.tenantId,
-		).lean()
+		const products = await pgFind(Product, tenantContext.tenantId, {
+			productId: { $in: requestedProductIds },
+		})
 
 		if (products.length !== requestedProductIds.length) {
 			throw new BusinessLogicError(
@@ -400,50 +402,49 @@ export default class SellingInvoiceController {
 
 		const tenantContext = getTenantContext(requestContext)
 
-		return withTenantScope(
-			StockMoving.find({
-				type: 'sale',
-				referenceType: 'selling_invoice',
-				referenceId: { $in: invoiceIds },
-			}).lean(),
-			tenantContext.tenantId,
-		)
+		return pgFind(StockMoving, tenantContext.tenantId, {
+			type: 'sale',
+			referenceType: 'selling_invoice',
+			referenceId: { $in: invoiceIds },
+		})
 	}
 
 	private async getSaleStockMovingsForInvoice(
 		requestContext: RequestContext,
 		invoiceId: string,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	): Promise<Array<Record<string, unknown>>> {
 		const tenantContext = getTenantContext(requestContext)
-		const query = StockMoving.find({
-			type: 'sale',
-			referenceType: 'selling_invoice',
-			referenceId: invoiceId,
-		})
-			.sort({ 'createdBy.createdAt': 1 })
-			.lean()
 
-		if (session) {
-			query.session(session)
-		}
-
-		return withTenantScope(query, tenantContext.tenantId)
+		return pgFind(
+			StockMoving,
+			tenantContext.tenantId,
+			{
+				type: 'sale',
+				referenceType: 'selling_invoice',
+				referenceId: invoiceId,
+			},
+			{ sort: { 'createdBy.createdAt': 1 }, db: session },
+		)
 	}
 
 	private async deleteSaleStockMovingsForInvoice(
 		requestContext: RequestContext,
 		invoiceId: string,
-		session: mongoose.ClientSession,
+		session: DbTx,
 	) {
 		const tenantContext = getTenantContext(requestContext)
 
-		await StockMoving.deleteMany({
-			tenantId: tenantContext.tenantId,
-			type: 'sale',
-			referenceType: 'selling_invoice',
-			referenceId: invoiceId,
-		}).session(session)
+		await pgDeleteMany(
+			StockMoving,
+			tenantContext.tenantId,
+			{
+				type: 'sale',
+				referenceType: 'selling_invoice',
+				referenceId: invoiceId,
+			},
+			session,
+		)
 	}
 
 	private async buildSellingInvoicesSummary(
@@ -536,10 +537,12 @@ export default class SellingInvoiceController {
 		supplierId: string,
 	): Promise<Map<string, ProductProfitAggregate>> {
 		const tenantId = this.getTenantId(requestContext)
-		const products = await withTenantScope(
-			Product.find({ supplierId }).select({ productId: 1 }),
+		const products = await (pgFind(
+			Product,
 			tenantId,
-		).lean<Array<{ productId?: string }>>()
+			{ supplierId },
+			{ select: { productId: 1 } },
+		) as unknown as Promise<Array<{ productId?: string }>>)
 		const allowed = new Set(
 			products
 				.map(product => product.productId)
@@ -553,9 +556,12 @@ export default class SellingInvoiceController {
 		requestContext: RequestContext,
 	): Promise<boolean> {
 		const { tenantId } = getTenantContext(requestContext)
-		const settings = await InvoiceSettings.findOne({ tenantId })
-			.select('allowOversell')
-			.lean<{ allowOversell?: boolean }>()
+		const settings = await (pgFindOne(
+			InvoiceSettings,
+			tenantId,
+			{ tenantId },
+			{ select: 'allowOversell' },
+		) as unknown as Promise<{ allowOversell?: boolean }>)
 
 		return settings?.allowOversell === true
 	}
@@ -564,7 +570,7 @@ export default class SellingInvoiceController {
 		requestContext: RequestContext,
 		items: NonNullable<InvoiceRequestBody['items']>,
 		warehouseId: string,
-		session?: mongoose.ClientSession,
+		session?: DbTx,
 	) {
 		const scopedWarehouseId = requireWarehouseId(warehouseId)
 		const availableByProductId = new Map<string, number>()
@@ -612,7 +618,7 @@ export default class SellingInvoiceController {
 		requestContext: RequestContext,
 		productId: string,
 		averageCost: number | undefined,
-		session: mongoose.ClientSession,
+		session: DbTx,
 	): Promise<number | undefined> {
 		const inventoryCost = finiteCost(averageCost)
 
@@ -631,10 +637,12 @@ export default class SellingInvoiceController {
 		)
 
 		const tenantId = getTenantContext(requestContext).tenantId
-		const currencySettings = await CurrencySettings.findOne({ tenantId })
-			.session(session)
-			.select('primaryCurrency secondaryCurrencies')
-			.lean()
+		const currencySettings = await pgFindOne(
+			CurrencySettings,
+			tenantId,
+			{ tenantId },
+			{ select: 'primaryCurrency secondaryCurrencies' },
+		)
 		const purchaseCost = catalogCostToPrimary(
 			product?.price?.purchasePrice,
 			product?.price?.currency,
@@ -656,7 +664,7 @@ export default class SellingInvoiceController {
 		invoiceId: string,
 		invoiceNumber: string,
 		items: NonNullable<InvoiceRequestBody['items']>,
-		session: mongoose.ClientSession,
+		session: DbTx,
 		warehouseId: string,
 		unitCostByProduct?: Map<string, number>,
 	): Promise<string[]> {
@@ -737,7 +745,7 @@ export default class SellingInvoiceController {
 		invoiceId: string,
 		invoiceNumber: string,
 		items: NonNullable<InvoiceRequestBody['items']>,
-		session: mongoose.ClientSession,
+		session: DbTx,
 		warehouseId: string,
 		unitCostByProduct?: Map<string, number>,
 	): Promise<string[]> {
@@ -842,10 +850,9 @@ export default class SellingInvoiceController {
 			}
 		} else {
 			await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVOICES)
-			invoices = await withTenantScope(
-				Invoice.find(warehouse).sort({ createdAt: -1 }),
-				tenantId,
-			).lean<Array<Record<string, unknown>>>()
+			invoices = await (pgFind(Invoice, tenantId, warehouse, {
+				sort: { createdAt: -1 },
+			}) as unknown as Promise<Array<Record<string, unknown>>>)
 		}
 
 		const normalizedSearch = filters.searchText?.trim().toLowerCase()
@@ -936,15 +943,21 @@ export default class SellingInvoiceController {
 						[filters.customerId],
 						['supplierId'],
 					),
-					withTenantScope(
-						BuyingInvoice.find({
+					pgFind(
+						BuyingInvoice,
+						tenantId,
+						{
 							supplierId: filters.customerId,
 							...(warehouseAclMongoFilter(requestContext) ?? {}),
-						}).sort({
-							createdAt: 'desc',
-						}),
-						tenantId,
-					).lean<Array<Record<string, unknown> & { warehouseId?: string }>>(),
+						},
+						{
+							sort: {
+								createdAt: 'desc',
+							},
+						},
+					) as unknown as Promise<
+						Array<Record<string, unknown> & { warehouseId?: string }>
+					>,
 					loadCashCurrencyRates(tenantId),
 				])
 			const own = this.ops.buildCustomerInvoiceSummary(
@@ -1036,6 +1049,7 @@ export default class SellingInvoiceController {
 	public async postInvoice(
 		requestBody: InvoiceRequestBody,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.sellingInvoicesSellingButton])
 		const operationalWarehouseId = requireOperationalWarehouseId(requestContext)
@@ -1079,6 +1093,12 @@ export default class SellingInvoiceController {
 		await this.ensureInvoiceProductsBelongToTenant(requestContext, invoiceItems)
 
 		const tenantContext = getTenantContext(requestContext)
+
+		await checkInvoiceRequestMoney({
+			tenantId: tenantContext.tenantId,
+			request: requestBody,
+			isSyncReplay,
+		})
 
 		const currencyAmounts =
 			requestBody.currencyAmounts?.length &&
@@ -1263,20 +1283,17 @@ export default class SellingInvoiceController {
 		tenantId: string,
 		requestBody: InvoiceRequestBody,
 	) {
-		const items = requestBody.items ?? []
-		const grandTotal = items.reduce(
-			(total, item) =>
-				total + (item.lineTotal ?? item.quantity * item.unitPrice),
-			0,
-		)
+		// server formula, not the client's lineTotal: these amounts skip the money check
+		const totals = invoiceRequestTotals({
+			items: requestBody.items ?? [],
+			invoiceDiscount: requestBody.invoiceDiscount,
+			invoiceDiscountIsPercent: requestBody.invoiceDiscountIsPercent,
+		})
 
 		return this.ops.buildInvoiceCurrencyAmounts(tenantId, {
-			grandTotal,
+			...totals,
 			paidAmount: 0,
-			remainingAmount: grandTotal,
-			subtotal: grandTotal,
-			tax: 0,
-			discount: 0,
+			remainingAmount: totals.grandTotal,
 		})
 	}
 
@@ -1284,6 +1301,7 @@ export default class SellingInvoiceController {
 		invoiceId: string,
 		requestBody: Partial<InvoiceRequestBody>,
 		requestContext: RequestContext,
+		isSyncReplay = false,
 	) {
 		await ensureSeeIds(requestContext, [SEE.sellingInvoicesEdit])
 		await this.ops.ensureProjectBelongsToTenant(
@@ -1316,6 +1334,13 @@ export default class SellingInvoiceController {
 			requestBody,
 			'selling',
 		)
+
+		await checkInvoiceRequestMoney({
+			tenantId: this.getTenantId(requestContext),
+			request: requestBody,
+			stored: existingInvoice,
+			isSyncReplay,
+		})
 
 		const wasStockAffecting = Boolean(
 			existingInvoice &&
@@ -1350,6 +1375,16 @@ export default class SellingInvoiceController {
 
 		const { updateResponse, touchedInventoryIds } =
 			await this.ops.runInTransaction(async session => {
+				if (existingInvoice) {
+					await lockUnchangedInvoice(
+						session,
+						'selling',
+						this.getTenantId(requestContext),
+						invoiceId,
+						existingInvoice.updatedAt,
+					)
+				}
+
 				let inventoryIds: string[] = []
 				const originalUnitCosts =
 					shouldReverse && existingInvoice
@@ -1518,55 +1553,60 @@ export default class SellingInvoiceController {
 			? requireWarehouseId(existingInvoice.warehouseId)
 			: undefined
 
-		const touchedInventoryIds =
-			wasStockAffecting && existingInvoice
-				? await this.ops.runInTransaction(async session => {
-						const originalUnitCosts = originalSaleUnitCostByProduct(
-							await this.getSaleStockMovingsForInvoice(
-								requestContext,
-								existingInvoice.invoiceId,
-								session,
-							),
-						)
+		// one transaction, locked unchanged row first, then the delete: an edit or a parallel
+		// delete since our read refuses here, and a crash cannot return stock twice
+		const { deleteResponse, touchedInventoryIds } =
+			await this.ops.runInTransaction(async session => {
+				if (existingInvoice) {
+					await lockUnchangedInvoice(
+						session,
+						'selling',
+						this.getTenantId(requestContext),
+						invoiceId,
+						existingInvoice.updatedAt,
+					)
+				}
 
-						const inventoryIds = await this.reverseSaleInventoryAdjustments(
+				const deleted = await this.mongoDbClient.deleteDocument(
+					{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
+					requestContext,
+					Invoice,
+					session,
+				)
+				let inventoryIds: string[] = []
+
+				if (wasStockAffecting && existingInvoice) {
+					const originalUnitCosts = originalSaleUnitCostByProduct(
+						await this.getSaleStockMovingsForInvoice(
 							requestContext,
 							existingInvoice.invoiceId,
-							existingInvoice.invoiceNumber,
-							asInvoiceLines(existingInvoice.items),
 							session,
-							requireWarehouseId(existingInvoice.warehouseId),
-							originalUnitCosts,
-						)
+						),
+					)
 
-						await clearCashLedgerForReference({
-							requestContext,
-							warehouseId: requireWarehouseId(existingInvoice.warehouseId),
-							referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
-							referenceId: existingInvoice.invoiceId,
-							session,
-						})
+					inventoryIds = await this.reverseSaleInventoryAdjustments(
+						requestContext,
+						existingInvoice.invoiceId,
+						existingInvoice.invoiceNumber,
+						asInvoiceLines(existingInvoice.items),
+						session,
+						requireWarehouseId(existingInvoice.warehouseId),
+						originalUnitCosts,
+					)
+				}
 
-						return inventoryIds
+				if (warehouseIdForCash && existingInvoice) {
+					await clearCashLedgerForReference({
+						requestContext,
+						warehouseId: warehouseIdForCash,
+						referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
+						referenceId: existingInvoice.invoiceId,
+						session,
 					})
-				: warehouseIdForCash && existingInvoice
-					? await (async () => {
-							await clearCashLedgerForReference({
-								requestContext,
-								warehouseId: warehouseIdForCash,
-								referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
-								referenceId: existingInvoice.invoiceId,
-							})
+				}
 
-							return [] as string[]
-						})()
-					: []
-
-		const deleteResponse = await this.mongoDbClient.deleteDocument(
-			{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
-			requestContext,
-			Invoice,
-		)
+				return { deleteResponse: deleted, touchedInventoryIds: inventoryIds }
+			})
 
 		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
 

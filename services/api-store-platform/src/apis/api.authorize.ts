@@ -12,6 +12,10 @@ import {
 	tenantHasRequiredPageAccess,
 } from '../shared/constants/tenantPageAccess'
 import { getSeeSet } from '../shared/seePermissions'
+import {
+	getAllowedWarehouseIds,
+	loadTenantWarehouseIds,
+} from '../shared/warehouseAccess'
 
 export default class ActivityAuthorization {
 	public constructor(private productController: ProductController) {}
@@ -44,6 +48,13 @@ export default class ActivityAuthorization {
 			request.tenantName = user.tenantName
 			request.role = user.role
 			request.see = [...(await getSeeSet(user.tenantId, user.role))]
+
+			if (
+				request.headers['x-warehouse-scope'] !== undefined &&
+				getAllowedWarehouseIds(request) === null
+			) {
+				request.tenantWarehouseIds = await loadTenantWarehouseIds(user.tenantId)
+			}
 
 			const requiredPages = getRequiredAccessiblePages(
 				request.path,

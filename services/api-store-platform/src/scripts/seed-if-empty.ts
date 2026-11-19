@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
-import mongoose from 'mongoose'
-import { config } from '../config/config'
+import { closeDb } from '../db'
+import { pgCount } from '../db/mongoQuery'
 import Tenant from '../models/Tenant'
 
 // must match seed-app-tenant.ts TENANT_ID
@@ -41,16 +41,12 @@ const seedIfEmpty = async () => {
 	const env = seedEnv()
 	const superAdminTenantId = env.SUPER_ADMIN_TENANT_ID as string
 
-	await mongoose.connect(config.mongoDB.connectionString, {
-		dbName: config.mongoDB.databaseName,
-	})
-
 	const [hasSuperAdmin, hasApp] = await Promise.all([
-		Tenant.exists({ tenantId: superAdminTenantId }),
-		Tenant.exists({ tenantId: APP_TENANT_ID }),
+		pgCount(Tenant, superAdminTenantId),
+		pgCount(Tenant, APP_TENANT_ID),
 	])
 
-	await mongoose.disconnect()
+	await closeDb()
 
 	if (hasSuperAdmin && hasApp) {
 		console.log('[seed-if-empty] skip')

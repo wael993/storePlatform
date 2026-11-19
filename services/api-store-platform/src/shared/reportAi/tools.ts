@@ -1,10 +1,10 @@
 import { Invoice } from '../../models/Invoice'
+import { pgFind } from '../../db/mongoQuery'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
 import { Inventory } from '../../models/Inventory'
 import { Product } from '../../models/Products'
 import { StockMoving } from '../../models/StockMovings'
 import { InvoiceStatus } from '../globalEnums'
-import { withTenantScope } from '../mongodb/tenantScopedModel'
 import {
 	getPrimaryInvoiceCurrencyAmounts,
 	InvoiceAmountSource,
@@ -129,22 +129,22 @@ const countedMatch = (extra: Record<string, unknown> = {}) => ({
 })
 
 const loadSales = async (tenantId: string, period: Period) => {
-	const invoices = await withTenantScope(
-		Invoice.find(
-			countedMatch({
-				issuedAt: { $gte: period.start, $lte: period.end },
-			}),
-		)
-			.select({
+	const invoices = await pgFind(
+		Invoice,
+		tenantId,
+		countedMatch({
+			issuedAt: { $gte: period.start, $lte: period.end },
+		}),
+		{
+			select: {
 				invoiceId: 1,
 				invoiceNumber: 1,
 				issuedAt: 1,
 				items: 1,
 				currencyAmounts: 1,
-			})
-			.limit(MAX_INVOICES + 1)
-			.lean(),
-		tenantId,
+			},
+			limit: MAX_INVOICES + 1,
+		},
 	)
 
 	if (invoices.length > MAX_INVOICES) {
@@ -167,28 +167,26 @@ const optionalPeriodFromArgs = (
 }
 
 const loadOutstandingSales = async (tenantId: string, period?: Period) => {
-	const invoices = await withTenantScope(
-		Invoice.find(
-			countedMatch({
-				...(period
-					? { issuedAt: { $gte: period.start, $lte: period.end } }
-					: {}),
-				$or: [
-					{ 'currencyAmounts.remainingAmount': { $gt: 0 } },
-					{ remainingAmount: { $gt: 0 } },
-				],
-			}),
-		)
-			.select({
+	const invoices = await pgFind(
+		Invoice,
+		tenantId,
+		countedMatch({
+			...(period ? { issuedAt: { $gte: period.start, $lte: period.end } } : {}),
+			$or: [
+				{ 'currencyAmounts.remainingAmount': { $gt: 0 } },
+				{ remainingAmount: { $gt: 0 } },
+			],
+		}),
+		{
+			select: {
 				invoiceId: 1,
 				customerId: 1,
 				customerName: 1,
 				currencyAmounts: 1,
 				remainingAmount: 1,
-			})
-			.limit(MAX_INVOICES + 1)
-			.lean(),
-		tenantId,
+			},
+			limit: MAX_INVOICES + 1,
+		},
 	)
 
 	if (invoices.length > MAX_INVOICES) {
@@ -228,21 +226,18 @@ const loadPurchases = async (
 			: {}),
 	})
 
-	const invoices = await withTenantScope(
-		BuyingInvoice.find(filter)
-			.select({
-				buyingInvoiceId: 1,
-				invoiceNumber: 1,
-				issuedAt: 1,
-				supplierId: 1,
-				supplierName: 1,
-				items: 1,
-				currencyAmounts: 1,
-			})
-			.limit(MAX_INVOICES + 1)
-			.lean(),
-		tenantId,
-	)
+	const invoices = await pgFind(BuyingInvoice, tenantId, filter, {
+		select: {
+			buyingInvoiceId: 1,
+			invoiceNumber: 1,
+			issuedAt: 1,
+			supplierId: 1,
+			supplierName: 1,
+			items: 1,
+			currencyAmounts: 1,
+		},
+		limit: MAX_INVOICES + 1,
+	})
 
 	if (invoices.length > MAX_INVOICES) {
 		throw new BusinessLogicError(
@@ -319,13 +314,16 @@ const sumRevenue = (invoices: InvoiceAmountSource[]): number => {
 const loadSaleMovings = async (tenantId: string, invoiceIds: string[]) => {
 	if (!invoiceIds.length) return []
 
-	const movings = await withTenantScope(
-		StockMoving.find({
+	const movings = await pgFind(
+		StockMoving,
+		tenantId,
+		{
 			type: 'sale',
 			referenceType: 'selling_invoice',
 			referenceId: { $in: invoiceIds },
-		})
-			.select({
+		},
+		{
+			select: {
 				quantity: 1,
 				unitCost: 1,
 				productId: 1,
@@ -333,10 +331,9 @@ const loadSaleMovings = async (tenantId: string, invoiceIds: string[]) => {
 				referenceId: 1,
 				createdAt: 1,
 				createdBy: 1,
-			})
-			.limit(20_001)
-			.lean(),
-		tenantId,
+			},
+			limit: 20_001,
+		},
 	)
 
 	if (movings.length > 20_000) {
@@ -576,21 +573,24 @@ const changePercent = (current: number, previous: number): number | null => {
 	return Math.round(((current - previous) / previous) * 1000) / 10
 }
 
-const LOW_STOCK_FILTER = {
-	minQuantity: { $gt: 0 },
-	$expr: { $lte: [{ $ifNull: ['$quantity', 0] }, '$minQuantity'] },
-}
-
 const LOW_STOCK_CAP = 500
 
-const lowStock = async (tenantId: string) => {
-	const rows = await withTenantScope(
-		Inventory.find(LOW_STOCK_FILTER)
-			.select({ productId: 1 })
-			.limit(LOW_STOCK_CAP + 1)
-			.lean(),
-		tenantId,
+/** quantity (missing = 0) <= minQuantity, for rows with a minimum set. */
+const lowStockRows = async (tenantId: string, limit: number) =>
+	(
+		(await pgFind(
+			Inventory,
+			tenantId,
+			{ minQuantity: { $gt: 0 } },
+			{ select: { productId: 1, quantity: 1, minQuantity: 1 } },
+		)) as Array<{ productId: string; quantity?: number; minQuantity: number }>
 	)
+		.filter(row => (row.quantity ?? 0) <= row.minQuantity)
+		.slice(0, limit)
+		.map(row => ({ productId: row.productId }))
+
+const lowStock = async (tenantId: string) => {
+	const rows = await lowStockRows(tenantId, LOW_STOCK_CAP + 1)
 
 	if (!rows.length) return { count: 0, names: [] as string[] }
 
@@ -598,11 +598,11 @@ const lowStock = async (tenantId: string) => {
 	const sample = rows.slice(0, 3)
 	const productIds = sample.map(row => row.productId).filter(Boolean)
 	const products = productIds.length
-		? await withTenantScope(
-				Product.find({ productId: { $in: productIds } })
-					.select({ productId: 1, name: 1 })
-					.lean(),
+		? await pgFind(
+				Product,
 				tenantId,
+				{ productId: { $in: productIds } },
+				{ select: { productId: 1, name: 1 } },
 			)
 		: []
 	const namesById = new Map(

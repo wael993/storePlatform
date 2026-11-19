@@ -1,4 +1,6 @@
 import cron from 'node-cron'
+import { ALL_TENANTS } from '../db'
+import { pgFind } from '../db/mongoQuery'
 import Tenant, { ITenant } from '../models/Tenant'
 import { config } from '../config/config'
 import { syncTenantSubscription } from '../shared/subscription/persist'
@@ -7,7 +9,7 @@ import logger from '../shared/logger/logger'
 export const runSubscriptionLifecycle = async (
 	now = new Date(),
 ): Promise<void> => {
-	const tenants = await Tenant.find().lean<ITenant[]>()
+	const tenants = await pgFind<ITenant>(Tenant, ALL_TENANTS)
 
 	logger.info(
 		`Cron: subscription lifecycle starting (${tenants.length} tenant(s))`,

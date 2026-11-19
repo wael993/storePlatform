@@ -1,4 +1,4 @@
-import connectDB from './db/db'
+import { closeDb } from './db'
 import { config } from './config/config'
 import { startTokenCleanupCron } from './cron/cleanExpiredTokens'
 import { startNegativeQuantitySnapshotCron } from './cron/snapshotNegativeQuantity'
@@ -10,7 +10,6 @@ import { createApp } from './app'
 
 const app = createApp()
 
-connectDB()
 if (config.redis.enabled) {
 	redisCache.connect().catch(() => undefined)
 } else {
@@ -40,6 +39,7 @@ const gracefulShutdown = async () => {
 	logger.info('Shutting down server...')
 	clearInterval(cacheMetricsInterval)
 	await redisCache.disconnect()
+	await closeDb()
 	process.exit(0)
 }
 

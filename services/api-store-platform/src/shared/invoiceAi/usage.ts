@@ -1,3 +1,12 @@
+import { and, eq, sql } from 'drizzle-orm'
+
+import { getDb } from '../../db'
+import {
+	pgFindOne,
+	pgFindOneAndUpdate,
+	pgUpdateMany,
+} from '../../db/mongoQuery'
+import { tenants } from '../../db/schema'
 import Tenant, { ITenant, InvoiceAiUsageState } from '../../models/Tenant'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
@@ -164,7 +173,7 @@ const usageUnchanged = (
 	)
 
 const requireTenant = async (tenantId: string): Promise<ITenant> => {
-	const tenant = await Tenant.findOne({ tenantId }).lean<ITenant | null>()
+	const tenant = await pgFindOne<ITenant>(Tenant, tenantId)
 
 	if (!tenant) {
 		throw new BusinessLogicError(
@@ -176,12 +185,8 @@ const requireTenant = async (tenantId: string): Promise<ITenant> => {
 	return tenant
 }
 
-const remainingExpr = {
-	$subtract: [
-		{ $add: ['$invoiceAi.carryOver', '$invoiceAi.monthlyLimit'] },
-		'$invoiceAi.usedInPeriod',
-	],
-}
+// null when a part is missing, so the check fails like Mongo's $add on a missing field
+const remaining = sql`${tenants.invoiceAiCarryOver} + ${tenants.invoiceAiMonthlyLimit} - ${tenants.invoiceAiUsedInPeriod}`
 
 const throwLimitReached = async (
 	tenantId: string,
@@ -204,17 +209,14 @@ export const persistRolledInvoiceAiUsage = async (
 
 		if (!tenant.invoiceAi?.activatedAt) {
 			const initial = hydrateInvoiceAiUsage(tenant.invoiceAi, now)
-			const created = await Tenant.findOneAndUpdate(
-				{
-					tenantId,
-					$or: [
-						{ invoiceAi: { $exists: false } },
-						{ 'invoiceAi.activatedAt': { $exists: false } },
-					],
-				},
+			const created = (await pgFindOneAndUpdate(
+				Tenant,
+				tenantId,
+				// no activatedAt also covers "no invoiceAi" (flat columns)
+				{ 'invoiceAi.activatedAt': { $exists: false } },
 				{ $set: { invoiceAi: initial } },
-				{ new: true, runValidators: true },
-			).lean<ITenant | null>()
+				{ new: true },
+			)) as ITenant | null
 
 			if (created?.invoiceAi?.activatedAt) {
 				return created.invoiceAi
@@ -232,9 +234,10 @@ export const persistRolledInvoiceAiUsage = async (
 			return rolled
 		}
 
-		const result = await Tenant.updateOne(
+		const result = await pgUpdateMany(
+			Tenant,
+			tenantId,
 			{
-				tenantId,
 				'invoiceAi.periodStart': tenant.invoiceAi.periodStart,
 				'invoiceAi.usedInPeriod': tenant.invoiceAi.usedInPeriod,
 				'invoiceAi.carryOver': tenant.invoiceAi.carryOver,
@@ -275,14 +278,16 @@ export const reserveInvoiceAiCredit = async (
 ): Promise<InvoiceAiUsageState> => {
 	await persistRolledInvoiceAiUsage(tenantId, now)
 
-	const updated = await Tenant.findOneAndUpdate(
-		{
-			tenantId,
-			$expr: { $gt: [remainingExpr, 0] },
-		},
-		{ $inc: { 'invoiceAi.usedInPeriod': 1 } },
-		{ new: true },
-	).lean<ITenant | null>()
+	// one statement: check and increment are atomic, parallel reservations cannot overdraw
+	const [reserved] = await getDb()
+		.update(tenants)
+		.set({
+			invoiceAiUsedInPeriod: sql`${tenants.invoiceAiUsedInPeriod} + 1`,
+			updatedAt: new Date(),
+		})
+		.where(and(eq(tenants.tenantId, tenantId), sql`${remaining} > 0`))
+		.returning({ id: tenants.id })
+	const updated = reserved ? await pgFindOne<ITenant>(Tenant, tenantId) : null
 
 	if (!updated?.invoiceAi) {
 		return throwLimitReached(tenantId, now)
@@ -295,9 +300,10 @@ export const refundInvoiceAiCredit = async (
 	tenantId: string,
 	periodStart: Date,
 ): Promise<void> => {
-	const samePeriod = await Tenant.updateOne(
+	const samePeriod = await pgUpdateMany(
+		Tenant,
+		tenantId,
 		{
-			tenantId,
 			'invoiceAi.periodStart': periodStart,
 			'invoiceAi.usedInPeriod': { $gt: 0 },
 		},
@@ -308,9 +314,10 @@ export const refundInvoiceAiCredit = async (
 		return
 	}
 
-	await Tenant.updateOne(
+	await pgUpdateMany(
+		Tenant,
+		tenantId,
 		{
-			tenantId,
 			'invoiceAi.periodStart': { $ne: periodStart },
 		},
 		{ $inc: { 'invoiceAi.carryOver': 1 } },

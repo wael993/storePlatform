@@ -1,4 +1,5 @@
 import Tenant, { ITenant } from '../../models/Tenant'
+import { pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import { config } from '../../config/config'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
@@ -27,18 +28,11 @@ const persistSubscription = async (
 	deactivateTenant: boolean,
 	previousRenewalDate?: Date,
 ): Promise<ITenant | null> =>
-	Tenant.findOneAndUpdate(
-		{
-			tenantId,
-			...(previousRenewalDate
-				? { 'subscription.renewalDate': previousRenewalDate }
-				: {
-						$or: [
-							{ subscription: { $exists: false } },
-							{ 'subscription.renewalDate': { $exists: false } },
-						],
-					}),
-		},
+	pgFindOneAndUpdate(
+		Tenant,
+		tenantId,
+		// no renewal date also covers "no subscription" (flat columns)
+		{ 'subscription.renewalDate': previousRenewalDate ?? { $exists: false } },
 		{
 			$set: {
 				subscription,
@@ -46,7 +40,7 @@ const persistSubscription = async (
 			},
 		},
 		{ new: true },
-	).lean<ITenant | null>()
+	)
 
 export const syncTenantSubscription = async (
 	tenant: ITenant,
@@ -56,10 +50,7 @@ export const syncTenantSubscription = async (
 		return { tenant, view: null }
 	}
 
-	const fresh =
-		(await Tenant.findOne({
-			tenantId: tenant.tenantId,
-		}).lean<ITenant | null>()) ?? tenant
+	const fresh = (await pgFindOne<ITenant>(Tenant, tenant.tenantId)) ?? tenant
 
 	if (isSuperAdminTenant(fresh)) {
 		return { tenant: fresh, view: null }
@@ -142,11 +133,10 @@ export const applySubscriptionRenewal = async (
 	}
 
 	const renewed = renewSubscription(current, now, cfg)
-	const updated = await Tenant.findOneAndUpdate(
-		{
-			tenantId: tenant.tenantId,
-			'subscription.renewalDate': current.renewalDate,
-		},
+	const updated = (await pgFindOneAndUpdate(
+		Tenant,
+		tenant.tenantId,
+		{ 'subscription.renewalDate': current.renewalDate },
 		{
 			$set: {
 				subscription: renewed,
@@ -154,7 +144,7 @@ export const applySubscriptionRenewal = async (
 			},
 		},
 		{ new: true },
-	).lean<ITenant | null>()
+	)) as ITenant | null
 
 	if (!updated?.subscription) {
 		throw new BusinessLogicError(

@@ -1,4 +1,7 @@
-import type { ClientSession } from 'mongoose'
+import { pgFindOne } from '../../db/mongoQuery'
+import { BusinessLogicError } from '../../middleware/errorHandler'
+import { ERROR_CODES } from '../errorCodes'
+import type { DbTx } from '../../db'
 
 import CurrencySettings from '../../models/CurrencySettings'
 import { InvoicePaymentType } from '../globalEnums'
@@ -32,9 +35,12 @@ const asFiniteNumber = (value: unknown) => {
 export const loadCashCurrencyRates = async (
 	tenantId: string,
 ): Promise<CostCurrencyRate[]> => {
-	const settings = await CurrencySettings.findOne({ tenantId })
-		.select('primaryCurrency secondaryCurrencies')
-		.lean()
+	const settings = await pgFindOne(
+		CurrencySettings,
+		tenantId,
+		{ tenantId },
+		{ select: 'primaryCurrency secondaryCurrencies' },
+	)
 
 	return ratesFromCurrencySettings(settings)
 }
@@ -92,10 +98,19 @@ export const storedInvoiceTenders = (
 	return allocateCashTenders(
 		inputs,
 		due,
-		(currencyAmounts ?? []).map(row => ({
-			currencyId: String(row.currencyId ?? ''),
-			exchangeRate: asFiniteNumber(row.exchangeRate) || 1,
-		})),
+		(currencyAmounts ?? []).map(row => {
+			const exchangeRate = asFiniteNumber(row.exchangeRate)
+
+			// a rate of 0 used to become 1 here and valued foreign cash 1 : 1 (INV-MONEY-1)
+			if (exchangeRate <= 0) {
+				throw new BusinessLogicError(
+					ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
+					'Invoice exchange rates must be positive numbers.',
+				)
+			}
+
+			return { currencyId: String(row.currencyId ?? ''), exchangeRate }
+		}),
 	)
 }
 
@@ -203,7 +218,7 @@ export const syncSellingInvoiceCashLedger = async (params: {
 	currencyAmounts?: InvoiceAmountRow[]
 	amount?: number
 	paidAmount?: number
-	session?: ClientSession
+	session?: DbTx
 }) => {
 	const desired = cashPostsForInvoice('sale', params)
 
@@ -214,7 +229,7 @@ export const syncSellingInvoiceCashLedger = async (params: {
 		referenceType: CASH_REFERENCE_TYPES.SELLING_INVOICE,
 		referenceId: params.invoiceId,
 		desired,
-		session: params.session,
+		tx: params.session,
 	})
 }
 
@@ -231,7 +246,7 @@ export const syncBuyingInvoiceCashLedger = async (params: {
 	currencyAmounts?: InvoiceAmountRow[]
 	amount?: number
 	paidAmount?: number
-	session?: ClientSession
+	session?: DbTx
 }) => {
 	const desired = cashPostsForInvoice('purchase', params)
 
@@ -242,7 +257,7 @@ export const syncBuyingInvoiceCashLedger = async (params: {
 		referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
 		referenceId: params.buyingInvoiceId,
 		desired,
-		session: params.session,
+		tx: params.session,
 	})
 }
 
@@ -255,7 +270,7 @@ export const syncDailyActionCashLedger = async (params: {
 	amount: number
 	currencyId?: string | null
 	accountType?: string | null
-	session?: ClientSession
+	session?: DbTx
 	clear?: boolean
 }) => {
 	const tenantId = getTenantContext(params.requestContext).tenantId
@@ -275,7 +290,7 @@ export const syncDailyActionCashLedger = async (params: {
 		referenceType: CASH_REFERENCE_TYPES.DAILY_ACTION,
 		referenceId: params.actionId,
 		desired,
-		session: params.session,
+		tx: params.session,
 	})
 }
 
@@ -284,7 +299,7 @@ export const clearCashLedgerForReference = async (params: {
 	warehouseId: string
 	referenceType: string
 	referenceId: string
-	session?: ClientSession
+	session?: DbTx
 }) => {
 	await syncCashEffectsForReference({
 		requestContext: params.requestContext,
@@ -293,6 +308,6 @@ export const clearCashLedgerForReference = async (params: {
 		referenceType: params.referenceType,
 		referenceId: params.referenceId,
 		desired: [],
-		session: params.session,
+		tx: params.session,
 	})
 }

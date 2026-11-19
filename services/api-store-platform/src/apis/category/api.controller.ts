@@ -1,10 +1,10 @@
+import { pgFind, pgFindOne } from '../../db/mongoQuery'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { Category } from '../../models/Category'
 import { Product } from '../../models/Products'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { withTenantScope } from '../../shared/mongodb/tenantScopedModel'
 import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import { SEE } from '../../shared/seeCatalog'
@@ -122,12 +122,9 @@ export default class CategoryController {
 			)
 		}
 
-		const existing = await withTenantScope(
-			Category.findOne({
-				name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
-			}),
-			tenantContext.tenantId,
-		).lean()
+		const existing = await pgFindOne(Category, tenantContext.tenantId, {
+			name: new RegExp(`^${this.escapeRegex(requestBody.name)}$`, 'i'),
+		})
 
 		if (existing) {
 			throw new BusinessLogicError(
@@ -138,10 +135,9 @@ export default class CategoryController {
 
 		const categoryId = resolveSyncClientId(requestBody.categoryId)
 
-		const existingById = await withTenantScope(
-			Category.findOne({ categoryId }).lean(),
-			tenantContext.tenantId,
-		)
+		const existingById = await pgFindOne(Category, tenantContext.tenantId, {
+			categoryId,
+		})
 
 		if (existingById) {
 			return {
@@ -183,11 +179,11 @@ export default class CategoryController {
 	private async findCategoryDeleteBlocks(tenantId: string, ids: string[]) {
 		const uniqueIds = [...new Set(ids.filter(Boolean))]
 		const blocked = new Map<string, string>()
-		const products = await withTenantScope(
-			Product.find({ categoryId: { $in: uniqueIds } })
-				.select({ categoryId: 1 })
-				.lean(),
+		const products = await pgFind(
+			Product,
 			tenantId,
+			{ categoryId: { $in: uniqueIds } },
+			{ select: { categoryId: 1 } },
 		)
 
 		for (const row of products) {

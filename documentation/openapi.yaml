@@ -306,6 +306,11 @@ paths:
       tags:
         - BuyingInvoices
       summary: Create buying invoice
+      description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
       operationId: postApiDataBuying-invoices
       security:
         - bearerAuth: []
@@ -485,6 +490,13 @@ paths:
       tags:
         - BuyingInvoices
       summary: Update buying invoice
+      description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
+        Refused (business-logic error, "This invoice changed meanwhile. Reload and try again.")
+        when the invoice was saved by another request after this edit read it; reload and retry.
       operationId: patchApiDataBuying-invoicesId
       security:
         - bearerAuth: []
@@ -994,6 +1006,9 @@ paths:
       tags:
         - Settings
       summary: Update currency settings
+      description: >-
+        Requires the `settings.currencies` SEE permission (same as the Settings tab in the app); refused
+        otherwise, also when replayed through `/sync/push`.
       operationId: patchApiDataCurrency-settings
       security:
         - bearerAuth: []
@@ -1313,6 +1328,10 @@ paths:
       tags:
         - DailyActions
       summary: Create daily action
+      description: >-
+        Stores `exchangeRateToPrimary` from today's currency settings. A currency that is not in
+        the settings is refused. Replays through `/sync/push` keep the `exchangeRateToPrimary` the
+        device stamped when it queued the entry offline.
       operationId: postApiDataDaily-actions
       security:
         - bearerAuth: []
@@ -1521,6 +1540,10 @@ paths:
       tags:
         - DailyActions
       summary: Update daily action
+      description: >-
+        Keeps the stored `exchangeRateToPrimary` while the currency stays the same; a new currency
+        takes today's settings rate (or the device-stamped rate on a sync replay). A currency that
+        is not in the settings is refused.
       operationId: patchApiDataDaily-actionsId
       security:
         - bearerAuth: []
@@ -2587,6 +2610,9 @@ paths:
       tags:
         - Settings
       summary: Update invoice settings
+      description: >-
+        Requires the `settings.invoice` SEE permission (same as the Settings tab in the app); refused
+        otherwise, also when replayed through `/sync/push`.
       operationId: patchApiDataInvoice-settings
       security:
         - bearerAuth: []
@@ -5085,6 +5111,11 @@ paths:
       tags:
         - SellingInvoices
       summary: Create selling invoice
+      description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
       operationId: postApiDataSelling-invoices
       security:
         - bearerAuth: []
@@ -5158,6 +5189,13 @@ paths:
       tags:
         - SellingInvoices
       summary: Update selling invoice
+      description: >-
+        Refused (422) when `currencyAmounts` do not follow from the lines (`store-domain`
+        `calculateInvoiceTotals`, ± 0.01), a rate is ≤ 0 / not a number, the primary rate is not 1,
+        a secondary amount is not primary × rate, or paid is outside 0 … total. A live request must
+        use today's currency-settings rates; `/sync/push` replays keep their own (INV-MONEY-1).
+        Refused (business-logic error, "This invoice changed meanwhile. Reload and try again.")
+        when the invoice was saved by another request after this edit read it; reload and retry.
       operationId: patchApiDataSelling-invoicesId
       security:
         - bearerAuth: []

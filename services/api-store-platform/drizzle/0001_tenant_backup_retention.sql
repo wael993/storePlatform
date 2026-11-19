@@ -1,0 +1,1 @@
+ALTER TABLE "platform"."tenants" ADD COLUMN "backup_retention_count" integer;

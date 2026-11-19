@@ -1,4 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
+import { ALL_TENANTS, isUniqueViolation } from '../../db'
+import { insertDoc } from '../../db/docs'
+import { pgFind, pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import Tenant, { ITenant } from '../../models/Tenant'
 import SubscriptionRenewalRequest, {
 	ISubscriptionRenewalRequest,
@@ -73,15 +76,17 @@ export const toRenewalRequestView = (
 })
 
 export const getPendingRequest = async (tenantId: string) =>
-	SubscriptionRenewalRequest.findOne({
-		tenantId,
+	pgFindOne<ISubscriptionRenewalRequest>(SubscriptionRenewalRequest, tenantId, {
 		status: RENEWAL_REQUEST_STATUS.PENDING,
-	}).lean<ISubscriptionRenewalRequest | null>()
+	})
 
 export const getLatestRequest = async (tenantId: string) =>
-	SubscriptionRenewalRequest.findOne({ tenantId })
-		.sort({ requestedAt: -1 })
-		.lean<ISubscriptionRenewalRequest | null>()
+	pgFindOne<ISubscriptionRenewalRequest>(
+		SubscriptionRenewalRequest,
+		tenantId,
+		{},
+		{ sort: { requestedAt: -1 } },
+	)
 
 export type SuperadminRenewalRequestView = RenewalRequestView & {
 	tenantStatus: string | null
@@ -91,12 +96,17 @@ export type SuperadminRenewalRequestView = RenewalRequestView & {
 export const listAllRenewalRequests = async (): Promise<
 	SuperadminRenewalRequestView[]
 > => {
-	const requests = await SubscriptionRenewalRequest.find()
-		.sort({ requestedAt: -1 })
-		.lean<ISubscriptionRenewalRequest[]>()
+	const requests = await pgFind<ISubscriptionRenewalRequest>(
+		SubscriptionRenewalRequest,
+		ALL_TENANTS,
+		{},
+		{ sort: { requestedAt: -1 } },
+	)
 	const tenantIds = [...new Set(requests.map(request => request.tenantId))]
 	const tenants = tenantIds.length
-		? await Tenant.find({ tenantId: { $in: tenantIds } }).lean<ITenant[]>()
+		? await pgFind<ITenant>(Tenant, ALL_TENANTS, {
+				tenantId: { $in: tenantIds },
+			})
 		: []
 	const tenantsById = new Map(
 		tenants.map(tenant => [tenant.tenantId, tenant] as const),
@@ -146,7 +156,7 @@ export const createRenewalRequest = async (
 	}
 
 	try {
-		const created = await SubscriptionRenewalRequest.create({
+		const created = await insertDoc(SubscriptionRenewalRequest, {
 			requestId: uuidv4(),
 			tenantId: synced.tenantId,
 			tenantName: synced.name,
@@ -156,15 +166,12 @@ export const createRenewalRequest = async (
 			requestedAt: now,
 		})
 
-		return toRenewalRequestView(created.toObject())
+		return toRenewalRequestView(
+			created as unknown as ISubscriptionRenewalRequest,
+		)
 	} catch (error: unknown) {
-		const duplicate =
-			typeof error === 'object' &&
-			error !== null &&
-			'code' in error &&
-			error.code === 11000
-
-		if (duplicate) {
+		// partial unique index: one pending request per tenant
+		if (isUniqueViolation(error)) {
 			throw new BusinessLogicError(
 				ERROR_CODES.BUSINESS_LOGIC.GENERAL_BUSINESS_LOGIC_ERROR,
 				'A renewal request is already pending.',
@@ -181,7 +188,9 @@ export const approveRenewalRequest = async (
 	now = new Date(),
 ) => {
 	const reviewedBy = actorOf(requestContext)
-	const claimed = await SubscriptionRenewalRequest.findOneAndUpdate(
+	const claimed = (await pgFindOneAndUpdate(
+		SubscriptionRenewalRequest,
+		ALL_TENANTS,
 		{ requestId, status: RENEWAL_REQUEST_STATUS.PENDING },
 		{
 			$set: {
@@ -192,7 +201,7 @@ export const approveRenewalRequest = async (
 			},
 		},
 		{ new: true },
-	).lean<ISubscriptionRenewalRequest | null>()
+	)) as ISubscriptionRenewalRequest | null
 
 	if (!claimed) {
 		throw new BusinessLogicError(
@@ -202,7 +211,9 @@ export const approveRenewalRequest = async (
 	}
 
 	const revertClaim = () =>
-		SubscriptionRenewalRequest.findOneAndUpdate(
+		pgFindOneAndUpdate(
+			SubscriptionRenewalRequest,
+			ALL_TENANTS,
 			{ requestId, status: RENEWAL_REQUEST_STATUS.APPROVED },
 			{
 				$set: {
@@ -210,13 +221,11 @@ export const approveRenewalRequest = async (
 					reviewedAt: null,
 					rejectionReason: null,
 				},
-				$unset: { reviewedBy: 1 },
+				$unset: { 'reviewedBy.userId': 1, 'reviewedBy.displayName': 1 },
 			},
 		)
 
-	const tenant = await Tenant.findOne({
-		tenantId: claimed.tenantId,
-	}).lean<ITenant | null>()
+	const tenant = await pgFindOne<ITenant>(Tenant, claimed.tenantId)
 
 	if (!tenant) {
 		await revertClaim()
@@ -245,7 +254,9 @@ export const rejectRenewalRequest = async (
 	now = new Date(),
 ) => {
 	const rejectionReason = reason.trim()
-	const updated = await SubscriptionRenewalRequest.findOneAndUpdate(
+	const updated = (await pgFindOneAndUpdate(
+		SubscriptionRenewalRequest,
+		ALL_TENANTS,
 		{ requestId, status: RENEWAL_REQUEST_STATUS.PENDING },
 		{
 			$set: {
@@ -256,7 +267,7 @@ export const rejectRenewalRequest = async (
 			},
 		},
 		{ new: true },
-	).lean<ISubscriptionRenewalRequest | null>()
+	)) as ISubscriptionRenewalRequest | null
 
 	if (!updated) {
 		throw new BusinessLogicError(
@@ -311,9 +322,11 @@ const toPaymentSettingsView = (
 }
 
 export const getPaymentSettings = async (): Promise<PaymentSettingsView> => {
-	const settings = await SubscriptionPaymentSettings.findOne({
-		settingsId: SUBSCRIPTION_PAYMENT_SETTINGS_ID,
-	}).lean<ISubscriptionPaymentSettings | null>()
+	const settings = await pgFindOne<ISubscriptionPaymentSettings>(
+		SubscriptionPaymentSettings,
+		ALL_TENANTS,
+		{ settingsId: SUBSCRIPTION_PAYMENT_SETTINGS_ID },
+	)
 
 	return toPaymentSettingsView(settings)
 }
@@ -358,7 +371,9 @@ const sanitizeMethods = (value: unknown): SubscriptionPaymentMethod[] => {
 export const savePaymentSettings = async (
 	body: Partial<PaymentSettingsView>,
 ): Promise<PaymentSettingsView> => {
-	const updated = await SubscriptionPaymentSettings.findOneAndUpdate(
+	const updated = (await pgFindOneAndUpdate(
+		SubscriptionPaymentSettings,
+		ALL_TENANTS,
 		{ settingsId: SUBSCRIPTION_PAYMENT_SETTINGS_ID },
 		{
 			$set: {
@@ -379,7 +394,7 @@ export const savePaymentSettings = async (
 			$setOnInsert: { settingsId: SUBSCRIPTION_PAYMENT_SETTINGS_ID },
 		},
 		{ new: true, upsert: true },
-	).lean<ISubscriptionPaymentSettings | null>()
+	)) as ISubscriptionPaymentSettings | null
 
 	return toPaymentSettingsView(updated)
 }

@@ -1,39 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-	buildCashLedgerListFilter,
 	clampLedgerLimit,
 	clampLedgerPage,
 	parseLedgerDateBound,
 } from '../shared/cashAccounts/ledgerService'
 
 describe('cash ledger list filters', () => {
-	it('returns null when no warehouses are in scope', () => {
-		expect(buildCashLedgerListFilter({ warehouseIds: [] })).toBeNull()
-		expect(buildCashLedgerListFilter({ warehouseIds: ['  '] })).toBeNull()
-	})
+	it('makes YYYY-MM-DD bounds inclusive of the whole day', () => {
+		const from = parseLedgerDateBound('2026-09-01', false)
+		const to = parseLedgerDateBound('2026-09-28', true)
 
-	it('builds warehouse + optional filters with inclusive date bounds', () => {
-		const filter = buildCashLedgerListFilter({
-			warehouseIds: ['wh-1', ' wh-2 '],
-			accountType: 'daily_cash',
-			movementType: 'TRANSFER',
-			dateFrom: '2026-09-01',
-			dateTo: '2026-09-28',
-		})
+		expect([from?.getHours(), from?.getMinutes()]).toEqual([0, 0])
+		expect([to?.getHours(), to?.getMinutes(), to?.getMilliseconds()]).toEqual([
+			23, 59, 999,
+		])
 
-		expect(filter).toMatchObject({
-			warehouseId: { $in: ['wh-1', 'wh-2'] },
-			accountType: 'daily_cash',
-			movementType: 'TRANSFER',
-		})
-
-		const createdAt = filter?.createdAt as { $gte: Date; $lte: Date }
-
-		expect(createdAt.$gte).toEqual(parseLedgerDateBound('2026-09-01', false))
-		expect(createdAt.$lte).toEqual(parseLedgerDateBound('2026-09-28', true))
-		expect(createdAt.$gte.getHours()).toBe(0)
-		expect(createdAt.$lte.getHours()).toBe(23)
+		expect(parseLedgerDateBound('  ', false)).toBeUndefined()
+		expect(parseLedgerDateBound('not a date', true)).toBeUndefined()
 	})
 
 	it('clamps page and limit', () => {

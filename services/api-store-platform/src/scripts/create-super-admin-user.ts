@@ -1,7 +1,8 @@
-import mongoose from 'mongoose'
+import { ALL_TENANTS, closeDb } from '../db'
+import { insertDoc } from '../db/docs'
+import { pgFindOne, pgFindOneAndUpdate, pgUpdateMany } from '../db/mongoQuery'
 import bcrypt from 'bcrypt'
 import { v4 as uuidv4 } from 'uuid'
-import { config } from '../config/config'
 import User from '../models/User'
 import Tenant from '../models/Tenant'
 import { SUPER_ADMIN_ROLE, getSuperAdminTenantId } from '../shared/tenant'
@@ -40,18 +41,12 @@ async function createSuperAdminUser() {
 	const tenantId = getSuperAdminTenantId()
 
 	try {
-		await mongoose.connect(config.mongoDB.connectionString, {
-			dbName: config.mongoDB.databaseName,
-		})
-
-		console.log('Connected to MongoDB')
-		await User.syncIndexes()
-
-		await Tenant.updateOne(
-			{ tenantId },
+		await pgFindOneAndUpdate(
+			Tenant,
+			tenantId,
+			{},
 			{
 				$set: {
-					tenantId,
 					name: CONTROL_PLANE_TENANT_NAME,
 					domain,
 					status: 'active',
@@ -62,18 +57,27 @@ async function createSuperAdminUser() {
 
 		const hashedPassword = await bcrypt.hash(password, 10)
 		const existing =
-			(await User.findOne({ tenantId, email })) ??
-			(await User.findOne({ tenantId, role: SUPER_ADMIN_ROLE }))
+			(await pgFindOne(User, tenantId, { email })) ??
+			(await pgFindOne(User, tenantId, { role: SUPER_ADMIN_ROLE }))
 
 		if (existing) {
-			existing.email = email
-			existing.role = SUPER_ADMIN_ROLE
-			existing.password = hashedPassword
-			existing.tokenVersion = (existing.tokenVersion ?? 0) + 1
-			await existing.save()
+			await pgFindOneAndUpdate(
+				User,
+				tenantId,
+				{ _id: existing._id },
+				{
+					$set: {
+						email,
+						role: SUPER_ADMIN_ROLE,
+						password: hashedPassword,
+						tokenVersion: (existing.tokenVersion ?? 0) + 1,
+					},
+				},
+			)
+
 			console.log('Super admin user updated')
 		} else {
-			await User.create({
+			await insertDoc(User, {
 				tenantId,
 				userId: uuidv4(),
 				displayName: 'Wael Zobani',
@@ -95,7 +99,9 @@ async function createSuperAdminUser() {
 			console.log('Super admin user created')
 		}
 
-		const revoked = await User.collection.updateMany(
+		const revoked = await pgUpdateMany(
+			User,
+			ALL_TENANTS,
 			{ role: SUPER_ADMIN_ROLE, tenantId: { $ne: tenantId } },
 			{ $set: { role: 'employee' } },
 		)
@@ -107,7 +113,7 @@ async function createSuperAdminUser() {
 		console.error('Failed to create super admin user:', error)
 		process.exit(1)
 	} finally {
-		await mongoose.disconnect()
+		await closeDb()
 	}
 }
 
