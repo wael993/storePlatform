@@ -205,8 +205,8 @@ describe('invoiceRequestTotals', () => {
 		})
 
 		// the shared web formula: an invoice discount replaces the line discounts
-		expect(
-			invoiceRequestTotals({ items, invoiceDiscount: 5 }).grandTotal,
-		).toBe(95)
+		expect(invoiceRequestTotals({ items, invoiceDiscount: 5 }).grandTotal).toBe(
+			95,
+		)
 	})
 })
