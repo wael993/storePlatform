@@ -2,7 +2,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
 import { pgFind, pgFindOne, pgUpdateMany } from '../../db/mongoQuery'
 import { lockUnchangedInvoice } from '../../db/repos/invoices'
-import { checkInvoiceRequestMoney } from '../../shared/invoiceMoney'
+import {
+	checkInvoiceRequestMoney,
+	invoiceRequestTotals,
+} from '../../shared/invoiceMoney'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -705,23 +708,21 @@ export default class BuyingInvoiceController {
 			isSyncReplay,
 		})
 
-		const grandTotal = buyingInvoiceItems.reduce(
-			(total, item) =>
-				total + (item.lineTotal ?? item.quantity * item.unitPrice),
-			0,
-		)
+		// server formula, not the client's lineTotal: these amounts skip the money check
+		const totals = invoiceRequestTotals({
+			items: buyingInvoiceItems,
+			invoiceDiscount: requestBody.invoiceDiscount,
+			invoiceDiscountIsPercent: requestBody.invoiceDiscountIsPercent,
+		})
 
 		const currencyAmounts =
 			requestBody.currencyAmounts?.length &&
 			requestBody.currencyAmounts.length > 0
 				? requestBody.currencyAmounts
 				: await this.ops.buildInvoiceCurrencyAmounts(tenantContext.tenantId, {
-						grandTotal,
+						...totals,
 						paidAmount: 0,
-						remainingAmount: grandTotal,
-						subtotal: grandTotal,
-						tax: 0,
-						discount: 0,
+						remainingAmount: totals.grandTotal,
 					})
 
 		if (!currencyAmounts.length) {
@@ -1135,46 +1136,54 @@ export default class BuyingInvoiceController {
 			? requireWarehouseId(existingInvoice.warehouseId)
 			: undefined
 
-		const touchedInventoryIds =
-			wasStockAffecting && existingInvoice
-				? await this.ops.runInTransaction(async session => {
-						const inventoryIds = await this.reversePurchaseInventoryAdjustments(
-							requestContext,
-							existingInvoice.buyingInvoiceId,
-							existingInvoice.invoiceNumber,
-							asInvoiceLines(existingInvoice.items),
-							session,
-							requireWarehouseId(existingInvoice.warehouseId),
-						)
+		// one transaction, locked unchanged row first, then the delete: an edit or a parallel
+		// delete since our read refuses here, and a crash cannot return stock twice
+		const { deleteResponse, touchedInventoryIds } =
+			await this.ops.runInTransaction(async session => {
+				if (existingInvoice) {
+					await lockUnchangedInvoice(
+						session,
+						'buying',
+						this.getTenantId(requestContext),
+						buyingInvoiceId,
+						existingInvoice.updatedAt,
+					)
+				}
 
-						await clearCashLedgerForReference({
-							requestContext,
-							warehouseId: requireWarehouseId(existingInvoice.warehouseId),
-							referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
-							referenceId: existingInvoice.buyingInvoiceId,
-							session,
-						})
+				const deleted = await this.mongoDbClient.deleteDocument(
+					{
+						collectionName: COLLECTION_NAMES.BUYING_INVOICES,
+						id: buyingInvoiceId,
+					},
+					requestContext,
+					BuyingInvoice,
+					session,
+				)
+				let inventoryIds: string[] = []
 
-						return inventoryIds
+				if (wasStockAffecting && existingInvoice) {
+					inventoryIds = await this.reversePurchaseInventoryAdjustments(
+						requestContext,
+						existingInvoice.buyingInvoiceId,
+						existingInvoice.invoiceNumber,
+						asInvoiceLines(existingInvoice.items),
+						session,
+						requireWarehouseId(existingInvoice.warehouseId),
+					)
+				}
+
+				if (warehouseIdForCash && existingInvoice) {
+					await clearCashLedgerForReference({
+						requestContext,
+						warehouseId: warehouseIdForCash,
+						referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
+						referenceId: existingInvoice.buyingInvoiceId,
+						session,
 					})
-				: warehouseIdForCash && existingInvoice
-					? await (async () => {
-							await clearCashLedgerForReference({
-								requestContext,
-								warehouseId: warehouseIdForCash,
-								referenceType: CASH_REFERENCE_TYPES.BUYING_INVOICE,
-								referenceId: existingInvoice.buyingInvoiceId,
-							})
+				}
 
-							return [] as string[]
-						})()
-					: []
-
-		const deleteResponse = await this.mongoDbClient.deleteDocument(
-			{ collectionName: COLLECTION_NAMES.BUYING_INVOICES, id: buyingInvoiceId },
-			requestContext,
-			BuyingInvoice,
-		)
+				return { deleteResponse: deleted, touchedInventoryIds: inventoryIds }
+			})
 
 		for (const inventoryId of touchedInventoryIds) {
 			await this.ops.invalidateEntityCache(

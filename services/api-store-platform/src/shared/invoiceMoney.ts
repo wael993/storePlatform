@@ -32,6 +32,29 @@ const refuse = (message: string) =>
 const off = (a: unknown, b: number) =>
 	typeof a !== 'number' || !Number.isFinite(a) || Math.abs(a - b) > TOLERANCE
 
+/** Totals of request lines with the web app's formula; a client `lineTotal` is ignored. */
+export const invoiceRequestTotals = (params: {
+	items: readonly MoneyLine[]
+	invoiceDiscount?: number
+	invoiceDiscountIsPercent?: boolean
+}) => {
+	const invoiceDiscount = params.invoiceDiscount ?? 0
+
+	return calculateInvoiceTotals(
+		params.items.map(item => ({
+			quantity: Number(item.quantity ?? 0),
+			unitPrice: Number(item.unitPrice ?? 0),
+			discount: Number(item.discount ?? 0),
+			discountIsPercent: item.discountIsPercent ?? false,
+		})),
+		{
+			useInvoiceDiscount: invoiceDiscount > 0,
+			invoiceDiscount,
+			invoiceDiscountIsPercent: params.invoiceDiscountIsPercent ?? false,
+		},
+	)
+}
+
 /**
  * The money an invoice request claims must follow from its lines and rates
  * (INV-MONEY-1). Totals are recomputed with the web app's own formula, so a
@@ -66,20 +89,7 @@ export const assertInvoiceMoney = (params: {
 		throw refuse('The primary currency rate must be 1.')
 	}
 
-	const invoiceDiscount = params.invoiceDiscount ?? 0
-	const totals = calculateInvoiceTotals(
-		params.items.map(item => ({
-			quantity: Number(item.quantity ?? 0),
-			unitPrice: Number(item.unitPrice ?? 0),
-			discount: Number(item.discount ?? 0),
-			discountIsPercent: item.discountIsPercent ?? false,
-		})),
-		{
-			useInvoiceDiscount: invoiceDiscount > 0,
-			invoiceDiscount,
-			invoiceDiscountIsPercent: params.invoiceDiscountIsPercent ?? false,
-		},
-	)
+	const totals = invoiceRequestTotals(params)
 
 	if (
 		off(primary.amount, totals.grandTotal) ||

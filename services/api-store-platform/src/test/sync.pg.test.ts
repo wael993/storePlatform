@@ -19,18 +19,26 @@ describe.skipIf(!enabled)('offline sync helpers (Postgres)', () => {
 
 	it('records one mutation per client id and answers replays from it', async () => {
 		const tenantId = `t-${randomUUID()}`
-		const record = (result: Record<string, unknown>) =>
+		const record = (result?: Record<string, unknown>, error?: string) =>
 			recordSyncMutation(tenantId, {
 				clientMutationId: 'm-1',
 				entity: 'invoice',
 				operation: 'create',
 				result,
+				error,
 			})
 
 		expect(await processed(tenantId, 'm-1')).toBeNull()
 
-		await Promise.all([record({ n: 1 }), record({ n: 1 })]) // duplicate retry
-		await record({ invoiceId: 'inv-1' })
+		// a failed attempt is replaced by the later success
+		await record(undefined, 'timeout')
+		await Promise.all([
+			record({ invoiceId: 'inv-1' }),
+			record({ invoiceId: 'inv-1' }),
+		]) // duplicate retry
+
+		// a parallel retry that lost the race (unique invoiceId) must not wipe the success
+		await record(undefined, 'duplicate key')
 
 		const rows = await getDb()
 			.select()
@@ -38,6 +46,7 @@ describe.skipIf(!enabled)('offline sync helpers (Postgres)', () => {
 			.where(eq(syncMutations.tenantId, tenantId))
 
 		expect(rows).toHaveLength(1)
+		expect(rows[0].error).toBeNull()
 		expect(await processed(tenantId, 'm-1')).toMatchObject({
 			entity: 'invoice',
 			result: { invoiceId: 'inv-1' },

@@ -159,6 +159,32 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 		)
 	})
 
+	it('lets only one of two parallel deletes reverse stock', async () => {
+		const tenantId = tenant()
+		const created = await sale(tenantId, 'SI-000001')
+		const invoiceId = created.invoiceId as string
+		let reversals = 0
+		// the delete controllers' shape: lock unchanged row, delete it, then reverse
+		const remove = () =>
+			inTransaction(undefined, async tx => {
+				await lockUnchangedInvoice(
+					tx,
+					'selling',
+					tenantId,
+					invoiceId,
+					created.updatedAt,
+				)
+
+				await tx.delete(invoices).where(eq(invoices.invoiceId, invoiceId))
+				await new Promise(resolve => setTimeout(resolve, 50))
+				reversals++
+			})
+		const results = await Promise.allSettled([remove(), remove()])
+
+		expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1)
+		expect(reversals).toBe(1)
+	})
+
 	it('reserves offline blocks atomically and raises the online floor', async () => {
 		const tenantId = tenant()
 		const first = await allocateOfflineBlock(tenantId, 'selling', 500)
@@ -183,6 +209,27 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 
 		// buying online numbers ignore the offline floor (as in Mongo)
 		expect(await nextInvoiceSequence(tenantId, 'buying')).toBe(1)
+	})
+
+	it('starts the next offline block after online numbers taken since the last one', async () => {
+		const tenantId = tenant()
+
+		expect(await allocateOfflineBlock(tenantId, 'selling', 10)).toEqual({
+			blockStart: 1,
+			blockEnd: 10,
+		})
+
+		const online = await allocateInvoiceNumber(tenantId, 'SI', undefined)
+
+		expect(online).toBe('SI-000011')
+		await sale(tenantId, online)
+
+		expect(await allocateOfflineBlock(tenantId, 'selling', 10)).toEqual({
+			blockStart: 12,
+			blockEnd: 21,
+		})
+
+		expect(await nextInvoiceSequence(tenantId, 'selling')).toBe(22)
 	})
 
 	it('takes the newest posted price per product', async () => {

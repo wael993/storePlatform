@@ -15,6 +15,9 @@ export const createDb = (url = process.env.DATABASE_URL) => {
 		connectionTimeoutMillis: 10_000,
 	})
 
+	// an idle client dropped by the server (restart, network) emits 'error'; unhandled, it kills the process
+	pool.on('error', error => console.error(`Postgres idle client error: ${error.message}`))
+
 	return { db: drizzle({ client: pool, schema, casing: 'snake_case' }), pool }
 }
 

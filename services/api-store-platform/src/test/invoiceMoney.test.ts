@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
 	assertInvoiceMoney,
 	checkInvoiceRequestMoney,
+	invoiceRequestTotals,
 } from '../shared/invoiceMoney'
 import { calculateInvoiceTotals } from '../shared/store-domain'
 
@@ -183,5 +184,29 @@ describe('checkInvoiceRequestMoney', () => {
 				isSyncReplay: false,
 			}),
 		).resolves.toBeUndefined()
+	})
+})
+
+describe('invoiceRequestTotals', () => {
+	it('applies line and invoice discounts and ignores a client lineTotal', () => {
+		const items = [
+			{
+				quantity: 1,
+				unitPrice: 100,
+				discount: 10,
+				discountIsPercent: true,
+				lineTotal: 0.01,
+			},
+		]
+
+		expect(invoiceRequestTotals({ items })).toMatchObject({
+			subtotal: 100,
+			grandTotal: 90,
+		})
+
+		// the shared web formula: an invoice discount replaces the line discounts
+		expect(
+			invoiceRequestTotals({ items, invoiceDiscount: 5 }).grandTotal,
+		).toBe(95)
 	})
 })

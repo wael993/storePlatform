@@ -204,7 +204,8 @@ const reserveOfflineBlock = async (
 		kind === 'selling'
 			? 'minOnlineInvoiceNumber'
 			: 'minOnlineBuyingInvoiceNumber'
-	const after = sql`coalesce(${next}, ${latest}) + ${blockSize}`
+	// online sales since the last block used numbers from its old start: skip past them
+	const after = sql`greatest(coalesce(${next}, ${latest}), ${latest}) + ${blockSize}`
 	const [row] = await db
 		.insert(sync)
 		.values({

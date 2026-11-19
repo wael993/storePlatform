@@ -177,7 +177,8 @@ Catalog HTTP still remaps `averageCost` from scoped inventory on read (`mapProdu
 - The body `warehouseId` must match the selected operational warehouse. It cannot be changed later.
 - Combined mode: list and dashboard work; the New Invoice buttons are disabled; the API rejects a post.
 - Editing an existing invoice keeps its original warehouse even if the picker changes.
-- Two edits of the same selling or buying invoice at once: the first one wins; the second is refused
+- Two edits or deletes of the same selling or buying invoice at once (or a delete based on an
+  invoice that was edited meanwhile): the first one wins; the second is refused
   ("This invoice changed meanwhile. Reload and try again.") because it was based on the old lines
   (`lockUnchangedInvoice`, `db/repos/invoices.ts`). Same rule as transfer edit/delete below.
 
