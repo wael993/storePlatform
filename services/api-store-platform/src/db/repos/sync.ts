@@ -1,3 +1,4 @@
+import { isNull } from 'drizzle-orm'
 import { Types } from 'mongoose'
 
 import { Executor, getDb, requireTenantId } from '..'
@@ -38,5 +39,7 @@ export const recordSyncMutation = async (
 		.onConflictDoUpdate({
 			target: [syncMutations.tenantId, syncMutations.clientMutationId],
 			set: values,
+			// a success stays: a parallel retry that lost the race must not record it as failed
+			setWhere: isNull(syncMutations.result),
 		})
 }

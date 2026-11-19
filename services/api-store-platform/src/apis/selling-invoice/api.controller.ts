@@ -2,7 +2,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { DbTx } from '../../db'
 import { pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 import { lockUnchangedInvoice } from '../../db/repos/invoices'
-import { checkInvoiceRequestMoney } from '../../shared/invoiceMoney'
+import {
+	checkInvoiceRequestMoney,
+	invoiceRequestTotals,
+} from '../../shared/invoiceMoney'
 
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { BuyingInvoice } from '../../models/BuyingInvoices'
@@ -1280,20 +1283,17 @@ export default class SellingInvoiceController {
 		tenantId: string,
 		requestBody: InvoiceRequestBody,
 	) {
-		const items = requestBody.items ?? []
-		const grandTotal = items.reduce(
-			(total, item) =>
-				total + (item.lineTotal ?? item.quantity * item.unitPrice),
-			0,
-		)
+		// server formula, not the client's lineTotal: these amounts skip the money check
+		const totals = invoiceRequestTotals({
+			items: requestBody.items ?? [],
+			invoiceDiscount: requestBody.invoiceDiscount,
+			invoiceDiscountIsPercent: requestBody.invoiceDiscountIsPercent,
+		})
 
 		return this.ops.buildInvoiceCurrencyAmounts(tenantId, {
-			grandTotal,
+			...totals,
 			paidAmount: 0,
-			remainingAmount: grandTotal,
-			subtotal: grandTotal,
-			tax: 0,
-			discount: 0,
+			remainingAmount: totals.grandTotal,
 		})
 	}
 
@@ -1553,10 +1553,20 @@ export default class SellingInvoiceController {
 			? requireWarehouseId(existingInvoice.warehouseId)
 			: undefined
 
-		// one transaction, invoice row first: a crash cannot leave the invoice with its
-		// stock already returned, and a parallel second delete finds nothing and rolls back
+		// one transaction, locked unchanged row first, then the delete: an edit or a parallel
+		// delete since our read refuses here, and a crash cannot return stock twice
 		const { deleteResponse, touchedInventoryIds } =
 			await this.ops.runInTransaction(async session => {
+				if (existingInvoice) {
+					await lockUnchangedInvoice(
+						session,
+						'selling',
+						this.getTenantId(requestContext),
+						invoiceId,
+						existingInvoice.updatedAt,
+					)
+				}
+
 				const deleted = await this.mongoDbClient.deleteDocument(
 					{ collectionName: COLLECTION_NAMES.INVOICES, id: invoiceId },
 					requestContext,
