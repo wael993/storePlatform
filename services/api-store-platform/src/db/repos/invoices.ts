@@ -84,8 +84,8 @@ export const latestInvoiceSequence = async (
 }
 
 /**
- * `resolveNextInvoiceNumber`: selling never goes below the offline floor.
- * `resolveNextBuyingInvoiceNumber` ignores its floor (as in Mongo; see INV-NUM-1 notes).
+ * `resolveNextInvoiceNumber` / buying variant: never below the floor, which offline
+ * blocks and restores raise (a restore must not reissue numbers already printed).
  */
 export const nextInvoiceSequence = async (
 	tenantId: string,
@@ -93,11 +93,13 @@ export const nextInvoiceSequence = async (
 	db: Executor = getDb(),
 ) => {
 	const latest = await latestInvoiceSequence(tenantId, kind, db)
-
-	if (kind === 'buying') return latest
-
 	const [state] = await db
-		.select({ floor: sync.minOnlineInvoiceNumber })
+		.select({
+			floor:
+				kind === 'selling'
+					? sync.minOnlineInvoiceNumber
+					: sync.minOnlineBuyingInvoiceNumber,
+		})
 		.from(sync)
 		.where(eq(sync.tenantId, requireTenantId(tenantId)))
 
@@ -185,6 +187,40 @@ export const allocateOfflineBlock = (
 
 		return reserveOfflineBlock(db, tenantId, kind, blockSize)
 	})
+
+/**
+ * Before a restore replaces the invoices: online numbers and offline blocks continue
+ * after today's highest numbers, so none printed since the backup is issued again.
+ * `offline_sync_states` is not backed up, so these floors survive the restore.
+ */
+export const raiseInvoiceNumberFloors = async (db: DbTx, tenantId: string) => {
+	await lockInvoiceNumbers(db, tenantId, 'selling')
+	await lockInvoiceNumbers(db, tenantId, 'buying')
+
+	const selling = await latestInvoiceSequence(tenantId, 'selling', db)
+	const buying = await latestInvoiceSequence(tenantId, 'buying', db)
+
+	await db
+		.insert(sync)
+		.values({
+			id: new Types.ObjectId().toHexString(),
+			tenantId: requireTenantId(tenantId),
+			nextBlockStart: selling,
+			minOnlineInvoiceNumber: selling,
+			buyingNextBlockStart: buying,
+			minOnlineBuyingInvoiceNumber: buying,
+		})
+		.onConflictDoUpdate({
+			target: sync.tenantId,
+			// greatest() ignores NULL: a tenant without blocks gets the floor as start
+			set: {
+				nextBlockStart: sql`greatest(${sync.nextBlockStart}, ${selling})`,
+				minOnlineInvoiceNumber: sql`greatest(${sync.minOnlineInvoiceNumber}, ${selling})`,
+				buyingNextBlockStart: sql`greatest(${sync.buyingNextBlockStart}, ${buying})`,
+				minOnlineBuyingInvoiceNumber: sql`greatest(${sync.minOnlineBuyingInvoiceNumber}, ${buying})`,
+			},
+		})
+}
 
 const reserveOfflineBlock = async (
 	db: DbTx,

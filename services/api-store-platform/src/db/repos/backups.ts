@@ -1,7 +1,8 @@
-import { and, asc, desc, eq, inArray, lt, ne, not, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lt, ne, not, sql } from 'drizzle-orm'
 
 import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '..'
-import { tenantBackups, tenantBackupStates, tenants } from '../schema'
+import { syncMutations, tenantBackups, tenantBackupStates, tenants } from '../schema'
+import { raiseInvoiceNumberFloors } from './invoices'
 import { BackupRow } from '../../shared/backup/archive'
 import { BACKUP_STALE_MS } from '../../shared/backup/constants'
 import { BackupError } from '../../shared/backup/errors'
@@ -468,9 +469,23 @@ export const replaceTenantRows = (
 	tenantId: string,
 	rows: () => AsyncIterable<BackupRow>,
 	lockedAt: Date,
+	snapshotAt: Date,
 ): Promise<number> =>
 	inTransaction(undefined, async tx => {
 		requireTenantId(tenantId)
+
+		await raiseInvoiceNumberFloors(tx, tenantId)
+
+		// work recorded after the snapshot is undone by the restore: a device retrying it
+		// must run it again, not get the old success back
+		await tx
+			.delete(syncMutations)
+			.where(
+				and(
+					eq(syncMutations.tenantId, tenantId),
+					gte(syncMutations.processedAt, snapshotAt),
+				),
+			)
 
 		for (const { name } of [...BACKUP_TABLES].reverse()) {
 			await tx.execute(

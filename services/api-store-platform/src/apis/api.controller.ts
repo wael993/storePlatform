@@ -3449,11 +3449,10 @@ export default class ProductController {
 		}))
 	}
 
-	/** Buying numbers ignore the offline floor (unlike selling); kept as it was. */
 	public async resolveNextBuyingInvoiceNumber(
 		requestContext: RequestContext,
 	): Promise<number> {
-		return latestInvoiceSequence(this.getTenantId(requestContext), 'buying')
+		return nextInvoiceSequence(this.getTenantId(requestContext), 'buying')
 	}
 
 	public async getInventory(

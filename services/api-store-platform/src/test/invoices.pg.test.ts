@@ -207,8 +207,8 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 			blockEnd: 500,
 		})
 
-		// buying online numbers ignore the offline floor (as in Mongo)
-		expect(await nextInvoiceSequence(tenantId, 'buying')).toBe(1)
+		// buying online numbers respect their floor too (a restore raises it)
+		expect(await nextInvoiceSequence(tenantId, 'buying')).toBe(501)
 	})
 
 	it('starts the next offline block after online numbers taken since the last one', async () => {

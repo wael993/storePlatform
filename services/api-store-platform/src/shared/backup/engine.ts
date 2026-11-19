@@ -1,7 +1,7 @@
 import { mkdtemp, rm, stat } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
 import { getDb } from '../../db'
@@ -175,6 +175,10 @@ export const writeTenantArchive = async (
 	withSnapshot(async tx => {
 		// read inside the snapshot: a write after it bumps the version, so it is backed up next run
 		const dataVersion = (await getBackupState(tenantId, tx))?.dataVersion ?? 0
+		// now() = transaction start, never after the snapshot: a restore drops sync records from here on
+		const {
+			rows: [{ at: snapshotAt }],
+		} = await tx.execute<{ at: Date }>(sql`select now() as at`)
 
 		await writeArchive(
 			tenantId,
@@ -184,6 +188,7 @@ export const writeTenantArchive = async (
 				tenantId,
 				tenantName,
 				createdAt: new Date().toISOString(),
+				snapshotAt: new Date(snapshotAt).toISOString(),
 				applicationVersion: APPLICATION_VERSION,
 				dataVersion,
 				tables: BACKUP_TABLES.map(table => table.name),
@@ -413,7 +418,14 @@ export const applyArchive = (
 	tenantId: string,
 	plainPath: string,
 	lockedAt: Date,
-) => replaceTenantRows(tenantId, () => archiveRows(plainPath), lockedAt)
+	manifest: BackupManifest,
+) =>
+	replaceTenantRows(
+		tenantId,
+		() => archiveRows(plainPath),
+		lockedAt,
+		new Date(manifest.snapshotAt ?? manifest.createdAt),
+	)
 
 export type RestoreRun = { lockedAt: Date; state: RestoreState }
 
@@ -480,7 +492,7 @@ export const restoreBackup = async (
 
 			stage = 'RESTORE_VALIDATION_ERROR'
 			await decryptArchive(tenantId, encrypted, plain)
-			await validateArchive(tenantId, plain)
+			const manifest = await validateArchive(tenantId, plain)
 
 			const tenant = await loadTenant(tenantId)
 			const safety = await enqueueBackup(
@@ -502,7 +514,7 @@ export const restoreBackup = async (
 			}
 
 			stage = 'RESTORE_ERROR'
-			await applyArchive(tenantId, plain, lockedAt)
+			await applyArchive(tenantId, plain, lockedAt, manifest)
 		}))
 
 		restore.status = 'COMPLETED'

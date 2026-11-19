@@ -22,10 +22,13 @@ import {
 	RestoreState,
 	updateBackupState,
 } from '../db/repos/backups'
+import { nextInvoiceSequence } from '../db/repos/invoices'
+import { recordSyncMutation } from '../db/repos/sync'
 import {
 	invoiceItems,
 	invoices,
 	products,
+	syncMutations,
 	tenantBackups,
 	tenantBackupStates,
 	tenants,
@@ -265,12 +268,12 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		await decryptArchive(a, enc, plain)
 		// passes validation (right tenant, known table) but breaks NOT NULL on insert
 		await appendFile(plain, rowLine('products', JSON.stringify({ id: `${a}-bad`, tenant_id: a })))
-		await validateArchive(a, plain)
+		const manifest = await validateArchive(a, plain)
 
 		await changeData(a).catch(() => undefined) // p3 may already exist from the test above
 		const current = await snapshot(a)
 
-		await expect(applyArchive(a, plain, new Date())).rejects.toThrow()
+		await expect(applyArchive(a, plain, new Date(), manifest)).rejects.toThrow()
 		expect(await snapshot(a)).toEqual(current)
 		await rm(dir, { recursive: true, force: true })
 	})
@@ -316,6 +319,27 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		expect((await getBackupJob(backup.id))?.status).toBe(BACKUP_STATUS.COMPLETED)
 		expect(await readdir(storage.dir)).toContain(backup.storageId)
 		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
+	})
+
+	it('keeps numbers printed after the backup and replays work undone by the restore', async () => {
+		const c = await seedTenant('Tenant C')
+		const record = (clientMutationId: string) =>
+			recordSyncMutation(c, { clientMutationId, entity: 'invoice', operation: 'create', result: { ok: true } })
+		const replayable = async (clientMutationId: string) =>
+			(await getDb().select().from(syncMutations).where(and(eq(syncMutations.tenantId, c), eq(syncMutations.clientMutationId, clientMutationId)))).length
+
+		await record('before')
+		const backup = await backupNow(c)
+
+		// a sale synced after the backup: printed as SI-000900, its success recorded
+		await getDb().insert(invoices).values({ id: `${c}-i900`, tenantId: c, invoiceId: 'i900', invoiceNumber: 'SI-000900' })
+		await record('after')
+
+		expect((await restoreNow(c, backup.id)).status).toBe('COMPLETED')
+		expect(await snapshot(c)).not.toHaveProperty('invoices', expect.arrayContaining([expect.stringContaining('SI-000900')]))
+		expect(await nextInvoiceSequence(c, 'selling')).toBe(901)
+		expect(await replayable('before')).toBe(1)
+		expect(await replayable('after')).toBe(0)
 	})
 
 	it('skips retention while a restore runs; the next run catches up', async () => {
@@ -407,6 +431,7 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 
 		await writeTenantArchive(b, 'Tenant B', join(dir, 'enc'))
 		await decryptArchive(b, join(dir, 'enc'), plain)
+		const manifest = await validateArchive(b, plain)
 
 		const oldLock = (await acquireRestoreLock(b))!
 
@@ -422,7 +447,7 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		const newLock = await acquireRestoreLock(b)
 
 		expect(newLock).not.toBeNull()
-		await expect(applyArchive(b, plain, oldLock)).rejects.toMatchObject({ code: 'RESTORE_ERROR' })
+		await expect(applyArchive(b, plain, oldLock, manifest)).rejects.toMatchObject({ code: 'RESTORE_ERROR' })
 		expect(await snapshot(b)).toEqual(current)
 
 		await releaseRestoreLock(b, oldLock) // must not free the new restore's lock

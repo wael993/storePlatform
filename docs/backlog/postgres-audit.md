@@ -480,5 +480,5 @@ are written down here with the date.
 | 🟡 `gracefulShutdown` did not close the pools | **Fixed:** `closeDb()` before exit (SIGTERM tested) |
 | 🟡 `latestInvoiceSequence` scans all numbers under the lock (O(n)) | **After the switch** (PG-AUDIT-6): ~1,000 invoices per tenant today, so the lock window stays small; move max/parse into SQL before tenants reach tens of thousands |
 | 🟡 `parseLedgerDateBound` uses the process time zone | **Not migration-related:** Render runs in UTC, so production behaves the same as on Mongo; a per-tenant time zone is a feature ticket |
-| ❓ buying online numbers ignore the offline floor | **Accepted (ADR, Mongo parity):** with the shared lock no two buying invoices get the same number; an offline buying number already taken online is renumbered on sync |
+| ✅ buying online numbers ignore the offline floor | **Changed 2026-11-19 (branch `tenant-backup`, owner decision):** buying respects its floor like selling, so a backup restore can raise it and never reissue printed BI numbers |
 | 🔵 H4 unique index | Owner decision 2026-11-17: not done; the lock is the protection |

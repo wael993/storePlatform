@@ -28,6 +28,8 @@ export type BackupManifest = {
 	tenantId: string
 	tenantName: string
 	createdAt: string
+	/** DB start time of the snapshot transaction (before its snapshot); older files lack it */
+	snapshotAt?: string
 	applicationVersion: string
 	dataVersion: number
 	tables: string[]
