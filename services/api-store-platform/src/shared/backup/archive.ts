@@ -136,9 +136,7 @@ export const decryptArchive = async (
 }
 
 /** Lines of a decrypted archive (manifest first). */
-export async function* readArchive(
-	plainPath: string,
-): AsyncGenerator<string> {
+export async function* readArchive(plainPath: string): AsyncGenerator<string> {
 	const lines = createInterface({
 		input: createReadStream(plainPath, 'utf8'),
 		crlfDelay: Infinity,

@@ -31,7 +31,8 @@ const manifest = (over: Record<string, unknown> = {}) => ({
 })
 
 // exact digits JS numbers cannot hold; a tab and a newline escaped inside the JSON text
-const ROW = '{"id":"p1","tenant_id":"tenant-a","retail_price":89940.1199999999998745,"name":"منتج\\t\\n"}'
+const ROW =
+	'{"id":"p1","tenant_id":"tenant-a","retail_price":89940.1199999999998745,"name":"منتج\\t\\n"}'
 
 const lines = async function* (
 	head = manifest(),
@@ -76,15 +77,42 @@ describe('backup archive', () => {
 	})
 
 	it.each([
-		['a foreign row', manifest(), [rowLine('products', '{"tenant_id":"tenant-b"}')], 'TENANT_VALIDATION_ERROR'],
-		['an unknown table', manifest(), [rowLine('users', '{"tenant_id":"tenant-a"}')], 'RESTORE_VALIDATION_ERROR'],
-		['an excluded table', manifest(), [rowLine('sync_mutations', '{"tenant_id":"tenant-a"}')], 'RESTORE_VALIDATION_ERROR'],
-		['another database structure', manifest({ schemaFingerprint: 'old' }), [], 'RESTORE_VALIDATION_ERROR'],
-		['another format version', manifest({ backupVersion: 1 }), [], 'RESTORE_VALIDATION_ERROR'],
+		[
+			'a foreign row',
+			manifest(),
+			[rowLine('products', '{"tenant_id":"tenant-b"}')],
+			'TENANT_VALIDATION_ERROR',
+		],
+		[
+			'an unknown table',
+			manifest(),
+			[rowLine('users', '{"tenant_id":"tenant-a"}')],
+			'RESTORE_VALIDATION_ERROR',
+		],
+		[
+			'an excluded table',
+			manifest(),
+			[rowLine('sync_mutations', '{"tenant_id":"tenant-a"}')],
+			'RESTORE_VALIDATION_ERROR',
+		],
+		[
+			'another database structure',
+			manifest({ schemaFingerprint: 'old' }),
+			[],
+			'RESTORE_VALIDATION_ERROR',
+		],
+		[
+			'another format version',
+			manifest({ backupVersion: 1 }),
+			[],
+			'RESTORE_VALIDATION_ERROR',
+		],
 	])('refuses %s', async (name, head, rows, code) => {
 		const { plain } = await archive(name.replace(/\s/g, '-'), head, rows)
 
-		await expect(validateArchive('tenant-a', plain)).rejects.toMatchObject({ code })
+		await expect(validateArchive('tenant-a', plain)).rejects.toMatchObject({
+			code,
+		})
 	})
 
 	it('rejects another tenant decrypting the archive', async () => {

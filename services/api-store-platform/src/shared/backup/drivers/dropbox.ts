@@ -70,8 +70,8 @@ const accountEmail = async (token: string): Promise<string> => {
 export const dropboxDriver: BackupDriver = {
 	configured: Boolean(
 		config.backup.dropbox.appKey &&
-			config.backup.dropbox.appSecret &&
-			config.backup.oauthRedirectUri,
+		config.backup.dropbox.appSecret &&
+		config.backup.oauthRedirectUri,
 	),
 
 	authorizeUrl(state) {

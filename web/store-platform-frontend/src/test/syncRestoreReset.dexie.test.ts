@@ -5,7 +5,12 @@ vi.mock('../store/store', () => ({
 	default: { getState: () => ({ user: { accessToken: 'token' } }) },
 }))
 
-import { getSyncMeta, offlineDb, setSyncMeta, SYNC_META_KEYS } from '../offline/db'
+import {
+	getSyncMeta,
+	offlineDb,
+	setSyncMeta,
+	SYNC_META_KEYS,
+} from '../offline/db'
 import { getOfflineState, pullSyncChanges } from '../offline/syncService'
 
 afterEach(() => vi.unstubAllGlobals())

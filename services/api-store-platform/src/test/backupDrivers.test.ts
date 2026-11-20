@@ -70,12 +70,17 @@ describe('Google Drive driver', () => {
 			}),
 		)
 
-		expect(await googleDriveDriver.upload(connection(), 'x.backup', file)).toEqual({
+		expect(
+			await googleDriveDriver.upload(connection(), 'x.backup', file),
+		).toEqual({
 			storageId: 'file-1',
 			size: 1234,
 		})
 
-		expect(urls.find(url => url.includes('uploadType'))).toContain('fields=id,size')
+		expect(urls.find(url => url.includes('uploadType'))).toContain(
+			'fields=id,size',
+		)
+
 		expect(urls).toHaveLength(3) // token, session, upload
 	})
 
@@ -89,7 +94,9 @@ describe('Google Drive driver', () => {
 				url.endsWith('/token')
 					? json({ access_token: 'access' })
 					: url.includes('uploadType=resumable')
-						? new Response(null, { headers: { Location: 'https://upload.example/g' } })
+						? new Response(null, {
+								headers: { Location: 'https://upload.example/g' },
+							})
 						: json({ id: 'file-1' }),
 			),
 		)

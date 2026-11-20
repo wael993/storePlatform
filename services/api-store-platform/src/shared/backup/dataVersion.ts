@@ -34,7 +34,9 @@ export const bumpTenantDataVersion: express.RequestHandler = (
 
 		if (tenantId && isTenantDataChange(method, path, response.statusCode)) {
 			bumpDataVersion(tenantId).catch(error =>
-				logger.error(`dataVersion bump failed for tenant ${tenantId}: ${error}`),
+				logger.error(
+					`dataVersion bump failed for tenant ${tenantId}: ${error}`,
+				),
 			)
 		}
 	})

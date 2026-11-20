@@ -27,16 +27,20 @@ describe('backup table classification', () => {
 			for (const fk of table.foreignKeys) {
 				const parent = getTableConfig(fk.reference().foreignTable).name
 
-				expect(order.indexOf(parent), `${parent} before ${table.name}`).toBeLessThan(
-					order.indexOf(table.name),
-				)
+				expect(
+					order.indexOf(parent),
+					`${parent} before ${table.name}`,
+				).toBeLessThan(order.indexOf(table.name))
 			}
 		}
 	})
 
 	it('only backs up tables that carry tenant_id', () => {
 		for (const table of storeTables.filter(t => !(t.name in EXCLUDED_TABLES))) {
-			expect(table.columns.map(column => column.name), table.name).toContain('tenantId')
+			expect(
+				table.columns.map(column => column.name),
+				table.name,
+			).toContain('tenantId')
 		}
 	})
 })

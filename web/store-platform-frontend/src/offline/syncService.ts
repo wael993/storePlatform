@@ -19,10 +19,7 @@ import {
 	loadTenantOfflineConfig,
 	isOfflineEnabledForTenant,
 } from './offlineTenantAccess'
-import {
-	getWorkMode,
-	setWorkMode,
-} from './workMode'
+import { getWorkMode, setWorkMode } from './workMode'
 import {
 	applyBootstrapPayload,
 	applySyncChanges,

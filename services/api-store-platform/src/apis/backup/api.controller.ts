@@ -129,8 +129,7 @@ export default class BackupController {
 					connectedAt: connection.connectedAt,
 				}),
 			),
-			retentionCount:
-				tenant?.backupRetentionCount ?? DEFAULT_BACKUP_RETENTION,
+			retentionCount: tenant?.backupRetentionCount ?? DEFAULT_BACKUP_RETENTION,
 			schedule: config.backup.schedule,
 			timezone: config.cron.timezone,
 			lastBackupAt: state?.lastBackupAt ?? null,
@@ -247,7 +246,9 @@ export default class BackupController {
 				typeof nonce !== 'string' ||
 				!(await consumeOAuthNonce(tenantId, nonce))
 			) {
-				logger.warn(`Backup OAuth callback: unknown or used state (${tenantId})`)
+				logger.warn(
+					`Backup OAuth callback: unknown or used state (${tenantId})`,
+				)
 
 				return back('error')
 			}

@@ -63,8 +63,8 @@ const accountEmail = async (token: string): Promise<string> => {
 export const googleDriveDriver: BackupDriver = {
 	configured: Boolean(
 		config.backup.googleDrive.clientId &&
-			config.backup.googleDrive.clientSecret &&
-			config.backup.oauthRedirectUri,
+		config.backup.googleDrive.clientSecret &&
+		config.backup.oauthRedirectUri,
 	),
 
 	authorizeUrl(state) {
@@ -111,14 +111,14 @@ export const googleDriveDriver: BackupDriver = {
 		const session = await fetch(
 			`${UPLOAD_API}/files?uploadType=resumable&fields=id,size`,
 			{
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${token}`,
-				'Content-Type': 'application/json; charset=UTF-8',
-				'X-Upload-Content-Type': 'application/octet-stream',
-				'X-Upload-Content-Length': String(size),
-			},
-			body: JSON.stringify({ name, mimeType: 'application/octet-stream' }),
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json; charset=UTF-8',
+					'X-Upload-Content-Type': 'application/octet-stream',
+					'X-Upload-Content-Length': String(size),
+				},
+				body: JSON.stringify({ name, mimeType: 'application/octet-stream' }),
 			},
 		)
 

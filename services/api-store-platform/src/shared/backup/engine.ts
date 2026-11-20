@@ -200,7 +200,10 @@ export const writeTenantArchive = async (
 	})
 
 const staleJob = () =>
-	new BackupError('WORKER_TIMEOUT', 'Job was failed as stale while it still ran.')
+	new BackupError(
+		'WORKER_TIMEOUT',
+		'Job was failed as stale while it still ran.',
+	)
 
 const markFailed = async (
 	job: BackupJob,
@@ -222,7 +225,8 @@ const markFailed = async (
 
 	// a row already failed as stale: a newer job may have completed since, keep its status.
 	// lastBackupVersion stays untouched so the tenant is retried next run
-	if (recorded) await updateBackupState(job.tenantId, { lastBackupStatus: 'FAILED' })
+	if (recorded)
+		await updateBackupState(job.tenantId, { lastBackupStatus: 'FAILED' })
 }
 
 /**
@@ -250,51 +254,61 @@ export const processBackup = async (job: BackupJob): Promise<BackupStatus> => {
 		const driver = getDriver(job.provider)
 
 		// updateBackupJob({}) only touches updated_at, the job's heartbeat
-		await withHeartbeat(() => updateBackupJob(job.id, {}), () => withTempDir(async dir => {
-			const file = join(dir, 'archive')
+		await withHeartbeat(
+			() => updateBackupJob(job.id, {}),
+			() =>
+				withTempDir(async dir => {
+					const file = join(dir, 'archive')
 
-			stage = 'BACKUP_SERIALIZATION_ERROR'
-			const dataVersion = await writeTenantArchive(tenantId, tenant.name, file)
+					stage = 'BACKUP_SERIALIZATION_ERROR'
+					const dataVersion = await writeTenantArchive(
+						tenantId,
+						tenant.name,
+						file,
+					)
 
-			stage = 'UPLOAD_ERROR'
+					stage = 'UPLOAD_ERROR'
 
-			if (
-				!(await updateBackupJob(job.id, {
-					status: BACKUP_STATUS.UPLOADING,
-					dataVersion,
-				}))
-			) {
-				throw staleJob()
-			}
+					if (
+						!(await updateBackupJob(job.id, {
+							status: BACKUP_STATUS.UPLOADING,
+							dataVersion,
+						}))
+					) {
+						throw staleJob()
+					}
 
-			const { size } = await stat(file)
-			const uploaded = await driver.upload(connection, job.name, file)
+					const { size } = await stat(file)
+					const uploaded = await driver.upload(connection, job.name, file)
 
-			if (uploaded.size !== size) {
-				throw new BackupError(
-					'UPLOAD_ERROR',
-					`Uploaded size ${uploaded.size} != local ${size}`,
-				)
-			}
+					if (uploaded.size !== size) {
+						throw new BackupError(
+							'UPLOAD_ERROR',
+							`Uploaded size ${uploaded.size} != local ${size}`,
+						)
+					}
 
-			const completedAt = new Date()
+					const completedAt = new Date()
 
-			if (
-				!(await updateBackupJob(job.id, {
-					status: BACKUP_STATUS.COMPLETED,
-					storageId: uploaded.storageId,
-					size,
-					completedAt,
-				}))
-			) {
-				// no record owns this file any more: retention would never delete it
-				await driver.remove(connection, uploaded.storageId).catch(() => undefined)
+					if (
+						!(await updateBackupJob(job.id, {
+							status: BACKUP_STATUS.COMPLETED,
+							storageId: uploaded.storageId,
+							size,
+							completedAt,
+						}))
+					) {
+						// no record owns this file any more: retention would never delete it
+						await driver
+							.remove(connection, uploaded.storageId)
+							.catch(() => undefined)
 
-				throw staleJob()
-			}
+						throw staleJob()
+					}
 
-			await recordBackupCompleted(tenantId, dataVersion, completedAt)
-		}))
+					await recordBackupCompleted(tenantId, dataVersion, completedAt)
+				}),
+		)
 	} catch (error) {
 		await markFailed(job, error, stage).catch(err =>
 			logger.error(`Backup ${job.id}: could not record failure: ${err}`),
@@ -315,7 +329,10 @@ export const processBackup = async (job: BackupJob): Promise<BackupStatus> => {
 
 /** Keeps the newest N successful backups; deletes older files through each backup's own provider. */
 export const applyRetention = async (tenantId: string): Promise<void> => {
-	await deleteOldFailedBackups(tenantId, new Date(Date.now() - FAILED_HISTORY_MS))
+	await deleteOldFailedBackups(
+		tenantId,
+		new Date(Date.now() - FAILED_HISTORY_MS),
+	)
 
 	const tenant = await loadTenant(tenantId)
 
@@ -474,51 +491,57 @@ export const restoreBackup = async (
 	let stage = 'RESTORE_ERROR'
 	const beat = async () => {
 		if (!(await heartbeatRestoreLock(tenantId, lockedAt))) {
-			logger.warn(`Restore of tenant ${tenantId} lost its lock; it will roll back.`)
+			logger.warn(
+				`Restore of tenant ${tenantId} lost its lock; it will roll back.`,
+			)
 		}
 	}
 
 	try {
-		await withHeartbeat(beat, () => withTempDir(async dir => {
-			const encrypted = join(dir, 'archive')
-			const plain = join(dir, 'plain')
+		await withHeartbeat(beat, () =>
+			withTempDir(async dir => {
+				const encrypted = join(dir, 'archive')
+				const plain = join(dir, 'plain')
 
-			stage = 'DOWNLOAD_ERROR'
-			await getDriver(backup.provider).download(
-				await getConnection(tenantId, backup.provider),
-				backup.storageId as string,
-				encrypted,
-			)
-
-			stage = 'RESTORE_VALIDATION_ERROR'
-			await decryptArchive(tenantId, encrypted, plain)
-			const manifest = await validateArchive(tenantId, plain)
-
-			const tenant = await loadTenant(tenantId)
-			const safety = await enqueueBackup(
-				tenantId,
-				tenant?.name ?? tenantId,
-				activeProvider,
-				BACKUP_KIND.SAFETY,
-				BACKUP_STATUS.PROCESSING,
-			)
-
-			restore.safetyBackupId = safety.id
-			await setRestoreState(tenantId, restore)
-
-			if ((await processBackup(safety)) !== BACKUP_STATUS.COMPLETED) {
-				throw new BackupError(
-					'SAFETY_BACKUP_FAILED',
-					'Safety backup failed; restore aborted.',
+				stage = 'DOWNLOAD_ERROR'
+				await getDriver(backup.provider).download(
+					await getConnection(tenantId, backup.provider),
+					backup.storageId as string,
+					encrypted,
 				)
-			}
 
-			stage = 'RESTORE_ERROR'
-			await applyArchive(tenantId, plain, lockedAt, manifest)
-		}))
+				stage = 'RESTORE_VALIDATION_ERROR'
+				await decryptArchive(tenantId, encrypted, plain)
+				const manifest = await validateArchive(tenantId, plain)
+
+				const tenant = await loadTenant(tenantId)
+				const safety = await enqueueBackup(
+					tenantId,
+					tenant?.name ?? tenantId,
+					activeProvider,
+					BACKUP_KIND.SAFETY,
+					BACKUP_STATUS.PROCESSING,
+				)
+
+				restore.safetyBackupId = safety.id
+				await setRestoreState(tenantId, restore)
+
+				if ((await processBackup(safety)) !== BACKUP_STATUS.COMPLETED) {
+					throw new BackupError(
+						'SAFETY_BACKUP_FAILED',
+						'Safety backup failed; restore aborted.',
+					)
+				}
+
+				stage = 'RESTORE_ERROR'
+				await applyArchive(tenantId, plain, lockedAt, manifest)
+			}),
+		)
 
 		restore.status = 'COMPLETED'
-		logger.info(`Restore of backup ${backup.id} for tenant ${tenantId} completed.`)
+		logger.info(
+			`Restore of backup ${backup.id} for tenant ${tenantId} completed.`,
+		)
 	} catch (error) {
 		restore.status = 'FAILED'
 		restore.errorCode = backupErrorCode(error, stage)

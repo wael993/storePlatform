@@ -77,7 +77,12 @@ const OfflineSyncBanner = () => {
 				)}
 
 				{restoreResetPending && (
-					<Alert status="warning" borderRadius="md" mb={2} variant="left-accent">
+					<Alert
+						status="warning"
+						borderRadius="md"
+						mb={2}
+						variant="left-accent"
+					>
 						<AlertIcon />
 						<AlertDescription flex="1">
 							{t('offline.restoreResetPending', { count: pendingCount })}

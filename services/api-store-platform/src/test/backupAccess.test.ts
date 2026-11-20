@@ -52,14 +52,24 @@ const authorize = async (method: string, restoreInProgress: boolean) => {
 
 describe('restore write lock', () => {
 	it('answers 423 to writes while a restore runs, reads still pass', async () => {
-		expect(await authorize('POST', true)).toEqual({ status: 423, passed: false })
+		expect(await authorize('POST', true)).toEqual({
+			status: 423,
+			passed: false,
+		})
+
 		expect(await authorize('GET', true)).toEqual({ status: 200, passed: true })
-		expect(await authorize('POST', false)).toEqual({ status: 200, passed: true })
+		expect(await authorize('POST', false)).toEqual({
+			status: 200,
+			passed: true,
+		})
 	})
 
 	it('counts the lock as live only while its heartbeat is fresh', () => {
 		expect(isRestoreLockLive(new Date())).toBe(true)
-		expect(isRestoreLockLive(new Date(Date.now() - BACKUP_STALE_MS - 1))).toBe(false)
+		expect(isRestoreLockLive(new Date(Date.now() - BACKUP_STALE_MS - 1))).toBe(
+			false,
+		)
+
 		expect(isRestoreLockLive(null)).toBe(false)
 	})
 })
@@ -68,17 +78,26 @@ describe('sync reset after a restore', () => {
 	const since = new Date('2026-11-19T10:00:00Z')
 
 	it('asks devices to re-download when a restore started or finished after their last pull', () => {
-		expect(restoreChangedSince({ startedAt: '2026-11-19T10:05:00Z' }, since)).toBe(true)
+		expect(
+			restoreChangedSince({ startedAt: '2026-11-19T10:05:00Z' }, since),
+		).toBe(true)
+
 		expect(
 			restoreChangedSince(
-				{ startedAt: '2026-11-19T09:00:00Z', finishedAt: '2026-11-19T10:01:00Z' },
+				{
+					startedAt: '2026-11-19T09:00:00Z',
+					finishedAt: '2026-11-19T10:01:00Z',
+				},
 				since,
 			),
 		).toBe(true)
 
 		expect(
 			restoreChangedSince(
-				{ startedAt: '2026-11-19T09:00:00Z', finishedAt: '2026-11-19T09:30:00Z' },
+				{
+					startedAt: '2026-11-19T09:00:00Z',
+					finishedAt: '2026-11-19T09:30:00Z',
+				},
 				since,
 			),
 		).toBe(false)

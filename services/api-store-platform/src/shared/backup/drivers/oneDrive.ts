@@ -76,8 +76,8 @@ const accountLabel = async (token: string): Promise<string> => {
 export const oneDriveDriver: BackupDriver = {
 	configured: Boolean(
 		config.backup.oneDrive.clientId &&
-			config.backup.oneDrive.clientSecret &&
-			config.backup.oauthRedirectUri,
+		config.backup.oneDrive.clientSecret &&
+		config.backup.oauthRedirectUri,
 	),
 
 	authorizeUrl(state) {

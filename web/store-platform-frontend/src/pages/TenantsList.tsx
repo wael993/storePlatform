@@ -58,7 +58,10 @@ import {
 	DEFAULT_INVOICE_AI_MONTHLY_LIMIT,
 	MAX_INVOICE_AI_MONTHLY_LIMIT,
 } from '../shared/invoiceAi'
-import { DEFAULT_BACKUP_RETENTION, MAX_BACKUP_RETENTION } from '../shared/backup'
+import {
+	DEFAULT_BACKUP_RETENTION,
+	MAX_BACKUP_RETENTION,
+} from '../shared/backup'
 import {
 	compareLanguage,
 	getEnabledActions,
@@ -797,7 +800,9 @@ const TenantsList = () => {
 														bg="white"
 														value={backupRetentionCount}
 														onChange={event =>
-															setBackupRetentionCount(Number(event.target.value))
+															setBackupRetentionCount(
+																Number(event.target.value),
+															)
 														}
 													/>
 												</Flex>

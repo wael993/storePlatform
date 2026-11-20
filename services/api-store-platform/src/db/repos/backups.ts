@@ -1,7 +1,12 @@
 import { and, asc, desc, eq, gte, inArray, lt, ne, not, sql } from 'drizzle-orm'
 
 import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '..'
-import { syncMutations, tenantBackups, tenantBackupStates, tenants } from '../schema'
+import {
+	syncMutations,
+	tenantBackups,
+	tenantBackupStates,
+	tenants,
+} from '../schema'
 import { raiseInvoiceNumberFloors } from './invoices'
 import { BackupRow } from '../../shared/backup/archive'
 import { BACKUP_STALE_MS } from '../../shared/backup/constants'
@@ -137,7 +142,10 @@ export const bumpDataVersion = async (tenantId: string) => {
 }
 
 /** Updates this restore's record only: a newer restore's status is never overwritten. */
-export const setRestoreState = async (tenantId: string, restore: RestoreState) => {
+export const setRestoreState = async (
+	tenantId: string,
+	restore: RestoreState,
+) => {
 	await getDb()
 		.update(tenantBackupStates)
 		.set({ restore, updatedAt: new Date() })
@@ -238,8 +246,9 @@ export const claimNextBackupJob = async (): Promise<BackupJob | null> => {
 }
 
 export const getBackupJob = async (id: string): Promise<BackupJob | null> =>
-	(await getDb().select().from(tenantBackups).where(eq(tenantBackups.id, id)))[0] ??
-	null
+	(
+		await getDb().select().from(tenantBackups).where(eq(tenantBackups.id, id))
+	)[0] ?? null
 
 /**
  * Moves an in-flight job on. False when the row is already final (e.g. failed as stale
@@ -334,7 +343,10 @@ export const deleteBackupJob = async (id: string) => {
 }
 
 /** Failed jobs own no file; they stay a month for the history. */
-export const deleteOldFailedBackups = async (tenantId: string, before: Date) => {
+export const deleteOldFailedBackups = async (
+	tenantId: string,
+	before: Date,
+) => {
 	await getDb()
 		.delete(tenantBackups)
 		.where(
@@ -378,12 +390,19 @@ export const dueBackupTenants = async () =>
  * Takes the tenant write lock. Returns the owner token (`backupRestoreStartedAt`) that
  * heartbeat, commit check and release must match; null while a live restore holds it.
  */
-export const acquireRestoreLock = async (tenantId: string): Promise<Date | null> => {
+export const acquireRestoreLock = async (
+	tenantId: string,
+): Promise<Date | null> => {
 	const now = new Date()
 	const rows = await getDb()
 		.update(tenants)
 		.set({ backupRestoreStartedAt: now, backupRestoreHeartbeatAt: now })
-		.where(and(eq(tenants.tenantId, requireTenantId(tenantId)), not(restoreLockLive())))
+		.where(
+			and(
+				eq(tenants.tenantId, requireTenantId(tenantId)),
+				not(restoreLockLive()),
+			),
+		)
 		.returning({ tenantId: tenants.tenantId })
 
 	return rows.length === 1 ? now : null

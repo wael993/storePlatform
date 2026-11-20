@@ -148,9 +148,7 @@ export type SellingInvoiceCollaborator = {
 		result?: Record<string, unknown>,
 		error?: string,
 	): Promise<void>
-	invalidateEntityCache(
-		requestContext: RequestContext,
-	): Promise<void>
+	invalidateEntityCache(requestContext: RequestContext): Promise<void>
 }
 
 const isPlainRecord = (value: unknown): value is Record<string, unknown> =>

@@ -1,5 +1,13 @@
 import { randomUUID } from 'crypto'
-import { appendFile, copyFile, mkdtemp, readdir, rm, stat, unlink } from 'fs/promises'
+import {
+	appendFile,
+	copyFile,
+	mkdtemp,
+	readdir,
+	rm,
+	stat,
+	unlink,
+} from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { and, eq, inArray, sql } from 'drizzle-orm'
@@ -130,21 +138,27 @@ const seedTenant = async (name: string) => {
 		issuedAt: new Date('2026-11-19T10:15:30.123Z'),
 	})
 
-	await db.insert(invoiceItems).values([1, 2].map(position => ({
-		invoiceRowId: `${tenantId}-i1`,
-		tenantId,
-		position,
-		productId: `p${position}`,
-		name: `line ${position}`,
-		quantity: '1.333333333333333333',
-		unitPrice: '2.5',
-	})))
+	await db.insert(invoiceItems).values(
+		[1, 2].map(position => ({
+			invoiceRowId: `${tenantId}-i1`,
+			tenantId,
+			position,
+			productId: `p${position}`,
+			name: `line ${position}`,
+			quantity: '1.333333333333333333',
+			unitPrice: '2.5',
+		})),
+	)
 
 	await updateBackupState(tenantId, {
 		enabled: true,
 		provider: 'memory',
 		connections: {
-			memory: { config: {}, accountLabel: 'test', connectedAt: new Date().toISOString() },
+			memory: {
+				config: {},
+				accountLabel: 'test',
+				connectedAt: new Date().toISOString(),
+			},
 		},
 	})
 
@@ -171,7 +185,11 @@ const snapshot = async (tenantId: string) => {
 const changeData = async (tenantId: string) => {
 	const db = getDb()
 
-	await db.update(products).set({ retailPrice: '1' }).where(eq(products.id, `${tenantId}-p1`))
+	await db
+		.update(products)
+		.set({ retailPrice: '1' })
+		.where(eq(products.id, `${tenantId}-p1`))
+
 	await db.delete(invoices).where(eq(invoices.id, `${tenantId}-i1`))
 	await db.insert(products).values({
 		id: `${tenantId}-p3`,
@@ -184,7 +202,13 @@ const changeData = async (tenantId: string) => {
 }
 
 const backupNow = async (tenantId: string) => {
-	const job = await enqueueBackup(tenantId, 'Test', 'memory', BACKUP_KIND.MANUAL, BACKUP_STATUS.PROCESSING)
+	const job = await enqueueBackup(
+		tenantId,
+		'Test',
+		'memory',
+		BACKUP_KIND.MANUAL,
+		BACKUP_STATUS.PROCESSING,
+	)
 
 	expect(await processBackup(job)).toBe(BACKUP_STATUS.COMPLETED)
 
@@ -218,8 +242,14 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 				where tenant_id = any(${sql.param(created)})`)
 		}
 
-		await db.delete(tenantBackups).where(inArray(tenantBackups.tenantId, created))
-		await db.delete(tenantBackupStates).where(inArray(tenantBackupStates.tenantId, created))
+		await db
+			.delete(tenantBackups)
+			.where(inArray(tenantBackups.tenantId, created))
+
+		await db
+			.delete(tenantBackupStates)
+			.where(inArray(tenantBackupStates.tenantId, created))
+
 		await db.delete(tenants).where(inArray(tenants.tenantId, created))
 		await rm(storage.dir, { recursive: true, force: true })
 		await closeDb()
@@ -246,16 +276,25 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		expect(await snapshot(a)).toEqual(before)
 		expect(await snapshot(b)).toEqual(otherBefore)
 
-		const [p1] = await getDb().execute<{ price: string }>(
-			sql`select retail_price::text as price from store.products where id = ${`${a}-p1`}`,
-		).then(result => result.rows)
+		const [p1] = await getDb()
+			.execute<{ price: string }>(
+				sql`select retail_price::text as price from store.products where id = ${`${a}-p1`}`,
+			)
+			.then(result => result.rows)
 
 		expect(p1.price).toBe('89940.1199999999998745')
 
 		// the safety backup holds the state just before the restore
-		expect((await getBackupJob(restore.safetyBackupId!))?.status).toBe(BACKUP_STATUS.COMPLETED)
+		expect((await getBackupJob(restore.safetyBackupId!))?.status).toBe(
+			BACKUP_STATUS.COMPLETED,
+		)
+
 		// lock released; restored data is due for the next scheduled backup
-		expect((await getDb().select().from(tenants).where(eq(tenants.tenantId, a)))[0].backupRestoreStartedAt).toBeNull()
+		expect(
+			(await getDb().select().from(tenants).where(eq(tenants.tenantId, a)))[0]
+				.backupRestoreStartedAt,
+		).toBeNull()
+
 		expect((await dueBackupTenants()).map(due => due.tenantId)).toContain(a)
 	})
 
@@ -267,7 +306,11 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		await writeTenantArchive(a, 'Tenant A', enc)
 		await decryptArchive(a, enc, plain)
 		// passes validation (right tenant, known table) but breaks NOT NULL on insert
-		await appendFile(plain, rowLine('products', JSON.stringify({ id: `${a}-bad`, tenant_id: a })))
+		await appendFile(
+			plain,
+			rowLine('products', JSON.stringify({ id: `${a}-bad`, tenant_id: a })),
+		)
+
 		const manifest = await validateArchive(a, plain)
 
 		await changeData(a).catch(() => undefined) // p3 may already exist from the test above
@@ -281,7 +324,11 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 	it('aborts the restore when the safety backup fails, data untouched', async () => {
 		const backup = await backupNow(a)
 
-		await getDb().update(products).set({ retailPrice: '7' }).where(eq(products.id, `${a}-p2`))
+		await getDb()
+			.update(products)
+			.set({ retailPrice: '7' })
+			.where(eq(products.id, `${a}-p2`))
+
 		const current = await snapshot(a)
 
 		storage.failUploads = true
@@ -289,7 +336,11 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 			storage.failUploads = false
 		})
 
-		expect(restore).toMatchObject({ status: 'FAILED', errorCode: 'SAFETY_BACKUP_FAILED' })
+		expect(restore).toMatchObject({
+			status: 'FAILED',
+			errorCode: 'SAFETY_BACKUP_FAILED',
+		})
+
 		expect(await snapshot(a)).toEqual(current)
 		const lock = await acquireRestoreLock(a) // released after the failure
 
@@ -298,7 +349,11 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 	})
 
 	it('keeps only the newest N backups, files included', async () => {
-		await getDb().update(tenants).set({ backupRetentionCount: 1 }).where(eq(tenants.tenantId, b))
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: 1 })
+			.where(eq(tenants.tenantId, b))
+
 		await backupNow(b)
 		const newest = await backupNow(b)
 		const completed = await getDb()
@@ -307,43 +362,86 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 			.where(eq(tenantBackups.tenantId, b))
 
 		expect(completed).toEqual([{ id: newest.id, storageId: newest.storageId }])
-		expect((await readdir(storage.dir)).filter(file => file === newest.storageId)).toHaveLength(1)
+		expect(
+			(await readdir(storage.dir)).filter(file => file === newest.storageId),
+		).toHaveLength(1)
 	})
 
 	it('keeps the backup being restored even when the safety backup fills the retention window', async () => {
-		await getDb().update(tenants).set({ backupRetentionCount: 1 }).where(eq(tenants.tenantId, a))
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: 1 })
+			.where(eq(tenants.tenantId, a))
+
 		const backup = await backupNow(a)
 		const restore = await restoreNow(a, backup.id)
 
 		expect(restore.status).toBe('COMPLETED')
-		expect((await getBackupJob(backup.id))?.status).toBe(BACKUP_STATUS.COMPLETED)
+		expect((await getBackupJob(backup.id))?.status).toBe(
+			BACKUP_STATUS.COMPLETED,
+		)
+
 		expect(await readdir(storage.dir)).toContain(backup.storageId)
-		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: null })
+			.where(eq(tenants.tenantId, a))
 	})
 
 	it('keeps numbers printed after the backup and replays work undone by the restore', async () => {
 		const c = await seedTenant('Tenant C')
 		const record = (clientMutationId: string) =>
-			recordSyncMutation(c, { clientMutationId, entity: 'invoice', operation: 'create', result: { ok: true } })
+			recordSyncMutation(c, {
+				clientMutationId,
+				entity: 'invoice',
+				operation: 'create',
+				result: { ok: true },
+			})
 		const replayable = async (clientMutationId: string) =>
-			(await getDb().select().from(syncMutations).where(and(eq(syncMutations.tenantId, c), eq(syncMutations.clientMutationId, clientMutationId)))).length
+			(
+				await getDb()
+					.select()
+					.from(syncMutations)
+					.where(
+						and(
+							eq(syncMutations.tenantId, c),
+							eq(syncMutations.clientMutationId, clientMutationId),
+						),
+					)
+			).length
 
 		await record('before')
 		const backup = await backupNow(c)
 
 		// a sale synced after the backup: printed as SI-000900, its success recorded
-		await getDb().insert(invoices).values({ id: `${c}-i900`, tenantId: c, invoiceId: 'i900', invoiceNumber: 'SI-000900' })
+		await getDb()
+			.insert(invoices)
+			.values({
+				id: `${c}-i900`,
+				tenantId: c,
+				invoiceId: 'i900',
+				invoiceNumber: 'SI-000900',
+			})
+
 		await record('after')
 
 		expect((await restoreNow(c, backup.id)).status).toBe('COMPLETED')
-		expect(await snapshot(c)).not.toHaveProperty('invoices', expect.arrayContaining([expect.stringContaining('SI-000900')]))
+		expect(await snapshot(c)).not.toHaveProperty(
+			'invoices',
+			expect.arrayContaining([expect.stringContaining('SI-000900')]),
+		)
+
 		expect(await nextInvoiceSequence(c, 'selling')).toBe(901)
 		expect(await replayable('before')).toBe(1)
 		expect(await replayable('after')).toBe(0)
 	})
 
 	it('skips retention while a restore runs; the next run catches up', async () => {
-		await getDb().update(tenants).set({ backupRetentionCount: 1 }).where(eq(tenants.tenantId, a))
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: 1 })
+			.where(eq(tenants.tenantId, a))
+
 		const old = await backupNow(a)
 		let lockedAt: Date | null = null
 
@@ -360,11 +458,18 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		await releaseRestoreLock(a, lockedAt!)
 		await applyRetention(a)
 		expect(await readdir(storage.dir)).not.toContain(old.storageId)
-		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: null })
+			.where(eq(tenants.tenantId, a))
 	})
 
 	it('ranks safety backups apart, so restores never push regular backups out', async () => {
-		await getDb().update(tenants).set({ backupRetentionCount: 1 }).where(eq(tenants.tenantId, a))
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: 1 })
+			.where(eq(tenants.tenantId, a))
+
 		const regular = await backupNow(a)
 
 		expect((await restoreNow(a, regular.id)).status).toBe('COMPLETED')
@@ -372,19 +477,36 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		const completed = await getDb()
 			.select({ id: tenantBackups.id, kind: tenantBackups.kind })
 			.from(tenantBackups)
-			.where(and(eq(tenantBackups.tenantId, a), eq(tenantBackups.status, BACKUP_STATUS.COMPLETED)))
+			.where(
+				and(
+					eq(tenantBackups.tenantId, a),
+					eq(tenantBackups.status, BACKUP_STATUS.COMPLETED),
+				),
+			)
 
 		// newest regular + newest safety; the older regular one is gone
 		expect(completed.filter(row => row.kind !== BACKUP_KIND.SAFETY)).toEqual([
 			{ id: kept.id, kind: BACKUP_KIND.MANUAL },
 		])
 
-		expect(completed.filter(row => row.kind === BACKUP_KIND.SAFETY)).toHaveLength(1)
-		await getDb().update(tenants).set({ backupRetentionCount: null }).where(eq(tenants.tenantId, a))
+		expect(
+			completed.filter(row => row.kind === BACKUP_KIND.SAFETY),
+		).toHaveLength(1)
+
+		await getDb()
+			.update(tenants)
+			.set({ backupRetentionCount: null })
+			.where(eq(tenants.tenantId, a))
 	})
 
 	it('never completes a job that was failed as stale; drops its uploaded file', async () => {
-		const job = await enqueueBackup(b, 'Test', 'memory', BACKUP_KIND.SAFETY, BACKUP_STATUS.PROCESSING)
+		const job = await enqueueBackup(
+			b,
+			'Test',
+			'memory',
+			BACKUP_KIND.SAFETY,
+			BACKUP_STATUS.PROCESSING,
+		)
 		const filesBefore = await readdir(storage.dir)
 
 		// a newer job completed meanwhile: the late failure must not overwrite that status
@@ -397,17 +519,27 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 				.set({ status: BACKUP_STATUS.FAILED, errorCode: 'WORKER_TIMEOUT' })
 				.where(eq(tenantBackups.id, job.id))
 
-		expect(await processBackup(job).finally(() => (storage.onUpload = undefined))).toBe(
-			BACKUP_STATUS.FAILED,
-		)
+		expect(
+			await processBackup(job).finally(() => (storage.onUpload = undefined)),
+		).toBe(BACKUP_STATUS.FAILED)
 
-		expect(await getBackupJob(job.id)).toMatchObject({ status: BACKUP_STATUS.FAILED, storageId: null })
+		expect(await getBackupJob(job.id)).toMatchObject({
+			status: BACKUP_STATUS.FAILED,
+			storageId: null,
+		})
+
 		expect(await readdir(storage.dir)).toEqual(filesBefore)
 		expect((await getBackupState(b))?.lastBackupStatus).toBe('COMPLETED')
 	})
 
 	it('fails a job whose worker stopped beating, not one that still beats', async () => {
-		const job = await enqueueBackup(b, 'Test', 'memory', BACKUP_KIND.SAFETY, BACKUP_STATUS.PROCESSING)
+		const job = await enqueueBackup(
+			b,
+			'Test',
+			'memory',
+			BACKUP_KIND.SAFETY,
+			BACKUP_STATUS.PROCESSING,
+		)
 
 		await failStaleBackupJobs()
 		expect((await getBackupJob(job.id))?.status).toBe(BACKUP_STATUS.PROCESSING)
@@ -441,13 +573,20 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 			.set({ backupRestoreHeartbeatAt: new Date(Date.now() - 6 * 60_000) })
 			.where(eq(tenants.tenantId, b))
 
-		await getDb().update(products).set({ retailPrice: '3' }).where(eq(products.id, `${b}-p2`))
+		await getDb()
+			.update(products)
+			.set({ retailPrice: '3' })
+			.where(eq(products.id, `${b}-p2`))
+
 		const current = await snapshot(b) // written after the lock went stale
 
 		const newLock = await acquireRestoreLock(b)
 
 		expect(newLock).not.toBeNull()
-		await expect(applyArchive(b, plain, oldLock, manifest)).rejects.toMatchObject({ code: 'RESTORE_ERROR' })
+		await expect(
+			applyArchive(b, plain, oldLock, manifest),
+		).rejects.toMatchObject({ code: 'RESTORE_ERROR' })
+
 		expect(await snapshot(b)).toEqual(current)
 
 		await releaseRestoreLock(b, oldLock) // must not free the new restore's lock
@@ -515,8 +654,17 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 	})
 
 	it('queues one job per tenant and hands each job to one worker only', async () => {
-		const job = (kind: typeof BACKUP_KIND.MANUAL | typeof BACKUP_KIND.SCHEDULED) =>
-			enqueueBackupJob({ id: randomUUID(), tenantId: b, name: 'x', provider: 'memory', kind, status: BACKUP_STATUS.PENDING })
+		const job = (
+			kind: typeof BACKUP_KIND.MANUAL | typeof BACKUP_KIND.SCHEDULED,
+		) =>
+			enqueueBackupJob({
+				id: randomUUID(),
+				tenantId: b,
+				name: 'x',
+				provider: 'memory',
+				kind,
+				status: BACKUP_STATUS.PENDING,
+			})
 		const first = await job(BACKUP_KIND.MANUAL)
 
 		expect((await job(BACKUP_KIND.SCHEDULED)).id).toBe(first.id) // deduped while in flight
@@ -525,7 +673,10 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 		const claimed: string[] = []
 
 		for (;;) {
-			const pair = await Promise.all([claimNextBackupJob(), claimNextBackupJob()])
+			const pair = await Promise.all([
+				claimNextBackupJob(),
+				claimNextBackupJob(),
+			])
 
 			claimed.push(...pair.filter(Boolean).map(j => j!.id))
 
@@ -534,6 +685,9 @@ describe.skipIf(!enabled)('tenant backup and restore (Postgres)', () => {
 
 		expect(claimed.filter(id => id === first.id)).toHaveLength(1)
 		expect(new Set(claimed).size).toBe(claimed.length)
-		await getDb().update(tenantBackups).set({ status: BACKUP_STATUS.FAILED }).where(eq(tenantBackups.id, first.id))
+		await getDb()
+			.update(tenantBackups)
+			.set({ status: BACKUP_STATUS.FAILED })
+			.where(eq(tenantBackups.id, first.id))
 	})
 })

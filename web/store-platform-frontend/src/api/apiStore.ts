@@ -162,11 +162,7 @@ export interface InvoiceSettings {
 }
 
 export type BackupStatus =
-	| 'PENDING'
-	| 'PROCESSING'
-	| 'UPLOADING'
-	| 'COMPLETED'
-	| 'FAILED'
+	'PENDING' | 'PROCESSING' | 'UPLOADING' | 'COMPLETED' | 'FAILED'
 
 export type BackupRecord = {
 	backupId: string

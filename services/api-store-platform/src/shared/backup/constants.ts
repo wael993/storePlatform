@@ -11,7 +11,8 @@ export const isRestoreLockLive = (
 	heartbeatAt: Date | string | null | undefined,
 ): boolean =>
 	Boolean(heartbeatAt) &&
-	Date.now() - new Date(heartbeatAt as Date | string).getTime() < BACKUP_STALE_MS
+	Date.now() - new Date(heartbeatAt as Date | string).getTime() <
+		BACKUP_STALE_MS
 
 /**
  * A restore rewrote tenant data without bumping updatedAt, so sync deltas since `since`
