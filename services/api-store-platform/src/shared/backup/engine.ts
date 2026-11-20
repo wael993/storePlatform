@@ -175,10 +175,13 @@ export const writeTenantArchive = async (
 	withSnapshot(async tx => {
 		// read inside the snapshot: a write after it bumps the version, so it is backed up next run
 		const dataVersion = (await getBackupState(tenantId, tx))?.dataVersion ?? 0
-		// now() = transaction start, never after the snapshot: a restore drops sync records from here on
+		// now() = transaction start, never after the snapshot: a restore drops sync records from here on.
+		// Kept as text at full microsecond precision: a JS Date would round it to milliseconds.
 		const {
 			rows: [{ at: snapshotAt }],
-		} = await tx.execute<{ at: Date }>(sql`select now() as at`)
+		} = await tx.execute<{ at: string }>(
+			sql`select to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as at`,
+		)
 
 		await writeArchive(
 			tenantId,
@@ -188,7 +191,7 @@ export const writeTenantArchive = async (
 				tenantId,
 				tenantName,
 				createdAt: new Date().toISOString(),
-				snapshotAt: new Date(snapshotAt).toISOString(),
+				snapshotAt,
 				applicationVersion: APPLICATION_VERSION,
 				dataVersion,
 				tables: BACKUP_TABLES.map(table => table.name),
@@ -441,7 +444,7 @@ export const applyArchive = (
 		tenantId,
 		() => archiveRows(plainPath),
 		lockedAt,
-		new Date(manifest.snapshotAt ?? manifest.createdAt),
+		manifest.snapshotAt ?? manifest.createdAt,
 	)
 
 export type RestoreRun = { lockedAt: Date; state: RestoreState }

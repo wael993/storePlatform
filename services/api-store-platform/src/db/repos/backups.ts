@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lt, ne, not, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, lt, ne, not, sql } from 'drizzle-orm'
 
 import { DbTx, Executor, getDb, inTransaction, requireTenantId } from '..'
 import {
@@ -488,7 +488,7 @@ export const replaceTenantRows = (
 	tenantId: string,
 	rows: () => AsyncIterable<BackupRow>,
 	lockedAt: Date,
-	snapshotAt: Date,
+	snapshotAt: string,
 ): Promise<number> =>
 	inTransaction(undefined, async tx => {
 		requireTenantId(tenantId)
@@ -502,7 +502,8 @@ export const replaceTenantRows = (
 			.where(
 				and(
 					eq(syncMutations.tenantId, tenantId),
-					gte(syncMutations.processedAt, snapshotAt),
+					// compared in SQL: a JS Date would drop the microseconds
+					sql`${syncMutations.processedAt} >= ${snapshotAt}::timestamptz`,
 				),
 			)
 

@@ -1,4 +1,4 @@
-import { isNull } from 'drizzle-orm'
+import { isNull, sql } from 'drizzle-orm'
 import { Types } from 'mongoose'
 
 import { Executor, getDb, requireTenantId } from '..'
@@ -24,7 +24,8 @@ export const recordSyncMutation = async (
 		operation: mutation.operation,
 		result: mutation.result ?? null,
 		error: mutation.error ?? null,
-		processedAt: new Date(),
+		// DB clock, like the backup's snapshotAt it is compared with on restore
+		processedAt: sql`now()`,
 		updatedAt: new Date(),
 	}
 
