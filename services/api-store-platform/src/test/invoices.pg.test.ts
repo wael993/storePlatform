@@ -232,6 +232,27 @@ describe.skipIf(!enabled)('invoice numbers and last prices (Postgres)', () => {
 		expect(await nextInvoiceSequence(tenantId, 'selling')).toBe(22)
 	})
 
+	it('starts the next offline block after online numbers taken since the last one', async () => {
+		const tenantId = tenant()
+
+		expect(await allocateOfflineBlock(tenantId, 'selling', 10)).toEqual({
+			blockStart: 1,
+			blockEnd: 10,
+		})
+
+		const online = await allocateInvoiceNumber(tenantId, 'SI', undefined)
+
+		expect(online).toBe('SI-000011')
+		await sale(tenantId, online)
+
+		expect(await allocateOfflineBlock(tenantId, 'selling', 10)).toEqual({
+			blockStart: 12,
+			blockEnd: 21,
+		})
+
+		expect(await nextInvoiceSequence(tenantId, 'selling')).toBe(22)
+	})
+
 	it('takes the newest posted price per product', async () => {
 		const tenantId = tenant()
 		const line = (productId: string, unitPrice: number) => ({

@@ -1,6 +1,6 @@
 # PG-MIG-4 — Switch production to Postgres (runbook)
 
-**Window:** night Thursday → **Friday 2026-11-20, 12:00** (Europe/Berlin). All 12 production tenants
+**Window:** **Thursday 2026-11-19, ~23:30** (Europe/Berlin; moved up from Friday 02:00 by the owner). All 12 production tenants
 keep using Mongo until then. Replaces the per-tenant steps in
 [postgres-migration.md](postgres-migration.md) (PG-MIG-4): the ADR decided **one maintenance window
 for all tenants** ([../architecture/postgres-migration.md](../architecture/postgres-migration.md),
