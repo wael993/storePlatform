@@ -15,7 +15,6 @@ import { ISupplier, Supplier } from '../../models/Supplier'
 import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import {
 	getPrimaryInvoiceCurrencyAmounts,
@@ -152,9 +151,7 @@ export type BuyingInvoiceCollaborator = {
 		error?: string,
 	): Promise<void>
 	invalidateEntityCache(
-		entity: 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
-		id?: string,
 	): Promise<void>
 }
 
@@ -784,7 +781,7 @@ export default class BuyingInvoiceController {
 			return result
 		}
 
-		const { createInvoiceResponse, touchedInventoryIds, invoiceNumber } =
+		const { createInvoiceResponse, invoiceNumber } =
 			await this.ops.runInTransaction(async session => {
 				const allocatedNumber = await this.ops.allocateInvoiceNumberForCreate(
 					requestContext,
@@ -858,18 +855,6 @@ export default class BuyingInvoiceController {
 					invoiceNumber: allocatedNumber,
 				}
 			})
-
-		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventoryId,
-			)
-		}
-
-		await redisCache.del(
-			redisCache.buildSupplierListKey(this.getTenantId(requestContext)),
-		)
 
 		const result = {
 			_id: createInvoiceResponse._id,
@@ -964,8 +949,8 @@ export default class BuyingInvoiceController {
 			existingInvoice?.warehouseId ?? warehouseId,
 		)
 
-		const { updateResponse, touchedInventoryIds } =
-			await this.ops.runInTransaction(async session => {
+		const { updateResponse } = await this.ops.runInTransaction(
+			async session => {
 				if (existingInvoice) {
 					await lockUnchangedInvoice(
 						session,
@@ -1093,18 +1078,7 @@ export default class BuyingInvoiceController {
 				})
 
 				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
-			})
-
-		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventoryId,
-			)
-		}
-
-		await redisCache.del(
-			redisCache.buildSupplierListKey(this.getTenantId(requestContext)),
+			},
 		)
 
 		return updateResponse
@@ -1138,8 +1112,8 @@ export default class BuyingInvoiceController {
 
 		// one transaction, locked unchanged row first, then the delete: an edit or a parallel
 		// delete since our read refuses here, and a crash cannot return stock twice
-		const { deleteResponse, touchedInventoryIds } =
-			await this.ops.runInTransaction(async session => {
+		const { deleteResponse } = await this.ops.runInTransaction(
+			async session => {
 				if (existingInvoice) {
 					await lockUnchangedInvoice(
 						session,
@@ -1183,18 +1157,7 @@ export default class BuyingInvoiceController {
 				}
 
 				return { deleteResponse: deleted, touchedInventoryIds: inventoryIds }
-			})
-
-		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventoryId,
-			)
-		}
-
-		await redisCache.del(
-			redisCache.buildSupplierListKey(this.getTenantId(requestContext)),
+			},
 		)
 
 		return deleteResponse
@@ -1335,7 +1298,7 @@ export default class BuyingInvoiceController {
 				},
 			)
 
-			await this.ops.invalidateEntityCache('products', requestContext, id)
+			await this.ops.invalidateEntityCache(requestContext)
 
 			return { ok: true }
 		}
@@ -1368,8 +1331,6 @@ export default class BuyingInvoiceController {
 				$addToSet: { aliases: alias },
 			},
 		)
-
-		await redisCache.del(redisCache.buildSupplierListKey(tenantId))
 
 		return { ok: true }
 	}

@@ -843,7 +843,6 @@ export const commitProductImport = async (
 	offsetRaw: unknown,
 	limitRaw: unknown,
 	currencyRaw: unknown,
-	invalidateCaches: () => Promise<void>,
 ) => {
 	const tenantId = await assertImportAllowed(requestContext, {
 		ignoreExistingProducts: true,
@@ -1054,8 +1053,6 @@ export const commitProductImport = async (
 			status: session.status,
 			createdMasterData: null,
 		})
-
-		await invalidateCaches()
 	}
 
 	return {

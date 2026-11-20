@@ -8,8 +8,10 @@ import { Supplier, type ISupplier } from '../../models/Supplier'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
-import { redisCache } from '../../shared/cache/redisCache'
+import {
+	filterByWarehouseAcl,
+	warehouseAclMongoFilter,
+} from '../../shared/warehouseAccess'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
 import CurrencySettings from '../../models/CurrencySettings'
 import {
@@ -25,7 +27,7 @@ import {
 	DeleteBlockReason,
 	stampDeleteAvailability,
 } from '../../shared/deleteBlock'
-import { getTenantContext } from '../../shared/tenant'
+import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CreateSupplierResponse,
@@ -62,13 +64,16 @@ export type SupplierInvoiceCollaborator = {
 const canSeePayable = (requestContext: RequestContext) =>
 	(requestContext.see || []).includes('suppliers.totalPayable')
 
-const omitPayableIfHidden = (
+export const omitPayableIfHidden = (
 	supplier: SuppliersResponse['data'][number],
 	requestContext: RequestContext,
 ): SuppliersResponse['data'][number] => {
 	if (canSeePayable(requestContext)) return supplier
 
-	const { ...row } = supplier
+	const row = { ...supplier }
+
+	delete row.totalPayable
+	delete row.openingBalances
 
 	return row
 }
@@ -90,21 +95,8 @@ export default class SupplierController {
 	public async getSuppliers(
 		requestContext: RequestContext,
 	): Promise<SuppliersResponse> {
+		// not cached: totals depend on the caller's warehouse scope
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildSupplierListKey(tenantId)
-		const cachedSuppliers =
-			await redisCache.getJson<SuppliersResponse>(cacheKey)
-
-		if (cachedSuppliers) {
-			const visible = cachedSuppliers.data.map(supplier =>
-				omitPayableIfHidden(supplier, requestContext),
-			)
-
-			return {
-				...cachedSuppliers,
-				data: await this.withSupplierDeleteFlags(tenantId, visible),
-			}
-		}
 
 		const suppliers = await this.mongoDbClient.getDocuments({
 			requestContext,
@@ -113,25 +105,26 @@ export default class SupplierController {
 			sort: { createdAt: 'desc' },
 		})
 
-		const dailyActions =
-			await this.invoiceCollaborator.getDailyActions(requestContext)
-		const buyingInvoices: unknown[] = (
-			await this.mongoDbClient.getDocuments({
-				requestContext,
-				collectionName: COLLECTION_NAMES.BUYING_INVOICES,
-				model: BuyingInvoice,
-				sort: { createdAt: 'desc' },
-			})
-		).documents
+		// ACL scope, same as the detail page; other warehouses' invoices stay in Postgres
+		const warehouseAcl = warehouseAclMongoFilter(requestContext) ?? {}
+		const dailyActions = await this.invoiceCollaborator.getDailyActions(
+			requestContext,
+			{},
+			'acl',
+		)
 
-		const sellingInvoices: unknown[] = (
-			await this.mongoDbClient.getDocuments({
-				requestContext,
-				collectionName: COLLECTION_NAMES.INVOICES,
-				model: Invoice,
-				sort: { createdAt: 'desc' },
-			})
-		).documents
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.BUYING_INVOICES)
+		const buyingInvoices = await (pgFind(
+			BuyingInvoice,
+			tenantId,
+			warehouseAcl,
+			{ sort: { createdAt: 'desc' } },
+		) as unknown as Promise<Array<Record<string, unknown>>>)
+
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVOICES)
+		const sellingInvoices = await (pgFind(Invoice, tenantId, warehouseAcl, {
+			sort: { createdAt: 'desc' },
+		}) as unknown as Promise<Array<Record<string, unknown>>>)
 		const invoicesBySupplierId = groupInvoicesByPartyId(
 			buyingInvoices,
 			'supplierId',
@@ -191,8 +184,6 @@ export default class SupplierController {
 			data: mappedSuppliers,
 			totalCount: mappedSuppliers.length,
 		}
-
-		await redisCache.setJson(cacheKey, response)
 
 		const visible = response.data.map(supplier =>
 			omitPayableIfHidden(supplier, requestContext),
@@ -387,10 +378,6 @@ export default class SupplierController {
 			name,
 		})
 
-		await redisCache.del(
-			redisCache.buildSupplierListKey(tenantContext.tenantId),
-		)
-
 		return {
 			_id: supplierId,
 			supplierId,
@@ -453,8 +440,6 @@ export default class SupplierController {
 				'Supplier not found.',
 			)
 		}
-
-		await redisCache.del(redisCache.buildSupplierListKey(tenantId))
 
 		return {
 			supplierId: updated.supplierId,
@@ -558,10 +543,6 @@ export default class SupplierController {
 			Supplier,
 		)
 
-		await redisCache.del(
-			redisCache.buildSupplierListKey(tenantContext.tenantId),
-		)
-
 		return deleteResponse
 	}
 
@@ -603,12 +584,6 @@ export default class SupplierController {
 					reason: 'Supplier could not be deleted.',
 				})
 			}
-		}
-
-		if (deleted.length) {
-			await redisCache.del(
-				redisCache.buildSupplierListKey(tenantContext.tenantId),
-			)
 		}
 
 		return { deleted, blocked: blockedRows }

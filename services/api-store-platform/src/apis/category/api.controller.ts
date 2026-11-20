@@ -35,60 +35,44 @@ export default class CategoryController {
 
 	private async invalidateCategoryCache(
 		requestContext: RequestContext,
-		categoryId: string,
 	): Promise<void> {
 		const tenantId = this.getTenantId(requestContext)
 
-		await redisCache.del(redisCache.buildCategoryListKey(tenantId))
-		await redisCache.del(redisCache.buildProductDetailKey(tenantId, categoryId))
-
-		await redisCache.delByPattern(
-			redisCache.buildEntityDetailPatternKey('categories', tenantId),
-		)
+		await redisCache.invalidate(tenantId)
 	}
 
 	public async getCategories(
 		requestContext: RequestContext,
 	): Promise<CategoriesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildCategoryListKey(tenantId)
-		const cachedCategories =
-			await redisCache.getJson<CategoriesResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildCategoryListKey(tenantId),
+			tenantId,
+			async (): Promise<CategoriesResponse> => {
+				const categories = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.CATEGORIES,
+					model: Category,
+					sort: { name: 1 },
+				})
 
-		if (cachedCategories) {
-			return {
-				...cachedCategories,
-				data: await this.withCategoryDeleteFlags(
-					tenantId,
-					cachedCategories.data,
-				),
-			}
-		}
+				const data = categories.documents.map((category: CategoryDocument) => ({
+					categoryId: category.categoryId,
+					name: category.name,
+					description: category.description,
+					parentCategoryId: category.parentCategoryId,
+					createdAt: category.createdAt?.toISOString?.(),
+					updatedAt: category.updatedAt?.toISOString?.(),
+					createdBy: category.createdBy,
+					updatedBy: category.updatedBy,
+				}))
 
-		const categories = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.CATEGORIES,
-			model: Category,
-			sort: { name: 1 },
-		})
-
-		const data = categories.documents.map((category: CategoryDocument) => ({
-			categoryId: category.categoryId,
-			name: category.name,
-			description: category.description,
-			parentCategoryId: category.parentCategoryId,
-			createdAt: category.createdAt?.toISOString?.(),
-			updatedAt: category.updatedAt?.toISOString?.(),
-			createdBy: category.createdBy,
-			updatedBy: category.updatedBy,
-		}))
-
-		const response: CategoriesResponse = {
-			data,
-			totalCount: data.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
+				return {
+					data,
+					totalCount: data.length,
+				}
+			},
+		)
 
 		return {
 			...response,
@@ -171,7 +155,7 @@ export default class CategoryController {
 			name: categoryData.name,
 		})
 
-		await this.invalidateCategoryCache(requestContext, categoryId)
+		await this.invalidateCategoryCache(requestContext)
 
 		return { _id: categoryId }
 	}
@@ -233,7 +217,7 @@ export default class CategoryController {
 			Category,
 		)
 
-		await this.invalidateCategoryCache(requestContext, categoryId)
+		await this.invalidateCategoryCache(requestContext)
 
 		return deleteResponse
 	}
@@ -279,9 +263,7 @@ export default class CategoryController {
 		}
 
 		if (deleted.length) {
-			for (const categoryId of deleted) {
-				await this.invalidateCategoryCache(requestContext, categoryId)
-			}
+			await this.invalidateCategoryCache(requestContext)
 		}
 
 		return { deleted, blocked: blockedRows }

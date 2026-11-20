@@ -88,7 +88,7 @@ class RedisCache {
 		return Boolean(config.redis.enabled && this.client?.isOpen)
 	}
 
-	public async getJson<T>(key: string): Promise<T | null> {
+	private async getJson<T>(key: string): Promise<T | null> {
 		if (!this.isReady() || !this.client) {
 			return null
 		}
@@ -115,7 +115,7 @@ class RedisCache {
 		}
 	}
 
-	public async setJson(
+	private async setJson(
 		key: string,
 		value: unknown,
 		ttlSeconds = config.redis.defaultTTLSeconds,
@@ -134,64 +134,62 @@ class RedisCache {
 		}
 	}
 
-	public async del(key: string): Promise<boolean> {
-		if (!this.isReady() || !this.client) {
-			return false
-		}
-
-		try {
-			const deleted = await this.client.del(key)
-
-			if (deleted > 0) {
-				this.stats.dels += 1
-				logger.debug(`Cache key deleted: key=${key}`)
-
-				return true
-			}
-
-			return false
-		} catch (error: any) {
-			this.stats.errors += 1
-			logger.warn(`Redis delete failed for key ${key}: ${error.message}`)
-
-			return false
-		}
+	private generationKey(tenantId: string): string {
+		return `cache:gen:${tenantId}`
 	}
 
-	public async delByPattern(pattern: string): Promise<number> {
+	/**
+	 * Read-aside for tenant master lists. The key carries the tenant generation read
+	 * before `load`, so a load that started before `invalidate` writes a key nobody reads.
+	 */
+	public async readThrough<T>(
+		key: string,
+		tenantId: string,
+		load: () => Promise<T>,
+	): Promise<T> {
 		if (!this.isReady() || !this.client) {
-			return 0
+			return load()
+		}
+
+		let generation: string
+
+		try {
+			generation = (await this.client.get(this.generationKey(tenantId))) ?? '0'
+		} catch (error: any) {
+			this.stats.errors += 1
+			logger.warn(`Redis generation read failed: ${error.message}`)
+
+			return load()
+		}
+
+		const generationKey = `${key}:g${generation}`
+		const cached = await this.getJson<T>(generationKey)
+
+		if (cached !== null) {
+			return cached
+		}
+
+		const value = await load()
+
+		await this.setJson(generationKey, value)
+
+		return value
+	}
+
+	/** Drops every cached list of the tenant. Call after the write commits. */
+	public async invalidate(tenantId: string): Promise<void> {
+		if (!this.isReady() || !this.client) {
+			return
 		}
 
 		try {
-			const keys: string[] = []
-
-			for await (const key of this.client.scanIterator({
-				MATCH: pattern,
-				COUNT: 100,
-			})) {
-				keys.push(key)
-			}
-
-			if (keys.length > 0) {
-				const deleted = await this.client.del(keys)
-
-				this.stats.dels += deleted
-				logger.debug(
-					`Cache pattern deleted: pattern=${pattern} count=${deleted}`,
-				)
-
-				return deleted
-			}
-
-			return 0
+			await this.client.incr(this.generationKey(tenantId))
+			this.stats.dels += 1
 		} catch (error: any) {
 			this.stats.errors += 1
 			logger.warn(
-				`Redis pattern delete failed for ${pattern}: ${error.message}`,
+				`Redis invalidate failed for tenant ${tenantId}: ${error.message}`,
 			)
-
-			return 0
 		}
 	}
 
@@ -204,35 +202,8 @@ class RedisCache {
 		return `cache:categories:list:${tenantId}`
 	}
 
-	public buildProductDetailKey(tenantId: string, productId: string): string {
-		return `cache:products:detail:${tenantId}:${productId}:v2`
-	}
-
 	public buildProjectListKey(tenantId: string): string {
 		return `cache:projects:list:${tenantId}:v2`
-	}
-
-	public buildProjectDetailKey(tenantId: string, projectId: string): string {
-		return `cache:projects:detail:${tenantId}:${projectId}`
-	}
-
-	public buildInvoiceListKey(tenantId: string): string {
-		return `cache:invoices:list:${tenantId}`
-	}
-	public buildPartnerListKey(tenantId: string): string {
-		return `cache:partners:list:${tenantId}`
-	}
-
-	public buildSupplierListKey(tenantId: string): string {
-		return `cache:suppliers:list:${tenantId}:v6`
-	}
-
-	public buildCustomerListKey(tenantId: string): string {
-		return `cache:customers:list:${tenantId}:v4`
-	}
-
-	public buildExpenseListKey(tenantId: string): string {
-		return `cache:expenses:list:${tenantId}`
 	}
 
 	public buildCurrencyListKey(tenantId: string): string {
@@ -253,28 +224,6 @@ class RedisCache {
 
 	public buildWarehouseListKey(tenantId: string): string {
 		return `cache:warehouses:list:${tenantId}`
-	}
-
-	public buildInvoiceDetailKey(tenantId: string, invoiceId: string): string {
-		return `cache:invoices:detail:${tenantId}:${invoiceId}`
-	}
-
-	public buildInventoryListKey(tenantId: string): string {
-		return `cache:inventory:list:${tenantId}`
-	}
-
-	public buildInventoryDetailKey(
-		tenantId: string,
-		inventoryId: string,
-	): string {
-		return `cache:inventory:detail:${tenantId}:${inventoryId}`
-	}
-
-	public buildEntityDetailPatternKey(
-		entity: 'products' | 'projects' | 'invoices' | 'inventory' | 'categories',
-		tenantId: string,
-	): string {
-		return `cache:${entity}:detail:${tenantId}:*`
 	}
 
 	public getStats() {

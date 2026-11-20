@@ -62,9 +62,12 @@ List totals use a wider entry set, still with the same directions and rates:
 - Supplier `totalPayable`: actions on `supplierId`, plus a receipt stored on
   `customerId`.
 
-Bump `buildCustomerListKey` and `buildSupplierListKey` when this formula
-changes. Redis otherwise serves the previous totals. Current keys are customer
-`v4` and supplier `v6`.
+Customer, supplier, and partner lists are not cached in Redis: totals and
+entries depend on the caller's warehouse ACL, so they are computed per request,
+with the same scope as the detail page (invoices queried with
+`warehouseAclMongoFilter`, entries with `getDailyActions(…, 'acl')`). Without `customers.totalReceivable` /
+`suppliers.totalPayable` the rows carry no `totalReceivable` / `totalPayable`
+and no `openingBalances`.
 
 ## Opening balance
 

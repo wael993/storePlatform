@@ -528,7 +528,7 @@ export default class SettingController {
 			{ new: true, upsert: true },
 		)
 
-		await redisCache.del(redisCache.buildCurrencyListKey(tenantId))
+		await redisCache.invalidate(tenantId)
 
 		return currencySettings!
 	}

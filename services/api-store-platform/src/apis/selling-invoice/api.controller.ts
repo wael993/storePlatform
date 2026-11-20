@@ -16,7 +16,6 @@ import { StockMoving } from '../../models/StockMovings'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { redisCache } from '../../shared/cache/redisCache'
 import { COLLECTION_NAMES } from '../../shared/general'
 import {
 	getPrimaryInvoiceCurrencyAmounts,
@@ -150,9 +149,7 @@ export type SellingInvoiceCollaborator = {
 		error?: string,
 	): Promise<void>
 	invalidateEntityCache(
-		entity: 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
-		id?: string,
 	): Promise<void>
 }
 
@@ -820,34 +817,17 @@ export default class SellingInvoiceController {
 		const warehouse = filters.customerId
 			? warehouseAclMongoFilter(requestContext)
 			: warehouseMongoFilter(requestContext)
-		const cacheKey = redisCache.buildInvoiceListKey(tenantId)
-		const useTenantCache = warehouse === null
-
 		let invoices: Array<Record<string, unknown>>
-		let cachedInvoices:
-			| SellingInvoicesListResponse
-			| Array<Record<string, unknown>>
-			| null = null
 
-		if (useTenantCache) {
-			cachedInvoices = await redisCache.getJson<
-				SellingInvoicesListResponse | Array<Record<string, unknown>>
-			>(cacheKey)
+		if (warehouse === null) {
+			const invoiceResponse = await this.mongoDbClient.getDocuments({
+				requestContext,
+				collectionName: COLLECTION_NAMES.INVOICES,
+				model: Invoice,
+				sort: { createdAt: 'desc' },
+			})
 
-			if (Array.isArray(cachedInvoices)) {
-				invoices = cachedInvoices
-			} else if (cachedInvoices?.invoices) {
-				invoices = cachedInvoices.invoices
-			} else {
-				const invoiceResponse = await this.mongoDbClient.getDocuments({
-					requestContext,
-					collectionName: COLLECTION_NAMES.INVOICES,
-					model: Invoice,
-					sort: { createdAt: 'desc' },
-				})
-
-				invoices = invoiceResponse.documents
-			}
+			invoices = invoiceResponse.documents
 		} else {
 			await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVOICES)
 			invoices = await (pgFind(Invoice, tenantId, warehouse, {
@@ -994,19 +974,6 @@ export default class SellingInvoiceController {
 			totalCount: filters.summaryOnly ? 0 : filteredInvoices.length,
 		}
 
-		if (
-			useTenantCache &&
-			!Array.isArray(cachedInvoices) &&
-			!cachedInvoices?.invoices
-		) {
-			await redisCache.setJson(cacheKey, {
-				invoices,
-				summary,
-				nextInvoiceNumber,
-				totalCount: invoices.length,
-			})
-		}
-
 		return response
 	}
 
@@ -1014,18 +981,6 @@ export default class SellingInvoiceController {
 		invoiceId: string,
 		requestContext: RequestContext,
 	): Promise<StoredSellingInvoice | null> {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildInvoiceDetailKey(tenantId, invoiceId)
-		const cachedInvoice = toStoredSellingInvoice(
-			await redisCache.getJson<unknown>(cacheKey),
-		)
-
-		if (cachedInvoice) {
-			ensureWarehouseAccess(requestContext, cachedInvoice.warehouseId)
-
-			return cachedInvoice
-		}
-
 		const invoice = toStoredSellingInvoice(
 			await this.mongoDbClient.getDocumentByField<unknown>(
 				requestContext,
@@ -1040,8 +995,6 @@ export default class SellingInvoiceController {
 		}
 
 		ensureWarehouseAccess(requestContext, invoice.warehouseId)
-
-		await redisCache.setJson(cacheKey, invoice)
 
 		return invoice
 	}
@@ -1170,7 +1123,7 @@ export default class SellingInvoiceController {
 			)
 		}
 
-		const { createInvoiceResponse, touchedInventoryIds, invoiceNumber } =
+		const { createInvoiceResponse, invoiceNumber } =
 			await this.ops.runInTransaction(async session => {
 				const allocatedNumber = await this.ops.allocateInvoiceNumberForCreate(
 					requestContext,
@@ -1245,20 +1198,6 @@ export default class SellingInvoiceController {
 					invoiceNumber: allocatedNumber,
 				}
 			})
-
-		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
-
-		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventoryId,
-			)
-		}
-
-		await redisCache.del(
-			redisCache.buildCustomerListKey(this.getTenantId(requestContext)),
-		)
 
 		const result = {
 			_id: createInvoiceResponse._id,
@@ -1373,8 +1312,8 @@ export default class SellingInvoiceController {
 			existingInvoice?.warehouseId ?? warehouseId,
 		)
 
-		const { updateResponse, touchedInventoryIds } =
-			await this.ops.runInTransaction(async session => {
+		const { updateResponse } = await this.ops.runInTransaction(
+			async session => {
 				if (existingInvoice) {
 					await lockUnchangedInvoice(
 						session,
@@ -1511,20 +1450,7 @@ export default class SellingInvoiceController {
 				})
 
 				return { updateResponse: updated, touchedInventoryIds: inventoryIds }
-			})
-
-		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
-
-		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventoryId,
-			)
-		}
-
-		await redisCache.del(
-			redisCache.buildCustomerListKey(this.getTenantId(requestContext)),
+			},
 		)
 
 		return updateResponse
@@ -1555,8 +1481,8 @@ export default class SellingInvoiceController {
 
 		// one transaction, locked unchanged row first, then the delete: an edit or a parallel
 		// delete since our read refuses here, and a crash cannot return stock twice
-		const { deleteResponse, touchedInventoryIds } =
-			await this.ops.runInTransaction(async session => {
+		const { deleteResponse } = await this.ops.runInTransaction(
+			async session => {
 				if (existingInvoice) {
 					await lockUnchangedInvoice(
 						session,
@@ -1606,20 +1532,7 @@ export default class SellingInvoiceController {
 				}
 
 				return { deleteResponse: deleted, touchedInventoryIds: inventoryIds }
-			})
-
-		await this.ops.invalidateEntityCache('invoices', requestContext, invoiceId)
-
-		for (const inventoryId of touchedInventoryIds) {
-			await this.ops.invalidateEntityCache(
-				'inventory',
-				requestContext,
-				inventoryId,
-			)
-		}
-
-		await redisCache.del(
-			redisCache.buildCustomerListKey(this.getTenantId(requestContext)),
+			},
 		)
 
 		return deleteResponse

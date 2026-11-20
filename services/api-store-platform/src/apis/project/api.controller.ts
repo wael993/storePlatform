@@ -253,37 +253,27 @@ export default class ProjectController {
 		requestContext: RequestContext,
 	): Promise<ProjectsResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildProjectListKey(tenantId)
-		const cachedProjects = await redisCache.getJson<ProjectsResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildProjectListKey(tenantId),
+			tenantId,
+			async (): Promise<ProjectsResponse> => {
+				const projects = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.PROJECTS,
+					model: Project,
+					sort: { createdAt: 'desc' },
+				})
 
-		if (cachedProjects) {
-			const withOutstanding = await this.withProjectOutstanding(
-				requestContext,
-				cachedProjects.data,
-			)
+				const data = projects.documents.map((project: IProject) =>
+					mapProject(project),
+				)
 
-			return {
-				...cachedProjects,
-				data: await this.withProjectDeleteFlags(tenantId, withOutstanding),
-			}
-		}
-
-		const projects = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.PROJECTS,
-			model: Project,
-			sort: { createdAt: 'desc' },
-		})
-
-		const data = projects.documents.map((project: IProject) =>
-			mapProject(project),
+				return {
+					data,
+					totalCount: data.length,
+				}
+			},
 		)
-		const response: ProjectsResponse = {
-			data,
-			totalCount: data.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
 
 		const withOutstanding = await this.withProjectOutstanding(
 			requestContext,
@@ -446,7 +436,7 @@ export default class ProjectController {
 			name: name.trim(),
 		})
 
-		await redisCache.del(redisCache.buildProjectListKey(tenantContext.tenantId))
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return {
 			_id: createProjectResponse._id,
@@ -527,7 +517,7 @@ export default class ProjectController {
 			)
 		}
 
-		await redisCache.del(redisCache.buildProjectListKey(tenantId))
+		await redisCache.invalidate(tenantId)
 
 		return mapProject(updated)
 	}
@@ -602,7 +592,7 @@ export default class ProjectController {
 			Project,
 		)
 
-		await redisCache.del(redisCache.buildProjectListKey(tenantContext.tenantId))
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return deleteResponse
 	}
@@ -648,9 +638,7 @@ export default class ProjectController {
 		}
 
 		if (deleted.length) {
-			await redisCache.del(
-				redisCache.buildProjectListKey(tenantContext.tenantId),
-			)
+			await redisCache.invalidate(tenantContext.tenantId)
 		}
 
 		return { deleted, blocked: blockedRows }

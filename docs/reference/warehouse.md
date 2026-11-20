@@ -130,7 +130,7 @@ Writes: requireOperationalWarehouseId + ensureWarehouseAccess
 | `filterByWarehouseAcl` | Same, ACL only. Still used on `GET /warehouses` and customer/supplier/partner/project summaries. |
 | `loadAccessibleProductIds` | Product ids that have stock in the working scope. |
 
-List reads for invoices, inventory, daily actions, bootstrap, and `sync/since` put `warehouseMongoFilter` (or ACL for party lists on selling/buying invoice summaries) on the Mongo query. Do **not** cache a scoped list under a tenant-only Redis key (`cache:invoices:list:${tenantId}`, `dailyActions:${tenantId}`, `cache:products:list:…`). Unrestricted owner reads may still use that unscoped master cache. A tenant-cache **hit** is returned as-is (no in-memory scope pass) — scoped callers never read those keys.
+List reads for invoices, inventory, daily actions, bootstrap, and `sync/since` put `warehouseMongoFilter` (or ACL for party lists on selling/buying invoice summaries) on the Mongo query. Do **not** cache anything scope-dependent under a tenant-only Redis key: invoices, inventory, daily actions, party lists, and product detail are read live.
 
 Frontend operational rules live in `web/.../shared/warehouseScope.ts` (`getOperationalWarehouseId`, `requireOperationalWarehouseId`). `useWarehouseScope().isOperational` is `selectedIds.length === 1`. Do not add `warehousePolicy.ts`.
 
@@ -138,22 +138,23 @@ Frontend operational rules live in `web/.../shared/warehouseScope.ts` (`getOpera
 
 | Data | Cache key | May store stock / location? |
 | --- | --- | --- |
-| Product master (name, barcode, prices, category/brand/unit names) | `tenantId` only (`cache:products:list:…:v3`) | No |
-| Product detail | `tenantId + productId` | No (stripped on write; inventory remapped on read) |
+| Product master (name, barcode, prices) | `cache:products:list:{tenantId}:v3:g{generation}` | No |
+| Product detail | not cached (`relatedActions` are warehouse-scoped) | — |
 | Inventory / qty / averageCost / warehouseName | not in product cache | Load per request from Inventory + working scope |
-| Invoice / daily-action lists | do not cache scoped lists under tenant-only keys | Unrestricted owner reads may use the unscoped master cache |
+| Invoice / daily-action / expense / customer / supplier / partner lists | not cached | — |
 
-Catalog HTTP still remaps `averageCost` from scoped inventory on read (`mapProductCatalogItem`). It never falls back to a tenant-wide cached cost. Inventory adjust, purchase, sale, and transfer already call `invalidateEntityCache('inventory' | 'products')`.
+Catalog HTTP still remaps `averageCost` from scoped inventory on read (`mapProductCatalogItem`). It never falls back to a tenant-wide cached cost. The catalog blob is built from product rows only (no category/brand/unit/supplier names; the catalog DTO does not send them).
+
+Cached lists (product catalog, categories, brands, units, shelves, warehouses, currencies, projects) go through `redisCache.readThrough`: the key carries the tenant generation `cache:gen:{tenantId}`, read before the load. Any master write, and backup restore, calls `redisCache.invalidate(tenantId)` (INCR) after commit, so a read that started earlier writes a key nobody reads. Stock edits and transfers do not invalidate: nothing cached holds stock. Product import invalidates after every batch and master-data confirm. Data keys expire after `REDIS_CACHE_TTL_SECONDS` (default 3600) only so abandoned generations disappear; the generation key has no expiry. A write that skips `invalidate` stays stale until that expiry.
 
 ### What still post-filters (and why)
 
 | Path | Why it is still in memory |
 | --- | --- |
-| Redis tenant-list hit for invoices / inventory / daily actions | Cache is unscoped master; only unrestricted owners read/write it. Scoped requests query Mongo. Hit returns the blob as-is. |
 | `GET /warehouses` | Tenant cache is master data for the picker; ACL is applied on read. |
 | Warehouse transfer list | A row is in scope if **from or to** is in the working scope, not a single `warehouseId`. |
 | Product catalog after Redis hit | Product **ids** with stock in scope (`loadAccessibleProductIds`); the blob itself has no qty. HTTP catalog DTO never sends qty. |
-| Customer / supplier / partner / project invoice summaries | Still `filterByWarehouseAcl` after a tenant `Invoice.find`. Selling/buying **list** party summaries already query with `warehouseAclMongoFilter`. |
+| Customer / supplier / partner / project invoice summaries | Detail pages still `filterByWarehouseAcl` after a tenant `Invoice.find`. Customer/supplier **lists** and selling/buying list party summaries query with `warehouseAclMongoFilter`. |
 
 ---
 

@@ -52,7 +52,9 @@ export default class ProductImportController {
 		sessionId: unknown,
 		decisions: unknown,
 	) {
-		return confirmProductImportMasterData(requestContext, sessionId, decisions)
+		return this.invalidatingCache(requestContext, () =>
+			confirmProductImportMasterData(requestContext, sessionId, decisions),
+		)
 	}
 
 	public preview(
@@ -72,24 +74,27 @@ export default class ProductImportController {
 		limit: unknown,
 		currency: unknown,
 	) {
-		return commitProductImport(
-			requestContext,
-			sessionId,
-			mapping,
-			offset,
-			limit,
-			currency,
-			async () => {
-				await this.productController.invalidateEntityCache(
-					'products',
-					requestContext,
-				)
-
-				await this.productController.invalidateEntityCache(
-					'inventory',
-					requestContext,
-				)
-			},
+		return this.invalidatingCache(requestContext, () =>
+			commitProductImport(
+				requestContext,
+				sessionId,
+				mapping,
+				offset,
+				limit,
+				currency,
+			),
 		)
+	}
+
+	// every batch commits (or rolls back) products and master rows: drop the cache either way
+	private async invalidatingCache<T>(
+		requestContext: RequestContext,
+		run: () => Promise<T>,
+	): Promise<T> {
+		try {
+			return await run()
+		} finally {
+			await this.productController.invalidateEntityCache(requestContext)
+		}
 	}
 }

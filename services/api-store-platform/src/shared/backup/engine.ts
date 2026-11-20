@@ -535,10 +535,7 @@ export const restoreBackup = async (
 		if (restore.status === 'COMPLETED') {
 			// restored data differs from the current state: the next scheduled run backs it up
 			await bumpDataVersion(tenantId).catch(() => undefined)
-			await Promise.all([
-				redisCache.delByPattern(`cache:*:${tenantId}`),
-				redisCache.delByPattern(`cache:*:${tenantId}:*`),
-			]).catch(() => undefined)
+			await redisCache.invalidate(tenantId).catch(() => undefined)
 
 			// role permissions were restored too (other instances: cache TTL, 60 s)
 			invalidateSeeCache(tenantId)

@@ -10,7 +10,6 @@ import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
 import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
-import { redisCache } from '../../shared/cache/redisCache'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
 import type { CostCurrencyRate } from '../../shared/inventoryCost'
 import type { CustomerInvoiceSummary } from '../../shared/types'
@@ -67,16 +66,8 @@ export default class PartnerController {
 	public async getPartners(
 		requestContext: RequestContext,
 	): Promise<PartnersResponse> {
+		// not cached: entries depend on the caller's warehouse scope
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildPartnerListKey(tenantId)
-		const cachedPartners = await redisCache.getJson<PartnersResponse>(cacheKey)
-
-		if (cachedPartners) {
-			return {
-				...cachedPartners,
-				data: await this.withPartnerDeleteFlags(tenantId, cachedPartners.data),
-			}
-		}
 
 		const partners = await this.mongoDbClient.getDocuments({
 			requestContext,
@@ -84,7 +75,12 @@ export default class PartnerController {
 			model: Partner,
 			sort: { createdAt: 'desc' },
 		})
-		const dailyActions = await this.dailyActions.getDailyActions(requestContext)
+		// ACL scope, same as the detail page (getPartyEntries)
+		const dailyActions = await this.dailyActions.getDailyActions(
+			requestContext,
+			{},
+			'acl',
+		)
 
 		const data = partners.documents.map((partner: PartnerDocument) => ({
 			partnerId: partner.partnerId,
@@ -115,8 +111,6 @@ export default class PartnerController {
 			data: mappedPartners,
 			totalCount: mappedPartners.length,
 		}
-
-		await redisCache.setJson(cacheKey, response)
 
 		return {
 			...response,
@@ -308,8 +302,6 @@ export default class PartnerController {
 			name,
 		})
 
-		await redisCache.del(redisCache.buildPartnerListKey(tenantContext.tenantId))
-
 		return {
 			_id: createPartnerResponse._id,
 		}
@@ -397,8 +389,6 @@ export default class PartnerController {
 			Partner,
 		)
 
-		await redisCache.del(redisCache.buildPartnerListKey(tenantContext.tenantId))
-
 		return deleteResponse
 	}
 
@@ -440,12 +430,6 @@ export default class PartnerController {
 					reason: 'Partner could not be deleted.',
 				})
 			}
-		}
-
-		if (deleted.length) {
-			await redisCache.del(
-				redisCache.buildPartnerListKey(tenantContext.tenantId),
-			)
 		}
 
 		return { deleted, blocked: blockedRows }

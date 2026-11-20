@@ -52,7 +52,7 @@ export const config = {
 		username: process.env.REDIS_USERNAME?.trim() || 'default',
 		password: process.env.REDIS_PASSWORD || '',
 		defaultTTLSeconds: parseInt(
-			process.env.REDIS_CACHE_TTL_SECONDS || '60',
+			process.env.REDIS_CACHE_TTL_SECONDS || '3600',
 			10,
 		),
 	},

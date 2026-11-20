@@ -8,8 +8,10 @@ import { SellingInvoiceItem } from '../../models/SellingInvoices'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import logger, { EntityType } from '../../shared/logger/logger'
 import MongodbController from '../../shared/mongodb/mongodbController'
-import { filterByWarehouseAcl } from '../../shared/warehouseAccess'
-import { redisCache } from '../../shared/cache/redisCache'
+import {
+	filterByWarehouseAcl,
+	warehouseAclMongoFilter,
+} from '../../shared/warehouseAccess'
 import { loadCashCurrencyRates } from '../../shared/cashAccounts/posting'
 import CurrencySettings from '../../models/CurrencySettings'
 import {
@@ -25,7 +27,7 @@ import {
 	DeleteBlockReason,
 	stampDeleteAvailability,
 } from '../../shared/deleteBlock'
-import { getTenantContext } from '../../shared/tenant'
+import { ensureTenantAccess, getTenantContext } from '../../shared/tenant'
 import { resolveSyncClientId } from '../../shared/uuid'
 import {
 	CreateCustomerResponse,
@@ -67,13 +69,16 @@ export type CustomerInvoiceCollaborator = {
 const canSeeReceivable = (requestContext: RequestContext) =>
 	(requestContext.see || []).includes('customers.totalReceivable')
 
-const omitReceivableIfHidden = (
+export const omitReceivableIfHidden = (
 	customer: CustomerResponse,
 	requestContext: RequestContext,
 ): CustomerResponse => {
 	if (canSeeReceivable(requestContext)) return customer
 
-	const { ...row } = customer
+	const row = { ...customer }
+
+	delete row.totalReceivable
+	delete row.openingBalances
 
 	return row
 }
@@ -95,21 +100,8 @@ export default class CustomerController {
 	public async getCustomers(
 		requestContext: RequestContext,
 	): Promise<CustomersResponse> {
+		// not cached: totals depend on the caller's warehouse scope
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildCustomerListKey(tenantId)
-		const cachedCustomers =
-			await redisCache.getJson<CustomersResponse>(cacheKey)
-
-		if (cachedCustomers) {
-			const visible = cachedCustomers.data.map(customer =>
-				omitReceivableIfHidden(customer, requestContext),
-			)
-
-			return {
-				...cachedCustomers,
-				data: await this.withCustomerDeleteFlags(tenantId, visible),
-			}
-		}
 
 		const customers = await this.mongoDbClient.getDocuments({
 			requestContext,
@@ -118,25 +110,26 @@ export default class CustomerController {
 			sort: { createdAt: 'desc' },
 		})
 
-		const dailyActions =
-			await this.invoiceCollaborator.getDailyActions(requestContext)
-		const sellingInvoices: unknown[] = (
-			await this.mongoDbClient.getDocuments({
-				requestContext,
-				collectionName: COLLECTION_NAMES.INVOICES,
-				model: Invoice,
-				sort: { createdAt: 'desc' },
-			})
-		).documents
+		// ACL scope, same as the detail page; other warehouses' invoices stay in Postgres
+		const warehouseAcl = warehouseAclMongoFilter(requestContext) ?? {}
+		const dailyActions = await this.invoiceCollaborator.getDailyActions(
+			requestContext,
+			{},
+			'acl',
+		)
 
-		const buyingInvoices: unknown[] = (
-			await this.mongoDbClient.getDocuments({
-				requestContext,
-				collectionName: COLLECTION_NAMES.BUYING_INVOICES,
-				model: BuyingInvoice,
-				sort: { createdAt: 'desc' },
-			})
-		).documents
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.INVOICES)
+		const sellingInvoices = await (pgFind(Invoice, tenantId, warehouseAcl, {
+			sort: { createdAt: 'desc' },
+		}) as unknown as Promise<Array<Record<string, unknown>>>)
+
+		await ensureTenantAccess(requestContext, COLLECTION_NAMES.BUYING_INVOICES)
+		const buyingInvoices = await (pgFind(
+			BuyingInvoice,
+			tenantId,
+			warehouseAcl,
+			{ sort: { createdAt: 'desc' } },
+		) as unknown as Promise<Array<Record<string, unknown>>>)
 		const invoicesByCustomerId = groupInvoicesByPartyId(
 			sellingInvoices,
 			'customerId',
@@ -199,8 +192,6 @@ export default class CustomerController {
 			data: mappedCustomers,
 			totalCount: mappedCustomers.length,
 		}
-
-		await redisCache.setJson(cacheKey, response)
 
 		const visible = response.data.map(customer =>
 			omitReceivableIfHidden(customer, requestContext),
@@ -364,10 +355,6 @@ export default class CustomerController {
 			name,
 		})
 
-		await redisCache.del(
-			redisCache.buildCustomerListKey(tenantContext.tenantId),
-		)
-
 		return {
 			_id: createCustomerResponse._id,
 		}
@@ -429,8 +416,6 @@ export default class CustomerController {
 				'Customer not found.',
 			)
 		}
-
-		await redisCache.del(redisCache.buildCustomerListKey(tenantId))
 
 		return {
 			customerId: updated.customerId,
@@ -530,10 +515,6 @@ export default class CustomerController {
 			Customer,
 		)
 
-		await redisCache.del(
-			redisCache.buildCustomerListKey(tenantContext.tenantId),
-		)
-
 		return deleteResponse
 	}
 
@@ -575,12 +556,6 @@ export default class CustomerController {
 					reason: 'Customer could not be deleted.',
 				})
 			}
-		}
-
-		if (deleted.length) {
-			await redisCache.del(
-				redisCache.buildCustomerListKey(tenantContext.tenantId),
-			)
 		}
 
 		return { deleted, blocked: blockedRows }

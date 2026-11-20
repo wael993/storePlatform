@@ -549,71 +549,11 @@ export default class ProductController {
 		}
 	}
 
+	/** Drops the tenant's cached master lists (product catalog included). */
 	public async invalidateEntityCache(
-		entity: 'invoices' | 'inventory' | 'products' | 'categories',
 		requestContext: RequestContext,
-		id?: string,
 	): Promise<void> {
-		const tenantId = this.getTenantId(requestContext)
-
-		const listKey =
-			entity === 'invoices'
-				? redisCache.buildInvoiceListKey(tenantId)
-				: entity === 'inventory'
-					? redisCache.buildInventoryListKey(tenantId)
-					: entity === 'categories'
-						? redisCache.buildCategoryListKey(tenantId)
-						: redisCache.buildProductListKey(tenantId)
-
-		const listKeyDeleted = await redisCache.del(listKey)
-
-		if (listKeyDeleted) {
-			logger.debug(`${entity} list cache invalidated`)
-		}
-
-		if (id) {
-			const detailKey =
-				entity === 'invoices'
-					? redisCache.buildInvoiceDetailKey(tenantId, id)
-					: entity === 'inventory'
-						? redisCache.buildInventoryDetailKey(tenantId, id)
-						: redisCache.buildProductDetailKey(tenantId, id)
-
-			const detailKeyDeleted = await redisCache.del(detailKey)
-
-			if (detailKeyDeleted) {
-				logger.debug(`${entity} ${id} deleted from cache`)
-			}
-		}
-
-		const patternDeleted = await redisCache.delByPattern(
-			redisCache.buildEntityDetailPatternKey(entity, tenantId),
-		)
-
-		if (patternDeleted > 0) {
-			logger.debug(
-				`${entity} cache pattern invalidated: deleted=${patternDeleted}`,
-			)
-		}
-	}
-
-	private async invalidateAllTenantListCaches(tenantId: string): Promise<void> {
-		await Promise.all([
-			redisCache.del(redisCache.buildProductListKey(tenantId)),
-			redisCache.del(redisCache.buildInventoryListKey(tenantId)),
-			redisCache.del(redisCache.buildInvoiceListKey(tenantId)),
-			redisCache.del(redisCache.buildCustomerListKey(tenantId)),
-			redisCache.del(redisCache.buildSupplierListKey(tenantId)),
-			redisCache.del(redisCache.buildPartnerListKey(tenantId)),
-			redisCache.del(redisCache.buildCategoryListKey(tenantId)),
-			redisCache.del(redisCache.buildBrandListKey(tenantId)),
-			redisCache.del(redisCache.buildShelfListKey(tenantId)),
-			redisCache.del(redisCache.buildWarehouseListKey(tenantId)),
-			redisCache.del(redisCache.buildCurrencyListKey(tenantId)),
-			redisCache.del(redisCache.buildUnitListKey(tenantId)),
-			redisCache.del(redisCache.buildExpenseListKey(tenantId)),
-			redisCache.del(`dailyActions:${tenantId}`),
-		])
+		await redisCache.invalidate(this.getTenantId(requestContext))
 	}
 
 	private hashToken(token: string): string {
@@ -1332,31 +1272,23 @@ export default class ProductController {
 		options: { all?: boolean } = {},
 	): Promise<ProductCatalogResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildProductListKey(tenantId)
-
-		let fullProducts = await redisCache.getJson<ProductRequestBody[]>(cacheKey)
-
-		if (!fullProducts) {
-			// note: tenant-wide product master only. Qty / averageCost / location
-			// are warehouse-scoped — attach on read, never persist in this key.
-			const [products, relationLookups] = await Promise.all([
-				pgFind(
-					Product,
-					tenantId,
-					{},
-					{ sort: { name: 1 } },
-				) as unknown as Promise<ProductAPI[]>,
-				this.getProductRelationLookups(requestContext),
-			])
-
-			fullProducts = products
-				.map(product =>
-					this.productsMapper.mapProduct(product, undefined, relationLookups),
+		// note: tenant-wide product master only. Qty / averageCost / location are
+		// warehouse-scoped (attached below); names are not sent, so no relation lookups.
+		const fullProducts = await redisCache.readThrough(
+			redisCache.buildProductListKey(tenantId),
+			tenantId,
+			async () =>
+				(
+					(await pgFind(
+						Product,
+						tenantId,
+						{},
+						{ sort: { name: 1 } },
+					)) as unknown as ProductAPI[]
 				)
-				.filter(Boolean) as ProductRequestBody[]
-
-			await redisCache.setJson(cacheKey, fullProducts)
-		}
+					.map(product => this.productsMapper.mapProduct(product, undefined))
+					.filter(Boolean) as ProductRequestBody[],
+		)
 
 		// note: all=true skips warehouse-stock filter (buying invoice search).
 		const visibleProducts = options.all
@@ -1597,9 +1529,8 @@ export default class ProductController {
 			return null
 		}
 
-		const cacheKey = redisCache.buildProductDetailKey(tenantId, productId)
+		// not cached: relatedActions and stock depend on the caller's warehouse scope
 		const productSee = new Set((requestContext.see || []) as SeeId[])
-		const cachedProduct = await redisCache.getJson<ProductRequestBody>(cacheKey)
 
 		const scopedInventoryForProduct = async () => {
 			const rows = (await this.getInventory(requestContext)).filter(
@@ -1607,26 +1538,6 @@ export default class ProductController {
 			)
 
 			return aggregateInventoryByProductId(rows).get(productId)
-		}
-
-		if (cachedProduct) {
-			// note: detail cache is tenant-wide; inventory + location labels are warehouse-scoped.
-			const inventory = await scopedInventoryForProduct()
-			const lookups = await this.getProductRelationLookups(requestContext)
-
-			return stripProductSeeFields(
-				{
-					...cachedProduct,
-					inventory,
-					warehouseName: inventory?.warehouseId
-						? lookups.warehouseNameById.get(inventory.warehouseId)
-						: undefined,
-					shelfName: inventory?.shelfId
-						? lookups.shelfNameById.get(inventory.shelfId)
-						: undefined,
-				},
-				productSee,
-			)
 		}
 
 		const product = await this.mongoDbClient.getDocumentByField<ProductAPI>(
@@ -1657,14 +1568,6 @@ export default class ProductController {
 			),
 			relatedActions: relatedActions.map(mapProductAction),
 		}
-
-		// Cache without inventory/location so a later scope cannot serve another user's stock.
-		const cacheableProduct = { ...mappedProduct }
-
-		delete cacheableProduct.inventory
-		delete cacheableProduct.warehouseName
-		delete cacheableProduct.shelfName
-		await redisCache.setJson(cacheKey, cacheableProduct)
 
 		return stripProductSeeFields(mappedProduct, productSee)
 	}
@@ -1850,17 +1753,7 @@ export default class ProductController {
 			quantity,
 		})
 
-		await this.invalidateEntityCache(
-			'products',
-			requestContext,
-			productData.productId,
-		)
-
-		await this.invalidateEntityCache(
-			'inventory',
-			requestContext,
-			inventoryData.inventoryId,
-		)
+		await this.invalidateEntityCache(requestContext)
 
 		return { _id: productData.productId }
 	}
@@ -1953,8 +1846,7 @@ export default class ProductController {
 				})
 			: await persistProduct()
 
-		await this.invalidateEntityCache('products', requestContext, productId)
-		await this.invalidateEntityCache('inventory', requestContext)
+		await this.invalidateEntityCache(requestContext)
 
 		return updateResponse
 	}
@@ -2049,7 +1941,7 @@ export default class ProductController {
 					{ barcode },
 				)
 
-				await this.invalidateEntityCache('products', requestContext, id)
+				await this.invalidateEntityCache(requestContext)
 			},
 		})
 	}
@@ -2071,8 +1963,7 @@ export default class ProductController {
 		)
 
 		await deleteProductInventory(tenantContext.tenantId, [productId])
-		await this.invalidateEntityCache('products', requestContext, productId)
-		await this.invalidateEntityCache('inventory', requestContext)
+		await this.invalidateEntityCache(requestContext)
 
 		return deleteResponse
 	}
@@ -2117,11 +2008,7 @@ export default class ProductController {
 		if (deleted.length) {
 			await deleteProductInventory(tenantContext.tenantId, deleted)
 
-			for (const productId of deleted) {
-				await this.invalidateEntityCache('products', requestContext, productId)
-			}
-
-			await this.invalidateEntityCache('inventory', requestContext)
+			await this.invalidateEntityCache(requestContext)
 		}
 
 		return { deleted, blocked: blockedRows }
@@ -2411,15 +2298,6 @@ export default class ProductController {
 			)
 		})
 
-		await this.invalidateEntityCache('inventory', requestContext)
-		for (const item of items) {
-			await this.invalidateEntityCache(
-				'products',
-				requestContext,
-				item.productId,
-			)
-		}
-
 		return {
 			referenceId,
 			fromWarehouseId,
@@ -2543,16 +2421,6 @@ export default class ProductController {
 			)
 		})
 
-		await this.invalidateEntityCache('inventory', requestContext)
-		const touched = new Set([
-			...existing.items.map(item => item.productId),
-			...items.map(item => item.productId),
-		])
-
-		for (const productId of touched) {
-			await this.invalidateEntityCache('products', requestContext, productId)
-		}
-
 		return {
 			referenceId: existing.referenceId,
 			fromWarehouseId,
@@ -2612,15 +2480,6 @@ export default class ProductController {
 				session,
 			)
 		})
-
-		await this.invalidateEntityCache('inventory', requestContext)
-		for (const item of existing.items) {
-			await this.invalidateEntityCache(
-				'products',
-				requestContext,
-				item.productId,
-			)
-		}
 	}
 
 	public async getWarehouseTransfers(
@@ -3460,24 +3319,14 @@ export default class ProductController {
 	): Promise<InventoryDocument[]> {
 		const tenantId = this.getTenantId(requestContext)
 		const warehouse = warehouseMongoFilter(requestContext)
-		const cacheKey = redisCache.buildInventoryListKey(tenantId)
 
 		if (warehouse === null) {
-			const cachedInventory =
-				await redisCache.getJson<InventoryDocument[]>(cacheKey)
-
-			if (cachedInventory) {
-				return cachedInventory
-			}
-
 			const { documents: inventory } = await this.mongoDbClient.getDocuments({
 				requestContext,
 				collectionName: COLLECTION_NAMES.INVENTORY,
 				model: Inventory,
 				sort: { createdAt: 'desc' },
 			})
-
-			await redisCache.setJson(cacheKey, inventory)
 
 			return inventory as InventoryDocument[]
 		}
@@ -3493,17 +3342,6 @@ export default class ProductController {
 		inventoryId: string,
 		requestContext: RequestContext,
 	) {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildInventoryDetailKey(tenantId, inventoryId)
-		const cachedInventoryItem =
-			await redisCache.getJson<InventoryDocument>(cacheKey)
-
-		if (cachedInventoryItem) {
-			ensureWarehouseAccess(requestContext, cachedInventoryItem.warehouseId)
-
-			return cachedInventoryItem
-		}
-
 		const inventoryItem = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			COLLECTION_NAMES.INVENTORY,
@@ -3519,8 +3357,6 @@ export default class ProductController {
 			requestContext,
 			(inventoryItem as InventoryDocument).warehouseId,
 		)
-
-		await redisCache.setJson(cacheKey, inventoryItem)
 
 		return inventoryItem
 	}
@@ -3562,12 +3398,6 @@ export default class ProductController {
 			entity: EntityType.MONGODB,
 			inventoryId: createInventoryResponse._id,
 		})
-
-		await this.invalidateEntityCache(
-			'inventory',
-			requestContext,
-			inventoryData.inventoryId,
-		)
 
 		return { _id: createInventoryResponse._id }
 	}
@@ -3677,9 +3507,6 @@ export default class ProductController {
 			allowedUpdates,
 		)
 
-		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
-		await this.invalidateEntityCache('products', requestContext)
-
 		return updateResponse
 	}
 
@@ -3722,8 +3549,6 @@ export default class ProductController {
 			Inventory,
 		)
 
-		await this.invalidateEntityCache('inventory', requestContext, inventoryId)
-
 		return deleteResponse
 	}
 
@@ -3763,26 +3588,6 @@ export default class ProductController {
 			warehouseScope === 'acl'
 				? warehouseAclMongoFilter(requestContext)
 				: warehouseMongoFilter(requestContext)
-		const hasFilters =
-			Boolean(filters.searchText?.trim()) ||
-			Boolean(filters.entryType?.length) ||
-			Boolean(filters.productName?.length) ||
-			Boolean(filters.supplier?.length) ||
-			Boolean(filters.customer?.length) ||
-			Boolean(filters.invoiceDateFrom?.trim()) ||
-			Boolean(filters.invoiceDateTo?.trim())
-		const cacheKey = `dailyActions:${tenantId}`
-		const useTenantCache = warehouse === null && !hasFilters
-
-		if (useTenantCache) {
-			const cachedDailyActions =
-				await redisCache.getJson<DailyActionResponse>(cacheKey)
-
-			if (cachedDailyActions) {
-				return cachedDailyActions
-			}
-		}
-
 		const searchText = filters.searchText?.trim()
 		const entryTypeRegexList = this.buildCaseInsensitiveRegexList(
 			filters.entryType,
@@ -3875,13 +3680,6 @@ export default class ProductController {
 			sort: { createdAt: 'desc' },
 		}) as unknown as Promise<DailyActionResponse['data']>)
 
-		if (useTenantCache) {
-			await redisCache.setJson(cacheKey, {
-				data: dailyActions,
-				totalCount: dailyActions.length,
-			})
-		}
-
 		return { data: dailyActions, totalCount: dailyActions.length }
 	}
 
@@ -3964,20 +3762,6 @@ export default class ProductController {
 		actionId: string,
 		requestContext: RequestContext,
 	) {
-		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = `dailyAction:${tenantId}:${actionId}`
-		const cachedAction = await redisCache.getJson<DailyActionResponse>(cacheKey)
-
-		if (cachedAction) {
-			const cached = cachedAction.data?.[0] as
-				| { warehouseId?: string }
-				| undefined
-
-			ensureWarehouseAccess(requestContext, cached?.warehouseId)
-
-			return cachedAction
-		}
-
 		const dailyAction = await this.mongoDbClient.getDocumentByField(
 			requestContext,
 			COLLECTION_NAMES.DAILY_ACTIONS,
@@ -3993,8 +3777,6 @@ export default class ProductController {
 			requestContext,
 			(dailyAction as { warehouseId?: string }).warehouseId,
 		)
-
-		await redisCache.setJson(cacheKey, { data: [dailyAction], totalCount: 1 })
 
 		return { data: [dailyAction], totalCount: 1 }
 	}
@@ -4355,11 +4137,6 @@ export default class ProductController {
 			},
 		)
 
-		await this.invalidateDailyActionsCache(
-			requestContext,
-			dailyActionData.actionId,
-		)
-
 		return {
 			_id: createDailyActionResponse._id,
 			actionId: dailyActionData.actionId,
@@ -4484,8 +4261,6 @@ export default class ProductController {
 			return updated
 		})
 
-		await this.invalidateDailyActionsCache(requestContext, actionId)
-
 		return updateResponse
 	}
 
@@ -4529,38 +4304,7 @@ export default class ProductController {
 			)
 		})
 
-		for (const actionId of uniqueActionIds) {
-			await this.invalidateDailyActionsCache(requestContext, actionId)
-		}
-
 		return { deletedCount: uniqueActionIds.length }
-	}
-
-	private async invalidateDailyActionsCache(
-		requestContext: RequestContext,
-		actionId?: string,
-	): Promise<void> {
-		const tenantId = this.getTenantId(requestContext)
-		const listKey = `dailyActions:${tenantId}`
-		const listKeyDeleted = await redisCache.del(listKey)
-
-		if (listKeyDeleted) {
-			logger.debug('Daily actions list cache invalidated')
-		}
-
-		await Promise.all([
-			redisCache.del(redisCache.buildCustomerListKey(tenantId)),
-			redisCache.del(redisCache.buildSupplierListKey(tenantId)),
-		])
-
-		if (actionId) {
-			const detailKey = `dailyAction:${tenantId}:${actionId}`
-			const detailKeyDeleted = await redisCache.del(detailKey)
-
-			if (detailKeyDeleted) {
-				logger.debug(`Daily action ${actionId} deleted from cache`)
-			}
-		}
 	}
 
 	private async dailyActionRate(
@@ -4745,16 +4489,8 @@ export default class ProductController {
 	public async getExpenses(
 		requestContext: RequestContext,
 	): Promise<ExpensesResponse> {
+		// not cached: actions depend on the caller's warehouse scope
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildExpenseListKey(tenantId)
-		const cachedExpenses = await redisCache.getJson<ExpensesResponse>(cacheKey)
-
-		if (cachedExpenses) {
-			return {
-				...cachedExpenses,
-				data: await this.withExpenseDeleteFlags(tenantId, cachedExpenses.data),
-			}
-		}
 
 		const expenses = await this.mongoDbClient.getDocuments({
 			requestContext,
@@ -4788,8 +4524,6 @@ export default class ProductController {
 			data,
 			totalCount: data.length,
 		}
-
-		await redisCache.setJson(cacheKey, response)
 
 		return {
 			...response,
@@ -4927,8 +4661,6 @@ export default class ProductController {
 			requestContext,
 		)
 
-		await redisCache.del(redisCache.buildExpenseListKey(tenantContext.tenantId))
-
 		return {
 			_id: createExpenseResponse._id,
 		}
@@ -4969,8 +4701,6 @@ export default class ProductController {
 				'Expense not found.',
 			)
 		}
-
-		await redisCache.del(redisCache.buildExpenseListKey(tenantId))
 
 		return updated
 	}
@@ -5019,8 +4749,6 @@ export default class ProductController {
 			)
 		}
 
-		await redisCache.del(redisCache.buildExpenseListKey(tenantId))
-
 		return deleted
 	}
 
@@ -5028,27 +4756,23 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<CurrenciesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildCurrencyListKey(tenantId)
-		const cachedCurrencies =
-			await redisCache.getJson<CurrenciesResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildCurrencyListKey(tenantId),
+			tenantId,
+			async (): Promise<CurrenciesResponse> => {
+				const currencies = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.CURRENCIES,
+					model: Currency,
+					sort: { createdAt: 'desc' },
+				})
 
-		if (cachedCurrencies) {
-			return cachedCurrencies
-		}
-
-		const currencies = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.CURRENCIES,
-			model: Currency,
-			sort: { createdAt: 'desc' },
-		})
-
-		const response: CurrenciesResponse = {
-			data: currencies.documents,
-			totalCount: currencies.documents.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
+				return {
+					data: currencies.documents,
+					totalCount: currencies.documents.length,
+				}
+			},
+		)
 
 		return response
 	}
@@ -5126,9 +4850,7 @@ export default class ProductController {
 			name,
 		})
 
-		await redisCache.del(
-			redisCache.buildCurrencyListKey(tenantContext.tenantId),
-		)
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return {
 			_id: createCurrencyResponse._id,
@@ -5139,26 +4861,23 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<UnitsResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildUnitListKey(tenantId)
-		const cachedUnits = await redisCache.getJson<UnitsResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildUnitListKey(tenantId),
+			tenantId,
+			async (): Promise<UnitsResponse> => {
+				const units = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.UNITS,
+					model: Unit,
+					sort: { createdAt: 'desc' },
+				})
 
-		if (cachedUnits) {
-			return cachedUnits
-		}
-
-		const units = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.UNITS,
-			model: Unit,
-			sort: { createdAt: 'desc' },
-		})
-
-		const response: UnitsResponse = {
-			data: units.documents,
-			totalCount: units.documents.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
+				return {
+					data: units.documents,
+					totalCount: units.documents.length,
+				}
+			},
+		)
 
 		return response
 	}
@@ -5224,7 +4943,7 @@ export default class ProductController {
 			name,
 		})
 
-		await redisCache.del(redisCache.buildUnitListKey(tenantContext.tenantId))
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return {
 			_id: createUnitResponse._id,
@@ -5235,30 +4954,27 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<BrandsResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildBrandListKey(tenantId)
-		const cachedBrands = await redisCache.getJson<BrandsResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildBrandListKey(tenantId),
+			tenantId,
+			async (): Promise<BrandsResponse> => {
+				const brands = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.BRANDS,
+					model: Brand,
+					sort: { name: 1 },
+				})
 
-		if (cachedBrands) {
-			return cachedBrands
-		}
+				const data = brands.documents.map((brand: BrandDocument) =>
+					this.mapBrandDocument(brand),
+				)
 
-		const brands = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.BRANDS,
-			model: Brand,
-			sort: { name: 1 },
-		})
-
-		const data = brands.documents.map((brand: BrandDocument) =>
-			this.mapBrandDocument(brand),
+				return {
+					data,
+					totalCount: data.length,
+				}
+			},
 		)
-
-		const response: BrandsResponse = {
-			data,
-			totalCount: data.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
 
 		return response
 	}
@@ -5336,7 +5052,7 @@ export default class ProductController {
 			name: brandData.name,
 		})
 
-		await redisCache.del(redisCache.buildBrandListKey(tenantContext.tenantId))
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return { _id: brandId }
 	}
@@ -5345,42 +5061,39 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<ShelvesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildShelfListKey(tenantId)
-		const cachedShelves = await redisCache.getJson<ShelvesResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildShelfListKey(tenantId),
+			tenantId,
+			async (): Promise<ShelvesResponse> => {
+				const shelves = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.SHELVES,
+					model: Shelf,
+					sort: { name: 1 },
+				})
 
-		if (cachedShelves) {
-			return cachedShelves
-		}
+				const data = shelves.documents.map((shelf: ShelfDocument) => ({
+					shelfId: shelf.shelfId,
+					name: shelf.name,
+					description: shelf.description,
+					createdAt: shelf.createdAt?.toISOString?.(),
+					updatedAt: shelf.updatedAt?.toISOString?.(),
+					createdBy:
+						shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
+					updatedBy: shelf.updatedBy
+						? {
+								...shelf.updatedBy,
+								updatedAt: shelf.updatedBy.updatedAt.toISOString(),
+							}
+						: undefined,
+				}))
 
-		const shelves = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.SHELVES,
-			model: Shelf,
-			sort: { name: 1 },
-		})
-
-		const data = shelves.documents.map((shelf: ShelfDocument) => ({
-			shelfId: shelf.shelfId,
-			name: shelf.name,
-			description: shelf.description,
-			createdAt: shelf.createdAt?.toISOString?.(),
-			updatedAt: shelf.updatedAt?.toISOString?.(),
-			createdBy:
-				shelf.createdBy as ShelvesResponse['data'][number]['createdBy'],
-			updatedBy: shelf.updatedBy
-				? {
-						...shelf.updatedBy,
-						updatedAt: shelf.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-		}))
-
-		const response: ShelvesResponse = {
-			data,
-			totalCount: data.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
+				return {
+					data,
+					totalCount: data.length,
+				}
+			},
+		)
 
 		return response
 	}
@@ -5467,7 +5180,7 @@ export default class ProductController {
 			name: shelfData.name,
 		})
 
-		await redisCache.del(redisCache.buildShelfListKey(tenantContext.tenantId))
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return { _id: createShelfResponse._id }
 	}
@@ -5476,54 +5189,44 @@ export default class ProductController {
 		requestContext: RequestContext,
 	): Promise<WarehousesResponse> {
 		const tenantId = this.getTenantId(requestContext)
-		const cacheKey = redisCache.buildWarehouseListKey(tenantId)
-		const cachedWarehouses =
-			await redisCache.getJson<WarehousesResponse>(cacheKey)
+		const response = await redisCache.readThrough(
+			redisCache.buildWarehouseListKey(tenantId),
+			tenantId,
+			async (): Promise<WarehousesResponse> => {
+				const warehouses = await this.mongoDbClient.getDocuments({
+					requestContext,
+					collectionName: COLLECTION_NAMES.WAREHOUSES,
+					model: Warehouse,
+					sort: { name: 1 },
+				})
 
-		if (cachedWarehouses) {
-			const filtered = filterByWarehouseAcl(
-				requestContext,
-				cachedWarehouses.data,
-			)
+				const data = warehouses.documents.map(
+					(warehouse: WarehouseDocument) => ({
+						warehouseId: warehouse.warehouseId,
+						name: warehouse.name,
+						code: warehouse.code,
+						address: warehouse.address,
+						status: warehouse.status,
+						description: warehouse.description,
+						createdAt: warehouse.createdAt?.toISOString?.(),
+						updatedAt: warehouse.updatedAt?.toISOString?.(),
+						createdBy:
+							warehouse.createdBy as WarehousesResponse['data'][number]['createdBy'],
+						updatedBy: warehouse.updatedBy
+							? {
+									...warehouse.updatedBy,
+									updatedAt: warehouse.updatedBy.updatedAt.toISOString(),
+								}
+							: undefined,
+					}),
+				)
 
-			return {
-				data: filtered,
-				totalCount: filtered.length,
-			}
-		}
-
-		const warehouses = await this.mongoDbClient.getDocuments({
-			requestContext,
-			collectionName: COLLECTION_NAMES.WAREHOUSES,
-			model: Warehouse,
-			sort: { name: 1 },
-		})
-
-		const data = warehouses.documents.map((warehouse: WarehouseDocument) => ({
-			warehouseId: warehouse.warehouseId,
-			name: warehouse.name,
-			code: warehouse.code,
-			address: warehouse.address,
-			status: warehouse.status,
-			description: warehouse.description,
-			createdAt: warehouse.createdAt?.toISOString?.(),
-			updatedAt: warehouse.updatedAt?.toISOString?.(),
-			createdBy:
-				warehouse.createdBy as WarehousesResponse['data'][number]['createdBy'],
-			updatedBy: warehouse.updatedBy
-				? {
-						...warehouse.updatedBy,
-						updatedAt: warehouse.updatedBy.updatedAt.toISOString(),
-					}
-				: undefined,
-		}))
-
-		const response: WarehousesResponse = {
-			data,
-			totalCount: data.length,
-		}
-
-		await redisCache.setJson(cacheKey, response)
+				return {
+					data,
+					totalCount: data.length,
+				}
+			},
+		)
 
 		const filtered = filterByWarehouseAcl(requestContext, response.data)
 
@@ -5642,9 +5345,7 @@ export default class ProductController {
 			name: warehouseData.name,
 		})
 
-		await redisCache.del(
-			redisCache.buildWarehouseListKey(tenantContext.tenantId),
-		)
+		await redisCache.invalidate(tenantContext.tenantId)
 
 		return { _id: warehouseId, warehouseId }
 	}
@@ -5799,8 +5500,6 @@ export default class ProductController {
 		await this.ensureOfflineEnabledForSync(requestContext)
 
 		const tenantId = this.getTenantId(requestContext)
-
-		await this.invalidateAllTenantListCaches(tenantId)
 
 		const emptyData = { data: [], totalCount: 0 }
 		const ifSee = <T>(
