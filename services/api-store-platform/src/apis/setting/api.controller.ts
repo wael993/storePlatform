@@ -652,6 +652,7 @@ export default class SettingController {
 				}
 
 				updateData[field] = image
+
 				continue
 			}
 

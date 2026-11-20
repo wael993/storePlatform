@@ -23,6 +23,7 @@ describe('normalizeStoredImage', () => {
 		expect(normalizeStoredImage('https://cdn.example/logo.png')).toBe(
 			'https://cdn.example/logo.png',
 		)
+
 		expect(normalizeStoredImage('not a url')).toBe('')
 		expect(normalizeStoredImage('')).toBe('')
 		expect(normalizeStoredImage('javascript:alert(1)')).toBe('')
