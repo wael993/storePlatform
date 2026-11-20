@@ -497,15 +497,13 @@ export const replaceTenantRows = (
 
 		// work recorded after the snapshot is undone by the restore: a device retrying it
 		// must run it again, not get the old success back
-		await tx
-			.delete(syncMutations)
-			.where(
-				and(
-					eq(syncMutations.tenantId, tenantId),
-					// compared in SQL: a JS Date would drop the microseconds
-					sql`${syncMutations.processedAt} >= ${snapshotAt}::timestamptz`,
-				),
-			)
+		await tx.delete(syncMutations).where(
+			and(
+				eq(syncMutations.tenantId, tenantId),
+				// compared in SQL: a JS Date would drop the microseconds
+				sql`${syncMutations.processedAt} >= ${snapshotAt}::timestamptz`,
+			),
+		)
 
 		for (const { name } of [...BACKUP_TABLES].reverse()) {
 			await tx.execute(
