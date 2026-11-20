@@ -385,8 +385,8 @@
 		"addPaymentMethod": "إضافة طريقة دفع",
 		"methodName": "طريقة الدفع",
 		"methodDetails": "تفاصيل الدفع",
-		"methodQrUrl": "رابط صورة رمز QR",
-		"methodQrUrlHint": "رابط صورة أو رمز QR اختياري، كما في رموز QR للفواتير.",
+		"methodQrUrl": "صورة رمز QR",
+		"methodQrUrlHint": "ارفع صورة رمز QR أو الدفع. رابط المشاركة لا يظهر كصورة.",
 		"removeMethod": "إزالة طريقة الدفع",
 		"paymentSettingsSaved": "تم حفظ معلومات الدفع.",
 		"paymentSettingsSaveFailed": "فشل حفظ معلومات الدفع.",
@@ -1161,10 +1161,10 @@
 			"phone": "الهاتف",
 			"email": "البريد الإلكتروني",
 			"taxNumber": "الرقم الضريبي",
-			"logoUrl": "رابط الشعار",
-			"logoUrlHint": "الصق رابط صورة عام لشعار الفاتورة.",
-			"qrUrl": "رابط رمز QR",
-			"qrUrlHint": "الصق رابط صورة عام لرمز QR. يظهر إلى يمين إجمالي الفاتورة.",
+			"logoUrl": "الشعار",
+			"logoUrlHint": "ارفع صورة. تُحفظ مع الفاتورة وتُطبع في ملف PDF.",
+			"qrUrl": "رمز QR للتواصل",
+			"qrUrlHint": "ارفع صورة رمز QR. تظهر إلى يمين إجمالي الفاتورة.",
 			"footerNote": "ملاحظة التذييل"
 		},
 		"productsSettings": {
@@ -1574,6 +1574,13 @@
 			"change": "سلوك قائم يعمل بشكل مختلف.",
 			"bug_fix": "خلل تم تصحيحه."
 		}
+	},
+	"imageUpload": {
+		"tooLarge": "الصورة كبيرة جداً. استخدم ملفاً أصغر.",
+		"notImage": "اختر صورة PNG أو JPEG.",
+		"readFailed": "تعذّر قراءة ملف الصورة.",
+		"remove": "إزالة الصورة",
+		"notDirect": "هذا الرابط ليس صورة مباشرة. ارفع ملف الصورة بدلاً من ذلك."
 	},
 	"common": {
 		"onlineOnly": "متصل فقط",

@@ -385,8 +385,8 @@
 		"addPaymentMethod": "Zahlungsmethode hinzufügen",
 		"methodName": "Zahlungsmethode",
 		"methodDetails": "Zahlungsdetails",
-		"methodQrUrl": "QR-Code-Bild-URL",
-		"methodQrUrlHint": "Optionale Bild- oder QR-URL, wie bei Rechnungs-QR-Codes.",
+		"methodQrUrl": "QR-Code-Bild",
+		"methodQrUrlHint": "QR- oder Zahlungsbild hochladen. Ein Freigabelink wird nicht als Bild angezeigt.",
 		"removeMethod": "Zahlungsmethode entfernen",
 		"paymentSettingsSaved": "Zahlungsinformationen gespeichert.",
 		"paymentSettingsSaveFailed": "Zahlungsinformationen konnten nicht gespeichert werden.",
@@ -1161,10 +1161,10 @@
 			"phone": "Telefon",
 			"email": "E-Mail",
 			"taxNumber": "Steuer-/USt-IdNr.",
-			"logoUrl": "Logo-URL",
-			"logoUrlHint": "Öffentliche Bild-URL für das Rechnungslogo einfügen.",
-			"qrUrl": "QR-Code-URL",
-			"qrUrlHint": "Öffentliche Bild-URL des QR-Codes einfügen. Er erscheint rechts neben den Rechnungssummen.",
+			"logoUrl": "Logo",
+			"logoUrlHint": "Bild hochladen. Es wird mit der Rechnung gespeichert und auf dem PDF gedruckt.",
+			"qrUrl": "Kontakt-QR-Code",
+			"qrUrlHint": "Bild des QR-Codes hochladen. Es erscheint rechts neben den Rechnungssummen.",
 			"footerNote": "Fußzeilennotiz"
 		},
 		"productsSettings": {
@@ -1574,6 +1574,13 @@
 			"change": "Bestehendes Verhalten, das anders funktioniert.",
 			"bug_fix": "Ein Fehler, der behoben wurde."
 		}
+	},
+	"imageUpload": {
+		"tooLarge": "Bild ist zu groß. Nutzen Sie eine kleinere Datei.",
+		"notImage": "Wählen Sie ein PNG- oder JPEG-Bild.",
+		"readFailed": "Die Bilddatei konnte nicht gelesen werden.",
+		"remove": "Bild entfernen",
+		"notDirect": "Dieser Link ist kein direktes Bild. Laden Sie die Bilddatei hoch."
 	},
 	"common": {
 		"onlineOnly": "Nur online",

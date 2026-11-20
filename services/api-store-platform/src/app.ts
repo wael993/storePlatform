@@ -146,13 +146,17 @@ export const createApp = () => {
 		newsroomController,
 		productController,
 	)
-	const backupRoutes = new BackupRoutes(new BackupController(), productController)
+	const backupRoutes = new BackupRoutes(
+		new BackupController(),
+		productController,
+	)
 	const app = express()
 
 	const jsonParser = express.json({ limit: '100kb' })
 	const extractJsonParser = express.json({ limit: '12mb' })
 	const productImportJsonParser = express.json({ limit: '45mb' })
-	const invoiceSettingsJsonParser = express.json({ limit: '2mb' })
+	const invoiceSettingsJsonParser = express.json({ limit: '4mb' })
+	const paymentImageJsonParser = express.json({ limit: '17mb' })
 
 	app.use((req, res, next) => {
 		if (req.path.includes('/buying-invoices/extract')) {
@@ -165,6 +169,11 @@ export const createApp = () => {
 
 		if (req.path.includes('/invoice-settings')) {
 			return invoiceSettingsJsonParser(req, res, next)
+		}
+
+		if (req.path.includes('/tenants/subscription-payment')) {
+			// Up to 10 images, each about 1.6MB once written as a data URL.
+			return paymentImageJsonParser(req, res, next)
 		}
 
 		if (req.path.includes('/newsroom')) {

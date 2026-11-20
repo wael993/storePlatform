@@ -55,6 +55,7 @@ import {
 	NewsroomReleaseDetail,
 } from '../components/newsroom/NewsroomViews'
 import { BreadCrumbItem } from '../shared/globalEnums'
+import { readFileAsDataUrl } from '../shared/readFileAsDataUrl'
 import {
 	buildRoutePath,
 	generateBreadcrumbs,
@@ -127,15 +128,6 @@ const apiErrorMessage = (error: unknown, fallback: string): string =>
 	typeof (error as { data?: { message?: unknown } }).data?.message === 'string'
 		? (error as { data: { message: string } }).data.message
 		: fallback
-
-const readFileAsDataUrl = (file: File): Promise<string> =>
-	new Promise((resolve, reject) => {
-		const reader = new FileReader()
-
-		reader.onload = () => resolve(String(reader.result || ''))
-		reader.onerror = () => reject(reader.error)
-		reader.readAsDataURL(file)
-	})
 
 const NewsroomReleaseNoteEditorPage = () => {
 	const { t } = useTranslation()

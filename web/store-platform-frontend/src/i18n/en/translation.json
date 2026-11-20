@@ -385,8 +385,8 @@
 		"addPaymentMethod": "Add payment method",
 		"methodName": "Payment method",
 		"methodDetails": "Payment details",
-		"methodQrUrl": "QR code image URL",
-		"methodQrUrlHint": "Optional image or QR URL, same as invoice QR codes.",
+		"methodQrUrl": "QR code image",
+		"methodQrUrlHint": "Upload the QR or payment image. A share link will not show as a picture.",
 		"removeMethod": "Remove payment method",
 		"paymentSettingsSaved": "Payment information saved.",
 		"paymentSettingsSaveFailed": "Failed to save payment information.",
@@ -1161,10 +1161,10 @@
 			"phone": "Phone",
 			"email": "Email",
 			"taxNumber": "Tax / VAT number",
-			"logoUrl": "Logo URL",
-			"logoUrlHint": "Paste a public image URL for the invoice logo.",
-			"qrUrl": "QR code URL",
-			"qrUrlHint": "Paste a public image URL of the QR code. It appears to the right of the invoice totals.",
+			"logoUrl": "Logo",
+			"logoUrlHint": "Upload an image. It is stored with the invoice and printed on the PDF.",
+			"qrUrl": "Contact QR code",
+			"qrUrlHint": "Upload an image of the QR code. It appears to the right of the invoice totals.",
 			"footerNote": "Footer note"
 		},
 		"productsSettings": {
@@ -1574,6 +1574,13 @@
 			"change": "Existing behavior that works differently.",
 			"bug_fix": "A defect that was corrected."
 		}
+	},
+	"imageUpload": {
+		"tooLarge": "Image is too large. Use a smaller file.",
+		"notImage": "Choose a PNG or JPEG image.",
+		"readFailed": "Could not read the image file.",
+		"remove": "Remove image",
+		"notDirect": "This link is not a direct image. Upload the image file instead."
 	},
 	"common": {
 		"onlineOnly": "Online only",

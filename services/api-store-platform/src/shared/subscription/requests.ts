@@ -27,6 +27,7 @@ import {
 	syncTenantSubscription,
 	toView,
 } from './persist'
+import { normalizeStoredImage } from '../imageValue'
 import { calendarDateInTimeZone, SubscriptionView } from './lifecycle'
 
 const actorOf = (requestContext: RequestContext): RenewalRequestActor => {
@@ -293,14 +294,6 @@ const emptyPaymentSettings = (): PaymentSettingsView => ({
 	methods: [],
 })
 
-const ALLOWED_QR_URL = /^(https?:\/\/|data:image\/)/i
-
-export const sanitizePaymentQrUrl = (value: string): string => {
-	const qrUrl = value.trim().slice(0, 2000)
-
-	return ALLOWED_QR_URL.test(qrUrl) ? qrUrl : ''
-}
-
 const toPaymentSettingsView = (
 	settings: ISubscriptionPaymentSettings | null,
 ): PaymentSettingsView => {
@@ -316,7 +309,7 @@ const toPaymentSettingsView = (
 			id: method.id,
 			name: method.name,
 			details: method.details,
-			qrUrl: sanitizePaymentQrUrl(method.qrUrl),
+			qrUrl: normalizeStoredImage(method.qrUrl),
 		})),
 	}
 }
@@ -348,6 +341,16 @@ const sanitizeMethods = (value: unknown): SubscriptionPaymentMethod[] => {
 			return []
 		}
 
+		const rawQr = typeof method.qrUrl === 'string' ? method.qrUrl.trim() : ''
+		const qrUrl = rawQr ? normalizeStoredImage(rawQr) : ''
+
+		if (rawQr && !qrUrl) {
+			throw new BusinessLogicError(
+				ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+				'Payment image is too large or not a direct image. Upload an image file.',
+			)
+		}
+
 		return [
 			{
 				id:
@@ -359,10 +362,7 @@ const sanitizeMethods = (value: unknown): SubscriptionPaymentMethod[] => {
 					typeof method.details === 'string'
 						? method.details.trim().slice(0, 500)
 						: '',
-				qrUrl:
-					typeof method.qrUrl === 'string'
-						? sanitizePaymentQrUrl(method.qrUrl)
-						: '',
+				qrUrl,
 			},
 		]
 	})

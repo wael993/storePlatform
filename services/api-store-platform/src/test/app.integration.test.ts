@@ -45,6 +45,17 @@ describe('HTTP app', () => {
 		expect(response.status).toBe(401)
 	})
 
+	it('accepts a payment-image payload without 413', async () => {
+		const app = createApp()
+		const qrUrl = `data:image/png;base64,${'A'.repeat(250_000)}`
+
+		const response = await request(app)
+			.put('/api/data/tenants/subscription-payment')
+			.send({ methods: [{ name: 'Cash', qrUrl }] })
+
+		expect(response.status).toBe(401)
+	})
+
 	it('keeps the default 100kb json limit outside invoice-settings', async () => {
 		const app = createApp()
 		const logoUrl = `data:image/png;base64,${'A'.repeat(250_000)}`

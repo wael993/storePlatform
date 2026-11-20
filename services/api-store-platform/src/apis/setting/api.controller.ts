@@ -18,6 +18,7 @@ import CurrencySettings, {
 	ICurrencySettings,
 } from '../../models/CurrencySettings'
 import InvoiceSettings, { IInvoiceSettings } from '../../models/InvoiceSettings'
+import { normalizeStoredImage } from '../../shared/imageValue'
 import {
 	cloneLabelLayout,
 	ILabelTemplate,
@@ -636,9 +637,25 @@ export default class SettingController {
 		] as const
 
 		for (const field of stringFields) {
-			if (body[field] !== undefined) {
-				updateData[field] = String(body[field]).trim()
+			if (body[field] === undefined) continue
+
+			const raw = String(body[field]).trim()
+
+			if (field === 'logoUrl' || field === 'qrUrl') {
+				const image = normalizeStoredImage(raw)
+
+				if (raw && !image) {
+					throw new BusinessLogicError(
+						ERROR_CODES.VALIDATION.FIELD_IN_NOT_VALID_FORMAT,
+						'Image is too large or not a direct image. Upload an image file.',
+					)
+				}
+
+				updateData[field] = image
+				continue
 			}
+
+			updateData[field] = raw
 		}
 
 		const invoiceSettings = await pgFindOneAndUpdate(

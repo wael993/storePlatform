@@ -10,6 +10,8 @@ import {
 } from '@chakra-ui/react'
 import { useTranslation } from 'react-i18next'
 
+import ImageUploadField from '../common/ImageUploadField'
+
 export interface InvoiceBrandFormValues {
 	displayName: string
 	address: string
@@ -138,32 +140,18 @@ const InvoiceSettings = ({
 							onChange={event => onBrandChange('taxNumber', event.target.value)}
 						/>
 					</FormControl>
-					<FormControl>
-						<FormLabel fontSize="sm">
-							{t('components.invoiceSettings.logoUrl')}
-						</FormLabel>
-						<Input
-							value={brand.logoUrl}
-							onChange={event => onBrandChange('logoUrl', event.target.value)}
-							placeholder="https://"
-						/>
-						<Text fontSize="xs" color="gray.500" mt={1}>
-							{t('components.invoiceSettings.logoUrlHint')}
-						</Text>
-					</FormControl>
-					<FormControl>
-						<FormLabel fontSize="sm">
-							{t('components.invoiceSettings.qrUrl')}
-						</FormLabel>
-						<Input
-							value={brand.qrUrl}
-							onChange={event => onBrandChange('qrUrl', event.target.value)}
-							placeholder="https://"
-						/>
-						<Text fontSize="xs" color="gray.500" mt={1}>
-							{t('components.invoiceSettings.qrUrlHint')}
-						</Text>
-					</FormControl>
+					<ImageUploadField
+						label={t('components.invoiceSettings.logoUrl')}
+						hint={t('components.invoiceSettings.logoUrlHint')}
+						value={brand.logoUrl}
+						onChange={value => onBrandChange('logoUrl', value)}
+					/>
+					<ImageUploadField
+						label={t('components.invoiceSettings.qrUrl')}
+						hint={t('components.invoiceSettings.qrUrlHint')}
+						value={brand.qrUrl}
+						onChange={value => onBrandChange('qrUrl', value)}
+					/>
 					<FormControl>
 						<FormLabel fontSize="sm">
 							{t('components.invoiceSettings.footerNote')}

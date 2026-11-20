@@ -36,6 +36,7 @@ import { AddIcon, DeleteIcon } from '@chakra-ui/icons'
 import { useTranslation } from 'react-i18next'
 import { compareLanguage } from '../shared/utils'
 import CustomBreadcrumb from '../components/CustomBreadcrumb'
+import ImageUploadField from '../components/common/ImageUploadField'
 import { formatRenewalDate } from '../components/SubscriptionRenewalBanner'
 import { BreadCrumbItem } from '../shared/globalEnums'
 import { generateBreadcrumbs } from '../shared/routes'
@@ -284,26 +285,19 @@ const RenewalRequestsPage = () => {
 											}
 										/>
 									</FormControl>
-									<FormControl>
-										<FormLabel>{t('tenants.methodQrUrl')}</FormLabel>
-										<Input
-											value={method.qrUrl}
-											placeholder="https://"
-											onChange={event =>
-												setSettings(current => ({
-													...current,
-													methods: current.methods.map((item, itemIndex) =>
-														itemIndex === index
-															? { ...item, qrUrl: event.target.value }
-															: item,
-													),
-												}))
-											}
-										/>
-										<Text fontSize="xs" color="gray.500" mt={1}>
-											{t('tenants.methodQrUrlHint')}
-										</Text>
-									</FormControl>
+									<ImageUploadField
+										label={t('tenants.methodQrUrl')}
+										hint={t('tenants.methodQrUrlHint')}
+										value={method.qrUrl}
+										onChange={qrUrl =>
+											setSettings(current => ({
+												...current,
+												methods: current.methods.map((item, itemIndex) =>
+													itemIndex === index ? { ...item, qrUrl } : item,
+												),
+											}))
+										}
+									/>
 								</Stack>
 							</Box>
 						))}

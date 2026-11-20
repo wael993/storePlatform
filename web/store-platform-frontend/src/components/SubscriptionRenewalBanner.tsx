@@ -72,6 +72,31 @@ export const subscriptionRemainingMessage = (
 	return t('subscription.expiresInDays', { count: remainingDays })
 }
 
+const PaymentQr = ({ url, alt }: { url: string; alt: string }) => {
+	const { t } = useTranslation()
+	const [broken, setBroken] = useState(false)
+
+	if (!isAllowedPaymentQrUrl(url)) return null
+
+	if (broken) {
+		return (
+			<Text fontSize="sm" color="orange.600" mt={2}>
+				{t('imageUpload.notDirect')}
+			</Text>
+		)
+	}
+
+	return (
+		<Image
+			src={url}
+			alt={alt}
+			mt={2}
+			maxW="10rem"
+			onError={() => setBroken(true)}
+		/>
+	)
+}
+
 const PaymentDetails = ({
 	settings,
 }: {
@@ -127,11 +152,9 @@ const PaymentDetails = ({
 									</Text>
 								) : null}
 								{method.qrUrl && isAllowedPaymentQrUrl(method.qrUrl) ? (
-									<Image
-										src={method.qrUrl}
+									<PaymentQr
+										url={method.qrUrl}
 										alt={t('subscription.qrCode')}
-										mt={2}
-										maxW="10rem"
 									/>
 								) : null}
 							</Box>
