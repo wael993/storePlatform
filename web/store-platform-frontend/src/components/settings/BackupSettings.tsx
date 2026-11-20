@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
 	Alert,
 	AlertDescription,
@@ -90,7 +90,7 @@ const BackupSettings = () => {
 		useRestoreBackupMutation()
 	const [restoreTarget, setRestoreTarget] = useState<BackupRecord | null>(null)
 	const [disconnectTarget, setDisconnectTarget] = useState<string | null>(null)
-	const previousRestoreStatus = useRef<string | undefined>(undefined)
+	const [shownRestoreAt, setShownRestoreAt] = useState('')
 
 	const errorText = (code: string | null | undefined) =>
 		t(`components.backupSettings.errors.${code ?? 'UNKNOWN'}`, {
@@ -124,19 +124,27 @@ const BackupSettings = () => {
 		setSearchParams(searchParams, { replace: true })
 	}, [searchParams, setSearchParams, showToast, t])
 
-	// after a restore finishes, every cached screen is stale: offer a reload
+	const restoreFinishedAt =
+		settings?.restore?.status === 'COMPLETED'
+			? (settings.restore.finishedAt ?? '')
+			: ''
+	const restoreSeenKey = restoreFinishedAt
+		? `backup-restore-seen:${restoreFinishedAt}`
+		: ''
+	const restoreAlreadySeen =
+		restoreSeenKey !== '' &&
+		localStorage.getItem(restoreSeenKey) === '1' &&
+		shownRestoreAt !== restoreFinishedAt
+	const showRestoreSuccess =
+		settings?.restore?.status === 'COMPLETED' && !restoreAlreadySeen
+
+	// Mark it seen on first display so the next login does not show it again.
 	useEffect(() => {
-		const status = settings?.restore?.status
+		if (!showRestoreSuccess || !restoreSeenKey) return
 
-		if (previousRestoreStatus.current === 'RUNNING' && status === 'COMPLETED') {
-			showToast({
-				status: 'success',
-				description: t('components.backupSettings.restoreCompleted'),
-			})
-		}
-
-		previousRestoreStatus.current = status
-	}, [settings?.restore?.status, showToast, t])
+		localStorage.setItem(restoreSeenKey, '1')
+		setShownRestoreAt(restoreFinishedAt)
+	}, [showRestoreSuccess, restoreSeenKey, restoreFinishedAt])
 
 	const handleError = (error: unknown, fallbackKey: string) =>
 		showToast({
@@ -221,7 +229,8 @@ const BackupSettings = () => {
 				</Alert>
 			) : null}
 
-			{settings.restore ? (
+			{settings.restore &&
+			(settings.restore.status !== 'COMPLETED' || showRestoreSuccess) ? (
 				<Alert
 					status={
 						settings.restore.status === 'RUNNING'

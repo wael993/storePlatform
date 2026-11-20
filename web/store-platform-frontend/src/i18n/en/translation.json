@@ -1399,7 +1399,6 @@
 			"restoreDone": "Restore finished on {{date}}. Reload the app so every screen shows the restored data.",
 			"restoreFailed": "Restore failed: {{reason}} Your data before the restore is kept in the safety backup.",
 			"reload": "Reload",
-			"restoreCompleted": "Restore completed.",
 			"backupStarted": "Backup started. It appears in the list when finished.",
 			"backupStartFailed": "Backup could not be started.",
 			"restoreStartFailed": "Restore could not be started.",

@@ -1399,7 +1399,6 @@
 			"restoreDone": "Wiederherstellung am {{date}} abgeschlossen. Laden Sie die App neu, damit alle Ansichten die wiederhergestellten Daten zeigen.",
 			"restoreFailed": "Wiederherstellung fehlgeschlagen: {{reason}} Ihre Daten vor der Wiederherstellung liegen im Sicherheits-Backup.",
 			"reload": "Neu laden",
-			"restoreCompleted": "Wiederherstellung abgeschlossen.",
 			"backupStarted": "Backup gestartet. Es erscheint nach Abschluss in der Liste.",
 			"backupStartFailed": "Backup konnte nicht gestartet werden.",
 			"restoreStartFailed": "Wiederherstellung konnte nicht gestartet werden.",

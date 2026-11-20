@@ -38,6 +38,22 @@ export const isAllowedPaymentQrUrl = (url: string) =>
 	ALLOWED_QR_URL.test(url.trim())
 
 const APPROVED_BANNER_MS = 5000
+const RENEWAL_SUCCESS_MS = 7 * 24 * 60 * 60 * 1000
+
+/** First sight of an approval, and only during the week after it. */
+export const shouldShowRenewalSuccess = (
+	reviewedAt: string | null | undefined,
+	nowMs: number,
+	seen: boolean,
+): boolean => {
+	if (seen || !reviewedAt) return false
+
+	const reviewedMs = Date.parse(reviewedAt)
+
+	if (Number.isNaN(reviewedMs)) return false
+
+	return nowMs - reviewedMs <= RENEWAL_SUCCESS_MS
+}
 
 const dismissKey = (tenantId: string, remainingDays: number) =>
 	`subscription-banner:${tenantId}:${remainingDays}`
@@ -176,6 +192,7 @@ const SubscriptionRenewalBanner = () => {
 		useCreateRenewalRequestMutation()
 	const [dismissed, setDismissed] = useState(false)
 	const [dismissedApproved, setDismissedApproved] = useState(false)
+	const [keptApprovalId, setKeptApprovalId] = useState('')
 	const [requestError, setRequestError] = useState('')
 	const modal = useDisclosure()
 	const showToast = useCustomToast()
@@ -191,10 +208,17 @@ const SubscriptionRenewalBanner = () => {
 	const approvedStorageKey = approvedRequest
 		? `subscription-approved:${approvedRequest.requestId}`
 		: ''
+	const approvalSeen =
+		approvedStorageKey !== '' &&
+		localStorage.getItem(approvedStorageKey) === '1' &&
+		keptApprovalId !== approvedRequest?.requestId
 	const showApproved =
-		Boolean(approvedRequest && approvedStorageKey) &&
 		!dismissedApproved &&
-		!localStorage.getItem(approvedStorageKey)
+		shouldShowRenewalSuccess(
+			approvedRequest?.reviewedAt,
+			Date.now(),
+			approvalSeen,
+		)
 	const showExpiry = Boolean(
 		subscription && (subscription.warning || subscription.expired),
 	)
@@ -209,12 +233,22 @@ const SubscriptionRenewalBanner = () => {
 	}
 
 	useEffect(() => {
-		if (!showApproved || pendingRequest) return
+		if (!showApproved || pendingRequest || !approvedStorageKey) return
 
-		const timer = window.setTimeout(hideApproved, APPROVED_BANNER_MS)
+		localStorage.setItem(approvedStorageKey, '1')
+		setKeptApprovalId(approvedRequest?.requestId ?? '')
+		const timer = window.setTimeout(
+			() => setDismissedApproved(true),
+			APPROVED_BANNER_MS,
+		)
 
 		return () => window.clearTimeout(timer)
-	}, [showApproved, pendingRequest, approvedStorageKey])
+	}, [
+		showApproved,
+		pendingRequest,
+		approvedStorageKey,
+		approvedRequest?.requestId,
+	])
 
 	if (
 		!tenantId ||

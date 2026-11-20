@@ -39,12 +39,12 @@ none of them block PG-MIG-3. Each becomes its own ticket. Suggested order = prio
 | # | Smoke row | What happened / what is wrong | Type (bug / missing / UX) | Priority | Fix state |
 | --- | --- | --- | --- | --- | --- |
 | S-4 | 2.5 | Log out of all devices: other browser stays logged in. Likely cause: `logoutAll` deletes refresh tokens but does not bump `tokenVersion` (change password does), so the 15-min access token keeps working | bug (security) | High | fixed 2026-11-17: `logoutAll` bumps `tokenVersion` with the token delete in one transaction (`group4Writes.pg.test.ts`); retest smoke 2.5 after deploy |
-| S-2 | 1.4 | Subscription payment image not displayed correctly. Need: what was shown (broken icon / too small) and the URL type (share link vs direct image) | bug | Medium | open |
-| S-3 | 8.5 | Renewal success message shows on every login (should be first login after renewal, or first week) | bug | Medium | open |
-| S-1 | 1.3 | Allowed pages / offline toggle only apply after logout + login, not after reload; dashboard cannot be removed (confirm intended) | bug / UX | Low | open |
-| S-5 | 3.1 | Same currency twice: not stored, but request is a fetch instead of a POST and no error is shown | bug / UX | Low | open |
-| S-6 | 6.7 | Warehouse transfer delete not found in the app. API has it (`DELETE /inventory/warehouse-transfers/:referenceId`) and the invoice list offers it (`InvoiceTableSection.tsx`) — retest from there; if hard to find, it is UX | retest / UX | Medium | open |
-| S-7 | 6.9 | Daily actions: edit (`QuickEntryModal`) and delete (invoice list, party activity) exist — retest from there. Expenses: edit/delete exist in the API only, no screen uses them | retest / missing UI | Medium | open |
+| S-2 | 1.4 | Subscription payment image not displayed correctly. Need: what was shown (broken icon / too small) and the URL type (share link vs direct image) | bug | Medium | fixed 2026-11-20 |
+| S-3 | 8.5 | Renewal success message shows on every login (should be first login after renewal, or first week) | bug | Medium | fixed 2026-11-20: banner shows once, and only if the approval is less than a week old (`shouldShowRenewalSuccess`). Same once-only rule for the backup restore success banner |
+| S-1 | 1.3 | Allowed pages / offline toggle only apply after logout + login, not after reload; dashboard cannot be removed (confirm intended) | bug / UX | Low | later |
+| S-5 | 3.1 | Same currency twice: not stored, but request is a fetch instead of a POST and no error is shown | bug / UX | Low | later |
+| S-6 | 6.7 | Warehouse transfer delete not found in the app. API has it (`DELETE /inventory/warehouse-transfers/:referenceId`) and the invoice list offers it (`InvoiceTableSection.tsx`) — retest from there; if hard to find, it is UX | retest / UX | Medium | done 2026-11-20 (retested) |
+| S-7 | 6.9 | Daily actions: edit (`QuickEntryModal`) and delete (invoice list, party activity) exist — retest from there. Expenses: edit/delete exist in the API only, no screen uses them | retest / missing UI | Medium | later: expense edit / delete screens to be added in the frontend |
 | S-8 | 8.1 | Refuse a selling invoice when any item has no retail price | missing | Low | roadmap |
 
 ---
