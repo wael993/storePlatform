@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	HttpError,
 	ReportRequestBody,
@@ -29,7 +27,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class ReportRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -75,19 +72,6 @@ export default class ReportRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: ReportHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		logger.info(`(end-to-end): ${Date.now() - this.startTime}ms`)
-	}
-
 	private getRequestContext(request: ReportHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -98,8 +82,6 @@ export default class ReportRoutes {
 		app
 			.route(`${baseRoute}/reports/chat`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postReportChat.bind(this),
 			)
@@ -107,44 +89,23 @@ export default class ReportRoutes {
 		app
 			.route(`${baseRoute}/reports/watch`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getReportWatch.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/reports`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getReports.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postReport.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getReports.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postReport.bind(this))
 
 		app
 			.route(`${baseRoute}/reports/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getReport.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getReport.bind(this))
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchReport.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteReport.bind(this),
 			)
@@ -162,8 +123,6 @@ export default class ReportRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -180,8 +139,6 @@ export default class ReportRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -198,8 +155,6 @@ export default class ReportRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -217,8 +172,6 @@ export default class ReportRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -235,8 +188,6 @@ export default class ReportRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -253,8 +204,6 @@ export default class ReportRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -270,8 +219,6 @@ export default class ReportRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

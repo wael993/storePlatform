@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { buildRequestContext } from '../../shared/buildRequestContext'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -25,7 +23,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class EmployeeRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -71,19 +68,6 @@ export default class EmployeeRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: EmployeeHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		logger.info(`(end-to-end): ${Date.now() - this.startTime}ms`)
-	}
-
 	private getRequestContext(request: EmployeeHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -106,18 +90,12 @@ export default class EmployeeRoutes {
 				response.status(result.status).json(result.body)
 			} catch (error: unknown) {
 				this.handleRouteError(error, 409, response)
-			} finally {
-				this.stopCalc()
 			}
 		}
 	}
 
 	public setRoutes(app: express.Application): void {
-		const guard = [
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
-			this.authorizationValidator.bind(this),
-		]
+		const guard = [this.authorizationValidator.bind(this)]
 
 		app
 			.route(`${this.baseRoute}/employees`)

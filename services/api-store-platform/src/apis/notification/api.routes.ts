@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { buildRequestContext } from '../../shared/buildRequestContext'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -25,7 +23,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class NotificationRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -71,21 +68,6 @@ export default class NotificationRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: NotificationHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: NotificationHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -94,8 +76,6 @@ export default class NotificationRoutes {
 		app
 			.route(`${this.baseRoute}/products/notifications/digest`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getProductNotificationDigest.bind(this),
 			)
@@ -103,8 +83,6 @@ export default class NotificationRoutes {
 		app
 			.route(`${this.baseRoute}/products/notifications/read`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.markProductNotificationsRead.bind(this),
 			)
@@ -112,8 +90,6 @@ export default class NotificationRoutes {
 		app
 			.route(`${this.baseRoute}/products/notifications`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getProductNotifications.bind(this),
 			)
@@ -137,8 +113,6 @@ export default class NotificationRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 500, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -160,8 +134,6 @@ export default class NotificationRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 500, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -180,8 +152,6 @@ export default class NotificationRoutes {
 			response.status(200).json({})
 		} catch (error: unknown) {
 			this.handleRouteError(error, 500, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

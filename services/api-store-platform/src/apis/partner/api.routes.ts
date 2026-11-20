@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	HttpError,
 	PartnerRequestBody,
@@ -29,7 +27,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class PartnerRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -75,21 +72,6 @@ export default class PartnerRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: PartnerHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: PartnerHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -99,39 +81,20 @@ export default class PartnerRoutes {
 
 		app
 			.route(`${baseRoute}/partners`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getPartners.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postPartner.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getPartners.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postPartner.bind(this))
 
 		app
 			.route(`${baseRoute}/partners/bulk-delete`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.bulkDeletePartners.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/partners/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getPartner.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getPartner.bind(this))
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deletePartner.bind(this),
 			)
@@ -149,8 +112,6 @@ export default class PartnerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -170,8 +131,6 @@ export default class PartnerRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -190,8 +149,6 @@ export default class PartnerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -210,8 +167,6 @@ export default class PartnerRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -235,8 +190,6 @@ export default class PartnerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

@@ -2,8 +2,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { buildRequestContext } from '../../shared/buildRequestContext'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -24,7 +22,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class ProductImportRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -70,19 +67,6 @@ export default class ProductImportRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: ImportHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		logger.info(`(end-to-end): ${Date.now() - this.startTime}ms`)
-	}
-
 	private getRequestContext(request: ImportHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -92,36 +76,19 @@ export default class ProductImportRoutes {
 
 		app
 			.route(`${base}/status`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getStatus.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getStatus.bind(this))
 
 		app
 			.route(`${base}/skip`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.skip.bind(this),
-			)
+			.post(this.authorizationValidator.bind(this), this.skip.bind(this))
 
 		app
 			.route(`${base}/parse`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.parse.bind(this),
-			)
+			.post(this.authorizationValidator.bind(this), this.parse.bind(this))
 
 		app
 			.route(`${base}/master-data/prepare`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.prepareMasterData.bind(this),
 			)
@@ -129,29 +96,17 @@ export default class ProductImportRoutes {
 		app
 			.route(`${base}/master-data/confirm`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.confirmMasterData.bind(this),
 			)
 
 		app
 			.route(`${base}/preview`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.preview.bind(this),
-			)
+			.post(this.authorizationValidator.bind(this), this.preview.bind(this))
 
 		app
 			.route(`${base}/commit`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.commit.bind(this),
-			)
+			.post(this.authorizationValidator.bind(this), this.commit.bind(this))
 	}
 
 	private async getStatus(
@@ -166,8 +121,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -180,8 +133,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -198,8 +149,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -217,8 +166,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -236,8 +183,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -256,8 +201,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -275,8 +218,6 @@ export default class ProductImportRoutes {
 			response.status(200).json(result)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

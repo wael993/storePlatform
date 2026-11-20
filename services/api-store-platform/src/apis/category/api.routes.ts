@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	CategoryRequestBody,
 	HttpError,
@@ -29,7 +27,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class CategoryRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -75,21 +72,6 @@ export default class CategoryRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: CategoryHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: CategoryHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -100,14 +82,10 @@ export default class CategoryRoutes {
 		app
 			.route(`${baseRoute}/categories`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCategories.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postCategory.bind(this),
 			)
@@ -115,23 +93,14 @@ export default class CategoryRoutes {
 		app
 			.route(`${baseRoute}/categories/bulk-delete`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.bulkDeleteCategories.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/categories/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCategory.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getCategory.bind(this))
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteCategory.bind(this),
 			)
@@ -149,8 +118,6 @@ export default class CategoryRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -170,8 +137,6 @@ export default class CategoryRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -190,8 +155,6 @@ export default class CategoryRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -210,8 +173,6 @@ export default class CategoryRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -235,8 +196,6 @@ export default class CategoryRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

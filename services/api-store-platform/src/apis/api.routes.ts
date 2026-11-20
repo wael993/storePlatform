@@ -1,8 +1,6 @@
 import express from 'express'
 import ProductController from './api.controller'
 import { PlatformValidator } from './api.validator'
-import logger from '../shared/logger/logger'
-import { logIncomingRequests } from '../shared/middleware'
 import ActivityAuthorization from './api.authorize'
 import { handleError } from '../middleware/errorHandler'
 import {
@@ -78,7 +76,6 @@ const parseStringQueryParam = (value: unknown): string | undefined => {
 }
 
 export default class StoreRoutes extends PlatformValidator {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	private async authorizationValidator(
@@ -101,21 +98,6 @@ export default class StoreRoutes extends PlatformValidator {
 		}
 	}
 
-	private startCalc(
-		_request: any,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: any): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -128,8 +110,6 @@ export default class StoreRoutes extends PlatformValidator {
 		const baseRoute = this.baseRoute
 
 		app.route(`${baseRoute}/products`).get(
-			this.startCalc.bind(this),
-			logIncomingRequests.bind(this),
 			this.authorizationValidator.bind(this),
 			// this.validateGetProducts.bind(this),
 			this.getProducts.bind(this),
@@ -138,8 +118,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/products/catalog`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getProductCatalog.bind(this),
 			)
@@ -147,26 +125,17 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/filter-values`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getFilterValues.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/product`)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postProduct.bind(this),
-			)
+			.post(this.authorizationValidator.bind(this), this.postProduct.bind(this))
 
 		app
 			.route(`${baseRoute}/products/bulk-delete`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.bulkDeleteProducts.bind(this),
 			)
@@ -174,8 +143,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/products/bulk-edit`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.bulkEditProducts.bind(this),
 			)
@@ -183,8 +150,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/products/:id/barcode`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.generateProductBarcode.bind(this),
 			)
@@ -192,36 +157,23 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/products/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				//  this.validateGetProducts.bind(this),
 				this.getProduct.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchProduct.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteProduct.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/inventory`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getInventory.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getInventory.bind(this))
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postInventory.bind(this),
 			)
@@ -229,8 +181,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/inventory/warehouse-transfer`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postWarehouseTransfer.bind(this),
 			)
@@ -238,8 +188,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/inventory/warehouse-transfers`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getWarehouseTransfers.bind(this),
 			)
@@ -247,20 +195,14 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/inventory/warehouse-transfers/:referenceId`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getWarehouseTransfer.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchWarehouseTransfer.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteWarehouseTransfer.bind(this),
 			)
@@ -268,14 +210,10 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/inventory/by-product/:productId`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getInventoryByProduct.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchInventoryByProduct.bind(this),
 			)
@@ -283,20 +221,14 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/inventory/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getInventoryItem.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchInventory.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteInventory.bind(this),
 			)
@@ -304,21 +236,15 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/daily-actions`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getDailyActions.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.validatePostDailyAction.bind(this),
 				this.postDailyAction.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.validateDeleteDailyAction.bind(this),
 				this.deleteDailyAction.bind(this),
@@ -327,8 +253,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/daily-actions/filter-values`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getDailyActionFilterValues.bind(this),
 			)
@@ -336,8 +260,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/daily-actions/excel`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getDailyActionsExcel.bind(this),
 			)
@@ -345,20 +267,14 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/daily-actions/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getDailyAction.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchDailyAction.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.validateDeleteDailyAction.bind(this),
 				this.deleteDailyAction.bind(this),
@@ -367,8 +283,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/user/:id/frontend-resources`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getUserFrontendResources.bind(this),
 			)
@@ -376,40 +290,26 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/users/me/password`)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.changePassword.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/login`)
-			.post(
-				loginRateLimiter,
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.login.bind(this),
-			)
+			.post(loginRateLimiter, this.login.bind(this))
 
 		app.route(`${baseRoute}/refresh`).post(
 			// refreshRateLimiter,
-			this.startCalc.bind(this),
 			this.refreshToken.bind(this),
 		)
 
-		app
-			.route(`${baseRoute}/logout`)
-			.post(this.startCalc.bind(this), this.logout.bind(this))
+		app.route(`${baseRoute}/logout`).post(this.logout.bind(this))
 
-		app
-			.route(`${baseRoute}/logout-all`)
-			.post(this.startCalc.bind(this), this.logoutAll.bind(this))
+		app.route(`${baseRoute}/logout-all`).post(this.logoutAll.bind(this))
 
 		app
 			.route(`${baseRoute}/sync/bootstrap`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getSyncBootstrap.bind(this),
 			)
@@ -417,8 +317,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/sync/changes`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getSyncChanges.bind(this),
 			)
@@ -426,8 +324,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/sync/push`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.pushSyncChanges.bind(this),
 			)
@@ -438,36 +334,17 @@ export default class StoreRoutes extends PlatformValidator {
 
 		app
 			.route(`${baseRoute}/expenses`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getExpenses.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postExpense.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getExpenses.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postExpense.bind(this))
 
 		app
 			.route(`${baseRoute}/expenses/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getExpense.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getExpense.bind(this))
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchExpense.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteExpense.bind(this),
 			)
@@ -475,8 +352,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/cash-accounts/balances`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCashAccountBalances.bind(this),
 			)
@@ -484,8 +359,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/cash-accounts/ledger`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCashAccountLedger.bind(this),
 			)
@@ -493,8 +366,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/cash-accounts/transfers`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postCashTransfer.bind(this),
 			)
@@ -502,8 +373,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/cash-accounts/exchanges`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postCashExchange.bind(this),
 			)
@@ -511,8 +380,6 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/budget-overview/:entityType/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.validateBudgetOverview.bind(this),
 				this.getBudgetOverview.bind(this),
@@ -521,104 +388,51 @@ export default class StoreRoutes extends PlatformValidator {
 		app
 			.route(`${baseRoute}/currencies`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCurrencies.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postCurrency.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/units`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getUnits.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postUnit.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getUnits.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postUnit.bind(this))
 
 		app
 			.route(`${baseRoute}/brands`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getBrands.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postBrand.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getBrands.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postBrand.bind(this))
 
 		app
 			.route(`${baseRoute}/brands/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getBrand.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getBrand.bind(this))
 
 		app
 			.route(`${baseRoute}/shelves`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getShelves.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postShelf.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getShelves.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postShelf.bind(this))
 
 		app
 			.route(`${baseRoute}/shelves/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getShelf.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getShelf.bind(this))
 
 		app
 			.route(`${baseRoute}/warehouses`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getWarehouses.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postWarehouse.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/warehouses/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getWarehouse.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getWarehouse.bind(this))
 	}
 
 	private async getDailyActionsExcel(
@@ -654,8 +468,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.attachment(filename).send(workbookBuffer)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -693,8 +505,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(responseData)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 400, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -712,8 +522,6 @@ export default class StoreRoutes extends PlatformValidator {
 		} catch (error: any) {
 			this.clearRefreshTokenCookie(response)
 			handleError(error, 401, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -727,8 +535,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 500, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -743,8 +549,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(result)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 401, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -779,8 +583,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -804,8 +606,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -825,8 +625,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -843,8 +641,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -860,8 +656,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -881,8 +675,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -901,8 +693,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -922,8 +712,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -942,8 +730,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -960,8 +746,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -989,8 +773,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1009,8 +791,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1029,8 +809,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1052,8 +830,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1069,8 +845,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1090,8 +864,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1107,8 +879,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1128,8 +898,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1149,8 +917,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1166,8 +932,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1186,8 +950,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1207,8 +969,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1228,8 +988,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1245,8 +1003,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1265,8 +1021,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1282,8 +1036,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1302,8 +1054,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1324,8 +1074,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1347,8 +1095,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1367,8 +1113,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1387,8 +1131,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1412,8 +1154,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(result)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1432,8 +1172,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(result)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1449,8 +1187,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1469,8 +1205,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1490,8 +1224,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1510,8 +1242,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1533,8 +1263,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1553,8 +1281,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1574,8 +1300,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1594,8 +1318,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1614,8 +1336,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json({ data: resp })
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1635,8 +1355,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1656,8 +1374,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1676,8 +1392,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1708,8 +1422,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1726,8 +1438,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1746,8 +1456,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1767,8 +1475,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(201).json(resp)
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1788,8 +1494,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1807,8 +1511,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1827,8 +1529,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1844,8 +1544,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(204).send()
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1861,8 +1559,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1898,8 +1594,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -1918,8 +1612,6 @@ export default class StoreRoutes extends PlatformValidator {
 			response.status(200).json(resp)
 		} catch (error: any) {
 			handleError(error, error.httpStatus || 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

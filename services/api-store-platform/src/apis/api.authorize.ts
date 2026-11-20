@@ -24,8 +24,6 @@ export default class ActivityAuthorization {
 		response: express.Response,
 		next: express.NextFunction,
 	): Promise<void> {
-		const startTime = Date.now()
-
 		try {
 			const token = request.headers['authorization']?.split(' ')[1]
 
@@ -133,10 +131,6 @@ export default class ActivityAuthorization {
 			}
 
 			response.status(500).json({ message: 'Authorization error', error })
-		} finally {
-			const endTime = Date.now()
-
-			console.log(`Authorization took ${endTime - startTime}ms`)
 		}
 	}
 }

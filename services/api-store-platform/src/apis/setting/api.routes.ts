@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { ERROR_CODES } from '../../shared/errorCodes'
 import SettingController, {
@@ -26,7 +24,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class SettingRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -77,21 +74,6 @@ export default class SettingRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: SettingHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: SettingHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -102,14 +84,10 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/user-settings`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getUserSettings.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchUserSettings.bind(this),
 			)
@@ -117,14 +95,10 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/currency-settings`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getCurrencySettings.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchCurrencySettings.bind(this),
 			)
@@ -132,14 +106,10 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/invoice-settings`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getInvoiceSettings.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchInvoiceSettings.bind(this),
 			)
@@ -147,14 +117,10 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/label-templates`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getLabelTemplates.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.createLabelTemplate.bind(this),
 			)
@@ -162,8 +128,6 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/label-templates/:templateId/duplicate`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.duplicateLabelTemplate.bind(this),
 			)
@@ -171,8 +135,6 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/label-templates/:templateId/default`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.setDefaultLabelTemplate.bind(this),
 			)
@@ -180,14 +142,10 @@ export default class SettingRoutes {
 		app
 			.route(`${baseRoute}/label-templates/:templateId`)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchLabelTemplate.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteLabelTemplate.bind(this),
 			)
@@ -201,8 +159,6 @@ export default class SettingRoutes {
 			await this.settingController.getUserSettings(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -214,8 +170,6 @@ export default class SettingRoutes {
 			await this.settingController.patchUserSettings(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -227,8 +181,6 @@ export default class SettingRoutes {
 			await this.settingController.getCurrencySettings(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -240,8 +192,6 @@ export default class SettingRoutes {
 			await this.settingController.patchCurrencySettings(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -253,8 +203,6 @@ export default class SettingRoutes {
 			await this.settingController.getInvoiceSettings(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -266,8 +214,6 @@ export default class SettingRoutes {
 			await this.settingController.patchInvoiceSettings(request, response)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -284,8 +230,6 @@ export default class SettingRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -305,8 +249,6 @@ export default class SettingRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -327,8 +269,6 @@ export default class SettingRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -348,8 +288,6 @@ export default class SettingRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -369,8 +307,6 @@ export default class SettingRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -390,8 +326,6 @@ export default class SettingRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

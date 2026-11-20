@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	CustomerRequestBody,
 	HttpError,
@@ -29,7 +27,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	typeof error === 'object' && error !== null && 'message' in error
 
 export default class CustomerRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -75,21 +72,6 @@ export default class CustomerRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: CustomerHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: CustomerHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -99,15 +81,8 @@ export default class CustomerRoutes {
 
 		app
 			.route(`${baseRoute}/customers`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCustomers.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getCustomers.bind(this))
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postCustomer.bind(this),
 			)
@@ -115,29 +90,18 @@ export default class CustomerRoutes {
 		app
 			.route(`${baseRoute}/customers/bulk-delete`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.bulkDeleteCustomers.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/customers/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getCustomer.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getCustomer.bind(this))
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchOpeningBalance.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteCustomer.bind(this),
 			)
@@ -155,8 +119,6 @@ export default class CustomerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -176,8 +138,6 @@ export default class CustomerRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -196,8 +156,6 @@ export default class CustomerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -217,8 +175,6 @@ export default class CustomerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -237,8 +193,6 @@ export default class CustomerRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -262,8 +216,6 @@ export default class CustomerRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

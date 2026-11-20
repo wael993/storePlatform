@@ -20,13 +20,19 @@ if (config.redis.enabled) {
 	)
 }
 
+let lastCacheMetrics = ''
 const cacheMetricsInterval = setInterval(() => {
 	const stats = redisCache.getStats()
+	const line = `Cache ${stats.ready ? 'ready' : 'NOT ready'}: ${stats.hits} hits, ${stats.misses} misses, ${stats.sets} sets, ${stats.dels} deletes, ${stats.errors} errors`
 
-	logger.info(
-		`[cache-metrics] ready=${stats.ready} hits=${stats.hits} misses=${stats.misses} sets=${stats.sets} dels=${stats.dels} errors=${stats.errors}`,
-		{ entity: EntityType.STORAGE },
-	)
+	// counters are cumulative: an unchanged line means no cache traffic, skip it
+	if (line === lastCacheMetrics) return
+
+	lastCacheMetrics = line
+
+	logger.log(stats.ready && !stats.errors ? 'info' : 'warn', line, {
+		entity: EntityType.STORAGE,
+	})
 }, 60_000)
 
 cacheMetricsInterval.unref()

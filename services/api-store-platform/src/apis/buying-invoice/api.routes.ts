@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	BuyingInvoiceRequestBody,
 	BuyingInvoicesQueryParams,
@@ -33,7 +31,6 @@ const queryString = (value: unknown): string | undefined =>
 	typeof value === 'string' ? value : undefined
 
 export default class BuyingInvoiceRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -79,21 +76,6 @@ export default class BuyingInvoiceRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: BuyingInvoiceHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: BuyingInvoiceHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -104,14 +86,10 @@ export default class BuyingInvoiceRoutes {
 		app
 			.route(`${baseRoute}/buying-invoices`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getBuyingInvoices.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.postBuyingInvoice.bind(this),
 			)
@@ -119,8 +97,6 @@ export default class BuyingInvoiceRoutes {
 		app
 			.route(`${baseRoute}/buying-invoices/extract`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.extractBuyingInvoice.bind(this),
 			)
@@ -128,8 +104,6 @@ export default class BuyingInvoiceRoutes {
 		app
 			.route(`${baseRoute}/buying-invoices/invoice-ai-usage`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getInvoiceAiUsage.bind(this),
 			)
@@ -137,8 +111,6 @@ export default class BuyingInvoiceRoutes {
 		app
 			.route(`${baseRoute}/buying-invoices/confirm-match`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.confirmBuyingInvoiceMatch.bind(this),
 			)
@@ -146,20 +118,14 @@ export default class BuyingInvoiceRoutes {
 		app
 			.route(`${baseRoute}/buying-invoices/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getBuyingInvoice.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchBuyingInvoice.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteBuyingInvoice.bind(this),
 			)
@@ -186,8 +152,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -206,8 +170,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -227,8 +189,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -248,8 +208,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -268,8 +226,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -286,8 +242,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -306,8 +260,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -326,8 +278,6 @@ export default class BuyingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

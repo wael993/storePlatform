@@ -3,7 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { buildRequestContext } from '../../shared/buildRequestContext'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -78,7 +77,6 @@ export default class BackupRoutes {
 		) => unknown | Promise<unknown>,
 	): express.RequestHandler[] {
 		return [
-			logIncomingRequests.bind(this),
 			this.authorizationValidator.bind(this),
 			async (request: BackupHttpRequest, response: express.Response) => {
 				try {

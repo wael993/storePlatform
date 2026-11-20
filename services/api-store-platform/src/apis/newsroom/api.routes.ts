@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import { HttpError, RequestContext } from '../../shared/types'
 import { buildRequestContext } from '../../shared/buildRequestContext'
 import { ERROR_CODES } from '../../shared/errorCodes'
@@ -29,7 +27,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	'errorCode' in error
 
 export default class NewsroomRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -77,19 +74,6 @@ export default class NewsroomRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: NewsroomHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		logger.info(`(end-to-end): ${Date.now() - this.startTime}ms`)
-	}
-
 	private getRequestContext(request: NewsroomHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -101,30 +85,16 @@ export default class NewsroomRoutes {
 
 		app
 			.route(topicsRoute)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.listTopics.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.createTopic.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.listTopics.bind(this))
+			.post(this.authorizationValidator.bind(this), this.createTopic.bind(this))
 
 		app
 			.route(`${topicsRoute}/:id`)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.updateTopic.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteTopic.bind(this),
 			)
@@ -132,8 +102,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${this.baseRoute}/newsroom/unread-count`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.unreadNewsroomCount.bind(this),
 			)
@@ -141,8 +109,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${this.baseRoute}/newsroom/visit`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.visitNewsroom.bind(this),
 			)
@@ -150,8 +116,6 @@ export default class NewsroomRoutes {
 		app
 			.route(feedRoute)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.listPublicFeed.bind(this),
 			)
@@ -159,8 +123,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${feedRoute}/:id/pin`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.pinPublicFeedItem.bind(this),
 			)
@@ -168,8 +130,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${feedRoute}/:id/unpin`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.unpinPublicFeedItem.bind(this),
 			)
@@ -177,8 +137,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${feedRoute}/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getPublicFeedItem.bind(this),
 			)
@@ -186,14 +144,10 @@ export default class NewsroomRoutes {
 		app
 			.route(notesRoute)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.listReleaseNotes.bind(this),
 			)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.createReleaseNote.bind(this),
 			)
@@ -201,8 +155,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${notesRoute}/:id/publish`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.publishReleaseNote.bind(this),
 			)
@@ -210,8 +162,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${notesRoute}/:id/unpublish`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.unpublishReleaseNote.bind(this),
 			)
@@ -219,8 +169,6 @@ export default class NewsroomRoutes {
 		app
 			.route(`${notesRoute}/:id/duplicate`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.duplicateReleaseNote.bind(this),
 			)
@@ -228,20 +176,14 @@ export default class NewsroomRoutes {
 		app
 			.route(`${notesRoute}/:id`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getReleaseNote.bind(this),
 			)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.updateReleaseNote.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteReleaseNote.bind(this),
 			)
@@ -259,8 +201,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -277,8 +217,6 @@ export default class NewsroomRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -296,8 +234,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -314,8 +250,6 @@ export default class NewsroomRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -332,8 +266,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -350,8 +282,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -368,8 +298,6 @@ export default class NewsroomRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -387,8 +315,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -405,8 +331,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -423,8 +347,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -441,8 +363,6 @@ export default class NewsroomRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -459,8 +379,6 @@ export default class NewsroomRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -477,8 +395,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -495,8 +411,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -514,8 +428,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -533,8 +445,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -550,8 +460,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -567,8 +475,6 @@ export default class NewsroomRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

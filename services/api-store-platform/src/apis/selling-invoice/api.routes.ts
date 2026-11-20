@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	HttpError,
 	InvoiceRequestBody,
@@ -33,7 +31,6 @@ const queryString = (value: unknown): string | undefined =>
 	typeof value === 'string' ? value : undefined
 
 export default class SellingInvoiceRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -79,21 +76,6 @@ export default class SellingInvoiceRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: SellingInvoiceHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(
 		request: SellingInvoiceHttpRequest,
 	): RequestContext {
@@ -105,36 +87,17 @@ export default class SellingInvoiceRoutes {
 
 		app
 			.route(`${baseRoute}/selling-invoices`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getInvoices.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.postInvoice.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getInvoices.bind(this))
+			.post(this.authorizationValidator.bind(this), this.postInvoice.bind(this))
 
 		app
 			.route(`${baseRoute}/selling-invoices/:id`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getInvoice.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getInvoice.bind(this))
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchInvoice.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteInvoice.bind(this),
 			)
@@ -165,8 +128,6 @@ export default class SellingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -185,8 +146,6 @@ export default class SellingInvoiceRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -206,8 +165,6 @@ export default class SellingInvoiceRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -227,8 +184,6 @@ export default class SellingInvoiceRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -247,8 +202,6 @@ export default class SellingInvoiceRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }

@@ -37,7 +37,7 @@ import BackupRoutes from './apis/backup/api.routes'
 import MongodbController from './shared/mongodb/mongodbController'
 import { bumpTenantDataVersion } from './shared/backup/dataVersion'
 import ProductsMapper from './apis/mappings/ProductsMapper'
-// import { requestLogger } from './middleware/middleware'
+import { requestLogger } from './middleware/middleware'
 
 export const createApp = () => {
 	const mongoDbClient = new MongodbController()
@@ -178,8 +178,7 @@ export const createApp = () => {
 	app.use(cookieParser())
 	app.use(bumpTenantDataVersion)
 
-	//TODO: improve this middleware to see the logger better in the requestLogger
-	// app.use(requestLogger)
+	app.use(requestLogger)
 
 	app.use(
 		cors({

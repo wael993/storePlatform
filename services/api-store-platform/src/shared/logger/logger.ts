@@ -1,36 +1,25 @@
 import { createLogger, format, transports } from 'winston'
 import { config } from '../../config/config'
-import { tracer } from 'dd-trace'
 import { TransformableInfo } from 'logform'
 
 const { combine, timestamp, printf } = format
 
+// one readable line per entry: "2026-11-20 08:53:58 INFO  [STORAGE] (E123) message"
 const printFn = printf((info: TransformableInfo) => {
 	const { level, message, errorCode, timestamp: logTimestamp, entity } = info
 
-	if (config.environment === 'dev') {
-		return `[${level}][${logTimestamp}][${errorCode ? `${errorCode}` : ''}]${
-			entity ? `[${entity}]` : ''
-		} ${message}`
-	}
-
-	const span = tracer.scope().active()
-	const traceId = span ? span.context().toTraceId() : '0'
-	const spanId = span ? span.context().toSpanId() : '0'
-
-	return JSON.stringify({
-		timestamp: logTimestamp,
-		level,
-		errorCode,
+	return [
+		logTimestamp,
+		level.toUpperCase().padEnd(5),
+		entity ? `[${entity}]` : '',
+		errorCode ? `(${errorCode})` : '',
 		message,
-		dd: {
-			trace_id: traceId,
-			span_id: spanId,
-		},
-	})
+	]
+		.filter(Boolean)
+		.join(' ')
 })
 const logFormat = combine(
-	timestamp(),
+	timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
 	printFn,
 	config.environment === 'dev' ? format.colorize() : format.uncolorize(),
 )

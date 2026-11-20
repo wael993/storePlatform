@@ -3,8 +3,6 @@ import express from 'express'
 import ProductController from '../api.controller'
 import ActivityAuthorization from '../api.authorize'
 import { handleError } from '../../middleware/errorHandler'
-import logger from '../../shared/logger/logger'
-import { logIncomingRequests } from '../../shared/middleware'
 import {
 	AddTenantRequestBody,
 	HttpError,
@@ -36,7 +34,6 @@ const isHandleableError = (error: unknown): error is HttpError =>
 	'errorCode' in error
 
 export default class TenantRoutes {
-	private startTime = 0
 	private readonly baseRoute = '/api/data'
 
 	public constructor(
@@ -87,21 +84,6 @@ export default class TenantRoutes {
 		)
 	}
 
-	private startCalc(
-		_request: TenantHttpRequest,
-		_: express.Response,
-		next: express.NextFunction,
-	) {
-		this.startTime = Date.now()
-		next()
-	}
-
-	private stopCalc(): void {
-		const duration = Date.now() - this.startTime
-
-		logger.info(`(end-to-end): ${duration}ms`)
-	}
-
 	private getRequestContext(request: TenantHttpRequest): RequestContext {
 		return buildRequestContext(request)
 	}
@@ -112,8 +94,6 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/users`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getTenantUsers.bind(this),
 			)
@@ -121,8 +101,6 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/users/invite`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.inviteTenantUser.bind(this),
 			)
@@ -130,14 +108,10 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/users/:id`)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchTenantUser.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteTenantUser.bind(this),
 			)
@@ -145,32 +119,18 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/role-permissions/catalog`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getRoleSeeCatalog.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/role-permissions/:role`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getRoleSee.bind(this),
-			)
-			.put(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.putRoleSee.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getRoleSee.bind(this))
+			.put(this.authorizationValidator.bind(this), this.putRoleSee.bind(this))
 
 		app
 			.route(`${baseRoute}/subscription`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getOwnSubscription.bind(this),
 			)
@@ -178,8 +138,6 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/subscription/payment-info`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getSubscriptionPaymentInfo.bind(this),
 			)
@@ -187,8 +145,6 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/subscription/renewal-requests`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.createOwnRenewalRequest.bind(this),
 			)
@@ -196,14 +152,10 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/tenants/subscription-payment`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.getSubscriptionPaymentSettings.bind(this),
 			)
 			.put(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.saveSubscriptionPaymentSettings.bind(this),
 			)
@@ -211,8 +163,6 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/tenants/renewal-requests`)
 			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.listRenewalRequests.bind(this),
 			)
@@ -220,8 +170,6 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/tenants/renewal-requests/:id/approve`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.approveTenantRenewalRequest.bind(this),
 			)
@@ -229,38 +177,22 @@ export default class TenantRoutes {
 		app
 			.route(`${baseRoute}/tenants/renewal-requests/:id/reject`)
 			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.rejectTenantRenewalRequest.bind(this),
 			)
 
 		app
 			.route(`${baseRoute}/tenants`)
-			.get(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.getTenants.bind(this),
-			)
-			.post(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
-				this.authorizationValidator.bind(this),
-				this.addTenant.bind(this),
-			)
+			.get(this.authorizationValidator.bind(this), this.getTenants.bind(this))
+			.post(this.authorizationValidator.bind(this), this.addTenant.bind(this))
 
 		app
 			.route(`${baseRoute}/tenants/:id`)
 			.patch(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.patchTenant.bind(this),
 			)
 			.delete(
-				this.startCalc.bind(this),
-				logIncomingRequests.bind(this),
 				this.authorizationValidator.bind(this),
 				this.deleteTenant.bind(this),
 			)
@@ -278,8 +210,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -299,8 +229,6 @@ export default class TenantRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -321,8 +249,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -341,8 +267,6 @@ export default class TenantRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -358,8 +282,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -379,8 +301,6 @@ export default class TenantRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 409, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -397,8 +317,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -415,8 +333,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -433,8 +349,6 @@ export default class TenantRoutes {
 			response.status(201).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -451,8 +365,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -471,8 +383,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -494,8 +404,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -514,8 +422,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -534,8 +440,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -551,8 +455,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -571,8 +473,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -592,8 +492,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 403, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -615,8 +513,6 @@ export default class TenantRoutes {
 			response.status(200).json(resp)
 		} catch (error: unknown) {
 			this.handleRouteError(error, 400, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 
@@ -632,8 +528,6 @@ export default class TenantRoutes {
 			response.status(204).send()
 		} catch (error: unknown) {
 			this.handleRouteError(error, 400, response)
-		} finally {
-			this.stopCalc()
 		}
 	}
 }
