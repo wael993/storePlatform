@@ -14,17 +14,11 @@ export {
 } from './connectivity'
 export {
 	getWorkMode,
-	getWorkModePreference,
-	isAutoWorkMode,
 	setWorkMode,
-	setWorkModePreference,
 	loadWorkMode,
-	loadWorkModePreference,
 	subscribeWorkMode,
-	subscribeWorkModePreference,
 	resetWorkMode,
 	type WorkMode,
-	type WorkModePreference,
 } from './workMode'
 export {
 	applyBootstrapPayload,
@@ -44,7 +38,6 @@ export {
 	syncNow,
 	runFullSync,
 	maybeRefreshOfflineData,
-	alignAutoWorkModeOnSessionStart,
 	startPeriodicBootstrapRefresh,
 	initOfflineState,
 	onReconnect,

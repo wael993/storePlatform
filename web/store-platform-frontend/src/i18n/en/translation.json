@@ -1141,7 +1141,7 @@
 		},
 		"workModeSettings": {
 			"title": "Work Mode",
-			"description": "Choose whether the app uses the server or local offline data. Automatic mode switches based on your internet connection.",
+			"description": "Choose whether the app uses the server or local offline data.",
 			"online": "Online — use live server data",
 			"offline": "Offline — work from local data",
 			"notAvailable": "Offline mode is not enabled for this tenant.",

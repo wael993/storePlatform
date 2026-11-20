@@ -173,14 +173,18 @@ const tryServeOfflineQuery = async (
 
 const shouldFallbackToOffline = (
 	error: FetchBaseQueryError | undefined,
+	method: string,
 ): boolean => {
 	if (!error) return false
+	if (error.status === 'FETCH_ERROR') return true
 
-	if (error.status === 'FETCH_ERROR' || error.status === 'PARSING_ERROR') {
-		return true
-	}
+	// A write that hit a server error must fail: saving it locally while still online hides it from server reads.
+	if (method !== 'GET') return false
 
-	return typeof error.status === 'number' && error.status >= 500
+	return (
+		error.status === 'PARSING_ERROR' ||
+		(typeof error.status === 'number' && error.status >= 500)
+	)
 }
 
 const baseQueryWithReauth: BaseQueryFn<
@@ -219,11 +223,14 @@ const baseQueryWithReauth: BaseQueryFn<
 
 			result = await baseQuery(args, api, extraOptions)
 		} else if (canServeOffline) {
-			const localResult = await tryServeOfflineQuery(
-				args,
-				api.getState() as RootState,
-			)
-			if (localResult) return localResult
+			// A write returns the 401: saving it locally while still online hides it from server reads.
+			if (getRequestMethod(args) === 'GET') {
+				const localResult = await tryServeOfflineQuery(
+					args,
+					api.getState() as RootState,
+				)
+				if (localResult) return localResult
+			}
 		} else {
 			api.dispatch(logout())
 		}
@@ -232,7 +239,7 @@ const baseQueryWithReauth: BaseQueryFn<
 	return result
 }
 
-const baseQueryWithOffline: BaseQueryFn<
+export const baseQueryWithOffline: BaseQueryFn<
 	string | FetchArgs,
 	unknown,
 	FetchBaseQueryError
@@ -278,8 +285,9 @@ const baseQueryWithOffline: BaseQueryFn<
 
 	const result = await baseQueryWithReauth(args, api, extraOptions)
 
-	if (shouldFallbackToOffline(result.error) && canServeOffline) {
-		setOnlineFromFetchResult(true)
+	if (shouldFallbackToOffline(result.error, method) && canServeOffline) {
+		// Only a real network failure means "offline"; a 500 or bad body must not stick the session on local data.
+		if (result.error?.status === 'FETCH_ERROR') setOnlineFromFetchResult(true)
 		const localResult = await tryServeOfflineQuery(args, state)
 		if (localResult) return localResult
 	}

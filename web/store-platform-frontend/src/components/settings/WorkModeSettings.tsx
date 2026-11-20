@@ -18,12 +18,12 @@ import { useWorkMode } from '../../shared/hooks/useWorkMode'
 const WorkModeSettings = () => {
 	const { t } = useTranslation()
 	const {
-		workModePreference,
+		workMode,
 		offlineEnabled,
 		isSwitching,
 		switchError,
 		syncState,
-		switchWorkModePreference,
+		switchWorkMode,
 	} = useWorkMode()
 
 	if (!offlineEnabled) {
@@ -35,10 +35,8 @@ const WorkModeSettings = () => {
 	}
 
 	const handleWorkModeChange = async (value: string) => {
-		const nextPreference =
-			value === 'offline' ? 'offline' : value === 'auto' ? 'auto' : 'online'
 		try {
-			await switchWorkModePreference(nextPreference)
+			await switchWorkMode(value === 'offline' ? 'offline' : 'online')
 		} catch {
 			// Error shown via switchError
 		}
@@ -61,7 +59,7 @@ const WorkModeSettings = () => {
 					{t('components.workModeSettings.description')}
 				</Text>
 				<RadioGroup
-					value={workModePreference}
+					value={workMode}
 					onChange={handleWorkModeChange}
 					isDisabled={isSwitching}
 				>
@@ -72,7 +70,6 @@ const WorkModeSettings = () => {
 						<Radio value="offline">
 							{t('components.workModeSettings.offline')}
 						</Radio>
-						{/* <Radio value="auto">{t('components.workModeSettings.auto')}</Radio> */}
 					</Stack>
 				</RadioGroup>
 			</FormControl>

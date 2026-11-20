@@ -1,24 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import {
-	bootstrapOfflineData,
 	enterOfflineWorkMode,
 	exitOfflineWorkMode,
 	getOfflineState,
-	initOfflineState,
 	subscribeOfflineState,
 } from '../../offline/syncService'
-import { getIsNetworkOnline } from '../../offline/connectivity'
 import {
 	getWorkMode,
-	getWorkModePreference,
-	loadWorkModePreference,
-	setWorkMode,
-	setWorkModePreference,
+	loadWorkMode,
 	subscribeWorkMode,
-	subscribeWorkModePreference,
 	type WorkMode,
-	type WorkModePreference,
 } from '../../offline/workMode'
 import { isOfflineEnabledForTenant } from '../../offline/offlineTenantAccess'
 import { useUser } from './useUser'
@@ -28,20 +20,15 @@ export const useWorkMode = () => {
 	const tenantId = user?.tenantId
 	const offlineEnabled = isOfflineEnabledForTenant(tenantId)
 
-	const [workModePreference, setWorkModePreferenceState] =
-		useState<WorkModePreference>(() => getWorkModePreference())
 	const [workMode, setWorkModeState] = useState<WorkMode>(() => getWorkMode())
 	const [isSwitching, setIsSwitching] = useState(false)
 	const [switchError, setSwitchError] = useState<string | null>(null)
 	const [syncState, setSyncState] = useState(getOfflineState().syncState)
 
 	useEffect(() => {
-		void loadWorkModePreference().then(preference =>
-			setWorkModePreferenceState(preference),
-		)
+		void loadWorkMode().then(setWorkModeState)
 	}, [tenantId])
 
-	useEffect(() => subscribeWorkModePreference(setWorkModePreferenceState), [])
 	useEffect(() => subscribeWorkMode(setWorkModeState), [])
 
 	useEffect(
@@ -54,36 +41,22 @@ export const useWorkMode = () => {
 		[],
 	)
 
-	const switchWorkModePreference = useCallback(
-		async (nextPreference: WorkModePreference) => {
-			if (
-				!tenantId ||
-				!offlineEnabled ||
-				nextPreference === workModePreference
-			) {
+	const switchWorkMode = useCallback(
+		async (nextMode: WorkMode) => {
+			if (!tenantId || !offlineEnabled || nextMode === workMode) {
 				return
 			}
 
 			setIsSwitching(true)
 			setSwitchError(null)
 
-			const previousPreference = workModePreference
-
 			try {
-				if (nextPreference === 'auto') {
-					await bootstrapOfflineData(tenantId)
-					await setWorkMode(getIsNetworkOnline() ? 'online' : 'offline')
-					await initOfflineState(tenantId)
-					await setWorkModePreference('auto')
-				} else if (nextPreference === 'offline') {
+				if (nextMode === 'offline') {
 					await enterOfflineWorkMode(tenantId)
-					await setWorkModePreference('offline')
 				} else {
 					await exitOfflineWorkMode(tenantId)
-					await setWorkModePreference('online')
 				}
 			} catch (error) {
-				await setWorkModePreference(previousPreference)
 				const message =
 					error instanceof Error ? error.message : 'Failed to switch work mode'
 				setSwitchError(message)
@@ -92,16 +65,15 @@ export const useWorkMode = () => {
 				setIsSwitching(false)
 			}
 		},
-		[tenantId, offlineEnabled, workModePreference],
+		[tenantId, offlineEnabled, workMode],
 	)
 
 	return {
 		workMode,
-		workModePreference,
 		offlineEnabled,
 		isSwitching,
 		switchError,
 		syncState,
-		switchWorkModePreference,
+		switchWorkMode,
 	}
 }

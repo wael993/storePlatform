@@ -9,7 +9,6 @@ import {
 	initOfflineState,
 	subscribeOfflineState,
 	runFullSync,
-	alignAutoWorkModeOnSessionStart,
 	startPeriodicBootstrapRefresh,
 	clearSyncPushResult,
 } from '../../offline/syncService'
@@ -20,7 +19,6 @@ import {
 } from '../../offline/localStore'
 import { getSyncMeta, SYNC_META_KEYS } from '../../offline/db'
 import type { OfflineState } from '../../offline/types'
-import { useSyncPushNotifications } from './useSyncPushNotifications'
 import {
 	isOfflineEnabledForTenant,
 	loadTenantOfflineConfig,
@@ -38,11 +36,6 @@ export const useOfflineSync = (tenantId?: string) => {
 	const [configLoaded, setConfigLoaded] = useState(false)
 	const [state, setState] = useState<OfflineState>(getOfflineState())
 	const [conflicts, setConflicts] = useState<string[]>([])
-
-	useSyncPushNotifications({
-		syncState: state.syncState,
-		syncPushResult: state.syncPushResult,
-	})
 
 	useEffect(() => {
 		if (!tenantId) {
@@ -75,9 +68,6 @@ export const useOfflineSync = (tenantId?: string) => {
 			}
 
 			await initOfflineState(tenantId)
-			if (cancelled) return
-
-			await alignAutoWorkModeOnSessionStart(tenantId)
 			if (cancelled) return
 
 			setConfigLoaded(true)
@@ -171,7 +161,7 @@ export const useOfflineSync = (tenantId?: string) => {
 		try {
 			await runFullSync(tenantId)
 		} catch {
-			// Notifications handled by useSyncPushNotifications
+			// Result shown by OfflineSyncBanner
 		}
 
 		const { syncPushResult } = getOfflineState()

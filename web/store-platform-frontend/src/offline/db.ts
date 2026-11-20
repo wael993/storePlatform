@@ -144,7 +144,6 @@ export const SYNC_META_KEYS = {
 	invoiceSettings: 'invoiceSettings',
 	offlineRetentionDays: 'offlineRetentionDays',
 	workMode: 'workMode',
-	workModePreference: 'workModePreference',
 	catalogLastSyncedAt: 'catalogLastSyncedAt',
 	catalogScope: 'catalogScope',
 	productNotifications: 'productNotifications',

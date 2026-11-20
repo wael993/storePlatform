@@ -1141,7 +1141,7 @@
 		},
 		"workModeSettings": {
 			"title": "Arbeitsmodus",
-			"description": "Wählen Sie, ob die App den Server oder lokale Offline-Daten nutzt. Im automatischen Modus wechselt die App je nach Internetverbindung.",
+			"description": "Wählen Sie, ob die App den Server oder lokale Offline-Daten nutzt.",
 			"online": "Online — Live-Serverdaten",
 			"offline": "Offline — mit lokalen Daten arbeiten",
 			"notAvailable": "Offline-Modus ist für diesen Mandanten nicht aktiviert.",

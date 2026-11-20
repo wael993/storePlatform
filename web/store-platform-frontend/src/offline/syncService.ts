@@ -14,7 +14,6 @@ import {
 	markOnline,
 	setOnlineFromFetchResult,
 	subscribeConnectivity,
-	subscribeNetworkOnline,
 } from './connectivity'
 import {
 	loadTenantOfflineConfig,
@@ -22,8 +21,6 @@ import {
 } from './offlineTenantAccess'
 import {
 	getWorkMode,
-	getWorkModePreference,
-	isAutoWorkMode,
 	setWorkMode,
 } from './workMode'
 import {
@@ -475,21 +472,16 @@ export const syncNow = async (options?: { force?: boolean }): Promise<void> => {
 }
 
 const BOOTSTRAP_REFRESH_INTERVAL_MS = 3 * 60 * 60 * 1000
-const AUTO_MODE_DEBOUNCE_MS = 2000
 
 let bootstrapRefreshIntervalId: ReturnType<typeof setInterval> | null = null
-let autoModeSwitchTimer: ReturnType<typeof setTimeout> | null = null
-let autoModeSwitchInFlight = false
 
 export const maybeRefreshOfflineData = async (
 	tenantId: string,
 ): Promise<void> => {
 	if (!getIsNetworkOnline()) return
 	if (!isOfflineEnabledForTenant(tenantId)) return
-	if (getWorkModePreference() === 'offline') return
-
-	const capable = await isOfflineCapable()
-	if (!capable && getWorkModePreference() !== 'auto') return
+	if (getWorkMode() === 'offline') return
+	if (!(await isOfflineCapable())) return
 
 	await bootstrapOfflineData(tenantId)
 }
@@ -512,41 +504,7 @@ export const runFullSync = async (tenantId: string): Promise<void> => {
 	await bootstrapOfflineData(tenantId)
 	await pullSyncChanges()
 
-	if (isAutoWorkMode()) {
-		await setWorkMode('online')
-	}
-
 	await initOfflineState(tenantId)
-}
-
-export const alignAutoWorkModeOnSessionStart = async (
-	tenantId: string,
-): Promise<void> => {
-	if (!isAutoWorkMode()) return
-	if (!isOfflineEnabledForTenant(tenantId)) return
-
-	if (getIsNetworkOnline()) {
-		if (getWorkMode() === 'offline') {
-			try {
-				await exitOfflineWorkMode(tenantId)
-			} catch {
-				// Stay offline until push succeeds
-			}
-		}
-
-		try {
-			await maybeRefreshOfflineData(tenantId)
-		} catch {
-			// Bootstrap refresh is best-effort on session start
-		}
-		return
-	}
-
-	const capable = await isOfflineCapable()
-	if (capable && getWorkMode() !== 'offline') {
-		await setWorkMode('offline')
-		await initOfflineState(tenantId)
-	}
 }
 
 export const startPeriodicBootstrapRefresh = (
@@ -569,57 +527,6 @@ export const startPeriodicBootstrapRefresh = (
 		}
 	}
 }
-
-const switchToAutoOffline = async (tenantId: string): Promise<void> => {
-	if (getWorkMode() === 'offline') return
-
-	const capable = await isOfflineCapable()
-	if (capable) {
-		await setWorkMode('offline')
-		await initOfflineState(tenantId)
-	}
-}
-
-const switchToAutoOnline = async (tenantId: string): Promise<void> => {
-	if (getWorkMode() === 'online') return
-
-	try {
-		await exitOfflineWorkMode(tenantId)
-	} catch {
-		// Stay offline; error state is surfaced by sync service
-	}
-}
-
-const scheduleAutoWorkModeSwitch = (isNetworkOnline: boolean): void => {
-	if (!isAutoWorkMode()) return
-
-	if (autoModeSwitchTimer) {
-		clearTimeout(autoModeSwitchTimer)
-	}
-
-	autoModeSwitchTimer = setTimeout(() => {
-		autoModeSwitchTimer = null
-		void (async () => {
-			if (autoModeSwitchInFlight) return
-
-			const tenantId = await getSyncMeta(SYNC_META_KEYS.tenantId)
-			if (!tenantId || !isOfflineEnabledForTenant(tenantId)) return
-
-			autoModeSwitchInFlight = true
-			try {
-				if (isNetworkOnline) {
-					await switchToAutoOnline(tenantId)
-				} else {
-					await switchToAutoOffline(tenantId)
-				}
-			} finally {
-				autoModeSwitchInFlight = false
-			}
-		})()
-	}, AUTO_MODE_DEBOUNCE_MS)
-}
-
-subscribeNetworkOnline(scheduleAutoWorkModeSwitch)
 
 export const clearSyncPushResult = (): void => {
 	emit({ syncState: 'idle', syncPushResult: null })
@@ -707,9 +614,7 @@ subscribeConnectivity(isOnline => {
 	connectivityPreviousOnline = isOnline
 
 	if (isOnline && wasOnline === false && getWorkMode() === 'online') {
-		if (!isAutoWorkMode()) {
-			void onReconnect()
-		}
+		void onReconnect()
 	}
 })
 
