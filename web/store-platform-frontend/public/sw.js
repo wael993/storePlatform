@@ -113,8 +113,8 @@ self.addEventListener('fetch', event => {
 
 	if (url.pathname.startsWith('/api/')) return
 
-	// Standalone public page: the navigate handler below would cache it as the app shell.
-	if (url.pathname === '/privacy.html') return
+	// Standalone public pages: the navigate handler below would cache them as the app shell.
+	if (url.pathname === '/privacy.html' || url.pathname === '/home.html') return
 
 	if (isStaticAsset(url.pathname)) {
 		event.respondWith(

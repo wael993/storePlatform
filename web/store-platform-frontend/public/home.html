@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Rivo – Store management platform</title>
+	<meta name="description" content="Rivo is a store management platform for stock, sales, purchasing, customers, suppliers and reports." />
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+	<style>
+		:root { color-scheme: light dark; --fg: #1f2328; --muted: #59636e; --bg: #fff; --line: #d1d9e0; --btn: #1f2328; --btn-fg: #fff; }
+		@media (prefers-color-scheme: dark) { :root { --fg: #e6edf3; --muted: #9198a1; --bg: #0d1117; --line: #3d444d; --btn: #e6edf3; --btn-fg: #0d1117; } }
+		body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+		main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+		header { display: flex; align-items: center; gap: 12px; }
+		header img { width: 48px; height: 48px; }
+		h1 { font-size: 2rem; margin: 0; }
+		h2 { font-size: 1.2rem; margin-top: 2rem; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+		.lead { font-size: 1.15rem; }
+		.muted { color: var(--muted); }
+		.button { display: inline-block; padding: 10px 20px; border-radius: 8px; background: var(--btn); color: var(--btn-fg); text-decoration: none; font-weight: 600; }
+		a { color: inherit; }
+		footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+	</style>
+</head>
+<body>
+<main>
+	<header>
+		<img src="/rivo-logo.svg" alt="" />
+		<h1>Rivo</h1>
+	</header>
+	<p class="lead">
+		Rivo is a store management platform for retail and wholesale businesses. It helps store owners and their
+		teams manage stock, sales, purchasing, customers, suppliers and store operations in one place.
+	</p>
+	<p><a class="button" href="/">Sign in to Rivo</a></p>
+
+	<h2>What Rivo does</h2>
+	<ul>
+		<li><strong>Products and stock:</strong> manage products, categories and stock across warehouses.</li>
+		<li><strong>Sales and purchasing:</strong> create selling and buying invoices, transfers and exchanges.</li>
+		<li><strong>Customers and suppliers:</strong> keep track of customers, partners and open balances.</li>
+		<li><strong>Employees and roles:</strong> give each team member only the access they need.</li>
+		<li><strong>Reports:</strong> see sales, stock and profit for your business.</li>
+		<li><strong>Works offline:</strong> keep selling when the internet is down; changes sync when you are back online.</li>
+	</ul>
+
+	<h2>Cloud backups with Google Drive</h2>
+	<p>
+		Store owners can back up their store's data to their own Google Drive (or Dropbox or OneDrive) and restore it later.
+		Rivo only asks for permission to manage the files it creates itself (<code>drive.file</code>) and cannot see any
+		other files in your Drive. Backups are encrypted before they are uploaded. You can disconnect your account at any time.
+		Details are in our <a href="/privacy.html">Privacy Policy</a>.
+	</p>
+
+	<footer class="muted">
+		Rivo · Wael Zobani · Kaiserstr. 110, 66386 St. Ingbert, Germany ·
+		<a href="mailto:zobaniw@gmail.com">zobaniw@gmail.com</a> ·
+		<a href="/privacy.html">Privacy Policy</a>
+	</footer>
+</main>
+</body>
+</html>
