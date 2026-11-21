@@ -1,90 +1,14 @@
 # Warehouse: still open
 
-Shipped warehouse scope, ACL, transfers, migration script, and production smoke
+Shipped warehouse scope, ACL, transfers and production smoke
 are documented in [`../reference/warehouse.md`](../reference/warehouse.md).
 Do not re-open those as tickets.
 
-How to read what remains:
-
-- **Merge-blocking** = before production if the migration has not run yet.
-- **After merge** = hardening / scale. Next sprint, not a reason to hold the feature.
-- **Later / nice** = polish. Do not schedule as “must”.
+Everything left is polish; nothing blocks a sprint. Done / dropped: WH-REL-1 (Mongo-only
+migration, obsolete on Postgres), WH-ARCH-2/4/5/6/8, WH-REL-2 smoke.
 
 Money-formatting (`Fee`) and return/replace live in [`later-tickets.md`](later-tickets.md)
 and [`product.md`](product.md).
-
----
-
-# A. Merge-blocking (before production)
-
-## WH-REL-1 — Production cutover: run warehouse migration before the new API
-
-**Type:** Release / Ops  
-**Priority:** Blocker  
-**Labels:** warehouse, production, migration  
-**Blocks:** shipping the warehouse-requiring API to production
-
-### Summary
-
-The new API requires `warehouseId` on inventory, invoices, stock movings, and daily actions, and it uses a new unique inventory index `(tenantId, warehouseId, productId)`. The **only** thing that drops the old unique index `{ tenantId, productId }` is the migration script. Mongoose `autoIndex` adds the new index; it never removes the old one.
-
-### What happens if you skip this
-
-1. Second-warehouse stock and every transfer-in upsert hit Mongo `E11000` duplicate key.
-2. Legacy rows without `warehouseId` vanish from every scoped list (`filterByWarehouseAccess` drops them). Dashboard, cash, invoices, and inventory look empty.
-3. Existing non-owners have no `User.warehouseIds` → empty ACL → they see nothing and cannot post.
-
-### What the script does (per tenant)
-
-Script: `services/api-store-platform/src/scripts/migrate-inventory-warehouse-scope.ts`  
-Command: `cd services/api-store-platform && npm run migrate:inventory-warehouse-scope`
-
-1. Pick default warehouse: oldest Warehouse `_id` for that tenant, or create `Main`.
-2. Backfill missing/empty `warehouseId` on Inventory, Invoice, BuyingInvoice, StockMoving, DailyAction.
-3. For every non-owner / non-`super_admin` user with missing `warehouseIds`, set `warehouseIds` to **all** warehouses of that tenant.
-4. Drop old unique inventory index `{ tenantId, productId }`.
-5. Create `{ tenantId, warehouseId, productId }` unique + supporting indexes.
-6. Assert zero remaining documents with missing `warehouseId`, and zero staff users still missing ACL.
-
-Safe to re-run: filters are “warehouseId missing/empty” only.
-
-### Deploy order (do not invert)
-
-```
-1. Backup Mongo
-2. Run npm run migrate:inventory-warehouse-scope  (must exit 0)
-3. Confirm asserts in the log: remaining* = 0, userAclBackfill printed
-4. Deploy API + frontend together
-5. Smoke test (checklist in docs/reference/warehouse.md)
-```
-
-### Acceptance
-
-- [ ] Script run against production (or a prod copy) exits 0
-- [ ] One product can exist in two warehouses without `E11000`
-- [ ] A pre-existing cashier (no `warehouseIds` before migrate) can open products and post a sale after login
-- [ ] Historical invoices still appear under the default / inferred warehouse
-- [ ] Ops followed [`../reference/warehouse.md`](../reference/warehouse.md) cutover + smoke sections
-
-### Out of scope
-
-Changing default-warehouse selection UI. Leftover daily-action cash that cannot be matched to an invoice number stays on the oldest warehouse.
-
----
-
-# B. After merge (next refactor / hardening)
-
-After-merge hardening is shipped. Remaining work is later/nice. Do not change TopBar multi-select behaviour.
-
-WH-ARCH-2 (query-level `warehouseMongoFilter` / `warehouseAclMongoFilter`),
-WH-ARCH-4 (`aggregateInventoryByProductId` in store-domain; combined DTO blanks
-`inventoryId` / `warehouseId` / `shelfId` / `_id`), and WH-ARCH-5 (catalog Redis
-`…:v3` is product master only) are shipped — see
-[`../reference/warehouse.md`](../reference/warehouse.md).
-
-WH-ARCH-6 skipped: `getOperationalWarehouseId` / `requireOperationalWarehouseId`
-already live in `warehouseScope.ts`; the hook wraps `isOperational`. Do not add
-`warehousePolicy.ts`. WH-ARCH-8 was a stale JSDoc (fixed).
 
 ---
 
@@ -237,7 +161,6 @@ Document the two write errors:
 
 | Ticket     | When            | Why                                |
 | ---------- | --------------- | ---------------------------------- |
-| WH-REL-1   | **Before prod** | Migration / index / staff ACL      |
 | WH-ARCH-7  | Later           | Extra API examples                 |
 | WH-ARCH-3  | Later           | Rename “accessible”                |
 | WH-ARCH-9  | Later           | Last price per warehouse           |

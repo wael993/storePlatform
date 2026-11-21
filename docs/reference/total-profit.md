@@ -16,7 +16,7 @@ Three numbers stay separate on purpose:
 | Product buying price (`purchasePrice`) | Current catalog / default buying price | No for already-posted sales (sale `unitCost` is frozen). The **next** sale uses the new cost only on warehouses with **no** purchase or transfer-in history. |
 | Invoice line selling price (`unitPrice`) | What the customer actually paid | Yes for **that** invoice’s revenue. Cost stays the inventory cost. |
 | Buying invoice | A real purchase that updates inventory cost (WAC) | Future sales in that warehouse use the new average cost. Past sales stay frozen. |
-| Warehouse transfer-in | Copies source cost onto the destination warehouse | Future sales at the destination use that cost. Catalog buy-price edit must not overwrite it. |
+| Warehouse transfer-in | Blends source cost into the destination (qty-weighted, same formula as a purchase) | Future sales at the destination use that cost. Catalog buy-price edit must not overwrite it. |
 
 Missing cost is **unknown** (`profitReliable: false`), never silently 0.
 
@@ -146,7 +146,7 @@ Recognized revenue is **not** catalog `retailPrice`. COGS is **not** catalog `pu
 | --- | --- |
 | Opening / catalog `purchasePrice` | Convert with currency-settings rate at **cost-write** time (create product, product import commit, or unestablished purchasePrice edit). Product Excel import: wizard currency + parsed purchase only — see [`product-import.md`](product-import.md). |
 | Buying invoice | Use the purchase line amount already in primary (invoice FX). Do not convert again. |
-| Transfer-in | Copy source `averageCost` (already primary). |
+| Transfer-in | Blend source `averageCost` (already primary) into the destination average. |
 | Sale stamp | Prefer `averageCost` as-is; catalog fallback converts at sale time. |
 
 Do **not** re-interpret an existing cost using live `Product.price.currency`. Legacy rows without a known cost currency are not auto-migrated; unestablished warehouses get corrected on the next catalog `purchasePrice` edit.
@@ -171,7 +171,7 @@ Rationale: there is no purchase invoice or transfer to defend a historical cost.
 new WAC = (priorQty × priorWAC + purchaseQty × purchasePrice) / (priorQty + purchaseQty)
 ```
 
-- Transfer-in copies the source warehouse `averageCost` and locks the destination the same way a purchase does.
+- Transfer-in blends the source warehouse `averageCost` into the destination (qty-weighted) and locks the destination the same way a purchase does.
 - A catalog-only `purchasePrice` change does **not** revalue on-hand stock in that warehouse.
 - Sales consume WAC at posting time and freeze it on the sale moving.
 - Qty-weighted WAC skips warehouses with no finite `averageCost`; missing cost is not treated as 0.

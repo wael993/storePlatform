@@ -9,7 +9,7 @@ Done means every representation stays consistent, not "the UI looks right".
 1. Name the user outcome and the non-goals.
 2. Read the matching `reference/` and `architecture/` docs.
 3. Trace one happy path end to end:
-   UI → RTK / offline → route → SEE → controller → Mongo → response → UI.
+   UI → RTK / offline → route → SEE → controller → Postgres (`db/docs` / `db/repos`) → response → UI.
 4. List the layers you touch (B) and the impact areas that apply (C).
 5. Write 3–7 failure scenarios for this change (D).
 6. If API or offline changes: freeze the contract (request, response, idempotency id,
@@ -29,7 +29,7 @@ UI (React/Chakra)
   → authorize (JWT, accessiblePages, subscription)
   → SEE / validators
   → controller + domain (store-domain helpers when shared)
-  → Mongo (withTenantScope) + Redis catalog invalidation when needed
+  → Postgres (`requireTenantId` / `tenantWhere`) + Redis catalog invalidation when needed
   → sync replay (same controller, trusts create-time snapshots)
   → OpenAPI + docs/reference
   → i18n en/ar/de (+ RTL)
@@ -56,7 +56,7 @@ server-side · errors surfaced via `getApiErrorMessage` · no second rule beside
 | Deletes | `master-data-delete.md` block reasons | Orphan references, ghost ledger rows |
 | Files | body limits: JSON 100kb, invoice settings 2mb, extract 12mb, product import 45mb (nginx 45m) | 413 on upload |
 | AI / external | online-only, clear failure UX, no money writes without confirmation | Silent write |
-| Transactions | replica set required | Works on Atlas, fails on the local CI stack |
+| Transactions | `inTransaction()` (`db/index.ts`, retries `40P01`/`40001`); lock rows before read-modify-write; a unique violation (`23505`, `isUniqueViolation`) aborts the whole transaction | Half-written money/stock, deadlock under parallel requests |
 
 Large epics only: PERM-1, backup/DR, rate limiting, real-time channels.
 

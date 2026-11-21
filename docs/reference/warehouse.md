@@ -103,7 +103,7 @@ Browser picker
     → localStorage key: store-platform-warehouse-scope:v2:{tenantId}:{userId}
     → every API call: header x-warehouse-scope: id1,id2
          ↓
-Auth loads User from Mongo (warehouseIds from the document, not from the JWT)
+Auth loads User from Postgres (`platform.users`) (warehouseIds from the document, not from the JWT)
          ↓
 buildRequestContext → resolveWarehouseScope(ACL ∩ header)
          ↓
@@ -121,7 +121,7 @@ Writes: requireOperationalWarehouseId + ensureWarehouseAccess
 | --- | --- |
 | `getAllowedWarehouseIds` | ACL. `null` = unrestricted. |
 | `getEffectiveWarehouseIds` | Working scope if set, otherwise ACL. |
-| `warehouseMongoFilter` | Mongo `{ warehouseId: { $in } }` from working scope. `null` = omit. `[]` = match nothing. |
+| `warehouseMongoFilter` | `{ warehouseId: { $in } }` filter object from working scope (translated to SQL by `db/mongoQuery.ts`). `null` = omit. `[]` = match nothing. |
 | `warehouseAclMongoFilter` | Same, ACL only (party lists, transfer destinations). |
 | `requireOperationalWarehouseId` | Writes. Throws unless the effective scope is exactly one id. |
 | `ensureWarehouseAccess` | Document must sit in the working scope. |
@@ -216,8 +216,8 @@ Rules:
 - User must have **ACL** access to both warehouses.
 - User must have `SEE.productsEditQuantity`.
 - Every selected product must have enough **available** stock at the source (`quantity - reservedQuantity`).
-- The whole group is one Mongo transaction: all products move or none do.
-- Transfer-in seeds destination `averageCost` from the source only when source cost is present and greater than zero (so an uncosted source does not zero the destination’s COGS).
+- The whole group is one Postgres transaction: all products move or none do.
+- Transfer-in blends the source `averageCost` into the destination (qty-weighted, same formula as a purchase; `adjustInventoryQuantity` in `db/repos/inventory.ts`). A missing source cost is skipped; a stored 0 is applied (`finiteCost(0)` is 0).
 - Edit and delete require operational mode on the **source**, ACL on both sides, and enough stock at the destination to reverse. Concurrent edit/delete is rejected if the live legs no longer match the snapshot (`productId`, type, warehouse, qty).
 
 Today’s Actions shows each grouped transfer as one row. Under Customer it shows `from → to`. Eye opens the detail modal (products, quantities, warehouses, date/time, user). Print and download are available. Edit/delete icons show when the transfer is editable.
@@ -270,26 +270,8 @@ Offline sync:
 
 ## Migration and deploy
 
-Script: `npm run migrate:inventory-warehouse-scope` in `services/api-store-platform`.
-
-**Run it before** shipping the API that requires `warehouseId` and the new unique inventory index.
-
-What it does, per tenant:
-
-1. Ensures a default warehouse exists (oldest by `_id`, or creates `Main`).
-2. Sets missing `warehouseId` on inventory, selling invoices, buying invoices, stock movings, and daily actions.
-3. Invoice/daily-action rows prefer a warehouse already stored on a related stock moving or invoice number when one exists.
-4. Sets `User.warehouseIds` to every tenant warehouse for non-owner users that do not have the field yet (keeps the pre-warehouse “see everything” behaviour).
-5. Drops the old unique index `{ tenantId, productId }` and creates `{ tenantId, warehouseId, productId }`.
-
-The script is safe to re-run: it only touches rows that still have a missing/empty `warehouseId`.
-
-If the API starts **before** the migration:
-
-- The old unique index still forbids one product in two warehouses (transfers and second-warehouse purchases fail).
-- Legacy rows without `warehouseId` disappear from every scoped list (dashboard/cash look empty).
-
-Daily-action cash rows that cannot be matched to an invoice number stay on the oldest warehouse. Combined-view cash is complete; a tenant that already had several warehouses may see that leftover cash only on Main.
+Done. The Mongo-era script `migrate:inventory-warehouse-scope` was deleted (`4db90fd`); on Postgres
+the unique key `(tenant_id, warehouse_id, product_id)` is part of the schema.
 
 ---
 
@@ -308,7 +290,7 @@ Daily-action cash rows that cannot be matched to an invoice number stay on the o
 
 ## Production smoke checklist (shipped)
 
-Use after WH-REL-1 migration + deploy. UI stays as today.
+Passed in production. Rerun after warehouse changes.
 
 | Actor | Setup |
 | --- | --- |

@@ -1,5 +1,8 @@
 # Revo Demo Tenant System — Jira tickets
 
+> Not started. Written before the Postgres switch: the "Current state" section still describes
+> MongoDB / ObjectId. Re-check it against `src/db/*` before picking up a ticket.
+
 **Project:** Revo  
 **Feature:** Self-Service Demo Accounts  
 **Technology:** Node.js, Express.js, MongoDB  

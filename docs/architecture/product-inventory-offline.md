@@ -47,7 +47,7 @@ Local mutation
 
 | Layer                  | Examples                                             | Who reads it           |
 | ---------------------- | ---------------------------------------------------- | ---------------------- |
-| Server source of truth | MongoDB products, inventory, invoices, stock movings | Replay, refetch        |
+| Server source of truth | Postgres products, inventory, invoices, stock movings | Replay, refetch        |
 | Local source state     | Dexie `products`, `inventory`                        | Offline apply          |
 | Local projections      | Dexie `catalogProducts`                              | Offline catalog GET    |
 | In-memory catalog      | `productCatalogStore`                                | Selling invoice search |
@@ -306,93 +306,13 @@ Create and PATCH must not contradict each other. If PATCH rejects
 
 ## 10. Cost, WAC, and frozen sale cost
 
-`averageCost` is **not** automatically `purchasePrice`. WAC depends on existing
-stock, opening stock, warehouses, buying invoices, transfer-in, cancelled
-return-out, and the established business rules. Do not invent a second
-calculation in a new feature.
-
-Missing cost is **unknown**, never zero. Do not use `Number(cost ?? 0)` or
-`Number(cost) || 0`. Valid finite cost is usable; missing/invalid cost is
-unknown. Unknown cost must not silently make profit look better.
-
-**Product Excel import** (online only) must not invent catalog prices or opening
-`averageCost` from failed parses — see
-[`../reference/product-import.md`](../reference/product-import.md). Opening
-cost from a successful purchase parse uses wizard currency + `catalogCostToPrimary`
-per [`../reference/total-profit.md`](../reference/total-profit.md).
-
-Use one `finiteCost` rule everywhere: server WAC, local WAC, catalog cost,
-invoice COGS, profit, AI reports, optimistic calculations, offline summaries.
-No local variants.
-
-When calculating WAC:
-
-- valid costs participate
-- missing / invalid costs do not participate
-
-Do not treat missing `averageCost` as `0`; that pulls WAC toward zero.
-
-Once a sale is accepted/posted, its cost is frozen:
-
-```text
-purchasePrice = 10
-sale stamps unitCost = 10
-purchasePrice changes to 20
-previous sale still uses unitCost = 10
-```
-
-Invoice PATCH must preserve existing line `unitCost`. A new line may receive a
-new cost. Do not replace a stamped cost with the current product/catalog cost.
-
-Test every invoice edit as:
-
-```text
-sale → product price change → invoice edit → profit calculation
-```
-
-An offline sale must not later recompute historical profit from whatever the
-catalog contains after reconnect. Prefer a frozen sale-cost snapshot, or a
-guaranteed ordering/dependency mechanism.
-
----
+Rules: [`../reference/total-profit.md`](../reference/total-profit.md). Offline uses the same
+`store-domain` helpers; never a private cost formula.
 
 ## 11. Profit
 
-All profit consumers use one canonical definition: selling invoice summary,
-best seller, offline profit summary, AI/reporting, dashboards, exports.
-
-They must agree on revenue, sold quantity, COGS, current-sale movements,
-frozen `unitCost`, missing-cost behavior, and reliability. Do not keep
-independent implementations of the same business calculation.
-
-| Input         | Source                 |
-| ------------- | ---------------------- |
-| Sold quantity | Invoice lines          |
-| COGS / cost   | Current sale movements |
-
-Do not infer sold quantity solely from inventory movements. Do not sum every
-movement with `type === "sale"`; historical edits, replacements, reversals, or
-stacked changes double-count. Use `selectCurrentSaleMovings` (or its shared
-equivalent).
-
-Empty periods are reliable:
-
-```text
-no sales → revenue 0, COGS 0, profit 0, profitReliable = true
-```
-
-Missing/incomplete cost data is different: `profitReliable = false`. Do not
-use `movings.length === 0` as the sole reliability test.
-
-Display profit only when `profitReliable === true`. Do **not** use
-`profitReliable !== false`; missing metadata would look reliable.
-
-UI fallbacks must not invent accounting truth. Loading, empty, or unavailable
-summaries must not set `profitReliable = true` and `totalProfit = 0` unless
-the data source explicitly established that zero is the correct reliable
-result. Unknown stays unknown.
-
----
+Rules: [`../reference/total-profit.md`](../reference/total-profit.md) — the number is always shown;
+when `profitReliable` is false the card is marked incomplete.
 
 ## 12. Available quantity
 
@@ -643,7 +563,7 @@ copies of the same fact:
 - Dexie `catalogProducts` plus in-memory `productCatalogStore`
 - RTK product / inventory / catalog caches
 - outbox rows that `sync/push` replays
-- MongoDB after reconnect
+- Postgres after reconnect
 
 Invoice search does **not** read Dexie `products`. Selling search reads
 `productCatalogStore`. Stock in the search dropdown reads inventory
@@ -809,13 +729,3 @@ store after a successful barcode write.
 - `web/store-platform-frontend/src/offline/localStore.ts`
 - `web/store-platform-frontend/src/api/optimisticData.ts`
 - `services/api-store-platform/src/apis/api.controller.ts` (`sync/push`)
-
-### Backlog Tickets priority
-
-WH-REL-1 → WH-REL-2
-→ RA-BUG-1 (+ RA-BUG-2 if RIVO is live on expired tenants)
-→ FE-NUM-1
-→ WH-ARCH-4 → WH-ARCH-2 (then 5 → 6)
-→ product Daily rename + delete legacy Daily
-→ FE-OFF-1 (if offline shops complain)
-→ only then: Dashboard shell / PERM-1 / Newsroom

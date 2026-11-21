@@ -1,6 +1,8 @@
 # ADR: MongoDB → PostgreSQL
 
-Status: **Accepted** (2026-11-07) · Backlog: [`../backlog/postgres-migration.md`](../backlog/postgres-migration.md)
+Status: **Done.** Accepted 2026-11-07; production on Postgres since 2026-11-20 (one window, all tenants).
+Historical record. The Decisions table and the porting notes still explain why the code looks the way it
+does. Remaining cleanup (remove Mongo, PG-MIG-6): [`../backlog/roadmap.md`](../backlog/roadmap.md).
 
 ## Why
 
@@ -35,7 +37,7 @@ Not a reason: the offline client. Dexie/outbox stays on the HTTP contract and do
 | Search (webshop) | Postgres full-text + `pg_trgm`. No Elasticsearch until it hurts. | Enough for a catalog of this size. |
 | Integrations (SAP / channels) | **Not built in this epic.** Schema must not block it: stable ids, `updated_at` on every table. Later: `integration_outbox` table written in the same transaction, and `external_refs (tenant_id, system, entity, local_id, external_id)`. | Avoid speculative code; keep the door open. |
 | Redis | Stays (cache, rate limit). | Unrelated to the store. |
-| Backup | **Out of this epic.** The backup feature is parked in `git stash@{0}`, never shipped. When it is picked up again, it is built on Postgres directly (row export, no BSON). PG-MIG-5 is dropped. | Nothing in production to migrate. |
+| Backup | Out of this epic; later built on Postgres directly (format v2, row export) — see [`../reference/backup.md`](../reference/backup.md). | Nothing in production to migrate. |
 | Cash exchange | Already shipped; out of scope. Smoke-tested at cutover only. | Locked in planning. |
 
 ### Branch plan (decided 2026-11-07)
@@ -59,16 +61,7 @@ loaded data and fails on any JSON difference for the group's read endpoints.
 - **PG-MIG-2:** repositories are Postgres-only. Controllers keep their HTTP shapes. No `DATA_STORE` flag.
 - **PG-MIG-3:** no running shadow. It becomes: ETL script (Mongo dump → Postgres) + reconcile script (exits non-zero) + rehearsal on a Neon branch, repeated until green.
 - **PG-MIG-4:** one window for all tenants (dormant ones included), not per tenant.
-- **PG-MIG-5:** dropped (backup not shipped, see Decisions).
-
-## Cutover runbook (outline)
-
-1. Announce the window to the 2 active tenants; ask them to sync devices (empty outbox).
-2. Maintenance mode: env flag `MAINTENANCE_MODE=1` → every non-GET request answers `503` (one middleware; there is no restore lock on `main` to reuse). Freeze Mongo, take a full dump.
-3. ETL → Postgres. Reconcile must be exact (counts, ledger = balances, stock qty/cost, invoice totals, idempotency keys).
-4. Deploy the Postgres build. Smoke: login, sell, buy, cash transfer, cash exchange, stock move, sync pull/push.
-5. Release the lock; `/sync/changes` answers `resetRequired` so devices re-bootstrap.
-6. Rollback window 14 days: Mongo stays frozen and untouched. Rollback = redeploy the last Mongo tag; writes made on Postgres during the window are lost (accepted, communicated).
+- **PG-MIG-5:** replaced by tenant backup v2 on Postgres (branch `tenant-backup`, merged).
 
 ## Inventory of Mongo touchpoints
 
@@ -273,8 +266,3 @@ read or written by the API (connection still opened at boot until PG-MIG-6).
   (`zobani-sy` platform row skipped: old-format data). Live check on the Postgres build: login,
   refresh rotation, reused token refused, wrong password, logout-all. Write paths:
   `group4Writes.pg.test.ts` (each guard verified by mutation).
-
-## Open questions
-
-1. **Active vs dormant tenants:** ops note, kept outside git (no tenant ids here).
-2. Confirm the API's Render region before creating the database (must match).

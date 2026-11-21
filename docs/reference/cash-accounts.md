@@ -92,16 +92,8 @@ is for party valuation, not the ledger.
 
 ## Migration
 
-- Historical cash → Daily Cash ledger rows (or effects matching the table)
-- Historical card/online sales → Online
-- Cash Reserve: explicit `OPENING_BALANCE` only — never invent history
-- Idempotent by `idempotencyKey`; keep `referenceType` / `referenceId`
-- Stamp ledger rows that have no `currencyId` with the tenant primary currency
-- Rebuild `balances` from the ledger and drop the old single `balance` field
-- Do not rewrite existing ledger amounts. Do not rebuild an invoice that
-  already has ledger rows
-- Stamp `exchangeRateToPrimary` on cash daily actions that lack it (party
-  valuation only)
+Done (one-time backfill: old cash → Daily Cash, card → Online, per-currency `balances` rebuilt
+from the ledger). The script was removed in `b9affd9a`.
 
 ## Invoice edit / removed lines
 
@@ -153,7 +145,7 @@ toCurrencyId, fromAmount, toAmount }`.
   and keep their create-time snapshot (settings may have changed offline).
 - Same `exchangeId` again: identical values return the stored result (201);
   different values are rejected.
-- Two ledger rows, one Mongo transaction: `−fromAmount fromCurrencyId` and
+- Two ledger rows, one Postgres transaction: `−fromAmount fromCurrencyId` and
   `+toAmount toCurrencyId`. Both share `referenceId` / `transferGroupId` =
   `exchangeId` and store `fromExchangeRateToPrimary` /
   `toExchangeRateToPrimary`. Idempotency keys `cash_exchange:<id>:from|to`
