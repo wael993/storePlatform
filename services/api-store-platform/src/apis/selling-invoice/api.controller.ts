@@ -1,4 +1,11 @@
 import { v4 as uuidv4 } from 'uuid'
+import { config } from '../../config/config'
+import {
+	businessDayEnd,
+	businessDayKey,
+	businessDayStart,
+	toBusinessDayKey,
+} from '../../shared/store-domain'
 import { DbTx } from '../../db'
 import { pgDeleteMany, pgFind, pgFindOne } from '../../db/mongoQuery'
 import { lockUnchangedInvoice } from '../../db/repos/invoices'
@@ -348,29 +355,18 @@ export default class SellingInvoiceController {
 		start: Date
 		end: Date
 	} {
-		const defaultDay = new Date()
+		const timeZone = config.businessTimeZone
+		const today = businessDayKey(new Date(), timeZone)
+		const fromDay = toBusinessDayKey(filters.dateFrom, timeZone) ?? today
+		const toDay = toBusinessDayKey(filters.dateTo, timeZone) ?? today
+		// Day keys (YYYY-MM-DD) sort as strings; a reversed range is swapped, not empty.
+		const [firstDay, lastDay] =
+			fromDay <= toDay ? [fromDay, toDay] : [toDay, fromDay]
 
-		defaultDay.setHours(0, 0, 0, 0)
-
-		const start = filters.dateFrom
-			? new Date(filters.dateFrom)
-			: new Date(defaultDay)
-		const end = filters.dateTo ? new Date(filters.dateTo) : new Date(defaultDay)
-
-		start.setHours(0, 0, 0, 0)
-		end.setHours(23, 59, 59, 999)
-
-		if (start.getTime() > end.getTime()) {
-			const swappedStart = new Date(end)
-			const swappedEnd = new Date(start)
-
-			swappedStart.setHours(0, 0, 0, 0)
-			swappedEnd.setHours(23, 59, 59, 999)
-
-			return { start: swappedStart, end: swappedEnd }
+		return {
+			start: businessDayStart(firstDay, timeZone),
+			end: businessDayEnd(lastDay, timeZone),
 		}
-
-		return { start, end }
 	}
 
 	private isInvoiceInSummaryPeriod(
@@ -860,16 +856,14 @@ export default class SellingInvoiceController {
 
 				if (filters.issuedDate) {
 					const issuedAt = toDate(invoice.issuedAt)
-					const filterDate = new Date(filters.issuedDate)
 
 					if (!issuedAt) return false
 
-					const sameDay =
-						issuedAt.getFullYear() === filterDate.getFullYear() &&
-						issuedAt.getMonth() === filterDate.getMonth() &&
-						issuedAt.getDate() === filterDate.getDate()
+					const isSameBusinessDay =
+						businessDayKey(issuedAt, config.businessTimeZone) ===
+						toBusinessDayKey(filters.issuedDate, config.businessTimeZone)
 
-					if (!sameDay) return false
+					if (!isSameBusinessDay) return false
 				}
 
 				if (!normalizedSearch) return true

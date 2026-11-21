@@ -47,6 +47,7 @@ Before each implementation, read the matching files under [`architecture/`](arch
 | [master-data-delete.md](reference/master-data-delete.md) | Hard delete + block reasons (online) |
 | [backup.md](reference/backup.md) | Tenant backup: dataVersion, queue/worker, archive v2, drivers, restore |
 | [web-app-update.md](reference/web-app-update.md) | Stale client after deploy (nginx + shell reload) |
+| [business-day.md](reference/business-day.md) | Business time zone (`BUSINESS_TIME_ZONE`, default Asia/Amman): what a day filter / "today" means |
 
 ## Architecture
 

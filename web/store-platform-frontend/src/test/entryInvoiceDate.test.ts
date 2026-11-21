@@ -16,8 +16,9 @@ describe('entry invoiceDate matches invoice issuedAt day', () => {
 		expect(parsed.getMinutes()).toBe(15)
 	})
 
-	it('lists that instant under the same local calendar day filter as invoices', () => {
-		const issuedAt = buildInvoiceIssuedAtIso('2026-09-19', '01:15')
+	it('lists an entry saved at 01:15 Amman time under that Amman day, on any device', () => {
+		// 01:15 on 19 Sep in Asia/Amman (UTC+3) is still 18 Sep in UTC.
+		const issuedAt = '2026-09-18T22:15:00.000Z'
 		const actions: DailyAction[] = [
 			{
 				actionId: 'e1',

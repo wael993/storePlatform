@@ -9,6 +9,9 @@
 import { and, asc, desc, eq, gte, inArray, lte, sql, SQL } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
+import { config } from '../../config/config'
+import { businessDayEnd, businessDayStart, isDayKey } from '../store-domain'
+
 import {
 	AuditActor,
 	createdByColumns,
@@ -64,7 +67,7 @@ export type CashBalanceByType = {
 	balances: Record<string, number>
 }
 
-/** Inclusive day bounds when value is YYYY-MM-DD; otherwise parse as Date. */
+/** Inclusive business-day bounds when value is YYYY-MM-DD; otherwise parse as Date. */
 export const parseLedgerDateBound = (
 	value: string | undefined,
 	endOfDay: boolean,
@@ -73,16 +76,15 @@ export const parseLedgerDateBound = (
 
 	if (!trimmed) return undefined
 
-	const date = new Date(trimmed)
-
-	if (!Number.isFinite(date.getTime())) return undefined
-
-	if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-		if (endOfDay) date.setHours(23, 59, 59, 999)
-		else date.setHours(0, 0, 0, 0)
+	if (isDayKey(trimmed)) {
+		return endOfDay
+			? businessDayEnd(trimmed, config.businessTimeZone)
+			: businessDayStart(trimmed, config.businessTimeZone)
 	}
 
-	return date
+	const date = new Date(trimmed)
+
+	return Number.isFinite(date.getTime()) ? date : undefined
 }
 
 export const clampLedgerPage = (page?: number | string) => {

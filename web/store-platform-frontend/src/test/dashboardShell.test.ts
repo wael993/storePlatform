@@ -58,11 +58,21 @@ describe('dashboardShell', () => {
 		expect(resolveDashboardShellStatus()).toBe('ready')
 	})
 
-	it('defaults date range to first of month through today', () => {
+	it('defaults date range to first of the Amman month through Amman today', () => {
+		// 25 Sep 12:00 in Asia/Amman (UTC+3)
 		const { dateFrom, dateTo } = getDashboardDefaultDateRange(
-			new Date(2026, 8, 25),
+			new Date('2026-09-25T09:00:00.000Z'),
 		)
 		expect(dateFrom).toEqual(new Date(2026, 8, 1))
 		expect(dateTo).toEqual(new Date(2026, 8, 25))
+	})
+
+	it('starts the new month at Amman midnight, even when UTC is still in the old one', () => {
+		// 00:30 on 1 Dec in Amman is 21:30 on 30 Nov in UTC
+		const { dateFrom, dateTo } = getDashboardDefaultDateRange(
+			new Date('2026-11-30T21:30:00.000Z'),
+		)
+		expect(dateFrom).toEqual(new Date(2026, 11, 1))
+		expect(dateTo).toEqual(new Date(2026, 11, 1))
 	})
 })

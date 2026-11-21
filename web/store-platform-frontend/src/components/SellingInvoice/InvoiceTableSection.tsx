@@ -26,6 +26,7 @@ import { ChevronDownIcon } from '@chakra-ui/icons'
 import dayjs from 'dayjs'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { businessDayKey } from 'store-domain'
 
 import {
 	useDeleteDailyActionMutation,
@@ -96,6 +97,8 @@ import { ChevronRightIcon } from '../icons/ChevronRight'
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon'
 import { useInvoiceDocumentExport } from './useInvoiceDocumentExport'
 import { compareLanguage } from '../../shared/utils'
+import { parseDateInputValue } from '../../shared/dateUtils'
+import { config } from '../../config'
 
 interface InvoiceTableSectionProps {
 	onViewInvoice: (invoiceId: string, kind: 'selling' | 'buying') => void
@@ -200,7 +203,10 @@ const InvoiceTableSection = ({
 	const [currentPage, setCurrentPage] = useState(1)
 	const [sortKey, setSortKey] = useState<SellingInvoiceSortKey>('invoiceNumber')
 	const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-	const [selectedDate, setSelectedDate] = useState(new Date())
+	// Opens on the business day (what the API calls today), not this device's day.
+	const [selectedDate, setSelectedDate] = useState(() =>
+		parseDateInputValue(businessDayKey(new Date(), config.businessTimeZone)),
+	)
 
 	const activeSearch = tableSearch.trim() || undefined
 

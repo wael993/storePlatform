@@ -1,4 +1,7 @@
-import { startOfDay, startOfMonth } from 'date-fns'
+import { businessDayKey } from 'store-domain'
+
+import { config } from '../config'
+import { parseDateInputValue } from './dateUtils'
 
 /** Shell section ids for Tenant Dashboard (DASH-001). No KPI data here. */
 export const DASHBOARD_SECTIONS = [
@@ -52,8 +55,13 @@ export type DashboardShellStatus = 'loading' | 'empty' | 'error' | 'ready'
 /** Shell has no data source yet — always ready with empty KPI slots. */
 export const resolveDashboardShellStatus = (): DashboardShellStatus => 'ready'
 
-/** DASH-002 date defaults: first day of current month → today. */
-export const getDashboardDefaultDateRange = (now = new Date()) => ({
-	dateFrom: startOfMonth(now),
-	dateTo: startOfDay(now),
-})
+/** DASH-002 date defaults: first day of the business month → business today (picker dates). */
+export const getDashboardDefaultDateRange = (now = new Date()) => {
+	const todayKey = businessDayKey(now, config.businessTimeZone)
+	const firstOfMonthKey = `${todayKey.slice(0, 8)}01`
+
+	return {
+		dateFrom: parseDateInputValue(firstOfMonthKey),
+		dateTo: parseDateInputValue(todayKey),
+	}
+}

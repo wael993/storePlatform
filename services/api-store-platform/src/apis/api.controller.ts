@@ -41,6 +41,11 @@ import mongoose from 'mongoose'
 
 import { config } from '../config/config'
 import {
+	businessDayEnd,
+	businessDayStart,
+	isDayKey,
+} from '../shared/store-domain'
+import {
 	BusinessLogicError,
 	AuthenticationError,
 	AuthorizationError,
@@ -342,17 +347,11 @@ const getInvoiceDateBoundary = (
 
 	if (!trimmedDateValue) return undefined
 
-	// Local day bounds so entries match invoice issuedDate (getFullYear/Month/Date).
-	const isDateOnlyValue = /^\d{4}-\d{2}-\d{2}$/.test(trimmedDateValue)
-
-	if (isDateOnlyValue) {
-		const [year, month, day] = trimmedDateValue.split('-').map(Number)
-
-		if (!year || !month || !day) return undefined
-
+	// A date-only value is a business day, not a server-local (UTC on Render) day.
+	if (isDayKey(trimmedDateValue)) {
 		return boundary === 'start'
-			? new Date(year, month - 1, day, 0, 0, 0, 0)
-			: new Date(year, month - 1, day, 23, 59, 59, 999)
+			? businessDayStart(trimmedDateValue, config.businessTimeZone)
+			: businessDayEnd(trimmedDateValue, config.businessTimeZone)
 	}
 
 	const date = new Date(trimmedDateValue)

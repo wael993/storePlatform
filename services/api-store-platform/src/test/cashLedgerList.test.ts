@@ -7,14 +7,12 @@ import {
 } from '../shared/cashAccounts/ledgerService'
 
 describe('cash ledger list filters', () => {
-	it('makes YYYY-MM-DD bounds inclusive of the whole day', () => {
+	it('makes YYYY-MM-DD bounds inclusive of the whole business day (Asia/Amman)', () => {
 		const from = parseLedgerDateBound('2026-09-01', false)
 		const to = parseLedgerDateBound('2026-09-28', true)
 
-		expect([from?.getHours(), from?.getMinutes()]).toEqual([0, 0])
-		expect([to?.getHours(), to?.getMinutes(), to?.getMilliseconds()]).toEqual([
-			23, 59, 999,
-		])
+		expect(from?.toISOString()).toBe('2026-08-31T21:00:00.000Z')
+		expect(to?.toISOString()).toBe('2026-09-28T20:59:59.999Z')
 
 		expect(parseLedgerDateBound('  ', false)).toBeUndefined()
 		expect(parseLedgerDateBound('not a date', true)).toBeUndefined()

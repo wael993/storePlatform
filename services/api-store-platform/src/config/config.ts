@@ -1,6 +1,11 @@
 import dotenv from 'dotenv'
 import path from 'path'
 
+import {
+	DEFAULT_BUSINESS_TIME_ZONE,
+	isValidTimeZone,
+} from '../shared/store-domain'
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') })
 
 const connectionString =
@@ -18,6 +23,13 @@ if (!jwtSecret) {
 
 if (!refreshSecret) {
 	throw new Error('Missing REFRESH_TOKEN_SECRET.')
+}
+
+const businessTimeZone =
+	process.env.BUSINESS_TIME_ZONE?.trim() || DEFAULT_BUSINESS_TIME_ZONE
+
+if (!isValidTimeZone(businessTimeZone)) {
+	throw new Error(`Invalid BUSINESS_TIME_ZONE: ${businessTimeZone}.`)
 }
 
 const subscriptionPeriodDays = parseInt(
@@ -65,9 +77,11 @@ export const config = {
 		process.env.OFFLINE_SYNC_RETENTION_DAYS || '90',
 		10,
 	),
+	/** Which calendar day an instant belongs to (Today's Actions, day filters, summaries). */
+	businessTimeZone,
 	cron: {
 		dailySchedule: process.env.CRON_DAILY_SCHEDULE || '0 3 * * *',
-		timezone: process.env.CRON_TIMEZONE || 'Asia/Amman',
+		timezone: process.env.CRON_TIMEZONE || businessTimeZone,
 	},
 	subscription: {
 		periodDays:

@@ -1,4 +1,7 @@
+import { businessDayEnd, businessDayStart, isDayKey } from 'store-domain'
+
 import type { DailyActionFiltersQueryParams } from '../api/apiStore'
+import { config } from '../config'
 
 const getInvoiceDateBoundary = (
 	dateValue: string | undefined,
@@ -7,15 +10,11 @@ const getInvoiceDateBoundary = (
 	const trimmedDateValue = dateValue?.trim()
 	if (!trimmedDateValue) return undefined
 
-	// Local day bounds so entries match invoice issuedDate (getFullYear/Month/Date).
-	const isDateOnlyValue = /^\d{4}-\d{2}-\d{2}$/.test(trimmedDateValue)
-	if (isDateOnlyValue) {
-		const [year, month, day] = trimmedDateValue.split('-').map(Number)
-		if (!year || !month || !day) return undefined
-
+	// Same business-day bounds as the API, whatever zone this device is in.
+	if (isDayKey(trimmedDateValue)) {
 		return boundary === 'start'
-			? new Date(year, month - 1, day, 0, 0, 0, 0)
-			: new Date(year, month - 1, day, 23, 59, 59, 999)
+			? businessDayStart(trimmedDateValue, config.businessTimeZone)
+			: businessDayEnd(trimmedDateValue, config.businessTimeZone)
 	}
 
 	const date = new Date(trimmedDateValue)

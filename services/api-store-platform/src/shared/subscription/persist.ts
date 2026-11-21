@@ -1,12 +1,12 @@
 import Tenant, { ITenant } from '../../models/Tenant'
 import { pgFindOne, pgFindOneAndUpdate } from '../../db/mongoQuery'
 import { config } from '../../config/config'
+import { businessDayKey } from '../store-domain'
 import { BusinessLogicError } from '../../middleware/errorHandler'
 import { ERROR_CODES } from '../errorCodes'
 import { TENANT_STATUS } from '../constants/tenant.constants'
 import { isSuperAdminTenant } from '../Permissions'
 import {
-	calendarDateInTimeZone,
 	createSubscription,
 	renewSubscription,
 	SubscriptionLifecycleConfig,
@@ -112,13 +112,10 @@ export const applySubscriptionRenewal = async (
 	}
 
 	const cfg = getSubscriptionConfig()
-	const currentYmd = calendarDateInTimeZone(current.renewalDate, cfg.timeZone)
+	const currentYmd = businessDayKey(current.renewalDate, cfg.timeZone)
 
 	if (expectedRenewalDate) {
-		const expectedYmd = calendarDateInTimeZone(
-			expectedRenewalDate,
-			cfg.timeZone,
-		)
+		const expectedYmd = businessDayKey(expectedRenewalDate, cfg.timeZone)
 
 		if (currentYmd > expectedYmd) {
 			return { tenant: synced.tenant, view: toView(current, now) }

@@ -1,4 +1,5 @@
-import { format } from 'date-fns'
+import { businessDayKey } from 'store-domain'
+
 import {
 	useGetCurrencySettingsQuery,
 	useGetCustomersQuery,
@@ -10,6 +11,7 @@ import {
 import { useSee } from '../../shared/hooks/useSee'
 import { SEE } from '../../shared/seeFlags'
 import { formatNumber } from '../../shared/utils'
+import { config } from '../../config'
 import {
 	combineSideStatus,
 	countCreatedInRange,
@@ -71,7 +73,8 @@ export const useOverviewKpis = (dateFrom: Date, dateTo: Date) => {
 		skip: !canCost,
 		refetchOnMountOrArgChange: false,
 	})
-	const todayKey = format(new Date(), 'yyyy-MM-dd')
+	// Business day, same as Today's Actions and the API (not the device's day).
+	const todayKey = businessDayKey(new Date(), config.businessTimeZone)
 	const invoicesQuery = useGetSellingInvoicesQuery(
 		{ issuedDate: todayKey },
 		{ skip: !canInvoices, refetchOnMountOrArgChange: false },

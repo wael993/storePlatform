@@ -45,7 +45,12 @@ import {
 	normalizeOpeningBalances,
 	currencyBalanceOf,
 	ratesFromCurrencySettings,
+	businessDayEnd,
+	businessDayKey,
+	businessDayStart,
+	toBusinessDayKey,
 } from 'store-domain'
+import { config } from '../config'
 import {
 	customerPartySummary,
 	customerRelatedEntries,
@@ -246,30 +251,33 @@ const isPeriodSummaryInvoice = (invoice: LocalInvoice) =>
 		String(invoice.status ?? InvoiceStatus.CONFIRMED),
 	)
 
+// Mirrors the API's parseSummaryDateRange (selling-invoice controller).
 const parseSummaryDateRange = (params: URLSearchParams) => {
-	const defaultDay = new Date()
-	defaultDay.setHours(0, 0, 0, 0)
+	const timeZone = config.businessTimeZone
+	const today = businessDayKey(new Date(), timeZone)
+	const fromDay =
+		toBusinessDayKey(params.get('dateFrom') ?? undefined, timeZone) ?? today
+	const toDay =
+		toBusinessDayKey(params.get('dateTo') ?? undefined, timeZone) ?? today
+	const [firstDay, lastDay] =
+		fromDay <= toDay ? [fromDay, toDay] : [toDay, fromDay]
 
-	const dateFrom = params.get('dateFrom')
-	const dateTo = params.get('dateTo')
-
-	const start = dateFrom ? new Date(dateFrom) : new Date(defaultDay)
-	const end = dateTo ? new Date(dateTo) : new Date(defaultDay)
-
-	start.setHours(0, 0, 0, 0)
-	end.setHours(23, 59, 59, 999)
-
-	if (start.getTime() > end.getTime()) {
-		const swappedStart = new Date(end)
-		const swappedEnd = new Date(start)
-
-		swappedStart.setHours(0, 0, 0, 0)
-		swappedEnd.setHours(23, 59, 59, 999)
-
-		return { start: swappedStart, end: swappedEnd }
+	return {
+		start: businessDayStart(firstDay, timeZone),
+		end: businessDayEnd(lastDay, timeZone),
 	}
+}
 
-	return { start, end }
+const isIssuedOnBusinessDay = (
+	issuedAtValue: string | undefined,
+	day: string,
+) => {
+	const issuedAt = issuedAtValue ? new Date(issuedAtValue) : null
+	if (!issuedAt || Number.isNaN(issuedAt.getTime())) return false
+	return (
+		businessDayKey(issuedAt, config.businessTimeZone) ===
+		toBusinessDayKey(day, config.businessTimeZone)
+	)
 }
 
 const buildSellingInvoicesSummary = async (
@@ -400,16 +408,9 @@ const filterInvoices = (invoices: LocalInvoice[], params: URLSearchParams) => {
 
 	const issuedDate = params.get('issuedDate')
 	if (issuedDate) {
-		const filterDate = new Date(issuedDate)
-		filtered = filtered.filter(inv => {
-			const issuedAt = inv.issuedAt ? new Date(inv.issuedAt) : null
-			if (!issuedAt) return false
-			return (
-				issuedAt.getFullYear() === filterDate.getFullYear() &&
-				issuedAt.getMonth() === filterDate.getMonth() &&
-				issuedAt.getDate() === filterDate.getDate()
-			)
-		})
+		filtered = filtered.filter(inv =>
+			isIssuedOnBusinessDay(inv.issuedAt, issuedDate),
+		)
 	}
 
 	const searchText = params.get('searchText')?.trim().toLowerCase()
@@ -464,16 +465,9 @@ const filterBuyingInvoices = (
 
 	const issuedDate = params.get('issuedDate')
 	if (issuedDate) {
-		const filterDate = new Date(issuedDate)
-		filtered = filtered.filter(inv => {
-			const issuedAt = inv.issuedAt ? new Date(inv.issuedAt) : null
-			if (!issuedAt) return false
-			return (
-				issuedAt.getFullYear() === filterDate.getFullYear() &&
-				issuedAt.getMonth() === filterDate.getMonth() &&
-				issuedAt.getDate() === filterDate.getDate()
-			)
-		})
+		filtered = filtered.filter(inv =>
+			isIssuedOnBusinessDay(inv.issuedAt, issuedDate),
+		)
 	}
 
 	const searchText = params.get('searchText')?.trim().toLowerCase()
@@ -491,15 +485,10 @@ const filterBuyingInvoices = (
 }
 
 const buildBuyingInvoicesSummary = (invoices: LocalBuyingInvoice[]) => {
-	const todayStart = new Date()
-	todayStart.setHours(0, 0, 0, 0)
-	const todayEnd = new Date()
-	todayEnd.setHours(23, 59, 59, 999)
-
-	const todaysInvoices = invoices.filter(inv => {
-		const issuedAt = inv.issuedAt ? new Date(inv.issuedAt) : null
-		return issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd
-	})
+	const today = businessDayKey(new Date(), config.businessTimeZone)
+	const todaysInvoices = invoices.filter(inv =>
+		isIssuedOnBusinessDay(inv.issuedAt, today),
+	)
 
 	const todayPurchases = todaysInvoices.reduce((total, inv) => {
 		const { grandTotal } = getPrimaryInvoiceCurrencyAmounts(inv)
