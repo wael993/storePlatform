@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Privacy Policy – Rivo</title>
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+	<style>
+		:root { color-scheme: light dark; --fg: #1f2328; --muted: #59636e; --bg: #fff; --line: #d1d9e0; }
+		@media (prefers-color-scheme: dark) { :root { --fg: #e6edf3; --muted: #9198a1; --bg: #0d1117; --line: #3d444d; } }
+		body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+		main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+		h1 { font-size: 1.8rem; margin-bottom: 0; }
+		h2 { font-size: 1.2rem; margin-top: 2rem; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+		address { font-style: normal; }
+		.muted { color: var(--muted); }
+		a { color: inherit; }
+	</style>
+</head>
+<body>
+<main>
+	<h1>Privacy Policy</h1>
+	<p class="muted">Last updated: 21 November 2026</p>
+
+	<h2>1. Who is responsible</h2>
+	<p>The controller responsible for processing personal data in the Rivo store platform (<a href="https://rivo-o.com">rivo-o.com</a>) is:</p>
+	<address>
+		Wael Zobani<br />
+		Kaiserstr. 110<br />
+		66386 St. Ingbert<br />
+		Germany<br />
+		Email: <a href="mailto:zobaniw@gmail.com">zobaniw@gmail.com</a>
+	</address>
+	<p>No data protection officer is appointed, as this is not legally required.</p>
+
+	<h2>2. What data we process</h2>
+	<ul>
+		<li><strong>Account data:</strong> name, email address, login credentials (stored hashed) and role of users of a store.</li>
+		<li><strong>Business data:</strong> the data a store enters into the platform, such as products, invoices, customers, partners, employees and payments.</li>
+		<li><strong>Technical data:</strong> IP address, browser information and server logs needed to run and secure the service.</li>
+		<li><strong>Cloud backup connection:</strong> if a store owner connects Google Drive, Dropbox or OneDrive (see section 4).</li>
+	</ul>
+
+	<h2>3. Why we process it and on what legal basis</h2>
+	<ul>
+		<li>To provide the platform under the contract with the store (Art. 6(1)(b) GDPR).</li>
+		<li>To keep the service secure and working (legitimate interest, Art. 6(1)(f) GDPR).</li>
+		<li>To meet legal obligations such as tax record keeping (Art. 6(1)(c) GDPR).</li>
+	</ul>
+	<p>We do not sell personal data and do not use it for advertising.</p>
+
+	<h2>4. Cloud backups (Google Drive, Dropbox, OneDrive)</h2>
+	<p>
+		A store owner can choose to back up the store's data to their own cloud storage.
+		This is optional and only starts after the owner connects an account and agrees on the provider's consent screen.
+	</p>
+	<ul>
+		<li>
+			<strong>Access we request:</strong> for Google Drive only the <code>drive.file</code> permission, which lets the app see and manage
+			only the files the app itself creates. We cannot see, read or change any other files in your Drive.
+			For Dropbox and OneDrive we only use an app-specific folder.
+		</li>
+		<li><strong>What we store:</strong> an access token (encrypted with AES-256-GCM) and the email address of the connected account, so that we can show which account is connected.</li>
+		<li><strong>What we upload:</strong> encrypted backup files of the store's own data. The files can only be read by the platform to restore the store's data.</li>
+		<li><strong>How we use it:</strong> only to create, list, download (for restore) and delete the backup files of that store. Nothing else.</li>
+		<li><strong>Sharing:</strong> we do not share data received from Google, Dropbox or Microsoft with anyone, and we do not use it for advertising or to train AI models.</li>
+		<li>
+			<strong>Revoking access:</strong> the owner can disconnect the account in Settings → Backup at any time, which deletes the stored token.
+			Access can also be removed in the account settings of the provider, e.g.
+			<a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.
+			Backup files already in your storage stay there until you delete them.
+		</li>
+	</ul>
+	<p>
+		Rivo's use and transfer of information received from Google APIs adheres to the
+		<a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+		including the Limited Use requirements.
+	</p>
+
+	<h2>5. Service providers</h2>
+	<p>We use the following processors to run the platform. Each is bound by a data processing agreement:</p>
+	<ul>
+		<li><strong>Application server and database:</strong> Render Services, Inc. (USA), servers in Frankfurt, Germany.</li>
+		<li><strong>Web frontend:</strong> Vercel Inc. (USA), global content delivery network.</li>
+		<li><strong>Cache:</strong> Redis Ltd. (Redis Cloud), servers in XXXXX.</li>
+		<li>
+			<strong>AI features (reading invoices, importing products, reports):</strong> Google Gemini API, Google LLC (USA).
+			Only the documents or data a user submits to these features are sent.
+		</li>
+	</ul>
+	<p>Transfers outside the EU/EEA are based on the EU-US Data Privacy Framework and EU standard contractual clauses.</p>
+
+	<h2>6. How long we keep data</h2>
+	<p>
+		We keep data as long as the store's account exists, and longer only where the law requires it (e.g. tax records).
+		Server logs are deleted after 30 days. Cloud backups are kept in the owner's storage according to the retention
+		setting of the store and are deleted by the platform when they become older than that setting.
+	</p>
+
+	<h2>7. Your rights</h2>
+	<p>
+		You have the right to access, rectify, erase and restrict the processing of your data, to data portability,
+		and to object to processing (Art. 15–21 GDPR). To use these rights, contact us at <a href="mailto:zobaniw@gmail.com">zobaniw@gmail.com</a>.
+	</p>
+	<p>
+		You also have the right to complain to a data protection supervisory authority. The authority responsible for us is the
+		Unabhängiges Datenschutzzentrum Saarland (<a href="https://www.datenschutz.saarland.de">datenschutz.saarland.de</a>).
+	</p>
+
+	<h2>8. Changes</h2>
+	<p>We may update this policy. The current version is always available at this address.</p>
+</main>
+</body>
+</html>
