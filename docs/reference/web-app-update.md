@@ -51,7 +51,7 @@ dev does not stick to a cached shell.
 
 ## What this does not fix
 
-- API Redis / Mongo data caches (unrelated to an old frontend bundle).
+- API Redis caches (unrelated to an old frontend bundle).
 - Users who never reopen the tab; they get the new shell on next visit or when
   the shell check runs.
 - Backend deploy order / warehouse migration (see [`warehouse.md`](warehouse.md)).

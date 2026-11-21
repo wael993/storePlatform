@@ -1,98 +1,54 @@
 # Roadmap — after the Postgres switch
 
-What comes next, in order, and when each part counts as done. Detail for the Postgres
-steps lives in [postgres-migration.md](postgres-migration.md); the full test checklist in
-[smoke-test-plan.md](smoke-test-plan.md); the Postgres audit and the smoke-test fix list in
-[postgres-audit.md](postgres-audit.md) (part of phase 3; its Part A blocks PG-MIG-3).
+Production runs on Postgres since 2026-11-20 (one window, all tenants). Rollback to Mongo is
+possible until 2026-12-04; after that, Mongo goes. Test checklist:
+[smoke-test-plan.md](smoke-test-plan.md); open audit items: [postgres-audit.md](postgres-audit.md).
 
-**Why this order:** first make the database switch safe (test, review, rehearse, switch),
-then delete the old Mongo code (less code to restructure), then restructure, then clean
-up the code, then rewrite the docs to match. Restructuring before the switch would mix two
-big changes in one release and make a rollback impossible to reason about.
+**Order:** close the switch (watch, clean up, remove Mongo) → restructure → clean code.
+Restructuring before Mongo is gone means moving code that is about to be deleted.
 
 | # | Phase | Ticket | Depends on |
 | --- | --- | --- | --- |
-| 1 | Test the new database on staging | QA-STAGING-1 | — |
-| 2 | Full smoke test from zero | QA-SMOKE-1 | — (runs in 1, again in 4 and 5) |
-| 3 | Hard review per flow | QA-REVIEW-1 | 1 |
-| 4 | Rehearsal on a production copy | PG-MIG-3 | 1, 2, 3 |
-| 5 | Switch production to Postgres | PG-MIG-4 | 4 says go |
-| 6 | Remove Mongo | PG-MIG-6 | 5 + rollback window over |
-| 7 | Project structure for growth | ARCH-STRUCT-1 | 6 |
-| 8 | Simplify the code | CODE-CLEAN-1 | 7 (per module, as it moves) |
-| 9 | Comments + docs to current state | DOCS-1 | 8 (per module) |
-| 10 | _Open point from the owner: "we need to update the code so …"_ | TBD | — |
+| 1 | After-window tasks | PG-MIG-4-AFTER | — |
+| 2 | Finish smoke test | QA-SMOKE-1 | — |
+| 3 | Tenant backup on real providers | BACKUP-LIVE-1 | — |
+| 4 | Remove Mongo | PG-MIG-6 | 1 + 2026-12-04 passed with no rollback |
+| 5 | Project structure for growth | ARCH-STRUCT-1 | 4 |
+| 6 | Simplify the code | CODE-CLEAN-1 | 5 (per module, as it moves) |
 
-Rules for the whole roadmap:
-
-- Production is not touched before PG-MIG-4. `main` stays frozen for API changes until then.
-- Every bug found gets a fix **and** a test that fails without the fix.
-- One phase at a time on the risky path (1 → 5). Phases 7–9 move module by module, each
-  module shipped and smoke-tested before the next one starts.
+Rules: every bug found gets a fix **and** a test that fails without the fix. Phases 5–6 move
+module by module, each shipped and smoke-tested before the next.
 
 ---
 
-## QA-STAGING-1 — Use staging as the real shop (about 1 week)
+## PG-MIG-4-AFTER — Close the switch
 
-**Goal:** find what tests cannot: real habits, real data, real screens.
+- Delete the production copies from staging (GDPR; audit 10.10).
+- Retest smoke 2.5 on production (S-4, log out of all devices).
+- Watch Render logs daily until 2026-12-04 for `23505`, `40P01`, timeouts; watch DB CPU / RAM.
+- Audit 9.3 / 9.8: copy outside Render (check `scripts/backup-db.sh`) + one real restore test.
 
-- Use staging for daily work: sell, buy, transfer, return, offline selling + sync, import,
-  every role (owner, admin, cashier, employee).
-- Read the Render logs daily for Postgres errors (`23505`, `40P01`, timeouts, `Failed query`).
-- Run `npm run stress` against staging after big days (see `src/scripts/stress.ts`).
-- At the end: database checks on staging (cash = ledger, no orphan stock movements,
-  no duplicate names/aliases).
+## QA-SMOKE-1 — Finish the smoke test
 
-**Done when:** one week of use with no open bug, stress green, database checks clean.
+Finish the unticked rows in [smoke-test-plan.md](smoke-test-plan.md). Later: automate the critical path (Playwright).
 
-## QA-SMOKE-1 — Smoke test from zero to everything
+## BACKUP-LIVE-1 — Tenant backup against real accounts
 
-**Goal:** one checklist that walks the whole app, from an empty tenant to every feature,
-so nothing is forgotten. See [smoke-test-plan.md](smoke-test-plan.md).
+Shipped on Postgres (`reference/backup.md`), tested locally only. Run backup + restore on
+staging against real Google Drive / Dropbox / OneDrive accounts, then your own all-tenant copy.
 
-- Run it fully on staging (now), on the production copy (PG-MIG-3) and right after the
-  switch (PG-MIG-4, shortened "critical path" version).
-- Later: automate the critical path as browser tests (Playwright) so it runs on every deploy.
+## PG-MIG-6 — Remove MongoDB
 
-**Done when:** every row is ticked on staging, failures have a ticket.
+1. Remove Mongoose models (`src/models/*`), `shared/mongodb/*`, dead `withTenantScope`
+   branches, Mongo-only scripts (`seed-roles`, `init-collections`, `drop-stale-indexes`).
+   Model names are still used as keys in `PG_MODELS` (`db/ownership.ts`): replace, don't break.
+2. `src/config/config.ts` stops requiring `BUSINESS_PLATFORM_MONGO_DB_CONNECTION_STRING`.
+3. Drop `mongoose` from `package.json`; CI (`mongoQuery.pg.test.ts`, `MONGO_TEST_URL`) and
+   `docker-compose.ci.yml` stop starting Mongo.
+4. Remove the `tenants.dataStore` mongo option.
+5. Ops: archive / delete the frozen Mongo cluster.
 
-## QA-REVIEW-1 — Hard review per process, group and flow
-
-**Goal:** a reviewer reads each flow end to end — screen → API → database → back — and
-compares it with the old Mongo code, without the author's conclusions.
-
-Review units (one review each, smallest first):
-
-| Group | Flows to review end to end |
-| --- | --- |
-| Money | sale (cash, card, credit, multi-currency, partial), buy, edit, delete, cash transfer, cash exchange, opening balances, daily actions, expenses |
-| Stock | opening stock, purchase, sale, edit, delete, warehouse transfer (+ delete), oversell, average cost |
-| Offline | outbox, sync push / replay, number blocks, local snapshots, conflict on reconnect |
-| Catalog | products (create, edit, bulk edit, barcode, delete blocks), import wizard, categories, brands, units, shelves, warehouses, currencies |
-| Parties | customers, suppliers, partners, projects, employees (salaries, payouts) |
-| Settings | invoice settings, label templates, user settings, role permissions (SEE), notifications, reports / RIVO |
-| Platform | login, refresh, logout, change password, users, tenants, subscriptions, newsroom, crons |
-
-For every flow the reviewer answers the same questions:
-
-1. **Correct:** same result as before for normal, empty, zero, last-item and edited inputs?
-2. **Money exact:** no float math where exact numeric was meant, rounding unchanged?
-3. **Atomic:** all writes of one action in one transaction? Row locked before read-modify-write?
-4. **Parallel:** what happens with two requests at once (double click, two tabs, two cashiers)?
-5. **Retry:** what happens when the same request comes twice (offline replay, client id)?
-6. **Tenant + permission:** tenant filter on every query, server checks what the UI hides?
-7. **Tested:** is there a test that fails when this flow breaks?
-
-**Done when:** every unit reviewed, findings fixed with tests or written down as tickets.
-
-## PG-MIG-3 / PG-MIG-4 / PG-MIG-6
-
-See [postgres-migration.md](postgres-migration.md). Short version: PG-MIG-3 runs the
-existing tools on a production copy (no new feature code, small ETL fixes if production
-data has shapes dev data did not have); PG-MIG-4 is operations only (freeze, final load,
-checks, switch `DATABASE_URL`, smoke, reopen) plus a written runbook and the rollback rule;
-PG-MIG-6 deletes Mongo code (keep Mongoose as validation-only library unless there is a
-reason to replace it).
+**Done when:** API typecheck, lint, tests green without mongoose; API boots without a Mongo URI.
 
 ## ARCH-STRUCT-1 — Project structure that can grow
 
@@ -160,31 +116,6 @@ Steps per module (done together with its ARCH-STRUCT-1 move):
 3. Add the missing tests for the module's risky paths before changing them.
 
 **Done when:** every module passes the rules above, coverage of risky paths has a test each.
-
-## DOCS-1 — Comments and docs that match the code
-
-**Goal:** the docs describe the code as it is, and every non-obvious function says why it
-exists.
-
-Code comments:
-
-- Every exported function / class: one-line summary of what it does and when to use it
-  (JSDoc), plus the "why" when the code cannot show it (e.g. why a lock, why an order).
-- No comments that repeat the code. Business rules link to their `docs/reference` page.
-
-Docs refresh:
-
-- `docs/README.md`: still says "Local docs (gitignored)" — docs are tracked now; fix and
-  re-index.
-- `docs/reference/*`: re-check each page against the code after its module moved; remove
-  Mongo wording (`$set`, collections, `__v`, 11000).
-- `docs/architecture/implementation-guide.md` and root `CLAUDE.md`: new layer map, Postgres
-  rules (transactions, row locks, `ALL_TENANTS`, `isUniqueViolation`), test commands.
-- New: `docs/onboarding.md` — how to run, test, and ship a change in the first day.
-- `documentation/openapi.yaml`: check every endpoint against the routes.
-
-**Done when:** a new developer sets up, finds a flow and ships a small change using only the
-docs; no page mentions code that no longer exists.
 
 ## Open point
 

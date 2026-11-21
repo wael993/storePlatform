@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
+import { config } from '../../config/config'
+import { businessDayKey, toBusinessDayKey } from '../../shared/store-domain'
 import { DbTx } from '../../db'
 import { pgFind, pgFindOne, pgUpdateMany } from '../../db/mongoQuery'
 import { lockUnchangedInvoice } from '../../db/repos/invoices'
@@ -329,18 +331,13 @@ export default class BuyingInvoiceController {
 	private buildBuyingInvoicesSummary(
 		invoices: Array<Record<string, unknown>>,
 	): BuyingInvoicesSummary {
-		const todayStart = new Date()
-
-		todayStart.setHours(0, 0, 0, 0)
-
-		const todayEnd = new Date()
-
-		todayEnd.setHours(23, 59, 59, 999)
-
+		const today = businessDayKey(new Date(), config.businessTimeZone)
 		const todaysInvoices = invoices.filter(invoice => {
 			const issuedAt = toDate(invoice.issuedAt)
 
-			return Boolean(issuedAt && issuedAt >= todayStart && issuedAt <= todayEnd)
+			return Boolean(
+				issuedAt && businessDayKey(issuedAt, config.businessTimeZone) === today,
+			)
 		})
 
 		const todayPurchases = todaysInvoices.reduce((total, invoice) => {
@@ -521,16 +518,14 @@ export default class BuyingInvoiceController {
 
 			if (filters.issuedDate) {
 				const issuedAt = toDate(invoice.issuedAt)
-				const filterDate = new Date(filters.issuedDate)
 
 				if (!issuedAt) return false
 
-				const sameDay =
-					issuedAt.getFullYear() === filterDate.getFullYear() &&
-					issuedAt.getMonth() === filterDate.getMonth() &&
-					issuedAt.getDate() === filterDate.getDate()
+				const isSameBusinessDay =
+					businessDayKey(issuedAt, config.businessTimeZone) ===
+					toBusinessDayKey(filters.issuedDate, config.businessTimeZone)
 
-				if (!sameDay) return false
+				if (!isSameBusinessDay) return false
 			}
 
 			if (!normalizedSearch) return true

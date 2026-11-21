@@ -14,6 +14,8 @@ Shipped / do not re-open:
   [`../reference/cash-accounts.md`](../reference/cash-accounts.md)
 - Master-data delete (online + block reasons) →
   [`../reference/master-data-delete.md`](../reference/master-data-delete.md)
+- INV-NUM-1 unique invoice numbers (advisory lock, `db/repos/invoices.ts`) and
+  INV-MONEY-1 server money check (`shared/invoiceMoney.ts`)
 
 ---
 
@@ -148,98 +150,6 @@ from both banners.
 
 Upload logo/QR to object storage; API/DB store URLs only. Migrate existing
 Base64 values. Keep PDF/header rendering working.
-
----
-
-## INV-NUM-1 — Unique invoice numbers per tenant (race)
-
-**Type:** Bug · **Priority:** High · **Found:** PG-MIG-2 port (2026-11-07) · **Seen on staging:** 5 × `SI-104501` in `cafeshop` (2026-11-08, PG-AUDIT 1.4)
-
-**State (2026-11-17):** race fixed — `allocateInvoiceNumber` takes a per-tenant, per-kind
-`pg_advisory_xact_lock` inside the create transaction (`db/repos/invoices.ts`). Covered by
-`invoices.pg.test.ts` (8 parallel creates) and `npm run stress` (unique numbers check). Open: steps 1–2
-(unique index as a second net; needs a decision on the legacy duplicates).
-
-**Staging (2026-11-17, deploy of 7eb0f20):** `npm run stress` on tenant `postgresql` — all 15 checks
-passed; 5 parallel sales got `SI-008505` … `SI-008509`. Read-only data checks: no duplicate numbers,
-no orphans, cash = ledger in that tenant.
-
-### Problem
-
-`allocateInvoiceNumberForCreate` finds a free number, then the invoice is inserted. There is no unique
-index on `(tenantId, invoiceNumber)` for selling or buying invoices (the code comment claims
-"unique-index conflicts retry", but the index does not exist). Two simultaneous creates in one tenant can
-get the same number. Same in Mongo today and in the Postgres port (kept as-is on purpose).
-
-### Do
-
-1. Check existing data for duplicates per tenant (selling and buying separately); decide how to renumber
-   or keep legacy duplicates (partial index / cutoff).
-2. Add `UNIQUE (tenant_id, invoice_number)` on Postgres (after cutover, or in the PG schema if data is clean).
-3. On conflict inside the create transaction: retry allocation (Postgres: `ON CONFLICT` or catch `23505`
-   and retry the whole transaction).
-
-### Acceptance
-
-- [x] Two parallel creates never share a number (test with concurrent transactions)
-- [x] Offline-reserved numbers still accepted when free (existing test unchanged, passes)
-- [ ] ~~Unique index on `(tenant_id, invoice_number)`~~ — owner decision 2026-11-17: not done (H4
-  ignored); the allocation lock is the protection. The 5 `SI-104501` rows were deleted with the dev tenants.
-
----
-
-## INV-MONEY-1 — Server checks invoice money (PG-AUDIT H2)
-
-**Type:** Bug (trust boundary) · **Priority:** High, before PG-MIG-4 · **Found:** PG-AUDIT 3.5 (2026-11-17)
-
-### Problem
-
-Selling and buying invoice create / edit take `currencyAmounts` (amount, paid, remaining, subtotal,
-discount, rate) and tenders from the request. The server never checks them against the lines or the
-currency settings (`shared/cashAccounts/posting.ts` `storedInvoiceTenders`): a rate of `0` silently
-becomes `1`, a negative rate passes, and a total of 1 for lines worth 100 is posted as 1 (revenue,
-customer balance, cash). Only cash exchanges are checked today.
-
-### Design
-
-1. **One formula.** Move `calculateInvoiceTotals` / `getLineDiscountAmount` from
-   `web/.../SellingInvoice/invoiceCalculations.ts` into `packages/store-domain` (synced into the API
-   by `npm run sync-domain`). Web and API then compute totals the same way, float for float.
-2. **Always (live and sync replay), refuse with 422 when:**
-   - a rate is not finite or ≤ 0, or the primary row's rate is not 1, or there is not exactly one
-     primary row;
-   - the primary `subtotal` / `discount` / `amount` differ from the recomputed totals by more than
-     0.01 (lines + invoice discount);
-   - a non-primary row's `amount` differs from `primary amount × rate` by more than 0.01;
-   - `paidAmount` < 0 or > `amount` + 0.01, or `paid + remaining` ≠ `amount` (± 0.01).
-3. **Live requests only:** each non-primary rate must equal today's currency settings (same rule as
-   cash exchanges). Sync replays keep their create-time rates (CLAUDE.md "snapshot at create").
-4. **Edit:** the same checks on the merged result (request fields over the stored invoice). Old
-   invoices are never re-checked unless edited; historical invoices (no `invoiceCurrencyId`, no
-   tenders) keep today's behavior.
-
-### Decisions (owner, 2026-11-17)
-
-- A: **refuse** a live invoice whose rate differs from today's settings (reload and save again).
-- B: **refuse at once**, no log-only phase.
-
-### Decisions asked
-
-- **A.** Live rate differs from today's settings (the tab was open while someone changed the rate):
-  refuse and ask to reload (like exchanges), or accept the client's rate?
-- **B.** Roll-out: refuse at once, or log mismatches for a few days on staging first?
-
-### Acceptance
-
-- [x] Shared formula in `store-domain`; web uses it unchanged (existing web tests pass)
-- [x] API test per refusal rule (rate 0 / negative, total ≠ lines, secondary ≠ primary × rate, paid > total) — `invoiceMoney.test.ts`
-- [x] Sync replay with an old rate accepted; live request with an old rate refused (decision A)
-- [x] `npm run stress` and a manual offline sale still pass on staging (2026-11-17, `8fd71e4`)
-- [x] `docs/reference` + `openapi.yaml` list the refusals
-
-### Out of scope
-
-Currency rounding (M1) and stored float noise; buying-invoice landed costs.
 
 ---
 

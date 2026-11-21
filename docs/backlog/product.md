@@ -8,13 +8,12 @@ Shipped (see reference, do not re-open):
   [`../reference/product-import.md`](../reference/product-import.md)
 - Remove old Daily page → cash on selling-invoices + party modals
   ([`../reference/party-activity.md`](../reference/party-activity.md))
-- Docs under gitignored `docs/`
 
 Superseded:
 
 - “Move Selling Invoice Summary to Report page” → Dashboard
   ([`dashboard.md`](dashboard.md) **DASH-029** / **DASH-030**)
-- One-shot “what’s new” popup → [`newsroom.md`](newsroom.md)
+- One-shot “what’s new” popup → shipped as Newsroom (`apis/newsroom`)
 
 ---
 
@@ -33,10 +32,10 @@ same chain.
 
 ---
 
-## 7 — Bulk update in product table
+## 7 — Bulk edit: price and active status
 
-Select many product rows and apply one update (price, category, active, unit,
-etc.) with clear success/failure per row. Respect existing edit permissions.
+`BulkEditModal` already sets category, supplier, unit, brand, minimum quantity and discount.
+Missing: selling price and active status. Same per-row result list and edit permissions.
 
 ---
 

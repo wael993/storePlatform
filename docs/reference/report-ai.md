@@ -8,7 +8,6 @@ Code: `services/api-store-platform/src/shared/reportAi/`,
 FE `pages/ReportPage.tsx`, RTK `postReportChat` / `getReportWatch`.
 
 Related: [`total-profit.md`](total-profit.md), [`warehouse.md`](warehouse.md).
-Ticket-style backlog copy: [`../backlog/report-ai.md`](../backlog/report-ai.md).
 
 ---
 
@@ -103,7 +102,7 @@ warehouse-scoped from day one (prefer one shared scope helper).
 
 ### RA-BUG-1 — Warehouse ACL / working scope ignored (Critical)
 
-**Problem:** Tools use `withTenantScope(…, tenantId)` only.
+**Problem:** Tools use `pgFind(model, tenantId, …)` only (tenant, no warehouse).
 `buildRequestContext` already sets `warehouseScope` from `x-warehouse-scope`,
 but `postReportChat` / `getReportWatch` never pass it into `runReportTool`.
 

@@ -5,20 +5,12 @@ Shipped shell + overview / cash / profit-partial KPIs:
 
 Related: [`../reference/total-profit.md`](../reference/total-profit.md),
 [`../reference/warehouse.md`](../reference/warehouse.md),
-[`../reference/report-ai.md`](../reference/report-ai.md),
-[`report-ai.md`](report-ai.md).
+[`../reference/report-ai.md`](../reference/report-ai.md) (RIVO bugs + next tools).
 
 **Product decision:** Tenant Dashboard is `/dashboard`. RIVO stays on its own
 route. Do not fold RIVO into Dashboard as a widget.
 
-Constraints for every remaining KPI ticket:
-
-- Tenant isolation server-side (never frontend-only filter)
-- Warehouse scope = TopBar / `x-warehouse-scope`
-- Reuse existing business rules (profit, sales, WAC)
-- Missing cost is unknown / partial, never coerced to `0`
-- Online only for Dashboard
-- Primary currency for money KPIs
+Constraints for every remaining KPI ticket: same rules as the reference.
 
 ---
 
@@ -29,6 +21,8 @@ Constraints for every remaining KPI ticket:
 | DASH-001…003 | Shell, date filters, KPI component system |
 | DASH-004 (partial) | Overview row live for core cards |
 | DASH-009…014, 016, 017 (partial) | Products, customers, invoices/sales/profit today, inventory cost, receivable/payable, cash balances |
+| DASH-006/015/018/019 | Live inventory / product cards and warnings |
+| DASH-029 | Invoice summary on Dashboard (`InvoiceSummaryKpiCard`) |
 Profit card always shows; incomplete COGS → `profitPartial` message
 ([`../reference/total-profit.md`](../reference/total-profit.md)).
 
@@ -38,7 +32,7 @@ Profit card always shows; incomplete COGS → `profitPartial` message
 
 ### RIVO-001 — Rename Reports to RIVO
 
-If the product nav / page title still says Reports, finish the rename (route may
+Chat title is RIVO; the nav label still says "Reports". Finish the rename (route may
 stay; copy + branding only). Chat stays on its own page — see
 [`../reference/report-ai.md`](../reference/report-ai.md).
 
@@ -49,11 +43,6 @@ stay; copy + branding only). Chat stays on its own page — see
 ### DASH-005 — Sales & Profit visualization (real charts)
 
 Replace Coming Soon chart shells (`SALES_PROFIT_CHART_IDS`) with real data.
-
-### DASH-006 / DASH-015 / DASH-018 / DASH-019 — Inventory & product analytics
-
-Inventory warnings, best sellers, best profit — finish any card still on Coming
-Soon. Reuse profit / qty rules.
 
 ### DASH-007 — Financial section polish
 
@@ -83,14 +72,9 @@ One ticket per chart/KPI. Reuse existing aggregations; no parallel math.
 
 ## Still open — migration off Selling Invoices
 
-### DASH-029 — Move invoice summary to Dashboard
-
-Move existing summary information from Selling Invoices to Dashboard. Do **not**
-remove from Selling Invoices until Dashboard is verified.
-
 ### DASH-030 — Remove summary cards from Selling Invoices
 
-**Depends on:** DASH-029. Selling Invoices focuses on list/create/edit/post.
+DASH-029 shipped. Selling Invoices focuses on list/create/edit/post.
 
 ---
 

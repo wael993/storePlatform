@@ -273,7 +273,7 @@ paths:
         - name: issuedDate
           in: query
           required: false
-          description: Issued date
+          description: Business day (YYYY-MM-DD) in BUSINESS_TIME_ZONE, default Asia/Amman
           schema:
             type: string
         - name: supplierId
@@ -618,13 +618,13 @@ paths:
         - name: dateFrom
           in: query
           required: false
-          description: From date
+          description: First business day (YYYY-MM-DD) in BUSINESS_TIME_ZONE, default Asia/Amman
           schema:
             type: string
         - name: dateTo
           in: query
           required: false
-          description: To date
+          description: Last business day, inclusive (YYYY-MM-DD) in BUSINESS_TIME_ZONE
           schema:
             type: string
         - name: page
@@ -1295,13 +1295,13 @@ paths:
         - name: invoiceDateFrom
           in: query
           required: false
-          description: From date (ISO)
+          description: From day (YYYY-MM-DD = whole business day in BUSINESS_TIME_ZONE, default Asia/Amman; any other date string is used as an exact instant)
           schema:
             type: string
         - name: invoiceDateTo
           in: query
           required: false
-          description: To date (ISO)
+          description: To day, inclusive (YYYY-MM-DD = whole business day in BUSINESS_TIME_ZONE; any other date string is used as an exact instant)
           schema:
             type: string
         - name: x-warehouse-scope
@@ -1439,13 +1439,13 @@ paths:
         - name: invoiceDateFrom
           in: query
           required: false
-          description: From date (ISO)
+          description: From day (YYYY-MM-DD = whole business day in BUSINESS_TIME_ZONE, default Asia/Amman; any other date string is used as an exact instant)
           schema:
             type: string
         - name: invoiceDateTo
           in: query
           required: false
-          description: To date (ISO)
+          description: To day, inclusive (YYYY-MM-DD = whole business day in BUSINESS_TIME_ZONE; any other date string is used as an exact instant)
           schema:
             type: string
         - name: x-warehouse-scope
@@ -2331,13 +2331,13 @@ paths:
         - name: invoiceDateFrom
           in: query
           required: false
-          description: From date (ISO)
+          description: From day (YYYY-MM-DD = whole business day in BUSINESS_TIME_ZONE, default Asia/Amman; any other date string is used as an exact instant)
           schema:
             type: string
         - name: invoiceDateTo
           in: query
           required: false
-          description: To date (ISO)
+          description: To day, inclusive (YYYY-MM-DD = whole business day in BUSINESS_TIME_ZONE; any other date string is used as an exact instant)
           schema:
             type: string
         - name: x-warehouse-scope
@@ -5269,19 +5269,19 @@ paths:
         - name: issuedDate
           in: query
           required: false
-          description: Issued date
+          description: Business day (YYYY-MM-DD) in BUSINESS_TIME_ZONE, default Asia/Amman
           schema:
             type: string
         - name: dateFrom
           in: query
           required: false
-          description: From date
+          description: First business day (YYYY-MM-DD) in BUSINESS_TIME_ZONE, default Asia/Amman
           schema:
             type: string
         - name: dateTo
           in: query
           required: false
-          description: To date
+          description: Last business day, inclusive (YYYY-MM-DD) in BUSINESS_TIME_ZONE
           schema:
             type: string
         - name: customerId

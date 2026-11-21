@@ -44,11 +44,4 @@ Profit stays visible when COGS is incomplete; the card is marked partial. See
 
 ---
 
-## Still Coming Soon (backlog)
-
-- Sales & Profit charts (`SALES_PROFIT_CHART_IDS`)
-- Some inventory / activity list cards still shell-only depending on ticket
-- SaaS Owner dashboard
-- Moving invoice summary cards off Selling Invoices (`DASH-029` / `DASH-030`)
-
-Full ticket list: [`../backlog/dashboard.md`](../backlog/dashboard.md).
+Open work: [`../backlog/dashboard.md`](../backlog/dashboard.md).

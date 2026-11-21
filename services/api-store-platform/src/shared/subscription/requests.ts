@@ -28,7 +28,8 @@ import {
 	toView,
 } from './persist'
 import { normalizeStoredImage } from '../imageValue'
-import { calendarDateInTimeZone, SubscriptionView } from './lifecycle'
+import { businessDayKey } from '../store-domain'
+import { SubscriptionView } from './lifecycle'
 
 const actorOf = (requestContext: RequestContext): RenewalRequestActor => {
 	const userId = requestContext.userId || requestContext.user?.userId || ''
@@ -59,7 +60,7 @@ export type RenewalRequestView = {
 }
 
 const ymdOf = (date: Date): string =>
-	calendarDateInTimeZone(date, getSubscriptionConfig().timeZone)
+	businessDayKey(date, getSubscriptionConfig().timeZone)
 
 export const toRenewalRequestView = (
 	request: ISubscriptionRenewalRequest,

@@ -193,6 +193,18 @@ const CASES: Array<{
 		filter: { $or: [{ name: /^pot$/i }, { name: /^zzz$/ }] },
 	},
 	{ model: 'Products', filter: { name: /^nothing-matches$/i } },
+	// Today's Actions filters entry types this way (buildCaseInsensitiveRegexList)
+	{
+		model: 'DailyAction',
+		filter: {
+			entryType: { $in: [/^receipt_entry$/i, /^PAYMENT_ENTRY$/i] },
+		},
+	},
+	{
+		model: 'DailyAction',
+		filter: { entryType: { $nin: [/^receipt_entry$/i] } },
+	},
+	{ model: 'Supplier', filter: { aliases: { $in: [/^X$/i] } } },
 	{ model: 'Supplier', filter: { aliases: /^X$/i } },
 	{ model: 'Supplier', filter: { aliases: { $regex: '^y', $options: 'i' } } },
 	{ model: 'Supplier', filter: { aliases: 'x' } },

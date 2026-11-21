@@ -106,5 +106,4 @@ Session stores `createdMasterData: { categoryIds, supplierIds, unitIds }`.
 
 ## Follow-ups
 
-- Multi-column barcodes; qty silent-`0` policy; tenant-driven currency tokens;
-  Arabic digits; parse→commit integration test with real xlsx.
+Open leftovers: [`../backlog/product.md`](../backlog/product.md) (0a–0d).

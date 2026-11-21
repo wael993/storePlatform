@@ -1,7 +1,5 @@
 # Tenant backup (API, web Settings → Backup, Google Drive / Dropbox / OneDrive)
 
-Spec: [backlog/backup.md](../backlog/backup.md). This file is what shipped.
-
 ## Decisions
 
 | Topic | Decision |
@@ -70,7 +68,3 @@ scopes `files.content.write`, `files.content.read`, `account_info.read`. Azure a
 - No per-provider rate limit; one concurrency limit per API instance (replicas multiply it).
 - Google upload is one PUT (no chunk resume); Dropbox single request ≤ 150 MB.
 - FAILED records are pruned after 30 days (at the next successful backup).
-
-## Not done yet
-
-Postgres version (branch `tenant-backup`, 2026-11-19): engine, queue, restore and tests (`backup.pg.test.ts`: exact round trip, other tenant untouched, rollback on a failed restore, safety-backup failure, retention, restore lock, queue claim) run against a local Postgres with an in-memory provider; not yet against a real provider or staging. Dropbox and OneDrive are implemented and unit-tested with mocked HTTP but not yet run against real accounts. Next-run time is shown from the cron expression, not per tenant.

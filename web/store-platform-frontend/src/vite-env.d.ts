@@ -7,4 +7,5 @@ interface ImportMetaEnv {
 	readonly VITE_PERSISTENCE_SERVICE_ENDPOINT?: string
 	readonly VITE_ACTIONS_ENABLED?: string
 	readonly VITE_TENANT_ACTIONS_ENABLED?: string
+	readonly VITE_BUSINESS_TIME_ZONE?: string
 }

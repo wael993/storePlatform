@@ -25,7 +25,7 @@ task · blank = not run. Problems found go to [Issues found](#issues-found) (S-n
 | 1.1 ★ | Super admin logs in                                  | Tenant list loads                                 | ✓   |                                             |
 | 1.2 ★ | Create a tenant + owner                              | Tenant in list; owner can log in                  | ✓   |                                             |
 | 1.3   | Edit tenant: pages, offline on/off, Invoice AI limit | Saved; owner sees only allowed pages after reload | ~   | Only after logout + login, not reload (S-1) |
-| 1.4   | Set subscription payment info                        | Owner sees it on the subscription page            | ~   | Payment image displayed wrong (S-2)         |
+| 1.4   | Set subscription payment info                        | Owner sees it on the subscription page            | ✓   | S-2 fixed 2026-11-20                        |
 
 ## 2. Login and account
 
@@ -79,7 +79,7 @@ task · blank = not run. Problems found go to [Issues found](#issues-found) (S-n
 | 6.4 ★ | Edit sale: paid 100 → 50 → 100, quantity 2 → 3 → 2            | Cash and stock end where one sale of 2 for 100 would       | ✓   |                                           |
 | 6.5 ★ | Delete a paid sale                                            | Stock and cash back exactly once                           | ✓   |                                           |
 | 6.6   | Oversell off: sell more than stock                            | Refused                                                    | ✓   |                                           |
-| 6.7   | Warehouse transfer, then delete it                            | Stock moves, then comes back                               | ~   | Delete exists in invoice list; retest (S-6)|
+| 6.7   | Warehouse transfer, then delete it                            | Stock moves, then comes back                               | ✓   | S-6 retested 2026-11-20                   |
 | 6.8   | Cash transfer and cash exchange between accounts / currencies | Balances right; history shows both legs                    | ✓   |                                           |
 | 6.9   | Daily actions and expenses: create, edit, delete              | Cash follows each change                                   | ~   | Create works; edit/delete: retest (S-7)     |
 | 6.10  | Dashboard and reports after the above                         | Totals match the invoices you made                         | ~   | Dashboard checked; reports not tested     |

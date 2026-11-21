@@ -1,3 +1,5 @@
+import { businessDayKey } from '../store-domain'
+
 export const SUBSCRIPTION_STATUS = {
 	ACTIVE: 'active',
 	EXPIRED: 'expired',
@@ -37,27 +39,6 @@ export type SubscriptionLifecycleConfig = {
 
 const MS_PER_DAY = 86_400_000
 
-export const calendarDateInTimeZone = (
-	date: Date,
-	timeZone: string,
-): string => {
-	const parts = new Intl.DateTimeFormat('en-US', {
-		timeZone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-	}).formatToParts(date)
-	const year = parts.find(part => part.type === 'year')?.value
-	const month = parts.find(part => part.type === 'month')?.value
-	const day = parts.find(part => part.type === 'day')?.value
-
-	if (!year || !month || !day) {
-		throw new Error(`Could not format calendar date for ${timeZone}.`)
-	}
-
-	return `${year}-${month}-${day}`
-}
-
 const utcMidnightFromCalendarDate = (ymd: string): Date => {
 	const [year, month, day] = ymd.split('-').map(Number)
 
@@ -96,8 +77,8 @@ const remainingSubscriptionDays = (
 	timeZone: string,
 ): number =>
 	calendarDaysBetween(
-		calendarDateInTimeZone(now, timeZone),
-		calendarDateInTimeZone(renewalDate, timeZone),
+		businessDayKey(now, timeZone),
+		businessDayKey(renewalDate, timeZone),
 	)
 
 const cloneSubscription = (
@@ -118,8 +99,8 @@ export const createSubscription = (
 	now: Date,
 	config: SubscriptionLifecycleConfig,
 ): TenantSubscription => {
-	const today = calendarDateInTimeZone(now, config.timeZone)
-	const startYmd = calendarDateInTimeZone(registeredAt, config.timeZone)
+	const today = businessDayKey(now, config.timeZone)
+	const startYmd = businessDayKey(registeredAt, config.timeZone)
 	let renewalYmd = addSubscriptionPeriod(startYmd, config.periodDays)
 
 	// note: tenants already past their first period get a fresh window from today. Upgrade to createdAt-based arrears if historical billing matters.
@@ -169,8 +150,8 @@ export const renewSubscription = (
 	now: Date,
 	config: SubscriptionLifecycleConfig,
 ): TenantSubscription => {
-	const today = calendarDateInTimeZone(now, config.timeZone)
-	const currentRenewal = calendarDateInTimeZone(
+	const today = businessDayKey(now, config.timeZone)
+	const currentRenewal = businessDayKey(
 		subscription.renewalDate,
 		config.timeZone,
 	)
@@ -205,13 +186,10 @@ export const toSubscriptionView = (
 		!expired && remainingDays > 0 && remainingDays <= config.warningDays
 
 	return {
-		startDate: calendarDateInTimeZone(subscription.startDate, config.timeZone),
-		renewalDate: calendarDateInTimeZone(
-			subscription.renewalDate,
-			config.timeZone,
-		),
+		startDate: businessDayKey(subscription.startDate, config.timeZone),
+		renewalDate: businessDayKey(subscription.renewalDate, config.timeZone),
 		lastRenewalDate: subscription.lastRenewalDate
-			? calendarDateInTimeZone(subscription.lastRenewalDate, config.timeZone)
+			? businessDayKey(subscription.lastRenewalDate, config.timeZone)
 			: null,
 		status: expired ? SUBSCRIPTION_STATUS.EXPIRED : subscription.status,
 		renewalEnabled: subscription.renewalEnabled,
@@ -236,7 +214,7 @@ export const tickSubscription = (
 ): SubscriptionTick => {
 	const next = cloneSubscription(subscription)
 	const view = toSubscriptionView(next, now, config)
-	const today = calendarDateInTimeZone(now, config.timeZone)
+	const today = businessDayKey(now, config.timeZone)
 	let changed = false
 
 	if (view.expired) {

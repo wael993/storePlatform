@@ -1,3 +1,5 @@
+import { DEFAULT_BUSINESS_TIME_ZONE, isValidTimeZone } from 'store-domain'
+
 const splitByComma = (value: string): string[] =>
 	value
 		.split(',')
@@ -18,11 +20,25 @@ const resolveApiEndpoint = (): string => {
 
 const apiEndpoint = resolveApiEndpoint()
 
+// Must match the API's BUSINESS_TIME_ZONE. A typo must not take the app down, so log and use the default.
+const resolveBusinessTimeZone = (): string => {
+	const configured = import.meta.env.VITE_BUSINESS_TIME_ZONE?.trim()
+	if (!configured) return DEFAULT_BUSINESS_TIME_ZONE
+	if (isValidTimeZone(configured)) return configured
+
+	console.error(
+		`Invalid VITE_BUSINESS_TIME_ZONE "${configured}", using ${DEFAULT_BUSINESS_TIME_ZONE}.`,
+	)
+	return DEFAULT_BUSINESS_TIME_ZONE
+}
+
 export const config = {
 	environment:
 		import.meta.env.VITE_ENVIRONMENT ??
 		(import.meta.env.DEV ? 'local' : undefined),
 	serviceId: import.meta.env.VITE_SERVICE_ID || 'store-platform-frontend',
+	/** Which calendar day an instant belongs to; see packages/store-domain/src/businessDay.ts. */
+	businessTimeZone: resolveBusinessTimeZone(),
 	endpoints: {
 		storePlatformEndpoint: apiEndpoint,
 		persistenceServiceEndpoint:

@@ -37,6 +37,9 @@ Demo tenant login: `user@app.com` / `W123-456z`. Super admin: `SUPER_ADMIN_EMAIL
 
 ## Copy a production tenant
 
+> **Stale since 2026-11-20:** this reads the frozen production Mongo, not today's Postgres data.
+> Useful only until Mongo is removed (PG-MIG-6). A Postgres → Postgres copy does not exist yet.
+
 Production Mongo is only read. The tenant's rows in the target are replaced in one transaction.
 
 ```bash

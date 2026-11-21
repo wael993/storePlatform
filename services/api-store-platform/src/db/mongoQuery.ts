@@ -236,23 +236,6 @@ const fieldCondition = (column: AnyPgColumn, condition: unknown): SQL => {
 			: isArray
 				? sql`${value} = any(${column})`
 				: sql`${column} = ${value}`
-	const inList = (values: unknown[]): SQL => {
-		const present = values.filter(v => v !== null && v !== undefined)
-		const parts: SQL[] = []
-
-		if (present.length) {
-			parts.push(
-				isArray
-					? sql`${column} && ${sql.param(present)}::text[]`
-					: anyOf(column, present),
-			)
-		}
-
-		if (present.length !== values.length) parts.push(sql`${column} is null`)
-
-		return parts.length ? or(...parts)! : sql`false`
-	}
-
 	/** Pattern match; on an array column any element may match (like Mongo). */
 	const matches = (pattern: unknown, options: string): SQL => {
 		const source = pattern instanceof RegExp ? pattern.source : String(pattern)
@@ -264,6 +247,28 @@ const fieldCondition = (column: AnyPgColumn, condition: unknown): SQL => {
 		return isArray
 			? sql`exists (select 1 from unnest(${column}) as element where element ${op} ${source})`
 			: sql`${column} ${op} ${source}`
+	}
+	const inList = (values: unknown[]): SQL => {
+		// Mongo's $in takes RegExp elements as pattern matches, not equalities
+		// (the case-insensitive list filters send `{ $in: [/^x$/i] }`).
+		const patterns = values.filter(v => v instanceof RegExp)
+		const present = values.filter(
+			v => v !== null && v !== undefined && !(v instanceof RegExp),
+		)
+		const parts: SQL[] = patterns.map(pattern => matches(pattern, ''))
+
+		if (present.length) {
+			parts.push(
+				isArray
+					? sql`${column} && ${sql.param(present)}::text[]`
+					: anyOf(column, present),
+			)
+		}
+
+		if (present.length + patterns.length !== values.length)
+			parts.push(sql`${column} is null`)
+
+		return parts.length ? or(...parts)! : sql`false`
 	}
 
 	// `{ field: /re/ }` is a pattern match in Mongo, not an equality
